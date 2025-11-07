@@ -14,20 +14,10 @@ import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
-import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
-import {
-  isExternalRouteField,
-  isTokenAuthField,
-  isDeploymentStrategyField,
-  type DeploymentStrategyField,
-  type ExternalRouteField,
-  type InitialWizardFormData,
-  type TokenAuthField,
-  type WizardFormData,
-} from './types';
+import { type InitialWizardFormData, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
-import { useWizardFieldsFromExtensions } from './dynamicFormUtils';
 import { useProjectSection } from './fields/ProjectSection';
+import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -35,11 +25,6 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     modelDeploymentLoaded: boolean;
     advancedOptionsLoaded: boolean;
     summaryLoaded: boolean;
-  };
-  fieldExtensions: {
-    externalRouteFields: ExternalRouteField[];
-    tokenAuthFields: TokenAuthField[];
-    deploymentStrategyFields: DeploymentStrategyField[];
   };
   advancedOptions: {
     isExternalRouteVisible: boolean;
@@ -51,8 +36,6 @@ export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
 ): UseModelDeploymentWizardState => {
-  const [fields] = useWizardFieldsFromExtensions();
-
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
@@ -121,34 +104,14 @@ export const useModelDeploymentWizard = (
     modelType.data,
   );
 
-  const externalRouteFields = React.useMemo(() => {
-    return fields.filter(isExternalRouteField);
-  }, [fields]);
-
-  const tokenAuthFields = React.useMemo(() => {
-    return fields.filter(isTokenAuthField);
-  }, [fields]);
-
-  const deploymentStrategyFields = React.useMemo(() => {
-    return fields.filter(isDeploymentStrategyField);
-  }, [fields]);
-
-  const fieldExtensions = {
-    externalRouteFields,
-    tokenAuthFields,
-    deploymentStrategyFields,
-  };
-
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
-    externalRouteFields,
     modelType,
     modelServer,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
-    tokenAuthFields,
     modelType,
     modelServer,
   );
@@ -159,7 +122,6 @@ export const useModelDeploymentWizard = (
   );
   const deploymentStrategy = useDeploymentStrategyField(
     initialData?.deploymentStrategy ?? undefined,
-    deploymentStrategyFields,
     modelType,
     modelServer,
   );
@@ -194,7 +156,6 @@ export const useModelDeploymentWizard = (
       advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
     },
-    fieldExtensions,
     advancedOptions: {
       isExternalRouteVisible: externalRoute.isVisible,
       shouldAutoCheckTokens: tokenAuthentication.shouldAutoCheck,

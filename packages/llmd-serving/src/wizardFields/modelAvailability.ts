@@ -1,8 +1,6 @@
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type {
   ModelAvailabilityField,
-  ModelTypeFieldData,
-  ModelServerSelectFieldData,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
@@ -18,9 +16,10 @@ const DEFAULT_MAAS_GATEWAY_REF = {
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
   type: 'modifier',
-  isActive: (modelType?: ModelTypeFieldData, modelServer?: ModelServerSelectFieldData): boolean => {
+  isActive: (wizardFormData) => {
     return (
-      modelType === ServingRuntimeModelType.GENERATIVE && modelServer?.name === LLMD_SERVING_ID
+      wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
+      wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
   showSaveAsMaaS: true,

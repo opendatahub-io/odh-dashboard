@@ -1,16 +1,12 @@
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import type {
-  ModelServerTemplateField,
-  ModelTypeFieldData,
-} from '@odh-dashboard/model-serving/types/form-data';
+import type { ModelServerTemplateField } from '@odh-dashboard/model-serving/types/form-data';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
-import type { ModelServingClusterSettings } from '../../../model-serving/src/concepts/useModelServingClusterSettings';
 
 export const modelServerField: ModelServerTemplateField = {
   id: 'modelServerTemplate',
   type: 'modifier',
-  isActive: (modelType?: ModelTypeFieldData): boolean => {
-    return modelType === ServingRuntimeModelType.GENERATIVE;
+  isActive: (wizardFormData) => {
+    return wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE;
   },
   extraOptions: [
     {
@@ -18,7 +14,7 @@ export const modelServerField: ModelServerTemplateField = {
       label: 'Distributed Inference Server with llm-d',
     },
   ],
-  suggestion: (modelServingClusterSettings?: ModelServingClusterSettings) => {
+  suggestion: (modelServingClusterSettings) => {
     return modelServingClusterSettings?.isLLMdDefault
       ? {
           name: LLMD_SERVING_ID,

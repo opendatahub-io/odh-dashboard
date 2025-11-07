@@ -10,6 +10,7 @@ import type {
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers.js';
 import type {
   ModelServerOption,
   useModelServerSelectField,
@@ -128,35 +129,27 @@ export type DeploymentWizardFieldId =
   | 'tokenAuth'
   | 'deploymentStrategy';
 
-export type DeploymentWizardFieldBase<
-  ID extends DeploymentWizardFieldId,
-  IsActive extends (...args: Parameters<IsActive>) => ReturnType<IsActive>,
-> = {
+export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId> = {
   id: ID;
   type: 'modifier' | 'replacement' | 'addition';
-  isActive: IsActive;
+} & {
+  isActive: (wizardFormData: RecursivePartial<WizardFormData['state']>) => boolean;
 };
 
 // actual fields
 
-export type ModelServerTemplateField = DeploymentWizardFieldBase<
-  'modelServerTemplate',
-  (modelType?: ModelTypeFieldData) => boolean
-> & {
+export type ModelServerTemplateField = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
   suggestion?: (clusterSettings?: ModelServingClusterSettings) => ModelServerOption | undefined;
 };
-export type ModelAvailabilityField = DeploymentWizardFieldBase<
-  'modelAvailability',
-  (modelType?: ModelTypeFieldData, modelServer?: ModelServerSelectFieldData) => boolean
-> & {
+export type ModelAvailabilityField = DeploymentWizardFieldBase<'modelAvailability'> & {
   id: 'modelAvailability';
   showSaveAsMaaS?: boolean;
 };
-export type ExternalRouteField = DeploymentWizardFieldBase<'externalRoute', () => boolean> & {
+export type ExternalRouteField = DeploymentWizardFieldBase<'externalRoute'> & {
   isVisible: boolean;
 };
-export type TokenAuthField = DeploymentWizardFieldBase<'tokenAuth', () => boolean> & {
+export type TokenAuthField = DeploymentWizardFieldBase<'tokenAuth'> & {
   initialValue: boolean;
 };
 
@@ -186,7 +179,7 @@ export const isExternalRouteField = (field: DeploymentWizardField): field is Ext
 export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
   return field.id === 'tokenAuth';
 };
-export type DeploymentStrategyField = DeploymentWizardFieldBase & {
+export type DeploymentStrategyField = DeploymentWizardFieldBase<'deploymentStrategy'> & {
   id: 'deploymentStrategy';
   type: 'modifier';
   isVisible: boolean;

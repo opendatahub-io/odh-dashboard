@@ -35,7 +35,8 @@ import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServi
 import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
-import { useWizardFieldsFromExtensions } from '../dynamicFormUtils';
+import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { isModelServerTemplateField } from '../types';
 
 export type ModelServerOption = {
   name: string;
@@ -68,21 +69,6 @@ export const getAcceleratorIdentifierFromHardwareProfile = (
   )?.identifier;
 };
 
-const useModelServerExtensions = (
-  modelType?: ModelTypeFieldData,
-): { suggestion?: ModelServerOption; extraOptions?: ModelServerOption[] } => {
-  const { data: modelServingClusterSettings } = useModelServingClusterSettings();
-  const [fieldExtensions] = useWizardFieldsFromExtensions('modelServerTemplate');
-
-  return React.useMemo(() => {
-    const extensionToUse = fieldExtensions.find((field) => field.isActive(modelType));
-    return {
-      suggestion: extensionToUse?.suggestion?.(modelServingClusterSettings),
-      options: extensionToUse?.extraOptions,
-    };
-  }, [fieldExtensions, modelType, modelServingClusterSettings]);
-};
-
 // Hooks
 export type ModelServerSelectField = {
   data?: ModelServerOption | null;
@@ -101,8 +87,11 @@ export const useModelServerSelectField = (
   modelType?: ModelTypeFieldData,
   hardwareProfile?: HardwareProfileKind,
 ): ModelServerSelectField => {
-  const { suggestion: extensionSuggestion, extraOptions: extensionOptions } =
-    useModelServerExtensions(modelType);
+  const { data: modelServingClusterSettings } = useModelServingClusterSettings();
+
+  const modelServerSelectExtension = useWizardFieldFromExtension(isModelServerTemplateField, {
+    modelType: { data: modelType },
+  });
   const { dashboardNamespace } = useDashboardNamespace();
 
   const [modelServer, setModelServer] = React.useState<ModelServerOption | null | undefined>(
@@ -122,8 +111,8 @@ export const useModelServerSelectField = (
   }, [modelType, existingData, setModelServer, setIsAutoSelectChecked]);
 
   const suggestion = React.useMemo(() => {
-    if (extensionSuggestion) {
-      return extensionSuggestion;
+    if (modelServerSelectExtension?.suggestion) {
+      return modelServerSelectExtension.suggestion(modelServingClusterSettings);
     }
 
     let filteredTemplates = modelServerTemplates;
@@ -161,7 +150,7 @@ export const useModelServerSelectField = (
   const options = React.useMemo(() => {
     const result = [];
 
-    result.push(...(extensionOptions || []));
+    result.push(...(modelServerSelectExtension?.extraOptions || []));
 
     result.push(
       ...(modelServerTemplates?.map((template) => ({
@@ -173,7 +162,7 @@ export const useModelServerSelectField = (
     );
 
     return result;
-  }, [extensionOptions, modelServerTemplates, dashboardNamespace]);
+  }, [modelServerSelectExtension?.extraOptions, modelServerTemplates, dashboardNamespace]);
 
   const isDirty = !!existingData?.name || isAutoSelectChecked !== undefined;
 
