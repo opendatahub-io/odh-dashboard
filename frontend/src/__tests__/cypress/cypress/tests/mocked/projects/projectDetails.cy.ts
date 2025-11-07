@@ -42,7 +42,6 @@ import {
   asProjectAdminUser,
   asProjectEditUser,
 } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '#~/__mocks__/mockNimResource';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
@@ -55,7 +54,6 @@ type HandlersProps = {
   imageStreamName?: string;
   imageStreamTag?: string;
   disableKServe?: boolean;
-  disableKServeMetrics?: boolean;
   disableNIMConfig?: boolean;
   enableModelMesh?: boolean;
   enableNIM?: boolean;
@@ -77,7 +75,6 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableKServe,
-  disableKServeMetrics,
   disableNIMConfig = true,
   enableModelMesh,
   enableNIM = false,
@@ -148,7 +145,6 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe,
       disableNIMModelServing: disableNIMConfig,
-      disableKServeMetrics,
       disableKueue,
     }),
   );
@@ -467,65 +463,6 @@ describe('Project Details', () => {
       deleteProjectModal.findCancelButton().click();
       deleteProjectModal.shouldBeOpen(false);
     });
-
-    it('Both model serving platforms are disabled', () => {
-      initIntercepts({ disableKServe: true });
-      projectDetails.visit('test-project');
-      projectDetails.shouldHaveNoPlatformSelectedText();
-    });
-
-    it('Only single serving platform enabled, no serving runtimes templates', () => {
-      initIntercepts({
-        disableKServe: false,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'model-server');
-      cy.wait('@templates');
-      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
-      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
-    });
-
-    it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
-      initIntercepts({
-        disableKServe: false,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
-      projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('exist');
-    });
-
-    it('Single model serving platform is enabled', () => {
-      initIntercepts({ templates: true, disableKServe: false });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visit('test-project');
-      projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
-      projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
-    });
-
-    it('Shows KServe metrics only when available', () => {
-      initIntercepts({ templates: true, disableKServe: false });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.getKserveModelMetricLink('Test Inference Service').should('not.exist');
-
-      initIntercepts({
-        templates: true,
-        disableKServe: false,
-        disableKServeMetrics: false,
-        inferenceServices: [
-          mockInferenceServiceK8sResource({
-            activeModelState: 'Loaded',
-          }),
-        ],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.getKserveModelMetricLink('Test Inference Service').should('be.visible');
-      projectDetails.getKserveModelMetricLink('Test Inference Service').click();
-      cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
-    });
   });
 
   describe('No empty project details', () => {
@@ -601,250 +538,6 @@ describe('Project Details', () => {
       initIntercepts({ isUnknown: true });
       projectDetails.visitSection('test-project', 'workbenches');
       projectDetails.getNotebookRow('test-notebook').shouldHaveNotebookImageName('unknown');
-    });
-  });
-
-  describe('Selecting a model serving platform', () => {
-    it('Select single-model serving on models tab', () => {
-      initModelServingIntercepts({});
-      initIntercepts({ disableKServe: false, disableNIMConfig: false });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('kserve').click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
-        );
-      });
-    });
-    it('Un-select single-model serving on models tab', () => {
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findResetPlatformButton().click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
-        );
-      });
-    });
-
-    it('Select NIM serving on models tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('nvidia-nim').click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
-        );
-      });
-    });
-
-    it('Un-select NIM serving on models tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-        enableNIM: true,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findResetPlatformButton().click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
-        );
-      });
-    });
-
-    it('Show error when failed to select platform on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        rejectAddSupportServingPlatformProject: true,
-      });
-      projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('kserve').click();
-      projectDetails.findErrorSelectingPlatform().should('exist');
-    });
-
-    it('Show error when failed to un-select platform on overview tab', () => {
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-        rejectAddSupportServingPlatformProject: true,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findResetPlatformButton().click();
-      projectDetails.findErrorSelectingPlatform().should('exist');
-    });
-
-    it('Select single-model serving on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
-      initIntercepts({ disableKServe: false, disableNIMConfig: false });
-      projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('kserve').click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
-        );
-      });
-    });
-
-    it('Un-select single-model serving on overview tab', () => {
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findResetPlatformButton().click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
-        );
-      });
-    });
-
-    it('Select NIM serving on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-      });
-      projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('nvidia-nim').click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
-        );
-      });
-    });
-
-    it('Un-select NIM serving on overview tab', () => {
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-        enableNIM: true,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findResetPlatformButton().click();
-      cy.wait('@addSupportServingPlatformProject').then((interception) => {
-        expect(interception.request.url).to.contain(
-          `/api/namespaces/test-project/${NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}`,
-        );
-      });
-    });
-
-    it('Show error when failed to select platform on models tab', () => {
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        rejectAddSupportServingPlatformProject: true,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('kserve').click();
-      projectDetails.findErrorSelectingPlatform().should('exist');
-    });
-
-    it('Show error when failed to un-select platform on overview tab', () => {
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-        rejectAddSupportServingPlatformProject: true,
-      });
-      initModelServingIntercepts({ isEmpty: true });
-      projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findResetPlatformButton().click();
-      projectDetails.findErrorSelectingPlatform().should('exist');
-    });
-
-    it('Change serving platform button should be disabled with tooltip when non-dashboard inference service exists', () => {
-      // Create a non-dashboard inference service
-      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
-        name: 'non-dashboard-inference',
-        namespace: 'test-project',
-        isNonDashboardItem: true,
-      });
-
-      initModelServingIntercepts({});
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-        inferenceServices: [nonDashboardInferenceService],
-        servingRuntimes: [],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      // Find the change serving platform button
-      projectDetails.findResetPlatformButton().should('have.attr', 'aria-disabled');
-
-      // Verify the tooltip content
-      projectDetails
-        .findResetPlatformButton()
-        .trigger('mouseenter')
-        .then(() => {
-          cy.findByRole('tooltip').should(
-            'have.text',
-            'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.',
-          );
-        });
-    });
-
-    it('Change serving platform button should be disabled with tooltip when non-dashboard serving runtime exists', () => {
-      // Create a non-dashboard inference service
-      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
-        name: 'non-dashboard-inference',
-        namespace: 'test-project',
-        isNonDashboardItem: true,
-      });
-      // Create a non-dashboard serving runtime
-      const nonDashboardServingRuntime = mockServingRuntimeK8sResource({
-        name: 'non-dashboard-runtime',
-        namespace: 'test-project',
-        isNonDashboardItem: true,
-      });
-
-      initIntercepts({
-        disableKServe: false,
-        disableNIMConfig: false,
-        enableModelMesh: false,
-        inferenceServices: [nonDashboardInferenceService],
-        servingRuntimes: [nonDashboardServingRuntime],
-      });
-
-      projectDetails.visitSection('test-project', 'model-server');
-
-      // Find the change serving platform button
-      projectDetails.findResetPlatformButton().should('have.attr', 'aria-disabled');
-
-      // Verify the tooltip content
-      projectDetails
-        .findResetPlatformButton()
-        .trigger('mouseenter')
-        .then(() => {
-          cy.findByRole('tooltip').should(
-            'have.text',
-            'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.',
-          );
-        });
     });
   });
 
