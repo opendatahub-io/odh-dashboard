@@ -216,11 +216,13 @@ export const mockDeploymentWizardState = (
         deploymentStrategy: {
           data: deploymentStrategyRolling,
           setData: jest.fn(),
+          isVisible: true,
         },
       },
       fieldExtensions: {
         externalRouteFields: [],
         tokenAuthFields: [],
+        deploymentStrategyFields: [],
       },
       loaded: {
         modelSourceLoaded: true,

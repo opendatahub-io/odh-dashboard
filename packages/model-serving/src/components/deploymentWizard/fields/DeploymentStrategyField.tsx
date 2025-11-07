@@ -2,6 +2,9 @@ import React from 'react';
 import { Radio, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
+import type { ModelTypeField } from './ModelTypeSelectField';
+import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import type { DeploymentStrategyField as DeploymentStrategyFieldType } from '../types';
 
 // Schema
 export const deploymentStrategyFieldSchema = z.enum(['rolling', 'recreate']);
@@ -19,12 +22,28 @@ export const isValidDeploymentStrategy = (value: unknown): value is DeploymentSt
 export type DeploymentStrategyFieldHook = {
   data: DeploymentStrategyFieldData;
   setData: (data: DeploymentStrategyFieldData) => void;
+  isVisible: boolean;
 };
 
 export const useDeploymentStrategyField = (
   existingData?: DeploymentStrategyFieldData,
+  deploymentStrategyFields?: DeploymentStrategyFieldType[],
+  modelType?: ModelTypeField,
+  modelServer?: ModelServerSelectField,
 ): DeploymentStrategyFieldHook => {
   const { dashboardConfig } = useAppContext();
+
+  const isVisible = React.useMemo(() => {
+    if (!modelType || !deploymentStrategyFields) return true;
+
+    const activeField = deploymentStrategyFields.find((field) =>
+      field.isActive({
+        modelType,
+        modelServer,
+      }),
+    );
+    return activeField?.isVisible ?? true;
+  }, [deploymentStrategyFields, modelType, modelServer]);
 
   const clusterDefault = React.useMemo(() => {
     const strategy = dashboardConfig.spec.modelServing?.deploymentStrategy;
@@ -41,6 +60,7 @@ export const useDeploymentStrategyField = (
   return {
     data: deploymentStrategy,
     setData: setDeploymentStrategy,
+    isVisible,
   };
 };
 

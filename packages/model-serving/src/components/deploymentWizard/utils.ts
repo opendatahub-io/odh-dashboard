@@ -6,11 +6,6 @@ import {
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
-  type DeploymentStrategyFieldData,
-  deploymentStrategyRolling,
-  deploymentStrategyRecreate,
-} from './fields/DeploymentStrategyField';
-import {
   ModelLocationType,
   ModelLocationData,
   WizardFormData,
@@ -66,28 +61,6 @@ export const getTokenAuthenticationFromDeployment = (
   }
 
   return [];
-};
-
-export const getDeploymentStrategyFromDeployment = (
-  deployment: Deployment,
-): DeploymentStrategyFieldData | undefined => {
-  const predictor = deployment.model.spec?.predictor;
-  if (!predictor || typeof predictor !== 'object') {
-    return undefined;
-  }
-  const deploymentStrategy =
-    'deploymentStrategy' in predictor ? predictor.deploymentStrategy : undefined;
-  if (!deploymentStrategy || typeof deploymentStrategy !== 'object') {
-    return undefined;
-  }
-  const strategyType = 'type' in deploymentStrategy ? deploymentStrategy.type : undefined;
-  if (strategyType === 'RollingUpdate') {
-    return deploymentStrategyRolling;
-  }
-  if (strategyType === 'Recreate') {
-    return deploymentStrategyRecreate;
-  }
-  return undefined;
 };
 
 export const deployModel = async (

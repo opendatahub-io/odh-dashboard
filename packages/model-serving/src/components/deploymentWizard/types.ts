@@ -115,7 +115,8 @@ export type DeploymentWizardFieldId =
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
-  | 'tokenAuth';
+  | 'tokenAuth'
+  | 'deploymentStrategy';
 
 export type DeploymentWizardFieldBase = {
   id: DeploymentWizardFieldId;
@@ -161,7 +162,8 @@ export type DeploymentWizardField =
   | ModelServerTemplateField
   | ModelAvailabilityField
   | ExternalRouteField
-  | TokenAuthField;
+  | TokenAuthField
+  | DeploymentStrategyField;
 
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
@@ -179,4 +181,14 @@ export const isExternalRouteField = (field: DeploymentWizardField): field is Ext
 };
 export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
   return field.id === 'tokenAuth';
+};
+export type DeploymentStrategyField = DeploymentWizardFieldBase & {
+  id: 'deploymentStrategy';
+  type: 'modifier';
+  isVisible: boolean;
+};
+export const isDeploymentStrategyField = (
+  field: DeploymentWizardField,
+): field is DeploymentStrategyField => {
+  return field.id === 'deploymentStrategy';
 };

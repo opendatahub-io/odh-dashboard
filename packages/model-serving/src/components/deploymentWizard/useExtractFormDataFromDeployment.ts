@@ -6,7 +6,6 @@ import {
   getModelTypeFromDeployment,
   getExternalRouteFromDeployment,
   getTokenAuthenticationFromDeployment,
-  getDeploymentStrategyFromDeployment,
 } from './utils';
 import {
   type Deployment,
@@ -140,7 +139,10 @@ export const useExtractFormDataFromDeployment = (
       existingAuthTokens: deploymentSecrets,
 
       // Extract deployment strategy configuration
-      deploymentStrategy: getDeploymentStrategyFromDeployment(deployment),
+      deploymentStrategy:
+        typeof formDataExtension?.properties.extractDeploymentStrategy === 'function'
+          ? formDataExtension.properties.extractDeploymentStrategy(deployment) ?? undefined
+          : undefined,
 
       // Extract runtime arguments if available
       runtimeArgs:

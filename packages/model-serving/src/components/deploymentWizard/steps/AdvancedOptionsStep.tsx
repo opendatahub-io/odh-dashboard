@@ -52,11 +52,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     wizardState.state.modelServer.data,
   ]);
 
-  const isLlmdSelected = React.useMemo(() => {
-    const modelServerData = wizardState.state.modelServer.data;
-    return modelServerData?.name === 'llmd-serving';
-  }, [wizardState.state.modelServer.data]);
-
   const getKServeContainer = (
     servingRuntime?: ServingRuntimeKind,
   ): ServingContainer | undefined => {
@@ -198,7 +193,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </Stack>
               </FormGroup>
             </StackItem>
-            {!isLlmdSelected && (
+            {wizardState.state.deploymentStrategy.isVisible && (
               <StackItem>
                 <FormGroup
                   label="Deployment strategy"

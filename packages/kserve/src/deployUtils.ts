@@ -45,8 +45,12 @@ import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/componen
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
 import { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import type { DeploymentStrategyFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
-import { deploymentStrategyRolling } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import {
+  deploymentStrategyRolling,
+  deploymentStrategyRecreate,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
 import type { CreatingInferenceServiceObject } from './deployModel';
+import type { KServeDeployment } from './deployments';
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
@@ -372,13 +376,30 @@ export const applyModelType = (
   return result;
 };
 
+export const extractDeploymentStrategy = (
+  kserveDeployment: KServeDeployment,
+): DeploymentStrategyFieldData | null => {
+  const { deploymentStrategy } = kserveDeployment.model.spec.predictor;
+  if (!deploymentStrategy || typeof deploymentStrategy !== 'object') {
+    return null;
+  }
+
+  const { type: strategyType } = deploymentStrategy;
+  if (strategyType === 'RollingUpdate') {
+    return deploymentStrategyRolling;
+  }
+  return deploymentStrategyRecreate;
+};
+
 export const applyDeploymentStrategy = (
   inferenceService: InferenceServiceKind,
   deploymentStrategy?: DeploymentStrategyFieldData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
-  result.spec.predictor.deploymentStrategy = {
-    type: deploymentStrategy === deploymentStrategyRolling ? 'RollingUpdate' : 'Recreate',
-  };
+  if (deploymentStrategy) {
+    result.spec.predictor.deploymentStrategy = {
+      type: deploymentStrategy === deploymentStrategyRolling ? 'RollingUpdate' : 'Recreate',
+    };
+  }
   return result;
 };

@@ -154,6 +154,9 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => { saveAsAiAsset: boolean; saveAsMaaS?: boolean; useCase?: string } | null
     >;
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
+    extractDeploymentStrategy?: CodeRef<
+      (deployment: D) => WizardFormData['state']['deploymentStrategy']['data'] | null
+    >;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
