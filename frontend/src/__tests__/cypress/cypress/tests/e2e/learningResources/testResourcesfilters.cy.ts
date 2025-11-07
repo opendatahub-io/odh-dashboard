@@ -25,10 +25,10 @@ const cardView = resources.getCardView();
 const resourcesToolbar = resources.getLearningCenterToolbar();
 const resourceFilters = resources.getLearningCenterFilters();
 
-describe('[Automation Bug: RHOAIENG-34805] Verify the filters on Resources page', () => {
+describe('Verify the filters on Resources page', () => {
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard'] },
     () => {
       // Authentication
       cy.step('Log into the application');
@@ -116,7 +116,7 @@ describe('[Automation Bug: RHOAIENG-34805] Verify the filters on Resources page'
   );
 
   it(
-    'Test RHOAI-specific filters',
+    '[Automation Bug: RHOAIENG-34805] Test RHOAI-specific filters',
     { tags: ['@Sanity', '@SanitySet1', '@Dashboard', '@Maintain'] },
     () => {
       // Skips this test if not running on RHOAI
