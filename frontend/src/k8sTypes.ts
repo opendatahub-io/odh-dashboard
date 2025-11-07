@@ -536,6 +536,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      deploymentStrategy?: {
+        type: 'RollingUpdate' | 'Recreate';
+      };
       model?: {
         modelFormat?: {
           name: string;

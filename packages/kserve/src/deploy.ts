@@ -35,6 +35,7 @@ export const deployKServeDeployment = async (
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
     modelAvailability: wizardData.modelAvailability.data,
+    deploymentStrategy: wizardData.deploymentStrategy.data,
   };
 
   const servingRuntime =

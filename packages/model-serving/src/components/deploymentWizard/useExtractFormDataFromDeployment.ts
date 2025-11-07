@@ -138,6 +138,12 @@ export const useExtractFormDataFromDeployment = (
       // Include existing authentication tokens
       existingAuthTokens: deploymentSecrets,
 
+      // Extract deployment strategy configuration
+      deploymentStrategy:
+        typeof formDataExtension?.properties.extractDeploymentStrategy === 'function'
+          ? formDataExtension.properties.extractDeploymentStrategy(deployment) ?? undefined
+          : undefined,
+
       // Extract runtime arguments if available
       runtimeArgs:
         typeof formDataExtension?.properties.extractRuntimeArgs === 'function'
