@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { deleteLSD } from '~/app/services/llamaStackService';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import DeleteModal from '~/app/shared/DeleteModal';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 type DeletePlaygroundModalProps = {
   onCancel: () => void;
@@ -17,6 +17,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
   const { lsdStatus, refresh } = React.useContext(ChatbotContext);
   const [isDeleting, setDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const { api, apiAvailable } = useGenAiAPI();
 
   return (
     <DeleteModal
@@ -32,14 +33,17 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
       error={error}
       onDelete={async () => {
         setDeleting(true);
-        if (namespace?.name && lsdStatus?.name) {
-          deleteLSD(namespace.name, lsdStatus.name)
+        if (apiAvailable && lsdStatus?.name) {
+          api
+            .deleteLSD({
+              name: lsdStatus.name,
+            })
             .then(() => {
               onCancel();
               fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: true,
-                namespace: namespace.name,
+                namespace: namespace?.name,
               });
               refresh();
             })
@@ -47,7 +51,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
               fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: false,
-                namespace: namespace.name,
+                namespace: namespace?.name,
                 error: e.message,
               });
               setError(e);

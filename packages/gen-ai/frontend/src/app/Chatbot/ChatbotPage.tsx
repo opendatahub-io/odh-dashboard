@@ -13,7 +13,7 @@ const ChatbotPage: React.FC = () => {
   const isStandalone = config.deploymentMode === DeploymentMode.Standalone;
 
   return (
-    <ChatbotContextProvider namespace={namespace}>
+    <ChatbotContextProvider>
       <MCPDataProvider namespace={namespace}>
         {isStandalone ? (
           <ChatbotMain />

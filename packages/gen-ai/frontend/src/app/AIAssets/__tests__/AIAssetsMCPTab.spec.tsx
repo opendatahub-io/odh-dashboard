@@ -4,13 +4,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import type { MCPServerFromAPI } from '~/app/types';
 import { useMCPServers } from '~/app/hooks/useMCPServers';
 import AIAssetsMCPTab from '~/app/AIAssets/AIAssetsMCPTab';
-
-const mockNamespace = { name: 'test-namespace' };
-const mockContext = {
-  namespace: mockNamespace,
-  isLoading: false,
-  error: undefined,
-};
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/context/MCPContextProvider', () => ({
   MCPDataProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -53,7 +47,7 @@ describe('AIAssetsMCPTab', () => {
     } as ReturnType<typeof useMCPServers>);
 
     render(
-      <GenAiContext.Provider value={mockContext as React.ContextType<typeof GenAiContext>}>
+      <GenAiContext.Provider value={mockGenAiContextValue}>
         <AIAssetsMCPTab />
       </GenAiContext.Provider>,
     );
@@ -81,7 +75,7 @@ describe('AIAssetsMCPTab', () => {
     } as ReturnType<typeof useMCPServers>);
 
     render(
-      <GenAiContext.Provider value={mockContext as React.ContextType<typeof GenAiContext>}>
+      <GenAiContext.Provider value={mockGenAiContextValue}>
         <AIAssetsMCPTab />
       </GenAiContext.Provider>,
     );

@@ -38,14 +38,14 @@ describe('MaaSModelTableRowEndpoint', () => {
 
   it('should render "-" when model has no URL', () => {
     const model = createMockMaaSModel({ url: '' });
-    render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+    render(<MaaSModelTableRowEndpoint model={model} />);
 
     expect(screen.getByText('-')).toBeInTheDocument();
   });
 
   it('should render "View" button when model has URL', () => {
     const model = createMockMaaSModel();
-    render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+    render(<MaaSModelTableRowEndpoint model={model} />);
 
     expect(screen.getByText('View')).toBeInTheDocument();
   });
@@ -53,7 +53,7 @@ describe('MaaSModelTableRowEndpoint', () => {
   it('should show popover with model URL when "View" is clicked', async () => {
     const user = userEvent.setup();
     const model = createMockMaaSModel({ url: 'https://example.com/maas/model' });
-    render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+    render(<MaaSModelTableRowEndpoint model={model} />);
 
     const viewButton = screen.getByText('View');
     await user.click(viewButton);
@@ -66,7 +66,7 @@ describe('MaaSModelTableRowEndpoint', () => {
     it('should show "Generate API token" button initially', async () => {
       const user = userEvent.setup();
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -86,7 +86,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -94,7 +94,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       const generateButton = screen.getByText('Generate API token');
       await user.click(generateButton);
 
-      expect(mockGenerateToken).toHaveBeenCalledWith('test-namespace');
+      expect(mockGenerateToken).toHaveBeenCalled();
     });
 
     it('should disable button and show spinner when generating token', async () => {
@@ -108,7 +108,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -128,7 +128,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -149,7 +149,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -169,7 +169,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -192,7 +192,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -207,7 +207,7 @@ describe('MaaSModelTableRowEndpoint', () => {
     it('should render ClipboardCopy for MaaS route URL', async () => {
       const user = userEvent.setup();
       const model = createMockMaaSModel({ url: 'https://example.com/maas/route' });
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
@@ -227,7 +227,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       });
 
       const model = createMockMaaSModel();
-      render(<MaaSModelTableRowEndpoint model={model} namespace="test-namespace" />);
+      render(<MaaSModelTableRowEndpoint model={model} />);
 
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
