@@ -106,8 +106,6 @@ describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth'
       modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
-      modelServingWizard.findNextButton().click();
-      //Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
