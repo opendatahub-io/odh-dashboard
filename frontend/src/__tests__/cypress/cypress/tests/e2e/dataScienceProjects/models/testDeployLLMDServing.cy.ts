@@ -23,8 +23,9 @@ let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
+let modelURI: string;
 
-describe('A user can deploy an LLMD (Large Language Model Deployment) model', () => {
+describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
@@ -32,6 +33,7 @@ describe('A user can deploy an LLMD (Large Language Model Deployment) model', ()
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
+        modelURI = testData.modelURI;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
 
@@ -59,7 +61,7 @@ describe('A user can deploy an LLMD (Large Language Model Deployment) model', ()
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -79,9 +81,9 @@ describe('A user can deploy an LLMD (Large Language Model Deployment) model', ()
 
       cy.step('Select Model details');
       modelServingWizard.findModelLocationSelectOption('URI - v1').click();
-      modelServingWizard.findUrilocationInput().clear().type('hf://facebook/opt-125m');
+      modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionNameInput().clear().type('test-llmd-connection');
+      modelServingWizard.findSaveConnectionNameInput().clear().type(`${modelName}-connection`);
       modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 

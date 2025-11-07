@@ -186,6 +186,7 @@ export type DataScienceProjectData = {
   projectSingleModelResourceName: string;
   singleModelName: string;
   modelFilePath: string;
+  modelURI: string;
   projectSingleModelAdminDisplayName: string;
   projectSingleModelAdminResourceName: string;
   singleModelAdminName: string;
