@@ -316,8 +316,7 @@ const getStatusSections = (projectName: string): StatusSection[] => [
           return strategy === deploymentStrategyRecreate ? 'Recreate' : 'Rolling update';
         },
         isVisible: (wizardState) => {
-          const modelServerData = wizardState.state.modelServer.data;
-          return modelServerData?.name !== 'llmd-serving';
+          return wizardState.state.deploymentStrategy.isVisible;
         },
       },
     ],
