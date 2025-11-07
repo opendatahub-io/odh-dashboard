@@ -7,10 +7,13 @@ import {
   modelTrainingGlobal,
   trainingJobTable,
   trainingJobDetailsDrawer,
+  trainingJobResourcesTab,
 } from '#~/__tests__/cypress/cypress/pages/modelTraining';
 import { ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
-import { LocalQueueModel, TrainJobModel } from '#~/api/models';
+import { ClusterQueueModel, LocalQueueModel, TrainJobModel } from '#~/api/models';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
+import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
+import { ContainerResourceAttributes } from '#~/types';
 
 const projectName = 'test-model-training-project';
 const projectDisplayName = 'Test Model Training Project';
@@ -64,6 +67,22 @@ const mockTrainJobs = mockTrainJobK8sResourceList([
     localQueueName: 'middle-queue',
     creationTimestamp: '2024-01-15T14:45:00Z',
   },
+  {
+    name: 'gpu-training-job',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 2,
+    localQueueName: 'gpu-queue',
+    creationTimestamp: '2024-01-17T09:00:00Z',
+  },
+  {
+    name: 'overconsumed-training-job',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 8,
+    localQueueName: 'overconsumed-queue',
+    creationTimestamp: '2024-01-18T10:00:00Z',
+  },
 ]);
 
 const mockLocalQueues = [
@@ -90,6 +109,79 @@ const mockLocalQueues = [
   mockLocalQueueK8sResource({
     name: 'middle-queue',
     namespace: projectName,
+  }),
+  {
+    ...mockLocalQueueK8sResource({
+      name: 'gpu-queue',
+      namespace: projectName,
+    }),
+    spec: {
+      clusterQueue: 'gpu-cluster-queue',
+    },
+  },
+  {
+    ...mockLocalQueueK8sResource({
+      name: 'overconsumed-queue',
+      namespace: projectName,
+    }),
+    spec: {
+      clusterQueue: 'overconsumed-cluster-queue',
+    },
+  },
+];
+
+const createGPUClusterQueue = () => {
+  const baseMock = mockClusterQueueK8sResource({ name: 'gpu-cluster-queue' });
+  return {
+    ...baseMock,
+    spec: {
+      ...baseMock.spec,
+      cohort: 'ml-training-cohort',
+      resourceGroups: [
+        {
+          coveredResources: [
+            ContainerResourceAttributes.CPU,
+            ContainerResourceAttributes.MEMORY,
+            'nvidia.com/gpu' as ContainerResourceAttributes,
+          ],
+          flavors: [
+            {
+              name: 'gpu-flavor',
+              resources: [
+                { name: ContainerResourceAttributes.CPU, nominalQuota: '200' },
+                { name: ContainerResourceAttributes.MEMORY, nominalQuota: '128Gi' },
+                { name: 'nvidia.com/gpu' as ContainerResourceAttributes, nominalQuota: '8' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    status: {
+      ...baseMock.status,
+      flavorsUsage: [
+        {
+          name: 'gpu-flavor',
+          resources: [
+            { name: ContainerResourceAttributes.CPU, total: '50' },
+            { name: ContainerResourceAttributes.MEMORY, total: '32Gi' },
+            { name: 'nvidia.com/gpu' as ContainerResourceAttributes, total: '2' },
+          ],
+        },
+      ],
+    },
+  };
+};
+
+const mockClusterQueues = [
+  mockClusterQueueK8sResource({
+    name: 'test-cluster-queue',
+  }),
+  createGPUClusterQueue(),
+  mockClusterQueueK8sResource({
+    name: 'overconsumed-cluster-queue',
+    isCpuOverQuota: true,
+    isMemoryOverQuota: true,
   }),
 ];
 
@@ -124,6 +216,30 @@ const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
     },
     mockK8sResourceList(isEmpty ? [] : mockLocalQueues),
   );
+
+  if (!isEmpty) {
+    mockLocalQueues.forEach((queue) => {
+      if (queue.metadata?.name) {
+        cy.interceptK8s(
+          {
+            model: LocalQueueModel,
+            ns: projectName,
+            name: queue.metadata.name,
+          },
+          queue,
+        );
+      }
+    });
+  }
+
+  if (!isEmpty) {
+    cy.interceptK8s({ model: ClusterQueueModel, name: 'test-cluster-queue' }, mockClusterQueues[0]);
+    cy.interceptK8s({ model: ClusterQueueModel, name: 'gpu-cluster-queue' }, mockClusterQueues[1]);
+    cy.interceptK8s(
+      { model: ClusterQueueModel, name: 'overconsumed-cluster-queue' },
+      mockClusterQueues[2],
+    );
+  }
 };
 
 describe('Model Training', () => {
@@ -147,7 +263,6 @@ describe('Model Training', () => {
     initIntercepts({ isEmpty: true });
     modelTrainingGlobal.visit(projectName);
 
-    // Verify empty state is displayed
     modelTrainingGlobal.findEmptyState().should('contain', 'No training jobs');
     modelTrainingGlobal
       .findEmptyStateDescription()
@@ -182,7 +297,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.findTab('Logs').should('exist');
 
       trainingJobDetailsDrawer.selectTab('Resources');
-      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Resources content');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Node configurations');
 
       trainingJobDetailsDrawer.selectTab('Pods');
       trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Pods content');
@@ -230,6 +345,174 @@ describe('Model Training', () => {
       secondRow.findNameLink().click();
 
       trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
+    });
+  });
+
+  describe('Resources Tab', () => {
+    it('should display all sections in Resources tab', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify all sections are present
+      trainingJobResourcesTab.findNodeConfigurationsSection().should('exist');
+      trainingJobResourcesTab.findResourcesPerNodeSection().should('exist');
+      trainingJobResourcesTab.findClusterQueueSection().should('exist');
+      trainingJobResourcesTab.findQuotasSection().should('exist');
+    });
+
+    it('should display correct node configuration values', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findNodesValue().should('contain', '4');
+      trainingJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
+      trainingJobResourcesTab.findNodesEditButton().should('exist');
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+    });
+
+    it('should display correct resource values', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('nlp-model-training');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findCpuRequestsValue().should('contain', '1');
+      trainingJobResourcesTab.findCpuLimitsValue().should('contain', '2');
+      trainingJobResourcesTab.findMemoryRequestsValue().should('contain', '2Gi');
+      trainingJobResourcesTab.findMemoryLimitsValue().should('contain', '4Gi');
+    });
+
+    it('should display cluster queue information', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findQueueValue().should('contain', 'test-cluster-queue');
+    });
+
+    it('should display quota source', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findQuotaSourceValue().should('contain', '-');
+    });
+
+    it('should display CPU and Memory consumption', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findCPUQuotaTotal().should('contain', '100');
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '40 (40%)');
+
+      trainingJobResourcesTab.findMemoryQuotaTotal().should('contain', '64Gi');
+      trainingJobResourcesTab.findMemoryQuotaConsumed().should('contain', '20Gi (31%)');
+    });
+
+    it('should display GPU consumption when available', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('gpu-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // GPU cluster queue has: 200 CPU, 128Gi Memory, 8 GPU
+      trainingJobResourcesTab.findCPUQuotaTotal().should('contain', '200');
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '50 (25%)');
+
+      trainingJobResourcesTab.findMemoryQuotaTotal().should('contain', '128Gi');
+      trainingJobResourcesTab.findMemoryQuotaConsumed().should('contain', '32Gi (25%)');
+
+      trainingJobResourcesTab.findGPUQuotaTotal().should('contain', '8');
+      trainingJobResourcesTab.findGPUQuotaConsumed().should('contain', '2 (25%)');
+    });
+
+    it('should display cohort when set', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('gpu-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findQuotaSourceValue().should('contain', 'ml-training-cohort');
+    });
+
+    it('should display over-consumption correctly', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('overconsumed-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '180 (180%)');
+      trainingJobResourcesTab.findMemoryQuotaConsumed().should('contain', '100Gi (156%)');
+    });
+
+    it('should show dash when no consumed resources available', () => {
+      initIntercepts({ isEmpty: true });
+      modelTrainingGlobal.visit(projectName);
+
+      modelTrainingGlobal.findEmptyState().should('exist');
+    });
+
+    it('should update resources tab when switching between jobs', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const firstRow = trainingJobTable.getTableRow('image-classification-job');
+      firstRow.findNameLink().click();
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+      trainingJobResourcesTab.findNodesValue().should('contain', '4');
+
+      const secondRow = trainingJobTable.getTableRow('nlp-model-training');
+      secondRow.findNameLink().click();
+      trainingJobResourcesTab.findNodesValue().should('contain', '3');
+
+      const thirdRow = trainingJobTable.getTableRow('a-first-job');
+      thirdRow.findNameLink().click();
+      trainingJobResourcesTab.findNodesValue().should('contain', '6');
     });
   });
 });
