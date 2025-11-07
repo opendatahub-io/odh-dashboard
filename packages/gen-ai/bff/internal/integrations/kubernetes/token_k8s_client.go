@@ -115,6 +115,49 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
+// GetClusterDomainUsingServiceAccount retrieves cluster domain using the pod's service account
+func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logger) (string, error) {
+	// Use in-cluster config (pod's service account)
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		return "", err
+	}
+
+	// Query ingresses.config.openshift.io/cluster using service account
+	config := rest.CopyConfig(cfg)
+	config.APIPath = "/apis"
+	config.GroupVersion = &schema.GroupVersion{Group: "config.openshift.io", Version: "v1"}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
+
+	restClient, err := rest.RESTClientFor(config)
+	if err != nil {
+		return "", err
+	}
+
+	result := restClient.Get().Resource("ingresses").Name("cluster").Do(ctx)
+	rawBytes, err := result.Raw()
+	if err != nil {
+		return "", err
+	}
+
+	var obj map[string]interface{}
+	if err := json.Unmarshal(rawBytes, &obj); err != nil {
+		return "", err
+	}
+
+	spec, ok := obj["spec"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid ingress config: missing spec")
+	}
+
+	domain, ok := spec["domain"].(string)
+	if !ok || domain == "" {
+		return "", fmt.Errorf("invalid ingress config: missing domain")
+	}
+
+	return domain, nil
+}
+
 func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
@@ -1008,7 +1051,7 @@ func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.C
 			Name:               lsdName,
 			UID:                lsd.UID,
 			Controller:         &[]bool{true}[0],
-			BlockOwnerDeletion: &[]bool{true}[0],
+			BlockOwnerDeletion: &[]bool{false}[0],
 		},
 	}
 
@@ -1489,54 +1532,4 @@ func loadLlamaStackConfig(ctx context.Context, kc *TokenKubernetesClient, identi
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 	return &config, nil
-}
-
-// GetClusterDomain retrieves the cluster domain from the ingresses.config.openshift.io/cluster resource
-func (kc *TokenKubernetesClient) GetClusterDomain(ctx context.Context) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	// Create a REST client specifically configured for the config.openshift.io API
-	config := rest.CopyConfig(kc.Config)
-	config.APIPath = "/apis"
-	config.GroupVersion = &schema.GroupVersion{Group: "config.openshift.io", Version: "v1"}
-	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
-
-	restClient, err := rest.RESTClientFor(config)
-	if err != nil {
-		kc.Logger.Error("failed to create REST client for cluster domain query", "error", err)
-		return "", fmt.Errorf("failed to create REST client: %w", err)
-	}
-
-	// Query the ingresses.config.openshift.io/cluster resource
-	result := restClient.Get().
-		Resource("ingresses").
-		Name("cluster").
-		Do(ctx)
-
-	rawBytes, err := result.Raw()
-	if err != nil {
-		kc.Logger.Debug("failed to get cluster ingress config", "error", err)
-		return "", fmt.Errorf("failed to get cluster domain: %w", err)
-	}
-
-	// Parse the JSON response
-	var obj map[string]interface{}
-	if err := json.Unmarshal(rawBytes, &obj); err != nil {
-		return "", fmt.Errorf("failed to parse ingress config response: %w", err)
-	}
-
-	// Extract the domain from spec.domain
-	spec, ok := obj["spec"].(map[string]interface{})
-	if !ok {
-		return "", fmt.Errorf("invalid ingress config structure: missing spec")
-	}
-
-	domain, ok := spec["domain"].(string)
-	if !ok || domain == "" {
-		return "", fmt.Errorf("invalid ingress config structure: missing or empty domain")
-	}
-
-	kc.Logger.Debug("discovered cluster domain", "domain", domain)
-	return domain, nil
 }
