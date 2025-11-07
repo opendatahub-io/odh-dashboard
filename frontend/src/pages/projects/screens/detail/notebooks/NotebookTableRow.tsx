@@ -25,6 +25,8 @@ import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import NotebookTableRowHardwareProfile from '#~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
 import StateActionToggle from '#~/components/StateActionToggle';
+import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -75,6 +77,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const [bindingStateInfo] = useHardwareProfileBindingState(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
@@ -83,19 +86,24 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       obj.notebook,
       tolerationSettings,
       canEnablePipelines && !currentlyHasPipelines(obj.notebook),
+      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
     ).then(() => {
       fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [dashboardConfig, obj, canEnablePipelines, podSpecOptionsState]);
+  }, [dashboardConfig, obj, canEnablePipelines, podSpecOptionsState, bindingStateInfo]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
     setInProgress(true);
-    stopNotebook(notebookName, notebookNamespace).then(() => {
+    stopNotebook(
+      notebookName,
+      notebookNamespace,
+      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
+    ).then(() => {
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [podSpecOptionsState, notebookName, notebookNamespace, obj]);
+  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, bindingStateInfo]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {

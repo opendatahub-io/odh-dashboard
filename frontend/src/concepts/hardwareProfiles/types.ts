@@ -2,6 +2,7 @@ import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
 import { ContainerResources, Toleration, NodeSelector } from '#~/types';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { useHardwareProfileConfig } from './useHardwareProfileConfig';
+import { HardwareProfileBindingState } from './const';
 
 export type WarningNotification = {
   title: string;
@@ -31,4 +32,9 @@ export type PodSpecOptionsState<T extends PodSpecOptions> = {
   acceleratorProfile: ReturnType<typeof useAcceleratorProfileFormState>;
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
   podSpecOptions: T;
+};
+
+export type HardwareProfileBindingStateInfo = {
+  state?: HardwareProfileBindingState;
+  profile?: HardwareProfileKind;
 };
