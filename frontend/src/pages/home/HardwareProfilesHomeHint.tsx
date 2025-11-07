@@ -17,7 +17,7 @@ const HardwareProfilesHomeHint: React.FC = () => {
           title={
             <>Hardware profiles, formerly &quot;Accelerator profiles&quot;, have new features</>
           }
-          objectType={ProjectObjectType.acceleratorProfile}
+          objectType={ProjectObjectType.hardwareProfile}
         />
       }
       body={
