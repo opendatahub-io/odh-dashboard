@@ -1,4 +1,5 @@
 import React from 'react';
+import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
@@ -10,6 +11,11 @@ import {
 } from '#~/types';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
+import {
+  HardwareProfileBindingState,
+  REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+} from '#~/concepts/hardwareProfiles/const';
+import { HardwareProfileBindingStateInfo } from './types';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -173,4 +179,14 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
   });
 
   return score;
+};
+
+export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
+  bindingState: HardwareProfileBindingStateInfo | null,
+  cr: T,
+): Patch[] => {
+  const hwpAnnotations = cr.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
+  return bindingState?.state === HardwareProfileBindingState.DELETED && hwpAnnotations
+    ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
+    : [];
 };
