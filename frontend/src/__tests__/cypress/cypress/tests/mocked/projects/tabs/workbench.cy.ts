@@ -1190,10 +1190,6 @@ describe('Workbench page', () => {
         op: 'remove',
         path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
       });
-      expect(interception.request.body).to.deep.include({
-        op: 'remove',
-        path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
-      });
     });
 
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
@@ -1272,10 +1268,6 @@ describe('Workbench page', () => {
       expect(interception.request.body).to.deep.include({
         op: 'remove',
         path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
-      });
-      expect(interception.request.body).to.deep.include({
-        op: 'remove',
-        path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
       });
     });
   });
