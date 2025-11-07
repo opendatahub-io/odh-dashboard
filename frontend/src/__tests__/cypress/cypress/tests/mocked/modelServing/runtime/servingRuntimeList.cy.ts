@@ -273,7 +273,7 @@ describe('Serving Runtime List', () => {
       cy.findByText('No model serving platform selected').should('be.visible');
     });
 
-    it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
+    it('single-model platform is enabled, no serving runtimes templates', () => {
       initIntercepts({
         disableKServe: false,
       });
