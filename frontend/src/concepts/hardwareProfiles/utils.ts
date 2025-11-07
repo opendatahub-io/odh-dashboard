@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
-import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   ImageStreamKind,
   AcceleratorProfileKind,
@@ -196,10 +196,12 @@ export const resourceTypeOf = (r: NotebookKind | ModelResourceType): ResourceTyp
   return r.kind === 'Notebook' ? 'workbench' : 'deployment';
 };
 
-export const getDeletedHardwareProfilePatches = (
+export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
   bindingState: HardwareProfileBindingStateInfo | null,
+  cr: T,
 ): Patch[] => {
-  return bindingState?.state === HardwareProfileBindingState.DELETED
+  const hwpAnnotations = cr.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
+  return bindingState?.state === HardwareProfileBindingState.DELETED && hwpAnnotations
     ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
     : [];
 };

@@ -75,7 +75,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     startNotebook(
       obj.notebook,
       canEnablePipelines && !currentlyHasPipelines(obj.notebook),
-      getDeletedHardwareProfilePatches(hardwareProfileBindingState),
+      getDeletedHardwareProfilePatches(hardwareProfileBindingState, obj.notebook),
     ).then(() => {
       fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
       obj.refresh().then(() => setInProgress(false));
@@ -88,7 +88,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     stopNotebook(
       notebookName,
       notebookNamespace,
-      getDeletedHardwareProfilePatches(hardwareProfileBindingState),
+      getDeletedHardwareProfilePatches(hardwareProfileBindingState, obj.notebook),
     ).then(() => {
       obj.refresh().then(() => setInProgress(false));
     });

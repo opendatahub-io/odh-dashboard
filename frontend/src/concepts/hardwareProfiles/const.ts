@@ -74,8 +74,4 @@ export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
     op: 'remove',
     path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
   },
-  {
-    op: 'remove',
-    path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
-  },
 ];
