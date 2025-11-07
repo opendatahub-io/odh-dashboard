@@ -6,9 +6,8 @@ import { useMCPServers } from '~/app/hooks/useMCPServers';
 import MCPServersTable from '~/app/AIAssets/components/mcp/MCPServersTable';
 
 const MCPTabContent: React.FC = () => {
-  const { namespace } = React.useContext(GenAiContext);
   const { servers, serversLoaded, serversLoadError, serverStatuses, statusesLoading, refresh } =
-    useMCPServers(namespace?.name || '');
+    useMCPServers();
 
   if (!serversLoaded) {
     return <EmptyState titleText="Loading" headingLevel="h4" icon={Spinner} />;

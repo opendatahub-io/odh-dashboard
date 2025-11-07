@@ -102,6 +102,9 @@ describe('ModelSourceStep', () => {
         <ModelSourceStepContent
           wizardState={mockDeploymentWizardState({
             state: {
+              project: {
+                projectName: 'test-project',
+              },
               createConnectionData: {
                 data: {
                   saveConnection: true,
@@ -130,6 +133,9 @@ describe('ModelSourceStep', () => {
     it('should render with selected model type and model location', () => {
       const wizardDataWithSelection = mockDeploymentWizardState({
         state: {
+          project: {
+            projectName: 'test-project',
+          },
           modelType: {
             data: ServingRuntimeModelType.GENERATIVE,
           },

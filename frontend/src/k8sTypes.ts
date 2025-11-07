@@ -1122,7 +1122,14 @@ export type WorkloadCondition = {
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
+  type:
+    | 'QuotaReserved'
+    | 'Admitted'
+    | 'PodsReady'
+    | 'Finished'
+    | 'Evicted'
+    | 'Preempted'
+    | 'Failed';
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {
@@ -1285,10 +1292,9 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
-  disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disableModelTraining: boolean;
+  modelTraining: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
@@ -1315,6 +1321,10 @@ export type DashboardConfigKind = K8sResourceCommon & {
     templateOrder?: string[];
     templateDisablement?: string[];
     hardwareProfileOrder?: string[];
+    modelServing?: {
+      deploymentStrategy?: string;
+      isLLMdDefault?: boolean;
+    };
   };
 };
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Checkbox, Popover, Flex, FlexItem, Form, Alert } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { z } from 'zod';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import K8sNameDescriptionField, {
@@ -19,11 +18,11 @@ export type CreateConnectionData = {
 export type CreateConnectionDataField = {
   data: CreateConnectionData;
   setData: (data: CreateConnectionData) => void;
-  project: ProjectKind | null;
+  projectName?: string;
 };
 
 export const useCreateConnectionData = (
-  project: ProjectKind | null,
+  projectName?: string,
   existingData?: CreateConnectionData,
   modelLocationData?: ModelLocationData,
 ): CreateConnectionDataField => {
@@ -50,7 +49,7 @@ export const useCreateConnectionData = (
   return {
     data: connectionData,
     setData: setCreateConnectionData,
-    project,
+    projectName,
   };
 };
 
@@ -73,14 +72,14 @@ export const createConnectionDataSchema = z.custom<CreateConnectionData>((val) =
 type CreateConnectionInputFieldsProps = {
   createConnectionData: CreateConnectionData;
   setCreateConnectionData: (data: CreateConnectionData) => void;
-  project: ProjectKind | null;
+  projectName?: string;
   modelLocationData: ModelLocationData | undefined;
 };
 
 export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsProps> = ({
   createConnectionData,
   setCreateConnectionData,
-  project,
+  projectName,
   modelLocationData,
 }) => {
   const internalNameDesc = React.useMemo(() => {
@@ -152,7 +151,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
                     <br />
                     <br />
                     If you choose to create a connection to this model location, it will be created
-                    in the <strong>{project?.metadata.name}</strong> project.
+                    in the <strong>{projectName}</strong> project.
                   </>
                 }
               >

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   AccessReviewResourceAttributes,
   K8sDSGResource,
-  ProjectKind,
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
@@ -25,12 +24,12 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 type AdvancedSettingsStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  project: ProjectKind;
+  projectName?: string;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
   wizardState,
-  project,
+  projectName,
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
@@ -83,7 +82,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
-    namespace: project.metadata.name,
+    namespace: projectName,
   });
 
   const handleExternalRouteChange = (checked: boolean) => {

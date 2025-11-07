@@ -22,7 +22,7 @@ const UserContextProvider: React.FunctionComponent<UserContextProviderProps> = (
 
   const refreshUser = React.useCallback(async () => {
     try {
-      const res = await getCurrentUser();
+      const res = await getCurrentUser({});
       setUsername(res.userId);
     } catch {
       setUsername(undefined);

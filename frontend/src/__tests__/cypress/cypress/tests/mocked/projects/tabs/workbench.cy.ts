@@ -63,6 +63,7 @@ type HandlersProps = {
     global: HardwareProfileKind[];
     project: HardwareProfileKind[];
   };
+  pvcSize?: string;
 };
 
 const initIntercepts = ({
@@ -161,6 +162,7 @@ const initIntercepts = ({
     }),
   ],
   hardwareProfiles,
+  pvcSize,
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -175,6 +177,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableProjectScoped,
+      pvcSize,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -514,6 +517,7 @@ describe('Workbench page', () => {
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
+      pvcSize: '8Gi',
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
@@ -572,7 +576,7 @@ describe('Workbench page', () => {
     // cluster storage
     const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
     storageTableRow.findNameValue().should('have.text', 'test-project-storage');
-    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20GiB');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 8GiB');
     storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
     createSpawnerPage.findSubmitButton().click();
@@ -1421,7 +1425,6 @@ describe('Workbench page', () => {
             'openshift.io/description': '',
             'openshift.io/display-name': 'Test Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
-            'opendatahub.io/accelerator-name': '',
           },
         },
         spec: {
@@ -1497,7 +1500,6 @@ describe('Workbench page', () => {
             'openshift.io/description': '',
             'openshift.io/display-name': 'Test Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
-            'opendatahub.io/accelerator-name': '',
           },
         },
         spec: {

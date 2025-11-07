@@ -4,7 +4,6 @@ import useModelMetricsEnabled from '@odh-dashboard/internal/pages/modelServing/u
 import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
 import GlobalModelsPage from './components/global/GlobalModelsPage';
 import GlobalMetricsRoutes from './components/metrics/GlobalMetricsRoutes';
-import { ModelDeploymentWizardPage } from './components/deploymentWizard/ModelDeploymentWizardPage';
 
 const GlobalModelsRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
@@ -13,7 +12,6 @@ const GlobalModelsRoutes: React.FC = () => {
     <ProjectsRoutes>
       <Route index element={<GlobalModelsPage />} />
       {modelMetricsEnabled && <Route path="metrics/*" element={<GlobalMetricsRoutes />} />}
-      <Route path="deploy" element={<ModelDeploymentWizardPage />} />
       <Route path="*" element={<Navigate to="." />} />
     </ProjectsRoutes>
   );

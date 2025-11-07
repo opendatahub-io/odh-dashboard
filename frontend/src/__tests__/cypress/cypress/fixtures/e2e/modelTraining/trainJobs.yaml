@@ -1,0 +1,87 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: distributed-training-job
+  namespace: test-project
+  labels:
+    kueue.x-k8s.io/queue-name: training-queue
+    app.kubernetes.io/name: train-job
+    app.kubernetes.io/component: training
+  annotations:
+    opendatahub.io/display-name: 'Distributed Training Job'
+spec:
+  runtimeRef:
+    apiGroup: kubeflow.org
+    kind: PyTorchRuntime
+    name: pytorch-runtime
+  suspend: false
+  trainer:
+    numNodes: 4
+    numProcPerNode: 1
+    resourcesPerNode:
+      limits:
+        nvidia.com/gpu: 1
+        cpu: '2'
+        memory: '4Gi'
+      requests:
+        cpu: '1'
+        memory: '2Gi'
+status:
+  conditions:
+    - type: Created
+      status: 'True'
+      lastTransitionTime: '2024-01-15T10:30:00Z'
+      reason: TrainJobCreated
+      message: TrainJob distributed-training-job is created.
+    - type: Running
+      status: 'True'
+      lastTransitionTime: '2024-01-15T10:32:00Z'
+      reason: TrainJobRunning
+      message: TrainJob distributed-training-job is running.
+  jobsStatus:
+    - name: pytorch-job
+      active: 4
+---
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: single-node-training
+  namespace: test-project
+  labels:
+    kueue.x-k8s.io/queue-name: default-queue
+    app.kubernetes.io/name: train-job
+    app.kubernetes.io/component: training
+  annotations:
+    opendatahub.io/display-name: 'Single Node Training'
+spec:
+  runtimeRef:
+    apiGroup: kubeflow.org
+    kind: PyTorchRuntime
+    name: pytorch-runtime
+  suspend: false
+  trainer:
+    numNodes: 1
+    numProcPerNode: 1
+    resourcesPerNode:
+      limits:
+        nvidia.com/gpu: 1
+        cpu: '1'
+        memory: '2Gi'
+      requests:
+        cpu: '500m'
+        memory: '1Gi'
+status:
+  conditions:
+    - type: Created
+      status: 'True'
+      lastTransitionTime: '2024-01-14T08:15:00Z'
+      reason: TrainJobCreated
+      message: TrainJob single-node-training is created.
+    - type: Succeeded
+      status: 'True'
+      lastTransitionTime: '2024-01-14T09:30:00Z'
+      reason: TrainJobSucceeded
+      message: TrainJob single-node-training is successfully completed.
+  jobsStatus:
+    - name: pytorch-job
+      succeeded: 1

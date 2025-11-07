@@ -20,4 +20,6 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
     kServe: true,
     modelMesh: false,
   },
+  useDistributedInferencing: false,
+  defaultDeploymentStrategy: 'rolling',
 };

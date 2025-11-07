@@ -1228,6 +1228,6 @@ describe('DeleteModelRegistryModal', () => {
 it('redirect from v2 to v3 route', () => {
   setupMocksForMRSettingAccess({});
   cy.visitWithLogin('/modelRegistrySettings');
-  cy.findByTestId('app-page-title').contains('Model registry settings');
+  cy.findByTestId('app-page-title').contains('AI registry settings');
   cy.url().should('include', '/settings/model-resources-operations/model-registry');
 });

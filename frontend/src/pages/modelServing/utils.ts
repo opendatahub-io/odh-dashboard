@@ -43,7 +43,7 @@ import {
   ServingRuntimeToken,
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {

@@ -46,7 +46,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         modelLocation={wizardState.state.modelLocationData.data?.type}
         validationProps={validation.getFieldValidationProps(['modelLocation', 'modelLocationData'])}
         validationIssues={validation.getFieldValidation(['modelLocation', 'modelLocationData'])}
-        project={wizardState.state.modelLocationData.project}
+        projectName={wizardState.state.project.projectName}
         modelLocationData={wizardState.state.modelLocationData.data}
         setModelLocationData={wizardState.state.modelLocationData.setData}
         resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
@@ -54,7 +54,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
       <CreateConnectionInputFields
         createConnectionData={wizardState.state.createConnectionData.data}
         setCreateConnectionData={wizardState.state.createConnectionData.setData}
-        project={wizardState.state.modelLocationData.project}
+        projectName={wizardState.state.project.projectName}
         modelLocationData={wizardState.state.modelLocationData.data}
       />
       <ModelTypeSelectField

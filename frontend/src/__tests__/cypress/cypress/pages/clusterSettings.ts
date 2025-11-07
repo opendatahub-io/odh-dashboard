@@ -45,6 +45,26 @@ class ModelSergingSettings extends ClusterSettings {
   }
 }
 
+class ModelDeploymentSettings extends ClusterSettings {
+  findDistributedInferencing() {
+    return cy.findByTestId('use-distributed-llm-switch');
+  }
+
+  findAlert() {
+    return cy.findByText(
+      'To use distributed inferencing, you must configure the inferencing gateway on your cluster.',
+    );
+  }
+
+  findRollingUpdateRadio() {
+    return cy.findByTestId('deployment-strategy-rolling');
+  }
+
+  findRecreateRadio() {
+    return cy.findByTestId('deployment-strategy-recreate');
+  }
+}
+
 class PVCSizeSettings extends ClusterSettings {
   findInput() {
     return cy.findByTestId('pvc-size-input');
@@ -93,6 +113,7 @@ class TelemetrySettings extends ClusterSettings {
 
 export const clusterSettings = new ClusterSettings();
 export const modelServingSettings = new ModelSergingSettings();
+export const modelDeploymentSettings = new ModelDeploymentSettings();
 export const pvcSizeSettings = new PVCSizeSettings();
 export const cullerSettings = new CullterSettings();
 export const telemetrySettings = new TelemetrySettings();

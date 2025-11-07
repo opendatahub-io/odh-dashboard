@@ -310,11 +310,11 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/deploy');
+    cy.url().should('include', 'ai-hub/deployments/deploy');
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/deploy');
+    cy.url().should('include', 'ai-hub/deployments/deploy');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
     cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project`);
@@ -1449,7 +1449,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled');
   });
 
-  it('Should create a new connection with a generated secret name', () => {
+  it('Should create a new connection with a generated secret name and enter without a project', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -1491,8 +1491,7 @@ describe('Model Serving Deploy Wizard', () => {
       }
     }).as('fetchGeneratedSecretGets');
 
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.visit();
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -1516,6 +1515,15 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentStep().should('be.enabled');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentProjectSelector().should('exist');
+    modelServingWizard
+      .findModelDeploymentProjectSelector()
+      .should('contain.text', 'Select target project');
+    modelServingWizard.findModelDeploymentProjectSelector().click();
+    modelServingWizard
+      .findModelDeploymentProjectSelectorOption('Test Project')
+      .should('exist')
+      .click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -1564,9 +1572,9 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy`);
+      cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/test-project/deploy');
+      cy.url().should('include', '/ai-hub/deployments/deploy');
     });
   });
 });

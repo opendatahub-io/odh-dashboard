@@ -39,7 +39,6 @@ import StorageList from './storage/StorageList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
-import RagChatbot from './chatbot/RagChatbot';
 
 import './ProjectDetails.scss';
 
@@ -57,7 +56,6 @@ const ProjectDetails: React.FC = () => {
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
-  const chatBotEnabled = useIsAreaAvailable(SupportedArea.LLAMA_STACK_CHAT_BOT).status;
 
   useCheckLogoutParams();
 
@@ -148,15 +146,6 @@ const ProjectDetails: React.FC = () => {
         sections={React.useMemo(
           () => [
             { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
-            ...(chatBotEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.CHATBOT,
-                    title: 'Chatbot',
-                    component: <RagChatbot />,
-                  },
-                ]
-              : []),
             ...(workbenchEnabled
               ? [
                   {
@@ -217,7 +206,6 @@ const ProjectDetails: React.FC = () => {
             projectSharingEnabled,
             workbenchEnabled,
             deploymentsTab,
-            chatBotEnabled,
           ],
         )}
       />

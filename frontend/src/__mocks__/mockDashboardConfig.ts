@@ -36,16 +36,15 @@ export type MockDashboardConfigType = {
   notebookSizes?: NotebookSize[];
   disableNIMModelServing?: boolean;
   disableFineTuning?: boolean;
-  disableLlamaStackChatBot?: boolean;
   modelServerSizes?: ModelServingSize[];
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
-  disableModelTraining?: boolean;
-
+  modelTraining?: boolean;
   hardwareProfileOrder?: string[];
+  pvcSize?: string;
 };
 
 export const mockDashboardConfig = ({
@@ -79,11 +78,10 @@ export const mockDashboardConfig = ({
   disableStorageClasses = false,
   disableNotebookController = false,
   disableNIMModelServing = false,
-  disableLlamaStackChatBot = false,
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
-  disableModelTraining = true,
+  modelTraining = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -194,6 +192,7 @@ export const mockDashboardConfig = ({
       },
     },
   ],
+  pvcSize = '20Gi',
 }: MockDashboardConfigType): DashboardConfigKind => ({
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -240,15 +239,14 @@ export const mockDashboardConfig = ({
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
       disableFineTuning,
-      disableLlamaStackChatBot,
       disableLMEval,
       disableKueue,
       disableFeatureStore,
-      disableModelTraining,
+      modelTraining,
     },
     notebookController: {
       enabled: !disableNotebookController,
-      pvcSize: '20Gi',
+      pvcSize,
     },
     groupsConfig: {
       adminGroups: 'openshift-ai-admins',

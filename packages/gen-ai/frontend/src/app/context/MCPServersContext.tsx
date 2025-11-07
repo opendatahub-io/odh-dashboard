@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Namespace } from 'mod-arch-core';
 import { MCPServerFromAPI, MCPServerConfig, TokenInfo } from '~/app/types';
 import { useMCPServers, ServerStatusInfo } from '~/app/hooks/useMCPServers';
 import { getSelectedServersForAPI as getSelectedServersForAPIUtil } from '~/app/utilities/mcp';
@@ -23,17 +22,13 @@ const MCPServersContext = React.createContext<MCPServersContextValue | null>(nul
 
 type MCPServersContextProviderProps = {
   children: React.ReactNode;
-  namespace: Namespace | undefined;
   autoCheckStatuses?: boolean;
 };
 
 export const MCPServersContextProvider: React.FunctionComponent<MCPServersContextProviderProps> = ({
   children,
-  namespace,
   autoCheckStatuses = false,
 }) => {
-  const selectedProject = namespace?.name;
-
   const {
     servers,
     serversLoaded,
@@ -43,7 +38,7 @@ export const MCPServersContextProvider: React.FunctionComponent<MCPServersContex
     allStatusesChecked,
     refresh,
     checkServerStatus,
-  } = useMCPServers(selectedProject || '', { autoCheckStatuses });
+  } = useMCPServers({ autoCheckStatuses });
 
   const getSelectedServersForAPI = React.useCallback(
     (selectedServerIds: string[], serverTokens: Map<string, TokenInfo>): MCPServerConfig[] =>

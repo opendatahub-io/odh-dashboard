@@ -21,7 +21,8 @@
     "@odh-dashboard/feature-store": "*",
     "@odh-dashboard/llmd-serving": "*",
     "@odh-dashboard/model-serving": "*",
-    "https-proxy-agent": "^7.0.6"
+    "https-proxy-agent": "^7.0.6",
+    "@odh-dashboard/model-training": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"

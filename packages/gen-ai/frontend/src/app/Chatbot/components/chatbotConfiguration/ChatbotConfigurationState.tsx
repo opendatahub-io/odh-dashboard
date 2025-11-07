@@ -18,7 +18,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   const { namespace } = React.useContext(GenAiContext);
   const navigate = useNavigate();
   const [activelyRefreshing, setActivelyRefreshing] = React.useState(true);
-  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name, activelyRefreshing);
+  const { data: lsdStatus } = useFetchLSDStatus(activelyRefreshing);
 
   React.useEffect(() => {
     if (lsdStatus?.phase && lsdStatus.phase !== 'Initializing') {

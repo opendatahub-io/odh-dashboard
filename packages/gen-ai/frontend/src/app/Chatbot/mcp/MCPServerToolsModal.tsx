@@ -14,7 +14,6 @@ import {
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { Table } from 'mod-arch-shared';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPTool } from '~/app/types';
 import MCPToolsColumns from './MCPToolsColumns';
 import MCPToolsTableRow from './MCPToolsTableRow';
@@ -32,9 +31,6 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   server,
   mcpBearerToken,
 }) => {
-  const { namespace } = React.useContext(GenAiContext);
-  const selectedProject = namespace?.name;
-
   const {
     tools: apiTools,
     toolsLoaded,
@@ -42,7 +38,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     toolsStatus,
     isLoading,
     refetch,
-  } = useMCPServerTools(selectedProject || '', server.connectionUrl, mcpBearerToken, isOpen);
+  } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
 
   const tools = React.useMemo(
     () =>
