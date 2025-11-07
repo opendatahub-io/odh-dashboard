@@ -297,7 +297,7 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
       tokenModal.shouldBeOpen();
 
       cy.step('Verify error message is displayed');
-      tokenModal.find().then(($modal) => {
+      tokenModal.find().should(($modal) => {
         const text = $modal.text();
         const hasError =
           text.includes('Token Validation Failed') ||
