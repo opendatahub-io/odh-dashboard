@@ -48,6 +48,7 @@ import type { HardwareProfileKind, NotebookKind, PodKind } from '#~/k8sTypes';
 import type { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
@@ -62,6 +63,7 @@ type HandlersProps = {
     global: HardwareProfileKind[];
     project: HardwareProfileKind[];
   };
+  pvcSize?: string;
 };
 
 const initIntercepts = ({
@@ -160,13 +162,14 @@ const initIntercepts = ({
     }),
   ],
   hardwareProfiles,
+  pvcSize,
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        workbenches: true,
+      components: {
+        [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
       },
     }),
   );
@@ -174,6 +177,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableProjectScoped,
+      pvcSize,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -513,6 +517,7 @@ describe('Workbench page', () => {
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
+      pvcSize: '8Gi',
     });
     workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
@@ -571,7 +576,7 @@ describe('Workbench page', () => {
     // cluster storage
     const storageTableRow = createSpawnerPage.getStorageTable().getRowById(0);
     storageTableRow.findNameValue().should('have.text', 'test-project-storage');
-    storageTableRow.findStorageSizeValue().should('have.text', 'Max 20GiB');
+    storageTableRow.findStorageSizeValue().should('have.text', 'Max 8GiB');
     storageTableRow.findMountPathValue().should('have.text', '/opt/app-root/src/');
 
     createSpawnerPage.findSubmitButton().click();
@@ -1110,6 +1115,163 @@ describe('Workbench page', () => {
     notebookRow.findNotebookStatusModal().should('exist');
   });
 
+  it('Should stop a running workbench with a deleted hardware profile', () => {
+    initIntercepts({});
+    cy.interceptK8s(
+      { model: HardwareProfileModel, ns: 'opendatahub', name: 'deleted-gpu-profile' },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+
+    cy.interceptK8sList(
+      { model: NotebookModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Test Notebook',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/hardware-profile-name': 'deleted-gpu-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                'opendatahub.io/hardware-profile-resource-version': '12345',
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+
+    notebookRow.findNotebookStopToggle().click();
+    notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
+
+    cy.interceptK8s(
+      NotebookModel,
+      mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+            },
+            annotations: {
+              'kubeflow-resource-stopped': '2024-11-06T10:00:00Z',
+              'opendatahub.io/image-display-name': 'Test image',
+            },
+          },
+        },
+      }),
+    );
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: false })]));
+
+    notebookConfirmModal.findStopWorkbenchButton().click();
+
+    cy.wait('@stopWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset([
+        {
+          op: 'add',
+          path: '/metadata/annotations/kubeflow-resource-stopped',
+        },
+      ]);
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+      });
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+      });
+    });
+
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+  });
+
+  it('Should start a stopped workbench with a deleted hardware profile', () => {
+    initIntercepts({ mockPodList: [] });
+
+    cy.interceptK8s(
+      { model: HardwareProfileModel, ns: 'opendatahub', name: 'deleted-gpu-profile' },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+
+    cy.interceptK8sList(
+      { model: NotebookModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Test Notebook',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'kubeflow-resource-stopped': '2024-11-06T10:00:00Z',
+                'opendatahub.io/hardware-profile-name': 'deleted-gpu-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                'opendatahub.io/hardware-profile-resource-version': '12345',
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+    notebookRow.findHardwareProfileColumn().should('contain', 'Deleted');
+
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('startWorkbench');
+    cy.interceptK8s(
+      NotebookModel,
+      mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            name: 'test-notebook',
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+            },
+            annotations: {
+              'opendatahub.io/image-display-name': 'Test image',
+            },
+          },
+        },
+      }),
+    );
+
+    notebookRow.findNotebookStopToggle().click();
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting');
+
+    cy.wait('@startWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset([
+        { op: 'remove', path: '/metadata/annotations/kubeflow-resource-stopped' },
+      ]);
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+      });
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+      });
+    });
+  });
+
   it('Validate the start button is enabled when the notebook image is deleted', () => {
     initIntercepts({ mockPodList: [] });
 
@@ -1420,7 +1582,6 @@ describe('Workbench page', () => {
             'openshift.io/description': '',
             'openshift.io/display-name': 'Test Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
-            'opendatahub.io/accelerator-name': '',
           },
         },
         spec: {
@@ -1496,7 +1657,6 @@ describe('Workbench page', () => {
             'openshift.io/description': '',
             'openshift.io/display-name': 'Test Notebook',
             'opendatahub.io/image-display-name': 'Test Image',
-            'opendatahub.io/accelerator-name': '',
           },
         },
         spec: {

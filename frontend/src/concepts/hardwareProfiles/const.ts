@@ -1,3 +1,4 @@
+import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileBindingConfig } from './types';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
@@ -63,3 +64,14 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
 
 export const HARDWARE_PROFILE_SELECTION_HELP =
   'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.';
+
+export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
+  {
+    op: 'remove',
+    path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+  },
+  {
+    op: 'remove',
+    path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+  },
+];

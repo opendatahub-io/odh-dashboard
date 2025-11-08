@@ -1,9 +1,9 @@
 import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
-  inferenceServiceModal,
   modelServingSection,
   kserveModalEdit,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-35577] A model can be deployed with token auth', () => {
+describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
@@ -71,42 +71,50 @@ describe('[Product Bug: RHOAIENG-35577] A model can be deployed with token auth'
       // Navigate to Model Serving tab and Deploy a model
       cy.step('Navigate to Model Serving and click to Deploy a model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a model
       cy.step('Launch a Single Serving Model using Openvino');
-      inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
-
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
       // Enable Model access through an external route
       cy.step('Enable Model access through an external route');
-      inferenceServiceModal.findDeployedModelRouteCheckbox().click();
-      inferenceServiceModal.findDeployedModelRouteCheckbox().should('be.checked');
-      inferenceServiceModal.findServiceAccountIndex(0).clear();
-      inferenceServiceModal.findServiceAccountIndex(0).type('secret');
-      inferenceServiceModal.findAddServiceAccountButton().click();
-      inferenceServiceModal.findServiceAccountIndex(1).clear();
-      inferenceServiceModal.findServiceAccountIndex(1).type('secret2');
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
-      inferenceServiceModal.shouldBeOpen(false);
+      modelServingWizard.findExternalRouteCheckbox().click();
+      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+      modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
+      modelServingWizard.findAddServiceAccountButton().click();
+      modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
+      modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
       // Verify the model created
       cy.step('Verify that the Model is running');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');

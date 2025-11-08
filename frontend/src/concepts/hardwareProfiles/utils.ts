@@ -1,6 +1,6 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   ImageStreamKind,
   AcceleratorProfileKind,
@@ -16,7 +16,11 @@ import {
   IdentifierResourceType,
 } from '#~/types';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
-import { ResourceType } from './types';
+import {
+  HardwareProfileBindingState,
+  REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+} from '#~/concepts/hardwareProfiles/const.ts';
+import { HardwareProfileBindingStateInfo, ResourceType } from './types';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -46,9 +50,16 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
 export const formatResource = (identifier: string, request: string, limit: string): string =>
   `${identifier}: Request = ${request}; Limit = ${limit}`;
 
+/**
+ * changed order of arguments so that the deprecated accelerator profile is last;
+ * to make it optional.
+ *
+ * when we finish removing modelmesh and fine tuning (the only place that still has the accelerator profile argument)
+ * then remove the accelerator profile argument and remove all unreachable/deprecated code.
+ */
 export const useProfileIdentifiers = (
-  acceleratorProfile?: AcceleratorProfileKind,
   hardwareProfile?: HardwareProfileKind,
+  acceleratorProfile?: AcceleratorProfileKind,
 ): string[] => {
   const [identifiers, setIdentifiers] = React.useState<string[]>([]);
 
@@ -183,4 +194,14 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
 
 export const resourceTypeOf = (r: NotebookKind | ModelResourceType): ResourceType => {
   return r.kind === 'Notebook' ? 'workbench' : 'deployment';
+};
+
+export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
+  bindingState: HardwareProfileBindingStateInfo | null,
+  cr: T,
+): Patch[] => {
+  const hwpAnnotations = cr.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
+  return bindingState?.state === HardwareProfileBindingState.DELETED && hwpAnnotations
+    ? REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH
+    : [];
 };

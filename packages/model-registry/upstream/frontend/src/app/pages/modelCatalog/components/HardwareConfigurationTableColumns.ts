@@ -3,13 +3,10 @@ import {
   CatalogPerformanceMetricsArtifact,
   PerformanceMetricsCustomProperties,
 } from '~/app/modelCatalogTypes';
-import {
-  getHardwareConfiguration,
-  getTotalRps,
-} from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
-import { getDoubleValue, getIntValue, getStringValue } from '~/app/utils';
+import { getHardwareConfiguration } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
+import { getDoubleValue, getStringValue } from '~/app/utils';
 
-export type HardwareConfigColumnField = keyof PerformanceMetricsCustomProperties | 'total_rps';
+export type HardwareConfigColumnField = keyof PerformanceMetricsCustomProperties;
 
 export type HardwareConfigColumn = Omit<
   SortableData<CatalogPerformanceMetricsArtifact>,
@@ -30,21 +27,7 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
     isStickyColumn: true,
     stickyMinWidth: '162px',
     stickyLeftOffset: '0',
-    modifier: 'wrap',
-  },
-  {
-    field: 'hardware_count',
-    label: 'Total Hardware',
-    sortable: (
-      a: CatalogPerformanceMetricsArtifact,
-      b: CatalogPerformanceMetricsArtifact,
-    ): number =>
-      getIntValue(a.customProperties, 'hardware_count') -
-      getIntValue(b.customProperties, 'hardware_count'),
-    isStickyColumn: true,
     hasRightBorder: true,
-    stickyMinWidth: '130px',
-    stickyLeftOffset: '162px',
     modifier: 'wrap',
   },
   {
@@ -56,16 +39,6 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
     ): number =>
       getDoubleValue(a.customProperties, 'requests_per_second') -
       getDoubleValue(b.customProperties, 'requests_per_second'),
-    width: 20,
-    modifier: 'wrap',
-  },
-  {
-    field: 'total_rps',
-    label: 'Total RPS',
-    sortable: (
-      a: CatalogPerformanceMetricsArtifact,
-      b: CatalogPerformanceMetricsArtifact,
-    ): number => getTotalRps(a.customProperties) - getTotalRps(b.customProperties),
     width: 20,
     modifier: 'wrap',
   },

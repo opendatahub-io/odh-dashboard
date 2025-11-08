@@ -10,7 +10,7 @@ import { NumReplicasField } from '../fields/NumReplicasField';
 import ModelServerTemplateSelectField from '../fields/ModelServerTemplateSelectField';
 
 type ModelDeploymentStepProps = {
-  projectName: string;
+  projectName?: string;
   wizardState: UseModelDeploymentWizardState;
 };
 
@@ -19,14 +19,17 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   wizardState,
 }) => {
   const profileIdentifiers = useProfileIdentifiers(
-    undefined,
     wizardState.state.hardwareProfileConfig.formData.selectedProfile,
   );
 
   return (
     <Form>
       <FormSection title="Model deployment">
-        {projectName && <ProjectSection projectName={projectName} />}
+        <ProjectSection
+          initialProjectName={wizardState.state.project.initialProjectName}
+          projectName={wizardState.state.project.projectName}
+          setProjectName={wizardState.state.project.setProjectName}
+        />
         <K8sNameDescriptionField
           data={wizardState.state.k8sNameDesc.data}
           onDataChange={wizardState.state.k8sNameDesc.onDataChange}

@@ -26,6 +26,8 @@ describe('Notebooks - tolerations tests', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as NotebookTolerationsTestData;
 
+        // Check if a notebook is running and delete if it is
+        deleteNotebook('jupyter-nb');
         // Load Hardware Profile
         cy.log(`Loaded Hardware Profile Name: ${testData.hardwareProfileName}`);
         // Cleanup Hardware Profile if it already exists
@@ -49,10 +51,8 @@ describe('Notebooks - tolerations tests', () => {
 
   it(
     'Verify Juypter Notebook Creation using Hardware Profiles and applying Tolerations',
-    // TODO: Add the below tags once this feature is enabled in 2.20+
-    //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
     {
-      tags: ['@Featureflagged', '@HardwareProfileNotebook', '@HardwareProfiles', '@NonConcurrent'],
+      tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@NonConcurrent'],
     },
     () => {
       // Authentication and navigation
@@ -67,14 +67,6 @@ describe('Notebooks - tolerations tests', () => {
       // Select a notebook image
       cy.step('Choose Code Server Image');
       notebookServer.findNotebookImage('code-server-notebook').click();
-
-      // Select the versions dropdown
-      cy.step('Select the code server versions dropdown');
-      notebookServer.findVersionsDropdown(testData.codeserverImageName).click();
-
-      // Select an image version
-      cy.step('Select the codeserver image version');
-      notebookServer.findNotebookVersion(testData.codeserverImageName).click();
 
       // Select an Hardware Profile
       cy.step('Select the hardware profile');

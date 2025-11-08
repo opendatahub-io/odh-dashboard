@@ -10,6 +10,7 @@ import {
   modelServingGlobal,
   inferenceServiceModal,
   modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   checkInferenceServiceState,
@@ -36,7 +37,7 @@ const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
 
-describe('Notebooks - tolerations tests', () => {
+describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -81,16 +82,17 @@ describe('Notebooks - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Load Hardware Profile
-    cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+    // Use the actual hardware profile name from the YAML, not the variable with UUID
+    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 
-    // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
-    return cleanupHardwareProfiles(hardwareProfileResourceName).then(() => {
+    // Call cleanupHardwareProfiles with the actual name from the YAML file
+    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
+      return cy.wrap(null);
     });
   });
 
@@ -98,7 +100,15 @@ describe('Notebooks - tolerations tests', () => {
     'Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
-    { tags: ['@Featureflagged', '@HardwareProfileModelServing', '@HardwareProfiles'] },
+    {
+      tags: [
+        '@HardwareProfileModelServing',
+        '@HardwareProfiles',
+        '@Dashboard',
+        '@Smoke',
+        '@SmokeSet3',
+      ],
+    },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
@@ -114,25 +124,44 @@ describe('Notebooks - tolerations tests', () => {
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       // Launch a Single Serving Model and select the required entries
       cy.step(
-        'Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe and by selecting the Hardware Profile',
+        'Launch a Single Serving Model using OpenVINO Model Server and by selecting the Hardware Profile',
       );
-      inferenceServiceModal.findModelNameInput().type(modelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal
-        .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
-        .click();
-
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
       );
-      inferenceServiceModal.findLocationPathInput().type(modelFilePath);
-      inferenceServiceModal.findSubmitButton().click();
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
+      modelServingWizard.findNextButton().click();
+      // Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      // Step 4: Review
+      modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(modelName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');

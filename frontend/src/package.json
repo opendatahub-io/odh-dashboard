@@ -23,10 +23,12 @@
     "./*": [
       "./*",
       "./*.ts",
+      "./*.d.ts",
       "./*.tsx"
     ]
   },
   "dependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {

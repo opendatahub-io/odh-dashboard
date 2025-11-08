@@ -6,8 +6,6 @@ import type {
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
 } from '@odh-dashboard/model-serving/extension-points';
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { LLMdDeployment } from '../src/types';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
@@ -87,7 +85,7 @@ const extensions: (
         import('../src/wizardFields/modelAvailability').then((m) => m.modelAvailabilityField),
     },
     flags: {
-      required: [SupportedArea.MODEL_AS_SERVICE],
+      required: ['model-as-service'],
     },
   },
   {
@@ -104,6 +102,14 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.tokenAuthField),
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/advancedOptionsFields').then((m) => m.deploymentStrategyField),
     },
   },
 ];

@@ -7,7 +7,6 @@ import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
 import { useNotebookSizeState } from '#~/pages/projects/screens/spawner/useNotebookSizeState';
 import { usePreferredNotebookSize } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
-import useNotebookAcceleratorProfileFormState from '#~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import useNotebookHardwareProfileConfig from '#~/concepts/hardwareProfiles/useNotebookHardwareProfileConfig';
 
@@ -35,22 +34,11 @@ jest.mock('../useNotebookHardwareProfileConfig', () => ({
   default: jest.fn(),
 }));
 
-jest.mock(
-  '#~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState',
-  () => ({
-    __esModule: true,
-    default: jest.fn(),
-  }),
-);
-
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
 const mockUseAppContext = jest.mocked(appContext.useAppContext);
 const mockUseNotebookSizeState = jest.mocked(useNotebookSizeState);
 const mockUsePreferredNotebookSize = jest.mocked(usePreferredNotebookSize);
 const mockUseHardwareProfileConfig = jest.mocked(useNotebookHardwareProfileConfig);
-const mockUseNotebookAcceleratorProfileFormState = jest.mocked(
-  useNotebookAcceleratorProfileFormState,
-);
 
 describe('useNotebookPodSpecOptionsState', () => {
   beforeEach(() => {
@@ -98,21 +86,6 @@ describe('useNotebookPodSpecOptionsState', () => {
       profilesLoaded: true,
       profilesLoadError: undefined,
     });
-
-    mockUseNotebookAcceleratorProfileFormState.mockReturnValue({
-      formData: { profile: undefined, count: 0, useExistingSettings: false },
-      initialState: {
-        acceleratorProfile: undefined,
-        acceleratorProfiles: [],
-        count: 0,
-        unknownProfileDetected: true,
-      },
-      loaded: true,
-      loadError: undefined,
-      setFormData: jest.fn(),
-      resetFormData: jest.fn(),
-      refresh: jest.fn(),
-    });
   });
 
   it('should initialize with default values', () => {
@@ -121,14 +94,15 @@ describe('useNotebookPodSpecOptionsState', () => {
 
     expect(state).toEqual({
       notebooksSize: expect.any(Object),
-      acceleratorProfile: expect.any(Object),
       hardwareProfile: expect.any(Object),
       podSpecOptions: {
         resources: {
           requests: {},
           limits: {},
         },
+        nodeSelector: undefined,
         selectedHardwareProfile: undefined,
+        tolerations: undefined,
       },
     });
   });

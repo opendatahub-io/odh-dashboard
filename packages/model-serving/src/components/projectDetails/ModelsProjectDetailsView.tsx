@@ -16,7 +16,6 @@ import {
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
-import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
@@ -63,14 +62,7 @@ const ModelsProjectDetailsView: React.FC<{
       loadError={deploymentsErrors?.[0]}
       actions={
         hasModels && activePlatform
-          ? [
-              <DeployButton
-                key="deploy-button"
-                project={project}
-                variant="secondary"
-                createRoute={getDeploymentWizardRoute(`/projects/${project.metadata.name}`)}
-              />,
-            ]
+          ? [<DeployButton key="deploy-button" project={project} variant="secondary" />]
           : undefined
       }
       labels={[

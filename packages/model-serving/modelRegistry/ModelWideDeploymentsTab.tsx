@@ -4,6 +4,7 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import EmptyDeploymentsState from './EmptyDeploymentsState';
 import ModelRegistryDeploymentsTable from './ModelRegistryDeploymentsTable';
+import { useModelRegistryFilter } from './useModelRegistryFilter';
 import {
   ModelDeploymentsContext,
   ModelDeploymentsProvider,
@@ -52,8 +53,14 @@ const ModelWideDeploymentsTab: React.FC<{
     };
   }, [rmId]);
 
+  const filterFn = useModelRegistryFilter(mrName);
+
   return (
-    <ModelDeploymentsProvider projects={projects} labelSelectors={labelSelectors} mrName={mrName}>
+    <ModelDeploymentsProvider
+      projects={projects}
+      labelSelectors={labelSelectors}
+      filterFn={filterFn}
+    >
       <ModelWideDeploymentsTabContent mrName={mrName} />
     </ModelDeploymentsProvider>
   );

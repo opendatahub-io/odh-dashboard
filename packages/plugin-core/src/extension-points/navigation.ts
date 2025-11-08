@@ -40,7 +40,7 @@ export type NavItemProperties = {
   section?: string;
   /** Adds data attributes to the DOM. */
   dataAttributes?: { [key: string]: string };
-  /** Group are used to sort items lexographically. Unspecified items will be sorted into the '5_default' group. */
+  /** Group are used to sort items lexicographically. Unspecified items will be sorted into the '5_default' group. */
   group?: string;
   /** Icon reference for this item. */
   iconRef?: ComponentCodeRef;

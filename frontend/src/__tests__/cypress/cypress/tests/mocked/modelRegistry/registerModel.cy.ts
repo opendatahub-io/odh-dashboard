@@ -8,7 +8,7 @@ import {
   mockSecretK8sResource,
 } from '#~/__mocks__';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
-import { StackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { ProjectModel, SecretModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import {
   FormFieldSelector,
@@ -40,9 +40,8 @@ const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        [StackComponent.MODEL_REGISTRY]: true,
-        [StackComponent.MODEL_MESH]: true,
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );

@@ -7,14 +7,22 @@
     "package-subtree": "./scripts/package-subtree.sh"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./node": "./src/node/index.ts"
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./src/index.ts"
+    }
   },
   "scripts": {
+    "build": "tsdown",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*"
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "tsdown": "^0.15.6"
   }
 }

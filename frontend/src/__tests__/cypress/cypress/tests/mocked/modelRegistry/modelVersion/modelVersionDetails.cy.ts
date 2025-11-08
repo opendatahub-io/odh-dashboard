@@ -2,12 +2,10 @@
 import {
   mockDashboardConfig,
   mockK8sResourceList,
-  mockComponents,
   mockRegisteredModel,
   mockModelVersion,
   mockModelVersionList,
   mockModelArtifactList,
-  mockModelRegistryService,
   mockServingRuntimeK8sResource,
   mockInferenceServiceK8sResource,
   mockProjectK8sResource,
@@ -19,7 +17,6 @@ import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import {
   InferenceServiceModel,
   ProjectModel,
-  ServiceModel,
   ServingRuntimeModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
@@ -29,9 +26,10 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
-import { ModelRegistryMetadataType } from '#~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelSourceKind } from '#~/concepts/modelRegistry/types';
 import { KnownLabels } from '#~/k8sTypes';
 import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 const mockModelVersions = mockModelVersion({
@@ -149,8 +147,6 @@ const mockRegisteredModelWithData = mockRegisteredModel({
 
 const initIntercepts = (
   isEmptyProject = false,
-  // TODO: Investigate if this line is needed.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fromCatalog = false,
   modelCatalogAvailable = true,
 ) => {
@@ -166,20 +162,10 @@ const initIntercepts = (
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        'model-registry-operator': true,
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
-  );
-
-  cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
-
-  cy.interceptK8sList(
-    ServiceModel,
-    mockK8sResourceList([
-      mockModelRegistryService({ name: 'modelregistry-sample' }),
-      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
-    ]),
   );
 
   cy.interceptK8sList(
@@ -252,7 +238,21 @@ const initIntercepts = (
         modelVersionId: 1,
       },
     },
-    { data: mockModelArtifactList({}) },
+    {
+      data: mockModelArtifactList({
+        items: [
+          mockModelArtifact(
+            fromCatalog
+              ? {
+                  modelSourceClass: 'test-catalog-source',
+                  modelSourceKind: ModelSourceKind.CATALOG,
+                  modelSourceName: 'test-catalog-repo/test-catalog-model',
+                }
+              : {},
+          ),
+        ],
+      }),
+    },
   );
 
   cy.interceptOdh(
@@ -291,23 +291,21 @@ describe('Model version details', () => {
       modelVersionDetails.visit();
     });
 
-    // We do not have this functionality yet.
-    it.skip('Model version details registered from catalog', () => {
+    it('Model version details registered from catalog', () => {
       initIntercepts(false, true, true);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findRegisteredFromCatalog().should('exist');
-      modelVersionDetails
-        .findRegisteredFromCatalog()
-        .should('have.text', 'test-catalog-model (test-catalog-tag)');
+      modelVersionDetails.findRegisteredFromCatalog().should('have.text', 'test-catalog-model');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
-        '/ai-hub/catalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
+        `/ai-hub/catalog/test-catalog-source/${encodeURIComponent(
+          'test-catalog-repo/test-catalog-model',
+        )}`,
       );
     });
 
-    // We do not have this functionality yet.
-    it.skip('Model version details registered from catalog with model catalog unavailable', () => {
+    it('Model version details registered from catalog with model catalog unavailable', () => {
       initIntercepts(false, true, false);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
@@ -389,8 +387,7 @@ describe('Model version details', () => {
       cy.findByTestId('model-version-deployments-empty-state').should('exist');
     });
 
-    // TODO: Fix this test
-    it.skip('renders table with data', () => {
+    it('renders table with data', () => {
       cy.interceptK8sList(
         InferenceServiceModel,
         mockK8sResourceList([
@@ -447,40 +444,27 @@ describe('Model version details', () => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
-          installedComponents: {
-            'model-registry-operator': true,
-            'data-science-pipelines-operator': true,
+          components: {
+            [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
           },
         }),
       );
       modelVersionDetails.visit();
     });
 
-    // TODO: Fix this test
-    it.skip('should update source model format', () => {
+    it('should update source model format', () => {
       cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_artifacts/:artifactId',
         {
           path: {
-            serviceName: 'modelregistry-sample',
+            modelRegistryName: 'modelregistry-sample',
             apiVersion: MODEL_REGISTRY_API_VERSION,
             artifactId: '1',
           },
         },
-        mockModelArtifact({}),
+        { data: mockModelArtifact({}) },
       ).as('updateModelFormat');
-
-      cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
-        {
-          path: {
-            serviceName: 'modelregistry-sample',
-            apiVersion: MODEL_REGISTRY_API_VERSION,
-            registeredModelId: '1',
-          },
-        },
-        mockRegisteredModel({}),
-      );
 
       modelVersionDetails.findSourceModelFormat('edit').click();
       modelVersionDetails
@@ -491,44 +475,31 @@ describe('Model version details', () => {
       modelVersionDetails.findSourceModelFormat('save').click();
 
       cy.wait('@updateModelFormat').then((interception) => {
-        expect(interception.request.body).to.deep.equal({
+        expect(interception.request.body.data).to.deep.equal({
           modelFormatName: 'UpdatedFormat',
         });
       });
     });
 
-    // TODO: Fix this test
-    it.skip('should update source model version', () => {
+    it('should update source model version', () => {
       cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_artifacts/:artifactId',
+        'PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_artifacts/:artifactId',
         {
           path: {
-            serviceName: 'modelregistry-sample',
+            modelRegistryName: 'modelregistry-sample',
             apiVersion: MODEL_REGISTRY_API_VERSION,
             artifactId: '1',
           },
         },
-        mockModelArtifact({}),
+        { data: mockModelArtifact({}) },
       ).as('updateModelVersion');
-
-      cy.interceptOdh(
-        'PATCH /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
-        {
-          path: {
-            serviceName: 'modelregistry-sample',
-            apiVersion: MODEL_REGISTRY_API_VERSION,
-            registeredModelId: '1',
-          },
-        },
-        mockRegisteredModel({}),
-      );
 
       modelVersionDetails.findSourceModelVersion('edit').click();
       modelVersionDetails.findSourceModelVersion('group').find('input').clear().type('2.0.0');
       modelVersionDetails.findSourceModelVersion('save').click();
 
       cy.wait('@updateModelVersion').then((interception) => {
-        expect(interception.request.body).to.deep.equal({
+        expect(interception.request.body.data).to.deep.equal({
           modelFormatVersion: '2.0.0',
         });
       });
@@ -542,9 +513,9 @@ describe('Model version details', () => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
-          installedComponents: {
-            'model-registry-operator': true,
-            'data-science-pipelines-operator': true,
+          components: {
+            [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
           },
         }),
       );

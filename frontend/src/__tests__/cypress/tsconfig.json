@@ -1,10 +1,11 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "rootDir": "../../",
+    "rootDir": "../../../../",
     "baseUrl": ".",
     "paths": {
-      "cypress/*": ["../../../../node_modules/cypress/*"]
+      "cypress/*": ["../../../../node_modules/cypress/*"],
+      "@odh-dashboard/app-config": ["../../../../packages/app-config/src/index.ts"]
     }
   }
 }

@@ -11,6 +11,7 @@ import ModelVersionListView from '~/app/pages/modelRegistry/screens/ModelVersion
 import { isModelRegistryDetailsTabExtension } from '~/odh/extension-points/details';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { DEPLOYMENTS_TAB_EXTENSION_ID } from '~/odh/const';
 
 type ModelVersionsTabProps = {
   tab: ModelVersionsTab | string;
@@ -96,7 +97,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
       data-testid="model-versions-page-tabs"
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
-      {modelDetailsTabs}
+      {isArchiveModel ? modelDetailsTabs.filter((tab) => tab.key !== DEPLOYMENTS_TAB_EXTENSION_ID) : modelDetailsTabs}
     </Tabs>
   );
 };

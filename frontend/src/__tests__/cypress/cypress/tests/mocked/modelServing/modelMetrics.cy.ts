@@ -57,6 +57,7 @@ import {
   mockNimMetricsConfigMap,
 } from '#~/__mocks__/mockKserveMetricsConfigMap';
 import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;
@@ -92,12 +93,11 @@ const initIntercepts = ({
   disablePerformanceMetrics,
   disableNIMModelServing = true,
   disableTrustyBiasMetrics,
-  disableKServeMetrics,
+  disableKServeMetrics = false,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
-  inferenceServices = [mockInferenceServiceK8sResource({ isModelMesh: true })],
+  inferenceServices = [mockInferenceServiceK8sResource({})],
   hasServingData = false,
   hasBiasData = false,
-  enableModelMesh = true,
   enableNIM = false,
   isTrustyAIAvailable = true,
   isTrustyAIInstalled = true,
@@ -105,12 +105,16 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: { kserve: true, 'model-mesh': true, trustyai: true },
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.TRUSTY_AI]: { managementState: 'Managed' },
+      },
     }),
   );
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
+      disableKServe: false,
       disableTrustyBiasMetrics,
       disablePerformanceMetrics,
       disableNIMModelServing,
@@ -121,7 +125,7 @@ const initIntercepts = ({
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
-      mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh, enableNIM }),
+      mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh: false, enableNIM }),
     ]),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
@@ -181,21 +185,11 @@ const initIntercepts = ({
       [
         mockServingRuntimeTemplateK8sResource({
           name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
         }),
         mockServingRuntimeTemplateK8sResource({
-          name: 'template-3',
-          displayName: 'New OVMS Server',
-          platforms: [ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-4',
+          name: 'template-2',
           displayName: 'Serving Runtime with No Annotations',
         }),
         mockInvalidTemplateK8sResource({}),
@@ -219,6 +213,7 @@ const initIntercepts = ({
       : { statusCode: 404, body: mock404Error({}) },
   );
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ name: 'trustyai-service' }));
+  cy.interceptK8s(ConfigMapModel, mockKserveMetricsConfigMap({ supported: true }));
 };
 
 const initInterceptsToEnableNim = () => {
@@ -245,7 +240,7 @@ describe('Model Metrics', () => {
     });
 
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
-    modelMetricsPerformance.getMetricsChart('HTTP requests per 5 minutes').shouldHaveNoData();
+    modelMetricsPerformance.getMetricsChart('Number of incoming requests').shouldHaveNoData();
   });
 
   it('Serving Chart Shows Data', () => {
@@ -257,7 +252,7 @@ describe('Model Metrics', () => {
     });
 
     modelMetricsPerformance.visit('test-project', 'test-inference-service');
-    modelMetricsPerformance.getMetricsChart('HTTP requests per 5 minutes').shouldHaveData();
+    modelMetricsPerformance.getMetricsChart('Number of incoming requests').shouldHaveData();
   });
 
   it('Empty State No Bias Data Available', () => {
@@ -356,9 +351,7 @@ describe('Model Metrics', () => {
       disablePerformanceMetrics: false,
       hasServingData: false,
       hasBiasData: false,
-      inferenceServices: [
-        mockInferenceServiceK8sResource({ isModelMesh: false, name: 'empty-model' }),
-      ],
+      inferenceServices: [mockInferenceServiceK8sResource({ name: 'empty-model' })],
     });
 
     modelMetricsBias.visit('test-project', 'empty-model', true);
@@ -636,7 +629,7 @@ describe('KServe performance metrics', () => {
       disableKServeMetrics: true,
       hasServingData: false,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
     modelMetricsKserve.visit('test-project', 'test-inference-service');
     modelMetricsKserve.findKserveAreaDisabledCard().should('be.visible');
@@ -646,10 +639,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(
@@ -669,10 +661,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(ConfigMapModel, mockKserveMetricsConfigMap({ supported: false }));
@@ -685,10 +676,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(
@@ -704,10 +694,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(
@@ -725,10 +714,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(
@@ -748,10 +736,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: false,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(
@@ -771,10 +758,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(ConfigMapModel, mockKserveMetricsConfigMap({ supported: true }));
@@ -791,10 +777,9 @@ describe('KServe performance metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       hasServingData: false,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(ConfigMapModel, mockKserveMetricsConfigMap({ supported: true }));
@@ -807,19 +792,17 @@ describe('KServe performance metrics', () => {
   });
 });
 
-//Nim Metrics Tests
+// Nim Metrics Tests
 describe('KServe NIM metrics', () => {
   it('should show error when ConfigMap is missing', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -842,10 +825,9 @@ describe('KServe NIM metrics', () => {
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
-      disableKServeMetrics: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: false }));
@@ -858,11 +840,10 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(
@@ -878,13 +859,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -904,13 +883,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -931,13 +908,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -958,13 +933,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -988,13 +961,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -1016,13 +987,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();
@@ -1045,13 +1014,11 @@ describe('KServe NIM metrics', () => {
     initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
-      disableKServeMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      enableModelMesh: false,
       enableNIM: true,
-      inferenceServices: [mockInferenceServiceK8sResource({ isModelMesh: false })],
+      inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     initInterceptsToEnableNim();

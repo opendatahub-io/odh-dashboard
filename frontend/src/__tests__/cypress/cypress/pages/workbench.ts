@@ -558,6 +558,15 @@ class CreateSpawnerPage {
       .click();
   }
 
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectHardwareProfile(name: string) {
+    this.findHardwareProfileSelect().click();
+    cy.findByRole('option', { name: new RegExp(name) }).click();
+  }
+
   shouldHaveClusterStorageAlert() {
     cy.findByTestId('cluster-storage-alert').should('exist');
     return this;

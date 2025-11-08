@@ -8,13 +8,18 @@ import { ChatbotSourceSettings, FileUploadResult } from '~/app/types';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
+jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
 }));
 
-const mockUploadSource = uploadSource as jest.MockedFunction<typeof uploadSource>;
+const mockUploadSource = uploadSource as jest.Mock;
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+
+// Import after mocking
+const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
 describe('useSourceManagement', () => {
   const mockOnShowSuccessAlert = jest.fn();
@@ -59,6 +64,14 @@ describe('useSourceManagement', () => {
     jest.useFakeTimers();
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
     mockUploadSource.mockResolvedValue(mockUploadResult);
+
+    // Mock useGenAiAPI to return the API object with mocked functions
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: {
+        uploadSource: mockUploadSource,
+      },
+    });
   });
 
   afterEach(() => {
@@ -282,7 +295,16 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).toHaveBeenCalledWith(mockFile, mockSourceSettings, 'test-namespace');
+      // Check that uploadSource was called with FormData
+      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
+
+      // Verify FormData contents
+      const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;
+      expect(formDataCall.get('file')).toBe(mockFile);
+      expect(formDataCall.get('chunk_overlap_tokens')).toBe('100');
+      expect(formDataCall.get('max_chunk_size_tokens')).toBe('1000');
+      expect(formDataCall.get('vector_store_id')).toBe('test-vector-store');
+
       expect(result.current.selectedSourceSettings).toEqual(mockSourceSettings);
       expect(result.current.isSourceSettingsOpen).toBe(false);
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
@@ -318,7 +340,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).toHaveBeenCalledWith(mockFile, mockSourceSettings, 'test-namespace');
+      // Check that uploadSource was called with FormData
+      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
 
@@ -327,37 +350,13 @@ describe('useSourceManagement', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle error when namespace is missing', async () => {
-      mockUseContext.mockReturnValue({ namespace: undefined });
-
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      // Set up file first
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
+    it('should handle error when API is not available', async () => {
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: false,
+        api: {
+          uploadSource: mockUploadSource,
+        },
       });
-
-      // Fast-forward timer to set current file
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      await act(async () => {
-        await result.current.handleSourceSettingsSubmit(mockSourceSettings);
-      });
-
-      expect(mockUploadSource).not.toHaveBeenCalled();
-      expect(mockOnShowErrorAlert).toHaveBeenCalled();
-      expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
-    });
-
-    it('should handle error when namespace name is empty', async () => {
-      mockUseContext.mockReturnValue({ namespace: { name: '' } });
 
       const { result } = renderHook(() =>
         useSourceManagement({
@@ -538,7 +537,16 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(partialSettings);
       });
 
-      expect(mockUploadSource).toHaveBeenCalledWith(mockFile, partialSettings, 'test-namespace');
+      // Check that uploadSource was called with FormData
+      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
+
+      // Verify FormData contents (partial settings without optional fields)
+      const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;
+      expect(formDataCall.get('file')).toBe(mockFile);
+      expect(formDataCall.get('chunk_overlap_tokens')).toBeNull();
+      expect(formDataCall.get('max_chunk_size_tokens')).toBeNull();
+      expect(formDataCall.get('vector_store_id')).toBe('test-vector-store');
+
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
     });
 

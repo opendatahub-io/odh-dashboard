@@ -10,7 +10,6 @@ spec:
   provider: ods-ci
   description: |-
     Custom Application is a test item created by ODS-CI to test creation of custom doc resources.
-  kfdefApplications: []
   category: Red Hat managed
   support: redhat
   csvName: custom-odsci-app

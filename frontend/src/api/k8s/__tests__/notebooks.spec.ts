@@ -305,14 +305,14 @@ describe('assembleNotebook', () => {
     );
   });
 
-  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles', () => {
+  it('should set empty tolerations and nodeSelector for real hardware profiles without scheduling config', () => {
     const notebookData = mockStartNotebookData({});
-    const hardwareProfile = mockHardwareProfile({});
+    const hardwareProfile = mockHardwareProfile({ schedulingType: '' });
     hardwareProfile.metadata.uid = 'test-uid';
     notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
     const result = assembleNotebook(notebookData, 'test-user');
-    expect(result.spec.template.spec.tolerations).toBeUndefined();
-    expect(result.spec.template.spec.nodeSelector).toBeUndefined();
+    expect(result.spec.template.spec.tolerations).toStrictEqual([]);
+    expect(result.spec.template.spec.nodeSelector).toStrictEqual({});
   });
 
   it('should set hardware profile namespace annotation to dashboard namespace when global scoped', () => {

@@ -37,3 +37,17 @@ Redirecting from Elyra URLs to internal dashboard routes.
    /external/elyra/{namespace}/runs/{runId}
    ```
    Redirects to the internal pipeline run details route for the specified run.
+
+### Model Catalog Redirects
+
+Redirecting from external URLs to internal model catalog routes.
+
+#### Supported URL Patterns
+
+1. **Catalog Model Details**
+   ```
+   /external/catalog/{sourceId}/{modelName}
+   ```
+   Redirects to the internal catalog model details route for the specified model.
+
+   Example: `/external/catalog/redhat_ai_validated_models/RedHatAI%2FDeepSeek-R1-05`

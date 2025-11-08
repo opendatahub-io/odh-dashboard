@@ -369,7 +369,7 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'settings-model-registry',
-      title: 'Model registry settings',
+      title: 'AI registry settings',
       href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/model-registry/*',

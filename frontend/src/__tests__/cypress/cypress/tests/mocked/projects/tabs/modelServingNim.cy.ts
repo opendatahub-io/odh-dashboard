@@ -100,7 +100,7 @@ describe('NIM Model Serving', () => {
       // Temp until KEDA is supported
       nimDeployModal.findNimModelReplicas().should('have.value', '1');
 
-      /* Disabled until KEDA is supported -- Serverless has been removed */
+      /* TODO: Enable replica validation when KEDA autoscaling is supported */
       // // Validate model replicas
       // nimDeployModal.findMinReplicasInput().should('have.value', '1');
       // nimDeployModal.findMinReplicasPlusButton().should('be.disabled');
@@ -227,7 +227,6 @@ describe('NIM Model Serving', () => {
       it("should allow selecting NIM from a Project's Overview tab when multiple platforms exist", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
-          disableModelMesh: false,
           disableNIMModelServing: false,
         });
         projectDetailsOverviewTab.visit('test-project');
@@ -251,7 +250,6 @@ describe('NIM Model Serving', () => {
       it("should allow selecting NIM from a Project's Models tab when multiple platforms exist", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
-          disableModelMesh: false,
           disableNIMModelServing: false,
         });
         projectDetails.visitSection('test-project', 'model-server');
@@ -270,7 +268,6 @@ describe('NIM Model Serving', () => {
       it("should NOT allow deploying NIM from a Project's Overview tab when the only platform", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: true,
-          disableModelMesh: true,
           disableNIMModelServing: true,
         });
         projectDetailsOverviewTab.visit('test-project');
@@ -280,7 +277,6 @@ describe('NIM Model Serving', () => {
       it("should NOT allow deploying NIM from a Project's Overview tab when multiple platforms exist", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
-          disableModelMesh: false,
           disableNIMModelServing: true,
         });
         projectDetailsOverviewTab.visit('test-project');
@@ -291,7 +287,6 @@ describe('NIM Model Serving', () => {
       it("should NOT allow deploying NIM from a Project's Models tab when the only platform", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: true,
-          disableModelMesh: true,
           disableNIMModelServing: true,
         });
         projectDetails.visitSection('test-project', 'model-server');
@@ -301,7 +296,6 @@ describe('NIM Model Serving', () => {
       it("should NOT allow deploying NIM to a Project's Models tab when multiple platforms exist", () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
-          disableModelMesh: false,
           disableNIMModelServing: true,
         });
         projectDetails.visitSection('test-project', 'model-server');
@@ -315,7 +309,6 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement(
           {
             disableKServe: false,
-            disableModelMesh: false,
             disableNIMModelServing: false,
           },
           true,
@@ -328,7 +321,6 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement(
           {
             disableKServe: false,
-            disableModelMesh: false,
             disableNIMModelServing: false,
           },
           true,
@@ -342,7 +334,6 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement(
           {
             disableKServe: false,
-            disableModelMesh: false,
             disableNIMModelServing: false,
           },
           true,
@@ -355,7 +346,6 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement(
           {
             disableKServe: false,
-            disableModelMesh: false,
             disableNIMModelServing: false,
           },
           true,

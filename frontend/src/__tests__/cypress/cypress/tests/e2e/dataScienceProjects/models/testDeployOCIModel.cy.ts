@@ -8,9 +8,9 @@ import {
   connectionsPage,
 } from '#~/__tests__/cypress/cypress/pages/connections';
 import {
-  inferenceServiceModal,
   modelServingGlobal,
   modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '#~/__tests__/cypress/cypress/types';
@@ -80,14 +80,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: [
-          '@Smoke',
-          '@SmokeSet3',
-          '@Dashboard',
-          '@Modelserving',
-          '@NonConcurrent',
-          '@Maintain',
-        ],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -101,33 +94,50 @@ describe(
         connectionsPage.findCreateConnectionButton().click();
         addConnectionModal.findConnectionTypeDropdown().click();
         addConnectionModal.findOciConnectionType().click();
-        addConnectionModal.findConnectionNameInput().type(connectionName);
-        addConnectionModal.findConnectionDescriptionInput().type('OCI Connection');
+        addConnectionModal.findConnectionNameInput().clear().type(connectionName);
+        addConnectionModal.findConnectionDescriptionInput().clear().type('OCI Connection');
         addConnectionModal.findOciAccessType().click();
         addConnectionModal.findOciPullSecretOption().click();
         addConnectionModal.findOciAccessType().click();
         addConnectionModal.uploadSecretDetails(secretDetailsFile);
-        addConnectionModal.findOciRegistryHost().type(ociRegistryHost);
+        addConnectionModal.findOciRegistryHost().clear().type(ociRegistryHost);
         addConnectionModal.findCreateButton().click();
 
         cy.step('Deploy OCI Connection with KServe');
         projectDetails.findSectionTab('model-server').click();
-        modelServingGlobal.findSingleServingModelButton().click();
+        // If we have only one serving model platform, then it is selected by default.
+        // So we don't need to click the button.
+        modelServingGlobal.selectSingleServingModelButtonIfExists();
         modelServingGlobal.findDeployModelButton().click();
-        inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
-        inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-        inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-        inferenceServiceModal.findModelFrameworkSelect().click();
-        inferenceServiceModal.findOpenVinoOnnx().click();
-        inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
-        inferenceServiceModal.findSubmitButton().focus().click();
+        // Step 1: Model Source
+        modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+        modelServingWizard.findOCIModelURI().clear().type(modelDeploymentURI);
+        modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+        modelServingWizard.findNextButton().click();
+        // Step 2: Model Deployment
+        modelServingWizard.findModelDeploymentNameInput().clear().type(modelDeploymentName);
+        modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+        // Only interact with serving runtime template selector if it's not disabled
+        // (it may be disabled when only one option is available)
+        modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+          if (!$selector.is(':disabled')) {
+            cy.wrap($selector).click();
+            modelServingWizard
+              .findGlobalScopedTemplateOption('OpenVINO Model Server')
+              .should('exist')
+              .click();
+          }
+        });
+        modelServingWizard.findNextButton().click();
+        // Step 3: Advanced Options
+        modelServingWizard.findNextButton().click();
+        // Step 4: Review
+        modelServingWizard.findSubmitButton().click();
+        modelServingSection.findModelServerDeployedName(modelDeploymentName);
         //Verify the model created and is running
         cy.step('Verify that the Model is running');
-        // For KServe Raw deployments, we only need to check Ready condition
-        // LatestDeploymentReady is specific to Serverless deployments
-        checkInferenceServiceState(modelDeploymentName, projectName, {
-          checkReady: true,
-        });
+        // Verify model deployment is ready
+        checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );

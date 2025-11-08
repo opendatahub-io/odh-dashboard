@@ -1,6 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
@@ -12,6 +13,27 @@ jest.mock('@odh-dashboard/plugin-core');
 jest.mock('../../../concepts/useModelDeploymentNotification', () => ({
   useModelDeploymentNotification: () => ({
     watchDeployment: jest.fn(),
+  }),
+}));
+
+// Mock the useStopModalPreference hook
+jest.mock('../../../concepts/useStopModalPreference', () => ({
+  __esModule: true,
+  default: () => [false, jest.fn()],
+}));
+
+// Mock the useDeploymentExtension hook
+jest.mock('../../../concepts/extensionUtils', () => ({
+  useDeploymentExtension: () => null,
+  useResolvedDeploymentExtension: () => [null, true, []],
+}));
+
+// Mock the useExtractFormDataFromDeployment hook
+jest.mock('../../deploymentWizard/useExtractFormDataFromDeployment', () => ({
+  useExtractFormDataFromDeployment: () => ({
+    formData: undefined,
+    loaded: true,
+    error: undefined,
   }),
 }));
 
@@ -39,25 +61,27 @@ const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   apiProtocol: partial.apiProtocol,
 });
 
+// Helper function to wrap components with Router for testing
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(<MemoryRouter>{component}</MemoryRouter>);
+};
+
 describe('DeploymentsTableRow', () => {
   let onDelete: jest.Mock;
-  let onEdit: jest.Mock;
 
   beforeEach(() => {
     onDelete = jest.fn();
-    onEdit = jest.fn();
     mockExtensions();
   });
 
   it('should render the basic row', async () => {
-    render(
+    renderWithRouter(
       <table>
         <tbody>
           <DeploymentRow
             deployment={mockDeployment({})}
             platformColumns={[]}
             onDelete={onDelete}
-            onEdit={onEdit}
             rowIndex={0}
           />
         </tbody>
@@ -70,8 +94,6 @@ describe('DeploymentsTableRow', () => {
     expect(screen.getByRole('button', { name: 'More info' })).toBeInTheDocument();
     // Inference endpoint Column
     expect(screen.getByText('Failed to get endpoint for this deployed model.')).toBeInTheDocument();
-    // API protocol Column
-    expect(screen.getByText('Not defined')).toBeInTheDocument();
     // Status Column
     expect(screen.getByText('Inference Service Status')).toBeInTheDocument();
 
@@ -83,7 +105,7 @@ describe('DeploymentsTableRow', () => {
   });
 
   it('should render with platform columns', () => {
-    render(
+    renderWithRouter(
       <table>
         <tbody>
           <DeploymentRow
@@ -97,7 +119,6 @@ describe('DeploymentsTableRow', () => {
               },
             ]}
             onDelete={onDelete}
-            onEdit={onEdit}
             rowIndex={0}
           />
         </tbody>
@@ -108,7 +129,7 @@ describe('DeploymentsTableRow', () => {
   });
 
   it('should render the row with a status', () => {
-    render(
+    renderWithRouter(
       <table>
         <tbody>
           <DeploymentRow
@@ -117,7 +138,6 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
-            onEdit={onEdit}
             rowIndex={0}
           />
         </tbody>
@@ -129,7 +149,7 @@ describe('DeploymentsTableRow', () => {
 
   describe('Inference endpoints', () => {
     it('should render the row with internal inference endpoint', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -144,7 +164,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>
@@ -160,7 +179,7 @@ describe('DeploymentsTableRow', () => {
     });
 
     it('should render the row with external inference endpoint', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -175,7 +194,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>
@@ -191,7 +209,7 @@ describe('DeploymentsTableRow', () => {
     });
 
     it('should render the row with multiple inference endpoints', async () => {
-      render(
+      renderWithRouter(
         <table>
           <tbody>
             <DeploymentRow
@@ -211,7 +229,6 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
-              onEdit={onEdit}
               rowIndex={0}
             />
           </tbody>
@@ -226,26 +243,38 @@ describe('DeploymentsTableRow', () => {
       expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
       expect(screen.getByText('https://external-endpoint.com')).toBeInTheDocument();
     });
-  });
 
-  it('should render the row with an api protocol', () => {
-    render(
-      <table>
-        <tbody>
-          <DeploymentRow
-            deployment={mockDeployment({
-              server: undefined,
-              apiProtocol: 'REST',
-            })}
-            platformColumns={[]}
-            onDelete={onDelete}
-            onEdit={onEdit}
-            rowIndex={0}
-          />
-        </tbody>
-      </table>,
-    );
+    it('should render the row with API protocol', async () => {
+      renderWithRouter(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                apiProtocol: 'REST',
+                endpoints: [
+                  {
+                    type: 'internal',
+                    name: 'test-endpoint',
+                    url: 'https://internal-endpoint.com',
+                  },
+                ],
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+              rowIndex={0}
+            />
+          </tbody>
+        </table>,
+      );
 
-    expect(screen.getByText('REST')).toBeInTheDocument();
+      const button = screen.getByRole('button', { name: 'Internal endpoint' });
+      expect(button).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
+      expect(screen.getByTestId('api-protocol-label')).toBeInTheDocument();
+      expect(screen.getByTestId('api-protocol-label')).toHaveTextContent('REST');
+    });
   });
 });

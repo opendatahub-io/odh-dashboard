@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   ConfigMapKind,
-  DeploymentMode,
   InferenceServiceKind,
   KnownLabels,
   PersistentVolumeClaimKind,
@@ -61,14 +60,6 @@ export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServic
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
-
-/** @deprecated -- model mesh is removed */
-export const getInferenceServiceDeploymentMode = (modelMesh: boolean): DeploymentMode => {
-  if (modelMesh) {
-    return DeploymentMode.ModelMesh;
-  }
-  return DeploymentMode.RawDeployment;
-};
 
 export const getInferenceServiceFromServingRuntime = (
   inferenceServices: InferenceServiceKind[],
@@ -507,7 +498,6 @@ export const getSubmitServingRuntimeResourcesFn = (
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
               podSpecOptions,
-              isModelMesh,
             }),
             ...(isModelMesh
               ? [
@@ -534,7 +524,6 @@ export const getSubmitServingRuntimeResourcesFn = (
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
               podSpecOptions,
-              isModelMesh,
             }).then((servingRuntime) => {
               if (isModelMesh) {
                 return setUpTokenAuth(

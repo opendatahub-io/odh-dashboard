@@ -1,4 +1,4 @@
-import { StackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -21,8 +21,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
-      requiredComponents: [StackComponent.LLAMA_STACK_OPERATOR],
-      devFlags: ['Gen AI plugin'],
+      requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
+      featureFlags: ['genAiStudio'],
     },
   },
   {
@@ -30,7 +30,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: MODEL_AS_SERVICE,
       reliantAreas: [PLUGIN_GEN_AI],
-      devFlags: ['Model as a service'],
+      featureFlags: ['modelAsService'],
     },
   },
   {

@@ -43,6 +43,7 @@ type App struct {
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
+	clusterDomain           string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -159,6 +160,17 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	memStore := cache.NewMemoryStore()
 	logger.Info("Initialized shared memory store")
 
+	// Cache cluster domain at startup using service account
+	var clusterDomain string
+	if !cfg.MockK8sClient {
+		if domain, err := k8s.GetClusterDomainUsingServiceAccount(context.Background(), logger); err != nil {
+			logger.Error("Failed to get cluster domain at startup, MaaS autodiscovery will be unavailable", "error", err)
+		} else {
+			clusterDomain = domain
+			logger.Info("Cached cluster domain for MaaS autodiscovery", "domain", clusterDomain)
+		}
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -171,6 +183,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
+		clusterDomain:           clusterDomain,
 	}
 	return app, nil
 }
@@ -235,7 +248,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.RequireNamespaceListAccess(app.GetNamespaceHandler)))
+	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
 
 	// Identity
 	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))

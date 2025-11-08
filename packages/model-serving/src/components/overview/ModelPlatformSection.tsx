@@ -22,7 +22,6 @@ import {
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
-import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -122,11 +121,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         </CardBody>
         <CardFooter>
           <Flex gap={{ default: 'gapMd' }}>
-            <DeployButton
-              project={currentProject}
-              variant="link"
-              createRoute={getDeploymentWizardRoute(`/projects/${currentProject.metadata.name}`)}
-            />
+            <DeployButton project={currentProject} variant="link" />
             <NavigateBackToRegistryButton isInline />
           </Flex>
         </CardFooter>

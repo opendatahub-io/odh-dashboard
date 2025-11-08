@@ -25,15 +25,16 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
 import { ServingRuntimePlatform } from '#~/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 export const initDeployPrefilledModelIntercepts = ({
-  modelMeshInstalled = true,
-  kServeInstalled = true,
+  disableKServe = false,
+  disableNIMModelServing = true,
   disableProjectScoped = true,
   isEmpty = false,
 }: {
-  modelMeshInstalled?: boolean;
-  kServeInstalled?: boolean;
+  disableKServe?: boolean;
+  disableNIMModelServing?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
 }): void => {
@@ -43,30 +44,39 @@ export const initDeployPrefilledModelIntercepts = ({
       disableModelRegistry: false,
       disableModelCatalog: false,
       disableProjectScoped,
+      disableKServe,
+      disableNIMModelServing,
     }),
   );
 
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        kserve: kServeInstalled,
-        'model-mesh': modelMeshInstalled,
-        'model-registry-operator': true,
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );
+
+  // Enable NIM to show as a platform to select in a project
+  if (!disableNIMModelServing) {
+    cy.interceptOdh(
+      'GET /api/integrations/:internalRoute',
+      { path: { internalRoute: 'nim' } },
+      {
+        isInstalled: true,
+        isEnabled: true,
+        canInstall: false,
+        error: '',
+      },
+    );
+  }
 
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
       mockProjectK8sResource({
-        enableModelMesh: true,
-        k8sName: 'model-mesh-project',
-        displayName: 'Model mesh project',
-      }),
-      mockProjectK8sResource({
-        enableModelMesh: false,
         k8sName: 'kserve-project',
         displayName: 'KServe project',
       }),
@@ -81,19 +91,14 @@ export const initDeployPrefilledModelIntercepts = ({
       : mockK8sResourceList(
           [
             mockServingRuntimeTemplateK8sResource({
-              name: 'template-1',
-              displayName: 'Multi Platform',
-              platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-            }),
-            mockServingRuntimeTemplateK8sResource({
               name: 'template-2',
               displayName: 'Caikit',
               platforms: [ServingRuntimePlatform.SINGLE],
             }),
             mockServingRuntimeTemplateK8sResource({
               name: 'template-3',
-              displayName: 'New OVMS Server',
-              platforms: [ServingRuntimePlatform.MULTI],
+              displayName: 'OpenVINO',
+              platforms: [ServingRuntimePlatform.SINGLE],
             }),
             mockServingRuntimeTemplateK8sResource({
               name: 'template-4',
@@ -110,18 +115,13 @@ export const initDeployPrefilledModelIntercepts = ({
     mockK8sResourceList(
       [
         mockServingRuntimeTemplateK8sResource({
-          name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
-          displayName: 'OpenVINO',
+          displayName: 'OpenVINO Local',
           platforms: [ServingRuntimePlatform.SINGLE],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-3',
-          displayName: 'Caikit',
+          displayName: 'Caikit Local',
           platforms: [ServingRuntimePlatform.SINGLE],
           supportedModelFormats: [
             {

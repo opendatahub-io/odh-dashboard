@@ -14,7 +14,7 @@ import { LLMD_SERVING_ID } from '../../extensions/extensions';
 export const useWatchDeployments = (
   project?: ProjectKind,
   labelSelectors?: { [key: string]: string },
-  mrName?: string,
+  filterFn?: (llmInferenceService: LLMInferenceServiceKind) => boolean,
   opts?: K8sAPIOptions,
 ): [LLMdDeployment[] | undefined, boolean, Error | undefined] => {
   const [llmInferenceServices, llmInferenceServiceLoaded, llmInferenceServiceError] =
@@ -29,16 +29,23 @@ export const useWatchDeployments = (
       opts,
     );
 
+  const filteredLlmInferenceServices = React.useMemo(() => {
+    if (!filterFn) {
+      return llmInferenceServices;
+    }
+    return llmInferenceServices.filter(filterFn);
+  }, [llmInferenceServices, filterFn]);
+
   const deployments: LLMdDeployment[] = React.useMemo(
     () =>
-      llmInferenceServices.map((llmInferenceService) => ({
+      filteredLlmInferenceServices.map((llmInferenceService) => ({
         modelServingPlatformId: LLMD_SERVING_ID,
         model: llmInferenceService,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
         status: getLLMdDeploymentStatus(llmInferenceService),
       })),
-    [llmInferenceServices],
+    [filteredLlmInferenceServices],
   );
 
   return [deployments, llmInferenceServiceLoaded, llmInferenceServiceError];

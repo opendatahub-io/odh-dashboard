@@ -4,10 +4,13 @@ import { fetchComponents } from '#~/services/componentsServices';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { IntegrationAppStatus } from '#~/types';
 import { isIntegrationApp } from '#~/utilities/utils';
+import { useAppSelector } from '#~/redux/hooks';
 
 export const useComponentIntegrationsStatus = (): FetchStateObject<
   Record<string, IntegrationAppStatus>
 > => {
+  const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);
+
   const fetchCallbackPromise = React.useCallback(async () => {
     const result = await fetchComponents(false);
     const integrations = result.filter((c) => c.spec.internalRoute);
@@ -26,7 +29,7 @@ export const useComponentIntegrationsStatus = (): FetchStateObject<
     const statuses = await Promise.all(promises);
 
     return Object.assign({}, ...statuses);
-  }, []);
+  }, [forceUpdate]);
 
-  return useFetch(fetchCallbackPromise, []);
+  return useFetch(fetchCallbackPromise, {});
 };

@@ -213,7 +213,7 @@ class ModelRegistry {
   }
 
   findModelVersionsHeaderAction() {
-    return cy.findByTestId('model-version-action-toggle');
+    return cy.findByTestId('model-action-toggle');
   }
 
   findModelVersionsTableFilterOption(name: string) {

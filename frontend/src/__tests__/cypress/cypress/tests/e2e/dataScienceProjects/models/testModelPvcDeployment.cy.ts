@@ -1,6 +1,7 @@
 import {
-  inferenceServiceModal,
   modelServingGlobal,
+  modelServingSection,
+  modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import {
@@ -69,9 +70,9 @@ describe('Verify a model can be deployed from a PVC', () => {
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
-      cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
+      cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project
@@ -87,11 +88,11 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       // Enter cluster storage details
       cy.step('Enter cluster storage details');
-      addClusterStorageModal.findNameInput().type(pvStorageName);
+      addClusterStorageModal.findNameInput().clear().type(pvStorageName);
 
       addClusterStorageModal.findModelStorageRadio().click();
-      addClusterStorageModal.findModelPathInput().type(modelFilePath);
-      addClusterStorageModal.findModelNameInput().type(modelName);
+      addClusterStorageModal.findModelPathInput().clear().type(modelFilePath);
+      addClusterStorageModal.findModelNameInput().clear().type(modelName);
 
       addClusterStorageModal.findSubmitButton().click({ force: true });
 
@@ -127,30 +128,40 @@ describe('Verify a model can be deployed from a PVC', () => {
       // Deploy the model
       cy.step('Deploy the model');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.findSingleServingModelButton().click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
-      inferenceServiceModal.findModelNameInput().type(modelName);
-      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
-      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      inferenceServiceModal.findModelFrameworkSelect().click();
-      inferenceServiceModal.findOpenVinoIROpSet13().click();
+      // Step 1: Model Source
+      modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      inferenceServiceModal.findExistingPVCConnectionOption().click();
-      inferenceServiceModal.findSubmitButton().should('be.enabled').click();
-      inferenceServiceModal.shouldBeOpen(false);
-
+      modelServingWizard.findPVCSelectValue().should('have.value', pvStorageName);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
+      // Step 2: Model Deployment
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Only interact with serving runtime template selector if it's not disabled
+      // (it may be disabled when only one option is available)
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
+        if (!$selector.is(':disabled')) {
+          cy.wrap($selector).click();
+          modelServingWizard
+            .findGlobalScopedTemplateOption('OpenVINO Model Server')
+            .should('exist')
+            .click();
+        }
+      });
+      modelServingWizard.findNextButton().click();
+      //Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
+      modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
     },
   );
 });
