@@ -113,7 +113,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.21.0",
-    "@module-federation/enhanced": "^0.18.0",
+    "@module-federation/enhanced": "^0.21.0",
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
