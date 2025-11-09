@@ -640,9 +640,7 @@ export const createNIMPVC = (
       storageClassName,
     },
     projectName,
-    {
-      dryRun,
-    },
+    { dryRun },
     true,
     undefined,
     {
