@@ -207,23 +207,34 @@ export const getNIMResourcesToDelete = async (
 
       // Only delete PVC if this is the last deployment using it
       if (pvcUsage.count <= 1) {
-        // Check if PVC is Dashboard-managed before deleting
+        // Two-tier check to identify Dashboard-managed PVCs
         try {
           const pvc = await getPvc(projectName, pvcName);
-          const isDashboardManaged = pvc.metadata.labels?.['opendatahub.io/managed'] === 'true';
+
+          // Tier 1: Check for managed label (PVCs created after this feature)
+          const hasNewManagedLabel = pvc.metadata.labels?.['opendatahub.io/managed'] === 'true';
+
+          // Tier 2: Check for Dashboard naming pattern (old PVCs created before this feature)
+          // Dashboard uses getUniqueId('nim-pvc') which generates exactly 5-character IDs
+          // Pattern: nim-pvc-<5 alphanumeric chars> (e.g., nim-pvc-abc12)
+          const isDashboardNamingPattern = /^nim-pvc-[a-z0-9]{5}$/.test(pvcName);
+
+          const isDashboardManaged = hasNewManagedLabel || isDashboardNamingPattern;
 
           if (isDashboardManaged) {
-            // Dashboard created this PVC → safe to delete
+            // Dashboard created this PVC (either new with label or old with pattern) → safe to delete
             // eslint-disable-next-line no-console
             console.log(
-              `Deleting Dashboard-managed PVC ${pvcName} - no other deployments using it`,
+              `Deleting Dashboard-managed PVC ${pvcName} - no other deployments using it ` +
+                `(hasLabel: ${hasNewManagedLabel}, matchesPattern: ${isDashboardNamingPattern})`,
             );
             resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
           } else {
             // User provided this PVC (BYO-PVC) → preserve it
             // eslint-disable-next-line no-console
             console.log(
-              `Preserving BYO-PVC ${pvcName} - not Dashboard-managed (user-provided PVC will not be deleted)`,
+              `Preserving BYO-PVC ${pvcName} - not Dashboard-managed ` +
+                `(no managed label and doesn't match nim-pvc-* pattern)`,
             );
           }
         } catch (pvcFetchError) {
