@@ -80,7 +80,10 @@ export const useNavigateToDeploymentWizard = (
         return;
       }
 
-      const mergedInitialData = { ...formData, ...initialData };
+      const mergedInitialData = {
+        ...(formData ?? {}),
+        ...(initialData ?? {}),
+      };
       // Navigate to deployment wizard with state data
       navigate(getDeploymentWizardRoute(), {
         state: {

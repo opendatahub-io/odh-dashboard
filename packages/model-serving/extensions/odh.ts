@@ -11,7 +11,6 @@ import {
   DataScienceStackComponent,
   SupportedArea,
 } from '@odh-dashboard/internal/concepts/areas/types';
-import type { ModelServingNavigateToWizardExtension } from 'extension-points';
 
 const PLUGIN_MODEL_SERVING = SupportedArea.K_SERVE;
 
@@ -26,7 +25,6 @@ const extensions: (
   | HrefNavItemExtension
   | RouteExtension
   | OverviewSectionExtension
-  | ModelServingNavigateToWizardExtension
 )[] = [
   {
     type: 'app.area',
@@ -100,18 +98,6 @@ const extensions: (
         from: '/modelServing/:namespace?/*',
         to: '/ai-hub/deployments/:namespace?/*',
       }),
-    },
-    flags: {
-      required: [PLUGIN_MODEL_SERVING],
-    },
-  },
-  {
-    type: 'model-serving.deployment/navigate-wizard',
-    properties: {
-      useNavigateToDeploymentWizard: () =>
-        import('../src/components/deploymentWizard/useNavigateToDeploymentWizard').then(
-          (m) => m.useNavigateToDeploymentWizard,
-        ),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
