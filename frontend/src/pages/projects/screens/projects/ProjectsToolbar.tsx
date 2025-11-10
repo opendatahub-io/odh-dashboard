@@ -19,6 +19,7 @@ import { FilterIcon, OutlinedStarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
   aiProjectFilterKey,
+  allProjectFilterKey,
   ProjectsFilterDataType,
   ProjectsFilterOptions,
 } from '#~/pages/projects/screens/projects/const';
@@ -43,14 +44,14 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   const navigate = useNavigate();
   const [isProjectTypeDropdownOpen, setIsProjectTypeDropdownOpen] = React.useState(false);
 
-  const currentProjectType = filterData[ProjectsFilterOptions.projectType] || 'All';
+  const currentProjectType = filterData[ProjectsFilterOptions.projectType];
   const isAISelected = currentProjectType === aiProjectFilterKey;
   const currentCount = isAISelected ? aiProjectNum : fullProjectNum;
   const currentLabel = isAISelected ? 'A.I. projects' : 'All projects';
 
   const projectTypeOptions = [
     {
-      key: '',
+      key: allProjectFilterKey,
       label: 'All projects',
       description: 'All projects that you have access to',
       count: fullProjectNum,
@@ -75,6 +76,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
               isOpen={isProjectTypeDropdownOpen}
               selected={currentProjectType}
               onSelect={(_event, value) => {
+                console.log('yawn; a/b', ProjectsFilterOptions.projectType, String(value));
                 onFilterUpdate(ProjectsFilterOptions.projectType, String(value));
                 setIsProjectTypeDropdownOpen(false);
               }}
