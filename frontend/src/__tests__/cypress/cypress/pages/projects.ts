@@ -21,7 +21,7 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
 
   selectProjectType(projectType: string): void {
     this.findProjectTypeDropdownToggle().click();
-    cy.findByRole('menuitem', { name: new RegExp(projectType, 'i') }).click();
+    cy.findByRole('option', { name: new RegExp(projectType, 'i') }).click();
   }
 
   findAIProjectLabel() {
