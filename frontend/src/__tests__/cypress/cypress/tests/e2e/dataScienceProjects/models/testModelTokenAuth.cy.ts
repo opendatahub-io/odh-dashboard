@@ -2,8 +2,8 @@ import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pa
 import {
   modelServingGlobal,
   modelServingSection,
-  kserveModalEdit,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -152,11 +152,11 @@ describe('[Automation Bug: RHOAIENG-32898] A model can be deployed with token au
         .should('have.length.at.least', 2)
         .then((tokens) => {
           const [token1, token2] = tokens;
-          verifyModelExternalToken(modelName, projectName, token1).then((r) =>
-            expect(r.status).to.equal(200),
+          verifyModelExternalToken(modelName, projectName, token1).then(({ response }) =>
+            expect(response.status).to.equal(200),
           );
-          verifyModelExternalToken(modelName, projectName, token2).then((r) =>
-            expect(r.status).to.equal(200),
+          verifyModelExternalToken(modelName, projectName, token2).then(({ response }) =>
+            expect(response.status).to.equal(200),
           );
         });
 
@@ -168,16 +168,19 @@ describe('[Automation Bug: RHOAIENG-32898] A model can be deployed with token au
         .findKebabAction('Edit')
         .click();
       // Check the service accounts are showing up in the UI
-      kserveModalEdit.findServiceAccountIndex(0).should('have.value', 'secret');
-      kserveModalEdit.findServiceAccountIndex(1).should('have.value', 'secret2');
-      kserveModalEdit.findTokenAuthenticationCheckbox().click();
-      kserveModalEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
-      kserveModalEdit.findSubmitButton().click();
-      kserveModalEdit.shouldBeOpen(false);
+      // Go to the next step
+      modelServingWizardEdit.findNextButton().click();
+      // Go to the next step
+      modelServingWizardEdit.findNextButton().click();
+      //Step 3: Advanced Options
+      modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'secret');
+      modelServingWizardEdit.findServiceAccountByIndex(1).should('have.value', 'secret2');
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
+      modelServingWizardEdit.findSubmitButton().click();
 
-      // Verify the model is accessible without a token
       cy.step('Verify the model is accessible without a token');
-      verifyModelExternalToken(modelName, projectName).then((response) => {
+      verifyModelExternalToken(modelName, projectName).then(({ response }) => {
         expect(response.status).to.equal(200);
       });
     },
