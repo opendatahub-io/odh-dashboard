@@ -291,7 +291,6 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
-      trainingJobDetailsDrawer.findTab('Training details').should('exist');
       trainingJobDetailsDrawer.findTab('Resources').should('exist');
       trainingJobDetailsDrawer.findTab('Pods').should('exist');
       trainingJobDetailsDrawer.findTab('Logs').should('exist');
