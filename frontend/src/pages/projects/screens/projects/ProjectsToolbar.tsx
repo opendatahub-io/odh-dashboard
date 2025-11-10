@@ -99,7 +99,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                     </FlexItem>
                     {isAISelected && (
                       <FlexItem>
-                        <Label color="blue" icon={<StarIcon />} data-testid="ai-project-label">
+                        <Label icon={<StarIcon />} variant="outline" data-testid="ai-project-label">
                           AI
                         </Label>
                       </FlexItem>
@@ -126,7 +126,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                       </FlexItem>
                       {option.isAI && (
                         <FlexItem>
-                          <Label color="blue" icon={<StarIcon />}>
+                          <Label icon={<StarIcon />} variant="outline">
                             AI
                           </Label>
                         </FlexItem>
