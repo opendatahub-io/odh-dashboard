@@ -10,6 +10,7 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
   aiProjectFilterKey,
+  allProjectsFilterData,
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
@@ -75,7 +76,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   );
 
   const resetFilters = () => {
-    setFilterData(initialProjectsFilterData);
+    setFilterData(allProjectsFilterData);
   };
 
   const onFilterUpdate = React.useCallback(

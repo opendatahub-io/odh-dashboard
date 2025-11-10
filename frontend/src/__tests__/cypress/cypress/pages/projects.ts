@@ -150,6 +150,10 @@ class ProjectListPage {
     return cy.findByTestId('dashboard-empty-table-state');
   }
 
+  findClearFiltersButton() {
+    return cy.findByTestId('clear-filters-button');
+  }
+
   findSortButton(name: string) {
     return this.findProjectsTable().find('thead').findByRole('button', { name });
   }
