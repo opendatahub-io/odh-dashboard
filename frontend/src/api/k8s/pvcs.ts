@@ -115,6 +115,7 @@ export const updatePvc = (
   opts?: K8sAPIOptions,
   excludeSpec?: boolean,
   additionalAnnotations?: Record<string, string>,
+  additionalLabels?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
   const pvc = assemblePvc(
     data,
@@ -122,6 +123,7 @@ export const updatePvc = (
     existingData.metadata.name,
     undefined,
     additionalAnnotations,
+    additionalLabels,
   );
 
   const newData = excludeSpec

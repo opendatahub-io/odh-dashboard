@@ -250,6 +250,24 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [templateName, dashboardNamespace, editInfo]);
 
+  // Extract and initialize pvcSubPath from existing serving runtime in edit mode
+  React.useEffect(() => {
+    const { servingRuntime } = editInfo?.servingRuntimeEditInfo || {};
+    if (servingRuntime) {
+      // Find the volumeMount with mountPath '/mnt/models/cache' and extract its subPath
+      const { containers } = servingRuntime.spec;
+      for (const container of containers) {
+        const volumeMounts = container.volumeMounts || [];
+        for (const volumeMount of volumeMounts) {
+          if (volumeMount.mountPath === '/mnt/models/cache' && volumeMount.subPath) {
+            setPvcSubPath(volumeMount.subPath);
+            return; // Found it, exit early
+          }
+        }
+      }
+    }
+  }, [editInfo]);
+
   const isSecretNeeded = async (ns: string, secretName: string): Promise<boolean> => {
     try {
       await getSecret(ns, secretName);

@@ -216,8 +216,8 @@ export const getNIMResourcesToDelete = async (
 
           // Tier 2: Check for Dashboard naming pattern (old PVCs created before this feature)
           // Dashboard uses getUniqueId('nim-pvc') which generates exactly 5-character IDs
-          // Pattern: nim-pvc-<5 alphanumeric chars> (e.g., nim-pvc-abc12)
-          const isDashboardNamingPattern = /^nim-pvc-[a-z0-9]{5}$/.test(pvcName);
+          // Pattern: nim-pvc
+          const isDashboardNamingPattern = /^nim-pvc-.+$/.test(pvcName);
 
           const isDashboardManaged = hasNewManagedLabel || isDashboardNamingPattern;
 
