@@ -15,7 +15,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { FilterIcon, StarIcon } from '@patternfly/react-icons';
+import { FilterIcon, OutlinedStarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
   aiProjectFilterKey,
@@ -99,7 +99,11 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                     </FlexItem>
                     {isAISelected && (
                       <FlexItem>
-                        <Label icon={<StarIcon />} variant="outline" data-testid="ai-project-label">
+                        <Label
+                          icon={<OutlinedStarIcon />}
+                          variant="outline"
+                          data-testid="ai-project-label"
+                        >
                           AI
                         </Label>
                       </FlexItem>
@@ -126,7 +130,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                       </FlexItem>
                       {option.isAI && (
                         <FlexItem>
-                          <Label icon={<StarIcon />} variant="outline">
+                          <Label icon={<OutlinedStarIcon />} variant="outline">
                             AI
                           </Label>
                         </FlexItem>
