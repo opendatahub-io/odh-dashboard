@@ -1,6 +1,5 @@
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import type { InitialWizardFormData } from '@odh-dashboard/model-serving/types/form-data';
-import { ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
+import type { InitialWizardFormData } from './extension-points/model-catalog-deploy';
 
 export const extractExternalFormData = (
   modelUri: string,
@@ -12,7 +11,7 @@ export const extractExternalFormData = (
     // Start wizard on step 2
     wizardStartIndex: 2,
     modelLocationData: {
-      type: ModelLocationType.NEW,
+      type: 'new',
       fieldValues: {
         URI: modelUri,
       },

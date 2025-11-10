@@ -9,9 +9,11 @@ import {
   decodeParams,
   getModelArtifactUri,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { InitialWizardFormData } from '@odh-dashboard/model-serving/types/form-data';
-import { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import { isNavigateToWizardExtension } from '../extension-points/model-catalog-deploy';
+import {
+  isNavigateToWizardExtension,
+  Deployment,
+  InitialWizardFormData,
+} from '../extension-points/model-catalog-deploy';
 import { extractExternalFormData } from '../extractExternalFormData';
 
 type ModelCatalogDeployModalExtensionProps = {
