@@ -330,7 +330,7 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project').should('not.exist');
   });
 
-  it.only('should clear filters and reset to show all projects', () => {
+  it('should clear filters and reset to show all projects', () => {
     const mockProjects: ProjectKind[] = [
       mockProjectK8sResource({
         k8sName: 'ai-project-1',
@@ -369,21 +369,15 @@ describe('Projects details', () => {
     // Verify only 2 projects are showing (the AI ones)
     cy.findAllByRole('link', { name: /AI Project / }).should('have.length', 2);
 
-    console.log('foo-2');
     // Step 2: Enter text to search that doesn't match anything
     projectListToolbar.findNameFilter().type('NonExistentProject');
 
-    console.log('foo-28');
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
 
-    console.log('foo-29');
-
-    console.log('foo-31');
     // Step 3: Click the 'clear filters' button
     projectListPage.findClearFiltersButton().click();
 
-    console.log('foo-32');
     // Step 4: Verify all projects are now shown
     projectListPage.getProjectRow('AI Project 1').find().should('exist');
     projectListPage.getProjectRow('AI Project 2').find().should('exist');
