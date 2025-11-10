@@ -8,9 +8,6 @@ import { setDashboardConfig } from '../config/configUtils';
 import { checkJupyterEnabled } from '../../../utils/resourceUtils';
 
 const nbcCfg = 'notebook-controller-culler-config';
-// is the cluster admin/this system have segment configured?
-// if so, push those events to an analytic dashboard (amplitude)
-// do i have access to amplitude?
 const segmentKeyCfg = 'odh-segment-key-config';
 
 const DEFAULT_PVC_SIZE = 20;
