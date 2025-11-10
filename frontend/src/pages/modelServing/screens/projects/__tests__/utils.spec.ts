@@ -98,6 +98,22 @@ describe('getProjectModelServingPlatform', () => {
       ),
     ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
   });
+  it('should return empty object when both KServe and NIM are enabled but no platform is selected', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({}),
+        getMockServingPlatformStatuses({ kServeEnabled: true, nimEnabled: true }),
+      ),
+    ).toStrictEqual({});
+  });
+  it('should return Single Platform when project has NIM annotation', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({ enableNIM: true }),
+        getMockServingPlatformStatuses({ kServeEnabled: true, nimEnabled: true }),
+      ),
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
+  });
 });
 
 describe('getUrlsFromKserveInferenceService', () => {
