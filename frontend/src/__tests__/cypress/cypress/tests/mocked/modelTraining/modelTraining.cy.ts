@@ -489,10 +489,27 @@ describe('Model Training', () => {
     });
 
     it('should show dash when no consumed resources available', () => {
-      initIntercepts({ isEmpty: true });
+      initIntercepts();
+
+      cy.interceptK8s(
+        { model: ClusterQueueModel, name: 'test-cluster-queue' },
+        {
+          ...mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+          status: {
+            flavorsUsage: [],
+          },
+        },
+      );
+
       modelTrainingGlobal.visit(projectName);
 
-      modelTrainingGlobal.findEmptyState().should('exist');
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findConsumedQuotaValue().should('contain', '-');
     });
 
     it('should update resources tab when switching between jobs', () => {
