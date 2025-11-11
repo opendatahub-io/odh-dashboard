@@ -293,26 +293,27 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 			var serviceURL string
 
 			// Configuration Priority:
-			// 1. MAAS_URL env var (if set for local dev)
-			// 2. Autodiscovered endpoint (production default)
+			// 1. MAAS_URL env var (if set for local dev) - works even without cluster domain
+			// 2. Autodiscovered endpoint (production default) - requires cluster domain
+			// 3. MaaS unavailable - attach nil and let handler decide if it's needed
 
 			if app.config.MaaSURL != "" {
 				// Priority 1: Use environment variable if explicitly set
 				serviceURL = app.config.MaaSURL
 				logger.Debug("Using MAAS_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
-			} else {
+			} else if app.clusterDomain != "" {
 				// Priority 2: Autodiscovery using cached cluster domain (from service account at startup)
-				if app.clusterDomain == "" {
-					logger.Error("cluster domain not available for MaaS autodiscovery")
-					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
-					return
-				}
-
 				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
 				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
 					"clusterDomain", app.clusterDomain,
 					"serviceURL", serviceURL)
+			} else {
+				// Priority 3: MaaS unavailable - neither env var nor cluster domain available
+				logger.Debug("MaaS unavailable: no MAAS_URL configured and cluster domain not available")
+				ctx = context.WithValue(ctx, constants.MaaSClientKey, nil)
+				next(w, r.WithContext(ctx), ps)
+				return
 			}
 
 			// Get RequestIdentity from context (set by InjectRequestIdentity middleware)
