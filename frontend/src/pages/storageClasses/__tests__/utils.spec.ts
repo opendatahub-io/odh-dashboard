@@ -78,6 +78,7 @@ describe('setDefaultStorageClass', () => {
         [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
           ...getStorageClassConfig(nonDefaultStorageClass),
           isDefault: true,
+          isEnabled: true,
         }),
       },
     },

@@ -35,14 +35,32 @@ export const getStorageClassConfig = (
 };
 
 export const setDefaultStorageClass = (storageClasses: StorageClassKind[]): StorageClassKind[] => {
+  if (storageClasses.length === 0) {
+    return storageClasses;
+  }
   const defaultStorageClasses = storageClasses.filter(
     (sc) => getStorageClassConfig(sc)?.isDefault === true,
   );
-  if (defaultStorageClasses.length > 1) {
+  if (defaultStorageClasses.length > 0) {
     let isDefaultSet = false;
     return storageClasses.map((sc) => {
       if (getStorageClassConfig(sc)?.isDefault === true && !isDefaultSet) {
         isDefaultSet = true;
+        if (getStorageClassConfig(sc)?.isEnabled === false) {
+          return {
+            ...sc,
+            metadata: {
+              ...sc.metadata,
+              annotations: {
+                ...sc.metadata.annotations,
+                [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+                  ...getStorageClassConfig(sc),
+                  isEnabled: true,
+                }),
+              },
+            },
+          };
+        }
         return sc;
       }
       if (getStorageClassConfig(sc)?.isDefault === true) {
@@ -63,9 +81,6 @@ export const setDefaultStorageClass = (storageClasses: StorageClassKind[]): Stor
       return sc;
     });
   }
-  if (defaultStorageClasses.length > 0 || storageClasses.length === 0) {
-    return storageClasses;
-  }
   const firstStorageClass = {
     ...storageClasses[0],
     metadata: {
@@ -75,6 +90,7 @@ export const setDefaultStorageClass = (storageClasses: StorageClassKind[]): Stor
         [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
           ...getStorageClassConfig(storageClasses[0]),
           isDefault: true,
+          isEnabled: true,
         }),
       },
     },

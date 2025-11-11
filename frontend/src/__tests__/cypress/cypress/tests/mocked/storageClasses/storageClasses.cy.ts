@@ -96,6 +96,7 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName('openshift-default-sc');
+      storageClassTableRow.findEnableValue().findByTestId('enable-switch').should('be.checked');
       storageClassTableRow
         .findDefaultValue()
         .findByTestId('set-default-radio')
