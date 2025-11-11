@@ -10,7 +10,7 @@ import type {
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers.js';
+import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import type {
   ModelServerOption,
   useModelServerSelectField,

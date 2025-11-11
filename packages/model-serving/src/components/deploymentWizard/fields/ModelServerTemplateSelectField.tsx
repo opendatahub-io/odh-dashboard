@@ -111,8 +111,11 @@ export const useModelServerSelectField = (
   }, [modelType, existingData, setModelServer, setIsAutoSelectChecked]);
 
   const suggestion = React.useMemo(() => {
-    if (modelServerSelectExtension?.suggestion) {
-      return modelServerSelectExtension.suggestion(modelServingClusterSettings);
+    const extensionSuggestion = modelServerSelectExtension?.suggestion?.(
+      modelServingClusterSettings,
+    );
+    if (extensionSuggestion) {
+      return extensionSuggestion;
     }
 
     let filteredTemplates = modelServerTemplates;
@@ -199,6 +202,15 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
     return options.find((o) => o.name === data?.name);
   }, [options, data]);
 
+  console.log('data', data);
+  console.log('suggestion', suggestion);
+  console.log('options', options);
+  console.log('isAutoSelectChecked', isAutoSelectChecked);
+  console.log('isEditing', isEditing);
+  console.log('hardwareProfile', hardwareProfile);
+  console.log('profileIdentifiers', profileIdentifiers);
+  console.log('selectedTemplate', selectedTemplate);
+
   const getServingRuntimeDropdownLabel = React.useCallback(
     (option: ModelServerOption) => (
       <>
@@ -271,12 +283,12 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           <ProjectScopedPopover title="Serving runtime" item="serving runtimes" />
         ) : undefined
       }
-      role="radiogroup"
+      role={isEditing ? 'radiogroup' : undefined}
       isStack
     >
-      {isEditing && data ? (
+      {isEditing && selectedTemplate ? (
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          {getServingRuntimeDropdownLabel(data)}
+          {getServingRuntimeDropdownLabel(selectedTemplate)}
         </Flex>
       ) : (
         <>
