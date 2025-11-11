@@ -7,6 +7,7 @@ import {
   isModelServingDeploymentFormDataExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
+import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 
 type DeploymentHardwareProfileCellProps = {
   deployment: Deployment;
@@ -15,7 +16,6 @@ type DeploymentHardwareProfileCellProps = {
 export const DeploymentHardwareProfileCell: React.FC<DeploymentHardwareProfileCellProps> =
   React.memo(function DeploymentHardwareProfileCell({ deployment }) {
     const [formDataExtensions] = useResolvedExtensions(isModelServingDeploymentFormDataExtension);
-
     const formDataExtension = React.useMemo(
       () =>
         formDataExtensions.find(
@@ -23,13 +23,13 @@ export const DeploymentHardwareProfileCell: React.FC<DeploymentHardwareProfileCe
         ),
       [formDataExtensions, deployment.modelServingPlatformId],
     );
-
     const hardwareProfileConfig = React.useMemo(
       () => formDataExtension?.properties.extractHardwareProfileConfig(deployment),
       [formDataExtension, deployment],
     );
-
     const containerResources = hardwareProfileConfig?.[1];
+    const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
+      useHardwareProfileBindingState(deployment.model);
 
     return (
       <Td dataLabel="Hardware profile">
@@ -41,6 +41,11 @@ export const DeploymentHardwareProfileCell: React.FC<DeploymentHardwareProfileCe
             deployment.status?.stoppedStates?.isRunning ||
             deployment.status?.stoppedStates?.isStarting
           }
+          bindingState={{
+            bindingStateInfo,
+            bindingStateLoaded,
+            loadError: bindingStateLoadError,
+          }}
         />
       </Td>
     );

@@ -1115,6 +1115,163 @@ describe('Workbench page', () => {
     notebookRow.findNotebookStatusModal().should('exist');
   });
 
+  it('Should stop a running workbench with a deleted hardware profile', () => {
+    initIntercepts({});
+    cy.interceptK8s(
+      { model: HardwareProfileModel, ns: 'opendatahub', name: 'deleted-gpu-profile' },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+
+    cy.interceptK8sList(
+      { model: NotebookModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Test Notebook',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/hardware-profile-name': 'deleted-gpu-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                'opendatahub.io/hardware-profile-resource-version': '12345',
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+
+    notebookRow.findNotebookStopToggle().click();
+    notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
+
+    cy.interceptK8s(
+      NotebookModel,
+      mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+            },
+            annotations: {
+              'kubeflow-resource-stopped': '2024-11-06T10:00:00Z',
+              'opendatahub.io/image-display-name': 'Test image',
+            },
+          },
+        },
+      }),
+    );
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: false })]));
+
+    notebookConfirmModal.findStopWorkbenchButton().click();
+
+    cy.wait('@stopWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset([
+        {
+          op: 'add',
+          path: '/metadata/annotations/kubeflow-resource-stopped',
+        },
+      ]);
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+      });
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+      });
+    });
+
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+  });
+
+  it('Should start a stopped workbench with a deleted hardware profile', () => {
+    initIntercepts({ mockPodList: [] });
+
+    cy.interceptK8s(
+      { model: HardwareProfileModel, ns: 'opendatahub', name: 'deleted-gpu-profile' },
+      {
+        statusCode: 404,
+        body: mock404Error({}),
+      },
+    );
+
+    cy.interceptK8sList(
+      { model: NotebookModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Test Notebook',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'kubeflow-resource-stopped': '2024-11-06T10:00:00Z',
+                'opendatahub.io/hardware-profile-name': 'deleted-gpu-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                'opendatahub.io/hardware-profile-resource-version': '12345',
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ]),
+    );
+
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+    notebookRow.findHardwareProfileColumn().should('contain', 'Deleted');
+
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('startWorkbench');
+    cy.interceptK8s(
+      NotebookModel,
+      mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            name: 'test-notebook',
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+            },
+            annotations: {
+              'opendatahub.io/image-display-name': 'Test image',
+            },
+          },
+        },
+      }),
+    );
+
+    notebookRow.findNotebookStopToggle().click();
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting');
+
+    cy.wait('@startWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset([
+        { op: 'remove', path: '/metadata/annotations/kubeflow-resource-stopped' },
+      ]);
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-name',
+      });
+      expect(interception.request.body).to.deep.include({
+        op: 'remove',
+        path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+      });
+    });
+  });
+
   it('Validate the start button is enabled when the notebook image is deleted', () => {
     initIntercepts({ mockPodList: [] });
 

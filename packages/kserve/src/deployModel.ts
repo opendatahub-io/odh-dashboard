@@ -6,6 +6,7 @@ import {
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
 import {
+  DeploymentStrategyFieldData,
   type ModelLocationData,
   ModelLocationType,
 } from '@odh-dashboard/model-serving/types/form-data';
@@ -26,6 +27,7 @@ import {
   applyDashboardResourceLabel,
   applyDisplayNameDesc,
   applyModelType,
+  applyDeploymentStrategy,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
 import {
@@ -50,6 +52,7 @@ export type CreatingInferenceServiceObject = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
+  deploymentStrategy?: DeploymentStrategyFieldData;
 };
 
 const assembleInferenceService = (
@@ -74,6 +77,7 @@ const assembleInferenceService = (
     tokenAuth,
     runtimeArgs,
     environmentVariables,
+    deploymentStrategy,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -141,6 +145,8 @@ const assembleInferenceService = (
     inferenceService,
     environmentVariables ?? { variables: [], enabled: false },
   );
+
+  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
 
   return inferenceService;
 };

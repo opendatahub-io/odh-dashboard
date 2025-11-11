@@ -14,9 +14,12 @@ import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
+import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 import {
   isExternalRouteField,
   isTokenAuthField,
+  isDeploymentStrategyField,
+  type DeploymentStrategyField,
   type ExternalRouteField,
   type InitialWizardFormData,
   type TokenAuthField,
@@ -36,6 +39,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
   fieldExtensions: {
     externalRouteFields: ExternalRouteField[];
     tokenAuthFields: TokenAuthField[];
+    deploymentStrategyFields: DeploymentStrategyField[];
   };
   advancedOptions: {
     isExternalRouteVisible: boolean;
@@ -141,9 +145,14 @@ export const useModelDeploymentWizard = (
     return fields.filter(isTokenAuthField);
   }, [fields]);
 
+  const deploymentStrategyFields = React.useMemo(() => {
+    return fields.filter(isDeploymentStrategyField);
+  }, [fields]);
+
   const fieldExtensions = {
     externalRouteFields,
     tokenAuthFields,
+    deploymentStrategyFields,
   };
 
   const externalRoute = useExternalRouteField(
@@ -163,6 +172,12 @@ export const useModelDeploymentWizard = (
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
   const environmentVariables = useEnvironmentVariablesField(
     initialData?.environmentVariables ?? undefined,
+  );
+  const deploymentStrategy = useDeploymentStrategyField(
+    initialData?.deploymentStrategy ?? undefined,
+    deploymentStrategyFields,
+    modelType,
+    modelServer,
   );
 
   // Step 4: Summary
@@ -187,6 +202,7 @@ export const useModelDeploymentWizard = (
       environmentVariables,
       modelAvailability,
       modelServer,
+      deploymentStrategy,
     },
     loaded: {
       modelSourceLoaded,
