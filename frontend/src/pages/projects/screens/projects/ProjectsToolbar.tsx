@@ -76,7 +76,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
               isOpen={isProjectTypeDropdownOpen}
               selected={currentProjectType}
               onSelect={(_event, value) => {
-                console.log('yawn; a/b', ProjectsFilterOptions.projectType, String(value));
                 onFilterUpdate(ProjectsFilterOptions.projectType, String(value));
                 setIsProjectTypeDropdownOpen(false);
               }}
