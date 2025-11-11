@@ -15,17 +15,11 @@ export const projectsFilterOptions = {
 
 export type ProjectsFilterDataType = Record<ProjectsFilterOptions, string | undefined>;
 
-export const initialProjectsFilterData: ProjectsFilterDataType = {
-  [ProjectsFilterOptions.projectType]: aiProjectFilterKey,
+export const makeInitialProjectsFilterData = (projectFilter: string): ProjectsFilterDataType => ({
+  [ProjectsFilterOptions.projectType]: projectFilter,
   [ProjectsFilterOptions.name]: '',
   [ProjectsFilterOptions.user]: '',
-};
-
-export const allProjectsFilterData: ProjectsFilterDataType = {
-  [ProjectsFilterOptions.projectType]: allProjectFilterKey,
-  [ProjectsFilterOptions.name]: '',
-  [ProjectsFilterOptions.user]: '',
-};
+});
 
 export const FindAdministratorOptions = [
   'The person who gave you your username, or who helped you to log in for the first time',

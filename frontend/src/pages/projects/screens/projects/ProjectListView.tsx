@@ -10,14 +10,16 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
   aiProjectFilterKey,
-  allProjectsFilterData,
-  initialProjectsFilterData,
+  makeInitialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
+
+const PROJECT_FILTER_STORAGE_KEY = 'odh.dashboard.projects.type.filter';
 
 type ProjectListViewProps = {
   allowCreate: boolean;
@@ -36,10 +38,18 @@ const getAiProjects = (projects: ProjectKind[]) => {
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
-  const [filterData, setFilterData] =
-    React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
+  const [projectFilter, setProjectFilter] = useBrowserStorage<string>(
+    PROJECT_FILTER_STORAGE_KEY,
+    aiProjectFilterKey,
+    true,
+    true,
+  );
+
+  const [filterData, setFilterData] = React.useState<ProjectsFilterDataType>(
+    makeInitialProjectsFilterData(projectFilter),
+  );
   const onClearFilters = React.useCallback(
-    () => setFilterData(initialProjectsFilterData),
+    () => setFilterData(makeInitialProjectsFilterData(projectFilter)),
     [setFilterData],
   );
 
@@ -76,7 +86,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   );
 
   const resetFilters = () => {
-    setFilterData(allProjectsFilterData);
+    setFilterData(makeInitialProjectsFilterData(projectFilter));
   };
 
   const onFilterUpdate = React.useCallback(
@@ -117,6 +127,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         onClearFilters={onClearFilters}
         toolbarContent={
           <ProjectsToolbar
+            setProjectFilter={setProjectFilter}
             allowCreate={allowCreate}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
