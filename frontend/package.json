@@ -13,7 +13,7 @@
     "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "run-s build:prod",
@@ -89,7 +89,6 @@
     "dompurify": "^3.2.4",
     "google-protobuf": "^3.11.2",
     "grpc-web": "^1.2.1",
-    "llama-stack-client": "^0.2.6",
     "lodash-es": "^4.17.15",
     "long": "^5.2.3",
     "monaco-editor": "^0.50.0",

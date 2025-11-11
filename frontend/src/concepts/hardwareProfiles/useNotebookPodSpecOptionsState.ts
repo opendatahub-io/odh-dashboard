@@ -1,16 +1,16 @@
 import { useNotebookSizeState } from '#~/pages/projects/screens/spawner/useNotebookSizeState';
 import { NotebookKind } from '#~/k8sTypes';
-import useNotebookAcceleratorProfileFormState from '#~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
 import { Notebook, NotebookSize } from '#~/types';
 import { usePreferredNotebookSize } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import useNotebookHardwareProfileConfig from './useNotebookHardwareProfileConfig';
-import { PodSpecOptions, PodSpecOptionsState } from './types';
+import { HardwarePodSpecOptions } from './types';
+import type { HardwarePodSpecOptionsState } from './types';
 
-export type NotebookPodSpecOptions = PodSpecOptions & {
+export type NotebookPodSpecOptions = HardwarePodSpecOptions & {
   lastSizeSelection?: string;
 };
 
-export type NotebookPodSpecOptionsState = PodSpecOptionsState<NotebookPodSpecOptions> & {
+export type NotebookPodSpecOptionsState = HardwarePodSpecOptionsState<NotebookPodSpecOptions> & {
   notebooksSize: ReturnType<typeof useNotebookSizeState>;
 };
 
@@ -36,8 +36,6 @@ const useNotebookPodSpecOptionsStateBase = (
   },
   existingNotebook?: Notebook | NotebookKind,
 ): NotebookPodSpecOptionsState => {
-  const acceleratorProfileFormState = useNotebookAcceleratorProfileFormState(existingNotebook);
-
   // hardware profile state
   const hardwareProfileConfig = useNotebookHardwareProfileConfig(existingNotebook);
 
@@ -76,7 +74,6 @@ const useNotebookPodSpecOptionsStateBase = (
 
   return {
     notebooksSize: notebookSizeState,
-    acceleratorProfile: acceleratorProfileFormState,
     hardwareProfile: hardwareProfileConfig,
     podSpecOptions,
   };

@@ -12,10 +12,10 @@ import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 const AIAssetsModelsTab: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const { data: playgroundModels } = useFetchLlamaModels(namespace?.name);
-  const { data: aiModels = [], loaded, error } = useFetchAIModels(namespace?.name);
-  const { data: maasModels = [] } = useFetchMaaSModels(namespace?.name || '');
-  const { data: lsdStatus } = useFetchLSDStatus(namespace?.name);
+  const { data: playgroundModels } = useFetchLlamaModels();
+  const { data: aiModels = [], loaded, error } = useFetchAIModels();
+  const { data: maasModels = [] } = useFetchMaaSModels();
+  const { data: lsdStatus } = useFetchLSDStatus();
 
   if (!loaded && !error) {
     return (

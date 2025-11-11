@@ -916,6 +916,10 @@ class ModelServingWizard extends Wizard {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
+  visit() {
+    cy.visitWithLogin(`/ai-hub/deployments/deploy`);
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
@@ -934,6 +938,14 @@ class ModelServingWizard extends Wizard {
 
   findModelTypeSelectOption(name: string) {
     return this.findModelTypeSelect().findSelectOption(name);
+  }
+
+  findModelDeploymentProjectSelector() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findModelDeploymentProjectSelectorOption(name: string) {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
   findModelDeploymentNameInput() {
@@ -1189,6 +1201,18 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findDeploymentStrategySection() {
+    return cy.findByTestId('deployment-strategy-section');
+  }
+
+  findDeploymentStrategyRollingOption() {
+    return this.findDeploymentStrategySection().findByTestId('deployment-strategy-rolling');
+  }
+
+  findDeploymentStrategyRecreateOption() {
+    return this.findDeploymentStrategySection().findByTestId('deployment-strategy-recreate');
   }
 }
 

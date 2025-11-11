@@ -3,7 +3,6 @@ import { EmptyState, PageSection, Stack, StackItem } from '@patternfly/react-cor
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { isModelMesh } from '#~/pages/modelServing/utils';
 import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
 import ModelGraphs from '#~/pages/modelServing/screens/metrics/performance/ModelGraphs';
 
@@ -12,10 +11,10 @@ type PerformanceTabsProps = {
 };
 
 const PerformanceTab: React.FC<PerformanceTabsProps> = ({ model }) => {
-  const modelMesh = isModelMesh(model);
+  // Always KServe (no ModelMesh)
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
-  if (!modelMesh && !kserveMetricsEnabled) {
+  if (!kserveMetricsEnabled) {
     return (
       <Stack data-testid="performance-metrics-loaded">
         <StackItem>

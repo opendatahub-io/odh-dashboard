@@ -3,7 +3,7 @@ import { CoreV1Api, V1Secret, V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { CronJobKind, KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplication, updateApplications } from '../../../utils/resourceUtils';
-import { getApplicationEnabledConfigMap } from '../../../utils/componentUtils';
+import { getApplicationEnabledConfigMap } from '../../../utils/resourceUtils';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));

@@ -11,10 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationType } from '../types';
+import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 
 type ReviewStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  projectName: string;
+  projectName?: string;
 };
 
 type WizardState = UseModelDeploymentWizardState['state'];
@@ -34,7 +35,7 @@ type StatusSection = {
   items: StatusItem[];
 };
 
-const getStatusSections = (projectName: string): StatusSection[] => [
+const getStatusSections = (projectName?: string): StatusSection[] => [
   {
     title: 'Model details',
     items: [
@@ -306,6 +307,17 @@ const getStatusSections = (projectName: string): StatusSection[] => [
           );
         },
         optional: true,
+      },
+      {
+        key: 'deploymentStrategy',
+        label: 'Deployment strategy',
+        comp: (state) => {
+          const strategy = state.deploymentStrategy.data;
+          return strategy === deploymentStrategyRecreate ? 'Recreate' : 'Rolling update';
+        },
+        isVisible: (wizardState) => {
+          return wizardState.state.deploymentStrategy.isVisible;
+        },
       },
     ],
   },

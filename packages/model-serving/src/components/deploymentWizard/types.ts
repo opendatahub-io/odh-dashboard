@@ -4,7 +4,11 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { SecretKind, SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  ProjectKind,
+  SecretKind,
+  SupportedModelFormats,
+} from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type {
   ModelServerOption,
@@ -19,10 +23,12 @@ import type { useModelLocationData } from './fields/ModelLocationInputFields';
 import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import type { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
+import { useProjectSection } from './fields/ProjectSection';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -50,6 +56,7 @@ export type ModelLocationData = {
 };
 
 export type InitialWizardFormData = {
+  project?: ProjectKind | null;
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
   externalRoute?: ExternalRouteFieldData;
@@ -67,12 +74,14 @@ export type InitialWizardFormData = {
   initSelectedConnection?: LabeledConnection | undefined;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
+  deploymentStrategy?: DeploymentStrategyFieldData;
   // Add more field handlers as needed
 };
 
 export type WizardFormData = {
   initialData?: InitialWizardFormData;
   state: {
+    project: ReturnType<typeof useProjectSection>;
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
@@ -86,6 +95,7 @@ export type WizardFormData = {
     modelAvailability: ReturnType<typeof useModelAvailabilityFields>;
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
+    deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
   };
 };
 // wizard form data
@@ -104,6 +114,7 @@ export type HardwareProfileConfigFieldData =
   WizardFormData['state']['hardwareProfileConfig']['formData'];
 export type ModelFormatFieldData = WizardFormData['state']['modelFormatState']['modelFormat'];
 export type ModelAvailabilityFieldsData = WizardFormData['state']['modelAvailability']['data'];
+export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStrategy']['data'];
 
 // extensible fields
 
@@ -111,7 +122,8 @@ export type DeploymentWizardFieldId =
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
-  | 'tokenAuth';
+  | 'tokenAuth'
+  | 'deploymentStrategy';
 
 export type DeploymentWizardFieldBase = {
   id: DeploymentWizardFieldId;
@@ -157,7 +169,8 @@ export type DeploymentWizardField =
   | ModelServerTemplateField
   | ModelAvailabilityField
   | ExternalRouteField
-  | TokenAuthField;
+  | TokenAuthField
+  | DeploymentStrategyField;
 
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
@@ -175,4 +188,14 @@ export const isExternalRouteField = (field: DeploymentWizardField): field is Ext
 };
 export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
   return field.id === 'tokenAuth';
+};
+export type DeploymentStrategyField = DeploymentWizardFieldBase & {
+  id: 'deploymentStrategy';
+  type: 'modifier';
+  isVisible: boolean;
+};
+export const isDeploymentStrategyField = (
+  field: DeploymentWizardField,
+): field is DeploymentStrategyField => {
+  return field.id === 'deploymentStrategy';
 };

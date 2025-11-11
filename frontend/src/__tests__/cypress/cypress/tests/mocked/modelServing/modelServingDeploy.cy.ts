@@ -310,24 +310,24 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
+    cy.url().should('include', 'ai-hub/deployments/deploy');
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/test-project/deploy/create');
+    cy.url().should('include', 'ai-hub/deployments/deploy');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project/`);
+    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project`);
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('not.include', 'projects/test-project/?section=model-server');
+    cy.url().should('not.include', 'projects/test-project?section=model-server');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('include', 'projects/test-project/?section=model-server');
+    cy.url().should('include', 'projects/test-project?section=model-server');
   });
 
   it('Create a new generative deployment and submit', () => {
@@ -416,6 +416,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findServiceAccountByIndex(0).clear();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
+
+    modelServingWizard.findDeploymentStrategySection().should('exist');
+    modelServingWizard.findDeploymentStrategyRollingOption().should('be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
@@ -445,6 +448,9 @@ describe('Model Serving Deploy Wizard', () => {
         predictor: {
           minReplicas: 99,
           maxReplicas: 99,
+          deploymentStrategy: {
+            type: 'RollingUpdate',
+          },
           model: {
             modelFormat: {
               name: 'vLLM',
@@ -475,6 +481,9 @@ describe('Model Serving Deploy Wizard', () => {
       // Check spec structure without the model details
       expect(interception.request.body.spec.predictor.minReplicas).to.equal(99);
       expect(interception.request.body.spec.predictor.maxReplicas).to.equal(99);
+      expect(interception.request.body.spec.predictor.deploymentStrategy.type).to.equal(
+        'RollingUpdate',
+      );
 
       // Check model format exists
       expect(interception.request.body.spec.predictor.model.modelFormat.name).to.equal('vLLM');
@@ -691,6 +700,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findEnvVariableName('0').clear().type('valid_name');
     modelServingWizard.findEnvVariableValue('0').type('test-value');
 
+    modelServingWizard.findDeploymentStrategySection().should('exist');
+    modelServingWizard.findDeploymentStrategyRecreateOption().click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
@@ -715,6 +726,9 @@ describe('Model Serving Deploy Wizard', () => {
       },
       spec: {
         predictor: {
+          deploymentStrategy: {
+            type: 'Recreate',
+          },
           model: {
             modelFormat: {
               name: 'openvino_ir',
@@ -750,6 +764,7 @@ describe('Model Serving Deploy Wizard', () => {
         'openvino_ir',
       );
       expect(interception.request.body.spec.predictor.model.modelFormat.version).to.equal('opset1');
+      expect(interception.request.body.spec.predictor.deploymentStrategy.type).to.equal('Recreate');
     });
 
     // Actual request
@@ -1449,7 +1464,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled');
   });
 
-  it('Should create a new connection with a generated secret name', () => {
+  it('Should create a new connection with a generated secret name and enter without a project', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -1491,8 +1506,7 @@ describe('Model Serving Deploy Wizard', () => {
       }
     }).as('fetchGeneratedSecretGets');
 
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.visit();
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
@@ -1516,6 +1530,15 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentStep().should('be.enabled');
     modelServingWizard.findAdvancedOptionsStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findModelDeploymentProjectSelector().should('exist');
+    modelServingWizard
+      .findModelDeploymentProjectSelector()
+      .should('contain.text', 'Select target project');
+    modelServingWizard.findModelDeploymentProjectSelector().click();
+    modelServingWizard
+      .findModelDeploymentProjectSelectorOption('Test Project')
+      .should('exist')
+      .click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
@@ -1564,9 +1587,9 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('deploy create', () => {
-      cy.visitWithLogin(`/modelServing/test-project/deploy`);
+      cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/test-project/deploy');
+      cy.url().should('include', '/ai-hub/deployments/deploy');
     });
   });
 });

@@ -130,20 +130,14 @@ describe(
         });
         modelServingWizard.findNextButton().click();
         // Step 3: Advanced Options
+        modelServingWizard.findNextButton().click();
+        // Step 4: Review
         modelServingWizard.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
         //Verify the model created and is running
         cy.step('Verify that the Model is running');
-        // For KServe Raw deployments, we only need to check Ready condition
-        // LatestDeploymentReady is specific to Serverless deployments
-        checkInferenceServiceState(
-          modelDeploymentName,
-          projectName,
-          {
-            checkReady: true,
-          },
-          'RawDeployment',
-        );
+        // Verify model deployment is ready
+        checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );

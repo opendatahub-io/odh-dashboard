@@ -13,7 +13,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import { PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   getPVCNameFromURI,
   isPVCUri,
@@ -32,7 +32,7 @@ import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../typ
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
   setData: (data: ModelLocationData | undefined) => void;
-  project: ProjectKind | null;
+  projectName?: string;
   connections: Connection[];
   connectionsLoaded: boolean;
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -42,25 +42,21 @@ export type ModelLocationDataField = {
   isLoadingSecretData: boolean;
 };
 export const useModelLocationData = (
-  project: ProjectKind | null,
+  projectName?: string,
   existingData?: ModelLocationData,
 ): ModelLocationDataField => {
   const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
     existingData,
   );
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const [connections, connectionsLoaded] = useServingConnections(
-    project?.metadata.name,
-    true,
-    true,
-  );
+  const [connections, connectionsLoaded] = useServingConnections(projectName, true, true);
 
   const [isStableState, setIsStableState] = React.useState(
     connectionTypesLoaded && connectionsLoaded,
   );
   const [prefillApplied, setPrefillApplied] = React.useState(false);
   React.useEffect(() => {
-    if (!project?.metadata.name || !connectionsLoaded || !connectionTypesLoaded) {
+    if (!projectName || !connectionsLoaded || !connectionTypesLoaded) {
       return;
     }
     if (prefillApplied) return;
@@ -137,7 +133,7 @@ export const useModelLocationData = (
     };
 
     fetchConnectionData();
-  }, [existingData, project?.metadata.name, connectionsLoaded, connectionTypesLoaded]);
+  }, [existingData, projectName, connectionsLoaded, connectionTypesLoaded]);
 
   const initialConnection = React.useMemo(() => {
     if (connectionsLoaded && existingData?.type === ModelLocationType.EXISTING) {
@@ -181,14 +177,14 @@ export const useModelLocationData = (
   return {
     data: modelLocationData,
     setData: setModelLocationData,
-    project,
+    projectName,
     connections,
     connectionsLoaded,
     connectionTypes,
     connectionTypesLoaded,
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
-    isLoadingSecretData: !isStableState,
+    isLoadingSecretData: !isStableState && !!projectName,
   };
 };
 

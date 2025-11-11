@@ -56,7 +56,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       projectListPage.findProjectLink(projectName).click();
 
       cy.step('Import a pipeline by URL');
-      projectDetails.findImportPipelineButton(180000).click();
+      projectDetails.findImportPipelineButton(300000).click();
       pipelineImportModal.findPipelineNameInput().type(pipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type(pipelineDescription);
       pipelineImportModal.findImportPipelineRadio().click();

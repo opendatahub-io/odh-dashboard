@@ -2,12 +2,10 @@
 import {
   mockDashboardConfig,
   mockK8sResourceList,
-  mockComponents,
   mockRegisteredModel,
   mockModelVersion,
   mockModelVersionList,
   mockModelArtifactList,
-  mockModelRegistryService,
   mockServingRuntimeK8sResource,
   mockInferenceServiceK8sResource,
   mockProjectK8sResource,
@@ -19,7 +17,6 @@ import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import {
   InferenceServiceModel,
   ProjectModel,
-  ServiceModel,
   ServingRuntimeModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
@@ -169,16 +166,6 @@ const initIntercepts = (
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
-  );
-
-  cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
-
-  cy.interceptK8sList(
-    ServiceModel,
-    mockK8sResourceList([
-      mockModelRegistryService({ name: 'modelregistry-sample' }),
-      mockModelRegistryService({ name: 'modelregistry-sample-2' }),
-    ]),
   );
 
   cy.interceptK8sList(

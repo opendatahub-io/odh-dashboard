@@ -10,11 +10,11 @@ import {
   LatencyPercentile,
   LatencyMetric,
 } from '~/concepts/modelCatalog/const';
-import { getTotalRps } from './performanceMetricsUtils';
-import { LatencyFilterConfig as SharedLatencyFilterConfig } from './latencyFilterState';
 
 // Type for storing complex latency filter configuration with value
-export type LatencyFilterConfig = SharedLatencyFilterConfig & {
+export type LatencyFilterConfig = {
+  metric: LatencyMetric;
+  percentile: LatencyPercentile;
   value: number;
 };
 
@@ -87,7 +87,6 @@ export const applyMaxLatencyFilter = (
 export const filterHardwareConfigurationArtifacts = (
   artifacts: CatalogPerformanceMetricsArtifact[],
   filterState: ModelCatalogFilterStates,
-  latencyConfig?: SharedLatencyFilterConfig,
 ): CatalogPerformanceMetricsArtifact[] =>
   artifacts.filter((artifact) => {
     // Hardware Type Filter (using central filter state)
@@ -105,25 +104,23 @@ export const filterHardwareConfigurationArtifacts = (
     // Min RPS Filter
     const minRpsFilter = filterState[ModelCatalogNumberFilterKey.MIN_RPS];
     if (minRpsFilter !== undefined) {
-      const totalRps = getTotalRps(artifact.customProperties);
-      if (totalRps < minRpsFilter) {
+      const rpsPerReplica = getDoubleValue(artifact.customProperties, 'requests_per_second');
+      if (rpsPerReplica < minRpsFilter) {
         return false;
       }
     }
 
-    // Max Latency Filter - use provided config or fall back to default
-    const maxLatencyFilter = filterState[ModelCatalogNumberFilterKey.MAX_LATENCY];
-    if (maxLatencyFilter !== undefined) {
-      const baseConfig = latencyConfig || {
-        metric: LatencyMetric.TTFT,
-        percentile: LatencyPercentile.Mean,
-      };
-
-      // Create the full config with the current filter value
-      const fullConfig: LatencyFilterConfig = { ...baseConfig, value: maxLatencyFilter };
-
-      if (!applyMaxLatencyFilter(artifact, fullConfig)) {
-        return false;
+    // Max Latency Filter - check for any active latency field
+    for (const metric of Object.values(LatencyMetric)) {
+      for (const percentile of Object.values(LatencyPercentile)) {
+        const fieldName = getLatencyFieldName(metric, percentile);
+        const filterValue = filterState[fieldName];
+        if (filterValue !== undefined && typeof filterValue === 'number') {
+          const latencyValue = getDoubleValue(artifact.customProperties, fieldName);
+          if (latencyValue > filterValue) {
+            return false;
+          }
+        }
       }
     }
 

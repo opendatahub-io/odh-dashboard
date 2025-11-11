@@ -14,7 +14,7 @@ import { ModelState, RegisteredModel, ModelVersion } from '~/app/types';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
-import { registeredModelsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
 import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
 interface ModelVersionsHeaderActionsProps {
@@ -28,7 +28,6 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-
   const navigate = useNavigate();
   const [isOpen, setOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
@@ -118,7 +117,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                 },
                 rm.id,
               )
-              .then(() => navigate(registeredModelsUrl(preferredModelRegistry?.name)))
+              .then(() => navigate(modelRegistryUrl(preferredModelRegistry?.name)))
           }
           registeredModelName={rm.name}
         />

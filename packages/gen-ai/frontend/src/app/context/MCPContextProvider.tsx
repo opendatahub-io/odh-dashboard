@@ -35,7 +35,7 @@ export const MCPDataProvider: React.FC<MCPDataProviderProps> = ({
   autoCheckStatuses = false,
 }) => (
   <MCPTokenContextProvider namespace={namespace}>
-    <MCPServersContextProvider namespace={namespace} autoCheckStatuses={autoCheckStatuses}>
+    <MCPServersContextProvider autoCheckStatuses={autoCheckStatuses}>
       {children}
     </MCPServersContextProvider>
   </MCPTokenContextProvider>

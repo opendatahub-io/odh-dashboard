@@ -2,7 +2,6 @@
 import { renderHook, act } from '@testing-library/react';
 import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { createResponse } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import { useMCPServersContext } from '~/app/context/MCPServersContext';
@@ -10,6 +9,7 @@ import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
+jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
 }));
@@ -36,7 +36,6 @@ jest.mock('react', () => ({
   useContext: jest.fn(),
 }));
 
-const mockCreateResponse = createResponse as jest.MockedFunction<typeof createResponse>;
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
 const mockUseMCPSelectionContext = useMCPSelectionContext as jest.MockedFunction<
   typeof useMCPSelectionContext
@@ -45,6 +44,16 @@ const mockUseMCPServersContext = useMCPServersContext as jest.MockedFunction<
   typeof useMCPServersContext
 >;
 const mockUseMCPTokenContext = useMCPTokenContext as jest.MockedFunction<typeof useMCPTokenContext>;
+
+// Import after mocking
+const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+
+// Create a properly typed mock for createResponse
+const mockCreateResponse = jest.fn<
+  Promise<SimplifiedResponseData>,
+  [CreateResponseRequest, { onStreamData?: (chunk: string) => void }?]
+>();
 
 describe('useChatbotMessages', () => {
   const mockModelId = 'test-model-id';
@@ -72,6 +81,15 @@ describe('useChatbotMessages', () => {
     mockCreateResponse.mockReset();
     // Mock useContext to return the namespace
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
+
+    // Mock useGenAiAPI to return the API object with mocked functions
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: {
+        createResponse: mockCreateResponse,
+      },
+    });
+
     // Mock MCP contexts
     mockUseMCPSelectionContext.mockReturnValue({
       playgroundSelectedServerIds: [],
@@ -208,23 +226,21 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test query');
       });
 
-      expect(mockCreateResponse).toHaveBeenCalledWith(
-        {
-          input: 'Test query',
-          model: 'test-model-id',
-          vector_store_ids: ['test-vector-db'],
-          chat_context: [
-            {
-              role: 'assistant',
-              content: 'Send a message to test your configuration',
-            },
-          ],
-          instructions: '',
-          stream: false,
-          temperature: 0.7,
-        },
-        'test-namespace',
-      );
+      // Check that createResponse was called with the correct request data
+      expect(mockCreateResponse).toHaveBeenCalledWith({
+        input: 'Test query',
+        model: 'test-model-id',
+        vector_store_ids: ['test-vector-db'],
+        chat_context: [
+          {
+            role: 'assistant',
+            content: 'Send a message to test your configuration',
+          },
+        ],
+        instructions: '',
+        stream: false,
+        temperature: 0.7,
+      });
     });
   });
 
@@ -282,22 +298,19 @@ describe('useChatbotMessages', () => {
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockCreateResponse).toHaveBeenCalledWith(
-        {
-          input: 'Test message',
-          model: 'test-model-id',
-          chat_context: [
-            {
-              role: 'assistant',
-              content: 'Send a message to test your configuration',
-            },
-          ],
-          instructions: '',
-          stream: false,
-          temperature: 0.7,
-        },
-        'test-namespace',
-      );
+      expect(mockCreateResponse).toHaveBeenCalledWith({
+        input: 'Test message',
+        model: 'test-model-id',
+        chat_context: [
+          {
+            role: 'assistant',
+            content: 'Send a message to test your configuration',
+          },
+        ],
+        instructions: '',
+        stream: false,
+        temperature: 0.7,
+      });
     });
 
     it('should handle API errors', async () => {
@@ -350,9 +363,14 @@ describe('useChatbotMessages', () => {
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
-    it('should handle missing namespace', async () => {
-      // Override the useContext mock for this test
-      mockUseContext.mockReturnValue({ namespace: undefined });
+    it('should handle API not available', async () => {
+      // Override the useGenAiAPI mock for this test
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: false,
+        api: {
+          createResponse: mockCreateResponse,
+        },
+      });
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -373,7 +391,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'Namespace is required for generating responses',
+        content: 'API is not available',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -414,14 +432,10 @@ describe('useChatbotMessages', () => {
 
       // Mock streaming response that will error
       mockCreateResponse.mockImplementation(
-        (
-          request: CreateResponseRequest,
-          namespace: string,
-          onStreamData?: (chunk: string) => void,
-        ) => {
+        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           // Simulate some streaming before error
-          if (onStreamData) {
-            onStreamData('Hello ');
+          if (opts?.onStreamData) {
+            opts.onStreamData('Hello ');
           }
           return Promise.reject(new Error(streamingErrorMessage));
         },
@@ -475,23 +489,20 @@ describe('useChatbotMessages', () => {
       });
 
       expect(result.current.messages).toHaveLength(3); // initial + user + bot response
-      expect(mockCreateResponse).toHaveBeenCalledWith(
-        {
-          input: 'Test message',
-          model: 'test-model-id',
-          vector_store_ids: ['vs_current_store_123'],
-          chat_context: [
-            {
-              role: 'assistant',
-              content: 'Send a message to test your configuration',
-            },
-          ],
-          instructions: '',
-          stream: false,
-          temperature: 0.7,
-        },
-        'test-namespace',
-      );
+      expect(mockCreateResponse).toHaveBeenCalledWith({
+        input: 'Test message',
+        model: 'test-model-id',
+        vector_store_ids: ['vs_current_store_123'],
+        chat_context: [
+          {
+            role: 'assistant',
+            content: 'Send a message to test your configuration',
+          },
+        ],
+        instructions: '',
+        stream: false,
+        temperature: 0.7,
+      });
     });
   });
 

@@ -101,22 +101,16 @@ describe('A model can be stopped and started', () => {
       });
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
 
       //Stop the model with the modal
       cy.step('Stop the model');
@@ -137,17 +131,12 @@ describe('A model can be stopped and started', () => {
         .should('match', /Stopping|Stopped/);
 
       //Verify the model is stopped
-      // For stopped models in RawDeployment mode, we check the Stopped condition
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: false,
-          checkStopped: true,
-          requireLoadedState: false,
-        },
-        'RawDeployment',
-      );
+      // Verify model is stopped
+      checkInferenceServiceState(testData.singleModelName, projectName, {
+        checkReady: false,
+        checkStopped: true,
+        requireLoadedState: false,
+      });
       kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
@@ -156,16 +145,8 @@ describe('A model can be stopped and started', () => {
       kServeRow.findStatusLabel('Starting').should('exist');
 
       //Verify the model is running again
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
       kServeRow
         .findStatusLabel()
         .invoke('text')

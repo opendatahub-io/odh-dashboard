@@ -500,7 +500,6 @@ export type SupportedModelFormats = {
 };
 
 export enum DeploymentMode {
-  ModelMesh = 'ModelMesh',
   RawDeployment = 'RawDeployment',
 }
 
@@ -537,6 +536,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      deploymentStrategy?: {
+        type: 'RollingUpdate' | 'Recreate';
+      };
       model?: {
         modelFormat?: {
           name: string;
@@ -1123,7 +1125,14 @@ export type WorkloadCondition = {
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
+  type:
+    | 'QuotaReserved'
+    | 'Admitted'
+    | 'PodsReady'
+    | 'Finished'
+    | 'Evicted'
+    | 'Preempted'
+    | 'Failed';
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {
@@ -1286,10 +1295,9 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
-  disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disableModelTraining: boolean;
+  modelTraining: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
@@ -1316,6 +1324,10 @@ export type DashboardConfigKind = K8sResourceCommon & {
     templateOrder?: string[];
     templateDisablement?: string[];
     hardwareProfileOrder?: string[];
+    modelServing?: {
+      deploymentStrategy?: string;
+      isLLMdDefault?: boolean;
+    };
   };
 };
 
@@ -1424,7 +1436,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
     } & {
       /** KServe and ModelRegistry components, including further specific configuration. */
       [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
-        defaultDeploymentMode?: string;
         nim: {
           managementState: string;
         };
@@ -1477,16 +1488,11 @@ export type DataScienceClusterKindStatus = {
    * This field maps each component of the Data Science Cluster to its corresponding status.
    * The majority of components use `DataScienceClusterComponentStatus`, which includes
    * management state and release details. However, some components require additional
-   * specialized fields, such as `kserve` and `modelregistry`.
+   * specialized fields, such as `modelregistry` and `workbenches`.
    */
   components?: {
     [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
   } & {
-    /** Status of KServe, including deployment mode and serverless configuration. */
-    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentStatus & {
-      defaultDeploymentMode?: string;
-      serverlessMode?: string;
-    };
     /** Status of Model Registry, including its namespace configuration. */
     [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;

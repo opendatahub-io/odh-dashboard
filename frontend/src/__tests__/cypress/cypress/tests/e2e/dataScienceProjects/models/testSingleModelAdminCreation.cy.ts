@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Automation Bug: RHOAIENG-32898] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-37899] Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -63,7 +63,7 @@ describe('[Automation Bug: RHOAIENG-32898] Verify Admin Single Model Creation an
         '@Dashboard',
         '@ModelServing',
         '@NonConcurrent',
-        '@Maintain',
+        '@Bug',
       ],
     },
     () => {
@@ -116,21 +116,15 @@ describe('[Automation Bug: RHOAIENG-32898] Verify Admin Single Model Creation an
       modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findNextButton().click();
+      //Step 4: Review
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      // For KServe Raw deployments, we only need to check Ready condition
-      // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(
-        testData.singleModelAdminName,
-        projectName,
-        {
-          checkReady: true,
-        },
-        'RawDeployment',
-      );
+      // Verify model deployment is ready
+      checkInferenceServiceState(testData.singleModelAdminName, projectName, { checkReady: true });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelAdminName);

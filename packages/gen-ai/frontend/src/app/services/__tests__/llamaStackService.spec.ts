@@ -1,18 +1,21 @@
 /* eslint-disable camelcase */
-import axios from '~/app/utilities/axios';
 import {
-  getModels,
-  getVectorStores,
+  getLSDModels,
+  listVectorStores,
   createVectorStore,
   uploadSource,
   createResponse,
   exportCode,
-  getLSDstatus,
+  getLSDStatus,
   installLSD,
   deleteLSD,
   getMaaSModels,
   getAAModels,
+  getMCPServers,
+  getMCPServerStatus,
+  getMCPServerTools,
 } from '~/app/services/llamaStackService';
+import { URL_PREFIX } from '~/app/utilities';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
 import { mockLlamaStackDistribution } from '~/__mocks__/mockLlamaStackDistribution';
@@ -20,15 +23,27 @@ import {
   BackendResponseData,
   SimplifiedResponseData,
   CreateResponseRequest,
-  ChatbotSourceSettings,
   FileUploadResult,
   CodeExportRequest,
-  CodeExportResponse,
+  CodeExportData,
+  MCPServersResponse,
+  MCPConnectionStatus,
+  MCPToolsStatus,
+  MCPServerInfo,
 } from '~/app/types';
 
-// Mock axios
-jest.mock('~/app/utilities/axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+// Mock mod-arch-core
+jest.mock('mod-arch-core', () => ({
+  ...jest.requireActual('mod-arch-core'),
+  restGET: jest.fn(),
+  restCREATE: jest.fn(),
+  restDELETE: jest.fn(),
+}));
+
+const { restGET, restCREATE, restDELETE } = jest.requireMock('mod-arch-core');
+const mockedRestGET = restGET as jest.Mock;
+const mockedRestCREATE = restCREATE as jest.Mock;
+const mockedRestDELETE = restDELETE as jest.Mock;
 
 // Mock fetch for streaming tests
 const mockFetch = jest.fn();
@@ -41,6 +56,9 @@ describe('llamaStackService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetch.mockClear();
+    mockedRestGET.mockClear();
+    mockedRestCREATE.mockClear();
+    mockedRestDELETE.mockClear();
     // Reset environment variables
     process.env = { ...originalEnv };
   });
@@ -51,80 +69,68 @@ describe('llamaStackService', () => {
 
   describe('getModels', () => {
     it('should fetch models successfully', async () => {
-      const mockResponse = { data: { data: mockLlamaModels } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: mockLlamaModels });
 
-      const result = await getModels(testNamespace);
+      const result = await getLSDModels(URL_PREFIX, { namespace: testNamespace })();
 
       expect(result).toEqual(mockLlamaModels);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/models?namespace=${testNamespace}`,
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/models',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Models not found',
-            },
-          },
-        },
-      };
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Models not found');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getModels(testNamespace)).rejects.toThrow('Models not found');
+      await expect(getLSDModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle network error', async () => {
       const mockError = new Error('Network error');
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getModels(testNamespace)).rejects.toThrow('Network error');
+      await expect(getLSDModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Failed to fetch models');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getModels(testNamespace)).rejects.toThrow('Failed to fetch models');
+      await expect(getLSDModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
   });
 
   describe('getVectorStores', () => {
     it('should fetch vector stores successfully', async () => {
-      const mockResponse = { data: { data: mockVectorStores } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: mockVectorStores });
 
-      const result = await getVectorStores(testNamespace);
+      const result = await listVectorStores(URL_PREFIX, { namespace: testNamespace })();
 
       expect(result).toEqual(mockVectorStores);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/vectorstores?namespace=${testNamespace}`,
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/vectorstores',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Vector stores not found',
-            },
-          },
-        },
-      };
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Vector stores not found');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getVectorStores(testNamespace)).rejects.toThrow('Vector stores not found');
+      await expect(listVectorStores(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Failed to fetch vector stores');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getVectorStores(testNamespace)).rejects.toThrow('Failed to fetch vector stores');
+      await expect(listVectorStores(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
   });
 
@@ -132,53 +138,43 @@ describe('llamaStackService', () => {
     const vectorName = 'test-vector-store';
 
     it('should create vector store successfully', async () => {
-      const mockResponse = { data: { data: mockVectorStores[0] } };
-      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockVectorStores[0] });
 
-      const result = await createVectorStore(vectorName, testNamespace);
+      const result = await createVectorStore(URL_PREFIX, { namespace: testNamespace })({
+        name: vectorName,
+      });
 
       expect(result).toEqual(mockVectorStores[0]);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/vectorstores?namespace=${testNamespace}`,
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/vectorstores',
         { name: vectorName },
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Vector store creation failed',
-            },
-          },
-        },
-      };
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Vector store creation failed');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(createVectorStore(vectorName, testNamespace)).rejects.toThrow(
-        'Vector store creation failed',
-      );
+      await expect(
+        createVectorStore(URL_PREFIX, { namespace: testNamespace })({ name: vectorName }),
+      ).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Failed to create vector store');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(createVectorStore(vectorName, testNamespace)).rejects.toThrow(
-        'Failed to create vector store',
-      );
+      await expect(
+        createVectorStore(URL_PREFIX, { namespace: testNamespace })({ name: vectorName }),
+      ).rejects.toThrow();
     });
   });
 
   describe('uploadSource', () => {
     const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
-    const mockSettings: ChatbotSourceSettings = {
-      embeddingModel: 'test-model',
-      vectorStore: 'test-vector-store',
-      chunkOverlap: 100,
-      maxChunkLength: 1000,
-    };
     const mockUploadResult: FileUploadResult = {
       file_id: 'test-file-id',
       vector_store_file: {
@@ -202,72 +198,74 @@ describe('llamaStackService', () => {
     };
 
     it('should upload source successfully with all settings', async () => {
-      const mockResponse = { data: { data: mockUploadResult } };
-      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockUploadResult });
 
-      const result = await uploadSource(mockFile, mockSettings, testNamespace);
+      const formData = new FormData();
+      formData.append('file', mockFile);
+      formData.append('chunk_overlap_tokens', '100');
+      formData.append('max_chunk_size_tokens', '1000');
+      formData.append('vector_store_id', 'test-vector-store');
+
+      const result = await uploadSource(URL_PREFIX, { namespace: testNamespace })(formData);
 
       expect(result).toEqual(mockUploadResult);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/files/upload?namespace=${testNamespace}`,
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/files/upload',
         expect.any(FormData),
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        },
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
 
       // Verify FormData content
-      const formData = mockedAxios.post.mock.calls[0][1] as FormData;
-      expect(formData.get('file')).toBe(mockFile);
-      expect(formData.get('chunk_overlap_tokens')).toBe('100');
-      expect(formData.get('max_chunk_size_tokens')).toBe('1000');
-      expect(formData.get('vector_store_id')).toBe('test-vector-store');
+      const formDataCall = mockedRestCREATE.mock.calls[0][2] as FormData;
+      expect(formDataCall.get('file')).toBe(mockFile);
+      expect(formDataCall.get('chunk_overlap_tokens')).toBe('100');
+      expect(formDataCall.get('max_chunk_size_tokens')).toBe('1000');
+      expect(formDataCall.get('vector_store_id')).toBe('test-vector-store');
     });
 
     it('should upload source successfully with minimal settings', async () => {
-      const minimalSettings: ChatbotSourceSettings = {
-        embeddingModel: 'test-model',
-        vectorStore: 'test-vector-store',
-      };
-      const mockResponse = { data: { data: mockUploadResult } };
-      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockUploadResult });
 
-      const result = await uploadSource(mockFile, minimalSettings, testNamespace);
+      const formData = new FormData();
+      formData.append('file', mockFile);
+      formData.append('vector_store_id', 'test-vector-store');
+
+      const result = await uploadSource(URL_PREFIX, { namespace: testNamespace })(formData);
 
       expect(result).toEqual(mockUploadResult);
 
       // Verify FormData content without optional fields
-      const formData = mockedAxios.post.mock.calls[0][1] as FormData;
-      expect(formData.get('file')).toBe(mockFile);
-      expect(formData.get('chunk_overlap_tokens')).toBeNull();
-      expect(formData.get('max_chunk_size_tokens')).toBeNull();
-      expect(formData.get('vector_store_id')).toBe('test-vector-store');
+      const formDataCall = mockedRestCREATE.mock.calls[0][2] as FormData;
+      expect(formDataCall.get('file')).toBe(mockFile);
+      expect(formDataCall.get('chunk_overlap_tokens')).toBeNull();
+      expect(formDataCall.get('max_chunk_size_tokens')).toBeNull();
+      expect(formDataCall.get('vector_store_id')).toBe('test-vector-store');
     });
 
     it('should handle upload error', async () => {
-      const mockError = {
-        response: {
-          data: {
-            message: 'File upload failed',
-          },
-        },
-      };
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('File upload failed');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(uploadSource(mockFile, mockSettings, testNamespace)).rejects.toThrow(
-        'File upload failed',
-      );
+      const formData = new FormData();
+      formData.append('file', mockFile);
+
+      await expect(
+        uploadSource(URL_PREFIX, { namespace: testNamespace })(formData),
+      ).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Request failed');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(uploadSource(mockFile, mockSettings, testNamespace)).rejects.toThrow(
-        'Failed to upload source',
-      );
+      const formData = new FormData();
+      formData.append('file', mockFile);
+
+      await expect(
+        uploadSource(URL_PREFIX, { namespace: testNamespace })(formData),
+      ).rejects.toThrow();
     });
   });
 
@@ -319,15 +317,20 @@ describe('llamaStackService', () => {
 
     describe('non-streaming', () => {
       it('should create response successfully', async () => {
-        const mockResponse = { data: { data: mockBackendResponse } };
-        mockedAxios.post.mockResolvedValueOnce(mockResponse);
+        mockedRestCREATE.mockResolvedValueOnce({ data: mockBackendResponse });
 
-        const result = await createResponse(mockRequest, testNamespace);
+        const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
         expect(result).toEqual(expectedSimplifiedResponse);
-        expect(mockedAxios.post).toHaveBeenCalledWith(
-          `/gen-ai/api/v1/lsd/responses?namespace=${testNamespace}`,
-          mockRequest,
+        expect(mockedRestCREATE).toHaveBeenCalledWith(
+          URL_PREFIX,
+          '/lsd/responses',
+          expect.objectContaining({
+            input: mockRequest.input,
+            model: mockRequest.model,
+          }),
+          expect.objectContaining({ namespace: testNamespace }),
+          {},
         );
       });
 
@@ -336,10 +339,9 @@ describe('llamaStackService', () => {
           ...mockBackendResponse,
           output: undefined,
         };
-        const mockResponse = { data: { data: responseWithoutOutput } };
-        mockedAxios.post.mockResolvedValueOnce(mockResponse);
+        mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutOutput });
 
-        const result = await createResponse(mockRequest, testNamespace);
+        const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
         expect(result.content).toBe('');
       });
@@ -349,38 +351,29 @@ describe('llamaStackService', () => {
           ...mockBackendResponse,
           output: [],
         };
-        const mockResponse = { data: { data: responseWithEmptyOutput } };
-        mockedAxios.post.mockResolvedValueOnce(mockResponse);
+        mockedRestCREATE.mockResolvedValueOnce({ data: responseWithEmptyOutput });
 
-        const result = await createResponse(mockRequest, testNamespace);
+        const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
         expect(result.content).toBe('');
       });
 
       it('should handle API error', async () => {
-        const mockError = {
-          response: {
-            data: {
-              error: {
-                message: 'Response generation failed',
-              },
-            },
-          },
-        };
-        mockedAxios.post.mockRejectedValueOnce(mockError);
+        const mockError = new Error('Response generation failed');
+        mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-        await expect(createResponse(mockRequest, testNamespace)).rejects.toThrow(
-          'Response generation failed',
-        );
+        await expect(
+          createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest),
+        ).rejects.toThrow();
       });
 
       it('should handle error without response', async () => {
-        const mockError = {};
-        mockedAxios.post.mockRejectedValueOnce(mockError);
+        const mockError = new Error('Request failed');
+        mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-        await expect(createResponse(mockRequest, testNamespace)).rejects.toThrow(
-          'Failed to generate responses',
-        );
+        await expect(
+          createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest),
+        ).rejects.toThrow();
       });
     });
 
@@ -392,9 +385,6 @@ describe('llamaStackService', () => {
 
       it('should handle streaming response successfully', async () => {
         const mockStreamData = jest.fn();
-
-        // Clear axios defaults to prevent interference with fetch headers
-        mockedAxios.defaults.headers.common = {};
 
         // Mock ReadableStream
         const mockReader = {
@@ -428,7 +418,10 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await createResponse(streamingRequest, testNamespace, mockStreamData);
+        const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+          streamingRequest,
+          { onStreamData: mockStreamData },
+        );
 
         expect(result).toEqual({
           id: 'streaming-response',
@@ -442,17 +435,14 @@ describe('llamaStackService', () => {
         expect(mockStreamData).toHaveBeenCalledWith(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(2);
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          `/gen-ai/api/v1/lsd/responses?namespace=${testNamespace}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'text/event-stream',
-            },
-            body: JSON.stringify(streamingRequest),
+        expect(mockFetch).toHaveBeenCalledWith(`/gen-ai/lsd/responses?namespace=${testNamespace}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream',
           },
-        );
+          body: JSON.stringify(streamingRequest),
+        });
       });
 
       it('should handle streaming response with malformed JSON chunks', async () => {
@@ -493,7 +483,10 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await createResponse(streamingRequest, testNamespace, mockStreamData);
+        const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+          streamingRequest,
+          { onStreamData: mockStreamData },
+        );
 
         expect(result.content).toBe('Hello World');
         expect(mockStreamData).toHaveBeenCalledTimes(2); // Only valid chunks processed
@@ -531,7 +524,10 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await createResponse(streamingRequest, testNamespace, mockStreamData);
+        const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+          streamingRequest,
+          { onStreamData: mockStreamData },
+        );
 
         expect(result.content).toBe(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(1); // Only delta events processed
@@ -549,7 +545,9 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(streamingRequest, testNamespace, mockStreamData),
+          createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+            onStreamData: mockStreamData,
+          }),
         ).rejects.toThrow('Internal server error');
       });
 
@@ -565,7 +563,9 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(streamingRequest, testNamespace, mockStreamData),
+          createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+            onStreamData: mockStreamData,
+          }),
         ).rejects.toThrow('HTTP error! status: 500');
       });
 
@@ -580,7 +580,9 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(streamingRequest, testNamespace, mockStreamData),
+          createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+            onStreamData: mockStreamData,
+          }),
         ).rejects.toThrow('Unable to read stream');
       });
 
@@ -590,15 +592,14 @@ describe('llamaStackService', () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
         await expect(
-          createResponse(streamingRequest, testNamespace, mockStreamData),
+          createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+            onStreamData: mockStreamData,
+          }),
         ).rejects.toThrow('Network error');
       });
 
       it('should handle streaming error from server', async () => {
         const mockStreamData = jest.fn();
-
-        // Clear axios defaults to prevent interference with fetch headers
-        mockedAxios.defaults.headers.common = {};
 
         const mockReader = {
           read: jest
@@ -629,7 +630,9 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(streamingRequest, testNamespace, mockStreamData),
+          createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+            onStreamData: mockStreamData,
+          }),
         ).rejects.toThrow('Streaming error occurred');
 
         expect(mockStreamData).toHaveBeenCalledWith('Hello');
@@ -641,9 +644,6 @@ describe('llamaStackService', () => {
 
       it('should handle streaming error without message', async () => {
         const mockStreamData = jest.fn();
-
-        // Clear axios defaults to prevent interference with fetch headers
-        mockedAxios.defaults.headers.common = {};
 
         const mockReader = {
           read: jest.fn().mockResolvedValueOnce({
@@ -664,7 +664,9 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(streamingRequest, testNamespace, mockStreamData),
+          createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+            onStreamData: mockStreamData,
+          }),
         ).rejects.toThrow('An error occurred during streaming');
 
         expect(mockStreamData).not.toHaveBeenCalled();
@@ -673,14 +675,8 @@ describe('llamaStackService', () => {
         expect(mockReader.releaseLock).toHaveBeenCalledTimes(1);
       });
 
-      it('should include axios headers in streaming request', async () => {
+      it('should use fetch for streaming requests', async () => {
         const mockStreamData = jest.fn();
-
-        // Set up axios default headers
-        mockedAxios.defaults.headers.common = {
-          Authorization: 'Bearer test-token',
-          'X-Custom-Header': 'custom-value',
-        };
 
         const mockReader = {
           read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
@@ -696,21 +692,18 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        await createResponse(streamingRequest, testNamespace, mockStreamData);
+        await createResponse(URL_PREFIX, { namespace: testNamespace })(streamingRequest, {
+          onStreamData: mockStreamData,
+        });
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          `/gen-ai/api/v1/lsd/responses?namespace=${testNamespace}`,
-          expect.objectContaining({
-            method: 'POST',
-            headers: expect.objectContaining({
-              'Content-Type': 'application/json',
-              Accept: 'text/event-stream',
-              Authorization: 'Bearer test-token',
-              'X-Custom-Header': 'custom-value',
-            }),
-            body: JSON.stringify(streamingRequest),
-          }),
-        );
+        expect(mockFetch).toHaveBeenCalledWith(`/gen-ai/lsd/responses?namespace=${testNamespace}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream',
+          },
+          body: JSON.stringify(streamingRequest),
+        });
       });
     });
   });
@@ -723,83 +716,73 @@ describe('llamaStackService', () => {
       temperature: 0.5,
     };
 
-    const mockResponse: CodeExportResponse = {
-      data: {
-        code: 'def simple_function():\n    return "Hello World"',
-      },
+    const mockResponseData: CodeExportData = {
+      code: 'def simple_function():\n    return "Hello World"',
     };
 
     it('should export code successfully', async () => {
-      const mockAxiosResponse = { data: mockResponse };
-      mockedAxios.post.mockResolvedValueOnce(mockAxiosResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockResponseData });
 
-      const result = await exportCode(mockRequest, testNamespace);
+      const result = await exportCode(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
-      expect(result).toEqual(mockResponse);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/code-exporter?namespace=${testNamespace}`,
+      expect(result).toEqual(mockResponseData);
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/code-exporter',
         mockRequest,
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
 
     it('should handle API error', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Code export failed',
-            },
-          },
-        },
-      };
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Code export failed');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(exportCode(mockRequest, testNamespace)).rejects.toThrow('Code export failed');
+      await expect(
+        exportCode(URL_PREFIX, { namespace: testNamespace })(mockRequest),
+      ).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Request failed');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(exportCode(mockRequest, testNamespace)).rejects.toThrow('Failed to export code');
+      await expect(
+        exportCode(URL_PREFIX, { namespace: testNamespace })(mockRequest),
+      ).rejects.toThrow();
     });
   });
 
-  describe('getLSDstatus', () => {
+  describe('getLSDStatus', () => {
     const project = 'test-project';
 
     it('should get LSD status successfully', async () => {
-      const mockResponse = { data: { data: mockLlamaStackDistribution } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: mockLlamaStackDistribution });
 
-      const result = await getLSDstatus(project);
+      const result = await getLSDStatus(URL_PREFIX, { namespace: project })();
 
       expect(result).toEqual(mockLlamaStackDistribution);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/status?namespace=${project}`,
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/status',
+        expect.objectContaining({ namespace: project }),
+        {},
       );
     });
 
     it('should handle API error', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'LSD status fetch failed',
-            },
-          },
-        },
-      };
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('LSD status fetch failed');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getLSDstatus(project)).rejects.toThrow('LSD status fetch failed');
+      await expect(getLSDStatus(URL_PREFIX, { namespace: project })()).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Failed to fetch LSD status');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getLSDstatus(project)).rejects.toThrow('Failed to fetch LSD status');
+      await expect(getLSDStatus(URL_PREFIX, { namespace: project })()).rejects.toThrow();
     });
   });
 
@@ -812,59 +795,53 @@ describe('llamaStackService', () => {
     ];
 
     it('should install LSD successfully', async () => {
-      const mockResponse = { data: { data: mockLlamaStackDistribution } };
-      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockLlamaStackDistribution });
 
-      const result = await installLSD(project, models);
+      const result = await installLSD(URL_PREFIX, { namespace: project })({ models });
 
       expect(result).toEqual(mockLlamaStackDistribution);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/install',
         { models },
+        expect.objectContaining({ namespace: project }),
+        {},
       );
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Installation failed due to insufficient resources',
-            },
-          },
-        },
-      };
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Installation failed due to insufficient resources');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(installLSD(project, models)).rejects.toThrow(
-        'Installation failed due to insufficient resources',
-      );
+      await expect(installLSD(URL_PREFIX, { namespace: project })({ models })).rejects.toThrow();
     });
 
     it('should handle network error', async () => {
       const mockError = new Error('Network connection failed');
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(installLSD(project, models)).rejects.toThrow('Network connection failed');
+      await expect(installLSD(URL_PREFIX, { namespace: project })({ models })).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.post.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Request failed');
+      mockedRestCREATE.mockRejectedValueOnce(mockError);
 
-      await expect(installLSD(project, models)).rejects.toThrow('Failed to install LSD');
+      await expect(installLSD(URL_PREFIX, { namespace: project })({ models })).rejects.toThrow();
     });
 
     it('should handle empty models array', async () => {
-      const mockResponse = { data: { data: mockLlamaStackDistribution } };
-      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockLlamaStackDistribution });
 
-      const result = await installLSD(project, []);
+      const result = await installLSD(URL_PREFIX, { namespace: project })({ models: [] });
 
       expect(result).toEqual(mockLlamaStackDistribution);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/install',
         { models: [] },
+        expect.objectContaining({ namespace: project }),
+        {},
       );
     });
 
@@ -873,15 +850,17 @@ describe('llamaStackService', () => {
         { model_name: 'maas-model-1', is_maas_model: true },
         { model_name: 'regular-model', is_maas_model: false },
       ];
-      const mockResponse = { data: { data: mockLlamaStackDistribution } };
-      mockedAxios.post.mockResolvedValueOnce(mockResponse);
+      mockedRestCREATE.mockResolvedValueOnce({ data: mockLlamaStackDistribution });
 
-      const result = await installLSD(project, maasModels);
+      const result = await installLSD(URL_PREFIX, { namespace: project })({ models: maasModels });
 
       expect(result).toEqual(mockLlamaStackDistribution);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/install?namespace=${project}`,
+      expect(mockedRestCREATE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/install',
         { models: maasModels },
+        expect.objectContaining({ namespace: project }),
+        {},
       );
     });
   });
@@ -906,53 +885,46 @@ describe('llamaStackService', () => {
           url: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local',
         },
       ];
-      const mockResponse = { data: { data: mockMaaSModels } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: mockMaaSModels });
 
-      const result = await getMaaSModels(testNamespace);
+      const result = await getMaaSModels(URL_PREFIX, { namespace: testNamespace })();
 
       expect(result).toEqual(mockMaaSModels);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/maas/models?namespace=${testNamespace}`,
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/maas/models',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
 
     it('should handle empty MaaS models response', async () => {
-      const mockResponse = { data: { data: null } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: null });
 
-      const result = await getMaaSModels(testNamespace);
+      const result = await getMaaSModels(URL_PREFIX, { namespace: testNamespace })();
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'MaaS service unavailable',
-            },
-          },
-        },
-      };
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('MaaS service unavailable');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getMaaSModels(testNamespace)).rejects.toThrow('MaaS service unavailable');
+      await expect(getMaaSModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle network error', async () => {
       const mockError = new Error('Network error');
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getMaaSModels(testNamespace)).rejects.toThrow('Network error');
+      await expect(getMaaSModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Failed to fetch MaaS models');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getMaaSModels(testNamespace)).rejects.toThrow('Failed to fetch MaaS models');
+      await expect(getMaaSModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
   });
 
@@ -980,53 +952,310 @@ describe('llamaStackService', () => {
           },
         },
       ];
-      const mockResponse = { data: { data: mockAAModels } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: mockAAModels });
 
-      const result = await getAAModels(testNamespace);
+      const result = await getAAModels(URL_PREFIX, { namespace: testNamespace })();
 
       expect(result).toEqual(mockAAModels);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/aaa/models?namespace=${testNamespace}`,
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/aaa/models',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
 
     it('should handle empty AA models response', async () => {
-      const mockResponse = { data: { data: null } };
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockedRestGET.mockResolvedValueOnce({ data: null });
 
-      const result = await getAAModels(testNamespace);
+      const result = await getAAModels(URL_PREFIX, { namespace: testNamespace })();
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'AA models not found',
-            },
-          },
-        },
-      };
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('AA models not found');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getAAModels(testNamespace)).rejects.toThrow('AA models not found');
+      await expect(getAAModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle network error', async () => {
       const mockError = new Error('Network error');
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getAAModels(testNamespace)).rejects.toThrow('Network error');
+      await expect(getAAModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.get.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Failed to fetch AA models');
+      mockedRestGET.mockRejectedValueOnce(mockError);
 
-      await expect(getAAModels(testNamespace)).rejects.toThrow('Failed to fetch AA models');
+      await expect(getAAModels(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
+    });
+  });
+
+  describe('getMCPServers', () => {
+    const mockServers: MCPServersResponse = {
+      servers: [
+        {
+          name: 'test-server-1',
+          url: 'http://test-server-1.example.com',
+          transport: 'sse',
+          description: 'Test server 1',
+          logo: null,
+          status: 'healthy',
+        },
+        {
+          name: 'test-server-2',
+          url: 'http://test-server-2.example.com',
+          transport: 'streamable-http',
+          description: 'Test server 2',
+          logo: null,
+          status: 'healthy',
+        },
+      ],
+      total_count: 2,
+      config_map_info: {
+        name: 'mcp-servers',
+        namespace: testNamespace,
+        last_updated: '2024-01-01T00:00:00Z',
+      },
+    };
+
+    it('should fetch MCP servers successfully', async () => {
+      mockedRestGET.mockResolvedValueOnce({ data: mockServers });
+
+      const result = await getMCPServers(URL_PREFIX, { namespace: testNamespace })();
+
+      expect(result).toEqual(mockServers);
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/aaa/mcps',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
+      );
+    });
+
+    it('should handle 404 error (namespace not found)', async () => {
+      const mockError = { status: 404, message: 'Namespace not found' };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(getMCPServers(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
+    });
+
+    it('should handle 401 error (authentication failed)', async () => {
+      const mockError = { status: 401, message: 'Unauthorized' };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(getMCPServers(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
+    });
+
+    it('should handle 403 error (access denied)', async () => {
+      const mockError = { status: 403, message: 'Forbidden' };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(getMCPServers(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
+    });
+
+    it('should handle generic error with message', async () => {
+      const mockError = { error: { message: 'Custom error message' } };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(getMCPServers(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
+    });
+
+    it('should handle generic error without message', async () => {
+      const mockError = new Error('Network error');
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(getMCPServers(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
+    });
+
+    it('should handle empty servers list', async () => {
+      const emptyResponse: MCPServersResponse = {
+        servers: [],
+        total_count: 0,
+        config_map_info: {
+          name: 'mcp-servers',
+          namespace: testNamespace,
+          last_updated: '2024-01-01T00:00:00Z',
+        },
+      };
+      mockedRestGET.mockResolvedValueOnce({ data: emptyResponse });
+
+      const result = await getMCPServers(URL_PREFIX, { namespace: testNamespace })();
+
+      expect(result).toEqual(emptyResponse);
+    });
+  });
+
+  describe('getMCPServerStatus', () => {
+    const serverUrl = 'http://test-server.example.com';
+    const mockServerInfo: MCPServerInfo = {
+      name: 'test-server',
+      version: '1.0.0',
+      protocol_version: '1.0',
+    };
+    const mockStatus: MCPConnectionStatus = {
+      status: 'connected',
+      server_url: serverUrl,
+      message: 'Successfully connected',
+      last_checked: Date.now(),
+      server_info: mockServerInfo,
+      ping_response_time_ms: 100,
+    };
+
+    it('should fetch MCP server status successfully', async () => {
+      mockedRestGET.mockResolvedValueOnce({ data: mockStatus });
+
+      const result = await getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({
+        server_url: serverUrl,
+      });
+
+      expect(result).toEqual(mockStatus);
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/mcp/status',
+        expect.objectContaining({ namespace: testNamespace, server_url: serverUrl }),
+        {},
+      );
+    });
+
+    it('should handle 404 error (server not found)', async () => {
+      const mockError = { status: 404, message: 'Server not found' };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle 401 error (authentication failed)', async () => {
+      const mockError = { status: 401, message: 'Unauthorized' };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle 403 error (access denied)', async () => {
+      const mockError = { status: 403, message: 'Forbidden' };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle 400 error with custom message', async () => {
+      const customMessage = 'Invalid server URL format';
+      const mockError = { status: 400, error: { message: customMessage } };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle 400 error without custom message', async () => {
+      const mockError = { status: 400 };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle generic error with message', async () => {
+      const mockError = { error: { message: 'Connection timeout' } };
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle generic error without message', async () => {
+      const mockError = new Error('Unknown error');
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(
+        getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({ server_url: serverUrl }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle error status', async () => {
+      const errorStatus: MCPConnectionStatus = {
+        status: 'error',
+        server_url: serverUrl,
+        message: 'Failed to connect',
+        last_checked: Date.now(),
+        server_info: mockServerInfo,
+        error_details: {
+          code: 'CONNECTION_FAILED',
+          status_code: 500,
+          raw_error: 'Connection timeout',
+        },
+      };
+      mockedRestGET.mockResolvedValueOnce({ data: errorStatus });
+
+      const result = await getMCPServerStatus(URL_PREFIX, { namespace: testNamespace })({
+        server_url: serverUrl,
+      });
+
+      expect(result).toEqual(errorStatus);
+      expect(result.status).toBe('error');
+    });
+  });
+
+  describe('getMCPServerTools', () => {
+    const mockServerInfo: MCPServerInfo = {
+      name: 'test-server',
+      version: '1.0.0',
+      protocol_version: '1.0',
+    };
+    const mockTools: MCPToolsStatus = {
+      server_url: 'http://test-server.example.com',
+      status: 'success',
+      message: 'Tools fetched successfully',
+      last_checked: Date.now(),
+      server_info: mockServerInfo,
+      tools_count: 2,
+      tools: [
+        {
+          name: 'tool1',
+          description: 'Test tool 1',
+          input_schema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'tool2',
+          description: 'Test tool 2',
+          input_schema: { type: 'object', properties: {} },
+        },
+      ],
+    };
+
+    it('should fetch MCP server tools successfully', async () => {
+      mockedRestGET.mockResolvedValueOnce({ data: mockTools });
+
+      const result = await getMCPServerTools(URL_PREFIX, { namespace: testNamespace })();
+
+      expect(result).toEqual(mockTools);
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/mcp/tools',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
+      );
+    });
+
+    it('should handle error when fetching tools', async () => {
+      const mockError = new Error('Failed to fetch tools');
+      mockedRestGET.mockRejectedValueOnce(mockError);
+
+      await expect(getMCPServerTools(URL_PREFIX, { namespace: testNamespace })()).rejects.toThrow();
     });
   });
 
@@ -1035,90 +1264,78 @@ describe('llamaStackService', () => {
     const lsdName = 'test-distribution';
 
     it('should delete LSD successfully', async () => {
-      const mockResponse = { data: 'LSD deleted successfully' };
-      mockedAxios.delete.mockResolvedValueOnce(mockResponse);
+      mockedRestDELETE.mockResolvedValueOnce({ data: 'LSD deleted successfully' });
 
-      const result = await deleteLSD(project, lsdName);
+      const result = await deleteLSD(URL_PREFIX, { namespace: project })({ name: lsdName });
 
       expect(result).toBe('LSD deleted successfully');
-      expect(mockedAxios.delete).toHaveBeenCalledWith(
-        `/gen-ai/api/v1/lsd/delete?namespace=${project}`,
-        {
-          data: { name: lsdName },
-        },
+      expect(mockedRestDELETE).toHaveBeenCalledWith(
+        URL_PREFIX,
+        '/lsd/delete',
+        { name: lsdName },
+        expect.objectContaining({ namespace: project }),
+        {},
       );
     });
 
     it('should handle API error with error message', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Distribution not found',
-            },
-          },
-        },
-      };
-      mockedAxios.delete.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Distribution not found');
+      mockedRestDELETE.mockRejectedValueOnce(mockError);
 
-      await expect(deleteLSD(project, lsdName)).rejects.toThrow('Distribution not found');
+      await expect(
+        deleteLSD(URL_PREFIX, { namespace: project })({ name: lsdName }),
+      ).rejects.toThrow();
     });
 
     it('should handle network error', async () => {
       const mockError = new Error('Connection timeout');
-      mockedAxios.delete.mockRejectedValueOnce(mockError);
+      mockedRestDELETE.mockRejectedValueOnce(mockError);
 
-      await expect(deleteLSD(project, lsdName)).rejects.toThrow('Connection timeout');
+      await expect(
+        deleteLSD(URL_PREFIX, { namespace: project })({ name: lsdName }),
+      ).rejects.toThrow();
     });
 
     it('should handle error without response', async () => {
-      const mockError = {};
-      mockedAxios.delete.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Request failed');
+      mockedRestDELETE.mockRejectedValueOnce(mockError);
 
-      await expect(deleteLSD(project, lsdName)).rejects.toThrow('Failed to delete LSD');
+      await expect(
+        deleteLSD(URL_PREFIX, { namespace: project })({ name: lsdName }),
+      ).rejects.toThrow();
     });
 
     it('should handle server error response', async () => {
-      const mockError = {
-        response: {
-          data: {
-            error: {
-              message: 'Internal server error',
-            },
-          },
-        },
-      };
-      mockedAxios.delete.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Internal server error');
+      mockedRestDELETE.mockRejectedValueOnce(mockError);
 
-      await expect(deleteLSD(project, lsdName)).rejects.toThrow('Internal server error');
+      await expect(
+        deleteLSD(URL_PREFIX, { namespace: project })({ name: lsdName }),
+      ).rejects.toThrow();
     });
 
     it('should handle malformed error response', async () => {
-      const mockError = {
-        response: {
-          data: 'Invalid response format',
-        },
-      };
-      mockedAxios.delete.mockRejectedValueOnce(mockError);
+      const mockError = new Error('Request failed');
+      mockedRestDELETE.mockRejectedValueOnce(mockError);
 
-      await expect(deleteLSD(project, lsdName)).rejects.toThrow('Failed to delete LSD');
+      await expect(
+        deleteLSD(URL_PREFIX, { namespace: project })({ name: lsdName }),
+      ).rejects.toThrow();
     });
   });
 
   describe('URL_PREFIX environment variable', () => {
     it('should use custom URL_PREFIX when provided', async () => {
-      jest.resetModules();
-      process.env.URL_PREFIX = '/custom-prefix';
+      // Test that the function accepts custom hostPath parameter
+      mockedRestGET.mockResolvedValueOnce({ data: mockLlamaModels });
 
-      const axiosModule = await import('~/app/utilities/axios');
-      const localMockedAxios = axiosModule.default as unknown as { get: jest.Mock };
-      localMockedAxios.get.mockResolvedValueOnce({ data: { data: mockLlamaModels } });
+      await getLSDModels('/custom-prefix', { namespace: testNamespace })();
 
-      const { getModels: getModelsWithPrefix } = await import('~/app/services/llamaStackService');
-
-      await getModelsWithPrefix(testNamespace);
-      expect(localMockedAxios.get).toHaveBeenCalledWith(
-        `/custom-prefix/api/v1/lsd/models?namespace=${testNamespace}`,
+      expect(mockedRestGET).toHaveBeenCalledWith(
+        '/custom-prefix',
+        '/lsd/models',
+        expect.objectContaining({ namespace: testNamespace }),
+        {},
       );
     });
   });

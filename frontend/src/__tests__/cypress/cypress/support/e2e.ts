@@ -19,11 +19,7 @@ import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
-import {
-  type ModuleFederationConfig,
-  MF_PATH_PREFIX,
-  getModuleFederationURL,
-} from '@odh-dashboard/app-config';
+import { type ModuleFederationConfig, getModuleFederationURL } from '@odh-dashboard/app-config';
 import './commands';
 import '#~/__tests__/cypress/cypress/utils/moduleFederationMock';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -358,7 +354,7 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
     // For each module federation config, intercept the request and forward it to the module federation server.
     Cypress.env('mfConfigs')?.forEach((mfConfig: ModuleFederationConfig) => {
-      const mfPathPrefix = `${MF_PATH_PREFIX}/${mfConfig.name}`;
+      const mfPathPrefix = `/_mf/${mfConfig.name}`;
       cy.intercept(
         {
           pathname: `${mfPathPrefix}/**`,

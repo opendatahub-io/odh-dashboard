@@ -64,7 +64,7 @@ jest.mock('#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC', ()
 }));
 
 jest.mock('#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState', () => ({
-  useModelServingPodSpecOptionsState: jest.fn(),
+  useModelServingHardwareProfileState: jest.fn(),
 }));
 
 jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => ({
@@ -223,8 +223,8 @@ jest.mock('../../kServeModal/EnvironmentVariablesSection', () => ({
 const mockUseCreateInferenceServiceObject = utils.useCreateInferenceServiceObject as jest.Mock;
 const mockUseCreateServingRuntimeObject = utils.useCreateServingRuntimeObject as jest.Mock;
 const mockUseNIMPVC = useNIMPVCModule.useNIMPVC as jest.Mock;
-const mockUseModelServingPodSpecOptionsState =
-  podSpecOptionsModule.useModelServingPodSpecOptionsState as jest.Mock;
+const mockUseModelServingHardwareProfileState =
+  podSpecOptionsModule.useModelServingHardwareProfileState as jest.Mock;
 const mockUseGetStorageClassConfig = storageConfigModule.useGetStorageClassConfig as jest.Mock;
 const mockStorageClassSelect = StorageClassSelectModule.default as jest.Mock;
 const mockUseDefaultStorageClass = useDefaultStorageClassModule.useDefaultStorageClass as jest.Mock;
@@ -310,9 +310,6 @@ describe('ManageNIMServingModal', () => {
       isFormDataValid: true,
       resetFormData: jest.fn(),
     },
-    acceleratorProfile: {
-      resetFormData: jest.fn(),
-    },
   };
 
   const defaultMockStorageClassConfig = {
@@ -344,7 +341,7 @@ describe('ManageNIMServingModal', () => {
     ]);
 
     mockUseNIMPVC.mockReturnValue(defaultMockNIMPVC);
-    mockUseModelServingPodSpecOptionsState.mockReturnValue(defaultMockPodSpecOptionsState);
+    mockUseModelServingHardwareProfileState.mockReturnValue(defaultMockPodSpecOptionsState);
 
     // Setup default storage class mocks with correct FetchState format
     mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
@@ -706,9 +703,6 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       isFormDataValid: true,
       resetFormData: jest.fn(),
     },
-    acceleratorProfile: {
-      resetFormData: jest.fn(),
-    },
   };
 
   const defaultMockNIMPVC = {
@@ -734,7 +728,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     ]);
 
     mockUseNIMPVC.mockReturnValue(defaultMockNIMPVC);
-    mockUseModelServingPodSpecOptionsState.mockReturnValue(defaultMockPodSpecOptionsState);
+    mockUseModelServingHardwareProfileState.mockReturnValue(defaultMockPodSpecOptionsState);
 
     // Setup default storage class mocks with correct FetchState format
     mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);

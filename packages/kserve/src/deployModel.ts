@@ -6,9 +6,17 @@ import {
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
 import {
+  DeploymentStrategyFieldData,
   type ModelLocationData,
   ModelLocationType,
 } from '@odh-dashboard/model-serving/types/form-data';
+import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
+import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
+import type { ExternalRouteFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ExternalRouteField';
+import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/NumReplicasField';
+import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
+import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
+import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -19,6 +27,7 @@ import {
   applyDashboardResourceLabel,
   applyDisplayNameDesc,
   applyModelType,
+  applyDeploymentStrategy,
 } from './deployUtils';
 import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
 import {
@@ -26,13 +35,6 @@ import {
   patchInferenceService,
   updateInferenceService,
 } from './api/inferenceService';
-import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
-import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
-import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
-import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -50,6 +52,7 @@ export type CreatingInferenceServiceObject = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
+  deploymentStrategy?: DeploymentStrategyFieldData;
 };
 
 const assembleInferenceService = (
@@ -74,6 +77,7 @@ const assembleInferenceService = (
     tokenAuth,
     runtimeArgs,
     environmentVariables,
+    deploymentStrategy,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -141,6 +145,8 @@ const assembleInferenceService = (
     inferenceService,
     environmentVariables ?? { variables: [], enabled: false },
   );
+
+  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
 
   return inferenceService;
 };

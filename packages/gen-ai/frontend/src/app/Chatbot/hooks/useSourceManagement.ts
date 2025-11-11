@@ -4,10 +4,9 @@ import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
 
@@ -51,7 +50,7 @@ const useSourceManagement = ({
   onFileUploadComplete,
   uploadedFiles = [],
 }: UseSourceManagementProps): UseSourceManagementReturn => {
-  const { namespace } = React.useContext(GenAiContext);
+  const { api, apiAvailable } = useGenAiAPI();
 
   // Use constants from shared configuration
   const { MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE } = FILE_UPLOAD_CONFIG;
@@ -177,8 +176,8 @@ const useSourceManagement = ({
       setIsSourceSettingsOpen(false);
 
       if (settings && pendingFiles.length > 0) {
-        if (!namespace?.name) {
-          onShowErrorAlert('Namespace is required for file upload', 'File Upload Error');
+        if (!apiAvailable) {
+          onShowErrorAlert('API is not available', 'File Upload Error');
           return;
         }
 
@@ -204,7 +203,19 @@ const useSourceManagement = ({
           setUploadProgress({ current: i + 1, total: pendingFiles.length });
 
           try {
-            await uploadSource(file, settings, namespace.name);
+            // Create FormData for multipart/form-data upload
+            const formData = new FormData();
+            formData.append('file', file);
+            if (settings.chunkOverlap) {
+              formData.append('chunk_overlap_tokens', String(settings.chunkOverlap));
+            }
+            if (settings.maxChunkLength) {
+              formData.append('max_chunk_size_tokens', String(settings.maxChunkLength));
+            }
+            formData.append('vector_store_id', settings.vectorStore);
+
+            // No need to set multipart/form-data headers as it is will be set automatically with the boundary
+            await api.uploadSource(formData);
 
             // Update this specific file status to uploaded
             setFilesWithSettings((prev) =>
@@ -274,10 +285,11 @@ const useSourceManagement = ({
     },
     [
       pendingFiles,
-      onShowSuccessAlert,
-      onShowErrorAlert,
+      apiAvailable,
       onFileUploadComplete,
-      namespace?.name,
+      onShowErrorAlert,
+      api,
+      onShowSuccessAlert,
       removeUploadedSource,
       processPendingFiles,
     ],

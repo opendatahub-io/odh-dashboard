@@ -1,10 +1,5 @@
 import { DashboardCommonConfig } from '#~/k8sTypes';
-import {
-  StackCapability,
-  SupportedArea,
-  SupportedAreasState,
-  DataScienceStackComponent,
-} from './types';
+import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
   disableModelRegistry: true,
@@ -14,7 +9,6 @@ export const techPreviewFlags = {
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
-  disableLlamaStackChatBot: true, // internal dev only
   disableProjectScoped: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -64,7 +58,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
-  disableModelTraining: true,
+  modelTraining: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -114,7 +108,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.K_SERVE_AUTH]: {
     featureFlags: ['disableKServeAuth'],
     reliantAreas: [SupportedArea.K_SERVE],
-    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
   [SupportedArea.K_SERVE_METRICS]: {
     featureFlags: ['disableKServeMetrics'],
@@ -191,11 +184,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
       SupportedArea.MODEL_REGISTRY,
     ],
   },
-  [SupportedArea.LLAMA_STACK_CHAT_BOT]: {
-    featureFlags: ['disableLlamaStackChatBot'],
-    reliantAreas: [SupportedArea.MODEL_SERVING],
-    //TODO: Add Llama Stack component when details known.
-  },
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
@@ -205,11 +193,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
   [SupportedArea.MODEL_TRAINING]: {
-    featureFlags: ['disableModelTraining'],
-    requiredComponents: [
-      DataScienceStackComponent.TRAINING_OPERATOR,
-      DataScienceStackComponent.KUEUE,
-    ],
+    featureFlags: ['modelTraining'],
   },
 };
 

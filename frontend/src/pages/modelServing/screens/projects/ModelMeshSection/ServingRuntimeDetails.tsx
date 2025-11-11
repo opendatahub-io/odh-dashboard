@@ -14,7 +14,7 @@ import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
-import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
@@ -33,6 +33,7 @@ type ServingRuntimeDetailsProps = {
   isvc?: InferenceServiceKind;
 };
 
+/* @deprecated -- only in deprecation paths (modelmesh) */
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
@@ -46,7 +47,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   const isModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
   // todo: deal with the accelProfile below......
-  const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc, isModelMesh);
+  const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
   const sizes = getModelServingSizes(dashboardConfig);
