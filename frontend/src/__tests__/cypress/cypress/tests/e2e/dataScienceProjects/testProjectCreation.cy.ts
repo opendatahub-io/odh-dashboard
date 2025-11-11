@@ -1,4 +1,4 @@
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   projectListPage,
@@ -55,7 +55,17 @@ describe('Verify Project - Creation and Deletion', () => {
 
   it(
     'Create and Delete a Project in RHOAI',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard', '@ci-dashboard-set-1'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@ODS-1875',
+        '@ODS-1783',
+        '@ODS-1775',
+        '@Dashboard',
+        '@ci-dashboard-set-1',
+      ],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
