@@ -117,6 +117,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'openshift.io/imported-from': string;
 }>;
 
+// todo: talk to .....(someone) about this one! todo jill
 export type NotebookAnnotations = Partial<{
   'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running),  `odh-notebook-controller-lock` is set when first creating the notebook to avoid race conditions, it's a fake stop
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
