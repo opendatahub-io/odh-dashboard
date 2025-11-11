@@ -5,7 +5,8 @@
     "baseUrl": ".",
     "paths": {
       "cypress/*": ["../../../../node_modules/cypress/*"],
-      "@odh-dashboard/app-config": ["../../../../packages/app-config/src/index.ts"]
+      "@odh-dashboard/app-config": ["../../../../packages/app-config/src/index.ts"],
+      "#~/*": ["../../*"]
     }
   }
 }
