@@ -75,7 +75,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
       isLoadingDefault,
       setIsLoadingDefault,
     }),
-    [storageClasses, storageClassConfigs, refresh, isLoadingDefault],
+    [storageClassesWithConfigs, storageClassConfigs, refresh, isLoadingDefault],
   );
 
   return <StorageClassContext.Provider value={value}>{children}</StorageClassContext.Provider>;
