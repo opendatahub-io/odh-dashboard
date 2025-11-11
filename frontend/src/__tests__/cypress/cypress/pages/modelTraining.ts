@@ -3,8 +3,8 @@ import { TableRow } from './components/table';
 class ModelTrainingGlobal {
   visit(projectName?: string) {
     const baseUrl = projectName
-      ? `/observe-monitor/training-jobs/${projectName}`
-      : '/observe-monitor/training-jobs';
+      ? `/develop-train/training-jobs/${projectName}`
+      : '/develop-train/training-jobs';
     const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue`;
     cy.visitWithLogin(url);
     this.wait();
