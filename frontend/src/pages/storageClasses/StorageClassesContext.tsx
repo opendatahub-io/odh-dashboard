@@ -39,14 +39,15 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
   const storageClassesWithConfigs = React.useMemo(() => {
     return setDefaultStorageClass(
       storageClasses.map((storageClass) => {
-        const config = getStorageClassConfig(storageClass);
         return {
           ...storageClass,
           metadata: {
             ...storageClass.metadata,
             annotations: {
               ...storageClass.metadata.annotations,
-              [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(config),
+              [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify(
+                getStorageClassConfig(storageClass),
+              ),
             },
           },
         };
@@ -69,7 +70,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
 
   const value: StorageClassContextProps = React.useMemo(
     () => ({
-      storageClasses: setDefaultStorageClass(storageClassesWithConfigs),
+      storageClasses: storageClassesWithConfigs,
       storageClassConfigs,
       refresh,
       isLoadingDefault,
