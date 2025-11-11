@@ -125,6 +125,20 @@ export const verifyResourceCountMatchesView = (
 };
 
 /**
+ * Checks if "Show N more" button exists and clicks it if present
+ */
+const clickShowMoreButtonIfExists = (): void => {
+  cy.get('body').then(($body) => {
+    const showMoreButton = $body
+      .find('button')
+      .filter((_, btn) => /Show \d+ more/.test(btn.textContent || ''));
+    if (showMoreButton.length > 0) {
+      resourceFilters.findShowMoreButton().click();
+    }
+  });
+};
+
+/**
  * Verifies card view and list view resources for each filter Id
  *
  * @param Id The filter Id to verify resource count
@@ -132,12 +146,20 @@ export const verifyResourceCountMatchesView = (
 export const verifyResourcesForFilter = (Id: string): void => {
   resourceFilters.findFilter(Id).should('not.be.checked');
   resourceFilters.findFilter(Id).check();
+
+  // Check for and click "Show N more" button if it exists
+  clickShowMoreButtonIfExists();
+
   verifyResourceCountMatchesView(
     Id,
     () => cardView.findCardItems(),
     () => cardView.find(),
   );
   resourcesToolbar.findListToggleButton().click();
+
+  // Check for and click "Show N more" button if it exists in list view
+  clickShowMoreButtonIfExists();
+
   verifyResourceCountMatchesView(
     Id,
     () => listView.findListItems(),
