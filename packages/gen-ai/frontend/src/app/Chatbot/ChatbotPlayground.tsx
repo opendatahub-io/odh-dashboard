@@ -43,6 +43,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     modelsLoaded,
     aiModels,
     maasModels,
+    lsdStatus,
     selectedModel,
     setSelectedModel,
     lastInput,
@@ -68,7 +69,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         window.history.replaceState({}, '');
       } else {
         const availableModels = models.filter((model) =>
-          isLlamaModelEnabled(model.id, aiModels, maasModels),
+          isLlamaModelEnabled(model.id, aiModels, maasModels, lsdStatus?.isCustomLSD),
         );
         if (availableModels.length > 0) {
           setSelectedModel(availableModels[0].id);
@@ -82,6 +83,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     setSelectedModel,
     aiModels,
     maasModels,
+    lsdStatus,
     selectedAAModel,
   ]);
 

@@ -22,7 +22,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   selectedModel,
   onModelChange,
 }) => {
-  const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
+  const { models, aiModels, maasModels, lsdStatus } = React.useContext(ChatbotContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
   const placeholder = models.length === 0 ? 'No models available' : 'Select a model';
@@ -62,7 +62,12 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
     >
       <DropdownList style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {models.map((option) => {
-          const isDisabled = !isLlamaModelEnabled(option.id, aiModels, maasModels);
+          const isDisabled = !isLlamaModelEnabled(
+            option.id,
+            aiModels,
+            maasModels,
+            lsdStatus?.isCustomLSD,
+          );
           return (
             <DropdownItem
               value={option.id}

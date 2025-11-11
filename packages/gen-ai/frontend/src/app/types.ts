@@ -263,6 +263,7 @@ export type LlamaStackDistributionModel = {
     }>;
     availableDistributions: Record<string, string>;
   };
+  isCustomLSD?: boolean;
 };
 
 export interface AAModelResponse {
