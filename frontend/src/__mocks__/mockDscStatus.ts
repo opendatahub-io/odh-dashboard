@@ -1,17 +1,11 @@
-import {
-  DataScienceClusterInstalledComponents,
-  DataScienceClusterKindStatus,
-  K8sCondition,
-} from '#~/k8sTypes';
-import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import { DataScienceClusterKindStatus, K8sCondition } from '#~/k8sTypes';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
-import { stackToStatusKey } from '#~/concepts/areas/utils';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];
   conditions?: K8sCondition[];
   phase?: string;
-  installedComponents?: DataScienceClusterInstalledComponents;
   release?: {
     name: string;
     version: string;
@@ -20,7 +14,16 @@ export type MockDscStatus = {
 
 export const mockDscStatus = ({
   components = {
+    // Dynamically create all components with default 'Managed' state
+    ...Object.fromEntries(
+      Object.values(DataScienceStackComponent).map((component) => [
+        component,
+        { managementState: 'Managed' },
+      ]),
+    ),
+    // Override specific components with additional fields
     [DataScienceStackComponent.MODEL_REGISTRY]: {
+      managementState: 'Managed',
       registriesNamespace: 'odh-model-registries',
       releases: [
         {
@@ -31,6 +34,7 @@ export const mockDscStatus = ({
       ],
     },
     [DataScienceStackComponent.K_SERVE]: {
+      managementState: 'Managed',
       releases: [
         {
           name: 'KServe',
@@ -40,34 +44,15 @@ export const mockDscStatus = ({
       ],
     },
     [DataScienceStackComponent.WORKBENCHES]: {
+      managementState: 'Managed',
       workbenchNamespace: 'openshift-ai-notebooks',
     },
   },
-  installedComponents = Object.values(StackComponent).reduce(
-    (acc, component) => ({ ...acc, [component]: true }),
-    {},
-  ),
   conditions = [],
   phase = 'Ready',
   release = { name: 'Open Data Hub', version: '2.28.0' },
 }: MockDscStatus): DataScienceClusterKindStatus => ({
-  components: (() => {
-    // Map StackComponent -> DataScienceStackComponent ComponentName keys
-
-    const result = { ...components };
-    // Synthesize components managementState from installedComponents for compatibility
-    Object.entries(installedComponents).forEach(([stackKey, isInstalled]) => {
-      const statusKey = stackToStatusKey[stackKey as StackComponent];
-      if (statusKey) {
-        const prev = result[statusKey] || {};
-        result[statusKey] = {
-          managementState: isInstalled ? 'Managed' : 'Removed',
-          ...prev,
-        };
-      }
-    });
-    return result;
-  })(),
+  components,
   conditions: [
     ...[
       {
@@ -141,14 +126,6 @@ export const mockDscStatus = ({
         reason: 'ReconcileCompleted',
         status: 'True',
         type: 'kserveReady',
-      },
-      {
-        lastHeartbeatTime: '2023-10-20T11:45:04Z',
-        lastTransitionTime: '2023-10-20T11:45:04Z',
-        message: 'Component reconciled successfully',
-        reason: 'ReconcileCompleted',
-        status: 'True',
-        type: 'model-meshReady',
       },
       {
         lastHeartbeatTime: '2023-10-20T11:45:06Z',

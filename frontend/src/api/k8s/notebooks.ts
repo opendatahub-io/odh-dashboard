@@ -45,14 +45,7 @@ export const assembleNotebook = (
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
-    podSpecOptions: {
-      resources,
-      tolerations,
-      nodeSelector,
-      lastSizeSelection,
-      selectedAcceleratorProfile,
-      selectedHardwareProfile,
-    },
+    podSpecOptions: { resources, lastSizeSelection, selectedHardwareProfile },
     connections,
   } = data;
   const dashboardNamespace = data.dashboardNamespace ?? '';
@@ -92,21 +85,11 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const isAcceleratorProfileSelected = !!selectedAcceleratorProfile;
   const hardwareProfileNamespace: Record<string, string | null> = selectedHardwareProfile
     ? selectedHardwareProfile.metadata.namespace === projectName
       ? { 'opendatahub.io/hardware-profile-namespace': projectName }
       : { 'opendatahub.io/hardware-profile-namespace': dashboardNamespace }
     : { 'opendatahub.io/hardware-profile-namespace': null };
-
-  let acceleratorProfileNamespace: Record<string, string | null> = {
-    'opendatahub.io/accelerator-profile-namespace': null,
-  };
-  if (selectedAcceleratorProfile?.metadata.namespace === projectName) {
-    acceleratorProfileNamespace = {
-      'opendatahub.io/accelerator-profile-namespace': data.projectName,
-    };
-  }
 
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
@@ -124,14 +107,12 @@ export const assembleNotebook = (
       },
       annotations: {
         ...hardwareProfileNamespace,
-        ...acceleratorProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/last-size-selection': lastSizeSelection || '',
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-auth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
         'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
@@ -203,8 +184,8 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations: isAcceleratorProfileSelected ? tolerations : undefined,
-          nodeSelector: isAcceleratorProfileSelected ? nodeSelector : undefined,
+          tolerations: [],
+          nodeSelector: {},
         },
       },
     },
@@ -246,23 +227,30 @@ export const getNotebook = (name: string, namespace: string): Promise<NotebookKi
     queryOptions: { name, ns: namespace },
   });
 
-export const stopNotebook = (name: string, namespace: string): Promise<NotebookKind> =>
+export const stopNotebook = (
+  name: string,
+  namespace: string,
+  extraPatches?: Patch[],
+): Promise<NotebookKind> =>
   k8sPatchResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { name, ns: namespace },
-    patches: [getStopPatch()],
+    patches: [getStopPatch(), ...(extraPatches || [])],
   });
 
 export const startNotebook = async (
   notebook: NotebookKind,
   enablePipelines?: boolean,
+  extraPatches?: Patch[],
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
   patches.push(startPatch);
-
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());
     patches.push(getPipelineVolumeMountPatch());
+  }
+  if (extraPatches) {
+    patches.push(...extraPatches);
   }
 
   return k8sPatchResource<NotebookKind>({

@@ -13,7 +13,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import { PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   getPVCNameFromURI,
   isPVCUri,
@@ -26,12 +26,13 @@ import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/internal/util
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
+import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
 import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../types';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
   setData: (data: ModelLocationData | undefined) => void;
-  project: ProjectKind | null;
+  projectName?: string;
   connections: Connection[];
   connectionsLoaded: boolean;
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -41,25 +42,21 @@ export type ModelLocationDataField = {
   isLoadingSecretData: boolean;
 };
 export const useModelLocationData = (
-  project: ProjectKind | null,
+  projectName?: string,
   existingData?: ModelLocationData,
 ): ModelLocationDataField => {
   const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
     existingData,
   );
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const [connections, connectionsLoaded] = useServingConnections(
-    project?.metadata.name,
-    true,
-    true,
-  );
+  const [connections, connectionsLoaded] = useServingConnections(projectName, true, true);
 
   const [isStableState, setIsStableState] = React.useState(
     connectionTypesLoaded && connectionsLoaded,
   );
   const [prefillApplied, setPrefillApplied] = React.useState(false);
   React.useEffect(() => {
-    if (!project?.metadata.name || !connectionsLoaded || !connectionTypesLoaded) {
+    if (!projectName || !connectionsLoaded || !connectionTypesLoaded) {
       return;
     }
     if (prefillApplied) return;
@@ -136,7 +133,7 @@ export const useModelLocationData = (
     };
 
     fetchConnectionData();
-  }, [existingData, project?.metadata.name, connectionsLoaded, connectionTypesLoaded]);
+  }, [existingData, projectName, connectionsLoaded, connectionTypesLoaded]);
 
   const initialConnection = React.useMemo(() => {
     if (connectionsLoaded && existingData?.type === ModelLocationType.EXISTING) {
@@ -180,14 +177,14 @@ export const useModelLocationData = (
   return {
     data: modelLocationData,
     setData: setModelLocationData,
-    project,
+    projectName,
     connections,
     connectionsLoaded,
     connectionTypes,
     connectionTypesLoaded,
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
-    isLoadingSecretData: !isStableState,
+    isLoadingSecretData: !isStableState && !!projectName,
   };
 };
 
@@ -223,14 +220,14 @@ export const isValidModelLocationData = (
 };
 
 const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): boolean => {
+  if (!modelLocationData.connectionTypeObject) return false;
   const dataFields =
-    modelLocationData.connectionTypeObject?.data?.fields?.filter(
+    modelLocationData.connectionTypeObject.data?.fields?.filter(
       (field): field is ConnectionTypeDataField => 'envVar' in field && 'required' in field,
     ) || [];
 
   const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
   if (
-    modelLocationData.connectionTypeObject &&
     isModelServingCompatible(
       modelLocationData.connectionTypeObject,
       ModelServingCompatibleTypes.S3ObjectStorage,
@@ -300,6 +297,9 @@ type ModelLocationInputFieldsProps = {
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
   pvcs: PersistentVolumeClaimKind[];
+  showCustomTypeSelect: boolean;
+  customTypeOptions?: ConnectionTypeConfigMapObj[];
+  customTypeKey: string | undefined;
 };
 
 export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> = ({
@@ -313,6 +313,9 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   resetModelLocationData,
   modelLocationData,
   pvcs,
+  showCustomTypeSelect,
+  customTypeOptions,
+  customTypeKey,
 }) => {
   const pvcNameFromUri: string | undefined = React.useMemo(() => {
     // Get the PVC name from the URI if it's a PVC URI
@@ -366,17 +369,35 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
   if (modelLocation === ModelLocationType.NEW) {
-    if (selectedConnectionType) {
-      return (
-        <NewConnectionField
-          connectionType={selectedConnectionType}
-          setModelLocationData={setModelLocationData}
-          modelLocationData={modelLocationData}
-        />
-      );
-    }
+    return (
+      <>
+        {showCustomTypeSelect ? (
+          <CustomTypeSelectField
+            typeOptions={customTypeOptions ?? []}
+            onSelect={(connectionType: ConnectionTypeConfigMapObj) => {
+              setModelLocationData({
+                type: ModelLocationType.NEW,
+                connectionTypeObject: connectionType,
+                fieldValues: {},
+                additionalFields: {},
+              });
+            }}
+            typeKey={customTypeKey ?? ''}
+            selectedConnectionType={selectedConnectionType}
+          />
+        ) : null}
+        {selectedConnectionType ? (
+          <NewConnectionField
+            connectionType={selectedConnectionType}
+            setModelLocationData={setModelLocationData}
+            modelLocationData={modelLocationData}
+          />
+        ) : null}
+      </>
+    );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (modelLocation === ModelLocationType.PVC) {
     return (
       <PvcSelectField

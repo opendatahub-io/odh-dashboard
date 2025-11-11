@@ -80,6 +80,15 @@ class ModelServingGlobal {
     return cy.findByTestId('kserve-select-button');
   }
 
+  selectSingleServingModelButtonIfExists() {
+    this.shouldBeEmpty();
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
+        this.findSingleServingModelButton().click();
+      }
+    });
+  }
+
   findMultiModelButton() {
     return cy.findByTestId('model-mesh-select-button');
   }
@@ -635,6 +644,10 @@ class ModelServingRow extends TableRow {
     return this;
   }
 
+  findExpansion() {
+    return this.find().siblings();
+  }
+
   findInternalServiceButton() {
     return this.find().findByTestId('internal-service-button');
   }
@@ -672,25 +685,7 @@ class ModelServingRow extends TableRow {
   }
 }
 
-class ModelMeshRow extends ModelServingRow {
-  findExpandButton() {
-    return this.find().find('[data-label="Model Server Name"] button');
-  }
-
-  findDeployModelButton() {
-    return this.find().findByTestId('deploy-model-button');
-  }
-
-  findExpansion() {
-    return this.find().siblings();
-  }
-
-  findDeployedModelExpansionButton() {
-    return this.find().find('[data-label="Deployed models"] button');
-  }
-}
-
-class KServeRow extends ModelMeshRow {
+class KServeRow extends ModelServingRow {
   findToggleButton(platform?: string) {
     return this.find()
       .findByTestId(`${platform || 'kserve'}-model-row-item`)
@@ -847,10 +842,6 @@ class ModelServingSection {
     return this.find().findByTestId('kserve-inference-service-table');
   }
 
-  private findModelMeshTable() {
-    return this.find().findByTestId('serving-runtime-table');
-  }
-
   findModelServerDeployedName(name: string) {
     return this.find().findByTestId('deployed-model-name').contains(name);
   }
@@ -901,15 +892,6 @@ class ModelServingSection {
     return this.find().findByTestId('add-server-button');
   }
 
-  getModelMeshRow(name: string) {
-    return new ModelMeshRow(() =>
-      this.findModelMeshTable()
-        .find('[data-label="Model Server Name"]')
-        .contains(name)
-        .parents('tr'),
-    );
-  }
-
   findInferenceServiceTable() {
     return cy.findByTestId('inference-service-table');
   }
@@ -934,6 +916,10 @@ class ModelServingWizard extends Wizard {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
 
+  visit() {
+    cy.visitWithLogin(`/ai-hub/deployments/deploy`);
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
@@ -952,6 +938,14 @@ class ModelServingWizard extends Wizard {
 
   findModelTypeSelectOption(name: string) {
     return this.findModelTypeSelect().findSelectOption(name);
+  }
+
+  findModelDeploymentProjectSelector() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findModelDeploymentProjectSelectorOption(name: string) {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
   findModelDeploymentNameInput() {
@@ -1199,6 +1193,26 @@ class ModelServingWizard extends Wizard {
 
   findUpdateDeploymentButton() {
     return cy.findByRole('button', { name: 'Update deployment' });
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  findDiscardButton() {
+    return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findDeploymentStrategySection() {
+    return cy.findByTestId('deployment-strategy-section');
+  }
+
+  findDeploymentStrategyRollingOption() {
+    return this.findDeploymentStrategySection().findByTestId('deployment-strategy-rolling');
+  }
+
+  findDeploymentStrategyRecreateOption() {
+    return this.findDeploymentStrategySection().findByTestId('deployment-strategy-recreate');
   }
 }
 

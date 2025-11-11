@@ -17,13 +17,9 @@ import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
 type MaaSModelTableRowEndpointProps = {
   model: MaaSModel;
-  namespace: string;
 };
 
-const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({
-  model,
-  namespace,
-}) => {
+const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ model }) => {
   const { isGenerating, tokenData, error, generateToken, resetToken } = useGenerateMaaSToken();
 
   if (!model.url) {
@@ -31,7 +27,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({
   }
 
   const handleGenerateToken = () => {
-    generateToken(namespace);
+    generateToken();
   };
 
   return (

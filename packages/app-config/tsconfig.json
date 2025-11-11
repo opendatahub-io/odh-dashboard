@@ -1,3 +1,7 @@
 {
-  "extends": "@odh-dashboard/tsconfig/tsconfig.json"
+  "extends": "@odh-dashboard/tsconfig/tsconfig.node.json",
+  "compilerOptions": {
+    "isolatedDeclarations": true,
+    "declaration": true
+  }
 }

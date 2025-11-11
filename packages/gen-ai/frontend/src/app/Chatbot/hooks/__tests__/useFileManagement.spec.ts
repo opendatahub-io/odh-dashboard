@@ -6,7 +6,7 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import useFileManagement, { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 import {
   deleteVectorStoreFile,
-  getVectorStores,
+  listVectorStores,
   listVectorStoreFiles,
 } from '~/app/services/llamaStackService';
 import { VectorStoreFile } from '~/app/types';
@@ -21,22 +21,23 @@ import {
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils');
+jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
 }));
 
-const mockGetVectorStores = getVectorStores as jest.MockedFunction<typeof getVectorStores>;
-const mockListVectorStoreFiles = listVectorStoreFiles as jest.MockedFunction<
-  typeof listVectorStoreFiles
->;
-const mockDeleteVectorStoreFile = deleteVectorStoreFile as jest.MockedFunction<
-  typeof deleteVectorStoreFile
->;
+const mockGetVectorStores = listVectorStores as jest.Mock;
+const mockListVectorStoreFiles = listVectorStoreFiles as jest.Mock;
+const mockDeleteVectorStoreFile = deleteVectorStoreFile as jest.Mock;
 const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
   typeof fireFormTrackingEvent
 >;
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+
+// Import after mocking
+const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
 describe('useFileManagement', () => {
   // Use constants from testUtils
@@ -77,6 +78,16 @@ describe('useFileManagement', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
+
+    // Mock useGenAiAPI to return the API object with mocked functions
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: {
+        listVectorStores: mockGetVectorStores,
+        listVectorStoreFiles: mockListVectorStoreFiles,
+        deleteVectorStoreFile: mockDeleteVectorStoreFile,
+      },
+    });
   });
 
   describe('Initial state', () => {
@@ -98,14 +109,13 @@ describe('useFileManagement', () => {
       const { result } = renderHook(() => useFileManagement());
       await waitForLoadingComplete(result);
 
-      expect(mockGetVectorStores).toHaveBeenCalledWith(TEST_NAMESPACE);
-      expect(mockListVectorStoreFiles).toHaveBeenCalledWith(
-        TEST_NAMESPACE,
-        VECTOR_STORE_ID,
-        50,
-        'desc',
-        'completed',
-      );
+      expect(mockGetVectorStores).toHaveBeenCalled();
+      expect(mockListVectorStoreFiles).toHaveBeenCalledWith({
+        vector_store_id: VECTOR_STORE_ID,
+        limit: 50,
+        order: 'desc',
+        filter: 'completed',
+      });
       expect(result.current.files).toHaveLength(2);
       expect(result.current.files[0]).toEqual({
         id: FILE_ID_1,
@@ -165,14 +175,21 @@ describe('useFileManagement', () => {
       const { result } = renderHook(() => useFileManagement());
       await waitForLoadingComplete(result);
 
-      expect(mockGetVectorStores).toHaveBeenCalledWith(TEST_NAMESPACE);
+      expect(mockGetVectorStores).toHaveBeenCalled();
       expect(mockListVectorStoreFiles).not.toHaveBeenCalled();
       expect(result.current.files).toEqual([]);
       expect(result.current.currentVectorStoreId).toBe(null);
     });
 
-    it('should not fetch files when namespace is not available', async () => {
-      mockUseContext.mockReturnValue({ namespace: undefined });
+    it('should not fetch files when API is not available', async () => {
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: false,
+        api: {
+          listVectorStores: mockGetVectorStores,
+          listVectorStoreFiles: mockListVectorStoreFiles,
+          deleteVectorStoreFile: mockDeleteVectorStoreFile,
+        },
+      });
 
       const { result } = renderHook(() => useFileManagement());
       await waitForLoadingComplete(result);
@@ -271,9 +288,11 @@ describe('useFileManagement', () => {
       });
 
       expect(mockDeleteVectorStoreFile).toHaveBeenCalledWith(
-        TEST_NAMESPACE,
-        VECTOR_STORE_ID,
-        FILE_ID_1,
+        {},
+        {
+          vector_store_id: VECTOR_STORE_ID,
+          file_id: FILE_ID_1,
+        },
       );
       expect(result.current.files).toHaveLength(1);
       expect(result.current.files[0].id).toBe(FILE_ID_2);
@@ -405,7 +424,7 @@ describe('useFileManagement', () => {
       const { rerender } = renderHook(() => useFileManagement());
 
       await waitFor(() => {
-        expect(mockGetVectorStores).toHaveBeenCalledWith(TEST_NAMESPACE);
+        expect(mockGetVectorStores).toHaveBeenCalled();
       });
 
       // Change namespace
@@ -416,7 +435,7 @@ describe('useFileManagement', () => {
       rerender();
 
       await waitFor(() => {
-        expect(mockGetVectorStores).toHaveBeenCalledWith('new-namespace');
+        expect(mockGetVectorStores).toHaveBeenCalled();
       });
     });
   });

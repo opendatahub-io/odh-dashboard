@@ -16,7 +16,7 @@ import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelecto
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { registeredModelsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
-
+import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
   latestModelVersion?: ModelVersion;
@@ -73,7 +73,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                       </DropdownItem>
                     {isModalAvailable && <Divider />}
                     </DropdownGroup>)}
-                    <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
+                    <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
                   </DropdownList>
                 </Dropdown>
               )}
@@ -99,7 +99,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             >
               <DropdownList>
                 <DropdownGroup>
-                  <DropdownItem onClick={() => setIsArchiveModalOpen(true)}>Archive model</DropdownItem>
+                  <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
                 </DropdownGroup>
               </DropdownList>
             </Dropdown>

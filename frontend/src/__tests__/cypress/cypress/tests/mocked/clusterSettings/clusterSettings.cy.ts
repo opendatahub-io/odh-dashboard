@@ -6,6 +6,7 @@ import {
   modelServingSettings,
   pvcSizeSettings,
   telemetrySettings,
+  modelDeploymentSettings,
 } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
 import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
@@ -13,7 +14,7 @@ import {
   asClusterAdminUser,
   asProjectAdminUser,
 } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { StackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { mockK8sResourceList } from '#~/__mocks__';
 import { DataScienceClusterModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockDsc } from '#~/__mocks__/mockDsc';
@@ -35,7 +36,9 @@ describe('Cluster Settings', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
-        installedComponents: { [StackComponent.K_SERVE]: true, [StackComponent.MODEL_MESH]: true },
+        components: {
+          [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        },
       }),
     );
     cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
@@ -53,6 +56,23 @@ describe('Cluster Settings', () => {
     modelServingSettings.findSinglePlatformCheckbox().check();
     modelServingSettings.findAlert().should('not.exist');
     modelServingSettings.findSubmitButton().should('be.disabled');
+
+    // check model deployment options field
+    modelDeploymentSettings.findDistributedInferencing().should('not.be.checked');
+    modelDeploymentSettings.findAlert().should('exist');
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
+    modelDeploymentSettings.findDistributedInferencing().click({ force: true });
+    modelDeploymentSettings.findSubmitButton().should('be.enabled');
+    modelDeploymentSettings.findAlert().should('not.exist');
+    modelDeploymentSettings.findDistributedInferencing().click({ force: true });
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
+
+    modelDeploymentSettings.findRollingUpdateRadio().should('be.checked');
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
+    modelDeploymentSettings.findRecreateRadio().check();
+    modelDeploymentSettings.findSubmitButton().should('be.enabled');
+    modelDeploymentSettings.findRollingUpdateRadio().check();
+    modelDeploymentSettings.findSubmitButton().should('be.disabled');
 
     // check PVC size field
     pvcSizeSettings.findInput().clear();

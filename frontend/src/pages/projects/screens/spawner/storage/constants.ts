@@ -45,7 +45,6 @@ export const clusterStorageTableColumns: SortableData<StorageData>[] = [
 export const defaultClusterStorage = {
   name: 'storage',
   description: '',
-  size: '20Gi',
   mountPath: MOUNT_PATH_PREFIX,
   accessMode: AccessMode.RWO,
 };

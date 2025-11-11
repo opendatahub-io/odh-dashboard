@@ -1,26 +1,43 @@
-import { NavExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { isNavSectionExtension, NavExtension } from '@odh-dashboard/plugin-core/extension-points';
 
-const DEFAULT_GROUP = '8_default';
+const DEFAULT_GROUP = '5_default';
 
-/** Comparison function for navigation items sorting. */
-export const compareNavItemGroups = <T extends NavExtension>(a: T, b: T): number => {
-  const groupA = a.properties.group || DEFAULT_GROUP;
-  const groupB = b.properties.group || DEFAULT_GROUP;
+/** Lexicographic comparison function for navigation items sorting. */
+export const compareNavItemGroups = <T extends NavExtension>(a: T, b: T): number =>
+  (a.properties.group || DEFAULT_GROUP).localeCompare(b.properties.group || DEFAULT_GROUP);
 
-  // Extract numeric prefix and suffix for proper sorting
-  const extractParts = (group: string) => {
-    const match = group.match(/^(\d+)_(.*)$/);
-    return match ? { num: parseInt(match[1], 10), suffix: match[2] } : { num: 0, suffix: group };
-  };
+export const getTopLevelExtensions = <E extends NavExtension>(extensions: E[]): E[] => {
+  // Get all section IDs that exist
+  const existingSectionIds = new Set(
+    extensions.filter((e) => isNavSectionExtension(e)).map((e) => e.properties.id),
+  );
 
-  const partsA = extractParts(groupA);
-  const partsB = extractParts(groupB);
+  // Filter top-level extensions (no section)
+  const topLevel = extensions.filter((e) => !e.properties.section).toSorted(compareNavItemGroups);
 
-  // First compare by numeric prefix
-  if (partsA.num !== partsB.num) {
-    return partsA.num - partsB.num;
-  }
+  // Find extensions with sections that don't exist
+  const orphanedExtensions = extensions.filter(
+    (e) => e.properties.section && !existingSectionIds.has(e.properties.section),
+  );
 
-  // If numeric parts are equal, compare by suffix
-  return partsA.suffix.localeCompare(partsB.suffix);
+  // Group orphaned extensions by their section ID
+  const orphanedBySection = new Map<string, E[]>();
+  orphanedExtensions.forEach((ext) => {
+    const sectionId = ext.properties.section;
+    if (sectionId) {
+      let sections = orphanedBySection.get(sectionId);
+      if (!sections) {
+        sections = [];
+        orphanedBySection.set(sectionId, sections);
+      }
+      sections.push(ext);
+    }
+  });
+
+  // Sort each group and flatten
+  const sortedOrphaned = Array.from(orphanedBySection.values())
+    .map((group) => group.toSorted(compareNavItemGroups))
+    .flat();
+
+  return [...topLevel, ...sortedOrphaned];
 };

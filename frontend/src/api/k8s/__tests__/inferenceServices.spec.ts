@@ -73,27 +73,6 @@ describe('assembleInferenceService', () => {
     );
   });
 
-  it('should have the right annotations when creating for modelmesh', async () => {
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      true,
-    );
-
-    expect(inferenceService.metadata.annotations).toBeDefined();
-    expect(inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBe(
-      DeploymentMode.ModelMesh,
-    );
-    expect(
-      inferenceService.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough'],
-    ).toBe(undefined);
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/inject']).toBe(undefined);
-    expect(inferenceService.metadata.annotations?.['sidecar.istio.io/rewriteAppHTTPProbers']).toBe(
-      undefined,
-    );
-  });
-
   it('should have the right labels when creating for Kserve with public route', async () => {
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({ externalRoute: true }),
@@ -454,30 +433,6 @@ describe('assembleInferenceService', () => {
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
       'opendatahub',
     );
-  });
-
-  it('should not set hardware profile name and namespace annotation for real profiles if model mesh', () => {
-    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
-    hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-    });
-    const result = assembleInferenceService(
-      mockInferenceServiceModalData({
-        externalRoute: true,
-        tokenAuth: true,
-      }),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-      podSpecOptions,
-    );
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
-    expect(
-      result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
-    ).toBeUndefined();
   });
 
   it('should not set pod specs like tolerations and nodeSelector for hardware profiles', () => {

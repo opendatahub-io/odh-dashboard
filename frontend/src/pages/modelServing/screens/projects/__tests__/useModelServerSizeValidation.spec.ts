@@ -1,6 +1,9 @@
 import { renderHook } from '@testing-library/react';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation';
+
+/* @deprecated -- only in deprecation paths (modelmesh) */
+// this file tests a deprecated hook; so will be removed/deleted when the hook is removed */
 
 // Mock the useValidation hook
 jest.mock('#~/utilities/useValidation', () => ({

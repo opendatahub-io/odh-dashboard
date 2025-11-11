@@ -12,7 +12,7 @@
     "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "packageManager": "npm@10.9.2",
   "workspaces": [
@@ -25,8 +25,8 @@
   ],
   "scripts": {
     "build": "run-p -l build:*",
-    "build:backend": "cd ./backend && npm run build",
-    "build:frontend": "cd ./frontend && npm run build",
+    "build:backend": "npm run build --prefix packages/app-config && npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
     "dev": "run-p -l dev:*",
     "dev:backend": "cd ./backend && npm run start:dev",
     "dev:frontend": "cd ./frontend && npm run start:dev",
@@ -99,11 +99,11 @@
       "react-router-dom": "^7.6.2",
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
-      "@patternfly/react-core": "^6.3.1",
-      "@patternfly/react-icons": "^6.3.1",
-      "@patternfly/react-styles": "^6.3.1",
-      "@patternfly/react-table": "^6.3.1",
-      "@patternfly/react-virtualized-extension": "^6.1.0"
+      "@patternfly/react-core": "^6.4.0",
+      "@patternfly/react-icons": "^6.4.0",
+      "@patternfly/react-styles": "^6.4.0",
+      "@patternfly/react-table": "^6.4.0",
+      "@patternfly/react-virtualized-extension": "^6.2.0"
     },
     "@patternfly/react-topology": {
       "react": "^18.2.0"

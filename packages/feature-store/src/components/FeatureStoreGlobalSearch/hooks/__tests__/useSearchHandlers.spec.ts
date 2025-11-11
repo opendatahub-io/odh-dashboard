@@ -164,6 +164,7 @@ describe('useSearchHandlers', () => {
         'feature',
         'test-project',
         'Test Feature',
+        '',
       );
       expect(mockNavigate).toHaveBeenCalledWith('/test-route');
     });
@@ -181,6 +182,7 @@ describe('useSearchHandlers', () => {
         'feature',
         'item-project',
         'Test Feature',
+        '',
       );
     });
 
@@ -196,7 +198,28 @@ describe('useSearchHandlers', () => {
         'feature',
         'item-project',
         'Test Feature',
+        '',
       );
+    });
+
+    it('should pass featureView when provided', () => {
+      const itemWithFeatureView = {
+        ...mockSearchItem,
+        featureView: 'test-feature-view',
+      };
+      mockGetFeatureStoreRoute.mockReturnValue('/test-route');
+
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+
+      result.current.handleResultSelect(itemWithFeatureView);
+
+      expect(mockGetFeatureStoreRoute).toHaveBeenCalledWith(
+        'feature',
+        'test-project',
+        'Test Feature',
+        'test-feature-view',
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/test-route');
     });
 
     it('should not navigate when no route is returned', () => {

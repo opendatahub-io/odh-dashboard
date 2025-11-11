@@ -156,49 +156,6 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// RequireNamespaceListAccess middleware checks if the user can list namespaces
-// This performs a SubjectAccessReview to verify cluster-scoped namespace listing permissions
-func (app *App) RequireNamespaceListAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled, skip SAR check
-		if app.config.AuthMethod == config.AuthMethodDisabled {
-			next(w, r, ps)
-			return
-		}
-
-		ctx := r.Context()
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		// Get Kubernetes client to perform SAR
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		// Perform SubjectAccessReview to check if user can list namespaces (cluster-scoped)
-		allowed, err := k8sClient.CanListNamespaces(ctx, identity)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check namespace listing permissions: %w", err))
-			return
-		}
-
-		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to list namespaces")
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("User authorized to list namespaces")
-
-		next(w, r, ps)
-	}
-}
-
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace := r.URL.Query().Get(string(constants.NamespaceQueryParameterKey))
@@ -345,29 +302,16 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 				logger.Debug("Using MAAS_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
 			} else {
-				// Priority 2: Autodiscovery using cluster domain
-				if app.kubernetesClientFactory == nil {
+				// Priority 2: Autodiscovery using cached cluster domain (from service account at startup)
+				if app.clusterDomain == "" {
+					logger.Error("cluster domain not available for MaaS autodiscovery")
 					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
 					return
 				}
 
-				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-				if err != nil {
-					logger.Error("failed to get Kubernetes client for MaaS autodiscovery", "error", err)
-					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
-					return
-				}
-
-				clusterDomain, err := k8sClient.GetClusterDomain(ctx)
-				if err != nil {
-					logger.Error("failed to get cluster domain for MaaS autodiscovery", "error", err)
-					app.handleMaaSClientError(w, r, maas.NewServerUnavailableError(""))
-					return
-				}
-
-				serviceURL = fmt.Sprintf("https://maas.%s", clusterDomain)
-				logger.Debug("Using autodiscovered MaaS endpoint",
-					"clusterDomain", clusterDomain,
+				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
+				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
+					"clusterDomain", app.clusterDomain,
 					"serviceURL", serviceURL)
 			}
 

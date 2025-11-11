@@ -17,9 +17,6 @@ spec:
   getStartedLink: 'https://opendatahub.io/docs/getting-started-with-open-data-hub/#launching-jupyter-and-starting-a-notebook-server_get-started'
   internalRoute: notebookController
   displayName: Start basic workbench
-  kfdefApplications:
-    - odh-notebook-controller
-    - notebook-images
   support: red hat
   provider: ''
   docsLink: 'https://jupyter.org'

@@ -17,23 +17,25 @@ import type { ModelVersion } from '#~/concepts/modelRegistry/types';
 import { ModelState } from '#~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
-import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
 import { mockModelArtifactList } from '#~/__mocks__/mockModelArtifactList';
 import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
 import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { modelDetails } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelDetails';
+import { modelVersionDetails } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 
-const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
+const MODEL_REGISTRY_API_VERSION = 'v1';
 
 type HandlersProps = {
   registeredModelsSize?: number;
   modelVersions?: ModelVersion[];
-  modelMeshInstalled?: boolean;
-  kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   isEmpty?: boolean;
+  disableKServe?: boolean;
+  disableNIMModelServing?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -58,15 +60,15 @@ const initIntercepts = ({
     mockModelVersion({ id: '4', name: 'test model version 3' }),
     mockModelVersion({ id: '5', name: 'test model version 4' }),
   ],
-  modelMeshInstalled = true,
-  kServeInstalled = true,
   disableProjectScoped = true,
+  disableKServe = false,
+  disableNIMModelServing = true,
   isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
-    modelMeshInstalled,
-    kServeInstalled,
     disableProjectScoped,
+    disableKServe,
+    disableNIMModelServing,
     isEmpty,
   });
 
@@ -82,179 +84,281 @@ const initIntercepts = ({
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions',
+    `GET /model-registry/api/:apiVersion/model_registry`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: [mockModelRegistry({ name: 'modelregistry-sample' })] },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         registeredModelId: 1,
       },
     },
-    mockModelVersionList({
-      items: modelVersions,
-    }),
+    { data: registeredModelMocked },
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId',
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         registeredModelId: 1,
       },
     },
-    registeredModelMocked,
+    {
+      data: mockModelVersionList({
+        items: modelVersions,
+      }),
+    },
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 1,
       },
     },
-    modelVersionMocked,
+    { data: modelVersionMocked },
   );
 
   cy.interceptOdh(
-    'GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId',
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    { data: modelVersionMocked },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
-    modelVersionMocked2,
+    { data: modelVersionMocked2 },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
-        apiVersion: MODEL_REGISTRY_API_VERSION,
-        modelVersionId: 1,
-      },
-    },
-    mockModelArtifactList({}),
-  );
-
-  cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
-    {
-      path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 3,
       },
     },
-    mockModelArtifactList({
-      items: [mockModelArtifact({ uri: 'https://demo-models/some-path.zip' })],
-    }),
+    { data: mockModelVersion({ id: '3', name: 'test model version 2' }) },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 4,
       },
     },
-    mockModelArtifactList({
-      items: [mockModelArtifact({ uri: 'oci://test.io/test/private:test' })],
-    }),
+    { data: mockModelVersion({ id: '4', name: 'test model version 3' }) },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 5,
       },
     },
-    mockModelArtifactList({
-      items: [mockModelArtifact({ uri: 'oci://registry.redhat.io/rhel/private:test' })],
-    }),
+    { data: mockModelVersion({ id: '5', name: 'test model version 4' }) },
   );
 
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions/:modelVersionId/artifacts`,
+    `GET /model-registry/api/:apiVersion/user`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: { userId: 'user@example.com', clusterAdmin: true } },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/namespaces`,
+    {
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
+    },
+    { data: [{ metadata: { name: 'odh-model-registries' } }] },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
     {
       path: {
-        serviceName: 'modelregistry-sample',
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    { data: mockModelArtifactList({}) },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
-    mockModelArtifactList({}),
+    { data: mockModelArtifactList({}) },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 3,
+      },
+    },
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({ uri: 'https://demo-models/some-path.zip' })],
+      }),
+    },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 4,
+      },
+    },
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({ uri: 'oci://test.io/test/private:test' })],
+      }),
+    },
+  );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 5,
+      },
+    },
+    {
+      data: mockModelArtifactList({
+        items: [mockModelArtifact({ uri: 'oci://registry.redhat.io/rhel/private:test' })],
+      }),
+    },
   );
 };
 
-// TODO: Fix these tests
-describe.skip('Deploy model version', () => {
-  it('Deploy model version on unsupported multi-model platform', () => {
-    initIntercepts({ modelMeshInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.wait('@getProjects');
-    modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('Multi-model platform is not installed').should('exist');
+describe('Deploy action button', () => {
+  it('Deploy action button is disabled in the model details page when there are no live versions', () => {
+    initIntercepts({});
+    cy.interceptOdh(
+      `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
+      {
+        path: {
+          modelRegistryName: 'modelregistry-sample',
+          apiVersion: MODEL_REGISTRY_API_VERSION,
+          registeredModelId: 1,
+        },
+      },
+      {
+        data: mockModelVersionList({
+          items: [],
+        }),
+      },
+    );
+    modelDetails.visit();
+    modelDetails.findModelVersionActionToggle().findDropdownItem('Deploy').should('not.exist');
   });
 
+  it('Deploy action button is visible in the model details page when there are live versions', () => {
+    initIntercepts({});
+    modelDetails.visit();
+    modelDetails.findModelActionToggle().findDropdownItem('Deploy test model version').click();
+    cy.wait('@getProjects');
+    modelVersionDeployModal.shouldBeOpen();
+  });
+});
+
+describe('Model version deploy kebab action works', () => {
+  it('does not show deploy in the kebab menu option when model serving is disabled', () => {
+    initIntercepts({});
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelServing: true,
+      }),
+    );
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebab().click();
+    cy.get('[role="menu"]').within(() => {
+      cy.contains('Deploy').should('not.exist');
+    });
+  });
+
+  it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
+    initIntercepts({ disableKServe: true });
+    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').should('have.attr', 'aria-disabled');
+  });
+});
+
+describe('Deploy model version', () => {
   it('Deploy model version on unsupported single-model platform', () => {
-    initIntercepts({ kServeInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.wait('@getProjects');
-    modelVersionDeployModal.selectProjectByName('KServe project');
-    cy.findByText('Single-model platform is not installed').should('exist');
-  });
-
-  it('Deploy model version on a project which platform is not selected', () => {
-    initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    modelVersionDeployModal.selectProjectByName('Test project');
-    cy.findByText(
-      'To deploy a model, you must first select a model serving platform for this project.',
-    ).should('exist');
-  });
-
-  it('Deploy model version on a model mesh project that has no model servers', () => {
-    initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
-    modelVersionDeployModal.selectProjectByName('Model mesh project');
-    cy.findByText('To deploy a model, you must first configure a model server.').should('exist');
+    initIntercepts({ disableKServe: true });
+    modelVersionDetails.visit();
+    modelVersionDetails.findDeployModelButton().click();
+    cy.findByRole('tooltip').should(
+      'contain.text',
+      'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
+    );
   });
 
   it('OCI info alert is visible in case of OCI models', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '4');
+    modelVersionDetails.findDeployModelButton().click();
     cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
     cy.findByTestId('oci-deploy-kserve-alert').should('exist');
   });
 
   it('Selects Create Connection in case of no matching OCI connections and verifies the prepopulation of Pull Access type', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '4');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
@@ -293,9 +397,8 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '5');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
@@ -307,10 +410,10 @@ describe.skip('Deploy model version', () => {
 
     // Validate connection section
     kserveModal.findExistingUriOption().should('be.checked');
-    cy.findByText('oci://registry.redhat.io/rhel/private:test').should('exist');
+    // There is one in the modal and one in the details page
+    cy.findAllByText('oci://registry.redhat.io/rhel/private:test').should('have.length', 2);
   });
 
-  // note:  accelerator profiles are removed as of 3.0
   it('Display project specific serving runtimes while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
     cy.interceptK8sList(
@@ -330,9 +433,8 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '5');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findModelNameInput().should('exist');
 
@@ -343,7 +445,7 @@ describe.skip('Deploy model version', () => {
     cy.contains('Global serving runtimes').should('be.visible');
 
     // Search for a value that exists in Project-scoped serving runtimes but not in Global serving runtimes
-    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').type('OpenVino');
+    kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').type('OpenVino local');
 
     // Wait for and verify the groups are visible
     cy.contains('Project-scoped serving runtimes').should('be.visible');
@@ -360,7 +462,7 @@ describe.skip('Deploy model version', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findProjectScopedTemplateOption('Caikit').click();
-    // acceleratorProfileSection.findProjectScopedLabel().should('exist');
+    kserveModal.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
     cy.findByText(
@@ -371,8 +473,8 @@ describe.skip('Deploy model version', () => {
 
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
-    // acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
+    kserveModal.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     cy.findByText(
@@ -383,7 +485,7 @@ describe.skip('Deploy model version', () => {
 
     // check model framework selection when serving runtime changes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
@@ -399,9 +501,8 @@ describe.skip('Deploy model version', () => {
 
   it('Display project specific hardware profile while deploying', () => {
     initIntercepts({ disableProjectScoped: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '5');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findModelNameInput().should('exist');
 
@@ -426,9 +527,8 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '2');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
@@ -438,7 +538,7 @@ describe.skip('Deploy model version', () => {
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     cy.findByText('The format of the source model is').should('not.exist');
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     cy.findByText(
       `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
@@ -457,9 +557,8 @@ describe.skip('Deploy model version', () => {
 
   it('Selects Create Connection in case of no connections in project', () => {
     initIntercepts({});
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '2');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate name input field
@@ -469,7 +568,7 @@ describe.skip('Deploy model version', () => {
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     cy.findByText('The format of the source model is').should('not.exist');
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findGlobalScopedTemplateOption('OpenVINO').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     cy.findByText(
       `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
@@ -501,9 +600,8 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '3');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal
       .findConnectionFieldInput('URI')
@@ -529,9 +627,8 @@ describe.skip('Deploy model version', () => {
         }),
       ]),
     );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '2');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate connection section
@@ -606,9 +703,8 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '1');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate connection section
@@ -634,9 +730,8 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '3');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate connection section
@@ -665,9 +760,8 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '4');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate connection section
@@ -702,9 +796,8 @@ describe.skip('Deploy model version', () => {
       ]),
     );
 
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '3');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
 
     // Validate connection section
@@ -722,38 +815,9 @@ describe.skip('Deploy model version', () => {
 
   it('Deploy modal will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
-    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDetails.visit(undefined, undefined, '4');
+    modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findSpinner().should('exist');
-  });
-
-  it('does not show deploy in the kebab menu option when model serving is disabled', () => {
-    initIntercepts({});
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableModelServing: true,
-      }),
-    );
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
-    modelVersionRow.findKebab().click();
-    cy.get('[role="menu"]').within(() => {
-      cy.contains('Deploy').should('not.exist');
-    });
-  });
-
-  it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
-    initIntercepts({ kServeInstalled: false });
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    cy.visit(`/ai-hub/registry/modelregistry-sample/registered-models/1/versions`);
-    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
-    modelVersionRow.findKebabAction('Deploy').click();
-    cy.findByRole('tooltip').should(
-      'contain.text',
-      'To deploy this model, an administrator must first enable single-model serving in the cluster settings.',
-    );
   });
 });

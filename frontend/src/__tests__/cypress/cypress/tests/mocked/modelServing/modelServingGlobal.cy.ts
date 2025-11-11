@@ -12,8 +12,6 @@ import {
 } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
-  inferenceServiceModal,
-  inferenceServiceModalEdit,
   kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
@@ -26,12 +24,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import {
-  DeploymentMode,
-  type TemplateKind,
-  type InferenceServiceKind,
-  type ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { type TemplateKind, type InferenceServiceKind, type ServingRuntimeKind } from '#~/k8sTypes';
 import { ServingRuntimePlatform } from '#~/types';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -48,10 +41,10 @@ import {
 } from '#~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
-  disableModelMeshConfig?: boolean;
   projectEnableModelMesh?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
@@ -65,7 +58,6 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableKServeConfig,
-  disableModelMeshConfig,
   projectEnableModelMesh,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({})],
@@ -78,9 +70,8 @@ const initIntercepts = ({
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
-      installedComponents: {
-        kserve: true,
-        'model-mesh': true,
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
     }),
   );
@@ -88,7 +79,6 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableKServe: disableKServeConfig,
-      disableModelMesh: disableModelMeshConfig,
       disableKServeMetrics,
       disableServingRuntimeParams: disableServingRuntimeParamsConfig,
       disableProjectScoped,
@@ -110,11 +100,6 @@ const initIntercepts = ({
     TemplateModel,
     mockK8sResourceList(
       [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
           displayName: 'OpenVINO',
@@ -185,21 +170,11 @@ const initIntercepts = ({
     mockK8sResourceList(
       [
         mockServingRuntimeTemplateK8sResource({
-          name: 'template-1',
-          displayName: 'Multi Platform',
-          platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-        }),
-        mockServingRuntimeTemplateK8sResource({
           name: 'template-2',
           displayName: 'Caikit',
           platforms: [ServingRuntimePlatform.SINGLE],
           containerName: 'kserve-container',
           containerEnvVars: [{ name: 'HF_HOME', value: '/tmp/hf_home' }],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-3',
-          displayName: 'New OVMS Server',
-          platforms: [ServingRuntimePlatform.MULTI],
         }),
         mockServingRuntimeTemplateK8sResource({
           name: 'template-4',
@@ -241,8 +216,6 @@ describe('Model Serving Global', () => {
   it('Empty State No Serving Runtime', () => {
     initIntercepts({
       disableKServeConfig: false,
-      disableModelMeshConfig: false,
-      projectEnableModelMesh: true,
       servingRuntimes: [],
       inferenceServices: [],
     });
@@ -252,7 +225,8 @@ describe('Model Serving Global', () => {
     modelServingGlobal.shouldBeEmpty();
 
     // Test that the button is enabled
-    modelServingGlobal.findGoToProjectButton().should('be.enabled');
+    cy.findByTestId('empty-state-title').should('exist');
+    modelServingGlobal.findDeployModelButton().should('be.enabled');
   });
 
   it('All projects loading and cancel', () => {
@@ -289,11 +263,6 @@ describe('Model Serving Global', () => {
         servingType: 'Single-model serving enabled',
       },
       {
-        model: 'Model Mesh Model',
-        project: 'Model Mesh Project',
-        servingType: 'Multi-model serving enabled',
-      },
-      {
         model: 'NIM Model',
         project: 'NIM Project',
         servingType: 'NVIDIA NIM serving enabled',
@@ -313,13 +282,9 @@ describe('Model Serving Global', () => {
 
     // Open each modal and make sure it is the correct one
     modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
-    // KServe Modal has section at the bottom for configuring params where as Model Mesh does not
+    // KServe Modal has section at the bottom for configuring params
     kserveModalEdit.findConfigurationParamsSection().should('exist');
     kserveModalEdit.findCancelButton().click();
-
-    modelServingGlobal.getModelRow('Model Mesh Model').findKebabAction('Edit').click();
-    inferenceServiceModalEdit.findConfigurationParamsSection().should('not.exist');
-    inferenceServiceModalEdit.findCancelButton().click();
 
     modelServingGlobal.getModelRow('NIM Model').findKebabAction('Edit').click();
     // NIM Modal is the only one that has pvc-size
@@ -334,12 +299,8 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.shouldBeEmpty();
 
-    // Test that the button is disabled
-    modelServingGlobal.findDeployModelButton().should('have.attr', 'aria-disabled');
-
-    // Test that the tooltip appears on hover of the disabled button
-    modelServingGlobal.findDeployModelButton().trigger('mouseenter');
-    modelServingGlobal.findNoProjectSelectedTooltip().should('be.visible');
+    // Test that the button is enabled
+    modelServingGlobal.findDeployModelButton().should('be.enabled');
   });
 
   it('Delete model', () => {
@@ -380,172 +341,6 @@ describe('Model Serving Global', () => {
     deleteModal.findSubmitButton().click();
 
     cy.wait('@deleteModel');
-  });
-
-  it('Create model mesh model', () => {
-    initIntercepts({
-      projectEnableModelMesh: true,
-    });
-
-    cy.interceptK8s('POST', SecretModel, mockSecretK8sResource({}));
-    cy.interceptK8s(
-      'POST',
-      InferenceServiceModel,
-      mockInferenceServiceK8sResource({
-        name: 'test-model',
-        path: 'test-model/',
-        displayName: 'Test Name',
-        isModelMesh: true,
-      }),
-    ).as('createInferenceService');
-
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.findDeployModelButton().click();
-
-    // test that you can not submit on empty
-    inferenceServiceModal.shouldBeOpen();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-
-    // test filling in minimum required fields
-    inferenceServiceModal.findModelNameInput().type('Test Name');
-    inferenceServiceModal.findServingRuntimeSelect().should('contain.text', 'OVMS Model Serving');
-    inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
-    inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findNewConnectionOption().click();
-    inferenceServiceModal.findConnectionType(/OCI/).should('not.exist');
-    inferenceServiceModal.findConnectionType(/S3/).should('exist');
-    inferenceServiceModal.findConnectionType(/URI/).should('exist').click();
-    inferenceServiceModal.findConnectionNameInput().type('Test Name');
-    inferenceServiceModal.findConnectionFieldInput('URI').type('https://test');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-    inferenceServiceModal.findExistingConnectionOption().click();
-    inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationPathInput().type('/');
-    inferenceServiceModal
-      .findLocationPathInputError()
-      .should('be.visible')
-      .contains('The path must not point to a root folder');
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findLocationPathInput().type('test//path');
-    inferenceServiceModal
-      .findLocationPathInputError()
-      .should('be.visible')
-      .contains('Invalid path format');
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findLocationPathInput().clear();
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-
-    inferenceServiceModal.findSubmitButton().click();
-
-    //dry run request
-    cy.wait('@createInferenceService').then((interception) => {
-      expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body).to.eql({
-        apiVersion: 'serving.kserve.io/v1beta1',
-        kind: 'InferenceService',
-        metadata: {
-          name: 'test-name',
-          namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          annotations: {
-            'openshift.io/display-name': 'Test Name',
-            'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
-          },
-        },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: { name: 'onnx', version: '1' },
-              runtime: 'test-model',
-              storage: { key: 'test-secret', path: 'test-model/' },
-              args: [],
-              env: [],
-            },
-          },
-        },
-      } satisfies InferenceServiceKind);
-    });
-
-    // Actual request
-    cy.wait('@createInferenceService').then((interception) => {
-      expect(interception.request.url).not.to.include('?dryRun=All');
-    });
-
-    cy.get('@createInferenceService.all').then((interceptions) => {
-      expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
-    });
-  });
-
-  it('Create model error', () => {
-    initIntercepts({
-      projectEnableModelMesh: true,
-    });
-    modelServingGlobal.visit('test-project');
-
-    modelServingGlobal.findDeployModelButton().click();
-
-    // test that you can not submit on empty
-    inferenceServiceModal.shouldBeOpen();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-
-    // test filling in minimum required fields
-    inferenceServiceModal.findModelNameInput().type('trigger-error');
-    inferenceServiceModal.findServingRuntimeSelect().should('contain.text', 'OVMS Model Serving');
-    inferenceServiceModal.findServingRuntimeSelect().should('be.disabled');
-    inferenceServiceModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
-    inferenceServiceModal.findSubmitButton().should('be.disabled');
-    inferenceServiceModal.findExistingConnectionSelect().should('have.attr', 'disabled');
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-    inferenceServiceModal.findLocationPathInput().type('test-model/');
-    inferenceServiceModal.findSubmitButton().should('be.enabled');
-
-    // Submit and check the invalid error message
-    inferenceServiceModal.findSubmitButton().click();
-
-    cy.wait('@inferenceServicesError').then((interception) => {
-      expect(interception.request.body).to.eql({
-        apiVersion: 'serving.kserve.io/v1beta1',
-        kind: 'InferenceService',
-        metadata: {
-          name: 'trigger-error',
-          namespace: 'test-project',
-          labels: { 'opendatahub.io/dashboard': 'true' },
-          annotations: {
-            'openshift.io/display-name': 'trigger-error',
-            'serving.kserve.io/deploymentMode': DeploymentMode.ModelMesh,
-          },
-        },
-        spec: {
-          predictor: {
-            model: {
-              modelFormat: { name: 'onnx', version: '1' },
-              runtime: 'test-model',
-              storage: { key: 'test-secret', path: 'test-model/test-model/' },
-              args: [],
-              env: [],
-            },
-          },
-        },
-      } satisfies InferenceServiceKind);
-    });
-
-    cy.findByText('Error creating model server');
-
-    // Close the modal
-    inferenceServiceModal.findCancelButton().click();
-
-    // Check that the error message is gone
-    modelServingGlobal.findDeployModelButton().click();
-    cy.findByText('Error creating model server').should('not.exist');
   });
 
   it('Navigate to kserve model metrics page only if enabled', () => {
@@ -660,9 +455,7 @@ describe('Model Serving Global', () => {
     });
 
     it('filter by project', () => {
-      initIntercepts({
-        projectEnableModelMesh: true,
-      });
+      initIntercepts({});
       modelServingGlobal.visit('test-project');
 
       // Verify initial run rows exist
@@ -795,7 +588,6 @@ describe('Model Serving Global', () => {
             name: 'test-model',
             displayName: 'Test Model',
             namespace: 'test-project',
-            isModelMesh: false,
             hardwareProfileName: 'deleted-profile', // Non-existent profile
             hardwareProfileResourceVersion: '104110942',
           }),
@@ -838,7 +630,6 @@ describe('Model Serving Global', () => {
         name: 'test-model',
         displayName: 'Test Model',
         namespace: 'test-project',
-        isModelMesh: false,
         hardwareProfileName: 'disabled-profile',
       });
 
@@ -901,7 +692,6 @@ describe('Model Serving Global', () => {
         name: 'test-model',
         displayName: 'Test Model',
         namespace: 'test-project',
-        isModelMesh: false,
         hardwareProfileName: 'updated-profile',
         hardwareProfileResourceVersion: '104110942',
       });
@@ -964,7 +754,6 @@ describe('Model Serving Global', () => {
         name: 'test-model',
         displayName: 'Test Model',
         namespace: 'test-project',
-        isModelMesh: false,
         hardwareProfileName: 'error-profile',
       });
 

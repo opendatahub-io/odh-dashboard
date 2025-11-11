@@ -4,6 +4,7 @@ import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/patternfly/patternfly-charts.css';
 import {
   Alert,
+  AnimationsProvider,
   Bullseye,
   Button,
   Page,
@@ -192,7 +193,9 @@ const App: React.FC = () => {
 
 const AppWrapper: React.FC = () => (
   <ExtensibilityContextProvider>
-    <App />
+    <AnimationsProvider config={{ hasAnimations: true }}>
+      <App />
+    </AnimationsProvider>
   </ExtensibilityContextProvider>
 );
 

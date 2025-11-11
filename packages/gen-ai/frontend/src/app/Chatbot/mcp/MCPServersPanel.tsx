@@ -7,13 +7,12 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { getMCPServerStatus } from '~/app/services/llamaStackService';
 import { MCPServer } from '~/app/types';
 import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import { useMCPServersContext } from '~/app/context/MCPServersContext';
 import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 import { transformMCPServerData } from '~/app/utilities/mcp';
-import { GenAiContext } from '~/app/context/GenAiContext';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
 import MCPServerConfigModal from './MCPServerConfigModal';
@@ -26,8 +25,7 @@ interface MCPServersPanelProps {
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
 
 const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) => {
-  const { namespace } = React.useContext(GenAiContext);
-  const selectedProject = namespace?.name;
+  const { api, apiAvailable } = useGenAiAPI();
   const { playgroundSelectedServerIds, setSelectedServersCount } = useMCPSelectionContext();
   const {
     servers: apiServers,
@@ -110,8 +108,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
 
   const validateServerToken = React.useCallback(
     async (serverUrl: string, token: string) => {
-      if (!selectedProject) {
-        return { success: false, error: 'No project selected' };
+      if (!apiAvailable) {
+        return { success: false, error: 'API is not available' };
       }
 
       setValidatingServers((prev) => new Set(prev).add(serverUrl));
@@ -122,7 +120,17 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
       });
 
       try {
-        const status = await getMCPServerStatus(selectedProject, serverUrl, token);
+        const status = await api.getMCPServerStatus(
+          {
+            // eslint-disable-next-line camelcase
+            server_url: serverUrl,
+          },
+          {
+            headers: {
+              'X-MCP-Bearer': token,
+            },
+          },
+        );
 
         if (status.status === 'connected') {
           setServerTokens((prev) =>
@@ -177,7 +185,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
         });
       }
     },
-    [selectedProject, setServerTokens],
+    [api, apiAvailable, setServerTokens],
   );
 
   const handleLockClick = React.useCallback(

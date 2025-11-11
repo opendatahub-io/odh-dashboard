@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -114,6 +115,49 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
+// GetClusterDomainUsingServiceAccount retrieves cluster domain using the pod's service account
+func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logger) (string, error) {
+	// Use in-cluster config (pod's service account)
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		return "", err
+	}
+
+	// Query ingresses.config.openshift.io/cluster using service account
+	config := rest.CopyConfig(cfg)
+	config.APIPath = "/apis"
+	config.GroupVersion = &schema.GroupVersion{Group: "config.openshift.io", Version: "v1"}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
+
+	restClient, err := rest.RESTClientFor(config)
+	if err != nil {
+		return "", err
+	}
+
+	result := restClient.Get().Resource("ingresses").Name("cluster").Do(ctx)
+	rawBytes, err := result.Raw()
+	if err != nil {
+		return "", err
+	}
+
+	var obj map[string]interface{}
+	if err := json.Unmarshal(rawBytes, &obj); err != nil {
+		return "", err
+	}
+
+	spec, ok := obj["spec"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid ingress config: missing spec")
+	}
+
+	domain, ok := spec["domain"].(string)
+	if !ok || domain == "" {
+		return "", fmt.Errorf("invalid ingress config: missing domain")
+	}
+
+	return domain, nil
+}
+
 func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
@@ -156,21 +200,86 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 	}, nil
 }
 
-// RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
-func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *integrations.RequestIdentity) ([]corev1.Namespace, error) {
+// GetNamespaces returns namespaces accessible to the user.
+// For cluster admins, returns all namespaces.
+// For regular users, uses OpenShift Projects API which returns only accessible projects.
+func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Using controller-runtime client - much simpler!
-	var nsList corev1.NamespaceList
-	err := kc.Client.List(ctx, &nsList)
-	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
-		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return nil, fmt.Errorf("identity cannot be nil")
 	}
 
-	return nsList.Items, nil
+	// Create a dynamic client with user token
+	userConfig := rest.CopyConfig(kc.Config)
+	userConfig.BearerToken = identity.Token
+	userConfig.BearerTokenFile = ""
+
+	// Create controller-runtime client with user token
+	userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
+	if err != nil {
+		kc.Logger.Error("failed to create user client", "error", err)
+		return nil, fmt.Errorf("failed to create user client: %w", err)
+	}
+
+	// Try cluster-wide namespace list first (works for admins)
+	var nsList corev1.NamespaceList
+	err = userClient.List(ctx, &nsList)
+	if err == nil {
+		// User can list namespaces cluster-wide (admin path)
+		kc.Logger.Debug("user can list namespaces cluster-wide",
+			"count", len(nsList.Items))
+		return nsList.Items, nil
+	}
+
+	// User cannot list cluster-wide, use OpenShift Projects API
+	// This API returns only projects the user has access to
+	kc.Logger.Debug("falling back to OpenShift Projects API", "error", err)
+
+	// Use Unstructured to query project.openshift.io/v1 projects
+	projectList := &unstructured.UnstructuredList{}
+	projectList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "project.openshift.io",
+		Version: "v1",
+		Kind:    "ProjectList",
+	})
+
+	err = userClient.List(ctx, projectList)
+	if err != nil {
+		kc.Logger.Error("failed to list OpenShift projects", "error", err)
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	// Convert projects to namespaces
+	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
+	for _, project := range projectList.Items {
+		projectName := project.GetName()
+
+		// Fetch full namespace object
+		ns := &corev1.Namespace{}
+		err := userClient.Get(ctx, types.NamespacedName{Name: projectName}, ns)
+		if err != nil {
+			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
+			// Create minimal namespace if we can't fetch full details
+			namespaces = append(namespaces, corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        projectName,
+					Annotations: project.GetAnnotations(),
+					Labels:      project.GetLabels(),
+				},
+			})
+		} else {
+			namespaces = append(namespaces, *ns)
+		}
+	}
+
+	kc.Logger.Debug("listed namespaces via OpenShift Projects API",
+		"count", len(namespaces))
+
+	return namespaces, nil
 }
 
 // CanListNamespaces performs a SubjectAccessReview to check if the user has permission to list namespaces
@@ -942,7 +1051,7 @@ func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.C
 			Name:               lsdName,
 			UID:                lsd.UID,
 			Controller:         &[]bool{true}[0],
-			BlockOwnerDeletion: &[]bool{true}[0],
+			BlockOwnerDeletion: &[]bool{false}[0],
 		},
 	}
 
@@ -1423,54 +1532,4 @@ func loadLlamaStackConfig(ctx context.Context, kc *TokenKubernetesClient, identi
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 	return &config, nil
-}
-
-// GetClusterDomain retrieves the cluster domain from the ingresses.config.openshift.io/cluster resource
-func (kc *TokenKubernetesClient) GetClusterDomain(ctx context.Context) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	// Create a REST client specifically configured for the config.openshift.io API
-	config := rest.CopyConfig(kc.Config)
-	config.APIPath = "/apis"
-	config.GroupVersion = &schema.GroupVersion{Group: "config.openshift.io", Version: "v1"}
-	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
-
-	restClient, err := rest.RESTClientFor(config)
-	if err != nil {
-		kc.Logger.Error("failed to create REST client for cluster domain query", "error", err)
-		return "", fmt.Errorf("failed to create REST client: %w", err)
-	}
-
-	// Query the ingresses.config.openshift.io/cluster resource
-	result := restClient.Get().
-		Resource("ingresses").
-		Name("cluster").
-		Do(ctx)
-
-	rawBytes, err := result.Raw()
-	if err != nil {
-		kc.Logger.Debug("failed to get cluster ingress config", "error", err)
-		return "", fmt.Errorf("failed to get cluster domain: %w", err)
-	}
-
-	// Parse the JSON response
-	var obj map[string]interface{}
-	if err := json.Unmarshal(rawBytes, &obj); err != nil {
-		return "", fmt.Errorf("failed to parse ingress config response: %w", err)
-	}
-
-	// Extract the domain from spec.domain
-	spec, ok := obj["spec"].(map[string]interface{})
-	if !ok {
-		return "", fmt.Errorf("invalid ingress config structure: missing spec")
-	}
-
-	domain, ok := spec["domain"].(string)
-	if !ok || domain == "" {
-		return "", fmt.Errorf("invalid ingress config structure: missing or empty domain")
-	}
-
-	kc.Logger.Debug("discovered cluster domain", "domain", domain)
-	return domain, nil
 }

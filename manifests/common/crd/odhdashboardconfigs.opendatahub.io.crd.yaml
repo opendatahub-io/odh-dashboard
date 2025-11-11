@@ -76,7 +76,10 @@ spec:
                       description: 'DEPRECATED: Accelerator Profiles are replaced by Hardware Profiles. This field will be removed in a future version.'
                     disableHardwareProfiles:
                       type: boolean
-                      description: "DEPRECATED: Hardware Profiles are GA and cannot be disabled via this field. This field will be removed in a future version."
+                      description: 'DEPRECATED: Hardware Profiles are GA and cannot be disabled via this field. This field will be removed in a future version.'
+                    disableFineTuning:
+                      type: boolean
+                      description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
                     disableDistributedWorkloads:
                       type: boolean
                     disableModelCatalog:
@@ -99,11 +102,17 @@ spec:
                       type: boolean
                     disableFeatureStore:
                       type: boolean
+                    genAiStudio:
+                      type: boolean
+                    modelAsService:
+                      type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
                     - rule: '!has(self.disableHardwareProfiles) || self.disableHardwareProfiles == oldSelf.disableHardwareProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableHardwareProfiles must be removed or left unchanged.'
+                    - rule: '!has(self.disableFineTuning) || self.disableFineTuning == oldSelf.disableFineTuning'
+                      message: 'DEPRECATED: spec.dashboardConfig.disableFineTuning must be removed or left unchanged.'
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'
@@ -228,3 +237,14 @@ spec:
                   type: array
                   items:
                     type: string
+                # Model serving deployment configurations
+                modelServing:
+                  type: object
+                  properties:
+                    deploymentStrategy:
+                      type: string
+                      enum:
+                        - rolling
+                        - recreate
+                    isLLMdDefault:
+                      type: boolean

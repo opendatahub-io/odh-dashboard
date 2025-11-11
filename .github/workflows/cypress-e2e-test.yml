@@ -6,7 +6,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: 20.x
+  NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
 
 jobs:

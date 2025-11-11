@@ -22,6 +22,8 @@ import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookCon
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 import StateActionToggle from '#~/components/StateActionToggle';
+import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -66,24 +68,32 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
+  const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
+    useHardwareProfileBindingState(obj.notebook);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
-    startNotebook(obj.notebook, canEnablePipelines && !currentlyHasPipelines(obj.notebook)).then(
-      () => {
-        fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
-        obj.refresh().then(() => setInProgress(false));
-      },
-    );
-  }, [obj, canEnablePipelines, podSpecOptionsState]);
+    startNotebook(
+      obj.notebook,
+      canEnablePipelines && !currentlyHasPipelines(obj.notebook),
+      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
+    ).then(() => {
+      fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
+      obj.refresh().then(() => setInProgress(false));
+    });
+  }, [obj, canEnablePipelines, podSpecOptionsState, bindingStateInfo]);
 
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
     setInProgress(true);
-    stopNotebook(notebookName, notebookNamespace).then(() => {
+    stopNotebook(
+      notebookName,
+      notebookNamespace,
+      getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
+    ).then(() => {
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [podSpecOptionsState, notebookName, notebookNamespace, obj]);
+  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, bindingStateInfo]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -195,6 +205,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 resource={obj.notebook}
                 containerResources={podSpecOptionsState.podSpecOptions.resources}
                 isActive={obj.isRunning || obj.isStarting}
+                bindingState={{
+                  bindingStateInfo,
+                  bindingStateLoaded,
+                  loadError: bindingStateLoadError,
+                }}
               />
             </FlexItem>
           </Flex>

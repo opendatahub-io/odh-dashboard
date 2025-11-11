@@ -6,6 +6,7 @@ export type GlobalSearchResult = {
   description: string;
   project: string;
   match_score: number;
+  featureView?: string;
 };
 
 export type GlobalSearchPagination = {

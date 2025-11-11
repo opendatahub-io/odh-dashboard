@@ -1,8 +1,9 @@
 name: Test
 on: [push, pull_request]
 env:
-  NODE_VERSION: 20.x
+  NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
+  NODE_MODULES_CACHE_VERSION: 1
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -15,7 +16,7 @@ jobs:
       - name: Generate modules cache key
         id: key
         run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ env.NODE_MODULES_CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
         uses: actions/cache@v4
         id: modules-cache

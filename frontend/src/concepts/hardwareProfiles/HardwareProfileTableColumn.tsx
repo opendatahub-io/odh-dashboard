@@ -11,16 +11,21 @@ import { ScopedType } from '#~/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 import { resourceTypeOf } from '#~/concepts/hardwareProfiles/utils';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton.tsx';
-import { useHardwareProfileBindingState } from './useHardwareProfileBindingState';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
 import { HardwareProfileBindingState } from './const';
+import { HardwareProfileBindingStateInfo } from './types';
 
 type HardwareProfileTableColumnProps = {
   namespace: string;
   resource: NotebookKind | ModelResourceType;
   containerResources: ContainerResources | undefined;
   isActive?: boolean;
+  bindingState: {
+    bindingStateInfo: HardwareProfileBindingStateInfo | null;
+    bindingStateLoaded: boolean;
+    loadError: Error | undefined;
+  };
 };
 
 const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
@@ -28,11 +33,10 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   resource,
   containerResources,
   isActive = false,
+  bindingState,
 }) => {
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
-  const [bindingStateInfo, bindingStateLoaded, loadError] =
-    useHardwareProfileBindingState(resource);
-
+  const { bindingStateInfo, bindingStateLoaded, loadError } = bindingState;
   const hardwareProfile = bindingStateInfo?.profile;
 
   if (loadError && bindingStateInfo?.state !== HardwareProfileBindingState.DELETED) {

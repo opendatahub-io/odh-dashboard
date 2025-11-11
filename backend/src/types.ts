@@ -50,6 +50,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKueue: boolean;
       disableLMEval: boolean;
       disableFeatureStore: boolean;
+      genAiStudio: boolean;
+      modelAsService: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -65,6 +67,10 @@ export type DashboardConfig = K8sResourceCommon & {
     templateOrder?: string[];
     templateDisablement?: string[];
     hardwareProfileOrder?: string[];
+    modelServing?: {
+      deploymentStrategy?: string;
+      isLLMdDefault?: boolean;
+    };
   };
 };
 
@@ -480,7 +486,6 @@ export type BYONImage = {
   visible: boolean;
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
-  recommendedAcceleratorIdentifiers: string[];
 };
 
 export type ImageInfo = {
@@ -715,13 +720,6 @@ export type MachineSetList = {
   items: MachineSet[];
 } & K8sResourceCommon;
 
-export type DetectedAccelerators = {
-  configured: boolean;
-  available: { [key: string]: number };
-  total: { [key: string]: number };
-  allocated: { [key: string]: number };
-};
-
 export type EnvironmentVariable = EitherNotBoth<
   { value: string | number },
   {
@@ -779,7 +777,6 @@ export type PodSpecOptions = {
   nodeSelector: NodeSelector;
   affinity: PodAffinity;
   lastSizeSelection?: string;
-  selectedAcceleratorProfile?: AcceleratorProfileKind;
   selectedHardwareProfile?: HardwareProfileKind;
 };
 
@@ -791,11 +788,6 @@ export type NotebookData = {
   state: NotebookState;
   username?: string;
   storageClassName?: string;
-};
-
-export type AcceleratorProfileState = {
-  acceleratorProfile: AcceleratorProfileKind;
-  count: number;
 };
 
 type DisplayNameAnnotations = Partial<{
@@ -946,22 +938,6 @@ export type HardwareProfileKind = K8sResourceCommon & {
   };
 };
 
-export type AcceleratorProfileKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    annotations?: Partial<{
-      'opendatahub.io/modified-date': string;
-    }>;
-  };
-  spec: {
-    displayName: string;
-    enabled: boolean;
-    identifier: string;
-    description?: string;
-    tolerations?: Toleration[];
-  };
-};
-
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
@@ -972,12 +948,27 @@ export enum KnownLabels {
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
+export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
+
+// Base component status shared by all components
+export type DataScienceClusterComponentStatus = {
+  managementState?: ManagementState;
+  releases?: Array<{
+    name: string;
+    version?: string;
+    repoUrl?: string;
+  }>;
+};
+
 export type DataScienceClusterKindStatus = {
   components?: {
-    modelregistry?: {
+    [key: string]: DataScienceClusterComponentStatus;
+  } & {
+    /** Status of Model Registry, including its namespace configuration. */
+    modelregistry?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
     };
-    workbenches?: {
+    workbenches?: DataScienceClusterComponentStatus & {
       workbenchNamespace?: string;
     };
   };
@@ -985,6 +976,7 @@ export type DataScienceClusterKindStatus = {
   phase?: string;
   release?: {
     name: string;
+    version?: string;
   };
 };
 

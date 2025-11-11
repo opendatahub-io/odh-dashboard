@@ -1,3 +1,7 @@
+import { APIOptions } from 'mod-arch-core';
+import { MCPToolsStatus } from './types';
+import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
+
 export type LlamaModelType = 'llm' | 'embedding';
 
 export type LlamaModelResponse = {
@@ -241,10 +245,6 @@ export type CodeExportData = {
   code: string;
 };
 
-export type CodeExportResponse = {
-  data: CodeExportData;
-};
-
 export type LlamaStackDistributionModel = {
   name: string;
   phase: 'Initializing' | 'Ready' | 'Failed' | 'Terminating' | 'Pending';
@@ -302,9 +302,9 @@ export interface MaaSModel {
   url: string;
 }
 
-export interface MaaSTokenRequest {
-  expiration?: string;
-}
+export type MaaSTokenRequest = {
+  expiration?: string; // Optional - only present when expiration is provided
+};
 
 export interface MaaSTokenResponse {
   token: string;
@@ -331,3 +331,69 @@ export type {
 } from './types/mcp';
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
+
+export type InstallLSDRequest = {
+  models: LSDInstallModel[];
+};
+
+export type DeleteLSDRequest = {
+  name: string;
+};
+
+export type CreateVectorStoreRequest = {
+  name: string;
+};
+
+export type GenAiAPIs = {
+  listVectorStores: ListVectorStores;
+  listVectorStoreFiles: ListVectorStoreFiles;
+  deleteVectorStoreFile: DeleteVectorStoreFile;
+  createVectorStore: CreateVectorStore;
+  uploadSource: UploadSource;
+  createResponse: CreateResponse;
+  getLSDModels: GetLSDModels;
+  exportCode: ExportCode;
+  getLSDStatus: GetLSDStatus;
+  installLSD: InstallLSD;
+  deleteLSD: DeleteLSD;
+  getAAModels: GetAAModels;
+  getMaaSModels: GetMaaSModels;
+  generateMaaSToken: GenerateMaaSToken;
+  getMCPServerTools: GetMCPServerTools;
+  getMCPServers: GetMCPServers;
+  getMCPServerStatus: GetMCPServerStatus;
+};
+
+export type ModArchRestGET<T> = (
+  queryParams?: Record<string, unknown>,
+  opts?: APIOptions,
+) => Promise<T>;
+
+export type ModArchRestCREATE<T, D> = (data: D, opts?: APIOptions) => Promise<T>;
+
+export type ModArchRestDELETE<T, D> = (
+  data: D,
+  queryParams?: Record<string, unknown>,
+  opts?: APIOptions,
+) => Promise<T>;
+
+type ListVectorStores = ModArchRestGET<VectorStore[]>;
+type ListVectorStoreFiles = ModArchRestGET<VectorStoreFile[]>;
+type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest>;
+type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
+type GetLSDModels = ModArchRestGET<LlamaModel[]>;
+type UploadSource = ModArchRestCREATE<FileUploadResult, FormData>;
+type CreateResponse = (
+  data: CreateResponseRequest,
+  opts?: APIOptions & { onStreamData?: (chunk: string) => void },
+) => Promise<SimplifiedResponseData>;
+type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
+type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
+type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDRequest>;
+type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
+type GetAAModels = ModArchRestGET<AAModelResponse[]>;
+type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
+type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
+type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
+type GetMCPServers = ModArchRestGET<MCPServersResponse>;
+type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;

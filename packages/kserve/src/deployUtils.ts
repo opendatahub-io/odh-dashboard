@@ -40,11 +40,17 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
 import type { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
+import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
+import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
+import { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
+import type { DeploymentStrategyFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import {
+  deploymentStrategyRolling,
+  deploymentStrategyRecreate,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
 import type { CreatingInferenceServiceObject } from './deployModel';
-import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
-import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
+import type { KServeDeployment } from './deployments';
 
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
@@ -367,5 +373,33 @@ export const applyModelType = (
     ...result.metadata.annotations,
     'opendatahub.io/model-type': modelType,
   };
+  return result;
+};
+
+export const extractDeploymentStrategy = (
+  kserveDeployment: KServeDeployment,
+): DeploymentStrategyFieldData | null => {
+  const { deploymentStrategy } = kserveDeployment.model.spec.predictor;
+  if (!deploymentStrategy || typeof deploymentStrategy !== 'object') {
+    return null;
+  }
+
+  const { type: strategyType } = deploymentStrategy;
+  if (strategyType === 'RollingUpdate') {
+    return deploymentStrategyRolling;
+  }
+  return deploymentStrategyRecreate;
+};
+
+export const applyDeploymentStrategy = (
+  inferenceService: InferenceServiceKind,
+  deploymentStrategy?: DeploymentStrategyFieldData,
+): InferenceServiceKind => {
+  const result = structuredClone(inferenceService);
+  if (deploymentStrategy) {
+    result.spec.predictor.deploymentStrategy = {
+      type: deploymentStrategy === deploymentStrategyRolling ? 'RollingUpdate' : 'Recreate',
+    };
+  }
   return result;
 };
