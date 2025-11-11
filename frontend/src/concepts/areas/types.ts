@@ -32,6 +32,7 @@ export enum SupportedArea {
 
   /* Pipelines areas */
   DS_PIPELINES = 'ds-pipelines',
+  MLFLOW = 'mlflow',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
