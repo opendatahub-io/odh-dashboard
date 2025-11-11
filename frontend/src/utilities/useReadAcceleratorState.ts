@@ -23,6 +23,7 @@ export type AcceleratorProfileState = {
     }
 );
 
+/**  @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185 */
 const useReadAcceleratorState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],

@@ -28,6 +28,23 @@ import { ImageStreamKind } from '#~/k8sTypes.ts';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 
+/**
+ * note: the recommendedAcceleratorIdentifiers are just part of the hardware profile config; it is *not* part
+ * of the deprecated acceleratorProfiles
+ *
+ * It's confusing naming but unrelated to the deprecated accelerator profiles system.
+ *
+ *
+ * one potential todo: (non-trivial)
+ * recommendedAcceleratorIdentifiers should be renamed to recommendedHardwareProfileIdentifiers for clarity,
+ *  but that would require updating:
+ *         - The BYONImage type definition
+ *         - ImageStream annotations
+ *         - All references throughout the codebase
+ *         - Potentially stored data in the cluster
+ *
+ */
+
 export type ManageBYONImageModalProps = {
   existingImage?: BYONImage;
   onClose: (submitted: boolean) => void;

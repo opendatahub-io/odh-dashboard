@@ -22,6 +22,7 @@ export type UseAcceleratorProfileFormResult = {
 };
 
 /** @deprecated  accelerator profile is going away; only in deprecation paths (modelmesh; fine-tuning) */
+/** @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185 */
 const useAcceleratorProfileFormState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],

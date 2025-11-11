@@ -93,6 +93,7 @@ describe('NavSection', () => {
       expect(screen.queryByText('Settings')).not.toBeInTheDocument();
     });
 
+    // ask guillherme about this (todo)
     it('should hide section when children exist but access is denied to all', () => {
       const childExtension: LoadedExtension<HrefNavItemExtension> = {
         type: 'app.navigation/href',
