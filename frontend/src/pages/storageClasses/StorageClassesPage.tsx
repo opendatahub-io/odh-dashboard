@@ -5,8 +5,6 @@ import {
   EmptyStateBody,
   PageSection,
   Title,
-  Alert,
-  AlertActionCloseButton,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
@@ -21,23 +19,20 @@ import { StorageClassContextProvider, useStorageClassContext } from './StorageCl
 interface StorageClassesPageInternalProps {
   loaded: boolean;
   error: Error | undefined;
-  alert: React.ReactNode;
 }
 
 const StorageClassesPageInternal: React.FC<StorageClassesPageInternalProps> = ({
   loaded,
   error,
-  alert,
 }) => {
-  const { isUpdatingConfigs, storageClasses } = useStorageClassContext();
-
+  const { storageClasses } = useStorageClassContext();
   return (
     <ApplicationsPage
       title={
         <TitleWithIcon title="Storage classes" objectType={ProjectObjectType.storageClasses} />
       }
       description={`Manage your organization's OpenShift cluster storage class settings for usage within ${ODH_PRODUCT_NAME}. These settings do not impact the storage classes within OpenShift.`}
-      loaded={loaded && !isUpdatingConfigs}
+      loaded={loaded}
       empty={storageClasses.length === 0}
       loadError={error}
       errorMessage="Unable to load storage classes."
@@ -72,7 +67,6 @@ const StorageClassesPageInternal: React.FC<StorageClassesPageInternalProps> = ({
       }
       provideChildrenPadding
     >
-      {alert}
       <StorageClassesTable />
     </ApplicationsPage>
   );
@@ -82,32 +76,8 @@ const StorageClassesPage: React.FC = () => {
   const [storageClasses, storageClassesLoaded, error, refresh] = useStorageClasses();
 
   return (
-    <StorageClassContextProvider
-      storageClasses={storageClasses}
-      loaded={storageClassesLoaded}
-      refresh={refresh}
-    >
-      {(isAlertOpen, setIsAlertOpen) => (
-        <StorageClassesPageInternal
-          loaded={storageClassesLoaded}
-          error={error}
-          alert={
-            isAlertOpen && (
-              <Alert
-                variant="warning"
-                isInline
-                title="Review default storage class"
-                actionClose={<AlertActionCloseButton onClose={() => setIsAlertOpen(false)} />}
-                data-testid="no-default-storage-class-alert"
-              >
-                Some OpenShift AI features won&apos;t work without a default storage class. No
-                OpenShift default exists, so an OpenShift AI default was set automatically. Review
-                the default storage class, and set a new one if needed.
-              </Alert>
-            )
-          }
-        />
-      )}
+    <StorageClassContextProvider storageClasses={storageClasses} refresh={refresh}>
+      <StorageClassesPageInternal loaded={storageClassesLoaded} error={error} />
     </StorageClassContextProvider>
   );
 };
