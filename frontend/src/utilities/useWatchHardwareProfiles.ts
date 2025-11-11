@@ -4,7 +4,7 @@ import { groupVersionKind, HardwareProfileModel } from '#~/api';
 import useK8sWatchResourceList from './useK8sWatchResourceList';
 
 export const useWatchHardwareProfiles = (
-  namespace: string,
+  namespace?: string,
 ): CustomWatchK8sResult<HardwareProfileKind[]> =>
   useK8sWatchResourceList(
     {

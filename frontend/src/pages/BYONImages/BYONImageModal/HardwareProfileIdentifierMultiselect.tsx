@@ -11,9 +11,9 @@ type HardwareProfileIdentifierMultiselectProps = {
 export const HardwareProfileIdentifierMultiselect: React.FC<
   HardwareProfileIdentifierMultiselectProps
 > = ({ data, setData }) => {
-  const [hardwareProfiles] = useHardwareProfilesByFeatureVisibility([
-    HardwareProfileFeatureVisibility.WORKBENCH,
-  ]);
+  const {
+    globalProfiles: [hardwareProfiles],
+  } = useHardwareProfilesByFeatureVisibility([HardwareProfileFeatureVisibility.WORKBENCH]);
 
   const identifiers = React.useMemo(() => {
     const uniqueIdentifiers = new Set<string>(data);

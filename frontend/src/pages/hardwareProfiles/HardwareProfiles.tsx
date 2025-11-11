@@ -20,7 +20,7 @@ import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTab
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import { HardwareProfileModel, patchDashboardConfigHardwareProfileOrder } from '#~/api';
 import { generateWarningForHardwareProfiles } from '#~/pages/hardwareProfiles/utils';
-import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
@@ -33,8 +33,9 @@ const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
 
-  const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
-    useWatchHardwareProfiles(dashboardNamespace);
+  const {
+    globalProfiles: [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles],
+  } = useHardwareProfilesByFeatureVisibility();
 
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(

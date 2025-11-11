@@ -38,7 +38,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
-  const hardwareProfiles = useHardwareProfilesByFeatureVisibility([
+  const { globalProfiles: hardwareProfiles } = useHardwareProfilesByFeatureVisibility([
     HardwareProfileFeatureVisibility.WORKBENCH,
   ]);
 

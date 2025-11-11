@@ -37,8 +37,10 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
-  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
-  const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(visibleIn, project);
+  const {
+    globalProfiles: [hardwareProfiles, loaded, error],
+    projectProfiles: projectScopedHardwareProfiles,
+  } = useHardwareProfilesByFeatureVisibility(visibleIn);
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 

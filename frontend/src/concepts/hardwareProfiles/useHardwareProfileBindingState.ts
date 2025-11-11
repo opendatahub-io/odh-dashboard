@@ -1,11 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import React from 'react';
 import { NotebookKind } from '#~/k8sTypes';
-import { getGenericErrorCode } from '#~/api';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { HardwareProfileBindingStateInfo } from '#~/concepts/hardwareProfiles/types';
-import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile.ts';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
 import { HardwareProfileBindingState } from './const';
 
 export const useHardwareProfileBindingState = (
@@ -20,11 +20,23 @@ export const useHardwareProfileBindingState = (
   const resourceVersion =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
 
-  const [profile, loaded, loadError] = useHardwareProfile(
-    hardwareProfileNamespace,
-    hardwareProfileName,
+  const {
+    globalProfiles: [globalProfilesList, globalProfilesLoaded, globalProfilesError],
+    projectProfiles: [projectProfilesList, projectProfilesLoaded, projectProfilesError],
+  } = useHardwareProfilesByFeatureVisibility();
+
+  const profile = React.useMemo(
+    () =>
+      [...globalProfilesList, ...projectProfilesList].find(
+        (p) =>
+          p.metadata.name === hardwareProfileName &&
+          p.metadata.namespace === hardwareProfileNamespace,
+      ),
+    [globalProfilesList, projectProfilesList, hardwareProfileName, hardwareProfileNamespace],
   );
 
+  const loaded = globalProfilesLoaded && projectProfilesLoaded;
+  const loadError = globalProfilesError || projectProfilesError;
   if (!hardwareProfileName && resourceVersion) {
     // hardware profile was assigned at some point due to presence of
     // resource version annotation, but has since been deleted
@@ -42,37 +54,44 @@ export const useHardwareProfileBindingState = (
     return [null, true, undefined];
   }
 
-  if (loadError) {
-    const bindingState: HardwareProfileBindingStateInfo | null =
-      getGenericErrorCode(loadError) === 404
-        ? {
-            state: HardwareProfileBindingState.DELETED,
-            profile: undefined,
-          }
-        : null;
-    return [bindingState, true, loadError];
-  }
-
   if (!loaded) {
     return [null, false, loadError];
   }
-  const isDisabled = profile && !isHardwareProfileEnabled(profile);
+
+  if (loadError) {
+    return [null, loaded, loadError];
+  }
+
+  if (!profile) {
+    return [
+      {
+        state: HardwareProfileBindingState.DELETED,
+        profile: undefined,
+      },
+      true,
+      undefined,
+    ];
+  }
+
+  const isDisabled = !isHardwareProfileEnabled(profile);
   const storedResourceVersion =
     resource.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
   const isUpdated =
-    profile && storedResourceVersion && profile.metadata.resourceVersion
+    storedResourceVersion && profile.metadata.resourceVersion
       ? storedResourceVersion !== profile.metadata.resourceVersion
       : false;
+
   let state: HardwareProfileBindingState | undefined;
   if (isDisabled) {
     state = HardwareProfileBindingState.DISABLED;
   } else if (isUpdated) {
     state = HardwareProfileBindingState.UPDATED;
   }
+
   return [
     {
       state,
-      profile: profile ?? undefined,
+      profile,
     },
     loaded,
     loadError,

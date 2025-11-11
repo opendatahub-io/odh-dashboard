@@ -32,11 +32,10 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   projectName,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility();
-  const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(
-    undefined,
-    projectName,
-  );
+  const {
+    globalProfiles: [hardwareProfiles, loaded, error],
+    projectProfiles: projectScopedHardwareProfiles,
+  } = useHardwareProfilesByFeatureVisibility();
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
