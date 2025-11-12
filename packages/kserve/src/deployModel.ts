@@ -17,6 +17,7 @@ import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/componen
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
+import * as _ from 'lodash-es';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -61,6 +62,7 @@ const assembleInferenceService = (
   existingInferenceService?: InferenceServiceKind,
   dryRun?: boolean,
   secretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): InferenceServiceKind => {
   const {
     project,
@@ -147,6 +149,8 @@ const assembleInferenceService = (
 
   inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
 
+  inferenceService = _.merge(inferenceService, transformData);
+
   return inferenceService;
 };
 
@@ -158,6 +162,7 @@ export const deployInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
   connectionSecretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
   opts?: {
     dryRun?: boolean;
     overwrite?: boolean;
@@ -168,6 +173,7 @@ export const deployInferenceService = (
     existingInferenceService,
     opts?.dryRun,
     connectionSecretName,
+    transformData,
   );
 
   if (!existingInferenceService) {
