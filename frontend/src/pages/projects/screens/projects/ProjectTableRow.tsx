@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Spinner, Content, ContentVariants, Timestamp, Label } from '@patternfly/react-core';
+import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
-import { OffIcon, OutlinedStarIcon, PlayIcon } from '@patternfly/react-icons';
+import { OffIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '#~/k8sTypes';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner } from '#~/concepts/projects/utils';
@@ -16,6 +16,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
 import { isAiProject } from './ProjectListView';
+import { AiLabel } from './ProjectsToolbar';
 
 // Plans to add other expandable columns in the future
 export enum ExpandableColumns {
@@ -73,22 +74,6 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   const thisIsAiProject = isAiProject(project);
   const shouldShowAiLabel = currentProjectFilterType === allProjectFilterKey && thisIsAiProject;
 
-  console.log('shouldShowAiLabel', shouldShowAiLabel);
-  console.log('currentProjectFilterType', currentProjectFilterType);
-  console.log('thisIsAiProject', thisIsAiProject);
-  console.log('project', project);
-
-  const aiLabel = shouldShowAiLabel ? (
-    <Label
-      icon={<OutlinedStarIcon />}
-      variant="outline"
-      data-testid="ai-project-label"
-      style={{ marginLeft: '5px' }}
-    >
-      AI
-    </Label>
-  ) : null;
-
   return (
     <Tbody isExpanded={!!expandColumn}>
       <Tr isControlRow>
@@ -97,7 +82,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             title={
               <ResourceNameTooltip resource={project}>
                 <ProjectLink project={project} />
-                {aiLabel}
+                {shouldShowAiLabel && <AiLabel />}
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}

@@ -35,7 +35,16 @@ type ProjectsToolbarProps = {
   setProjectFilter: (projectFilter: string) => void;
 };
 
-console.log('ugh');
+export const AiLabel: React.FC = () => (
+  <Label
+    icon={<OutlinedStarIcon />}
+    variant="outline"
+    data-testid="ai-project-label"
+    style={{ marginLeft: '5px' }}
+  >
+    AI
+  </Label>
+);
 
 const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   allowCreate,
@@ -105,13 +114,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                     </FlexItem>
                     {isAISelected && (
                       <FlexItem>
-                        <Label
-                          icon={<OutlinedStarIcon />}
-                          variant="outline"
-                          data-testid="ai-project-label"
-                        >
-                          AI
-                        </Label>
+                        <AiLabel />
                       </FlexItem>
                     )}
                   </Flex>
