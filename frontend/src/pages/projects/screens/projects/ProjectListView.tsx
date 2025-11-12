@@ -25,7 +25,7 @@ type ProjectListViewProps = {
   allowCreate: boolean;
 };
 
-const isAiProject = (project: ProjectKind) => {
+export const isAiProject = (project: ProjectKind) => {
   return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
 };
 
@@ -122,6 +122,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             isRefreshing={refreshIds.includes(project.metadata.uid || '')}
             setEditData={(data) => setEditData(data)}
             setDeleteData={(data) => setDeleteData(data)}
+            currentProjectFilterType={filterData.ProjectType}
           />
         )}
         onClearFilters={onClearFilters}
