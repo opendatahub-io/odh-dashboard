@@ -123,23 +123,27 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     const allDeployments: Deployment[] = [];
     const errors: Error[] = [];
 
-    for (const platformId of availablePlatforms) {
-      if (platformId in platformDeployments) {
-        const state = platformDeployments[platformId];
-        if (state.deployments) {
-          allDeployments.push(...state.deployments);
-        }
-        if (state.error) {
-          errors.push(state.error);
-        }
+    for (const key in platformDeployments) {
+      const state = platformDeployments[key];
+      if (state.deployments) {
+        allDeployments.push(...state.deployments);
+      }
+      if (state.error) {
+        errors.push(state.error);
       }
     }
 
     const allLoaded =
       deploymentWatchersLoaded &&
-      availablePlatforms.every(
-        (id) => id in platformDeployments && platformDeployments[id].loaded === true,
-      );
+      availablePlatforms.every((platformId) => {
+        const platformKeys = Object.keys(platformDeployments).filter(
+          (key) => key === platformId || key.startsWith(`${platformId}-project-`),
+        );
+        return (
+          platformKeys.length > 0 &&
+          platformKeys.every((key) => platformDeployments[key].loaded === true)
+        );
+      });
 
     return {
       deployments: allLoaded ? allDeployments : undefined,
@@ -156,6 +160,21 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
 
         if (!deploymentWatchersLoaded) {
           return null;
+        }
+
+        if (projects && projects.length > 1) {
+          return projects.map((project, index) => (
+            <PlatformDeploymentWatcher
+              key={`${platformId}-${project.metadata.name}`}
+              platformId={`${platformId}-project-${index}`}
+              watcher={watcher}
+              projects={[project]}
+              labelSelectors={labelSelectors}
+              onStateChange={updatePlatformDeployments}
+              unloadPlatformDeployments={unloadPlatformDeployments}
+              filterFn={filterFn}
+            />
+          ));
         }
 
         return (
