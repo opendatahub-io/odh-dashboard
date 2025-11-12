@@ -21,6 +21,7 @@ import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import EvenlySpacedGallery from '#~/components/EvenlySpacedGallery';
+import { isAiProject } from '#~/pages/projects/screens/projects/ProjectListView';
 import ProjectsSectionHeader from './ProjectsSectionHeader';
 import EmptyProjectsCard from './EmptyProjectsCard';
 import ProjectsLoading from './ProjectsLoading';
@@ -40,7 +41,7 @@ const ProjectsSection: React.FC = () => {
   const navigate = useNavigate();
 
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
-  const { projects: projects, loaded, loadError } = React.useContext(ProjectsContext);
+  const { projects: allProjects, loaded, loadError } = React.useContext(ProjectsContext);
   const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
   const [createProjectOpen, setCreateProjectOpen] = React.useState<boolean>(false);
   const [visibleCardCount, setVisibleCardCount] = React.useState<number>(5);
@@ -50,6 +51,8 @@ const ProjectsSection: React.FC = () => {
       setVisibleCardCount(Math.min(MAX_SHOWN_PROJECTS, Math.floor(width / MIN_CARD_WIDTH)));
     },
   });
+
+  const projects = React.useMemo(() => allProjects.filter(isAiProject), [allProjects]);
 
   const shownProjects = React.useMemo(
     () => (loaded ? projects.slice(0, visibleCardCount) : []),
@@ -110,8 +113,8 @@ const ProjectsSection: React.FC = () => {
                 <Content>
                   <Content component="small">
                     {shownProjects.length < projects.length
-                      ? `${shownProjects.length} of ${projects.length} projects`
-                      : 'Showing all projects'}
+                      ? `${shownProjects.length} of ${projects.length} AI projects`
+                      : 'Showing all AI projects'}
                   </Content>
                 </Content>
               ) : null}
