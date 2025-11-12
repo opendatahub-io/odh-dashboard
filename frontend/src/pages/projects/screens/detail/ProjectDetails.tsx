@@ -49,6 +49,7 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const featureStoreEnabled = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -175,11 +176,15 @@ const ProjectDetails: React.FC = () => {
               title: 'Connections',
               component: <ConnectionsList />,
             },
-            {
-              id: ProjectSectionID.FEATURE_STORE,
-              title: 'Feature store integration',
-              component: <FeatureStoreIntegration />,
-            },
+            ...(featureStoreEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.FEATURE_STORE,
+                    title: 'Feature store integration',
+                    component: <FeatureStoreIntegration />,
+                  },
+                ]
+              : []),
             ...(projectSharingEnabled && allowCreate
               ? [
                   {
@@ -202,6 +207,7 @@ const ProjectDetails: React.FC = () => {
           [
             allowCreate,
             biasMetricsAreaAvailable,
+            featureStoreEnabled,
             pipelinesEnabled,
             projectSharingEnabled,
             workbenchEnabled,
