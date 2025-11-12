@@ -56,6 +56,7 @@ PACKAGE_NAME=""
 PORT=""
 OPEN_REPORT=false
 CONTRACT_MOCK_BFF_HEALTH_ENDPOINT="${CONTRACT_MOCK_BFF_HEALTH_ENDPOINT:-/healthcheck}"
+BFF_MOCK_FLAGS="${BFF_MOCK_FLAGS:---mock-k8s-client --mock-mr-client}"
 
 require_arg() {
   if [[ $# -lt 2 || -z "$2" || "$2" == -* ]]; then
@@ -195,7 +196,8 @@ fi
 log_info "Starting Mock BFF server on port $PORT..."
 
 log_info "Starting Mock BFF server with go run"
-go run ./cmd --mock-k8s-client --mock-mr-client --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
+
+go run ./cmd $BFF_MOCK_FLAGS --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
 
 BFF_PID=$!
 echo "$BFF_PID" > "$RESULTS_DIR/bff.pid"
