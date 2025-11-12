@@ -50,7 +50,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   );
   const onClearFilters = React.useCallback(
     () => setFilterData(makeInitialProjectsFilterData(projectFilter)),
-    [setFilterData],
+    [setFilterData, projectFilter],
   );
 
   const [aiProjectNum, setAiProjectNum] = React.useState(0);
