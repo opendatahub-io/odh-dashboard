@@ -59,6 +59,18 @@ class ModelCatalog {
       .contains('[data-testid~=model-catalog-card]', modelName);
   }
 
+  findFirstModelCatalogCard() {
+    return cy.findAllByTestId('model-catalog-card').first();
+  }
+
+  findFirstModelCatalogCardLink() {
+    return this.findFirstModelCatalogCard().findByTestId('model-catalog-detail-link');
+  }
+
+  findCatalogDeployButton() {
+    return cy.findByTestId('deploy-button');
+  }
+
   expandCardLabelGroup(modelName: string) {
     this.findModelCatalogCard(modelName)
       .findAllByTestId('model-catalog-label-group')
