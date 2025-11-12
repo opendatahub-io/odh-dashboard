@@ -2,12 +2,10 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
-  isModelCatalogDeployModalExtension,
   isNavigateToDeploymentWizardWithDataExtension,
   DeployPrefillData,
 } from '~/odh/extension-points';
 import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
-import { getDeployButtonState } from '~/odh/utils';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import {
   decodeParams,
@@ -27,9 +25,6 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
   model,
   render,
 }) => {
-  const [platformExtensions] = useResolvedExtensions(isModelCatalogDeployModalExtension);
-  const [availablePlatformIds, setAvailablePlatformIds] = React.useState<string[]>([]);
-
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const [artifacts] = useCatalogModelArtifacts(
@@ -58,27 +53,17 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
     }
   }, [navigateToWizard]);
 
+  const isModalAvailable = React.useMemo(() => {
+    return navigateExtensionsLoaded && navigateExtensions.length > 0;
+  }, [navigateExtensions, navigateExtensionsLoaded]);
+
   const buttonState =
-    platformExtensions.length > 0
-      ? getDeployButtonState(availablePlatformIds, true)
-      : navigateExtensionsLoaded && navigateExtensions.length > 0
-        ? { enabled: true }
-        : { enabled: false, tooltip: 'Deployment wizard is not available' };
+    navigateExtensionsLoaded && navigateExtensions.length > 0
+      ? { enabled: true }
+      : { enabled: false, tooltip: 'Deployment wizard is not available' };
 
   return (
     <>
-      {/* Get platform IDs */}
-      {platformExtensions.map((extension) => {
-        return (
-          extension.properties.useAvailablePlatformIds && (
-            <HookNotify
-              key={extension.uid}
-              useHook={extension.properties.useAvailablePlatformIds}
-              onNotify={(value) => setAvailablePlatformIds(value ?? [])}
-            />
-          )
-        );
-      })}
       {/* Get navigation function */}
       {navigateExtensionsLoaded &&
         navigateExtensions.length > 0 &&
@@ -99,7 +84,7 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
             />
           );
         })}
-      {render(buttonState, onOpenModal, navigateExtensionsLoaded && navigateExtensions.length > 0)}
+      {render(buttonState, onOpenModal, isModalAvailable)}
     </>
   );
 };

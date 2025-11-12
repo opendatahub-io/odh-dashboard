@@ -7,18 +7,6 @@ export type DeployPrefillData = {
   wizardStartIndex?: number;
 }
 
-export type ModelCatalogDeployModalExtension = Extension<
-  'model-catalog.model-details/deploy-modal',
-  {
-    useAvailablePlatformIds: CodeRef<() => string[]>;
-  }
->;
-
-export const isModelCatalogDeployModalExtension = (
-  extension: Extension,
-): extension is ModelCatalogDeployModalExtension =>
-  extension.type === 'model-catalog.model-details/deploy-modal';
-
 export type NavigateToDeploymentWizardWithDataExtension = Extension<
   'model-catalog.deployment/navigate-wizard',
   {
