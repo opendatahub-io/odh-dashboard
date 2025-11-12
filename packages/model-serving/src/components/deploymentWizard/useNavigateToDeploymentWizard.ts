@@ -41,7 +41,7 @@ import { type Deployment } from '../../../extension-points';
  */
 export const useNavigateToDeploymentWizard = (
   deployment?: Deployment | null,
-): ((projectName?: string) => void) => {
+): ((projectName?: string, initialData?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
 
   // Load hooks needed for the deployment wizard

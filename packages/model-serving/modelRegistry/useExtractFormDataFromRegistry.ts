@@ -5,10 +5,10 @@ import {
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
-import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { getModelRegistryTransform } from './utils/deployUtils';
 import {
   ModelLocationData,
   ModelLocationType,
@@ -110,8 +110,8 @@ export const useExtractFormDataFromRegistry = (
           }
         : undefined,
 
-      // Set model registry info
-      modelRegistryInfo: prefillInfo.modelRegistryInfo,
+      // Set model registry info on transform data
+      transformData: getModelRegistryTransform(prefillInfo.modelRegistryInfo),
 
       // Set model location data
       modelLocationData: (() => {
@@ -133,9 +133,12 @@ export const useExtractFormDataFromRegistry = (
           fieldValues.AWS_DEFAULT_REGION = modelLocation.s3Fields.region;
           additionalFields.modelPath = modelLocation.s3Fields.path;
         } else if (modelLocation.ociUri) {
-          fieldValues.OCI_HOST = modelLocation.ociUri;
-          fieldValues.ACCESS_TYPE = AccessTypes.PULL;
-          additionalFields.modelUri = modelLocation.ociUri;
+          // Extract host from OCI URI (e.g., oci://quay.io/path:tag -> quay.io)
+          const { ociUri } = modelLocation;
+          const withoutProtocol = ociUri.replace(/^oci:\/\//, '');
+          const host = withoutProtocol.split('/')[0]?.split(':')[0] || withoutProtocol;
+          fieldValues.OCI_HOST = host;
+          additionalFields.modelUri = ociUri;
         } else if (modelLocation.uri) {
           fieldValues.URI = modelLocation.uri;
         } else {

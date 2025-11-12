@@ -17,11 +17,13 @@ import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/typ
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { isOciModelUri } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import useRegistryConnections from './useRegistryConnections';
 import { useExtractFormDataFromRegistry } from './useExtractFormDataFromRegistry';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
 import { ExistingConnectionField } from '../src/components/deploymentWizard/fields/modelLocationFields/ExistingConnectionField';
 import {
+  ConnectionTypeRefs,
   InitialWizardFormData,
   ModelLocationData,
   ModelLocationType,
@@ -88,6 +90,15 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
         (ct) => ct.metadata.name === connectionTypeRef,
       );
 
+      // Account for model path when connection type is S3
+      let modelPath;
+      if (connectionTypeObject?.metadata.name === ConnectionTypeRefs.S3) {
+        const modelLocation = uriToModelLocation(modelDeployPrefill.data.modelArtifactUri);
+        if (modelLocation?.s3Fields) {
+          modelPath = modelLocation.s3Fields.path;
+        }
+      }
+
       const modelLocationData: ModelLocationData = {
         type: ModelLocationType.EXISTING,
         connection: selectedConnection.metadata.name,
@@ -95,6 +106,7 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
         fieldValues: {},
         additionalFields: {
           modelUri: modelDeployPrefill.data.modelArtifactUri,
+          modelPath,
         },
       };
       initialData.modelLocationData = modelLocationData;

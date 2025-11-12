@@ -18,7 +18,6 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
-import { type ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 
 export const applyModelLocation = (
@@ -257,27 +256,5 @@ export const applyDashboardResourceLabel = (
     ...(result.metadata.labels ?? {}),
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
-  return result;
-};
-
-export const applyModelRegistryLabels = (
-  llmInferenceService: LLMInferenceServiceKind,
-  modelRegistryInfo?: ModelDeployPrefillInfo['modelRegistryInfo'],
-): LLMInferenceServiceKind => {
-  const { registeredModelId, modelVersionId, mrName } = modelRegistryInfo ?? {};
-  const result = structuredClone(llmInferenceService);
-  result.metadata.labels = {
-    ...result.metadata.labels,
-    ...(registeredModelId && {
-      'modelregistry.opendatahub.io/registered-model-id': registeredModelId,
-    }),
-    ...(modelVersionId && {
-      'modelregistry.opendatahub.io/model-version-id': modelVersionId,
-    }),
-    ...(mrName && {
-      'modelregistry.opendatahub.io/name': mrName,
-    }),
-  };
-
   return result;
 };
