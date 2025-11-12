@@ -378,7 +378,18 @@ describe('Projects details', () => {
     // Step 3: Click the 'clear filters' button
     projectListPage.findClearFiltersButton().click();
 
-    // Step 4: Verify all projects are now shown
+    // Step 4: Verify thet still only ai  projects are now shown
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
+
+    // Step 4a: Verify filters are reset (text), but not the project toggle
+    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'A.I. projects');
+
+    // step 5: adjust the filter to show 'all projects'
+    projectListToolbar.selectProjectType('All projects');
+    // everything should show now:
     projectListPage.getProjectRow('AI Project 1').find().should('exist');
     projectListPage.getProjectRow('AI Project 2').find().should('exist');
     projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
@@ -386,12 +397,26 @@ describe('Projects details', () => {
 
     // Step 5: Verify filters are reset - 'All projects' should be selected
     projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
+    // and other filters should be empty
 
     // Verify name filter is cleared
     projectListToolbar.findNameFilter().should('have.value', '');
 
     // Verify user filter is cleared
     projectListToolbar.findUserFilter().should('have.value', '');
+
+    // now type another value in that should not be there:
+    projectListToolbar.findNameFilter().type('NonExistentProject-bb123');
+    // Verify no results are shown
+    projectListPage.findEmptyResults().should('exist');
+    projectListPage.findClearFiltersButton().click();
+    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
+
+    // everything should show now:
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
   });
 
   it('should show list of workbenches when the column is expanded', () => {
