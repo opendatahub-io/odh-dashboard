@@ -45,7 +45,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
         </span>
       );
   }
-
+  console.log('22a-4: TableRowTitleDescription', title, resource);
   return (
     <div>
       <div data-testid="table-row-title">
@@ -56,7 +56,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
         ) : (
           title
         )}
-        {titleIcon}
+        hello there
       </div>
       {subtitle}
       {descriptionNode}
