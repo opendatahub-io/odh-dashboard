@@ -431,6 +431,73 @@ if [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ] && [ -d "$TARGET_DIR" ]; then
   exit 0
 fi
 
+# Function to inject helpful conflict markers for failed patches
+inject_conflict_markers() {
+  local patch_file="$1"
+  local commit_sha="$2"
+  local commit_msg="$3"
+  shift 3
+  local failed_files=("$@")
+  
+  # Only process files that actually failed
+  for rel_file in "${failed_files[@]}"; do
+    [ -z "$rel_file" ] && continue
+    
+    local target_file="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE/$rel_file"
+    
+    # Only inject if file exists and doesn't already have conflict markers
+    if [ -f "$target_file" ] && ! grep -q '^<<<<<<< ' "$target_file" 2>/dev/null; then
+      
+      # Extract the relevant patch section for this file
+      local temp_patch="$TMP_DIR/file_patch_$$.txt"
+      awk -v file="$rel_file" '
+        /^diff --git/ { 
+          in_file = ($0 ~ " b/" file "$" || $0 ~ " b/" file " ")
+          if (in_file) print
+          next
+        }
+        in_file { print }
+        /^diff --git/ && !in_file { exit }
+      ' "$patch_file" > "$temp_patch"
+      
+      if [ -s "$temp_patch" ]; then
+        # Append informative marker to the file
+        cat >> "$target_file" << EOF
+
+<<<<<<< PATCH FAILED TO APPLY
+UPSTREAM COMMIT: $commit_sha
+COMMIT MESSAGE: $commit_msg
+FILE: $rel_file
+=======
+The patch below could not be applied automatically.
+This usually means the file content differs from what upstream expects.
+
+WHAT THE PATCH WANTS TO DO:
+────────────────────────────────────────────────────────────
+EOF
+        # Append the actual patch content
+        cat "$temp_patch" >> "$target_file"
+        
+        cat >> "$target_file" << EOF
+────────────────────────────────────────────────────────────
+
+INSTRUCTIONS:
+1. Review the patch above (lines with - are removed, lines with + are added)
+2. Manually apply the intended changes to this file
+3. Remove this entire conflict marker block (from <<<<<<< to >>>>>>>)
+4. Stage the file: git add $WORKSPACE_LOCATION
+5. Continue: npm run update-subtree -- --continue
+
+For more details, view the upstream commit at:
+  https://github.com/<owner>/<repo>/commit/${commit_sha}
+>>>>>>> END PATCH FAILED
+EOF
+      fi
+      rm -f "$temp_patch"
+    fi
+  done
+}
+
 # Function to apply patch-based updates
 apply_patch_based_update() {
   local from_commit="$1"
@@ -487,24 +554,157 @@ apply_patch_based_update() {
       cd "$MONOREPO_ROOT"
       
       # Try to apply the patch with 3-way merge for better conflict resolution
-      if ! git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$filtered_patch"; then
+      if ! git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$filtered_patch" 2>"$TMP_DIR/apply_error.log"; then
         error_msg "Conflict detected while applying commit $commit_count/$total_commits"
         echo -e "   ${YELLOW}Commit message: $commit_msg${NC}"
+        echo -e "   ${YELLOW}Upstream commit: $commit${NC}"
         echo ""
-        warning_msg "Git is now in a conflicted state with conflict markers in files."
+        
+        # Parse error output
+        local apply_error=$(cat "$TMP_DIR/apply_error.log" 2>/dev/null || echo "")
+        local has_git_conflicts=false
+        local has_rejected_patches=false
+        local failed_files=()
+        local succeeded_files=()
+        
+        # Check if git created conflict markers (partial success with conflicts)
+        if git diff --name-only --diff-filter=U 2>/dev/null | grep -q .; then
+          has_git_conflicts=true
+        fi
+        
+        # Check for completely rejected patches and collect failed files
+        if echo "$apply_error" | grep -q "patch does not apply"; then
+          has_rejected_patches=true
+          # Extract file names that failed
+          while IFS= read -r line; do
+            if [[ "$line" =~ error:\ (.+):\ patch\ does\ not\ apply ]]; then
+              local failed_file="${BASH_REMATCH[1]}"
+              # Remove the directory prefix to get relative path
+              failed_file="${failed_file#$WORKSPACE_LOCATION/$TARGET_RELATIVE/}"
+              failed_files+=("$failed_file")
+            fi
+          done <<< "$apply_error"
+          
+          # If patch was completely rejected, try to apply files individually
+          if [ "$has_git_conflicts" = false ] && [ ${#failed_files[@]} -gt 0 ]; then
+            info_msg "Attempting to apply other files from the patch individually..."
+            echo ""
+            
+            # Extract all files from the patch
+            local all_files=$(grep '^diff --git' "$filtered_patch" | sed 's/^diff --git a\/.* b\///' || true)
+            
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              
+              # Skip if this is one of the files that already failed
+              local is_failed=false
+              for failed in "${failed_files[@]}"; do
+                if [ "$file" = "$failed" ]; then
+                  is_failed=true
+                  break
+                fi
+              done
+              
+              if [ "$is_failed" = false ]; then
+                # Extract patch for just this file
+                local single_file_patch="$TMP_DIR/single_${file//\//_}.patch"
+                awk -v target="$file" '
+                  /^diff --git/ { 
+                    in_target = ($0 ~ " b/" target "$")
+                    if (in_target) print
+                    next
+                  }
+                  in_target { print }
+                  /^diff --git/ && !in_target { exit }
+                ' "$filtered_patch" > "$single_file_patch"
+                
+                # Try to apply this single file
+                if [ -s "$single_file_patch" ] && git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$single_file_patch" 2>/dev/null; then
+                  succeeded_files+=("$file")
+                  echo -e "  ${GREEN}✓${NC} $file"
+                else
+                  failed_files+=("$file")
+                  echo -e "  ${RED}✗${NC} $file"
+                fi
+              fi
+            done <<< "$all_files"
+            echo ""
+          fi
+        fi
+        
+        # Provide context about what happened
+        if [ "$has_git_conflicts" = true ] && [ "$has_rejected_patches" = false ]; then
+          warning_msg "Git created conflict markers (partial application succeeded)"
+          echo "Some changes were applied, but conflicts need manual resolution."
+        elif [ "$has_git_conflicts" = false ] && [ "$has_rejected_patches" = true ]; then
+          warning_msg "Patch was completely rejected (no automatic application possible)"
+          echo "This typically means file content differs significantly from upstream."
+          echo ""
+          echo -e "${CYAN}Common causes:${NC}"
+          echo "  • Local customizations/modifications in the fork"
+          echo "  • Different code structure than upstream expects"
+          echo "  • Previous patches changed the context"
+        else
+          warning_msg "Mixed results: some changes applied with conflicts, others rejected"
+        fi
+        
         echo ""
-        echo -e "${CYAN}To resolve conflicts:${NC}"
-        echo -e "1. Look for conflict markers (${RED}<<<<<<<${NC} ${YELLOW}=======${NC} ${RED}>>>>>>>${NC}) in files under:"
-        echo -e "   ${BLUE}$WORKSPACE_LOCATION/$TARGET_RELATIVE${NC}"
-        echo "2. Edit the files to resolve conflicts"
-        echo -e "3. Stage your changes: ${YELLOW}git add $WORKSPACE_LOCATION${NC}"
-        echo -e "4. Re-run with the ${GREEN}--continue${NC} option"
+        
+        # Show summary of what succeeded and what failed
+        if [ ${#succeeded_files[@]} -gt 0 ]; then
+          success_msg "Successfully applied ${#succeeded_files[@]} file(s):"
+          for file in "${succeeded_files[@]}"; do
+            echo "  ✓ $file"
+          done
+          echo ""
+        fi
+        
+        # Try to inject helpful markers for completely failed files
+        if [ "$has_rejected_patches" = true ] && [ ${#failed_files[@]} -gt 0 ]; then
+          info_msg "Injecting conflict markers for ${#failed_files[@]} failed file(s)..."
+          inject_conflict_markers "$filtered_patch" "$commit" "$commit_msg" "${failed_files[@]}"
+          echo ""
+          warning_msg "Files that need manual resolution:"
+          for failed_file in "${failed_files[@]}"; do
+            echo "  ✗ $failed_file"
+          done
+          echo ""
+        fi
+        
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${CYAN}RESOLUTION STEPS:${NC}"
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo "1. Find conflict markers in: $WORKSPACE_LOCATION/$TARGET_RELATIVE/"
+        echo ""
+        echo "   Two types of markers to look for:"
+        echo -e "   ${RED}a)${NC} Git conflict markers:    ${RED}<<<<<<<${NC} ${YELLOW}=======${NC} ${RED}>>>>>>>${NC}"
+        echo -e "   ${RED}b)${NC} Script-injected markers: ${RED}<<<<<<< PATCH FAILED${NC} ... ${RED}>>>>>>> END PATCH${NC}"
+        echo ""
+        echo "2. For EACH conflict marker:"
+        echo "   • Review what the patch wants to change"
+        echo "   • Manually apply the intended changes"
+        echo "   • Remove all conflict marker lines"
+        echo ""
+        echo "3. Verify your changes make sense:"
+        echo -e "   ${YELLOW}git diff $WORKSPACE_LOCATION${NC}"
+        echo ""
+        echo "4. Stage all resolved files:"
+        echo -e "   ${YELLOW}git add $WORKSPACE_LOCATION${NC}"
+        echo ""
+        echo "5. Continue the update process:"
+        echo -e "   ${GREEN}npm run update-subtree -- --continue${NC}"
+        if [ ${#succeeded_files[@]} -gt 0 ]; then
+          echo ""
+          echo "   Note: Successfully applied files are already staged."
+          echo "   This will commit everything and proceed to the next patch."
+        fi
+        echo ""
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
         info_msg "Progress: Applied $((commit_count - 1))/$total_commits commits successfully"
         info_msg "Failed on commit: $commit ($commit_count/$total_commits)"
         info_msg "Remaining: $((total_commits - commit_count + 1)) commits"
-        echo ""
-        info_msg "The --continue option will automatically commit your staged changes and proceed with remaining patches."
         clean_exit 1 "" true
       fi
       
