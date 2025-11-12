@@ -17,7 +17,7 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 import { checkNotebookTolerations } from '#~/__tests__/cypress/cypress/utils/oc_commands/notebooks';
 
-describe('Notebooks - tolerations tests', () => {
+describe('[Product Bug: RHOAIENG-38674] Notebooks - tolerations tests', () => {
   let testData: NotebookTolerationsTestData;
 
   retryableBefore(() =>
@@ -52,7 +52,7 @@ describe('Notebooks - tolerations tests', () => {
   it(
     'Verify Juypter Notebook Creation using Hardware Profiles and applying Tolerations',
     {
-      tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@NonConcurrent'],
+      tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@NonConcurrent', '@Bug'],
     },
     () => {
       // Authentication and navigation
