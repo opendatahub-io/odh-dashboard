@@ -15,9 +15,10 @@ import {
   CodeBlockAction,
   ClipboardCopyButton,
   Popover,
+  Button,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { CodeIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { CodeIcon, OutlinedQuestionCircleIcon, CopyIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
@@ -68,11 +69,9 @@ const FeatureStoreIntegration: React.FC = () => {
   };
 
   const { clientConfigs, namespaces } = featureStoreData;
-
   const isLoading = !loaded && !error;
   const hasError = !!error;
   const isEmpty = !hasError && clientConfigs.length === 0 && namespaces.length === 0;
-
   if (isLoading) {
     return (
       <Bullseye>
@@ -98,21 +97,33 @@ const FeatureStoreIntegration: React.FC = () => {
           }}
           actions={
             <CodeBlockAction>
-              <ClipboardCopyButton
-                id="code-block-copy-button"
-                textId="code-block-content"
-                aria-label="Copy to clipboard"
-                onClick={() => onCopyClick(codeBlockContent)}
-                entryDelay={100}
-                exitDelay={copied ? 1500 : 600}
-                maxWidth="110px"
-                variant="plain"
-                onTooltipHidden={() => setCopied(false)}
-                className="pf-m-color-subtle"
-                disabled={selectedConfigs.length === 0}
-              >
-                {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
-              </ClipboardCopyButton>
+              {selectedConfigs.length === 0 ? (
+                <Button
+                  data-testid="code-block-copy-button"
+                  id="code-block-copy-button"
+                  aria-label="Copy to clipboard"
+                  variant="plain"
+                  className="pf-m-color-subtle"
+                  isDisabled
+                  icon={<CopyIcon />}
+                />
+              ) : (
+                <ClipboardCopyButton
+                  data-testid="code-block-copy-button"
+                  id="code-block-copy-button"
+                  textId="code-block-content"
+                  aria-label="Copy to clipboard"
+                  onClick={() => onCopyClick(codeBlockContent)}
+                  entryDelay={100}
+                  exitDelay={copied ? 1500 : 600}
+                  maxWidth="110px"
+                  variant="plain"
+                  onTooltipHidden={() => setCopied(false)}
+                  className="pf-m-color-subtle"
+                >
+                  {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
+                </ClipboardCopyButton>
+              )}
             </CodeBlockAction>
           }
         >
