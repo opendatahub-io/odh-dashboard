@@ -93,6 +93,10 @@ class ProjectRow extends TableRow {
   findNotebookLink(notebookName: string) {
     return this.findNotebookTable().findByRole('link', { name: notebookName });
   }
+
+  findAILabel() {
+    return this.find().findByTestId('ai-project-label');
+  }
 }
 
 class ProjectListPage {

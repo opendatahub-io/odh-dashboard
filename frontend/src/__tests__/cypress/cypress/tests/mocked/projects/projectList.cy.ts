@@ -366,6 +366,11 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
     projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
 
+    // also; that the ai projects don't have the label:
+
+    projectListPage.getProjectRow('AI Project 1').findAILabel().should('not.exist');
+    projectListPage.getProjectRow('AI Project 2').findAILabel().should('not.exist');
+
     // Verify only 2 projects are showing (the AI ones)
     cy.findAllByRole('link', { name: /AI Project / }).should('have.length', 2);
 
@@ -394,6 +399,12 @@ describe('Projects details', () => {
     projectListPage.getProjectRow('AI Project 2').find().should('exist');
     projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
     projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
+
+    // Verify AI projects have the AI label and non-AI projects don't
+    projectListPage.getProjectRow('AI Project 1').findAILabel().should('exist');
+    projectListPage.getProjectRow('AI Project 2').findAILabel().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 1').findAILabel().should('not.exist');
+    projectListPage.getProjectRow('Non-AI Project 2').findAILabel().should('not.exist');
 
     // Step 5: Verify filters are reset - 'All projects' should be selected
     projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
