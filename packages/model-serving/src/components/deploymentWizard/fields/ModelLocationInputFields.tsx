@@ -57,52 +57,7 @@ export const useModelLocationData = (
   );
   const [prefillApplied, setPrefillApplied] = React.useState(false);
   React.useEffect(() => {
-    if (!projectName) {
-      // For NEW type without project, we still need connectionTypesLoaded to determine connectionTypeObject
-      if (existingData?.type === ModelLocationType.NEW) {
-        if (!connectionTypesLoaded) {
-          return; // Wait for connection types
-        }
-        if (prefillApplied) return;
-
-        // Determine connection type from URI
-        const uri = existingData.fieldValues.URI;
-        let connectionTypeName = ConnectionTypeRefs.URI; // default
-
-        if (uri && typeof uri === 'string') {
-          const uriProtocol = uri.split('://')[0].toLowerCase();
-          if (uriProtocol === 's3') {
-            connectionTypeName = ConnectionTypeRefs.S3;
-          }
-        }
-
-        const connectionTypeObject = connectionTypes.find(
-          (ct) => ct.metadata.name === connectionTypeName,
-        );
-
-        setModelLocationData({
-          ...existingData,
-          connectionTypeObject:
-            connectionTypeObject ??
-            connectionTypes.find((ct) => ct.metadata.name === ConnectionTypeRefs.URI),
-          disableInputFields: true,
-        });
-        setIsStableState(true);
-        setPrefillApplied(true);
-        return;
-      }
-      if (existingData) {
-        setModelLocationData({
-          ...existingData,
-          disableInputFields: true,
-        });
-        setIsStableState(true);
-        setPrefillApplied(true);
-      }
-      return;
-    }
-
-    if (!connectionsLoaded || !connectionTypesLoaded) {
+    if (!projectName || !connectionsLoaded || !connectionTypesLoaded) {
       return;
     }
     if (prefillApplied) return;
