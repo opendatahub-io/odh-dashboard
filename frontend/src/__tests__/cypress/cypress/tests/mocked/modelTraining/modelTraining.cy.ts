@@ -24,6 +24,7 @@ const mockTrainJobs = mockTrainJobK8sResourceList([
     namespace: projectName,
     status: TrainingJobState.RUNNING,
     numNodes: 4,
+    numProcPerNode: 1,
     localQueueName: 'training-queue',
     creationTimestamp: '2024-01-15T10:30:00Z',
   },
