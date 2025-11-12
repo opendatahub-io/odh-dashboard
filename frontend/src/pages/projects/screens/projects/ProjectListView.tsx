@@ -25,7 +25,7 @@ type ProjectListViewProps = {
   allowCreate: boolean;
 };
 
-export const isAiProject = (project: ProjectKind) => {
+export const isAiProject = (project: ProjectKind): boolean => {
   return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
 };
 
