@@ -48,8 +48,9 @@ export const getAllConsumedResources = (
     flavorResources.forEach((resource) => {
       if (!resourceMap.has(resource.name)) {
         const consumed = resource.total || 0;
-        const firstResourceGroup = clusterQueue.spec.resourceGroups?.[0];
-        const matchingFlavor = firstResourceGroup?.flavors
+        // Search through all resource groups to find the matching flavor and resource
+        const matchingFlavor = clusterQueue.spec.resourceGroups
+          ?.flatMap((rg) => rg.flavors)
           .find((f) => f.name === flavor.name)
           ?.resources.find((r) => r.name === resource.name);
         const quota = matchingFlavor?.nominalQuota || 0;
@@ -97,8 +98,9 @@ export const getAllConsumedResources = (
    */
   return formattedResources.toSorted((a, b) => {
     const order: Record<string, number> = { cpu: 0, memory: 1 };
-    const aOrder = order[a.name] ?? 999;
-    const bOrder = order[b.name] ?? 999;
+    const DEFAULT_ORDER = 2; // Any number > 1 works to place resources after CPU and Memory
+    const aOrder = order[a.name] ?? DEFAULT_ORDER;
+    const bOrder = order[b.name] ?? DEFAULT_ORDER;
     return aOrder - bOrder;
   });
 };

@@ -9,6 +9,7 @@ import {
   StackItem,
   Stack,
   Skeleton,
+  Content,
 } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
 import { getAllConsumedResources } from './utils';
@@ -60,7 +61,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Processes per node:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="processes-per-node-value">
-              {job.spec.trainer.numProcPerNode || 1}
+              {job.spec.trainer.numProcPerNode || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
@@ -148,10 +149,16 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
                             {resource.label}
                           </DescriptionListTerm>
                           <DescriptionListDescription style={{ whiteSpace: 'nowrap' }}>
-                            <div>Total: {resource.total}</div>
-                            <div style={{ whiteSpace: 'nowrap' }}>
-                              Consumed: {resource.consumed} ({resource.percentage}%)
-                            </div>
+                            <Stack>
+                              <StackItem>
+                                <Content>Total: {resource.total}</Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content style={{ whiteSpace: 'nowrap' }}>
+                                  Consumed: {resource.consumed} ({resource.percentage}%)
+                                </Content>
+                              </StackItem>
+                            </Stack>
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       </StackItem>
