@@ -1,7 +1,14 @@
 import * as React from 'react';
-import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
+import {
+  Spinner,
+  Content,
+  ContentVariants,
+  Timestamp,
+  Label,
+  FlexItem,
+} from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
-import { OffIcon, PlayIcon } from '@patternfly/react-icons';
+import { OffIcon, OutlinedStarIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '#~/k8sTypes';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner } from '#~/concepts/projects/utils';
@@ -66,6 +73,17 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
+  const aiLabel = (
+    <Label
+      icon={<OutlinedStarIcon />}
+      variant="outline"
+      data-testid="ai-project-label"
+      style={{ marginLeft: '5px' }}
+    >
+      AI
+    </Label>
+  );
+
   return (
     <Tbody isExpanded={!!expandColumn}>
       <Tr isControlRow>
@@ -74,6 +92,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             title={
               <ResourceNameTooltip resource={project}>
                 <ProjectLink project={project} />
+                {aiLabel}
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}
