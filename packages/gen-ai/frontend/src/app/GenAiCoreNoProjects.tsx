@@ -1,31 +1,39 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
-import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { Content } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
+import ModelsEmptyState from './EmptyStates/NoData';
 
-type GenAiCoreNoProjectsProps = {
-  getRedirectPath: (namespace: string) => string;
-};
-
-const GenAiCoreNoProjects: React.FC<GenAiCoreNoProjectsProps> = ({ getRedirectPath }) => {
+const GenAiCoreNoProjects: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <EmptyState
-      headingLevel="h4"
-      icon={WrenchIcon}
-      titleText="No data science projects"
-      data-testid="empty-state-title"
-    >
-      <EmptyStateBody>To use the playground, first create a data science project.</EmptyStateBody>
-      <EmptyStateFooter>
-        <NewProjectButton
-          closeOnCreate
-          onProjectCreated={(projectName) => navigate(getRedirectPath(projectName))}
-        />
-      </EmptyStateFooter>
-    </EmptyState>
+    <ModelsEmptyState
+      title="You must create a project to begin"
+      description={
+        <Content
+          style={{
+            textAlign: 'left',
+          }}
+        >
+          <Content component="p">To create a project:</Content>
+          <Content component="ol">
+            <Content component="li">
+              Go to the <b>Projects</b> page
+            </Content>
+            <Content component="li">
+              Select <b>Create new project</b>
+            </Content>
+            <Content component="li">
+              Complete the steps to create a project then come back here
+            </Content>
+          </Content>
+        </Content>
+      }
+      actionButtonText="Go to Projects page"
+      handleActionButtonClick={() => {
+        navigate(`/projects`);
+      }}
+    />
   );
 };
 
