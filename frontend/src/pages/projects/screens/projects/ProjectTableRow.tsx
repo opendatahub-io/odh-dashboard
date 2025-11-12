@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  Spinner,
-  Content,
-  ContentVariants,
-  Timestamp,
-  Label,
-  FlexItem,
-} from '@patternfly/react-core';
+import { Spinner, Content, ContentVariants, Timestamp, Label } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { OffIcon, OutlinedStarIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '#~/k8sTypes';
@@ -20,7 +13,9 @@ import useProjectNotebookStates from '#~/pages/projects/notebook/useProjectNoteb
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '#~/utilities/const';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
+import { isAiProject } from './ProjectListView';
 
 // Plans to add other expandable columns in the future
 export enum ExpandableColumns {
@@ -32,12 +27,14 @@ type ProjectTableRowProps = {
   isRefreshing: boolean;
   setEditData: (data: ProjectKind) => void;
   setDeleteData: (data: ProjectKind) => void;
+  currentProjectFilterType?: string;
 };
 const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   obj: project,
   isRefreshing,
   setEditData,
   setDeleteData,
+  currentProjectFilterType,
 }) => {
   const owner = getProjectOwner(project);
   const [expandColumn, setExpandColumn] = React.useState<ExpandableColumns | undefined>();
@@ -73,7 +70,15 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
-  const aiLabel = (
+  const thisIsAiProject = isAiProject(project);
+  const shouldShowAiLabel = currentProjectFilterType === allProjectFilterKey && thisIsAiProject;
+
+  console.log('shouldShowAiLabel', shouldShowAiLabel);
+  console.log('currentProjectFilterType', currentProjectFilterType);
+  console.log('thisIsAiProject', thisIsAiProject);
+  console.log('project', project);
+
+  const aiLabel = shouldShowAiLabel ? (
     <Label
       icon={<OutlinedStarIcon />}
       variant="outline"
@@ -82,7 +87,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
     >
       AI
     </Label>
-  );
+  ) : null;
 
   return (
     <Tbody isExpanded={!!expandColumn}>
