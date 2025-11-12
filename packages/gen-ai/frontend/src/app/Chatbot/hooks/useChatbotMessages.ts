@@ -119,6 +119,7 @@ const useChatbotMessages = ({
       content: message,
       name: username || 'User',
       avatar: userAvatar,
+      timestamp: new Date().toLocaleString(),
     };
 
     setMessages((prevMessages) => [...prevMessages, userMessage]);
@@ -182,6 +183,7 @@ const useChatbotMessages = ({
           name: 'Bot',
           avatar: botAvatar,
           isLoading: true, // Show loading dots until first content
+          timestamp: new Date().toLocaleString(),
         };
         setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
 
@@ -276,6 +278,7 @@ const useChatbotMessages = ({
           content: response.content || 'No response received',
           name: 'Bot',
           avatar: botAvatar,
+          timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
@@ -292,6 +295,7 @@ const useChatbotMessages = ({
         content: errorMessage,
         name: 'Bot',
         avatar: botAvatar,
+        timestamp: new Date().toLocaleString(),
       };
 
       setMessages((prevMessages) => {

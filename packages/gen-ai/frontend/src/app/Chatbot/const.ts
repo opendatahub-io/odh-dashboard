@@ -38,6 +38,7 @@ export const initialBotMessage = (): MessageProps => ({
   content: 'Send a message to test your configuration',
   name: 'Bot',
   avatar: botAvatar,
+  timestamp: new Date().toLocaleString(),
 });
 
 // File upload constants
