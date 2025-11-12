@@ -64,7 +64,8 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     navigateExtensionsLoaded &&
     navigateExtensions.length > 0 &&
     artifactsLoaded &&
-    !artifactsLoadError
+    !artifactsLoadError &&
+    navigateToWizard !== null
       ? { enabled: true }
       : { enabled: false, tooltip: 'Deployment wizard is not available' };
 
