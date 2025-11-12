@@ -2,3 +2,4 @@
 projectResourceName: 'test-llmd-deployment'
 singleModelName: 'test-llmd-model'
 hardwareProfileName: 'cypress-llmd-hardware-profile-model'
+modelURI: 'hf://facebook/opt-125m'

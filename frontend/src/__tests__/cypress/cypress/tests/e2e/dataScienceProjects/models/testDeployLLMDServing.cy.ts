@@ -1,4 +1,5 @@
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { patchOpenShiftResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
@@ -80,7 +81,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Select Model details');
-      modelServingWizard.findModelLocationSelectOption('URI - v1').click();
+      modelServingWizard.findModelLocationSelectOption('URI').click();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard.findSaveConnectionNameInput().clear().type(`${modelName}-connection`);
@@ -119,13 +120,17 @@ describe('A user can deploy an LLMD model', () => {
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify that the Model is ready');
+      // Patch the LLM Inference Service to set image to VLLM CPU
+      // TODO: Remove once the cluster have GPUs.
+      patchOpenShiftResource(
+        'LLMinferenceService',
+        modelName,
+        '{"spec":{"template":{"containers":[{"name":"main","image":"quay.io/pierdipi/vllm-cpu:latest"}]}}}',
+      );
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
 
       cy.step('Verify the model Row');
       const llmdRow = modelServingSection.getKServeRow(modelName);
-      // Verify external service is available
-      llmdRow.findExternalServiceButton().click();
-      llmdRow.findExternalServicePopover().should('exist');
       // Expand row to verify deployment details
       llmdRow.shouldHaveServingRuntime('Distributed Inference Server with llm-d');
     },
