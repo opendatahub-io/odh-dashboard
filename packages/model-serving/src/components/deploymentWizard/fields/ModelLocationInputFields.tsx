@@ -75,15 +75,17 @@ export const useModelLocationData = (
         return;
       }
       if (existingData.type === ModelLocationType.NEW) {
-        // Setting connection type object as URI by default, get reset later if it's something else
-        const connectionTypeObject = connectionTypes.find(
-          (ct) => ct.metadata.name === ConnectionTypeRefs.URI,
-        );
-        if (connectionTypeObject) {
-          setModelLocationData({
-            ...existingData,
-            connectionTypeObject,
-          });
+        // Only default to URI if we don't have a connection type object already
+        if (!existingData.connectionTypeObject) {
+          const connectionTypeObject = connectionTypes.find(
+            (ct) => ct.metadata.name === ConnectionTypeRefs.URI,
+          );
+          if (connectionTypeObject) {
+            setModelLocationData({
+              ...existingData,
+              connectionTypeObject,
+            });
+          }
         }
         setIsStableState(true);
         setPrefillApplied(true);

@@ -2,11 +2,7 @@ import { useLocation, useNavigate, type NavigateFunction } from 'react-router-do
 import React from 'react';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
-<<<<<<< HEAD
 import { InitialWizardFormData } from './types';
-=======
-import { type InitialWizardFormData } from './types';
->>>>>>> 36c95bd96 (Allow registry to deploy with the wizard)
 import { type Deployment } from '../../../extension-points';
 
 /**
@@ -57,7 +53,7 @@ export const useNavigateToDeploymentWizard = (
   initialData?: InitialWizardFormData | null,
   returnRouteValue?: string,
   cancelReturnRouteValue?: string,
-): ((projectName?: string) => void) => {
+): ((projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
 
   // Load hooks needed for the deployment wizard
@@ -106,7 +102,7 @@ export const useNavigateToDeploymentWizard = (
 
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
-    (projectName?: string, initialData?: InitialWizardFormData | null): void => {
+    (projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null): void => {
       // If there's an error loading form data, don't navigate
       if (deployment && error) {
         console.error('useNavigateToDeploymentWizard: Failed to load form data:', error.message);
@@ -123,7 +119,7 @@ export const useNavigateToDeploymentWizard = (
       }
 
       // Navigate immediately if data is ready or no deployment is being edited
-      executeNavigation(projectName, initialData);
+      executeNavigation(projectName, initialDataOnNavigate);
     },
     [executeNavigation, loaded, error, deployment],
   );
