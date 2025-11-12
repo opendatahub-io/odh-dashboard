@@ -90,10 +90,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Select Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.selectPotentiallyDisabledProfile(
-        hardwareProfileResourceName,
-        hardwareProfileResourceName,
-      );
+      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       // Only interact with serving runtime template selector if it's not disabled
       // (it may be disabled when only one option is available)
       modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
@@ -130,7 +127,17 @@ describe('A user can deploy an LLMD model', () => {
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
 
       cy.step('Verify the model Row');
+      // Reload the page to verify the model Row is updated.
+      cy.reload();
       const llmdRow = modelServingSection.getKServeRow(modelName);
+
+      llmdRow
+        .findStatusLabel()
+        .invoke('text')
+        .should('match', /Starting|Started/);
+      // Verify external service is available
+      llmdRow.findExternalServiceButton().click();
+      llmdRow.findExternalServicePopover().should('exist');
       // Expand row to verify deployment details
       llmdRow.shouldHaveServingRuntime('Distributed Inference Server with llm-d');
     },

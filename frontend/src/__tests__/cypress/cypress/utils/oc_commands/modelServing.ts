@@ -358,15 +358,6 @@ export const checkLLMInferenceServiceState = (
         });
       }
 
-      if (options.checkStopped) {
-        conditionChecks.push({
-          type: 'Stopped',
-          expectedStatus: 'True',
-          check: (condition) => condition.type === 'Stopped' && condition.status === 'True',
-          name: 'Service Stopped',
-        });
-      }
-
       // If no condition checks are specified, skip condition validation
       const shouldValidateConditions = conditionChecks.length > 0;
 
