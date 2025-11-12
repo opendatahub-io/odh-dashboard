@@ -171,7 +171,7 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
     fi
   fi
   if [[ -x ./bin/setup-envtest-release-0.17 ]]; then
-    ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path || true)
+    ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --bin-dir ./bin -p path || true)
     if [[ -n "$ASSETS_PATH" ]]; then
       export KUBEBUILDER_ASSETS="$ASSETS_PATH"
       log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"
