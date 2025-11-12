@@ -32,7 +32,6 @@ export enum SupportedArea {
 
   /* Pipelines areas */
   DS_PIPELINES = 'ds-pipelines',
-  MLFLOW = 'mlflow',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
@@ -90,6 +89,9 @@ export enum SupportedArea {
 
   /* AI Catalog Settings */
   AI_CATALOG_SETTINGS = 'ai-catalog-settings',
+
+  /* MLflow */
+  MLFLOW = 'mlflow-application',
 }
 
 export type SupportedAreaType = SupportedArea | string;

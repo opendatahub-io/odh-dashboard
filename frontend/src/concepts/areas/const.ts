@@ -200,6 +200,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.AI_CATALOG_SETTINGS]: {
     featureFlags: ['aiCatalogSettings'],
   },
+  [SupportedArea.MLFLOW]: {
+    featureFlags: ['mlflow'],
+  },
 };
 
 /** Maps each DataScienceStackComponent to its human-readable name **/

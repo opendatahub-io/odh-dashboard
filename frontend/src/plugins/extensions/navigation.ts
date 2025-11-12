@@ -177,7 +177,7 @@ const extensions: NavExtension[] = [
       id: 'experiments-mlflow',
       title: 'Experiments (MLflow)',
       href: '/develop-train/experiments-mlflow',
-      section: 'pipelines',
+      section: 'develop-and-train',
       path: '/develop-train/experiments-mlflow/*',
     },
   },
