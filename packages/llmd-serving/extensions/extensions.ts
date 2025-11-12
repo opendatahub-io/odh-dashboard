@@ -104,6 +104,14 @@ const extensions: (
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.tokenAuthField),
     },
   },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/advancedOptionsFields').then((m) => m.deploymentStrategyField),
+    },
+  },
 ];
 
 export default extensions;

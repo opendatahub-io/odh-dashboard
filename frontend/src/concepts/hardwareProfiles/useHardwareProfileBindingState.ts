@@ -17,11 +17,26 @@ export const useHardwareProfileBindingState = (
   const hardwareProfileNamespace =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
     dashboardNamespace;
+  const resourceVersion =
+    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
 
   const [profile, loaded, loadError] = useHardwareProfile(
     hardwareProfileNamespace,
     hardwareProfileName,
   );
+
+  if (!hardwareProfileName && resourceVersion) {
+    // hardware profile was assigned at some point due to presence of
+    // resource version annotation, but has since been deleted
+    return [
+      {
+        state: HardwareProfileBindingState.DELETED,
+        profile: undefined,
+      },
+      true,
+      undefined,
+    ];
+  }
 
   if (!hardwareProfileName || !hardwareProfileNamespace) {
     return [null, true, undefined];

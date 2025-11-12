@@ -161,6 +161,10 @@ class LearningCenterFilters extends Contextual<HTMLElement> {
   findCategoryFilter(index: number) {
     return this.find().find('ul>li').eq(index);
   }
+
+  findShowMoreButton() {
+    return this.find().contains('button', /Show \d+ more/);
+  }
 }
 
 class LearningCenterToolbar extends Contextual<HTMLElement> {
