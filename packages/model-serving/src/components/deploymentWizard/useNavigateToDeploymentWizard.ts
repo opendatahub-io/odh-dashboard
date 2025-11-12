@@ -52,6 +52,7 @@ export const useNavigateToDeploymentWizard = (
   deployment?: Deployment | null,
   initialData?: InitialWizardFormData | null,
   returnRouteValue?: string,
+  cancelReturnRouteValue?: string,
 ): ((projectName?: string) => void) => {
   const navigate: NavigateFunction = useNavigate();
 
@@ -62,6 +63,7 @@ export const useNavigateToDeploymentWizard = (
   if (returnRoute.includes('projects')) {
     returnRoute += '?section=model-server';
   }
+  const cancelReturnRoute = cancelReturnRouteValue;
 
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
@@ -90,10 +92,11 @@ export const useNavigateToDeploymentWizard = (
           initialData: mergedInitialData,
           existingDeployment: deployment,
           returnRoute,
+          cancelReturnRoute,
           projectName,
         },
       });
     },
-    [navigate, formData, initialData, loaded, error, deployment, returnRoute],
+    [navigate, formData, initialData, loaded, error, deployment, returnRoute, cancelReturnRoute],
   );
 };

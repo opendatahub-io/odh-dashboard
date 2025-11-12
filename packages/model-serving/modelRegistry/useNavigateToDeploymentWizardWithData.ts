@@ -46,7 +46,7 @@ export const useNavigateToDeploymentWizardWithData = (
         saveConnection: false,
         hideFields: true,
       },
-      modelTypeField: ServingRuntimeModelType.GENERATIVE,
+      modelTypeField: deployPrefillData.modelType ?? ServingRuntimeModelType.GENERATIVE,
       k8sNameDesc: {
         name: deployPrefillData.modelName,
         description: '',
@@ -68,6 +68,7 @@ export const useNavigateToDeploymentWizardWithData = (
     null,
     prefillInfo,
     deployPrefillData.returnRouteValue,
+    deployPrefillData.cancelReturnRouteValue,
   );
   return navigationFunction;
 };

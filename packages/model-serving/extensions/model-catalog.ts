@@ -12,7 +12,7 @@ const extensions: Extension[] = [
         ),
     },
     flags: {
-      required: [SupportedArea.MODEL_CATALOG],
+      required: [SupportedArea.MODEL_SERVING],
     },
   },
 ];

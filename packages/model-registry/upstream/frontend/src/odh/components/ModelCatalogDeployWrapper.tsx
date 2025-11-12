@@ -7,58 +7,67 @@ import {
 } from '~/odh/extension-points';
 import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
+import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogModelDetails';
 import {
   decodeParams,
   getModelArtifactUri,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
-type ModelCatalogDeployModalExtensionProps = {
+type ModelCatalogDeployModalWrapperProps = {
   model: CatalogModel;
   render: (
     buttonState: { enabled?: boolean; tooltip?: string },
-    onOpenModal: () => void,
-    isModalAvailable: boolean,
+    onOpenWizard: () => void,
+    isWizardAvailable: boolean,
   ) => React.ReactNode;
 };
 
-const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensionProps> = ({
+const ModelCatalogDeployModalWrapper: React.FC<ModelCatalogDeployModalWrapperProps> = ({
   model,
   render,
 }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
-  const [artifacts] = useCatalogModelArtifacts(
+  const [artifacts, artifactsLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
   const uri = artifacts.items.length > 0 ? getModelArtifactUri(artifacts.items) : '';
+  const cancelReturnRoute = getCatalogModelDetailsRoute({
+    sourceId: decodedParams.sourceId,
+    modelName: decodedParams.modelName,
+  });
 
   const catalogDeployPrefillData: DeployPrefillData = React.useMemo(
     () => ({
       modelName: model.name,
       modelUri: uri,
       returnRouteValue: '/ai-hub/deployments/',
+      cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 2,
     }),
-    [model.name, uri],
+    [model.name, uri, cancelReturnRoute],
   );
   const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
     isNavigateToDeploymentWizardWithDataExtension,
   );
   const [navigateToWizard, setNavigateToWizard] = React.useState<(() => void) | null>(null);
 
-  const onOpenModal = React.useCallback(() => {
+  const onOpenWizard = React.useCallback(() => {
     if (navigateToWizard) {
       navigateToWizard();
     }
   }, [navigateToWizard]);
 
-  const isModalAvailable = React.useMemo(() => {
+  const isWizardAvailable = React.useMemo(() => {
     return navigateExtensionsLoaded && navigateExtensions.length > 0;
   }, [navigateExtensions, navigateExtensionsLoaded]);
 
   const buttonState =
-    navigateExtensionsLoaded && navigateExtensions.length > 0
+    navigateExtensionsLoaded &&
+    navigateExtensions.length > 0 &&
+    artifactsLoaded &&
+    !artifactsLoadError
       ? { enabled: true }
       : { enabled: false, tooltip: 'Deployment wizard is not available' };
 
@@ -84,9 +93,9 @@ const ModelCatalogDeployModalExtension: React.FC<ModelCatalogDeployModalExtensio
             />
           );
         })}
-      {render(buttonState, onOpenModal, isModalAvailable)}
+      {render(buttonState, onOpenWizard, isWizardAvailable)}
     </>
   );
 };
 
-export default ModelCatalogDeployModalExtension;
+export default ModelCatalogDeployModalWrapper;
