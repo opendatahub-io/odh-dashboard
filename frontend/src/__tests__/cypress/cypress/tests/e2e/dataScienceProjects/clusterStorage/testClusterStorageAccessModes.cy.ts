@@ -15,6 +15,7 @@ import {
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import type { SCAccessMode } from '#~/__tests__/cypress/cypress/types';
+import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
 
 describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', () => {
   const createdStorageClasses: string[] = [];
@@ -97,7 +98,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
-      clusterStorage.findCreateButton().click();
+      findAddClusterStorageButton().click();
 
       cy.step('Verify storage class dropdown is enabled and contains our storage classes');
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
@@ -125,7 +126,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
-      clusterStorage.findCreateButton().click();
+      findAddClusterStorageButton().click();
 
       cy.step(`Select storage class with ReadWriteOnce access mode: ${scRWOName}`);
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
@@ -163,7 +164,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
-      clusterStorage.findCreateButton().click();
+      findAddClusterStorageButton().click();
 
       cy.step(`Select storage class with multiple access modes: ${scMultiAccessName}`);
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
@@ -201,7 +202,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Fill in the create cluster storage with ReadWriteMany access mode');
-      clusterStorage.findCreateButton().click();
+      findAddClusterStorageButton().click();
 
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
       storageClassSelect.find().click();
@@ -247,7 +248,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open create modal');
-      clusterStorage.findCreateButton().click();
+      findAddClusterStorageButton().click();
 
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
 
