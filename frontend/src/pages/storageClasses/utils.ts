@@ -14,7 +14,7 @@ export const getDefaultStorageClassConfig = (
     displayName: storageClass.metadata.name,
     isEnabled: true,
     isDefault: false,
-    lastModified: new Date().toISOString(),
+    lastModified: storageClass.metadata.creationTimestamp || '-',
     accessModeSettings: {
       [AccessMode.RWO]: true,
     },

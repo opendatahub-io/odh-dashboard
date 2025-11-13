@@ -58,8 +58,7 @@ describe('Storage classes', () => {
         .findDefaultValue()
         .findByTestId('set-default-radio')
         .should('not.be.checked');
-      // Last modified is the current date, so we can't test the exact value. But something should be there.
-      storageClassTableRow.findLastModifiedValue().should('not.contain.text', '-');
+      storageClassTableRow.findLastModifiedValue().should('contain.text', '7/4/2024, 5:21:40 AM');
     });
 
     it('sets the first storage class as the default storage class', () => {
