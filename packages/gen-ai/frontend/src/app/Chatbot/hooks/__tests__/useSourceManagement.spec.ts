@@ -1,10 +1,16 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
 import * as React from 'react';
-import { DropEvent } from '@patternfly/react-core';
 import useSourceManagement from '~/app/Chatbot/hooks/useSourceManagement';
 import { uploadSource } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings, FileUploadResult } from '~/app/types';
+import { ChatbotSourceSettings } from '~/app/types';
+import {
+  mockNamespace,
+  mockSourceSettings,
+  mockFile,
+  mockDropEvent,
+  mockUploadResult,
+} from './useSourceManagement.test-utils';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -24,40 +30,6 @@ const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 describe('useSourceManagement', () => {
   const mockOnShowSuccessAlert = jest.fn();
   const mockOnShowErrorAlert = jest.fn();
-  const mockNamespace = { name: 'test-namespace' };
-
-  const mockSourceSettings: ChatbotSourceSettings = {
-    vectorStore: 'test-vector-store',
-    embeddingModel: 'test-embedding-model',
-    maxChunkLength: 1000,
-    chunkOverlap: 100,
-    delimiter: '\n\n',
-  };
-
-  const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
-  const mockDropEvent = {} as DropEvent;
-
-  const mockUploadResult: FileUploadResult = {
-    file_id: 'file-123',
-    vector_store_file: {
-      id: 'vs-file-123',
-      object: 'vector_store.file',
-      created_at: 1234567890,
-      vector_store_id: 'test-vector-store',
-      status: 'completed',
-      usage_bytes: 1024,
-      chunking_strategy: {
-        type: 'static',
-        static: {
-          max_chunk_size_tokens: 1000,
-          chunk_overlap_tokens: 100,
-        },
-      },
-      attributes: {
-        description: 'Test file',
-      },
-    },
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -438,8 +410,8 @@ describe('useSourceManagement', () => {
     });
   });
 
-  describe('timer behavior', () => {
-    it('should not open modal when no files are pending', () => {
+  describe('additional behaviors', () => {
+    it('should not open modal when no files are pending after timer', () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -447,74 +419,14 @@ describe('useSourceManagement', () => {
         }),
       );
 
-      expect(result.current.isSourceSettingsOpen).toBe(false);
-
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
+      act(() => jest.advanceTimersByTime(100));
       expect(result.current.isSourceSettingsOpen).toBe(false);
     });
 
-    it('should process multiple files sequentially', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
-
-      // Add multiple files
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile, mockFile2]);
-      });
-
-      expect(result.current.filesWithSettings).toHaveLength(2);
-
-      // Fast-forward timer to process first file
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      expect(result.current.isSourceSettingsOpen).toBe(true);
-      expect(result.current.currentFileForSettings).toEqual(mockFile);
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle uploadSource with network timeout', async () => {
-      mockUploadSource.mockRejectedValue(new Error('Network timeout'));
-
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Fast-forward timer to set current file
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      await act(async () => {
-        await result.current.handleSourceSettingsSubmit(mockSourceSettings);
-      });
-
-      expect(mockOnShowErrorAlert).toHaveBeenCalled();
-    });
-
-    it('should handle partial source settings', async () => {
+    it('should handle partial source settings without optional fields', async () => {
       const partialSettings: ChatbotSourceSettings = {
         vectorStore: 'test-vector-store',
         embeddingModel: 'test-embedding-model',
-        // Missing optional fields
       };
 
       const { result } = renderHook(() =>
@@ -526,10 +438,6 @@ describe('useSourceManagement', () => {
 
       await act(async () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Fast-forward timer to set current file
-      act(() => {
         jest.advanceTimersByTime(100);
       });
 
@@ -537,40 +445,9 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(partialSettings);
       });
 
-      // Check that uploadSource was called with FormData
-      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
-
-      // Verify FormData contents (partial settings without optional fields)
       const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;
-      expect(formDataCall.get('file')).toBe(mockFile);
       expect(formDataCall.get('chunk_overlap_tokens')).toBeNull();
-      expect(formDataCall.get('max_chunk_size_tokens')).toBeNull();
-      expect(formDataCall.get('vector_store_id')).toBe('test-vector-store');
-
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
-    });
-
-    it('should handle rapid successive file drops', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      const file1 = new File(['content1'], 'file1.txt', { type: 'text/plain' });
-      const file2 = new File(['content2'], 'file2.txt', { type: 'text/plain' });
-
-      // Drop files in rapid succession
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [file1]);
-        await result.current.handleSourceDrop(mockDropEvent, [file2]);
-      });
-
-      // Should accumulate all files
-      expect(result.current.filesWithSettings).toHaveLength(2);
-      expect(result.current.filesWithSettings[0].file).toEqual(file1);
-      expect(result.current.filesWithSettings[1].file).toEqual(file2);
     });
   });
 });

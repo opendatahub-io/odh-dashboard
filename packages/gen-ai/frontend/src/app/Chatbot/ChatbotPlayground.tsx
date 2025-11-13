@@ -102,6 +102,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       fileManagement.refreshFiles();
     },
     uploadedFiles: fileManagement.files,
+    isFilesLoading: fileManagement.isLoading,
   });
 
   const chatbotMessages = useChatbotMessages({
