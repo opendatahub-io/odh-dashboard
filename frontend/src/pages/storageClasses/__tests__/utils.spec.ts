@@ -113,7 +113,17 @@ describe('setDefaultStorageClass', () => {
     expect(result).toEqual(storageClasses);
   });
 
-  it('should return the storage classes with the default storage class as the first item if there is no default storage class present', () => {
+  it('should return the storage classes with the default storage class as the openshift default storage class', () => {
+    const storageClasses = [
+      nonDefaultStorageClass,
+      nonDefaultStorageClass,
+      modifiedDefaultStorageClass,
+    ];
+    const result = setDefaultStorageClass(storageClasses);
+    expect(result).toEqual([nonDefaultStorageClass, nonDefaultStorageClass, defaultStorageClass]);
+  });
+
+  it('should return the storage classes with the default storage class as the first item if there is no default storage class present and no openshift default storage class present', () => {
     const storageClasses = [nonDefaultStorageClass, nonDefaultStorageClass];
     const result = setDefaultStorageClass(storageClasses);
     expect(result).toEqual([modifiedNonDefaultStorageClass, nonDefaultStorageClass]);
