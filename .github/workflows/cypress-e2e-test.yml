@@ -1,4 +1,4 @@
-name: E2E Direct Commit PR Tests
+name: Cypress e2e Test PR Pipeline
 
 # This workflow currently only supports ODH (Open Data Hub) dash-e2e pipeline.
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
@@ -22,7 +22,7 @@ jobs:
       - name: Set default test tags
         id: set-tags
         # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
-        # ToDO: Use turbo to run tests according to PR changes.
+        # TODO: Use turbo to run tests according to PR changes.
         run: |
           echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
@@ -37,7 +37,7 @@ jobs:
       - name: Calculate unique port for this workflow run
         run: |
           # Dynamic port allocation for parallel execution
-          BASE_PORT=$((4000 + (${{ github.run_id }} % 100) * 10))
+          BASE_PORT=$((4000 + (${{ github.run_id }} % 1000) * 5))
           
           # Add matrix offset to separate concurrent jobs within same PR
           if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
@@ -49,8 +49,15 @@ jobs:
           fi
           
           WEBPACK_PORT=$((BASE_PORT + MATRIX_OFFSET))
+          
+          # Store port info with run_id for cleanup tracking
+          PORT_INFO_DIR="/tmp/gha-ports"
+          mkdir -p "$PORT_INFO_DIR"
+          echo "${{ github.run_id }}" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+          
           echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
-          echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.test-tag }}"
+          echo "PORT_INFO_FILE=$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id" >> $GITHUB_ENV
+          echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.test-tag }} (run_id: ${{ github.run_id }})"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -91,93 +98,6 @@ jobs:
           path: ${{ runner.temp }}/oc.tar.gz
           key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
 
-      - name: Check and Install OpenShift CLI
-        run: |
-          echo "🔍 Checking if OpenShift CLI (oc) is installed..."
-
-          # Check if oc is already installed
-          if command -v oc &> /dev/null; then
-            echo "✅ OpenShift CLI (oc) is already installed"
-            oc version --client
-          else
-            echo "❌ OpenShift CLI (oc) not found, installing..."
-            echo "📦 Installing oc CLI for Linux..."
-
-            OC_TARBALL="${{ runner.temp }}/oc.tar.gz"
-
-            # Check if tarball was cached
-            if [ -f "$OC_TARBALL" ]; then
-              echo "✅ Using cached OpenShift CLI tarball"
-            else
-              echo "📥 Downloading OpenShift CLI tarball..."
-              curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz -o "$OC_TARBALL"
-            fi
-
-            # Extract and install oc
-            echo "📦 Extracting OpenShift CLI..."
-            tar -xzf "$OC_TARBALL"
-            sudo mv oc /usr/local/bin/
-            sudo chmod +x /usr/local/bin/oc
-
-            # Verify installation
-            echo "✅ OpenShift CLI installed successfully"
-            oc version --client
-          fi
-
-          # Final verification
-          echo "🎯 Final oc version check:"
-          oc version --client || echo "⚠️  Could not determine oc version"
-
-      - name: Install Cypress Dependencies
-        run: |
-          echo "🔧 Installing Cypress system dependencies for Fedora (based on Cypress docs)..."
-
-          # Use the simplified approach from Cypress documentation for Amazon Linux 2023 (Fedora-compatible)
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            echo "📦 Installing minimal Cypress dependencies for Linux..."
-
-            # Based on Cypress docs for Amazon Linux 2023 - Fedora compatible
-            echo "Installing core dependencies..."
-            sudo dnf install -y xorg-x11-server-Xvfb gtk3-devel nss alsa-lib
-
-            # Add the missing ATK packages that Cypress actually needs
-            echo "Installing ATK dependencies..."
-            sudo dnf install -y atk atk-devel at-spi2-atk
-
-            # Add additional GUI libraries that might be needed
-            echo "Installing additional GUI libraries..."
-            sudo dnf install -y libgbm libgbm-devel libnotify libnotify-devel
-
-            # Update library cache
-            sudo ldconfig
-
-            # Verify installations
-            echo "🔍 Verifying installations..."
-            if command -v Xvfb &> /dev/null; then
-              echo "✅ Xvfb installed"
-            else
-              echo "❌ Xvfb missing"
-            fi
-
-            if ldconfig -p | grep -q libnss3; then
-              echo "✅ NSS libraries installed"
-            else
-              echo "❌ NSS libraries missing"
-            fi
-
-            if ldconfig -p | grep -q libatk; then
-              echo "✅ ATK libraries installed (fixes libatk-1.0.so.0 error)"
-              echo "📋 ATK libraries found:"
-              ldconfig -p | grep libatk
-            else
-              echo "❌ ATK libraries missing - checking what we have..."
-              sudo dnf list installed | grep -i atk || echo "No ATK packages found"
-              find /usr/lib* -name "*libatk*" 2>/dev/null || echo "No ATK libraries found in filesystem"
-            fi
-
-            echo "🎯 Cypress dependencies installation completed"
-          fi
-
       - name: Download test configuration
         run: |
           echo "🔧 Downloading test configuration from GitLab..."
@@ -202,7 +122,6 @@ jobs:
           # For forked PRs, skip OpenShift login since secrets are not available
           if [ -z "${{ secrets.OC_SERVER }}" ]; then
             echo "⚠️  OpenShift secrets not available (forked PR) - skipping cluster login"
-            echo "💡 Tests will run in mock mode or against local test environment"
             exit 0
           fi
 
@@ -218,24 +137,6 @@ jobs:
           # Mask sensitive data in logs
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
-
-          # Extract TEST_USER_3_AUTH_TYPE from TEST_USER_3 section
-          TEST_USER_3_AUTH_TYPE=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "AUTH_TYPE:" | head -1 | sed 's/.*AUTH_TYPE: //' | tr -d ' ')
-
-          # Extract TEST_USER_3_USERNAME from TEST_USER_3 section
-          TEST_USER_3_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-
-          # Extract TEST_USER_3_PASSWORD from TEST_USER_3 section
-          TEST_USER_3_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
-
-          # Mask TEST_USER_3 credentials in logs (must happen after extraction)
-          echo "::add-mask::$TEST_USER_3_USERNAME"
-          echo "::add-mask::$TEST_USER_3_PASSWORD"
-
-          # Export TEST_USER_3 credentials as environment variables for Cypress
-          echo "TEST_USER_3_AUTH_TYPE=$TEST_USER_3_AUTH_TYPE" >> $GITHUB_ENV
-          echo "TEST_USER_3_USERNAME=$TEST_USER_3_USERNAME" >> $GITHUB_ENV
-          echo "TEST_USER_3_PASSWORD=$TEST_USER_3_PASSWORD" >> $GITHUB_ENV
           
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify > /dev/null 2>&1
@@ -255,7 +156,7 @@ jobs:
         run: |
           TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
           
-          echo "🔧 Overriding RHOAI namespaces with ODH namespaces from secrets..."
+          echo "Overriding RHOAI namespaces with ODH namespaces from secrets..."
           
           # Helper function to set or update a key-value pair in YAML
           set_yaml_value() {
@@ -278,7 +179,7 @@ jobs:
           ODH_NAMESPACES="${{ secrets.ODH_NAMESPACES }}"
           
           if [ -z "$ODH_NAMESPACES" ]; then
-            echo "⚠️  ODH_NAMESPACES secret not set, skipping namespace override"
+            echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
             exit 0
           fi
           
@@ -301,7 +202,7 @@ jobs:
           set_yaml_value "ODH_DASHBOARD_PROJECT_NAME" "$PROJECT_NAME"
           
           echo "✅ Overridden namespaces with ODH values"
-          echo "📋 Namespace configuration updated"
+          echo "Namespace configuration updated"
 
       - name: Set test configuration
         run: |
@@ -313,11 +214,53 @@ jobs:
         run: |
           echo "🧹 Cleaning up port ${WEBPACK_PORT}..."
           
-          # Kill processes using this specific port only (preserves other parallel jobs)
+          PORT_INFO_DIR="/tmp/gha-ports"
+          PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+          CURRENT_RUN_ID="${{ github.run_id }}"
+          
+          # Check if port is in use
           if lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; then
-            echo "⚠️  Port ${WEBPACK_PORT} is in use, cleaning up..."
-            lsof -ti:${WEBPACK_PORT} | xargs -r kill -9 2>/dev/null || true
-            sleep 3
+            # Check if there's a run_id file for this port
+            if [ -f "$PORT_INFO_FILE" ]; then
+              PORT_OWNER_RUN_ID=$(cat "$PORT_INFO_FILE")
+              if [ "$PORT_OWNER_RUN_ID" != "$CURRENT_RUN_ID" ]; then
+                echo "⚠️  Port ${WEBPACK_PORT} is owned by different run_id: $PORT_OWNER_RUN_ID"
+                echo "⚠️  This port is in use by another workflow run - will not kill it"
+                # Try to find an alternative port
+                for alt_port in $(seq $((WEBPACK_PORT + 5)) $((WEBPACK_PORT + 50)) 5); do
+                  if ! lsof -i:${alt_port} > /dev/null 2>&1; then
+                    WEBPACK_PORT=$alt_port
+                    PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+                    echo "✅ Found alternative port: ${WEBPACK_PORT}"
+                    break
+                  fi
+                done
+              else
+                echo "✅ Port ${WEBPACK_PORT} is owned by this run - safe to clean up"
+              fi
+            else
+              # No run_id file - check if process is from a recent GitHub Actions run
+              PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
+              if [ -n "$PORT_PID" ]; then
+                # Check if process is from a GitHub Actions workflow
+                if ps -p "$PORT_PID" -o command= 2>/dev/null | grep -q "webpack.*serve\|node.*40[0-9][0-9]"; then
+                  echo "⚠️  Port ${WEBPACK_PORT} in use by potential GHA process (PID: $PORT_PID)"
+                  echo "⚠️  Being cautious - will not kill without run_id confirmation"
+                  # Find alternative port
+                  for alt_port in $(seq $((WEBPACK_PORT + 5)) $((WEBPACK_PORT + 50)) 5); do
+                    if ! lsof -i:${alt_port} > /dev/null 2>&1; then
+                      WEBPACK_PORT=$alt_port
+                      PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+                      echo "✅ Found alternative port: ${WEBPACK_PORT}"
+                      break
+                    fi
+                  done
+                else
+                  echo "⚠️  Port ${WEBPACK_PORT} in use by non-GHA process - cleaning up"
+                  kill -9 "$PORT_PID" 2>/dev/null || true
+                fi
+              fi
+            fi
           fi
           
           # Verify port is free with retry logic
@@ -330,17 +273,23 @@ jobs:
               exit 1
             fi
             echo "⏳ Retrying cleanup... (attempt $RETRY_COUNT/10)"
-            lsof -ti:${WEBPACK_PORT} | xargs -r kill -9 2>/dev/null || true
             sleep 2
           done
           
-          echo "✅ Port ${WEBPACK_PORT} is free"
+          # Claim the port with our run_id
+          mkdir -p "$PORT_INFO_DIR"
+          echo "$CURRENT_RUN_ID" > "$PORT_INFO_FILE"
+          echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
+          echo "PORT_INFO_FILE=$PORT_INFO_FILE" >> $GITHUB_ENV
+          
+          echo "✅ Port ${WEBPACK_PORT} is free and claimed by run_id: $CURRENT_RUN_ID"
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} (dash-e2e-odh)..."
           
           # Start webpack and filter sensitive output
           cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
           
           # Give server time to initialize
           sleep 20
@@ -385,10 +334,11 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run Cypress tests with Electron browser
+          # Run Cypress tests with Chrome browser
+          # videoUploadOnPasses: false means videos are recorded but only uploaded on failure
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config video=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots"
+            --config video=true,videoUploadOnPasses=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
@@ -429,10 +379,98 @@ jobs:
     steps:
       - name: Stop Cypress Servers
         run: |
-          echo "🛑 Stopping webpack dev server..."
-          if [ -n "$SERVER_PID" ]; then
-            kill $SERVER_PID || echo "Failed to kill SERVER_PID"
+          echo "🛑 Stopping webpack dev server for run_id: ${{ github.run_id }}..."
+          
+          PORT_INFO_DIR="/tmp/gha-ports"
+          CURRENT_RUN_ID="${{ github.run_id }}"
+          KILLED_COUNT=0
+          
+          # Find all port files owned by this run_id
+          if [ -d "$PORT_INFO_DIR" ]; then
+            for port_file in "$PORT_INFO_DIR"/port-*.run_id; do
+              if [ -f "$port_file" ]; then
+                PORT_OWNER_RUN_ID=$(cat "$port_file")
+                if [ "$PORT_OWNER_RUN_ID" = "$CURRENT_RUN_ID" ]; then
+                  # Extract port number from filename
+                  PORT=$(basename "$port_file" | sed 's/port-\([0-9]*\)\.run_id/\1/')
+                  PID_FILE="$PORT_INFO_DIR/port-${PORT}.pid"
+                  
+                  # Kill process if PID file exists
+                  if [ -f "$PID_FILE" ]; then
+                    PID=$(cat "$PID_FILE")
+                    if ps -p "$PID" > /dev/null 2>&1; then
+                      echo "🛑 Killing process $PID on port $PORT (run_id: $CURRENT_RUN_ID)"
+                      # Kill the main process and all its children (including Chrome processes spawned by Cypress)
+                      pkill -P "$PID" 2>/dev/null || true
+                      kill "$PID" 2>/dev/null || true
+                      KILLED_COUNT=$((KILLED_COUNT + 1))
+                    fi
+                  fi
+                  
+                  # Also kill any process on this port (double-check)
+                  PORT_PID=$(lsof -ti:${PORT} 2>/dev/null | head -1)
+                  if [ -n "$PORT_PID" ]; then
+                    echo "🛑 Killing process $PORT_PID on port $PORT"
+                    # Kill children processes too
+                    pkill -P "$PORT_PID" 2>/dev/null || true
+                    kill "$PORT_PID" 2>/dev/null || true
+                  fi
+                  
+                  # Clean up any orphaned Chrome processes that might be related to Cypress
+                  ALL_PORT_PIDS=$(lsof -ti:${PORT} 2>/dev/null || true)
+                  if [ -n "$ALL_PORT_PIDS" ]; then
+                    for port_pid in $ALL_PORT_PIDS; do
+                      # Check if this is a Chrome/Chromium process
+                      if ps -p "$port_pid" -o comm= 2>/dev/null | grep -qE "chrome|chromium"; then
+                        echo "🛑 Killing Chrome process $port_pid (using port $PORT)"
+                        # Kill the Chrome process and all its children
+                        pkill -P "$port_pid" 2>/dev/null || true
+                        kill "$port_pid" 2>/dev/null || true
+                      fi
+                    done
+                  fi
+                  
+                  # Also look for Chrome processes that are children of our webpack process
+                  if [ -n "$PID" ] && ps -p "$PID" > /dev/null 2>&1; then
+                    CHROME_CHILDREN=$(pgrep -P "$PID" -f "chrome|chromium" 2>/dev/null || true)
+                    if [ -n "$CHROME_CHILDREN" ]; then
+                      echo "🧹 Cleaning up Chrome processes spawned by webpack (PID $PID)..."
+                      for chrome_pid in $CHROME_CHILDREN; do
+                        echo "🛑 Killing Chrome process $chrome_pid (child of webpack PID $PID)"
+                        pkill -P "$chrome_pid" 2>/dev/null || true
+                        kill "$chrome_pid" 2>/dev/null || true
+                      done
+                    fi
+                  fi
+                  
+                  # Fallback: Look for Chrome processes with Cypress-specific flags that might be orphaned
+                  # These are Chrome processes that Cypress spawned but might not be directly related to our port
+                  # We only kill them if they're accessing our port to be safe
+                  ORPHANED_CHROME=$(pgrep -f "chrome.*--test-type|chromium.*--test-type" 2>/dev/null || true)
+                  if [ -n "$ORPHANED_CHROME" ]; then
+                    for chrome_pid in $ORPHANED_CHROME; do
+                      # Only kill if it's accessing our port (to avoid killing other users' Chrome processes)
+                      if lsof -p "$chrome_pid" 2>/dev/null | grep -q ":${PORT}"; then
+                        echo "🛑 Killing orphaned Chrome process $chrome_pid (accessing port $PORT)"
+                        pkill -P "$chrome_pid" 2>/dev/null || true
+                        kill "$chrome_pid" 2>/dev/null || true
+                      fi
+                    done
+                  fi
+                  
+                  # Clean up port info files
+                  rm -f "$port_file" "$PID_FILE"
+                fi
+              fi
+            done
           fi
-          pkill -f "webpack.*serve" || echo "No webpack processes found"
-          pkill -f "node.*40[0-9][0-9]" || echo "No node processes on dynamic ports"
-          echo "✅ Server cleanup completed"
+          
+          # Clean up any stale port files older than 24 hours
+          find "$PORT_INFO_DIR" -name "*.run_id" -mtime +1 -delete 2>/dev/null || true
+          find "$PORT_INFO_DIR" -name "*.pid" -mtime +1 -delete 2>/dev/null || true
+          
+          if [ $KILLED_COUNT -eq 0 ]; then
+            echo "✅ No processes found for run_id: $CURRENT_RUN_ID"
+          else
+            echo "✅ Cleaned up $KILLED_COUNT process(es) for run_id: $CURRENT_RUN_ID"
+          fi
