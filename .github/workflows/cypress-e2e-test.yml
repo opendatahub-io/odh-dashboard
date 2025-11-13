@@ -335,10 +335,10 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run Cypress tests with Chrome browser
-          # videoUploadOnPasses: false means videos are recorded but only uploaded on failure
+          # Videos are recorded and automatically uploaded on failure (default Cypress behavior)
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
-            --config video=true,videoUploadOnPasses=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Test tag name
         if: ${{ always() }}
