@@ -126,6 +126,8 @@ const extensions: (
         import('./src/aiAssets').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
+      extractDeploymentStrategy: () =>
+        import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
     },
   },
   {

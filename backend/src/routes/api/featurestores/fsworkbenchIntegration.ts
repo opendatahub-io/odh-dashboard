@@ -112,7 +112,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           'feast-configs-registry',
         );
 
-        if (!feastConfig.data?.namespaces) {
+        if (!feastConfig || !feastConfig.data?.namespaces) {
           return reply.send({
             clientConfigs: [],
             namespaces: [],

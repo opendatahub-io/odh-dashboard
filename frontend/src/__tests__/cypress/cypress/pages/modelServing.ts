@@ -1232,6 +1232,18 @@ class ModelServingWizard extends Wizard {
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
   }
+
+  findDeploymentStrategySection() {
+    return cy.findByTestId('deployment-strategy-section');
+  }
+
+  findDeploymentStrategyRollingOption() {
+    return this.findDeploymentStrategySection().findByTestId('deployment-strategy-rolling');
+  }
+
+  findDeploymentStrategyRecreateOption() {
+    return this.findDeploymentStrategySection().findByTestId('deployment-strategy-recreate');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();
