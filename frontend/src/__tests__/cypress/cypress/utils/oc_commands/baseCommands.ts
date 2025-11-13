@@ -60,11 +60,16 @@ export const patchOpenShiftResource = (
   resourceType: string,
   resourceName: string,
   patchContent: string,
+  namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
   // Escape single quotes in the patch content
   const escapedPatchContent = patchContent.replace(/'/g, "'\\''");
-
-  const ocCommand = `oc patch ${resourceType} ${resourceName} --type=merge -p '${escapedPatchContent}'`;
+  let ocCommand: string;
+  if (namespace) {
+    ocCommand = `oc patch ${resourceType} ${resourceName} -n ${namespace} --type=merge -p '${escapedPatchContent}'`;
+  } else {
+    ocCommand = `oc patch ${resourceType} ${resourceName} --type=merge -p '${escapedPatchContent}'`;
+  }
 
   cy.log(ocCommand);
 

@@ -123,6 +123,7 @@ describe('A user can deploy an LLMD model', () => {
         'LLMInferenceService',
         modelName,
         '{"spec":{"template":{"containers":[{"name":"main","image":"quay.io/pierdipi/vllm-cpu:latest"}]}}}',
+        projectName,
       );
       cy.step('Verify that the Model is ready');
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
