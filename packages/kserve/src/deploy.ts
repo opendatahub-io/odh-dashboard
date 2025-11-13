@@ -56,6 +56,7 @@ export const deployKServeDeployment = async (
     inferenceServiceData,
     existingDeployment?.model,
     secretName,
+    initialWizardData?.transformData,
     {
       dryRun,
       overwrite,

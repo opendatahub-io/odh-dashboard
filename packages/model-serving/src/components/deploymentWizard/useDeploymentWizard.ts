@@ -74,6 +74,7 @@ export const useModelDeploymentWizard = (
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
+    editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
