@@ -29,6 +29,7 @@ jobs:
   e2e-tests:
     needs: [get-test-tags]
     runs-on: self-hosted
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -65,6 +66,8 @@ jobs:
       - name: Cache npm dependencies
         uses: actions/cache@v4
         id: npm-cache
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           path: |
             ~/.cache/Cypress
@@ -85,6 +88,8 @@ jobs:
 
       - name: Cache turbo build artifacts
         uses: actions/cache@v4
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           path: ${{ github.workspace }}/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-e2e
@@ -94,6 +99,8 @@ jobs:
       - name: Cache OpenShift CLI tarball
         uses: actions/cache@v4
         id: oc-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           path: ${{ runner.temp }}/oc.tar.gz
           key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
