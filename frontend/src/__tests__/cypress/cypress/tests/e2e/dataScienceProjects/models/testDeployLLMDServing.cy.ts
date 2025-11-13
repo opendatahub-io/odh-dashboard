@@ -62,7 +62,7 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -116,14 +116,15 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
 
-      cy.step('Verify that the Model is ready');
+      cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
       // Patch the LLM Inference Service to set image to VLLM CPU
-      // TODO: Remove once the cluster have GPUs.
+      // workaround for model to be deployed without GPUs.
       patchOpenShiftResource(
-        'LLMinferenceService',
+        'LLMInferenceService',
         modelName,
         '{"spec":{"template":{"containers":[{"name":"main","image":"quay.io/pierdipi/vllm-cpu:latest"}]}}}',
       );
+      cy.step('Verify that the Model is ready');
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
 
       cy.step('Verify the model Row');
