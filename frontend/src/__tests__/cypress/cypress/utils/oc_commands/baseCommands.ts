@@ -76,11 +76,9 @@ export const patchOpenShiftResource = (
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       // If there is an error, log the error and fail the test
-      cy.log(`Error 1: ${result.code}`);
       cy.log(`ERROR patching ${resourceType} ${resourceName}
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);
-      cy.log(`Error 2: ${result.code}`);
       throw new Error(`Command failed with code ${result.code}`);
     }
     return result;

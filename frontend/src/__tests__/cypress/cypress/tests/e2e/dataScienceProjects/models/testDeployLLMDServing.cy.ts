@@ -120,7 +120,7 @@ describe('A user can deploy an LLMD model', () => {
       // Patch the LLM Inference Service to set image to VLLM CPU
       // workaround for model to be deployed without GPUs.
       patchOpenShiftResource(
-        'LLMInferenceService',
+        'llminferenceservice',
         modelName,
         '{"spec":{"template":{"containers":[{"name":"main","image":"quay.io/pierdipi/vllm-cpu:latest"}]}}}',
         projectName,
