@@ -10,7 +10,7 @@ const ModelTrainingRoutes: React.FC = () => (
       path="/:namespace?/*"
       element={
         <ModelTrainingCoreLoader
-          getInvalidRedirectPath={(namespace) => `/modelTraining/${namespace}`}
+          getInvalidRedirectPath={(namespace) => `/develop-train/training-jobs/${namespace}`}
         />
       }
     >
