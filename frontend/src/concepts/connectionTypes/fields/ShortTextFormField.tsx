@@ -8,6 +8,7 @@ import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/u
 const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
   id,
   field,
+  isDisabled,
   mode,
   onChange,
   value,
@@ -19,6 +20,7 @@ const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
       <TextInput
         aria-readonly={isPreview}
         autoComplete="off"
+        isDisabled={isDisabled}
         isRequired={field.required}
         id={id}
         name={id}

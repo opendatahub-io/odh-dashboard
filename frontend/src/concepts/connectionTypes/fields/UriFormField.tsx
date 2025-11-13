@@ -26,6 +26,7 @@ const validateUrl = (url?: string) => {
 const UriFormField: React.FC<FieldProps<UriField>> = ({
   id,
   field,
+  isDisabled,
   mode,
   onChange,
   value,
@@ -45,6 +46,7 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
       <TextInput
         aria-readonly={isPreview}
         autoComplete="off"
+        isDisabled={isDisabled}
         isRequired={field.required}
         id={id}
         name={id}

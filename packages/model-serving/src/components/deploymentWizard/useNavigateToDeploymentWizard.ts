@@ -2,6 +2,7 @@ import { useLocation, useNavigate, type NavigateFunction } from 'react-router-do
 import React from 'react';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
+import { InitialWizardFormData } from './types';
 import { type Deployment } from '../../../extension-points';
 
 /**
@@ -12,6 +13,8 @@ import { type Deployment } from '../../../extension-points';
  * @param deployment - Optional deployment object for editing existing deployments.
  *                     If provided, the hook will extract form data from this deployment
  *                     and wait for it to load before allowing navigation.
+ * @param initialData - Optional initial data to prefill data in the wizard.
+ * @param returnRouteValue - Optional return route value to use instead of the current location pathname.
  * @returns A memoized navigation function that takes a project name and navigates
  *          to the deployment wizard with the appropriate state data.
  *
@@ -30,6 +33,13 @@ import { type Deployment } from '../../../extension-points';
  * const handleEdit = () => {
  *   navigateToEdit('my-project');
  * };
+ *
+ * // For creating a new deployment with a custom return route
+ * const navigateToWizard = useNavigateToDeploymentWizard(undefined, undefined,'/ai-hub/deployments/');
+ *
+ * const handleCreate = () => {
+ *   navigateToWizard('my-project');
+ * };
  * ```
  *
  * @remarks
@@ -40,17 +50,20 @@ import { type Deployment } from '../../../extension-points';
  */
 export const useNavigateToDeploymentWizard = (
   deployment?: Deployment | null,
+  initialData?: InitialWizardFormData | null,
+  returnRouteValue?: string,
+  cancelReturnRouteValue?: string,
 ): ((projectName?: string) => void) => {
   const navigate: NavigateFunction = useNavigate();
 
   // Load hooks needed for the deployment wizard
   const { formData, loaded, error } = useExtractFormDataFromDeployment(deployment);
-
   const location = useLocation();
-  let returnRoute = location.pathname;
+  let returnRoute = returnRouteValue ?? location.pathname;
   if (returnRoute.includes('projects')) {
     returnRoute += '?section=model-server';
   }
+  const cancelReturnRoute = cancelReturnRouteValue;
 
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
@@ -69,11 +82,21 @@ export const useNavigateToDeploymentWizard = (
         return;
       }
 
+      const mergedInitialData = {
+        ...(formData ?? {}),
+        ...(initialData ?? {}),
+      };
       // Navigate to deployment wizard with state data
       navigate(getDeploymentWizardRoute(), {
-        state: { initialData: formData, existingDeployment: deployment, returnRoute, projectName },
+        state: {
+          initialData: mergedInitialData,
+          existingDeployment: deployment,
+          returnRoute,
+          cancelReturnRoute,
+          projectName,
+        },
       });
     },
-    [navigate, formData, loaded, error, deployment, returnRoute],
+    [navigate, formData, initialData, loaded, error, deployment, returnRoute, cancelReturnRoute],
   );
 };

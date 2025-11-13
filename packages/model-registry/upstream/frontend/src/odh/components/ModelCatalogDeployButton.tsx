@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { CatalogModel } from '~/app/modelCatalogTypes';
-import ModelCatalogDeployModalExtension from './ModelCatalogDeployModalExtension';
+import ModelCatalogDeployModalWrapper from './ModelCatalogDeployWrapper';
 
 export const ModelCatalogDeployButton = ({
   model,
@@ -10,15 +10,15 @@ export const ModelCatalogDeployButton = ({
   model: CatalogModel;
   renderRegisterButton?: (isDeployAvailable: boolean) => React.ReactNode;
 }) => (
-  <ModelCatalogDeployModalExtension
+  <ModelCatalogDeployModalWrapper
     model={model}
-    render={(buttonState, onOpenModal, isModalAvailable) => {
+    render={(buttonState, onOpenWizard, isWizardAvailable) => {
       const deployButton = (
         <Button
           id="deploy-button"
           aria-label="Deploy model"
           variant={ButtonVariant.primary}
-          onClick={buttonState?.enabled ? onOpenModal : undefined}
+          onClick={buttonState?.enabled ? onOpenWizard : undefined}
           isAriaDisabled={!buttonState?.enabled}
           data-testid="deploy-button"
         >
@@ -26,7 +26,7 @@ export const ModelCatalogDeployButton = ({
         </Button>
       );
 
-      const wrappedDeployButton = isModalAvailable ? (
+      const wrappedDeployButton = isWizardAvailable ? (
         buttonState.tooltip ? (
           <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
         ) : (
@@ -37,7 +37,7 @@ export const ModelCatalogDeployButton = ({
       return (
         <>
           {wrappedDeployButton}
-          {renderRegisterButton?.(isModalAvailable)}
+          {renderRegisterButton?.(isWizardAvailable)}
         </>
       );
     }}
