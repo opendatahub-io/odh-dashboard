@@ -9,6 +9,7 @@ type MockResourceConfigType = {
   uid?: string;
   creationTimestamp?: string;
   numNodes?: number;
+  numProcPerNode?: number;
   status?: TrainingJobState;
   localQueueName?: string;
   suspend?: boolean;
@@ -46,6 +47,7 @@ export const mockTrainJobK8sResource = ({
   uid = genUID('train-job'),
   creationTimestamp = '2024-01-15T10:30:00Z',
   numNodes = 3,
+  numProcPerNode = 1,
   status = TrainingJobState.RUNNING,
   localQueueName = 'default-queue',
   suspend = false,
@@ -113,6 +115,7 @@ export const mockTrainJobK8sResource = ({
         suspend,
         trainer: {
           numNodes,
+          numProcPerNode,
           resourcesPerNode: {
             limits: {
               'nvidia.com/gpu': gpuLimit,
