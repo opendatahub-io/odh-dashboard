@@ -1,6 +1,5 @@
 import '@testing-library/cypress/add-commands';
 import './genai';
-import './testConfig';
 
 // Add cy.step() command for better test documentation
 declare global {

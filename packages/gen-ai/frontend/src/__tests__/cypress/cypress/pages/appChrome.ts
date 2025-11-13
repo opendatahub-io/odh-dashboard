@@ -13,22 +13,16 @@ class AppChrome {
   }
 
   waitForPageLoad(): void {
-    // Wait for the main app to load
+    cy.document().should('exist');
     cy.get('body', { timeout: 15000 }).should('be.visible');
   }
 
   findGenAiStudioNav(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Match any variation: "Gen AI", "GenAI", "Gen-AI", "Gen AI Studio", etc.
-    return cy.contains('a, [role="link"], nav a', /gen[\s-]?ai/i, { timeout: 15000 });
+    return cy.findByTestId('nav-gen-ai-v3', { timeout: 15000 });
   }
 
   verifyGenAiStudioVisible(): void {
-    // Just verify the page loads, don't require specific nav text
-    cy.log('App loaded successfully');
-  }
-
-  findBody(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body', { timeout: 15000 });
+    this.findGenAiStudioNav().should('exist');
   }
 
   navigateToPath(path: string): void {

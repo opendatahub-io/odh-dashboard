@@ -1,6 +1,5 @@
 import path from 'path';
 import fs from 'fs';
-import yaml from 'js-yaml';
 import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
 // @ts-expect-error: Types are not available for this third-party library
@@ -82,23 +81,6 @@ export default defineConfig({
       on('file:preprocessor', webpack(options));
 
       on('task', {
-        readJSON(filePath: string) {
-          const absPath = path.resolve(__dirname, filePath);
-          if (fs.existsSync(absPath)) {
-            try {
-              const fileContent = fs.readFileSync(absPath, 'utf8');
-              // Check if file is YAML or JSON based on extension
-              if (absPath.endsWith('.yml') || absPath.endsWith('.yaml')) {
-                return Promise.resolve(yaml.load(fileContent));
-              }
-              return Promise.resolve(JSON.parse(fileContent));
-            } catch {
-              // return default value
-            }
-          }
-
-          return Promise.resolve({});
-        },
         log(message) {
           return logToConsole(LogLevel.INFO, message);
         },

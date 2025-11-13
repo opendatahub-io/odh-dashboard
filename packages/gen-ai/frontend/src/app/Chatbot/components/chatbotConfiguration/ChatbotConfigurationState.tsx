@@ -75,7 +75,9 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
       </StackItem>
       {redirectToPlayground && lsdStatus?.phase === 'Ready' && (
         <StackItem>
-          <Link to={genAiChatPlaygroundRoute(namespace?.name)}>Go to playground</Link>
+          <Link to={genAiChatPlaygroundRoute(namespace?.name)} data-testid="go-to-playground-link">
+            Go to playground
+          </Link>
         </StackItem>
       )}
     </Stack>

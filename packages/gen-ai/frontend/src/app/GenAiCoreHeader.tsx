@@ -25,7 +25,9 @@ const GenAiCoreHeader: React.FC<GenAiCoreHeaderProps> = ({ title, getRedirectPat
             </FlexItem>
           )}
           <FlexItem>
-            <Title headingLevel="h1">{title}</Title>
+            <Title headingLevel="h1" data-testid="page-title">
+              {title}
+            </Title>
           </FlexItem>
         </Flex>
       </FlexItem>

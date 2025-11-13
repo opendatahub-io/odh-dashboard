@@ -91,6 +91,7 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
                   value={accessToken}
                   onChange={(_event, value) => setAccessToken(value)}
                   isDisabled={isValidating}
+                  data-testid="mcp-server-token-input"
                 />
               </FormGroup>
             </Form>
@@ -106,7 +107,13 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
           </div>
         ) : (
           <>
-            <Button key="clear" variant="secondary" onClick={handleClear} isDisabled={isValidating}>
+            <Button
+              key="clear"
+              variant="secondary"
+              onClick={handleClear}
+              isDisabled={isValidating}
+              data-testid="mcp-server-token-clear-button"
+            >
               Clear
             </Button>
             <div className="pf-v6-u-ml-auto">
@@ -116,6 +123,7 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
                 onClick={onClose}
                 className="pf-v6-u-mr-sm"
                 isDisabled={isValidating}
+                data-testid="mcp-server-token-cancel-button"
               >
                 Cancel
               </Button>
@@ -126,6 +134,7 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
                 isDisabled={isValidating || !accessToken.trim()}
                 isLoading={isValidating}
                 spinnerAriaValueText={isValidating ? 'Validating token...' : undefined}
+                data-testid="mcp-server-token-submit-button"
               >
                 {isValidating ? 'Validating...' : 'Authorize'}
               </Button>
