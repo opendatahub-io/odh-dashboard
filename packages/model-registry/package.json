@@ -45,7 +45,10 @@
     }
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./model-catalog-deploy": {
+      "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
+    }
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"

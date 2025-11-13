@@ -43,9 +43,11 @@ type ModelTypeSelectFieldProps = {
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
   isEditing?: boolean;
+  isDisabled?: boolean;
 };
 export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   modelType,
+  isDisabled,
   setModelType,
   validationProps,
   validationIssues = [],
@@ -73,7 +75,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       value={modelType}
       toggleProps={{ style: { minWidth: '300px' } }}
       dataTestId="model-type-select"
-      isDisabled={isEditing}
+      isDisabled={isEditing || isDisabled}
     />
     <ZodErrorHelperText zodIssue={validationIssues} />
   </FormGroup>
