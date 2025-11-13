@@ -3,8 +3,8 @@ import { TableRow } from './components/table';
 class ModelTrainingGlobal {
   visit(projectName?: string) {
     const baseUrl = projectName
-      ? `/observe-monitor/training-jobs/${projectName}`
-      : '/observe-monitor/training-jobs';
+      ? `/develop-train/training-jobs/${projectName}`
+      : '/develop-train/training-jobs';
     const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue`;
     cy.visitWithLogin(url);
     this.wait();
@@ -174,6 +174,93 @@ class TrainingJobDetailsDrawer {
   }
 }
 
+class TrainingJobResourcesTab {
+  findNodeConfigurationsSection() {
+    return cy.findByTestId('node-configurations-section');
+  }
+
+  findNodesValue() {
+    return cy.findByTestId('nodes-value');
+  }
+
+  findProcessesPerNodeValue() {
+    return cy.findByTestId('processes-per-node-value');
+  }
+
+  findNodesEditButton() {
+    return cy.findByTestId('nodes-edit-button');
+  }
+
+  findResourcesPerNodeSection() {
+    return cy.findByTestId('resources-per-node-section');
+  }
+
+  findCpuRequestsValue() {
+    return cy.findByTestId('cpu-requests-value');
+  }
+
+  findCpuLimitsValue() {
+    return cy.findByTestId('cpu-limits-value');
+  }
+
+  findMemoryRequestsValue() {
+    return cy.findByTestId('memory-requests-value');
+  }
+
+  findMemoryLimitsValue() {
+    return cy.findByTestId('memory-limits-value');
+  }
+
+  findClusterQueueSection() {
+    return cy.findByTestId('cluster-queue-section');
+  }
+
+  findQueueValue() {
+    return cy.findByTestId('queue-value');
+  }
+
+  findQuotasSection() {
+    return cy.findByTestId('quotas-section');
+  }
+
+  findQuotaSourceValue() {
+    return cy.findByTestId('quota-source-value');
+  }
+
+  findConsumedQuotaValue() {
+    return cy.findByTestId('consumed-quota-value');
+  }
+
+  findConsumedResourceByLabel(label: string) {
+    return this.findConsumedQuotaValue().contains(label).parent().parent();
+  }
+
+  findCPUQuotaTotal() {
+    return this.findConsumedResourceByLabel('CPU').contains('Total:');
+  }
+
+  findCPUQuotaConsumed() {
+    return this.findConsumedResourceByLabel('CPU').contains('Consumed:');
+  }
+
+  findMemoryQuotaTotal() {
+    return this.findConsumedResourceByLabel('Memory').contains('Total:');
+  }
+
+  findMemoryQuotaConsumed() {
+    return this.findConsumedResourceByLabel('Memory').contains('Consumed:');
+  }
+
+  findGPUQuotaTotal() {
+    return this.findConsumedResourceByLabel('nvidia.com/gpu').contains('Total:');
+  }
+
+  findGPUQuotaConsumed() {
+    return this.findConsumedResourceByLabel('nvidia.com/gpu').contains('Consumed:');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
+export const trainingJobResourcesTab = new TrainingJobResourcesTab();

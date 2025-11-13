@@ -36,7 +36,6 @@ aliases:
     - Griffin-Sullivan
     - andrewballantyne
   connections-reviewers:
-    - andrewballantyne
     - ashley-o0o
     - emilys314
     - Griffin-Sullivan
@@ -71,7 +70,6 @@ aliases:
     - Griffin-Sullivan
     - andrewballantyne
   model-serving-metrics-reviewers:
-    - andrewballantyne
     - ashley-o0o
     - emilys314
     - Griffin-Sullivan
