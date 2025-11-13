@@ -45,7 +45,15 @@
     }
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./mocks/*": [
+      "./upstream/frontend/src/__mocks__/*",
+      "./upstream/frontend/src/__mocks__/*.ts"
+    ],
+    "./types/*": [
+      "./upstream/frontend/src/app/modelCatalogTypes.ts",
+      "./upstream/frontend/src/app/types.ts"
+    ]
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"

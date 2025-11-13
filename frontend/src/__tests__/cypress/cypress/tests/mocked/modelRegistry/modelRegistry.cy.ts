@@ -141,16 +141,7 @@ const initIntercepts = ({
       disableModelRegistry: disableModelRegistryFeature,
     }),
   );
-  cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions`,
-    {
-      path: {
-        serviceName: 'modelregistry-sample',
-        apiVersion: MODEL_REGISTRY_API_VERSION,
-      },
-    },
-    mockModelVersionList({ items: modelVersions }),
-  );
+
   cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
   cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview());
@@ -201,14 +192,6 @@ const initIntercepts = ({
       path: { apiVersion: MODEL_REGISTRY_API_VERSION },
     },
     { data: [{ metadata: { name: 'odh-model-registries' } }] },
-  );
-
-  cy.interceptOdh(
-    `GET /model-registry/api/:apiVersion/user`,
-    {
-      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
-    },
-    { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
 
   cy.interceptOdh(
@@ -273,7 +256,7 @@ describe('Model Registry core', () => {
     appChrome.findNavItem({ name: 'Registry', rootSection: 'AI hub' }).should('exist');
   });
 
-  // does not work because of ModelRegistryCoreLoader line 66. TODO: Fix this test and investigate this line.
+  // This will be fixed as part of PR: https://github.com/opendatahub-io/odh-dashboard/pull/5103
   it.skip('Shows admin empty state for users with model registry creation permissions', () => {
     asProductAdminUser();
     initIntercepts({
@@ -344,7 +327,7 @@ describe('Model Registry core', () => {
   });
 });
 
-// This test is skipped because we do not check for more than cluster admin access levels.
+// This will be fixed as part of PR: https://github.com/opendatahub-io/odh-dashboard/pull/5103
 describe.skip('Register Model button', () => {
   it('should be accessible for non-admin users', () => {
     asProjectEditUser();
