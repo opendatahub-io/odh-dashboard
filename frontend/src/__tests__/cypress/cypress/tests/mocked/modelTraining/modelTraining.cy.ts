@@ -190,7 +190,7 @@ const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      modelTraining: true,
+      trainingJobs: true,
     }),
   );
 

@@ -18,7 +18,10 @@ const ModelTrainingNoProjects: React.FC = () => {
         To view model training jobs, first create a data science project.
       </EmptyStateBody>
       <EmptyStateFooter>
-        <NewProjectButton closeOnCreate onProjectCreated={() => navigate('/modelTraining')} />
+        <NewProjectButton
+          closeOnCreate
+          onProjectCreated={() => navigate('/develop-train/training-jobs')}
+        />
       </EmptyStateFooter>
     </EmptyState>
   );
