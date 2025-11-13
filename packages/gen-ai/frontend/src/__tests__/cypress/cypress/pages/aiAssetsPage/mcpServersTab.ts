@@ -1,31 +1,16 @@
-import { Contextual } from './Contextual';
+import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { AIAssetsTabBase } from './baseTab';
 
-export class TableRow extends Contextual<HTMLTableRowElement> {
-  findCheckbox(): Cypress.Chainable<JQuery<HTMLInputElement>> {
-    return this.find().find('input[type="checkbox"]');
-  }
-
-  shouldBeChecked(): this {
-    this.findCheckbox().should('be.checked');
-    return this;
-  }
-
-  shouldNotBeChecked(): this {
-    this.findCheckbox().should('not.be.checked');
-    return this;
-  }
-}
-
-export class TableRowWithStatus extends TableRow {
+class MCPServerRow extends TableRow {
   constructor(
     parentSelector: () => Cypress.Chainable<JQuery<HTMLTableRowElement>>,
-    protected statusBadgeTestId: string,
+    private serverName: string,
   ) {
     super(parentSelector);
   }
 
   findStatusBadge(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId(this.statusBadgeTestId);
+    return this.find().findByTestId('mcp-server-status-badge');
   }
 
   waitForStatusLoad(): void {
@@ -55,10 +40,25 @@ export class TableRowWithStatus extends TableRow {
         }
       });
   }
+}
 
-  getStatusText(): Cypress.Chainable<string> {
-    return this.findStatusBadge()
-      .invoke('text')
-      .then((text) => text.trim());
+class MCPServersTab extends AIAssetsTabBase {
+  protected tableTestId = 'mcp-servers-table';
+
+  findServerRow(serverName: string): MCPServerRow {
+    return new MCPServerRow(
+      () =>
+        this.findTable()
+          .find('tbody tr')
+          .filter((_, row) => Cypress.$(row).text().includes(serverName))
+          .first() as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
+      serverName,
+    );
+  }
+
+  findPlaygroundActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('try-in-playground-button');
   }
 }
+
+export const mcpServersTab = new MCPServersTab();

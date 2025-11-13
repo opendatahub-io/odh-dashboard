@@ -6,8 +6,10 @@ servers:
     url: https://api.githubcopilot.com/mcp
   filesystem:
     name: Filesystem-MCP-Server
+    url: https://filesystem-mcp-server.local/mcp
 
 tokens:
   valid: ghp_validTestToken123456789
   invalid: ghp_invalidToken
   test: test_token_value
+

@@ -1,153 +1,238 @@
-# Gen-AI Cypress E2E Tests
+# Gen-AI Cypress Tests
 
 ## Overview
 
-This directory contains Cypress end-to-end tests for the Gen-AI plugin. Tests run in **federated mode**, where Gen-AI loads as a remote module into the ODH Dashboard.
-
-## Prerequisites
-
-### Required Configuration
-
-**You MUST configure test variables before running E2E tests:**
-
-```bash
-cd src/__tests__/cypress
-cp test-variables.yml.example test-variables.yml
-# Edit test-variables.yml with your actual values
-```
-
-**Required fields:**
-
-- `CLUSTER.SERVER`: Your OpenShift cluster URL
-- `CLUSTER.NAMESPACE`: Default namespace
-- `MCP_SERVERS.GITHUB_TOKEN`: GitHub PAT token for MCP authentication
-
-### OpenShift Connection
-
-```bash
-oc login --server=https://your-cluster:6443
-oc whoami  # Verify connection
-```
+Cypress tests for the Gen-AI plugin running in **mocked mode** with stubbed backend APIs. Tests use the Page Object Model (POM) pattern for maintainability and reusability.
 
 ## Running Tests
 
-### E2E Tests (Live Cluster)
+### CI Mode (Recommended)
 
-Tests run against real cluster with actual backend APIs.
-
-**Interactive mode:**
-
-```bash
-npm run cypress:open:e2e
-```
-
-**Headless mode:**
-
-```bash
-npm run cypress:run:e2e
-```
-
-### Mocked Tests (No Cluster Required)
-
-Tests run with mocked backend APIs.
-
-**Interactive mode:**
-
-```bash
-npm run cypress:open
-```
-
-**Headless mode:**
-
-```bash
-npm run cypress:run:mock
-```
-
-**CI mode (starts dev server automatically):**
+Automatically starts dev server, runs tests, then cleans up:
 
 ```bash
 npm run test:cypress-ci
 ```
 
-## Test Filtering with Tags
+### Headless Mode
 
-Use `@cypress/grep` plugin to run specific tests:
+Run tests in headless mode (requires dev server running separately):
 
 ```bash
-# Run smoke tests only
-npm run cypress:run:mock -- --env grepTags=@Smoke
-
-# Run MCP server tests
-npm run cypress:run:mock -- --env grepTags=@MCPServers
-
-# Combine tags (AND)
-npm run cypress:run:mock -- --env grepTags="@Smoke+@MCPServers"
-
-# Combine tags (OR)
-npm run cypress:run:e2e -- --env grepTags="@Smoke,@Authentication"
+npm run cypress:run:mock
 ```
 
-**Available tags:**
+### Interactive Mode
 
-- `@Smoke` - Critical smoke tests
+Open Cypress UI for debugging and test development:
+
+```bash
+npm run cypress:open
+```
+
+## Test Filtering with Tags
+
+Filter tests by tags using the `@cypress/grep` plugin:
+
+```bash
+# Run MCP server tests only
+npm run cypress:run:mock -- --env grepTags=@MCPServers
+
+# Run multiple tags (AND)
+npm run cypress:run:mock -- --env grepTags="@GenAI+@Authentication"
+
+# Run multiple tags (OR)
+npm run cypress:run:mock -- --env grepTags="@GenAI,@MCPServers"
+```
+
+**Available Tags:**
+
 - `@GenAI` - Gen-AI specific tests
 - `@MCPServers` - MCP server functionality
-- `@Authentication` - Authentication flows
+- `@Authentication` - Authentication and token flows
+- `@Tools` - MCP tools functionality
+- `@Modal` - Modal dialog interactions
+- `@Validation` - Form validation tests
+- `@Error` - Error handling tests
+- `@UI` - UI component tests
+- `@MultiServer` - Multiple server scenarios
 
 ## Directory Structure
 
 ```text
-src/__tests__/cypress/
-├── cypress/
-│   ├── __mocks__/                    # TypeScript mock functions
-│   │   ├── index.ts
-│   │   ├── mockNamespaces.ts
-│   │   ├── mockMCPServers.ts
-│   │   ├── mockMCPResponses.ts      # MCP API response interceptors
-│   │   └── mockEmptyResponse.ts
-│   ├── fixtures/                     # Test data files
-│   │   ├── e2e/
-│   │   │   └── mcpServers/          # MCP E2E test config (YAML)
-│   │   └── mocked/
-│   │       └── mcpServers/          # MCP mocked responses (JSON)
-│   ├── pages/                        # Page Object Model (POM)
-│   │   ├── aiAssets.ts
-│   │   ├── appChrome.ts
-│   │   ├── mcpServersTab.ts
-│   │   ├── playground.ts
-│   │   └── components/              # Reusable component interactions
-│   ├── support/
-│   │   ├── commands/                # Custom Cypress commands
-│   │   ├── helpers/
-│   │   │   └── mcpServers/         # MCP-specific test helpers
-│   │   ├── e2e.ts                  # Global setup & auth
-│   │   └── websockets.ts           # WebSocket support
-│   ├── tests/
-│   │   ├── e2e/                    # E2E tests (live cluster)
-│   │   └── mocked/                 # Mocked tests (no cluster)
-│   └── utils/                      # Test utilities
-│       ├── apiRequests.ts
-│       ├── helpers.ts
-│       ├── logger.ts
-│       ├── testConfig.ts
-│       └── oc_commands/            # OpenShift CLI utilities
-├── cypress.config.ts               # Cypress configuration
-├── test-variables.yml              # Test configuration (gitignored)
-├── test-variables.yml.example      # Test configuration template
-└── README.md                       # This file
+cypress/
+├── __mocks__/                    # TypeScript mock functions
+│   ├── index.ts
+│   ├── mockNamespaces.ts
+│   ├── mockMCPServers.ts
+│   ├── mockMCPResponses.ts
+│   └── mockEmptyResponse.ts
+├── fixtures/
+│   └── mocked/
+│       └── mcpServers/          # MCP test data (YAML/JSON)
+├── pages/                        # Page Object Model
+│   ├── appChrome.ts             # App navigation
+│   ├── chatbotPage.ts           # Chatbot/Playground page
+│   ├── aiAssetsPage.ts          # AI Assets page with tab switching
+│   ├── aiAssetsPage/            # Tab-specific page objects
+│   │   ├── baseTab.ts           # Base class for all tabs
+│   │   └── mcpServersTab.ts     # MCP Servers tab
+│   └── components/              # Reusable components
+│       ├── Contextual.ts        # Base contextual element
+│       ├── Modal.ts             # Modal dialogs
+│       ├── table.ts             # Table row interactions
+│       └── tableActions.ts      # Common table actions
+├── support/
+│   ├── commands/                # Custom Cypress commands
+│   ├── helpers/
+│   │   └── mcpServers/         # MCP test helpers
+│   ├── e2e.ts                  # Global setup
+│   └── websockets.ts           # WebSocket support
+├── tests/
+│   └── mocked/                 # Mocked tests
+│       ├── ci-smoke.cy.ts
+│       └── aiAssets/
+│           └── mcpServers.cy.ts
+└── utils/                       # Utilities
+    ├── logger.ts
+    └── testConfig.ts
 ```
 
-**Organization:**
+## Adding New Tests
 
-- **Nested `mcpServers/` folders**: MCP-specific code grouped in dedicated subdirectories
-- **YAML for E2E configs**: Test configuration data in `fixtures/e2e/`
-- **JSON for mocked responses**: API response fixtures in `fixtures/mocked/`
+### 1. Adding Tests for New Tabs (Models, MaaS, etc.)
 
-## Mock Functions
+Create a new tab page object extending `AIAssetsTabBase`:
 
-Mocked tests use TypeScript mock functions following the ODH Dashboard pattern.
+```typescript
+// pages/aiAssetsPage/modelsTab.ts
+import { AIAssetsTabBase } from './baseTab';
 
-### Usage
+class ModelsTab extends AIAssetsTabBase {
+  protected tableTestId = 'ai-models-table';
+
+  // Add tab-specific methods here
+  selectModelByName(modelName: string): void {
+    this.findTableRows()
+      .contains(modelName)
+      .parents('tr')
+      .find('input[type="checkbox"]')
+      .check();
+  }
+}
+
+export const modelsTab = new ModelsTab();
+```
+
+Then write tests using the new page object:
+
+```typescript
+// tests/mocked/aiAssets/models.cy.ts
+import { aiAssetsPage } from '~/pages/aiAssetsPage';
+import { modelsTab } from '~/pages/aiAssetsPage/modelsTab';
+
+describe('Models Tab', { tags: ['@GenAI', '@Models'] }, () => {
+  beforeEach(() => {
+    // Setup mocks
+    cy.interceptGenAi('GET /api/v1/models', mockModels());
+  });
+
+  it('should display models', () => {
+    aiAssetsPage.visit('team-crimson');
+    aiAssetsPage.switchToModelsTab();
+    modelsTab.verifyTableVisible();
+    modelsTab.verifyHasRows();
+  });
+});
+```
+
+### 2. Adding Chatbot Component Tests
+
+Add methods to `chatbotPage.ts` for new components:
+
+```typescript
+// In chatbotPage.ts
+findSettingsPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+  return cy.findByTestId('chatbot-settings-panel');
+}
+
+expandSettingsPanel(): void {
+  this.findSettingsPanel().should('be.visible').click();
+}
+```
+
+### 3. Adding Table Interactions
+
+Extend `TableRow` or `TableRowWithStatus` for custom row behavior:
+
+```typescript
+// In your tab page object
+import { TableRowWithStatus } from '../components/table';
+
+class ModelRow extends TableRowWithStatus {
+  constructor(
+    parentSelector: () => Cypress.Chainable<JQuery<HTMLTableRowElement>>,
+    private modelName: string,
+  ) {
+    super(parentSelector, 'model-status-badge');
+  }
+
+  clickDeploy(): void {
+    this.find().findByTestId('deploy-model-button').click();
+  }
+}
+```
+
+## Reusable Components
+
+### Base Classes
+
+**`AIAssetsTabBase`** - Extend for new tabs
+
+- `findTable()` - Find table element
+- `findTableRows()` - Get all rows
+- `verifyTableVisible()` - Assert table visible
+- `verifyHasRows()` - Assert has data
+- `verifyEmptyState()` - Check empty state
+- `waitForTableLoad()` - Wait for loading
+- `getRowCount()` - Count rows
+- `verifyTableHeaders()` - Check headers exist
+
+**`TableRow`** - Base table row interactions
+
+- `find()` - Get row element
+- `check()` / `uncheck()` - Toggle checkbox
+- `shouldBeChecked()` / `shouldNotBeChecked()` - Assert checkbox state
+
+**`TableRowWithStatus`** - Extends `TableRow` with status badge
+
+- `findStatusBadge()` - Get status badge
+- `waitForStatusLoad()` - Wait for status
+- `verifyStatus(expected)` - Assert status text
+- `getStatusText()` - Get current status
+
+### Utility Components
+
+**`tableActions`** - Common table actions
+
+```typescript
+import { tableActions } from '~/pages/components/tableActions';
+
+tableActions.clickTryInPlayground();
+```
+
+**`Modal`** - Modal dialog interactions
+
+```typescript
+import { modal } from '~/pages/components/Modal';
+
+modal.shouldBeOpen();
+modal.findFooter().find('button').contains('Save').click();
+```
+
+## Mocking APIs
+
+### Basic Mock Setup
 
 ```typescript
 import { mockNamespaces, mockMCPServers } from '~/__tests__/cypress/cypress/__mocks__';
@@ -156,7 +241,7 @@ import {
   setupBaseMCPServerMocks,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
-describe('AI Assets (Mocked)', () => {
+describe('MCP Servers', () => {
   let config: MCPTestConfig;
 
   before(() => {
@@ -166,106 +251,117 @@ describe('AI Assets (Mocked)', () => {
   });
 
   beforeEach(() => {
-    setupBaseMCPServerMocks(config, { lsdStatus: 'Ready' });
+    setupBaseMCPServerMocks(config);
 
     cy.interceptGenAi(
       'GET /api/v1/aaa/mcps',
       { query: { namespace: config.defaultNamespace } },
-      mockMCPServers([mockMCPServer({ name: 'GitHub-MCP-Server', status: 'Ready' })]),
+      mockMCPServers([
+        { name: 'GitHub-MCP-Server', status: 'Ready' },
+      ]),
     );
   });
 
-  it('should display servers', () => {
+  it('should display server', () => {
     // Test implementation
   });
 });
 ```
 
-### Available Mock Functions
+### Available Mocks
 
-**General Mocks:**
+**General:**
 
-- `mockNamespaces()` - Namespace list responses
-- `mockMCPServers()` - MCP server list responses
-- `mockMCPServer()` - Individual MCP server object
-- `mockEmptyList()` - Empty data arrays
-- `mockStatus()` - Status responses
+- `mockNamespaces()` - Namespace list
+- `mockMCPServers()` - MCP server list
+- `mockMCPServer()` - Single server object
+- `mockEmptyList()` - Empty array
+- `mockStatus()` - Status response
 
-**MCP API Response Interceptors:**
+**MCP Specific:**
 
-- `mockMCPStatusInterceptor(token, serverUrl)` - Intercepts MCP status endpoint
-- `mockMCPStatusError(errorType, serverUrl)` - Returns error responses (400/401)
-- `mockMCPToolsInterceptor(token, serverUrl)` - Intercepts MCP tools endpoint
+- `mockMCPStatusInterceptor(token, serverUrl)` - Status endpoint
+- `mockMCPStatusError(errorType, serverUrl)` - Error responses
+- `mockMCPToolsInterceptor(token, serverUrl)` - Tools endpoint
 
-**MCP Test Helpers:**
+**Helpers:**
 
-- `loadMCPTestConfig()` - Loads test configuration from YAML
-- `setupBaseMCPServerMocks(config, options)` - Sets up common API intercepts
+- `loadMCPTestConfig()` - Load YAML config
+- `setupBaseMCPServerMocks(config, options)` - Setup base intercepts
 
-## Writing Tests
-
-### Page Object Model
-
-Tests use the Page Object Model pattern to separate UI interactions from test logic:
+## Custom Commands
 
 ```typescript
-import { appChrome } from '~/pages/appChrome';
-import { aiAssets } from '~/pages/aiAssets';
-import { mcpServersTab } from '~/pages/mcpServersTab';
+// API interception
+cy.interceptGenAi('GET /api/v1/namespaces', mockNamespaces());
 
-describe('MCP Servers', () => {
-  it('should navigate to MCP servers tab', () => {
-    appChrome.visit();
-    aiAssets.visit('team-crimson');
-    aiAssets.switchToMCPServersTab();
-    mcpServersTab.shouldBeVisible();
+// Test step logging
+cy.step('Navigate to playground');
+
+// App navigation
+cy.visit('/gen-ai-studio/playground');
+```
+
+## Best Practices
+
+1. **Always Use Test IDs** - Use `data-testid` attributes instead of CSS selectors or class names
+
+   ```typescript
+   // ✅ Good - uses test ID
+   cy.findByTestId('mcp-server-token-input').type('token');
+   
+   // ❌ Bad - uses CSS class selector
+   cy.find('button.pf-m-primary').click();
+   
+   // ❌ Bad - uses generic element selector
+   cy.find('footer').find('button');
+   ```
+
+   CSS selectors and class names (like `pf-m-primary`) change frequently and lead to high test maintenance. Always add `data-testid` to components for stable test selectors.
+
+2. **Use Page Objects** - Keep selectors and interactions in page objects, not tests
+
+3. **Extend Base Classes** - Reuse `AIAssetsTabBase`, `TableRow`, `TableRowWithStatus`
+
+4. **Wait for Elements** - Use `.should('be.visible')` instead of `cy.wait(5000)`
+
+5. **Type Safety** - Add TypeScript types for all functions
+
+6. **Tag Tests** - Use tags for filtering: `{ tags: ['@GenAI', '@MCPServers'] }`
+
+7. **Mock Data** - Load from YAML fixtures using `loadMCPTestConfig()`
+
+8. **Step Logging** - Use `cy.step()` for clear test output
+
+## Page Object Pattern Example
+
+```typescript
+import { aiAssetsPage } from '~/pages/aiAssetsPage';
+import { mcpServersTab } from '~/pages/aiAssetsPage/mcpServersTab';
+import { chatbotPage } from '~/pages/chatbotPage';
+
+describe('MCP Server Workflow', () => {
+  it('should select server and navigate to playground', () => {
+    // Visit AI Assets page
+    aiAssetsPage.visit('team-crimson');
+    
+    // Switch to MCP Servers tab
+    aiAssetsPage.switchToMCPServersTab();
+    
+    // Verify and select server
+    mcpServersTab.verifyTableVisible();
+    mcpServersTab.selectServerByName('GitHub-MCP-Server', {
+      verifyStatus: 'Ready',
+    });
+    
+    // Navigate to playground
+    mcpServersTab.clickPlaygroundAction();
+    chatbotPage.verifyOnChatbotPage('team-crimson');
   });
 });
 ```
 
-### Custom Commands
+## Additional Resources
 
-```typescript
-cy.interceptGenAi('GET /api/v1/namespaces', mockNamespaces());
-cy.step('Navigate to playground'); // Log test steps
-cy.getTestConfig(); // Load test variables
-```
-
-### Best Practices
-
-1. **Use Page Objects** - Keep UI interactions in page objects
-2. **Use Custom Commands** - Reuse common operations
-3. **Wait for Elements** - Use `.should('be.visible')` instead of fixed waits
-4. **Type Safety** - Add proper TypeScript types
-5. **Test Data** - Use YAML fixtures for E2E, mock functions for mocked tests
-
-## Configuration
-
-### Environment Variables
-
-Set via environment or test scripts:
-
-```bash
-BASE_URL=http://localhost:4010 npm run cypress:open:e2e
-```
-
-**Available variables:**
-
-- `BASE_URL` - Dashboard URL (default: <http://localhost:4010> for E2E, <http://localhost:8080> for mocked)
-- `CY_MOCK` - Enables mocked test mode (set by `cypress:run:mock` script)
-- `CY_WS_PORT` - WebSocket server port for mocked tests
-
-### Authentication
-
-E2E tests automatically:
-
-1. Get OpenShift token via `oc whoami -t`
-2. Store in `Cypress.env('AUTH_TOKEN')`
-3. Add `Authorization: Bearer <token>` to API requests
-
-## Additional Documentation
-
-For comprehensive Cypress testing guidelines, see:
-
-- [Main Testing Documentation](/docs/testing.md) - Overall testing strategy
-- [Cypress E2E Rules](/.cursor/rules/cypress-e2e.mdc) - Detailed E2E test guidelines
+- [Main Testing Documentation](/docs/testing.md)
+- [Cypress E2E Guidelines](/.cursor/rules/cypress-e2e.mdc)
