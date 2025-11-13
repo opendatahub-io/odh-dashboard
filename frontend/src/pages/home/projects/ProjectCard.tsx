@@ -33,7 +33,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const navigate = useNavigate();
 
   return (
-    <TypeBorderedCard key={project.metadata.uid} sectionType={SectionType.organize}>
+    <TypeBorderedCard
+      key={project.metadata.uid}
+      sectionType={SectionType.organize}
+      data-testid={`project-card-${project.metadata.name}`}
+    >
       <CardHeader>
         <Button
           data-testid={`project-link-${project.metadata.name}`}
