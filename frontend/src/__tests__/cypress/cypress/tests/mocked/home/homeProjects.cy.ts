@@ -57,9 +57,31 @@ describe('Home page Projects section', () => {
     homeProjectSection.findCreateProjectButton().should('not.exist');
   });
 
-  it('should show create project button when more projects exist', () => {
+  it('should not show create project button when more projects exist', () => {
     homePage.initHomeIntercepts();
     const projectsMock = mockProjectsK8sList();
+
+    cy.interceptK8sList(ProjectModel, projectsMock);
+
+    homePage.visit();
+
+    const homeProjectSection = homePage.getHomeProjectSection();
+
+    // Verify 4 cards total (3 project cards + 1 create new card)
+    homeProjectSection.find().find('[data-testid*="-card"]').should('have.length', 4);
+
+    // Verify all 3 projects have AI labels
+    homeProjectSection.findAILabelInCard('ds-project-1').should('exist');
+    homeProjectSection.findAILabelInCard('ds-project-2').should('exist');
+    homeProjectSection.findAILabelInCard('ds-project-3').should('exist');
+
+    homeProjectSection.findCreateProjectCard().should('exist');
+    homeProjectSection.findSectionHeaderCreateProjectButton().should('not.exist');
+  });
+
+  it('should show create project button when more projects exist', () => {
+    homePage.initHomeIntercepts();
+    const projectsMock = mockProjectsK8sList(5);
 
     cy.interceptK8sList(ProjectModel, projectsMock);
 
@@ -73,7 +95,7 @@ describe('Home page Projects section', () => {
   it('should not show create project button when more projects exist but user is not allowed', () => {
     homePage.initHomeIntercepts();
     interceptAccessReview(false);
-    const projectsMock = mockProjectsK8sList();
+    const projectsMock = mockProjectsK8sList(5);
 
     cy.interceptK8sList(ProjectModel, projectsMock);
 

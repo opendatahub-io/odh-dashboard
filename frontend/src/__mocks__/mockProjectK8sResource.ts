@@ -55,39 +55,59 @@ export const mockProjectK8sResource = ({
   },
 });
 
-export const mockProjectsK8sList = (): K8sResourceListResult<ProjectKind> => ({
-  apiVersion: 'project.openshift.io/v1',
-  metadata: { continue: '', resourceVersion: '1462210' },
-  items: [
-    mockProjectK8sResource({
-      k8sName: 'ds-project-1',
-      displayName: 'DS Project 1',
-      isDSProject: true,
-    }),
-    mockProjectK8sResource({
-      k8sName: 'ds-project-2',
-      displayName: 'DS Project 2',
-      isDSProject: true,
-    }),
-    mockProjectK8sResource({
-      k8sName: 'ds-project-3',
-      displayName: 'DS Project 3',
-      isDSProject: true,
-    }),
-    mockProjectK8sResource({
-      k8sName: 'non-ds-project-1',
-      displayName: 'Non-DS Project 1',
-      isDSProject: false,
-    }),
-    mockProjectK8sResource({
-      k8sName: 'non-ds-project-2',
-      displayName: 'Non-DS Project 2',
-      isDSProject: false,
-    }),
-    mockProjectK8sResource({
-      k8sName: 'non-ds-project-3',
-      displayName: 'Non-DS Project 3',
-      isDSProject: false,
-    }),
-  ],
-});
+export const mockProjectsK8sList = (
+  numberOfExtraProjects = 0,
+): K8sResourceListResult<ProjectKind> => {
+  const extraProjs = [];
+  if (numberOfExtraProjects > 0) {
+    let i = 0;
+    while (i < numberOfExtraProjects) {
+      extraProjs.push(
+        mockProjectK8sResource({
+          k8sName: `extra-project-${i}`,
+          displayName: `Extra Project ${i}`,
+          isDSProject: true,
+        }),
+      );
+      i++;
+    }
+  }
+
+  return {
+    apiVersion: 'project.openshift.io/v1',
+    metadata: { continue: '', resourceVersion: '1462210' },
+    items: [
+      mockProjectK8sResource({
+        k8sName: 'ds-project-1',
+        displayName: 'DS Project 1',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ds-project-2',
+        displayName: 'DS Project 2',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ds-project-3',
+        displayName: 'DS Project 3',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ds-project-1',
+        displayName: 'Non-DS Project 1',
+        isDSProject: false,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ds-project-2',
+        displayName: 'Non-DS Project 2',
+        isDSProject: false,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ds-project-3',
+        displayName: 'Non-DS Project 3',
+        isDSProject: false,
+      }),
+      ...extraProjs,
+    ],
+  };
+};
