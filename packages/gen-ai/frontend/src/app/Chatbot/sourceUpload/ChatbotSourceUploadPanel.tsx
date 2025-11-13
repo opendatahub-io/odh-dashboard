@@ -13,6 +13,7 @@ type ChatbotSourceUploadPanelProps = {
   filesWithSettings: FileWithSettings[];
   uploadedFilesCount?: number;
   maxFilesAllowed?: number;
+  isFilesLoading?: boolean;
 };
 
 const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
@@ -23,6 +24,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   filesWithSettings,
   uploadedFilesCount = 0,
   maxFilesAllowed = FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE,
+  isFilesLoading = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -30,10 +32,12 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   // Check if we've reached the file limit (only count successfully uploaded files from API)
   const currentFileCount = uploadedFilesCount;
   const isAtLimit = currentFileCount >= maxFilesAllowed;
+  // Disable upload interactions during initial loading or when at limit
+  const isUploadDisabled = isFilesLoading || isAtLimit;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!isAtLimit) {
+    if (!isUploadDisabled) {
       setIsDragOver(true);
     }
   };
@@ -46,7 +50,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    if (isAtLimit) {
+    if (isUploadDisabled) {
       return;
     }
     const files = Array.from(e.dataTransfer.files);
@@ -57,7 +61,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isAtLimit) {
+    if (isUploadDisabled) {
       return;
     }
     const files = Array.from(e.target.files || []);
@@ -70,7 +74,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   };
 
   const handleUploadClick = () => {
-    if (!isAtLimit) {
+    if (!isUploadDisabled) {
       fileInputRef.current?.click();
     }
   };
@@ -84,10 +88,10 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
 
       <div
         className={`pf-v6-c-multiple-file-upload pf-m-horizontal ${
-          isDragOver && !isAtLimit
+          isDragOver && !isUploadDisabled
             ? 'pf-v6-u-border-color-primary pf-v6-u-background-color-primary-50'
             : ''
-        } ${isAtLimit ? 'pf-v6-u-opacity-50' : ''}`}
+        } ${isUploadDisabled ? 'pf-v6-u-opacity-50' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -100,7 +104,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             <div className="pf-v6-c-multiple-file-upload__title-text">Add files</div>
           </div>
           <div className="pf-v6-c-multiple-file-upload__upload">
-            <Button variant="secondary" onClick={handleUploadClick} isDisabled={isAtLimit}>
+            <Button variant="secondary" onClick={handleUploadClick} isDisabled={isUploadDisabled}>
               Upload
             </Button>
           </div>
@@ -114,7 +118,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             accept={FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
             multiple
             onChange={handleFileSelect}
-            disabled={isAtLimit}
+            disabled={isUploadDisabled}
             hidden
             aria-label="File upload input"
           />
