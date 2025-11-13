@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   EmptyStateBody,
   EmptyStateVariant,
@@ -29,6 +29,7 @@ const ModelTraining = (): React.ReactElement => {
   const { trainJobs, project, preferredProject, projects } = React.useContext(ModelTrainingContext);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
+  const drawerRef = useRef<HTMLDivElement>(undefined);
 
   const handleSelectJob = React.useCallback((job: TrainJobKind) => {
     setSelectedJob((prev) => (prev?.metadata.uid === job.metadata.uid ? undefined : job));
@@ -60,7 +61,11 @@ const ModelTraining = (): React.ReactElement => {
   );
 
   return (
-    <Drawer isExpanded={isDrawerExpanded} isInline>
+    <Drawer
+      onExpand={() => drawerRef.current && drawerRef.current.focus()}
+      isExpanded={isDrawerExpanded}
+      isInline
+    >
       <DrawerContent panelContent={panelContent}>
         <DrawerContentBody>
           <ApplicationsPage
