@@ -58,7 +58,10 @@ describe('Storage classes', () => {
         .findDefaultValue()
         .findByTestId('set-default-radio')
         .should('not.be.checked');
-      storageClassTableRow.findLastModifiedValue().should('contain.text', '7/4/2024, 5:21:40 AM');
+      const localeDate = new Date(
+        otherStorageClass.metadata.creationTimestamp || new Date().toISOString(),
+      ).toLocaleString();
+      storageClassTableRow.findLastModifiedValue().should('contain.text', localeDate);
     });
 
     it('sets the first storage class as the default storage class', () => {
