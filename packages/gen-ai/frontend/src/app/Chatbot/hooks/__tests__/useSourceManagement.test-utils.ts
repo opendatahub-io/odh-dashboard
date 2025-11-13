@@ -1,17 +1,11 @@
 /* eslint-disable camelcase */
 import { renderHook, RenderHookResult } from '@testing-library/react';
 import { DropEvent } from '@patternfly/react-core';
-import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
+import {
+  UseSourceManagementReturn,
+  UseSourceManagementProps,
+} from '~/app/Chatbot/hooks/useSourceManagement';
 import { ChatbotSourceSettings, FileUploadResult, FileModel } from '~/app/types';
-
-// Type for the hook props (not exported from useSourceManagement)
-export type UseSourceManagementProps = {
-  onShowSuccessAlert: () => void;
-  onShowErrorAlert: (message?: string, title?: string) => void;
-  onFileUploadComplete?: () => void;
-  uploadedFiles?: FileModel[];
-  isFilesLoading?: boolean;
-};
 
 // Mock data fixtures
 export const mockNamespace = { name: 'test-namespace' };
@@ -121,6 +115,6 @@ export const simulateLoadingComplete = (
 };
 
 // Helper to advance timers (commonly used pattern)
-export const advanceTimersAndProcess = (ms = 100): void => {
+export const advanceTimers = (ms = 100): void => {
   jest.advanceTimersByTime(ms);
 };
