@@ -15,7 +15,7 @@ export const useNavigateToDeploymentWizardWithData = (
 ): ((projectName?: string) => void) => {
   const resourceName = translateDisplayNameForK8s(deployPrefillData.modelName);
 
-  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const [connectionTypes] = useWatchConnectionTypes(true);
   const uri = deployPrefillData.modelUri;
   let connectionTypeName = ConnectionTypeRefs.URI;
 
@@ -28,7 +28,7 @@ export const useNavigateToDeploymentWizardWithData = (
   }
   const connectionTypeObject = React.useMemo(() => {
     return connectionTypes.find((ct) => ct.metadata.name === connectionTypeName);
-  }, [connectionTypes, connectionTypeName, connectionTypesLoaded]);
+  }, [connectionTypes, connectionTypeName]);
 
   const prefillInfo: InitialWizardFormData = React.useMemo(
     () => ({
@@ -62,7 +62,7 @@ export const useNavigateToDeploymentWizardWithData = (
         },
       },
     }),
-    [deployPrefillData],
+    [deployPrefillData, connectionTypeObject, resourceName],
   );
   const navigationFunction = useNavigateToDeploymentWizard(
     null,
