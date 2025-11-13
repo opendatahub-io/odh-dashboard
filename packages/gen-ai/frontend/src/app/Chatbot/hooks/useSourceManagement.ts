@@ -35,7 +35,7 @@ export interface UseSourceManagementReturn {
   setSelectedSourceSettings: (settings: ChatbotSourceSettings | null) => void;
 }
 
-interface UseSourceManagementProps {
+export interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: (message?: string, title?: string) => void;
   onFileUploadComplete?: () => void;
