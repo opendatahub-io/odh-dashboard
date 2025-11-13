@@ -1,5 +1,9 @@
 name: E2E Direct Commit PR Tests
 
+# This workflow currently only supports ODH (Open Data Hub) dash-e2e pipeline.
+# The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
+# which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
+
 on: [push, pull_request]
 
 permissions:
@@ -247,6 +251,58 @@ jobs:
           export KUBECONFIG="$HOME/.kube/config"
           echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
 
+      - name: Override namespace values from secrets
+        run: |
+          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          
+          echo "🔧 Overriding RHOAI namespaces with ODH namespaces from secrets..."
+          
+          # Helper function to set or update a key-value pair in YAML
+          set_yaml_value() {
+            local key="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              return
+            fi
+            # Remove leading/trailing whitespace from value
+            value=$(echo "$value" | xargs)
+            if grep -q "^${key}:" "$TEST_VARS_FILE"; then
+              sed -i "s|^${key}:.*|${key}: ${value}|" "$TEST_VARS_FILE"
+            else
+              echo "${key}: ${value}" >> "$TEST_VARS_FILE"
+            fi
+          }
+          
+          # Read ODH namespace values from GitHub secret
+          # This overrides the default RHOAI namespaces in test-variables.yml
+          ODH_NAMESPACES="${{ secrets.ODH_NAMESPACES }}"
+          
+          if [ -z "$ODH_NAMESPACES" ]; then
+            echo "⚠️  ODH_NAMESPACES secret not set, skipping namespace override"
+            exit 0
+          fi
+          
+          # Mask namespace values in logs
+          echo "::add-mask::$ODH_NAMESPACES"
+          
+          echo "📝 Overriding namespaces with ODH values..."
+          
+          # Parse comma-separated values from secret
+          # Format: OPERATOR_NAMESPACE,APPLICATIONS_NAMESPACE,NOTEBOOKS_NAMESPACE,OPERATOR_NAME,ODH_DASHBOARD_PROJECT_NAME
+          IFS=',' read -r OPERATOR_NS APPLICATIONS_NS NOTEBOOKS_NS OPERATOR_NAME PROJECT_NAME <<< "$ODH_NAMESPACES"
+          
+          # Override RHOAI namespaces with ODH values
+          set_yaml_value "PRODUCT" "ODH"
+          set_yaml_value "OPERATOR_NAMESPACE" "$OPERATOR_NS"
+          set_yaml_value "APPLICATIONS_NAMESPACE" "$APPLICATIONS_NS"
+          set_yaml_value "MONITORING_NAMESPACE" "$APPLICATIONS_NS"
+          set_yaml_value "NOTEBOOKS_NAMESPACE" "$NOTEBOOKS_NS"
+          set_yaml_value "OPERATOR_NAME" "$OPERATOR_NAME"
+          set_yaml_value "ODH_DASHBOARD_PROJECT_NAME" "$PROJECT_NAME"
+          
+          echo "✅ Overridden namespaces with ODH values"
+          echo "📋 Namespace configuration updated"
+
       - name: Set test configuration
         run: |
           export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
@@ -330,7 +386,7 @@ jobs:
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run Cypress tests with Electron browser
-          BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:electron -- \
+          BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
             --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
             --config video=false,screenshotsFolder="$CY_RESULTS_DIR/screenshots"
 
