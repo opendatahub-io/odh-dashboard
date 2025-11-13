@@ -14,10 +14,10 @@ spec:
       maxCount: 1
       minCount: 100m
       resourceType: CPU
-    - defaultCount: 10Gi
+    - defaultCount: 8Gi
       displayName: Memory
       identifier: memory
-      maxCount: 10Gi
+      maxCount: 8Gi
       minCount: 8Gi
       resourceType: Memory
   scheduling:
