@@ -6,17 +6,15 @@ import {
   DescriptionListTerm,
 } from '@patternfly/react-core';
 
-import { NotebookSize } from '#~/types';
+import { ContainerResources } from '#~/types';
 import { formatMemory } from '#~/utilities/valueUnits';
 
 type NotebookSizeDetailsProps = {
-  notebookSize: NotebookSize;
+  notebookContainerSize?: ContainerResources;
 };
 
-const NotebookSizeDetails: React.FC<NotebookSizeDetailsProps> = ({ notebookSize }) => {
-  const {
-    resources: { requests, limits },
-  } = notebookSize;
+const NotebookSizeDetails: React.FC<NotebookSizeDetailsProps> = ({ notebookContainerSize }) => {
+  const { requests, limits } = notebookContainerSize || {};
 
   return (
     <DescriptionList>
