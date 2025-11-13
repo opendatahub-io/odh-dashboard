@@ -141,7 +141,7 @@ describe('A user can deploy an LLMD model', () => {
       llmdRow.findExternalServiceButton().click();
       llmdRow.findExternalServicePopover().should('exist');
       // Expand row to verify deployment details
-      llmdRow.shouldHaveServingRuntime('Distributed Inference Server with llm-d.');
+      llmdRow.shouldHaveServingRuntime('Distributed Inference Server with llm-d');
     },
   );
 });
