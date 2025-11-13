@@ -1,15 +1,16 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import React from 'react';
-import { NotebookKind } from '#~/k8sTypes';
+import { HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { HardwareProfileBindingStateInfo } from '#~/concepts/hardwareProfiles/types';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { HardwareProfileBindingState } from './const';
 
 export const useHardwareProfileBindingState = (
   resource?: NotebookKind | ModelResourceType,
+  extraProfiles?: [profiles: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined],
 ): [HardwareProfileBindingStateInfo | null, boolean, Error | undefined] => {
   const { dashboardNamespace } = useDashboardNamespace();
   const hardwareProfileName =
@@ -25,18 +26,42 @@ export const useHardwareProfileBindingState = (
     projectProfiles: [projectProfilesList, projectProfilesLoaded, projectProfilesError],
   } = useHardwareProfilesByFeatureVisibility();
 
-  const profile = React.useMemo(
-    () =>
-      [...globalProfilesList, ...projectProfilesList].find(
+  const extraProfilesList = extraProfiles?.[0];
+  const extraProfilesLoaded = extraProfiles?.[1];
+  const extraProfilesLoadError = extraProfiles?.[2];
+
+  const profile = React.useMemo(() => {
+    if (extraProfilesList && extraProfilesList.length > 0) {
+      const extraProfile = extraProfilesList.find(
         (p) =>
           p.metadata.name === hardwareProfileName &&
           p.metadata.namespace === hardwareProfileNamespace,
-      ),
-    [globalProfilesList, projectProfilesList, hardwareProfileName, hardwareProfileNamespace],
-  );
+      );
+      if (extraProfile) {
+        return extraProfile;
+      }
+    }
 
-  const loaded = globalProfilesLoaded && projectProfilesLoaded;
-  const loadError = globalProfilesError || projectProfilesError;
+    return [...globalProfilesList, ...projectProfilesList].find(
+      (p) =>
+        p.metadata.name === hardwareProfileName &&
+        p.metadata.namespace === hardwareProfileNamespace,
+    );
+  }, [
+    extraProfilesList,
+    globalProfilesList,
+    projectProfilesList,
+    hardwareProfileName,
+    hardwareProfileNamespace,
+  ]);
+
+  const loaded =
+    globalProfilesLoaded && projectProfilesLoaded && (extraProfiles ? extraProfilesLoaded : true);
+  const loadError =
+    globalProfilesError ||
+    projectProfilesError ||
+    (extraProfiles ? extraProfilesLoadError : undefined);
+
   if (!hardwareProfileName && resourceVersion) {
     // hardware profile was assigned at some point due to presence of
     // resource version annotation, but has since been deleted

@@ -1,7 +1,7 @@
 import React from 'react';
 import { MultiSelection } from '#~/components/MultiSelection';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { WORKBENCH_VISIBILITY } from '#~/pages/BYONImages/const';
 
 type HardwareProfileIdentifierMultiselectProps = {
   data: string[];
@@ -13,7 +13,7 @@ export const HardwareProfileIdentifierMultiselect: React.FC<
 > = ({ data, setData }) => {
   const {
     globalProfiles: [hardwareProfiles],
-  } = useHardwareProfilesByFeatureVisibility([HardwareProfileFeatureVisibility.WORKBENCH]);
+  } = useHardwareProfilesByFeatureVisibility(WORKBENCH_VISIBILITY);
 
   const identifiers = React.useMemo(() => {
     const uniqueIdentifiers = new Set<string>(data);

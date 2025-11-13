@@ -2,14 +2,17 @@ import React from 'react';
 import { BYONImage } from '#~/types';
 import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
 import BYONImagesTableRow from './BYONImagesTableRow';
 import BYONImagesToolbar from './BYONImagesToolbar';
-import { initialBYONImagesFilterData, BYONImagesFilterDataType } from './const';
+import {
+  initialBYONImagesFilterData,
+  BYONImagesFilterDataType,
+  WORKBENCH_VISIBILITY,
+} from './const';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -38,9 +41,8 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const [editImage, setEditImage] = React.useState<BYONImage>();
   const [deleteImage, setDeleteImage] = React.useState<BYONImage>();
 
-  const { globalProfiles: hardwareProfiles } = useHardwareProfilesByFeatureVisibility([
-    HardwareProfileFeatureVisibility.WORKBENCH,
-  ]);
+  const { globalProfiles: hardwareProfiles } =
+    useHardwareProfilesByFeatureVisibility(WORKBENCH_VISIBILITY);
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>

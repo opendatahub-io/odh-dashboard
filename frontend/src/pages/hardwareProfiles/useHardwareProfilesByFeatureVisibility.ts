@@ -1,7 +1,7 @@
 import React from 'react';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 
 export const useHardwareProfilesByFeatureVisibility = (
@@ -18,13 +18,13 @@ export const useHardwareProfilesByFeatureVisibility = (
     projectHardwareProfiles: [projectProfiles, projectLoaded, projectError],
   } = React.useContext(ProjectDetailsContext);
 
-  const projectProfilesFiltered = filterHardwareProfileByFeatureVisibility(
-    projectProfiles,
-    visibility,
+  const projectProfilesFiltered = React.useMemo(
+    () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility),
+    [projectProfiles, visibility],
   );
-  const globalProfilesFiltered = filterHardwareProfileByFeatureVisibility(
-    globalProfiles,
-    visibility,
+  const globalProfilesFiltered = React.useMemo(
+    () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility),
+    [globalProfiles, visibility],
   );
   const inProject = !!currentProject.metadata.name;
   return {
