@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { CatalogModel } from '~/app/modelCatalogTypes';
-import ModelCatalogDeployModalWrapper from './ModelCatalogDeployWrapper';
+import ModelCatalogDeployWrapper from './ModelCatalogDeployWrapper';
 
 export const ModelCatalogDeployButton = ({
   model,
@@ -10,7 +10,7 @@ export const ModelCatalogDeployButton = ({
   model: CatalogModel;
   renderRegisterButton?: (isDeployAvailable: boolean) => React.ReactNode;
 }) => (
-  <ModelCatalogDeployModalWrapper
+  <ModelCatalogDeployWrapper
     model={model}
     render={(buttonState, onOpenWizard, isWizardAvailable) => {
       const deployButton = (
