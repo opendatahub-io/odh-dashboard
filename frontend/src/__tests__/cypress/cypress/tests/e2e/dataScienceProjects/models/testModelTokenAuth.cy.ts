@@ -2,8 +2,8 @@ import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pa
 import {
   modelServingGlobal,
   modelServingSection,
-  kserveModalEdit,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth', () => {
+describe('A model can be deployed with token auth', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
@@ -56,7 +56,7 @@ describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth'
 
   it(
     'Verify that a model can be deployed with token auth',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.log('Model Name:', modelName);
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
@@ -146,11 +146,11 @@ describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth'
         .should('have.length.at.least', 2)
         .then((tokens) => {
           const [token1, token2] = tokens;
-          verifyModelExternalToken(modelName, projectName, token1).then((r) =>
-            expect(r.status).to.equal(200),
+          verifyModelExternalToken(modelName, projectName, token1).then(({ response }) =>
+            expect(response.status).to.equal(200),
           );
-          verifyModelExternalToken(modelName, projectName, token2).then((r) =>
-            expect(r.status).to.equal(200),
+          verifyModelExternalToken(modelName, projectName, token2).then(({ response }) =>
+            expect(response.status).to.equal(200),
           );
         });
 
@@ -162,16 +162,22 @@ describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth'
         .findKebabAction('Edit')
         .click();
       // Check the service accounts are showing up in the UI
-      kserveModalEdit.findServiceAccountIndex(0).should('have.value', 'secret');
-      kserveModalEdit.findServiceAccountIndex(1).should('have.value', 'secret2');
-      kserveModalEdit.findTokenAuthenticationCheckbox().click();
-      kserveModalEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
-      kserveModalEdit.findSubmitButton().click();
-      kserveModalEdit.shouldBeOpen(false);
+      // Go to the next step
+      modelServingWizardEdit.findNextButton().click();
+      // Go to the next step
+      modelServingWizardEdit.findNextButton().click();
+      //Step 3: Advanced Options
+      modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'secret');
+      modelServingWizardEdit.findServiceAccountByIndex(1).should('have.value', 'secret2');
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
+      modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
+      modelServingWizardEdit.findNextButton().click();
+      // Submit
+      modelServingWizardEdit.findSubmitButton().click();
 
       // Verify the model is accessible without a token
       cy.step('Verify the model is accessible without a token');
-      verifyModelExternalToken(modelName, projectName).then((response) => {
+      verifyModelExternalToken(modelName, projectName).then(({ response }) => {
         expect(response.status).to.equal(200);
       });
     },
