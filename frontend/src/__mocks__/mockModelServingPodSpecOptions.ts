@@ -15,7 +15,6 @@ export const mockModelServingPodSpecOptions = ({
   },
   tolerations = [],
   nodeSelector = {},
-  selectedAcceleratorProfile,
   selectedHardwareProfile,
   selectedModelSize = {
     name: 'small',
@@ -34,7 +33,6 @@ export const mockModelServingPodSpecOptions = ({
   resources,
   tolerations,
   nodeSelector,
-  selectedAcceleratorProfile,
   selectedHardwareProfile,
   selectedModelSize,
 });

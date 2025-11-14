@@ -102,10 +102,6 @@ declare global {
     interface Chainable {
       interceptOdh: ((type: 'GET /oauth2/sign_out') => Cypress.Chainable<null>) &
         ((
-          type: 'POST /api/accelerator-profiles',
-          response?: OdhResponse,
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'GET /model-registry/api/:apiVersion/model_registry',
           options: { path: { apiVersion: string } },
           response: { data: OdhResponse<ModelRegistry[]> },
@@ -209,16 +205,6 @@ declare global {
             path: { modelRegistryName: string; apiVersion: string; registeredModelId: number };
           },
           response: { data: OdhResponse<ModelVersionList> },
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'DELETE /api/accelerator-profiles/:name',
-          options: { path: { name: string } },
-          response?: OdhResponse,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'PUT /api/accelerator-profiles/:name',
-          options: { path: { name: string } },
-          response: OdhResponse,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/console-links',
