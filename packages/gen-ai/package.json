@@ -25,6 +25,7 @@
   },
   "scripts": {
     "install:module": "npm install --prefix frontend",
+    "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-maas-client' odh-ct-bff-consumer --bff-dir bff",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9102 -s -L",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/contract-tests": "*",
     "eslint-plugin-n": "^17.23.1"
   }
 }
