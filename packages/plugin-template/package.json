@@ -8,5 +8,13 @@
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

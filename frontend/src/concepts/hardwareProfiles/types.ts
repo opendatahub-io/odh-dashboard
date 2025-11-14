@@ -1,5 +1,9 @@
 import { AlertProps } from '@patternfly/react-core';
-import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import {
+  AcceleratorProfileKind,
+  HardwareProfileFeatureVisibility,
+  HardwareProfileKind,
+} from '#~/k8sTypes';
 import { ContainerResources, Toleration, NodeSelector } from '#~/types';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { HardwareProfileBindingState } from '#~/concepts/hardwareProfiles/const';
@@ -67,4 +71,15 @@ export type HardwareProfileBindingConfig = {
     isRunning: boolean;
     name?: string;
   }) => string;
+};
+
+export type CrPathConfig = {
+  containerResourcesPath: string;
+  tolerationsPath: string;
+  nodeSelectorPath: string;
+};
+
+export type HardwareProfileOptions = {
+  visibleIn: HardwareProfileFeatureVisibility[];
+  paths: CrPathConfig;
 };

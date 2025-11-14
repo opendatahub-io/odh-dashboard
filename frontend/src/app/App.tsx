@@ -30,6 +30,7 @@ import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
 import { OdhPlatformType } from '#~/types';
+import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -172,13 +173,15 @@ const App: React.FC = () => {
             <ErrorBoundary>
               <IntegrationsStatusProvider>
                 <ProjectsContextProvider>
-                  <ModelRegistriesContextProvider>
-                    <QuickStarts>
-                      <NotificationWatcherContextProvider>
-                        <AppRoutes />
-                      </NotificationWatcherContextProvider>
-                    </QuickStarts>
-                  </ModelRegistriesContextProvider>
+                  <HardwareProfilesContextProvider>
+                    <ModelRegistriesContextProvider>
+                      <QuickStarts>
+                        <NotificationWatcherContextProvider>
+                          <AppRoutes />
+                        </NotificationWatcherContextProvider>
+                      </QuickStarts>
+                    </ModelRegistriesContextProvider>
+                  </HardwareProfilesContextProvider>
                 </ProjectsContextProvider>
               </IntegrationsStatusProvider>
               <ToastNotifications />

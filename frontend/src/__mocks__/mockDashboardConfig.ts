@@ -33,10 +33,10 @@ export type MockDashboardConfigType = {
   disableAdminConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
-  notebookSizes?: NotebookSize[];
+  notebookSizes?: NotebookSize[]; // deprecated
   disableNIMModelServing?: boolean;
   disableFineTuning?: boolean;
-  modelServerSizes?: ModelServingSize[];
+  modelServerSizes?: ModelServingSize[]; // deprecated
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;

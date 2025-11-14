@@ -1,5 +1,4 @@
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { NotebookSize } from '#~/types';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { NotebookState } from './notebook/types';
@@ -12,16 +11,6 @@ export const getPvcTotalSize = (pvc: PersistentVolumeClaimKind): string =>
 
 export const getPvcRequestSize = (pvc: PersistentVolumeClaimKind): string =>
   formatMemory(pvc.spec.resources.requests.storage);
-
-export const getCustomNotebookSize = (
-  existingNotebook: NotebookKind | undefined,
-): NotebookSize => ({
-  name: 'Keep custom size',
-  resources: existingNotebook?.spec.template.spec.containers[0].resources ?? {
-    limits: {},
-    requests: {},
-  },
-});
 
 export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
   pvc.spec.accessModes[0];

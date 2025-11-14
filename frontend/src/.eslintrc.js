@@ -10,6 +10,30 @@ module.exports = require('@odh-dashboard/eslint-config')
           prefix: '#~',
         },
       ],
+      '@odh-dashboard/no-restricted-imports': [
+        'warn',
+        {
+          patterns: [
+            {
+              group: [
+                '!@odh-dashboard/app-config',
+                '!@odh-dashboard/app-config/**',
+                '!@odh-dashboard/plugin-core',
+                '!@odh-dashboard/plugin-core/**',
+                '!@odh-dashboard/jest-config',
+                '!@odh-dashboard/jest-config/**',
+                '!@odh-dashboard/tsconfig',
+                '!@odh-dashboard/tsconfig/**',
+                '!@odh-dashboard/eslint-config',
+                '!@odh-dashboard/eslint-config/**',
+                '!@odh-dashboard/*/extension-points',
+                '@odh-dashboard/**',
+              ],
+              message: 'Feature imports are restricted. Use extensions instead.',
+            },
+          ],
+        },
+      ],
     },
     overrides: [
       {
@@ -24,8 +48,9 @@ module.exports = require('@odh-dashboard/eslint-config')
         },
       },
       {
-        files: ['./__mocks__/mlmd/**'],
+        files: ['./__mocks__/**'],
         rules: {
+          '@odh-dashboard/no-restricted-imports': 'off',
           'no-restricted-imports': 'off',
         },
       },
