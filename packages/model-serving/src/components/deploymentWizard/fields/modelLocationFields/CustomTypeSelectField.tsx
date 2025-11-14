@@ -8,6 +8,7 @@ type CustomTypeSelectFieldProps = {
   onSelect: (connectionType: ConnectionTypeConfigMapObj) => void;
   typeKey: string;
   selectedConnectionType: ConnectionTypeConfigMapObj | undefined;
+  isDisabled?: boolean;
 };
 
 export const CustomTypeSelectField: React.FC<CustomTypeSelectFieldProps> = ({
@@ -15,6 +16,7 @@ export const CustomTypeSelectField: React.FC<CustomTypeSelectFieldProps> = ({
   onSelect,
   typeKey,
   selectedConnectionType,
+  isDisabled,
 }) => {
   const [selectedType, setSelectedType] = React.useState<ConnectionTypeConfigMapObj | undefined>(
     selectedConnectionType,
@@ -32,6 +34,7 @@ export const CustomTypeSelectField: React.FC<CustomTypeSelectFieldProps> = ({
             </HelperTextItem>
           </FormHelperText>
           <SimpleSelect
+            isDisabled={isDisabled}
             dataTestId="custom-type-select"
             placeholder="Select configuration option"
             options={typeOptions.map((type) => ({

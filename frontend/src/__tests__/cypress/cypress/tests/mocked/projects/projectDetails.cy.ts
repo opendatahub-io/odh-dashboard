@@ -67,6 +67,7 @@ type HandlersProps = {
   pipelineServerErrorMessage?: string;
   rejectAddSupportServingPlatformProject?: boolean;
   disableWorkbenches?: boolean;
+  disableFeatureStore?: boolean;
   namespace?: string;
   disableKueue?: boolean;
   inferenceServices?: InferenceServiceKind[];
@@ -91,6 +92,7 @@ const initIntercepts = ({
   pipelineServerErrorMessage,
   rejectAddSupportServingPlatformProject = false,
   disableWorkbenches = false,
+  disableFeatureStore = false,
   namespace = 'test-project',
   disableKueue = true,
   inferenceServices = [],
@@ -118,6 +120,9 @@ const initIntercepts = ({
         [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.FEAST_OPERATOR]: {
+          managementState: disableFeatureStore ? 'Removed' : 'Managed',
+        },
       },
     }),
   );
@@ -146,6 +151,7 @@ const initIntercepts = ({
       disableKServe,
       disableNIMModelServing: disableNIMConfig,
       disableKueue,
+      disableFeatureStore,
     }),
   );
   if (pipelineServerInstalled) {
@@ -681,6 +687,20 @@ describe('Project Details', () => {
       // 3. Verify deploy model button is disabled
       projectDetails.visitSection('test-project', 'model-server');
       cy.findByTestId('deploy-button').should('have.attr', 'aria-disabled', 'true');
+    });
+  });
+
+  describe('Feature Store disabled', () => {
+    beforeEach(() => {
+      initIntercepts({
+        disableFeatureStore: true,
+      });
+      initModelServingIntercepts({});
+    });
+
+    it('should hide feature store tab when feature store is disabled', () => {
+      projectDetails.visit('test-project');
+      projectDetails.findTab('Feature store integration').should('not.exist');
     });
   });
 });

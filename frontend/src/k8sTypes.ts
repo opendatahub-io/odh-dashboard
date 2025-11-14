@@ -18,6 +18,7 @@ import {
   Volume,
   VolumeMount,
   HardwareProfileAnnotations,
+  HardwareProfileBindingAnnotations,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
@@ -121,17 +122,12 @@ export type NotebookAnnotations = Partial<{
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
-  'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
-  'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
-  'opendatahub.io/hardware-profile-name': string; // the hardware profile attached to the notebook
   'opendatahub.io/image-display-name': string; // the display name of the image
   'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
-  'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
   'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
-  'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
   'opendatahub.io/connections': string | undefined; // the connections attached to the notebook
-  'opendatahub.io/hardware-profile-resource-version': string; // resource version of hardware profile when assigned
-}>;
+}> &
+  Partial<HardwareProfileBindingAnnotations>;
 
 export type DashboardLabels = {
   [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
@@ -1297,7 +1293,7 @@ export type DashboardCommonConfig = {
   disableFineTuning: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  modelTraining: boolean;
+  trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
@@ -1310,8 +1306,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
     dashboardConfig: DashboardCommonConfig;
     // Intentionally disjointed from the CRD [1]
     // groupsConfig?: {
-    notebookSizes?: NotebookSize[];
-    modelServerSizes?: ModelServingSize[];
+    notebookSizes?: NotebookSize[]; // deprecated
+    modelServerSizes?: ModelServingSize[]; // deprecated
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;

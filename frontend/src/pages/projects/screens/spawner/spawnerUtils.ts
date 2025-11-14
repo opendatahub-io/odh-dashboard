@@ -1,6 +1,6 @@
 import compareVersions from 'compare-versions';
 import type { ImageStreamStatusTag } from '#~/types';
-import { NotebookSize, Volume, VolumeMount } from '#~/types';
+import { Volume, VolumeMount } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
@@ -12,7 +12,6 @@ import {
 import { AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { FieldOptions } from '#~/components/FieldList';
 import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
-import { formatMemory } from '#~/utilities/valueUnits';
 import {
   BuildStatus,
   ImageVersionDependencyType,
@@ -248,13 +247,6 @@ export const getDefaultVersionForImageStream = (
   // Return the most recent version
   return sortedVersions[0];
 };
-
-/******************* Deployment Size utils *******************/
-export const getSizeDescription = (size: NotebookSize): string =>
-  `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
-  `${formatMemory(size.resources.limits?.memory) || '??'} Memory ` +
-  `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
-  `${formatMemory(size.resources.requests?.memory) || '??'} Memory`;
 
 /******************* Checking utils *******************/
 /**

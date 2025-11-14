@@ -14,6 +14,7 @@ import { ModelLocationData, ModelLocationType } from '../types';
 export type CreateConnectionData = {
   saveConnection?: boolean;
   nameDesc?: K8sNameDescriptionFieldData;
+  hideFields?: boolean;
 };
 export type CreateConnectionDataField = {
   data: CreateConnectionData;
@@ -121,7 +122,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   );
   return (
     <>
-      {showK8sNameDescriptionField && (
+      {showK8sNameDescriptionField && !createConnectionData.hideFields && (
         <Form maxWidth="450px">
           <Flex>
             <FlexItem>
