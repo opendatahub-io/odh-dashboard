@@ -72,10 +72,6 @@ class NotebookServer {
     return cy.findByTestId('stop-workbench-button');
   }
 
-  findAcceleratorProfileSelect() {
-    return cy.findByTestId('accelerator-profile-select');
-  }
-
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
