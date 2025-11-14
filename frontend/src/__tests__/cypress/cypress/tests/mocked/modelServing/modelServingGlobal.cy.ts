@@ -384,13 +384,13 @@ describe('Model Serving Global', () => {
       name: 'test-inference-service-latest',
       namespace: 'test-project',
       displayName: 'Latest Model',
-      modelName: 'test-inference-service-latest',
+      runtimeName: 'test-inference-service-latest',
     });
     const inferenceServiceOutdated = mockInferenceServiceK8sResource({
       name: 'test-inference-service-outdated',
       namespace: 'test-project',
       displayName: 'Outdated Model',
-      modelName: 'test-inference-service-outdated',
+      runtimeName: 'test-inference-service-outdated',
     });
 
     initIntercepts({
@@ -485,7 +485,7 @@ describe('Model Serving Global', () => {
         namespace: 'test-project',
         name: 'new-model',
         displayName: 'New Model',
-        modelName: 'test-inference-service-latest',
+        runtimeName: 'test-inference-service-latest',
         lastTransitionTime: '2025-07-10T12:12:41Z',
         activeModelState: 'Loaded',
         isReady: true,
@@ -494,7 +494,7 @@ describe('Model Serving Global', () => {
         namespace: 'test-project',
         name: 'old-model',
         displayName: 'Old Model',
-        modelName: 'test-inference-service-outdated',
+        runtimeName: 'test-inference-service-outdated',
         lastTransitionTime: '2024-09-04T16:12:41Z',
         activeModelState: 'Loaded',
         isReady: true,

@@ -116,6 +116,16 @@ const initIntercepts = ({
             },
           ],
         }),
+        mockServingRuntimeTemplateK8sResource({
+          name: 'template-6',
+          displayName: 'vLLM CPU',
+          modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          supportedModelFormats: [
+            {
+              name: 'vLLM',
+            },
+          ],
+        }),
       ],
       { namespace: 'opendatahub' },
     ),

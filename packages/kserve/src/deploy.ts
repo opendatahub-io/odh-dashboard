@@ -39,7 +39,7 @@ export const deployKServeDeployment = async (
   };
 
   const servingRuntime =
-    serverResource && !existingDeployment
+    serverResource && !existingDeployment?.server
       ? await createServingRuntime(
           {
             project: projectName,

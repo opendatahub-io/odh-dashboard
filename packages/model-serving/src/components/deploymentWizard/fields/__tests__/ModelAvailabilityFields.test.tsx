@@ -7,8 +7,15 @@ import {
   isValidModelAvailabilityFieldsData,
   useModelAvailabilityFields,
 } from '../ModelAvailabilityFields';
+import { mockExtensions } from '../../../../__tests__/mockUtils';
+
+jest.mock('@odh-dashboard/plugin-core');
 
 describe('AvailableAiAssetsFields', () => {
+  beforeEach(() => {
+    mockExtensions([]);
+  });
+
   describe('Schema validation', () => {
     it('should validate saveAsAiAsset', () => {
       const result = modelAvailabilityFieldsSchema.safeParse({ saveAsAiAsset: true });

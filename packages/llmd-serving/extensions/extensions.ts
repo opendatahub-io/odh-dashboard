@@ -50,6 +50,8 @@ const extensions: (
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('../src/deployments/model').then((m) => m.extractModelLocationData),
+      extractModelServerTemplate: () =>
+        import('../src/deployments/server').then((m) => m.extractModelServerTemplate),
     },
   },
   {

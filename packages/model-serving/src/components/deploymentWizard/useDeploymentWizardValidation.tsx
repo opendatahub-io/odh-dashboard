@@ -5,7 +5,6 @@ import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
 import type { WizardFormData } from './types';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
-import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
 import {
   tokenAuthenticationFieldSchema,
@@ -61,13 +60,6 @@ export const useModelDeploymentWizardValidation = (
     state.hardwareProfileConfig.formData,
     hardwareProfileValidationSchema,
   );
-  const modelFormatValidation = useValidation(
-    {
-      type: state.modelType.data,
-      format: state.modelFormatState.modelFormat,
-    },
-    modelFormatFieldSchema,
-  );
 
   const modelServerValidation = useZodFormValidation(
     state.modelServer.data,
@@ -109,7 +101,6 @@ export const useModelDeploymentWizardValidation = (
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
-    Object.keys(modelFormatValidation.getAllValidationIssues()).length === 0 &&
     numReplicasValidation.getFieldValidation(undefined, true).length === 0 &&
     modelServerValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =

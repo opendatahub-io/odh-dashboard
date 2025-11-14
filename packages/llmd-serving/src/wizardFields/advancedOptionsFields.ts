@@ -10,10 +10,10 @@ export const externalRouteField: ExternalRouteField = {
   id: 'externalRoute',
   type: 'modifier',
   isVisible: false, // Hide external route for LLMD deployments
-  isActive: (context): boolean => {
+  isActive: (wizardFormData) => {
     return (
-      context.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
-      context.modelServer?.data?.name === LLMD_SERVING_ID
+      wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
+      wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
 };
@@ -22,10 +22,10 @@ export const tokenAuthField: TokenAuthField = {
   id: 'tokenAuth',
   type: 'modifier',
   initialValue: true, // Default to checked for LLMD deployments
-  isActive: (context): boolean => {
+  isActive: (wizardFormData) => {
     return (
-      context.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
-      context.modelServer?.data?.name === LLMD_SERVING_ID
+      wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
+      wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
 };
@@ -34,10 +34,10 @@ export const deploymentStrategyField: DeploymentStrategyField = {
   id: 'deploymentStrategy',
   type: 'modifier',
   isVisible: false,
-  isActive: (context): boolean => {
+  isActive: (wizardFormData): boolean => {
     return (
-      context.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
-      context.modelServer?.data?.name === LLMD_SERVING_ID
+      wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
+      wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
 };

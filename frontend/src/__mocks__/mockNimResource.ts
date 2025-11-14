@@ -72,7 +72,7 @@ export const mockNimInferenceService = ({
 }: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
-    modelName: 'test-name',
+    runtimeName: 'test-name',
     displayName,
     namespace,
     resources,

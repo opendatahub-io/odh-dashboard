@@ -120,7 +120,7 @@ const initIntercepts = ({
     mockK8sResourceList(
       [
         mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
+          name: 'ovms',
           displayName: 'OpenVINO',
           modelTypes: [ServingRuntimeModelType.PREDICTIVE],
         }),
@@ -1339,7 +1339,11 @@ describe('Model Serving Deploy Wizard', () => {
     );
     cy.interceptK8sList(
       { model: ServingRuntimeModel, ns: 'test-project' },
-      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      mockK8sResourceList([
+        mockServingRuntimeK8sResource({
+          scope: 'global',
+        }),
+      ]),
     );
 
     modelServingGlobal.visit('test-project');

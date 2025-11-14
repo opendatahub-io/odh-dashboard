@@ -35,6 +35,7 @@ import {
   patchInferenceService,
   updateInferenceService,
 } from './api/inferenceService';
+import { applyModelRuntime } from './deployServer';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -89,11 +90,7 @@ const assembleInferenceService = (
           namespace: project,
         },
         spec: {
-          predictor: {
-            model: {
-              runtime: k8sName,
-            },
-          },
+          predictor: {},
         },
       };
 
@@ -105,6 +102,7 @@ const assembleInferenceService = (
   );
 
   inferenceService = applyModelFormat(inferenceService, modelFormat);
+  inferenceService = applyModelRuntime(inferenceService, k8sName);
 
   inferenceService = applyConnectionData(
     inferenceService,

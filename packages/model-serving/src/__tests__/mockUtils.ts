@@ -217,18 +217,17 @@ export const mockDeploymentWizardState = (
         modelServer: {
           data: undefined,
           setData: jest.fn(),
+          isAutoSelectChecked: undefined,
+          setIsAutoSelectChecked: jest.fn(),
+          suggestion: undefined,
           options: [],
+          isDirty: false,
         },
         deploymentStrategy: {
           data: deploymentStrategyRolling,
           setData: jest.fn(),
           isVisible: true,
         },
-      },
-      fieldExtensions: {
-        externalRouteFields: [],
-        tokenAuthFields: [],
-        deploymentStrategyFields: [],
       },
       loaded: {
         modelSourceLoaded: true,
