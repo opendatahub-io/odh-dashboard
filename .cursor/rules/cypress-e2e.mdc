@@ -49,7 +49,7 @@ alwaysApply: false
 
 ### Folder Structure
 ```
-frontend/src/__tests__/cypress/cypress/
+packages/cypress/cypress/
 ├── fixtures/e2e/           # Test data files (YAML only)
 ├── pages/                  # Page Object Model files
 ├── tests/e2e/             # Test files organized by feature area
@@ -367,7 +367,7 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
    ```bash
    # Check for any remaining quarantine markers
    grep -r "@Bug\|@Maintain\|\[Product Bug\|\[Automation Bug" \
-     frontend/src/__tests__/cypress/cypress/tests/e2e/
+     packages/cypress/cypress/tests/e2e/
    ```
 
 5. **Run linting**:

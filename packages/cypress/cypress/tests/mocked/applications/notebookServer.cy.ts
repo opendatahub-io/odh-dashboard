@@ -1,0 +1,325 @@
+import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockDashboardConfig,
+  mockK8sResourceList,
+  mockNotebookK8sResource,
+  mockStorageClassList,
+} from '@odh-dashboard/internal/__mocks__';
+import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import { mockAllowedUsers } from '@odh-dashboard/internal/__mocks__/mockAllowedUsers';
+import { mockStartNotebookData } from '@odh-dashboard/internal/__mocks__/mockStartNotebookData';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import type { EnvironmentVariable, NotebookData } from '@odh-dashboard/internal/types';
+import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
+import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
+import { notebookServer } from '../../../pages/notebookServer';
+import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import { notebookController, stopNotebookModal } from '../../../pages/administration';
+import { homePage } from '../../../pages/home/home';
+import { HardwareProfileModel, ImageStreamModel, StorageClassModel } from '../../../utils/models';
+
+const groupSubjects: RoleBindingSubject[] = [
+  {
+    kind: 'Group',
+    apiGroup: 'rbac.authorization.k8s.io',
+    name: 'group-1',
+  },
+];
+const initIntercepts = () => {
+  cy.interceptOdh('POST /api/notebooks', mockStartNotebookData({})).as('startNotebookServer');
+  cy.interceptOdh(
+    'GET /api/rolebindings/opendatahub/openshift-ai-notebooks-image-pullers',
+    mockK8sResourceList([
+      mockRoleBindingK8sResource({
+        name: 'group-1',
+        subjects: groupSubjects,
+        roleRefName: 'edit',
+      }),
+    ]),
+  );
+
+  cy.interceptK8sList(
+    { model: ImageStreamModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockImageStreamK8sResourceList()),
+  );
+
+  cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', mockAllowedUsers({}));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableStorageClasses: false,
+    }),
+  );
+  cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+};
+
+it('Administration tab should not be accessible for non-product admins', () => {
+  initIntercepts();
+  asProjectEditUser();
+  notebookServer.visit();
+  notebookController.findAdministrationTab().should('not.exist');
+  notebookController.findSpawnerTab().should('not.exist');
+  notebookController.findAppTitle().should('contain', 'Start a basic workbench');
+});
+
+describe('NotebookServer', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initIntercepts();
+  });
+
+  it('should start a workbench', () => {
+    // Mock hardware profiles
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    ).as('hardwareProfiles');
+
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    ).as('hardwareProfiles');
+
+    notebookServer.visit();
+    notebookServer.findStartServerButton().should('be.visible');
+    notebookServer.findStartServerButton().click();
+    notebookServer.findEventlog().click();
+
+    cy.wait('@startNotebookServer').then((interception) => {
+      const requestBody = interception.request.body;
+
+      // Check top-level properties
+      expect(requestBody).to.have.property('imageName', 'code-server-notebook');
+      expect(requestBody).to.have.property('imageTagName', '2023.2');
+      expect(requestBody).to.have.property('state', 'started');
+      expect(requestBody).to.have.property('storageClassName', 'openshift-default-sc');
+
+      // Check envVars object
+      expect(requestBody).to.have.property('envVars');
+      expect(requestBody.envVars).to.deep.equal({ configMap: {}, secrets: {} });
+
+      // Check podSpecOptions exists
+      expect(requestBody).to.have.property('podSpecOptions');
+
+      // Check podSpecOptions.resources
+      expect(requestBody.podSpecOptions).to.have.property('resources');
+      expect(requestBody.podSpecOptions.resources).to.have.property('requests');
+      expect(requestBody.podSpecOptions.resources.requests).to.deep.equal({
+        cpu: '1',
+        memory: '2Gi',
+      });
+      expect(requestBody.podSpecOptions.resources).to.have.property('limits');
+      expect(requestBody.podSpecOptions.resources.limits).to.deep.equal({
+        cpu: '1',
+        memory: '2Gi',
+      });
+
+      // Check podSpecOptions.tolerations
+      expect(requestBody.podSpecOptions).to.have.property('tolerations');
+      expect(requestBody.podSpecOptions.tolerations).to.deep.equal([
+        {
+          effect: 'NoSchedule',
+          key: 'NotebooksOnlyChange',
+          operator: 'Exists',
+        },
+      ]);
+
+      // Check podSpecOptions.nodeSelector
+      expect(requestBody.podSpecOptions).to.have.property('nodeSelector');
+      expect(requestBody.podSpecOptions.nodeSelector).to.deep.equal({});
+
+      // Check podSpecOptions.selectedHardwareProfile
+      expect(requestBody.podSpecOptions).to.have.property('selectedHardwareProfile');
+      const selectedProfile = requestBody.podSpecOptions.selectedHardwareProfile;
+      const expectedProfile = mockGlobalScopedHardwareProfiles[0];
+
+      // Check hardware profile basic properties
+      expect(selectedProfile).to.have.property('apiVersion', expectedProfile.apiVersion);
+      expect(selectedProfile).to.have.property('kind', expectedProfile.kind);
+
+      // Check metadata properties
+      expect(selectedProfile).to.have.property('metadata');
+      expect(selectedProfile.metadata).to.have.property('name', expectedProfile.metadata.name);
+      expect(selectedProfile.metadata).to.have.property(
+        'namespace',
+        expectedProfile.metadata.namespace,
+      );
+      expect(selectedProfile.metadata).to.have.property('uid', expectedProfile.metadata.uid);
+
+      // Check spec exists
+      expect(selectedProfile).to.have.property('spec');
+      expect(selectedProfile.spec).to.have.property('identifiers');
+      expect(selectedProfile.spec).to.have.property('scheduling');
+    });
+  });
+
+  it('should start a workbench with params', () => {
+    const existingParamEnvs: EnvironmentVariable[] = [
+      {
+        name: 'one',
+        valueFrom: {
+          configMapKeyRef: {
+            key: 'one',
+            name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+          },
+        },
+      },
+      {
+        name: 'two',
+        valueFrom: {
+          secretMapKeyRef: {
+            key: 'two',
+            name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+          },
+        },
+      },
+    ];
+    cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username: 'jupyter-nb-test-2duser' } },
+      {
+        notebook: mockNotebookK8sResource({ additionalEnvs: existingParamEnvs }),
+        isRunning: false,
+      },
+    );
+    cy.interceptOdh(
+      'GET /api/envs/configmap/openshift-ai-notebooks/:filename',
+      { path: { filename: 'jupyterhub-singleuser-profile-test-2duser-envs' } },
+      mockConfigMap({
+        name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+        namespace: 'openshift-ai-notebooks',
+        data: {
+          one: 'test',
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/envs/secret/openshift-ai-notebooks/:filename',
+      { path: { filename: 'jupyterhub-singleuser-profile-test-2duser-envs' } },
+      mockCustomSecretK8sResource({
+        name: 'jupyterhub-singleuser-profile-test-2duser-envs',
+        namespace: 'openshift-ai-notebooks',
+        data: {
+          two: 'dGVzdDIK',
+        },
+      }),
+    );
+    notebookServer.visit();
+    notebookServer.findEnvVarKey(0).should('have.value', 'one');
+    notebookServer.findEnvVarIsSecretCheckbox(0).should('not.be.checked');
+    notebookServer.findEnvVarValue(0).should('have.value', 'test');
+
+    notebookServer.findEnvVarKey(1).should('have.value', 'two');
+    notebookServer.findEnvVarIsSecretCheckbox(1).should('be.checked');
+    notebookServer.findEnvVarSecretEyeToggle(1).click();
+    // Seems Cypress doesn't handle atob well -- expect(atob('dGVzdDIK')).to.eql('test2') is not true, `test2\n` is the value of atob in Cypress
+    notebookServer.findEnvVarValue(1).should('contain.value', 'test2');
+  });
+
+  it('should start a workbench with hardware profile', () => {
+    // Mock hardware profiles
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    ).as('hardwareProfiles');
+
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    ).as('hardwareProfiles');
+
+    notebookServer.visit();
+    notebookServer.findHardwareProfileSelect().click();
+    notebookServer
+      .findHardwareProfileSelectOptionValues()
+      .should('not.satisfy', (arr: string[]) => arr.some((item) => item.includes('Test GPU')));
+    notebookServer
+      .findHardwareProfileSelect()
+      .findSelectOption(
+        'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      )
+      .click();
+    notebookServer.findHardwareProfileSelect().should('contain', 'Large');
+    notebookServer.findStartServerButton().should('be.visible');
+    notebookServer.findStartServerButton().click();
+
+    cy.wait('@startNotebookServer').then((interception) => {
+      const { podSpecOptions } = interception.request.body as NotebookData;
+      expect(podSpecOptions.selectedHardwareProfile).not.to.eq(undefined);
+      expect(
+        podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[
+          'opendatahub.io/display-name'
+        ],
+      ).to.eq('Large Profile');
+      expect(podSpecOptions.selectedHardwareProfile?.spec.identifiers).to.eql([
+        {
+          displayName: 'CPU',
+          resourceType: 'CPU',
+          identifier: 'cpu',
+          minCount: '4',
+          maxCount: '8',
+          defaultCount: '4',
+        },
+        {
+          displayName: 'Memory',
+          resourceType: 'Memory',
+          identifier: 'memory',
+          minCount: '8Gi',
+          maxCount: '16Gi',
+          defaultCount: '8Gi',
+        },
+      ]);
+    });
+  });
+
+  it('should stop a workbench', () => {
+    cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username: 'jupyter-nb-test-2duser' } },
+      {
+        notebook: mockNotebookK8sResource({ image: 'code-server-notebook:2023.2' }),
+        isRunning: true,
+      },
+    );
+    cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
+    notebookServer.visit();
+    notebookServer.findStopServerButton().should('be.visible');
+    notebookServer.findStopServerButton().click();
+
+    cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username: 'jupyter-nb-test-2duser' } },
+      {
+        notebook: mockNotebookK8sResource({ image: 'code-server-notebook:2023.2' }),
+        isRunning: false,
+      },
+    );
+
+    stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
+    stopNotebookModal.findStopNotebookServerButton().click();
+
+    cy.wait('@stopNotebookServer').then((interception) => {
+      expect(interception.request.body).to.eql({ state: 'stopped', username: 'test-user' });
+    });
+  });
+
+  it('should return to the enabled page on cancel', () => {
+    homePage.initHomeIntercepts({ disableHome: false });
+    notebookServer.visit();
+    notebookServer.findCancelStartServerButton().should('be.visible');
+    notebookServer.findCancelStartServerButton().click();
+
+    cy.findByTestId('app-page-title').should('have.text', 'Enabled');
+
+    homePage.initHomeIntercepts({ disableHome: true });
+    notebookServer.visit();
+    notebookServer.findCancelStartServerButton().should('be.visible');
+    notebookServer.findCancelStartServerButton().click();
+
+    cy.findByTestId('app-page-title').should('have.text', 'Enabled');
+  });
+});

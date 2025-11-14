@@ -267,7 +267,7 @@ jobs:
 
           # Check 2: E2E Tests - Look for module-specific e2e directories
           E2E_TESTS_FOUND=false
-          E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
+          E2E_BASE_DIR="packages/cypress/cypress/tests/e2e"
 
           # Build module name patterns dynamically
           RAW_MODULE="${{ matrix.module }}"
