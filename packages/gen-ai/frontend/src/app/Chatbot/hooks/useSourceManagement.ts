@@ -35,11 +35,12 @@ export interface UseSourceManagementReturn {
   setSelectedSourceSettings: (settings: ChatbotSourceSettings | null) => void;
 }
 
-interface UseSourceManagementProps {
+export interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: (message?: string, title?: string) => void;
   onFileUploadComplete?: () => void;
   uploadedFiles?: FileModel[];
+  isFilesLoading?: boolean;
 }
 
 const UPLOAD_EVENT_NAME = 'Playground RAG Upload File';
@@ -49,6 +50,7 @@ const useSourceManagement = ({
   onShowErrorAlert,
   onFileUploadComplete,
   uploadedFiles = [],
+  isFilesLoading = false,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const { api, apiAvailable } = useGenAiAPI();
 
@@ -63,21 +65,44 @@ const useSourceManagement = ({
   const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState({ current: 0, total: 0 });
+  // Track if the page initially loaded with no files
+  const [hadNoFilesInitially, setHadNoFilesInitially] = React.useState<boolean | null>(null);
+  // Track if we've already auto-enabled RAG (so we only do it once)
+  const [hasAutoEnabledRag, setHasAutoEnabledRag] = React.useState(false);
+  // Track the previous loading state to detect when loading completes
+  const prevIsLoadingRef = React.useRef<boolean | null>(null);
+
+  // Track the initial file state on first load
+  React.useEffect(() => {
+    const wasLoading = prevIsLoadingRef.current;
+    const isNowLoaded = wasLoading === true && !isFilesLoading;
+
+    // Update the ref for next render
+    prevIsLoadingRef.current = isFilesLoading;
+
+    // Only set initial state when we've just completed the first load (transition from loading to loaded)
+    if (hadNoFilesInitially === null && isNowLoaded) {
+      const noFilesExist = uploadedFiles.length === 0;
+      setHadNoFilesInitially(noFilesExist);
+    }
+  }, [uploadedFiles, hadNoFilesInitially, isFilesLoading]);
 
   // Helper function to find all pending files
-  const findPendingFiles = React.useCallback((files: FileWithSettings[]): File[] => {
-    return files
-      .filter((fileWithSettings) => fileWithSettings.status === 'pending')
-      .map((fileWithSettings) => fileWithSettings.file);
-  }, []);
+  const findPendingFiles = React.useCallback(
+    (files: FileWithSettings[]): File[] =>
+      files
+        .filter((fileWithSettings) => fileWithSettings.status === 'pending')
+        .map((fileWithSettings) => fileWithSettings.file),
+    [],
+  );
 
-  // Helper function to process pending files
+  // Process pending files and open settings modal if needed
   const processPendingFiles = React.useCallback(() => {
     setFilesWithSettings((currentFiles) => {
       const pendingFilesList = findPendingFiles(currentFiles);
       if (pendingFilesList.length > 0) {
         setPendingFiles(pendingFilesList);
-        setCurrentFileForSettings(pendingFilesList[0]); // Set first file for display purposes
+        setCurrentFileForSettings(pendingFilesList[0]);
         setIsSourceSettingsOpen(true);
       } else {
         setPendingFiles([]);
@@ -114,7 +139,6 @@ const useSourceManagement = ({
       const skippedCount = validSizeFiles.length - filesToUpload.length;
 
       if (skippedCount > 0) {
-        // const remainingSlots = availableSlots;
         onShowErrorAlert(
           'The maximum file number of 10 has been reached. Some files might not have been uploaded.',
           'File limit met',
@@ -129,17 +153,12 @@ const useSourceManagement = ({
         status: 'pending',
       }));
 
-      setFilesWithSettings((prev) => {
-        return [...prev, ...newFilesWithSettings];
-      });
+      setFilesWithSettings((prev) => [...prev, ...newFilesWithSettings]);
 
-      // Process all pending files
-      if (filesToUpload.length > 0) {
-        // Small delay to allow state to update before processing
-        setTimeout(() => {
-          processPendingFiles();
-        }, 100);
-      }
+      // Process pending files after state update
+      setTimeout(() => {
+        processPendingFiles();
+      }, 100);
     },
     [
       uploadedFiles,
@@ -214,7 +233,6 @@ const useSourceManagement = ({
             }
             formData.append('vector_store_id', settings.vectorStore);
 
-            // No need to set multipart/form-data headers as it is will be set automatically with the boundary
             await api.uploadSource(formData);
 
             // Update this specific file status to uploaded
@@ -268,6 +286,12 @@ const useSourceManagement = ({
           onShowErrorAlert(`All uploads failed. Errors: ${errors.join('; ')}`, 'File Upload Error');
         }
 
+        // Auto-enable RAG toggle only once, on first successful upload, if page initially had no files
+        if (successCount > 0 && hadNoFilesInitially === true && !hasAutoEnabledRag) {
+          setIsRawUploaded(true);
+          setHasAutoEnabledRag(true);
+        }
+
         // Refresh the uploaded files list
         onFileUploadComplete?.();
       } else if (!settings) {
@@ -292,13 +316,14 @@ const useSourceManagement = ({
       onShowSuccessAlert,
       removeUploadedSource,
       processPendingFiles,
+      hadNoFilesInitially,
+      hasAutoEnabledRag,
     ],
   );
 
   const handleModalClose = React.useCallback(() => {
-    // Remove all pending files if user closes modal without submitting
+    // Remove pending/configured files if user closes modal without submitting
     if (pendingFiles.length > 0) {
-      // Only remove files that haven't been uploaded yet (pending/configured status)
       pendingFiles.forEach((file) => {
         const fileWithSettings = filesWithSettings.find(
           (fileWithSettingsItem) => fileWithSettingsItem.file.name === file.name,

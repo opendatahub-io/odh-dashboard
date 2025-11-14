@@ -237,6 +237,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     filesWithSettings={sourceManagement.filesWithSettings}
                     uploadedFilesCount={fileManagement.files.length}
                     maxFilesAllowed={10}
+                    isFilesLoading={fileManagement.isLoading}
                   />
                 </FormGroup>
                 <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">
