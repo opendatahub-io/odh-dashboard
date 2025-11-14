@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { RegisteredModel } from '~/app/types';
+import { RegisteredModel, ModelVersion } from '~/app/types';
 interface ModelVersionsHeaderActionsProps {
     rm: RegisteredModel;
-    hasDeployments?: boolean;
+    latestModelVersion?: ModelVersion;
 }
 declare const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps>;
 export default ModelVersionsHeaderActions;

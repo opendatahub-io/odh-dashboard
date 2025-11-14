@@ -5,3 +5,4 @@ export * from './model-catalog-banner';
 export * from './details';
 export * from './detailsCard';
 export * from './table';
+export * from './admin';
