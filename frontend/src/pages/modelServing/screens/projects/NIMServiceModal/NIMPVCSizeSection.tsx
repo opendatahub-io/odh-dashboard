@@ -14,7 +14,6 @@ import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 import NIMPVCSelector from './NIMPVCSelector';
 
-// Types
 export type PVCMode = 'create-new' | 'use-existing';
 
 type NIMPVCSizeSectionProps = {
@@ -26,6 +25,8 @@ type NIMPVCSizeSectionProps = {
   setExistingPvcName: (name: string) => void;
   modelPath: string;
   setModelPath: (path: string) => void;
+  pvcSubPath: string;
+  setPvcSubPath: (path: string) => void;
   isEditing?: boolean;
   selectedModel?: string;
   namespace?: string;
@@ -40,13 +41,14 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
   setExistingPvcName,
   modelPath,
   setModelPath,
+  pvcSubPath,
+  setPvcSubPath,
   isEditing = false,
   selectedModel = '',
   namespace = '',
 }) => (
   <StackItem>
     <Stack hasGutter>
-      {/* Only show PVC Mode Selection for new deployments */}
       {!isEditing && (
         <StackItem>
           <FormGroup
@@ -107,7 +109,6 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
         </StackItem>
       )}
 
-      {/* Show PVC Size Field for new deployments with create-new mode OR for editing existing deployments */}
       {((!isEditing && pvcMode === 'create-new') || isEditing) && (
         <StackItem>
           <PVSizeField
@@ -129,7 +130,6 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
         </StackItem>
       )}
 
-      {/* Smart PVC Selector for new deployments with use-existing mode */}
       {!isEditing && pvcMode === 'use-existing' && (
         <StackItem>
           <Stack hasGutter>
@@ -140,6 +140,8 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
               setExistingPvcName={setExistingPvcName}
               modelPath={modelPath}
               setModelPath={setModelPath}
+              pvcSubPath={pvcSubPath}
+              setPvcSubPath={setPvcSubPath}
             />
           </Stack>
         </StackItem>

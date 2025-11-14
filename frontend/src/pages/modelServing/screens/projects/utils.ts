@@ -640,10 +640,12 @@ export const createNIMPVC = (
       storageClassName,
     },
     projectName,
-    {
-      dryRun,
-    },
+    { dryRun },
     true,
+    undefined,
+    {
+      'opendatahub.io/managed': 'true',
+    },
   );
 
 export const getCreateInferenceServiceLabels = (

@@ -597,17 +597,9 @@ describe('PVC Storage Management', () => {
 
       nimDeployModal.selectUseExistingPVC();
       nimDeployModal.shouldShowNoCompatiblePVCsAlert();
-      nimDeployModal.shouldDisableManualPVCInput();
-      nimDeployModal.shouldDisableModelPathInput();
 
-      cy.findByTestId('no-compatible-pvcs-warning').should(
-        'contain.text',
-        'Field disabled - no compatible storage found',
-      );
-      cy.findByTestId('model-path-disabled-warning').should(
-        'contain.text',
-        'Field disabled - no compatible storage found',
-      );
+      // Note: Manual PVC input and model path fields remain enabled to allow BYO-PVC scenarios
+      // Users can still manually enter a PVC name even when no compatible PVCs are found
     });
 
     it('should handle PVC loading states', () => {

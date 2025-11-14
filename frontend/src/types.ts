@@ -635,7 +635,7 @@ export type Volume = {
   };
 };
 
-export type VolumeMount = { mountPath: string; name: string };
+export type VolumeMount = { mountPath: string; name: string; subPath?: string };
 
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,

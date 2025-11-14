@@ -22,6 +22,7 @@ export const assemblePvc = (
   editName?: string,
   hideFromUI?: boolean,
   additionalAnnotations?: Record<string, string>, // Generic alternative to forceRedeploy
+  additionalLabels?: Record<string, string>, // Additional custom labels
 ): PersistentVolumeClaimKind => {
   const {
     name: pvcName,
@@ -48,9 +49,14 @@ export const assemblePvc = (
     metadata: {
       name,
       namespace,
-      ...(hideFromUI !== true && {
+      ...((hideFromUI !== true || additionalLabels) && {
         labels: {
-          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          // Add dashboard-resource label only if not hidden from UI
+          ...(hideFromUI !== true && {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          }),
+          // Always add custom labels if provided (regardless of hideFromUI)
+          ...(additionalLabels || {}),
         },
       }),
       annotations,
@@ -86,8 +92,16 @@ export const createPvc = (
   opts?: K8sAPIOptions,
   hideFromUI?: boolean,
   additionalAnnotations?: Record<string, string>,
+  additionalLabels?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, undefined, hideFromUI, additionalAnnotations);
+  const pvc = assemblePvc(
+    data,
+    namespace,
+    undefined,
+    hideFromUI,
+    additionalAnnotations,
+    additionalLabels,
+  );
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),
@@ -101,6 +115,7 @@ export const updatePvc = (
   opts?: K8sAPIOptions,
   excludeSpec?: boolean,
   additionalAnnotations?: Record<string, string>,
+  additionalLabels?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
   const pvc = assemblePvc(
     data,
@@ -108,6 +123,7 @@ export const updatePvc = (
     existingData.metadata.name,
     undefined,
     additionalAnnotations,
+    additionalLabels,
   );
 
   const newData = excludeSpec
