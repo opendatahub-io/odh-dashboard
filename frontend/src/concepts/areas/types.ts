@@ -86,6 +86,9 @@ export enum SupportedArea {
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
+
+  /* MLflow */
+  MLFLOW = 'mlflow-application',
 }
 
 export type SupportedAreaType = SupportedArea | string;

@@ -5,6 +5,7 @@ export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
   modelAsService: false,
+  mlflow: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -194,6 +195,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
+  },
+  [SupportedArea.MLFLOW]: {
+    featureFlags: ['mlflow'],
   },
 };
 
