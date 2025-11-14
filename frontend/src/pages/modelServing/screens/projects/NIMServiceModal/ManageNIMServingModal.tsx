@@ -45,7 +45,7 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '#~/concepts/k8s/utils';
-import { getSecret, updatePvc, useAccessReview } from '#~/api';
+import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
@@ -367,6 +367,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           );
         }
         return Promise.all(promises);
+      })
+      .then(async () => {
+        if (editInfo?.inferenceServiceEditInfo) {
+          await patchInferenceServiceStoppedStatus(editInfo.inferenceServiceEditInfo, 'false');
+        }
       })
       .then(() => {
         onSuccess();
