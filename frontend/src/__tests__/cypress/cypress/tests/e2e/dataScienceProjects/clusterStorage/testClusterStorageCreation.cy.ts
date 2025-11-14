@@ -70,7 +70,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
 
   it(
     'Create, Edit and Delete a Persistent Volume Storage',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1824', '@Dashboard'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-1824', '@Dashboard', '@ci-dashboard-set-2'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
