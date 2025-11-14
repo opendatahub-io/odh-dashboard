@@ -7,6 +7,20 @@ import {
 } from '#~/k8sTypes';
 import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
+export const getDefaultStorageClassConfig = (
+  storageClass: StorageClassKind,
+): StorageClassConfig => {
+  return {
+    displayName: storageClass.metadata.name,
+    isEnabled: true,
+    isDefault: false,
+    lastModified: storageClass.metadata.creationTimestamp || '-',
+    accessModeSettings: {
+      [AccessMode.RWO]: true,
+    },
+  };
+};
+
 export const getStorageClassConfig = (
   storageClass: StorageClassKind,
 ): StorageClassConfig | undefined => {
@@ -16,8 +30,103 @@ export const getStorageClassConfig = (
     );
     return storageClassConfig;
   } catch {
-    return undefined;
+    return getDefaultStorageClassConfig(storageClass);
   }
+};
+
+const setDefaultStorageClassHelper = (
+  storageClasses: StorageClassKind[],
+  condition: (sc: StorageClassKind) => boolean,
+  traverseWholeArray: boolean,
+): StorageClassKind[] => {
+  let isDefaultSet = false;
+  return storageClasses.map((sc) => {
+    if (condition(sc) && !isDefaultSet) {
+      isDefaultSet = true;
+      if (
+        getStorageClassConfig(sc)?.isEnabled === false ||
+        getStorageClassConfig(sc)?.isDefault === false
+      ) {
+        return {
+          ...sc,
+          metadata: {
+            ...sc.metadata,
+            annotations: {
+              ...sc.metadata.annotations,
+              [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+                ...getStorageClassConfig(sc),
+                isEnabled: true,
+                isDefault: true,
+              }),
+            },
+          },
+        };
+      }
+      return sc;
+    }
+    if (traverseWholeArray && condition(sc)) {
+      return {
+        ...sc,
+        metadata: {
+          ...sc.metadata,
+          annotations: {
+            ...sc.metadata.annotations,
+            [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+              ...getStorageClassConfig(sc),
+              isDefault: false,
+            }),
+          },
+        },
+      };
+    }
+    return sc;
+  });
+};
+
+export const setDefaultStorageClass = (storageClasses: StorageClassKind[]): StorageClassKind[] => {
+  if (storageClasses.length === 0) {
+    return storageClasses;
+  }
+
+  const defaultStorageClasses = storageClasses.filter(
+    (sc) => getStorageClassConfig(sc)?.isDefault === true,
+  );
+
+  if (defaultStorageClasses.length > 0) {
+    return setDefaultStorageClassHelper(
+      storageClasses,
+      (sc) => getStorageClassConfig(sc)?.isDefault === true,
+      defaultStorageClasses.length > 1,
+    );
+  }
+
+  const hasOpenshiftDefaultStorageClass = storageClasses.some((x) =>
+    isOpenshiftDefaultStorageClass(x),
+  );
+
+  if (hasOpenshiftDefaultStorageClass) {
+    return setDefaultStorageClassHelper(
+      storageClasses,
+      (sc) => isOpenshiftDefaultStorageClass(sc),
+      false,
+    );
+  }
+
+  const firstStorageClass = {
+    ...storageClasses[0],
+    metadata: {
+      ...storageClasses[0].metadata,
+      annotations: {
+        ...storageClasses[0].metadata.annotations,
+        [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
+          ...getStorageClassConfig(storageClasses[0]),
+          isDefault: true,
+          isEnabled: true,
+        }),
+      },
+    },
+  };
+  return [firstStorageClass, ...storageClasses.slice(1)];
 };
 
 export const getPossibleStorageClassAccessModes = (

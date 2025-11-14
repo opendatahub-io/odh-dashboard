@@ -33,6 +33,78 @@ describe('Storage classes', () => {
       storageClassesPage.findEmptyState().should('be.visible');
     });
 
+    it('Sets a placeholder config when no config is found.', () => {
+      const storageClassWithoutConfig = {
+        ...otherStorageClass,
+        metadata: {
+          ...otherStorageClass.metadata,
+          annotations: undefined,
+        },
+      };
+      storageClassesPage.mockGetStorageClasses([
+        openshiftDefaultStorageClass,
+        storageClassWithoutConfig,
+      ]);
+      storageClassesPage.visit();
+
+      const storageClassTableRow = storageClassesTable.getRowByName(
+        otherStorageClass.metadata.name,
+      );
+      storageClassTableRow
+        .findDisplayNameValue()
+        .should('contain.text', otherStorageClass.metadata.name);
+      storageClassTableRow.findEnableValue().findByTestId('enable-switch').should('be.checked');
+      storageClassTableRow
+        .findDefaultValue()
+        .findByTestId('set-default-radio')
+        .should('not.be.checked');
+      const localeDate = new Date(
+        otherStorageClass.metadata.creationTimestamp || new Date().toISOString(),
+      ).toLocaleString();
+      storageClassTableRow.findLastModifiedValue().should('contain.text', localeDate);
+    });
+
+    it('sets the first storage class as the default storage class', () => {
+      const storageClassWithoutConfig = {
+        ...openshiftDefaultStorageClass,
+        metadata: {
+          ...openshiftDefaultStorageClass.metadata,
+          annotations: undefined,
+        },
+      };
+      storageClassesPage.mockGetStorageClasses([
+        storageClassWithoutConfig,
+        {
+          ...otherStorageClass,
+          metadata: {
+            ...otherStorageClass.metadata,
+            annotations: {
+              'opendatahub.io/sc-config': JSON.stringify({
+                displayName: 'Test SC 1',
+                accessModeSettings: {
+                  ReadWriteOnce: true,
+                  ReadWriteMany: true,
+                  ReadOnlyMany: false,
+                  ReadWriteOncePod: false,
+                },
+                isDefault: false,
+                isEnabled: true,
+                lastModified: '2024-08-22T15:42:53.100Z',
+              }),
+            },
+          },
+        },
+      ]);
+      storageClassesPage.visit();
+
+      const storageClassTableRow = storageClassesTable.getRowByName('openshift-default-sc');
+      storageClassTableRow.findEnableValue().findByTestId('enable-switch').should('be.checked');
+      storageClassTableRow
+        .findDefaultValue()
+        .findByTestId('set-default-radio')
+        .should('be.checked');
+    });
+
     it('renders table with data', () => {
       storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
@@ -164,52 +236,6 @@ describe('Storage classes', () => {
       updatedRow.find().should('contain.text', 'Updated description');
     });
 
-    it('can reset an unreadable storage class config', () => {
-      const storageClassName = 'unreadable-config';
-      const storageClass = {
-        ...otherStorageClass,
-        metadata: { ...otherStorageClass.metadata, name: storageClassName },
-      };
-      const unreadableConfigStorageClass = buildMockStorageClass(storageClass, '{“FAIL:}');
-
-      storageClassesPage.mockGetStorageClasses([unreadableConfigStorageClass]);
-      storageClassesPage.visit();
-
-      const storageClassTableRow = storageClassesTable.getRowByName(storageClassName);
-      storageClassTableRow.findDisplayNameValue().should('have.text', '-');
-      storageClassTableRow.findEnableValue().should('have.text', '-');
-      storageClassTableRow.findDefaultValue().should('have.text', '-');
-      storageClassTableRow.findLastModifiedValue().should('have.text', '-');
-      storageClassTableRow.findEnableValue().should('have.text', '-');
-      storageClassTableRow.find().findByTestId('corrupted-metadata-alert').should('be.visible');
-      storageClassTableRow.findKebabAction('Edit').click();
-      storageClassEditModal.findInfoAlert().should('contain.text', 'Reset the metadata');
-      storageClassEditModal.fillDisplayNameInput('Readable config');
-
-      storageClassEditModal.mockGetStorageClass(storageClass);
-      storageClassEditModal.mockPatchStorageClass(storageClass).as('patchStorageClass');
-
-      storageClassesPage
-        .mockGetStorageClasses([
-          buildMockStorageClass(storageClass, {
-            displayName: 'Readable config',
-            isEnabled: false,
-            isDefault: false,
-            accessModeSettings: { ReadWriteOnce: true },
-          }),
-        ])
-        .as('updateStorageClass');
-      storageClassEditModal.findSaveButton().click();
-
-      cy.wait('@patchStorageClass');
-      cy.wait('@updateStorageClass');
-
-      storageClassTableRow.findDisplayNameValue().should('contain.text', 'Readable config');
-      storageClassTableRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
-      storageClassTableRow.findDefaultRadioInput().should('not.have.attr', 'checked');
-      storageClassTableRow.findLastModifiedValue().should('not.have.text', '-');
-    });
-
     it('can reset individual config non-name fields when invalid', () => {
       const storageClassName = 'invalid-non-name-fields';
       const storageClassConfig =
@@ -220,7 +246,7 @@ describe('Storage classes', () => {
       );
       const existingConfig = JSON.parse(storageClassConfig);
 
-      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.mockGetStorageClasses([openshiftDefaultStorageClass, storageClass]);
       storageClassesPage.visit();
 
       const storageClassTableRow = storageClassesTable.getRowByName(storageClassName);
@@ -243,6 +269,7 @@ describe('Storage classes', () => {
 
       storageClassesPage
         .mockGetStorageClasses([
+          openshiftDefaultStorageClass,
           buildMockStorageClass(storageClass, {
             ...existingConfig,
             isEnabled: false,
@@ -264,6 +291,7 @@ describe('Storage classes', () => {
 
       storageClassesPage
         .mockGetStorageClasses([
+          openshiftDefaultStorageClass,
           buildMockStorageClass(storageClass, {
             ...existingConfig,
             isEnabled: false,
@@ -287,6 +315,7 @@ describe('Storage classes', () => {
 
       storageClassesPage
         .mockGetStorageClasses([
+          openshiftDefaultStorageClass,
           buildMockStorageClass(storageClass, {
             ...existingConfig,
             lastModified: '2023-08-22T15:42:53.101Z',
@@ -483,15 +512,6 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesPage.findNoDefaultAlert().should('not.exist');
-    });
-
-    it('should show no default alert when there is no OpenShift default storage classes', () => {
-      storageClassesPage.mockGetStorageClasses([otherStorageClass]);
-      storageClassesTable.mockGetStorageClass(otherStorageClass);
-      storageClassesTable.mockPatchStorageClass(otherStorageClass);
-      storageClassesPage.visit();
-
-      storageClassesPage.findNoDefaultAlert().should('exist');
     });
 
     it('should show access mode checkboxes with correct enable/disable and checked/unchecked states', () => {
