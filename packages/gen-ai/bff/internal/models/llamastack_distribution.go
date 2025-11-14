@@ -6,6 +6,7 @@ type LlamaStackDistributionModel struct {
 	Phase              string                 `json:"phase"`
 	Version            string                 `json:"version"`
 	DistributionConfig map[string]interface{} `json:"distributionConfig"`
+	IsCustomLSD        bool                   `json:"isCustomLSD"`
 }
 
 // LlamaStackDistributionResponse represents the response envelope for LSD status

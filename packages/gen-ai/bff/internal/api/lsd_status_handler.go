@@ -54,6 +54,9 @@ func (app *App) LlamaStackDistributionStatusHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Set flag to indicate if custom LlamaStack URL is configured
+	lsdModel.IsCustomLSD = app.config.LlamaStackURL != ""
+
 	lsdEnvelope := LlamaStackDistributionStatusEnvelope{
 		Data: lsdModel,
 	}
