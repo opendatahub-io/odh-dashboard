@@ -102,6 +102,7 @@ export const useModelDeploymentWizard = (
   const modelAvailability = useModelAvailabilityFields(
     initialData?.modelAvailability,
     modelType.data,
+    modelServer.data,
   );
 
   const externalRoute = useExternalRouteField(

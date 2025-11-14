@@ -21,6 +21,7 @@ import type {
   ModelLocationData,
   InitialWizardFormData,
 } from '../src/components/deploymentWizard/types';
+import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -156,6 +157,9 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
     extractDeploymentStrategy?: CodeRef<
       (deployment: D) => WizardFormData['state']['deploymentStrategy']['data'] | null
+    >;
+    extractModelServerTemplate: CodeRef<
+      (deployment: D, dashboardNamespace?: string) => ModelServerOption | null
     >;
   }
 >;

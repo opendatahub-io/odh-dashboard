@@ -42,6 +42,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const navigate = useNavigate();
 
   const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
+  console.log('existingDeployment', existingDeployment);
 
   const exitWizardOnCancel = React.useCallback(() => {
     navigate(cancelReturnRoute ?? returnRoute ?? '/ai-hub/deployments');

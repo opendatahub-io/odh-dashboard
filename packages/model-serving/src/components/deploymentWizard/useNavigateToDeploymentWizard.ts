@@ -65,28 +65,19 @@ export const useNavigateToDeploymentWizard = (
   }
   const cancelReturnRoute = cancelReturnRouteValue;
 
-  // Memoize the navigation function to prevent unnecessary re-renders
-  return React.useCallback(
+  // Track pending navigation requests while waiting for form data to load
+  const [pendingNavigate, setPendingNavigate] = React.useState<
+    { projectName?: string } | undefined
+  >(undefined);
+
+  // Extract the navigation logic into a reusable callback
+  const executeNavigation = React.useCallback(
     (projectName?: string): void => {
-      // If we're editing a deployment, wait for form data to load
-      if (deployment && !loaded) {
-        console.warn(
-          'useNavigateToDeploymentWizard: Form data is still loading, navigation delayed',
-        );
-        return;
-      }
-
-      // If there's an error loading form data, don't navigate
-      if (deployment && error) {
-        console.error('useNavigateToDeploymentWizard: Failed to load form data:', error.message);
-        return;
-      }
-
       const mergedInitialData = {
         ...(formData ?? {}),
         ...(initialData ?? {}),
       };
-      // Navigate to deployment wizard with state data
+
       navigate(getDeploymentWizardRoute(), {
         state: {
           initialData: mergedInitialData,
@@ -97,6 +88,38 @@ export const useNavigateToDeploymentWizard = (
         },
       });
     },
-    [navigate, formData, initialData, loaded, error, deployment, returnRoute, cancelReturnRoute],
+    [navigate, formData, initialData, deployment, returnRoute, cancelReturnRoute],
+  );
+
+  // Execute pending navigation when form data finishes loading
+  React.useEffect(() => {
+    if (pendingNavigate && loaded && !error) {
+      executeNavigation(pendingNavigate.projectName);
+      setPendingNavigate(undefined);
+    }
+  }, [pendingNavigate, loaded, error, executeNavigation]);
+
+  // Memoize the navigation function to prevent unnecessary re-renders
+  return React.useCallback(
+    (projectName?: string): void => {
+      // If there's an error loading form data, don't navigate
+      if (deployment && error) {
+        console.error('useNavigateToDeploymentWizard: Failed to load form data:', error.message);
+        return;
+      }
+
+      // If we're editing a deployment and form data isn't loaded yet, queue the navigation
+      if (deployment && !loaded) {
+        console.info(
+          'useNavigateToDeploymentWizard: Form data is still loading, navigation queued',
+        );
+        setPendingNavigate({ projectName });
+        return;
+      }
+
+      // Navigate immediately if data is ready or no deployment is being edited
+      executeNavigation(projectName);
+    },
+    [executeNavigation, loaded, error, deployment],
   );
 };

@@ -46,7 +46,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         <ModelServerTemplateSelectField
           modelServerState={wizardState.state.modelServer}
           hardwareProfile={wizardState.state.hardwareProfileConfig.formData.selectedProfile}
-          isEditing={wizardState.initialData?.isEditing}
+          isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
         />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />
       </FormSection>

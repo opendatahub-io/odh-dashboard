@@ -1,6 +1,6 @@
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { ModelServerTemplateField } from '@odh-dashboard/model-serving/types/form-data';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
+import { LLMD_OPTION } from '../deployments/server';
 
 export const modelServerField: ModelServerTemplateField = {
   id: 'modelServerTemplate',
@@ -8,18 +8,8 @@ export const modelServerField: ModelServerTemplateField = {
   isActive: (wizardFormData) => {
     return wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE;
   },
-  extraOptions: [
-    {
-      name: LLMD_SERVING_ID,
-      label: 'Distributed Inference Server with llm-d',
-    },
-  ],
+  extraOptions: [LLMD_OPTION],
   suggestion: (modelServingClusterSettings) => {
-    return modelServingClusterSettings?.isLLMdDefault
-      ? {
-          name: LLMD_SERVING_ID,
-          label: 'Distributed Inference Server with llm-d',
-        }
-      : undefined;
+    return modelServingClusterSettings?.isLLMdDefault ? LLMD_OPTION : undefined;
   },
 };

@@ -142,6 +142,7 @@ export const useModelServerSelectField = (
       const suggestedTemplate = filteredTemplates[0];
       return {
         name: suggestedTemplate.metadata.name,
+        namespace: suggestedTemplate.metadata.namespace,
         label: getServingRuntimeDisplayNameFromTemplate(suggestedTemplate),
         scope: suggestedTemplate.metadata.namespace === dashboardNamespace ? 'global' : 'project',
         template: suggestedTemplate,
@@ -158,6 +159,7 @@ export const useModelServerSelectField = (
     result.push(
       ...(modelServerTemplates?.map((template) => ({
         name: template.metadata.name,
+        namespace: template.metadata.namespace,
         label: getServingRuntimeDisplayNameFromTemplate(template),
         scope: template.metadata.namespace === dashboardNamespace ? 'global' : 'project',
         template,
@@ -167,7 +169,7 @@ export const useModelServerSelectField = (
     return result;
   }, [modelServerSelectExtension?.extraOptions, modelServerTemplates, dashboardNamespace]);
 
-  const isDirty = !!existingData?.name || isAutoSelectChecked !== undefined;
+  const isDirty = !!existingData || isAutoSelectChecked !== undefined;
 
   return {
     data: suggestion && !isDirty ? suggestion : modelServer,
@@ -199,23 +201,17 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
   const profileIdentifiers = useProfileIdentifiers(hardwareProfile);
 
   const selectedTemplate = React.useMemo(() => {
-    return options.find((o) => o.name === data?.name);
+    return options.find((o) => o.name === data?.name && o.namespace === data.namespace) ?? data;
   }, [options, data]);
 
-  console.log('data', data);
-  console.log('suggestion', suggestion);
-  console.log('options', options);
-  console.log('isAutoSelectChecked', isAutoSelectChecked);
-  console.log('isEditing', isEditing);
-  console.log('hardwareProfile', hardwareProfile);
-  console.log('profileIdentifiers', profileIdentifiers);
-  console.log('selectedTemplate', selectedTemplate);
+  console.log(options);
+  console.log(selectedTemplate);
 
   const getServingRuntimeDropdownLabel = React.useCallback(
     (option: ModelServerOption) => (
       <>
         <FlexItem>
-          <Truncate content={option.label || ''} />
+          <Truncate content={option.label || option.name || ''} />
         </FlexItem>
         {option.template && getServingRuntimeVersion(option.template) && (
           <FlexItem>
@@ -269,8 +265,73 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
   );
   const filteredScopedTemplates = options.filter(
     (option) =>
-      (option.scope === 'global' || option.scope === undefined) &&
+      (option.scope === 'global' || !option.scope) &&
       option.label?.toLocaleLowerCase().includes(searchServer.toLocaleLowerCase()),
+  );
+
+  const servingRuntimeDropdown = React.useCallback(
+    (isDisabled?: boolean) => {
+      return (
+        <ProjectScopedSearchDropdown
+          isDisabled={isDisabled}
+          projectScopedItems={filteredProjectScopedTemplates}
+          globalScopedItems={filteredScopedTemplates}
+          renderMenuItem={renderMenuItem}
+          searchValue={searchServer}
+          onSearchChange={setSearchServer}
+          onSearchClear={() => setSearchServer('')}
+          toggleContent={
+            <ProjectScopedToggleContent
+              displayName={selectedTemplate?.label || selectedTemplate?.name}
+              isProject={selectedTemplate?.scope === 'project'}
+              projectLabel={ScopedType.Project}
+              globalLabel={ScopedType.Global}
+              fallback="Select one"
+              color={isDisabled ? 'grey' : 'blue'}
+              labelTestId="serving-runtime-template-label"
+              isEditing={isDisabled}
+              style={
+                isDisabled
+                  ? { border: 'var(--pf-t--global--border--color--disabled) 1px solid' }
+                  : undefined
+              }
+              additionalContent={
+                getServingRuntimeVersion(selectedTemplate?.template) && (
+                  <ServingRuntimeVersionLabel
+                    version={getServingRuntimeVersion(selectedTemplate?.template)}
+                    isCompact
+                    isEditing={isEditing}
+                  />
+                )
+              }
+            />
+          }
+          projectGroupLabel={
+            <ProjectScopedGroupLabel isProject>
+              Project-scoped serving runtimes
+            </ProjectScopedGroupLabel>
+          }
+          globalGroupLabel={
+            <ProjectScopedGroupLabel isProject={false}>
+              Global serving runtimes
+            </ProjectScopedGroupLabel>
+          }
+          dataTestId="serving-runtime-template-selection"
+          projectGroupTestId="project-scoped-serving-runtimes"
+          globalGroupTestId="global-scoped-serving-runtimes"
+          isFullWidth
+        />
+      );
+    },
+    [
+      filteredProjectScopedTemplates,
+      filteredScopedTemplates,
+      renderMenuItem,
+      searchServer,
+      setSearchServer,
+      selectedTemplate,
+      isEditing,
+    ],
   );
 
   return (
@@ -286,9 +347,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       role={isEditing ? 'radiogroup' : undefined}
       isStack
     >
-      {isEditing && selectedTemplate ? (
+      {isEditing ? (
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          {getServingRuntimeDropdownLabel(selectedTemplate)}
+          {servingRuntimeDropdown(isEditing)}
         </Flex>
       ) : (
         <>
@@ -313,59 +374,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             id="horizontal-inline-radio-02"
             isChecked={!isAutoSelectChecked}
             onChange={() => setIsAutoSelectChecked(false)}
-            body={
-              isAutoSelectChecked ? null : (
-                <ProjectScopedSearchDropdown
-                  isDisabled={isEditing}
-                  projectScopedItems={filteredProjectScopedTemplates}
-                  globalScopedItems={filteredScopedTemplates}
-                  renderMenuItem={renderMenuItem}
-                  searchValue={searchServer}
-                  onSearchChange={setSearchServer}
-                  onSearchClear={() => setSearchServer('')}
-                  toggleContent={
-                    <ProjectScopedToggleContent
-                      displayName={selectedTemplate?.label}
-                      isProject={selectedTemplate?.scope === 'project'}
-                      projectLabel={ScopedType.Project}
-                      globalLabel={ScopedType.Global}
-                      fallback="Select one"
-                      isEditing={isEditing}
-                      style={
-                        isEditing
-                          ? { border: 'var(--pf-t--global--border--color--disabled) 1px solid' }
-                          : undefined
-                      }
-                      color={isEditing ? 'grey' : 'blue'}
-                      labelTestId="serving-runtime-template-label"
-                      additionalContent={
-                        getServingRuntimeVersion(selectedTemplate?.template) && (
-                          <ServingRuntimeVersionLabel
-                            version={getServingRuntimeVersion(selectedTemplate?.template)}
-                            isCompact
-                            isEditing={isEditing}
-                          />
-                        )
-                      }
-                    />
-                  }
-                  projectGroupLabel={
-                    <ProjectScopedGroupLabel isProject>
-                      Project-scoped serving runtimes
-                    </ProjectScopedGroupLabel>
-                  }
-                  globalGroupLabel={
-                    <ProjectScopedGroupLabel isProject={false}>
-                      Global serving runtimes
-                    </ProjectScopedGroupLabel>
-                  }
-                  dataTestId="serving-runtime-template-selection"
-                  projectGroupTestId="project-scoped-serving-runtimes"
-                  globalGroupTestId="global-scoped-serving-runtimes"
-                  isFullWidth
-                />
-              )
-            }
+            body={isAutoSelectChecked ? null : servingRuntimeDropdown()}
           />
         </>
       )}
