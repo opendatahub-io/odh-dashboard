@@ -13,7 +13,10 @@ import useProjectNotebookStates from '#~/pages/projects/notebook/useProjectNoteb
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '#~/utilities/const';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
+import { isAiProject } from './ProjectListView';
+import { AiLabel } from './ProjectsToolbar';
 
 // Plans to add other expandable columns in the future
 export enum ExpandableColumns {
@@ -25,12 +28,14 @@ type ProjectTableRowProps = {
   isRefreshing: boolean;
   setEditData: (data: ProjectKind) => void;
   setDeleteData: (data: ProjectKind) => void;
+  currentProjectFilterType?: string;
 };
 const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   obj: project,
   isRefreshing,
   setEditData,
   setDeleteData,
+  currentProjectFilterType,
 }) => {
   const owner = getProjectOwner(project);
   const [expandColumn, setExpandColumn] = React.useState<ExpandableColumns | undefined>();
@@ -66,6 +71,9 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
+  const thisIsAiProject = isAiProject(project);
+  const shouldShowAiLabel = currentProjectFilterType === allProjectFilterKey && thisIsAiProject;
+
   return (
     <Tbody isExpanded={!!expandColumn}>
       <Tr isControlRow>
@@ -74,6 +82,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
             title={
               <ResourceNameTooltip resource={project}>
                 <ProjectLink project={project} />
+                {shouldShowAiLabel && <AiLabel />}
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}

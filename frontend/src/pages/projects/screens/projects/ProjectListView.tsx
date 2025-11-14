@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '#~/components/table';
-import { ProjectKind } from '#~/k8sTypes';
+import { KnownLabels, ProjectKind } from '#~/k8sTypes';
 import { getProjectOwner } from '#~/concepts/projects/utils';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectTableRow from '#~/pages/projects/screens/projects/ProjectTableRow';
@@ -9,33 +9,70 @@ import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
-  initialProjectsFilterData,
+  aiProjectFilterKey,
+  makeInitialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
+
+const PROJECT_FILTER_STORAGE_KEY = 'odh.dashboard.projects.type.filter';
 
 type ProjectListViewProps = {
   allowCreate: boolean;
 };
 
+export const isAiProject = (project: ProjectKind): boolean => {
+  return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
+};
+
+const getAiProjects = (projects: ProjectKind[]) => {
+  return projects.filter((project) => {
+    return isAiProject(project);
+  });
+};
+
 const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const { projects } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
-  const [filterData, setFilterData] =
-    React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialProjectsFilterData),
-    [setFilterData],
+  const [projectFilter, setProjectFilter] = useBrowserStorage<string>(
+    PROJECT_FILTER_STORAGE_KEY,
+    aiProjectFilterKey,
+    true,
+    true,
   );
+
+  const [filterData, setFilterData] = React.useState<ProjectsFilterDataType>(
+    makeInitialProjectsFilterData(projectFilter),
+  );
+  const onClearFilters = React.useCallback(
+    () => setFilterData(makeInitialProjectsFilterData(projectFilter)),
+    [setFilterData, projectFilter],
+  );
+
+  const [aiProjectNum, setAiProjectNum] = React.useState(0);
+  const [fullProjectNum, setFullProjectNum] = React.useState(projects.length || 0);
+
+  React.useEffect(() => {
+    setAiProjectNum(getAiProjects(projects).length || 0);
+    setFullProjectNum(projects.length || 0);
+  }, [projects]);
+
   const filteredProjects = React.useMemo(
     () =>
       projects.filter((project) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const userFilter = filterData.User?.toLowerCase();
+        const aiProjectFilter = filterData.ProjectType === aiProjectFilterKey;
 
+        if (aiProjectFilter) {
+          if (!isAiProject(project)) {
+            return false;
+          }
+        }
         if (
           nameFilter &&
           !getDisplayNameFromK8sResource(project).toLowerCase().includes(nameFilter)
@@ -49,7 +86,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   );
 
   const resetFilters = () => {
-    setFilterData(initialProjectsFilterData);
+    setFilterData(makeInitialProjectsFilterData(projectFilter));
   };
 
   const onFilterUpdate = React.useCallback(
@@ -85,14 +122,18 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             isRefreshing={refreshIds.includes(project.metadata.uid || '')}
             setEditData={(data) => setEditData(data)}
             setDeleteData={(data) => setDeleteData(data)}
+            currentProjectFilterType={filterData.ProjectType}
           />
         )}
         onClearFilters={onClearFilters}
         toolbarContent={
           <ProjectsToolbar
+            setProjectFilter={setProjectFilter}
             allowCreate={allowCreate}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
+            aiProjectNum={aiProjectNum}
+            fullProjectNum={fullProjectNum}
           />
         }
       />
