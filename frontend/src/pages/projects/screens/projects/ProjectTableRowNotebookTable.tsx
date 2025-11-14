@@ -24,7 +24,7 @@ const ProjectTableRowNotebookTable: React.FC<ProjectTableRowNotebookTableProps> 
   const [notebookToDelete, setNotebookToDelete] = React.useState<NotebookKind | undefined>();
 
   const [projectHardwareProfiles, projectHardwareProfilesLoaded, projectHardwareProfilesError] =
-    useWatchHardwareProfiles(project.metadata.namespace);
+    useWatchHardwareProfiles(project.metadata.name);
 
   const hardwareProfiles: [HardwareProfileKind[], boolean, Error | undefined] =
     React.useMemo(() => {
