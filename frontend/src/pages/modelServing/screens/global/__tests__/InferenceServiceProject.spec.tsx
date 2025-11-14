@@ -30,39 +30,6 @@ describe('InferenceServiceProject', () => {
     expect(result.queryByText(/test loading error/)).toBeInTheDocument();
   });
 
-  it('should render modelmesh project', () => {
-    const result = render(
-      <InferenceServiceProject
-        inferenceService={mockInferenceServiceK8sResource({
-          namespace: 'my-project',
-        })}
-      />,
-      {
-        wrapper: ({ children }) => (
-          <ProjectsContext.Provider
-            value={
-              {
-                loaded: true,
-                modelServingProjects: [
-                  mockProjectK8sResource({
-                    k8sName: 'my-project',
-                    displayName: 'My Project',
-                    enableModelMesh: true,
-                  }),
-                ],
-              } as React.ComponentProps<typeof ProjectsContext.Provider>['value']
-            }
-          >
-            {children}
-          </ProjectsContext.Provider>
-        ),
-      },
-    );
-
-    expect(result.queryByText('My Project')).toBeInTheDocument();
-    expect(result.queryByText('Multi-model serving enabled')).toBeInTheDocument();
-  });
-
   it('should render kserve project', () => {
     const result = render(
       <InferenceServiceProject
@@ -80,7 +47,6 @@ describe('InferenceServiceProject', () => {
                   mockProjectK8sResource({
                     k8sName: 'my-project',
                     displayName: 'My Project',
-                    enableModelMesh: false,
                   }),
                 ],
               } as React.ComponentProps<typeof ProjectsContext.Provider>['value']

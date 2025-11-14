@@ -39,12 +39,8 @@ import { DataScienceStackComponent } from '#~/concepts/areas/types';
    ###### Interception Initialization Utilities ######
    ################################################### */
 
-type EnableNimConfigType = {
-  hasAllModels?: boolean;
-};
-
 // intercept all APIs required for enabling NIM
-export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimConfigType): void => {
+export const initInterceptsToEnableNim = (): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -76,7 +72,7 @@ export const initInterceptsToEnableNim = ({ hasAllModels = false }: EnableNimCon
   );
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
-  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject({ hasAllModels })]));
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockNimProject({})]));
 
   const templateMock = mockNimServingRuntimeTemplate();
   cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
@@ -154,6 +150,15 @@ export const initInterceptorsValidatingNimEnablement = (
 ): void => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig(dashboardConfig));
 
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+      },
+    }),
+  );
+
   cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
 
   cy.interceptOdh(
@@ -161,25 +166,12 @@ export const initInterceptorsValidatingNimEnablement = (
     { path: { internalRoute: 'nim' } },
     {
       isInstalled: true,
-      isEnabled: false,
+      isEnabled: !disableServingRuntime,
       canInstall: false,
       error: '',
     },
   );
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
-
-  if (!disableServingRuntime) {
-    cy.interceptOdh(
-      'GET /api/integrations/:internalRoute',
-      { path: { internalRoute: 'nim' } },
-      {
-        isInstalled: true,
-        isEnabled: true,
-        canInstall: false,
-        error: '',
-      },
-    );
-  }
 
   cy.interceptK8sList(
     ProjectModel,

@@ -7,7 +7,6 @@ import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
-  isProjectModelMesh: boolean;
   emptyTemplates: boolean;
   testId?: string;
 };
@@ -15,7 +14,6 @@ type ModelServingPlatformButtonActionProps = ButtonProps & {
 const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActionProps> = ({
   emptyTemplates,
   testId,
-  isProjectModelMesh,
   variant = 'secondary',
   ...buttonProps
 }) => {
@@ -34,20 +32,15 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
     <Button
       {...buttonProps}
       isLoading={!templatesLoaded}
-      isAriaDisabled={
-        !templatesLoaded ||
-        emptyTemplates ||
-        isNimDisabled ||
-        (!isProjectModelMesh && isKueueDisabled)
-      }
+      isAriaDisabled={!templatesLoaded || emptyTemplates || isNimDisabled || isKueueDisabled}
       data-testid={testId}
       variant={variant}
     >
-      {isProjectModelMesh ? 'Add model server' : 'Deploy model'}
+      Deploy model
     </Button>
   );
 
-  if (!emptyTemplates && !isNimDisabled && !(!isProjectModelMesh && isKueueDisabled)) {
+  if (!emptyTemplates && !isNimDisabled && !isKueueDisabled) {
     return actionButton;
   }
 
@@ -58,12 +51,13 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
       content={
         isNimDisabled ? (
           'NIM is not available. Contact your administrator.'
-        ) : !isProjectModelMesh && isKueueDisabled ? (
+        ) : isKueueDisabled ? (
           KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE
         ) : (
-          <Content component="p">{`At least one serving runtime must be enabled to ${
-            isProjectModelMesh ? 'add a model server' : 'deploy a model'
-          }. Contact your administrator.`}</Content>
+          <Content component="p">
+            At least one serving runtime must be enabled to deploy a model. Contact your
+            administrator.
+          </Content>
         )
       }
     >

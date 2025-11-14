@@ -79,7 +79,6 @@ export const setUpTokenAuth = async (
   namespace: string,
   createTokenAuth: boolean,
   owner: ServingRuntimeKind | InferenceServiceKind,
-  isModelMesh?: boolean,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
@@ -93,27 +92,20 @@ export const setUpTokenAuth = async (
     owner,
   );
 
-  // We only need the inferenceservice view role for KServe, not ModelMesh
-  const role = !isModelMesh
-    ? addOwnerReference(generateRoleInferenceService(roleName, deployedModelName, namespace), owner)
-    : null;
+  // Always create the inference service view role for KServe
+  const role = addOwnerReference(
+    generateRoleInferenceService(roleName, deployedModelName, namespace),
+    owner,
+  );
 
   const roleBinding = addOwnerReference(
     generateRoleBindingServiceAccount(
       roleBindingName,
       serviceAccountName,
-      role
-        ? {
-            kind: 'Role',
-            name: roleName,
-          }
-        : {
-            // Fallback to insecure ClusterRole for ModelMesh
-            // This is a security issue we will not fix for now, this may change in the future.
-            // See https://issues.redhat.com/browse/RHOAIENG-12314
-            kind: 'ClusterRole',
-            name: 'view',
-          },
+      {
+        kind: 'Role',
+        name: roleName,
+      },
       namespace,
     ),
     owner,
@@ -122,7 +114,7 @@ export const setUpTokenAuth = async (
     createTokenAuth
       ? Promise.all([
           createServiceAccountIfMissing(serviceAccount, namespace, opts),
-          ...(role ? [createRoleIfMissing(role, namespace, opts)] : []),
+          createRoleIfMissing(role, namespace, opts),
         ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
   )
