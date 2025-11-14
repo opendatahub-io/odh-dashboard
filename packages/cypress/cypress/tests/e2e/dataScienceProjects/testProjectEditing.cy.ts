@@ -1,0 +1,68 @@
+import type { DataScienceProjectData } from '../../../types';
+import { editProjectModal, projectDetails, projectListPage } from '../../../pages/projects';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+import { loadDSPFixture } from '../../../utils/dataLoader';
+import { createCleanProject } from '../../../utils/projectChecker';
+import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { retryableBefore } from '../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../utils/uuidGenerator';
+
+describe('Verify Project - Editing', () => {
+  let testData: DataScienceProjectData;
+  let projectName: string;
+  const uuid = generateTestUUID();
+
+  // Setup: Load test data and ensure clean state
+  retryableBefore(() =>
+    loadDSPFixture('e2e/dataScienceProjects/testProjectEditing.yaml')
+      .then((fixtureData: DataScienceProjectData) => {
+        testData = fixtureData;
+        projectName = `${testData.projectEditResourceName}-${uuid}`;
+        if (!projectName) {
+          throw new Error('Project name is undefined or empty in the loaded fixture');
+        }
+        cy.log(`Loaded project name: ${projectName}`);
+        return createCleanProject(projectName);
+      })
+      .then(() => {
+        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+      }),
+  );
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
+  });
+
+  it(
+    'Edit a Project in RHOAI',
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      // Edit project details
+      cy.step('Edit project information');
+      projectDetails.findActions().click();
+      projectDetails.findEditProjectAction().click();
+      editProjectModal.shouldBeOpen();
+      editProjectModal.findEditProjectName().clear().type(testData.projectEditUpdatedName);
+      editProjectModal.findEditDescriptionName().type(testData.projectEditDescription);
+      editProjectModal.findSubmitButton().click();
+
+      // Verify project updates
+      cy.step(`Verify that the project ${testData.projectEditUpdatedName} has been updated`);
+      projectDetails.verifyProjectName(testData.projectEditUpdatedName);
+      projectDetails.verifyProjectDescription(testData.projectEditDescription);
+    },
+  );
+});
