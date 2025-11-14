@@ -238,9 +238,9 @@ jobs:
             # Try with SSL verification disabled (for self-signed certs)
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                        -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
+                        -o ${{ github.workspace }}/packages/cypress/test-variables.yml; then
               echo "✅ Successfully downloaded test configuration from GitLab"
-              ls -la ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+              ls -la ${{ github.workspace }}/packages/cypress/test-variables.yml
             else
               echo "❌ Failed to download from GitLab"
               echo "Curl exit code: $?"
@@ -286,7 +286,7 @@ jobs:
           fi
 
           # Read credentials from downloaded test-variables.yml
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
           # Extract OC_USERNAME from OCP_ADMIN_USER section
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
@@ -328,23 +328,23 @@ jobs:
         run: |
           # For forked PRs, use default URLs from local test-vars.yml
           if [ -n "${{ secrets.OCP_CONSOLE_URL }}" ]; then
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}|" ${{ github.workspace }}/packages/cypress/test-variables.yml
           fi
           if [ -n "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: ${{ secrets.ODH_DASHBOARD_URL }}|" ${{ github.workspace }}/packages/cypress/test-variables.yml
           fi
 
           # For forked PRs, set default URLs if secrets are not available
           if [ -z "${{ secrets.OCP_CONSOLE_URL }}" ]; then
             echo "⚠️  OCP_CONSOLE_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            sed -i.bak "s|OCP_CONSOLE_URL:.*|OCP_CONSOLE_URL: http://localhost:4010|" ${{ github.workspace }}/packages/cypress/test-variables.yml
           fi
           if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
             echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:4010|" ${{ github.workspace }}/packages/cypress/test-variables.yml
           fi
 
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          export CY_TEST_CONFIG="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
       - name: Start Cypress Server
         run: |
@@ -448,8 +448,8 @@ jobs:
           echo "🚀 Running real E2E tests against live dashboard"
 
           # Run tests with matrix tag using Jenkins-style command format
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
-          export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
+          export CY_TEST_CONFIG="${{ github.workspace }}/packages/cypress/test-variables.yml"
+          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.test-tag }}"
 
           # Ensure OpenShift configuration is available to Cypress process
           if [ -n "$KUBECONFIG" ]; then
@@ -485,10 +485,10 @@ jobs:
         with:
           name: e2e-test-results-${{ matrix.test-tag }}
           path: |
-            frontend/src/__tests__/cypress/results/
-            frontend/src/__tests__/cypress/videos/
-            frontend/src/__tests__/cypress/screenshots/
-            frontend/src/__tests__/cypress/coverage/
+            packages/cypress/results/
+            packages/cypress/videos/
+            packages/cypress/screenshots/
+            packages/cypress/coverage/
           retention-days: 7
 
       - name: Log test completion
