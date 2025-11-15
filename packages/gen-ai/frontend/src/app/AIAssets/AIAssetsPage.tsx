@@ -65,6 +65,7 @@ export const AIAssetsPage: React.FC = () => {
               }
               aria-label={`${extension.properties.title} tab`}
               tabContentId={`${extension.properties.id}-tab-content`}
+              data-testid={`ai-assets-tab-${extension.properties.id}`}
             />
           ))}
         </Tabs>

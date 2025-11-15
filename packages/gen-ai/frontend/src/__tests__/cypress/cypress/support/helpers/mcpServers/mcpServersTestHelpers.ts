@@ -1,0 +1,151 @@
+import yaml from 'js-yaml';
+import {
+  mockNamespaces,
+  mockEmptyList,
+  mockStatus,
+  mockMCPServers,
+  mockMCPServer,
+  mockMCPStatusInterceptor,
+  mockMCPToolsInterceptor,
+  mockMCPStatusError,
+} from '~/__tests__/cypress/cypress/__mocks__';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
+
+// Declare custom Cypress command types for this helper file
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Cypress {
+    interface Chainable {
+      interceptGenAi: (
+        type: string,
+        ...args: [{ query?: Record<string, string> } | null, unknown] | [unknown]
+      ) => Cypress.Chainable<null>;
+    }
+  }
+}
+
+export interface MCPTestConfig {
+  defaultNamespace: string;
+  servers: {
+    github: {
+      name: string;
+      url: string;
+    };
+    filesystem: {
+      name: string;
+      url: string;
+    };
+  };
+  tokens: {
+    valid: string;
+    invalid: string;
+    test: string;
+  };
+}
+
+export const setupBaseMCPServerMocks = (
+  config: MCPTestConfig,
+  options: { lsdStatus: 'Ready' | 'NotReady'; includeLsdModel?: boolean } = {
+    lsdStatus: 'NotReady',
+    includeLsdModel: false,
+  },
+): void => {
+  const namespace = config.defaultNamespace;
+
+  cy.interceptGenAi('GET /api/v1/namespaces', mockNamespaces());
+
+  cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
+
+  cy.interceptGenAi(
+    'GET /api/v1/lsd/status',
+    { query: { namespace } },
+    mockStatus(options.lsdStatus),
+  );
+
+  if (options.includeLsdModel) {
+    cy.interceptGenAi(
+      'GET /api/v1/lsd/models',
+      { query: { namespace } },
+      {
+        data: [
+          {
+            id: 'meta-llama/Llama-3.2-3B-Instruct',
+            providerModelId: 'meta-llama/Llama-3.2-3B-Instruct',
+            providerId: 'meta-llama',
+            modelType: 'llm',
+            metadata: {},
+          },
+        ],
+      },
+    );
+  } else {
+    cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
+  }
+
+  cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
+};
+
+export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
+  return cy.fixture('mocked/mcpServers/mcpTestConfig.yaml').then((yamlString) => {
+    return yaml.load(yamlString as string) as MCPTestConfig;
+  });
+};
+
+type InitInterceptsOptions = {
+  config: MCPTestConfig;
+  namespace: string;
+  serverName: string;
+  serverUrl?: string;
+  serverStatus?: string;
+  servers?: Array<{ name: string; status: string }>;
+  withStatusInterceptor?: { token: string; serverUrl: string };
+  withToolsInterceptor?: { token: string; serverUrl: string };
+  withStatusError?: { errorType: '400' | '401'; serverUrl: string };
+};
+
+export const initIntercepts = ({
+  config,
+  namespace,
+  serverName,
+  serverUrl,
+  serverStatus = 'Token required',
+  servers,
+  withStatusInterceptor,
+  withToolsInterceptor,
+  withStatusError,
+}: InitInterceptsOptions): void => {
+  setupBaseMCPServerMocks(config, { lsdStatus: 'Ready', includeLsdModel: true });
+  const mcpServers = servers
+    ? servers.map((s) => mockMCPServer(s))
+    : [
+        mockMCPServer({
+          name: serverName,
+          status: serverStatus,
+          ...(serverUrl && { url: serverUrl }),
+        }),
+      ];
+
+  cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers(mcpServers));
+
+  if (withStatusError) {
+    mockMCPStatusError(withStatusError.errorType, withStatusError.serverUrl);
+  } else if (withStatusInterceptor) {
+    mockMCPStatusInterceptor(withStatusInterceptor.token, withStatusInterceptor.serverUrl);
+  } else if (serverUrl) {
+    mockMCPStatusError('401', serverUrl);
+  }
+
+  if (withToolsInterceptor) {
+    mockMCPToolsInterceptor(withToolsInterceptor.token, withToolsInterceptor.serverUrl);
+  }
+};
+
+export const navigateToChatbot = (namespace: string): void => {
+  cy.step('Navigate to Chatbot (Playground)');
+  appChrome.visit();
+  chatbotPage.visit(namespace);
+  chatbotPage.verifyOnChatbotPage(namespace);
+  chatbotPage.expandMCPPanelIfNeeded();
+  chatbotPage.verifyMCPPanelVisible();
+};

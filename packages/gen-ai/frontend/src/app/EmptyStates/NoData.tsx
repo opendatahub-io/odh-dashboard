@@ -20,8 +20,9 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
     icon={() => <img src={emptyStateImage} alt="Chat Playground Infrastructure" />}
     variant="lg"
     isFullHeight
+    data-testid="empty-state"
   >
-    <EmptyStateBody>
+    <EmptyStateBody data-testid="empty-state-message">
       {description}
       {actionButtonText && handleActionButtonClick && (
         <EmptyStateFooter>

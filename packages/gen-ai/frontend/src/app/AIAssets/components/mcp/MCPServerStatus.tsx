@@ -51,7 +51,13 @@ const MCPServerStatus: React.FC<MCPServerStatusProps> = ({
   if (isLoading || status === 'checking') {
     return (
       <Tooltip content="Checking connection status...">
-        <Label color="teal" variant="outline" href="#filled" icon={<Spinner size="sm" />}>
+        <Label
+          color="teal"
+          variant="outline"
+          href="#filled"
+          icon={<Spinner size="sm" />}
+          data-testid="mcp-server-status-badge"
+        >
           Loading
         </Label>
       </Tooltip>
@@ -60,7 +66,7 @@ const MCPServerStatus: React.FC<MCPServerStatusProps> = ({
 
   return (
     <Tooltip content={message}>
-      <span>{statusLabel}</span>
+      <span data-testid="mcp-server-status-badge">{statusLabel}</span>
     </Tooltip>
   );
 };

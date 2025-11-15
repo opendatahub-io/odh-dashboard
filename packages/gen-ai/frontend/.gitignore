@@ -1,5 +1,6 @@
 **/node_modules
 dist
+public-cypress
 yarn-error.log
 yarn.lock
 stats.json
@@ -9,3 +10,4 @@ storybook-static
 .idea
 .history
 public-cypress
+**/test-variables.json
