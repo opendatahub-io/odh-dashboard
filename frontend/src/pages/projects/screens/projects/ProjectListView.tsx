@@ -129,7 +129,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         toolbarContent={
           <ProjectsToolbar
             setProjectFilter={setProjectFilter}
-            currentProjectType={projectFilter}
+            projectFilter={projectFilter}
             allowCreate={allowCreate}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}

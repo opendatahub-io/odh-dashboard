@@ -42,6 +42,7 @@ export const AiLabel: React.FC = () => (
     variant="outline"
     data-testid="ai-project-label"
     style={{ marginLeft: '5px' }}
+    isCompact
   >
     AI
   </Label>
@@ -58,7 +59,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isProjectTypeDropdownOpen, setIsProjectTypeDropdownOpen] = React.useState(false);
-
   const isAISelected = currentProjectType === aiProjectFilterKey;
   const currentCount = isAISelected ? aiProjectNum : fullProjectNum;
   const currentLabel = isAISelected ? 'A.I. projects' : 'All projects';
