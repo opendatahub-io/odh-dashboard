@@ -77,7 +77,6 @@ export type ModelServerSelectField = {
   setIsAutoSelectChecked: (isAutoSelectChecked?: boolean) => void;
   suggestion?: ModelServerOption | null; // the servingRuntime that is going to be used if the auto-select radio button is checked
   options: ModelServerOption[]; // servingRuntimes filtered on 'generative' or 'predictive' model type
-  isDirty: boolean; // whether the data has been changed, only switch radio options if not dirty
 };
 
 export const useModelServerSelectField = (
@@ -149,7 +148,15 @@ export const useModelServerSelectField = (
       };
     }
     return null;
-  }, [modelServerTemplates, modelFormat, hardwareProfile?.spec.identifiers, modelType]);
+  }, [
+    modelServerTemplates,
+    modelFormat,
+    hardwareProfile?.spec.identifiers,
+    modelType,
+    modelServerSelectExtension,
+    modelServingClusterSettings,
+    dashboardNamespace,
+  ]);
 
   const options = React.useMemo(() => {
     const result = [];
@@ -170,15 +177,15 @@ export const useModelServerSelectField = (
   }, [modelServerSelectExtension?.extraOptions, modelServerTemplates, dashboardNamespace]);
 
   const isDirty = !!existingData || isAutoSelectChecked !== undefined;
+  const autoSelect = (suggestion && !isDirty) || isAutoSelectChecked;
 
   return {
-    data: suggestion && !isDirty ? suggestion : modelServer,
+    data: autoSelect ? suggestion : modelServer,
     setData: setModelServer,
-    isAutoSelectChecked: suggestion && !isDirty ? true : isAutoSelectChecked,
+    isAutoSelectChecked: autoSelect,
     setIsAutoSelectChecked,
     options,
     suggestion,
-    isDirty,
   };
 };
 
@@ -203,9 +210,6 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
   const selectedTemplate = React.useMemo(() => {
     return options.find((o) => o.name === data?.name && o.namespace === data.namespace) ?? data;
   }, [options, data]);
-
-  console.log(options);
-  console.log(selectedTemplate);
 
   const getServingRuntimeDropdownLabel = React.useCallback(
     (option: ModelServerOption) => (
@@ -255,7 +259,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
         </Flex>
       </MenuItem>
     ),
-    [options, data, setData],
+    [options, data, setData, getServingRuntimeDropdownLabel],
   );
 
   const filteredProjectScopedTemplates = options.filter(

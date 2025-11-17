@@ -60,7 +60,6 @@ export const useExtractFormDataFromDeployment = (
   deployment?: Deployment | null,
 ): UseExtractFormDataFromDeploymentReturn => {
   const { dashboardNamespace } = useDashboardNamespace();
-  console.log('dashboardNamespace', dashboardNamespace);
 
   // Resolve deployment extension to get platform-specific form data extraction functions
   const [formDataExtension, formDataExtensionLoaded, formDataExtensionErrors] =
