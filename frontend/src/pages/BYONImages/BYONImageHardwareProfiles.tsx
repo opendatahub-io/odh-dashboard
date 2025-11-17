@@ -17,7 +17,7 @@ import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 
 type BYONImageHardwareProfilesProps = {
   image: BYONImage;
-  hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>;
+  hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
 };
 
 const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({

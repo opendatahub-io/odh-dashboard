@@ -13,7 +13,7 @@ import {
   getModelArtifactUri,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
-type ModelCatalogDeployModalWrapperProps = {
+type ModelCatalogDeployWrapperProps = {
   model: CatalogModel;
   render: (
     buttonState: { enabled?: boolean; tooltip?: string },
@@ -22,10 +22,7 @@ type ModelCatalogDeployModalWrapperProps = {
   ) => React.ReactNode;
 };
 
-const ModelCatalogDeployModalWrapper: React.FC<ModelCatalogDeployModalWrapperProps> = ({
-  model,
-  render,
-}) => {
+const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ model, render }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const [artifacts, artifactsLoaded, artifactsLoadError] = useCatalogModelArtifacts(
@@ -98,4 +95,4 @@ const ModelCatalogDeployModalWrapper: React.FC<ModelCatalogDeployModalWrapperPro
   );
 };
 
-export default ModelCatalogDeployModalWrapper;
+export default ModelCatalogDeployWrapper;

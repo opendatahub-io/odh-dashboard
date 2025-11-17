@@ -12,10 +12,10 @@ import { HARDWARE_PROFILE_SELECTION_HELP } from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
-import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
+import { PodSpecOptions, HardwarePodSpecOptionsState, HardwarePodSpecOptions } from './types';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
-type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
+type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   isEditing: boolean;
   project?: string;
   visibleIn?: HardwareProfileFeatureVisibility[];
@@ -37,8 +37,10 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
-  const [hardwareProfiles, loaded, error] = useHardwareProfilesByFeatureVisibility(visibleIn);
-  const projectScopedHardwareProfiles = useHardwareProfilesByFeatureVisibility(visibleIn, project);
+  const {
+    globalProfiles: [hardwareProfiles, loaded, error],
+    projectProfiles: projectScopedHardwareProfiles,
+  } = useHardwareProfilesByFeatureVisibility(visibleIn);
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 
