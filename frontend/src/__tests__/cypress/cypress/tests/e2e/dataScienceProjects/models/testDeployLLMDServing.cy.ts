@@ -133,10 +133,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.reload();
       const llmdRow = modelServingSection.getKServeRow(modelName);
 
-      llmdRow
-        .findStatusLabel()
-        .invoke('text')
-        .should('match', /Starting|Started/);
+      llmdRow.findStatusLabel().invoke('text').should('match', 'Started');
       // Verify external service is available
       llmdRow.findExternalServiceButton().click();
       llmdRow.findExternalServicePopover().should('exist');
