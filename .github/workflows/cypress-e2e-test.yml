@@ -63,11 +63,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
+      - name: Restore npm dependencies cache
+        uses: actions/cache/restore@v4
         id: npm-cache
-        timeout-minutes: 10
-        continue-on-error: true
         with:
           path: |
             ~/.cache/Cypress
@@ -86,21 +84,17 @@ jobs:
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      - name: Cache turbo build artifacts
-        uses: actions/cache@v4
-        timeout-minutes: 5
-        continue-on-error: true
+      - name: Restore turbo build artifacts cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-e2e
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
-      - name: Cache OpenShift CLI tarball
-        uses: actions/cache@v4
+      - name: Restore OpenShift CLI tarball cache
+        uses: actions/cache/restore@v4
         id: oc-cache
-        timeout-minutes: 5
-        continue-on-error: true
         with:
           path: ${{ runner.temp }}/oc.tar.gz
           key: ${{ runner.os }}-oc-tarball-${{ env.OC_VERSION || '4.15.0' }}
