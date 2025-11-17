@@ -315,12 +315,14 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select single-model serving on models tab', () => {
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
       });
-      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
 
       modelServingGlobal.findSingleServingModelButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -350,13 +352,15 @@ describe('Serving Runtime List', () => {
     });
 
     it('Show error when failed to select platform on models tab', () => {
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
         rejectAddSupportServingPlatformProject: true,
       });
-      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
@@ -375,9 +379,14 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select single-model serving on overview tab', () => {
-      initIntercepts({ disableKServe: false, disableNIMConfig: false });
       initModelServingIntercepts({ isEmpty: true });
+      initIntercepts({
+        disableKServe: false,
+        disableNIMConfig: false,
+        templates: true,
+      });
       projectDetails.visitSection('test-project', 'overview');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
@@ -403,13 +412,15 @@ describe('Serving Runtime List', () => {
     });
 
     it('Show error when failed to select platform on overview tab', () => {
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
         rejectAddSupportServingPlatformProject: true,
       });
-      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
@@ -503,12 +514,14 @@ describe('Serving Runtime List', () => {
 
   describe('Model Serving NIM', () => {
     it('Select NIM serving on models tab', () => {
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
       });
-      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
@@ -534,12 +547,14 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select NIM serving on overview tab', () => {
+      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
       });
-      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(

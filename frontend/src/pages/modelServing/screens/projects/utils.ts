@@ -272,7 +272,23 @@ export const getProjectModelServingPlatform = (
     return {};
   }
 
-  // In DSC v2, all projects use KServe (single-model serving)
+  // Check if NIM is already selected on the project
+  const hasNIMAnnotation = project.metadata.annotations?.['opendatahub.io/nim-support'] === 'true';
+
+  if (hasNIMAnnotation) {
+    // NIM platform is already selected
+    return {
+      platform: ServingRuntimePlatform.SINGLE,
+      error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
+    };
+  }
+
+  // If both platforms are available and no platform is selected, let user choose
+  if (kServeEnabled && nimEnabled) {
+    return {};
+  }
+
+  // If only one platform is available, auto-select it
   if (kServeEnabled || nimEnabled) {
     return {
       platform: ServingRuntimePlatform.SINGLE,
