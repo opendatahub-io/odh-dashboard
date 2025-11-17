@@ -32,6 +32,7 @@ type ProjectsToolbarProps = {
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
   aiProjectNum: number;
   fullProjectNum: number;
+  projectFilter: string;
   setProjectFilter: (projectFilter: string) => void;
 };
 
@@ -52,12 +53,12 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   onFilterUpdate,
   aiProjectNum,
   fullProjectNum,
+  projectFilter: currentProjectType,
   setProjectFilter,
 }) => {
   const navigate = useNavigate();
   const [isProjectTypeDropdownOpen, setIsProjectTypeDropdownOpen] = React.useState(false);
 
-  const currentProjectType = filterData[ProjectsFilterOptions.projectType];
   const isAISelected = currentProjectType === aiProjectFilterKey;
   const currentCount = isAISelected ? aiProjectNum : fullProjectNum;
   const currentLabel = isAISelected ? 'A.I. projects' : 'All projects';
@@ -89,7 +90,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
               isOpen={isProjectTypeDropdownOpen}
               selected={currentProjectType}
               onSelect={(_event, value) => {
-                onFilterUpdate(ProjectsFilterOptions.projectType, String(value));
                 setProjectFilter(String(value));
                 setIsProjectTypeDropdownOpen(false);
               }}

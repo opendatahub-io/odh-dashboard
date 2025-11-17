@@ -10,7 +10,7 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
   aiProjectFilterKey,
-  makeInitialProjectsFilterData,
+  initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
@@ -46,10 +46,10 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   );
 
   const [filterData, setFilterData] = React.useState<ProjectsFilterDataType>(
-    makeInitialProjectsFilterData(projectFilter),
+    initialProjectsFilterData(),
   );
   const onClearFilters = React.useCallback(
-    () => setFilterData(makeInitialProjectsFilterData(projectFilter)),
+    () => setFilterData(initialProjectsFilterData()),
     [setFilterData, projectFilter],
   );
 
@@ -66,7 +66,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
       projects.filter((project) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const userFilter = filterData.User?.toLowerCase();
-        const aiProjectFilter = filterData.ProjectType === aiProjectFilterKey;
+        const aiProjectFilter = projectFilter === aiProjectFilterKey;
 
         if (aiProjectFilter) {
           if (!isAiProject(project)) {
@@ -82,11 +82,11 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
 
         return !userFilter || getProjectOwner(project).toLowerCase().includes(userFilter);
       }),
-    [projects, filterData],
+    [projects, filterData, projectFilter],
   );
 
   const resetFilters = () => {
-    setFilterData(makeInitialProjectsFilterData(projectFilter));
+    setFilterData(initialProjectsFilterData());
   };
 
   const onFilterUpdate = React.useCallback(
@@ -122,13 +122,14 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             isRefreshing={refreshIds.includes(project.metadata.uid || '')}
             setEditData={(data) => setEditData(data)}
             setDeleteData={(data) => setDeleteData(data)}
-            currentProjectFilterType={filterData.ProjectType}
+            currentProjectFilterType={projectFilter}
           />
         )}
         onClearFilters={onClearFilters}
         toolbarContent={
           <ProjectsToolbar
             setProjectFilter={setProjectFilter}
+            currentProjectType={projectFilter}
             allowCreate={allowCreate}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}

@@ -1,5 +1,4 @@
 export enum ProjectsFilterOptions {
-  projectType = 'ProjectType',
   name = 'Name',
   user = 'User',
 }
@@ -8,15 +7,14 @@ export const aiProjectFilterKey = 'A.I. projects';
 export const allProjectFilterKey = 'All';
 
 export const projectsFilterOptions = {
-  [ProjectsFilterOptions.projectType]: 'ProjectType',
   [ProjectsFilterOptions.name]: 'Name',
   [ProjectsFilterOptions.user]: 'User',
 };
 
 export type ProjectsFilterDataType = Record<ProjectsFilterOptions, string | undefined>;
 
-export const makeInitialProjectsFilterData = (projectFilter: string): ProjectsFilterDataType => ({
-  [ProjectsFilterOptions.projectType]: projectFilter,
+// factory function to create a new instance of the filter data object each time it is called
+export const initialProjectsFilterData = (): ProjectsFilterDataType => ({
   [ProjectsFilterOptions.name]: '',
   [ProjectsFilterOptions.user]: '',
 });
