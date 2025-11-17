@@ -14,7 +14,21 @@
 // ***********************************************************
 
 // Import commands.ts using ES2015 syntax:
-import './commands/common';
+import '~/__tests__/cypress/cypress/support/commands';
+import { addCommands as addWebsocketCommands } from '~/__tests__/cypress/cypress/support/websockets';
+
+// Add websocket commands
+addWebsocketCommands();
+
+// Extend Cypress types to support tags
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Cypress {
+    interface TestConfigOverrides {
+      tags?: string[];
+    }
+  }
+}
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
@@ -26,7 +40,7 @@ Cypress.on('uncaught:exception', () => {
   return false;
 });
 
-// Add custom global configurations here
-beforeEach(() => {
-  // Add any global setup that should run before each test
+// Setup global configuration
+Cypress.Keyboard.defaults({
+  keystrokeDelay: 0,
 });

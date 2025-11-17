@@ -28,6 +28,7 @@ const NavGroup: React.FC<{ item: NavDataGroup }> = ({ item }) => {
   return (
     <NavExpandable
       data-id={item.label}
+      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
       key={item.label}
       id={item.label}
       title={item.label}
