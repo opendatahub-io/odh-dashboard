@@ -45,11 +45,10 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     true,
   );
 
-  const [filterData, setFilterData] = React.useState<ProjectsFilterDataType>(
-    initialProjectsFilterData(),
-  );
+  const [filterData, setFilterData] =
+    React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
   const onClearFilters = React.useCallback(
-    () => setFilterData(initialProjectsFilterData()),
+    () => setFilterData(initialProjectsFilterData),
     [setFilterData, projectFilter],
   );
 
@@ -86,7 +85,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   );
 
   const resetFilters = () => {
-    setFilterData(initialProjectsFilterData());
+    setFilterData(initialProjectsFilterData);
   };
 
   const onFilterUpdate = React.useCallback(

@@ -13,11 +13,10 @@ export const projectsFilterOptions = {
 
 export type ProjectsFilterDataType = Record<ProjectsFilterOptions, string | undefined>;
 
-// factory function to create a new instance of the filter data object each time it is called
-export const initialProjectsFilterData = (): ProjectsFilterDataType => ({
+export const initialProjectsFilterData: ProjectsFilterDataType = {
   [ProjectsFilterOptions.name]: '',
   [ProjectsFilterOptions.user]: '',
-});
+};
 
 export const FindAdministratorOptions = [
   'The person who gave you your username, or who helped you to log in for the first time',
