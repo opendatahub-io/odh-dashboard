@@ -1,0 +1,15 @@
+{
+  "data": {
+    "server_url": "https://api.githubcopilot.com/mcp",
+    "status": "connected",
+    "message": "Connection successful",
+    "last_checked": 1762270087,
+    "server_info": {
+      "name": "github-mcp-server",
+      "version": "github-mcp-server/remote-c37f8ccadee3f2cab67a6162bd608efa478dfcd1",
+      "protocol_version": "2025-06-18"
+    },
+    "ping_response_time_ms": 453
+  }
+}
+

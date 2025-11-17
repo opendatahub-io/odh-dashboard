@@ -30,7 +30,7 @@ import {
   FormFieldSelector as VersionFormFieldSelector,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
 
-describe('Verify that models and versions can be archived and restored via model registry', () => {
+describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be archived and restored via model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let deploymentName: string;
@@ -72,7 +72,7 @@ describe('Verify that models and versions can be archived and restored via model
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

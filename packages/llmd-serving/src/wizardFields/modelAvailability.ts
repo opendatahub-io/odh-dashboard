@@ -16,15 +16,13 @@ const DEFAULT_MAAS_GATEWAY_REF = {
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
   type: 'modifier',
-  isActive: (data: Partial<WizardFormData['state']>): boolean => {
+  isActive: (wizardFormData) => {
     return (
-      data.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
-      data.modelServer?.data?.name === LLMD_SERVING_ID
+      wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
+      wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
-  modifier: (stateInput, stateOutput) => {
-    return { ...stateOutput, showSaveAsMaaS: true };
-  },
+  showSaveAsMaaS: true,
 };
 
 export const extractModelAvailabilityData = (

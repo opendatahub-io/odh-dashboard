@@ -46,6 +46,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
         isChecked={isChecked}
         onToggle={onToggleCheck}
         isDisabled={false}
+        data-testid={`mcp-server-checkbox-${server.id}`}
       />
       <Td dataLabel="Name" className="pf-v6-u-align-content-center pf-v6-u-py-sm">
         <Truncate content={server.name} />
@@ -57,6 +58,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
             variant="plain"
             onClick={onToolsClick}
             aria-label={`View tools for ${server.name}`}
+            data-testid={`mcp-server-tools-button-${server.id}`}
             className="pf-v6-u-p-xs pf-v6-u-min-height-auto"
             isAriaDisabled={disableToolIcon}
           >
@@ -73,6 +75,7 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
           icon={lockIcon}
           onClick={onLockClick}
           aria-label={`Configure ${server.name}`}
+          data-testid={`mcp-server-configure-button-${server.id}`}
           className="pf-v6-u-p-xs"
           isDisabled={isLoading}
         />
