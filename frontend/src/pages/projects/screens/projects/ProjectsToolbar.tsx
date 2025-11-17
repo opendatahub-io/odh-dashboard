@@ -14,6 +14,8 @@ import {
   Label,
   Flex,
   FlexItem,
+  Button,
+  ButtonVariant,
 } from '@patternfly/react-core';
 import { FilterIcon, OutlinedStarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +36,7 @@ type ProjectsToolbarProps = {
   fullProjectNum: number;
   projectFilter: string;
   setProjectFilter: (projectFilter: string) => void;
+  onClearFilters: () => void;
 };
 
 export const AiLabel: React.FC = () => (
@@ -50,6 +53,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   fullProjectNum,
   projectFilter: currentProjectType,
   setProjectFilter,
+  onClearFilters,
 }) => {
   const navigate = useNavigate();
   const [isProjectTypeDropdownOpen, setIsProjectTypeDropdownOpen] = React.useState(false);
@@ -73,6 +77,17 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
       isAI: true,
     },
   ];
+
+  const activeFilters = React.useMemo(() => {
+    const filters: Array<[string, string]> = [];
+    if (filterData[ProjectsFilterOptions.name]) {
+      filters.push(['Name', filterData[ProjectsFilterOptions.name]]);
+    }
+    if (filterData[ProjectsFilterOptions.user]) {
+      filters.push(['User', filterData[ProjectsFilterOptions.user]]);
+    }
+    return filters;
+  }, [filterData]);
 
   return (
     <Toolbar data-testid="projects-table-toolbar">
@@ -182,6 +197,47 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
           </ToolbarItem>
         </ToolbarGroup>
       </ToolbarContent>
+      {activeFilters.length > 0 && (
+        <ToolbarContent>
+          <ToolbarGroup>
+            <ToolbarItem>
+              <Flex
+                spaceItems={{ default: 'spaceItemsSm' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                {activeFilters.map(([filterType, value]) => (
+                  <FlexItem key={filterType}>
+                    <Label
+                      data-testid={`filter-chip-${filterType.toLowerCase()}`}
+                      onClose={() => {
+                        const filterKey =
+                          filterType === 'Name'
+                            ? ProjectsFilterOptions.name
+                            : ProjectsFilterOptions.user;
+                        onFilterUpdate(filterKey, '');
+                      }}
+                      closeBtnProps={{
+                        'aria-label': `Remove ${filterType} filter`,
+                      }}
+                    >
+                      {filterType}: {value}
+                    </Label>
+                  </FlexItem>
+                ))}
+                <FlexItem>
+                  <Button
+                    data-testid="clear-filters-button"
+                    variant={ButtonVariant.link}
+                    onClick={onClearFilters}
+                  >
+                    Clear filters
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </ToolbarItem>
+          </ToolbarGroup>
+        </ToolbarContent>
+      )}
     </Toolbar>
   );
 };

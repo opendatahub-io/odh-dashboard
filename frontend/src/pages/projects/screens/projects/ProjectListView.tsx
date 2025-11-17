@@ -47,10 +47,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
 
   const [filterData, setFilterData] =
     React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialProjectsFilterData),
-    [setFilterData, projectFilter],
-  );
 
   const [aiProjectNum, setAiProjectNum] = React.useState(0);
   const [fullProjectNum, setFullProjectNum] = React.useState(projects.length || 0);
@@ -124,7 +120,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             currentProjectFilterType={projectFilter}
           />
         )}
-        onClearFilters={onClearFilters}
+        onClearFilters={resetFilters}
         toolbarContent={
           <ProjectsToolbar
             setProjectFilter={setProjectFilter}
@@ -134,6 +130,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             onFilterUpdate={onFilterUpdate}
             aiProjectNum={aiProjectNum}
             fullProjectNum={fullProjectNum}
+            onClearFilters={resetFilters}
           />
         }
       />
