@@ -315,12 +315,12 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select single-model serving on models tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         templates: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       cy.wait('@templates'); // Wait for serving runtime templates to load
 
@@ -352,13 +352,13 @@ describe('Serving Runtime List', () => {
     });
 
     it('Show error when failed to select platform on models tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         templates: true,
         rejectAddSupportServingPlatformProject: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
@@ -379,12 +379,12 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select single-model serving on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         templates: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
@@ -412,13 +412,13 @@ describe('Serving Runtime List', () => {
     });
 
     it('Show error when failed to select platform on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         templates: true,
         rejectAddSupportServingPlatformProject: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
@@ -514,12 +514,12 @@ describe('Serving Runtime List', () => {
 
   describe('Model Serving NIM', () => {
     it('Select NIM serving on models tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         templates: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('nvidia-nim').click();
@@ -547,12 +547,12 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select NIM serving on overview tab', () => {
-      initModelServingIntercepts({ isEmpty: true });
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
         templates: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('nvidia-nim').click();
