@@ -1,6 +1,6 @@
 name: Cypress e2e Test PR Pipeline
 
-# This workflow currently only supports ODH (Open Data Hub) dash-e2e pipeline.
+# This workflow currently executes on the ODH (Open Data Hub) dash-e2e cluster.
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
 
