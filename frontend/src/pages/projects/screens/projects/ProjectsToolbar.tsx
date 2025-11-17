@@ -37,13 +37,7 @@ type ProjectsToolbarProps = {
 };
 
 export const AiLabel: React.FC = () => (
-  <Label
-    icon={<OutlinedStarIcon />}
-    variant="outline"
-    data-testid="ai-project-label"
-    style={{ marginLeft: '5px' }}
-    isCompact
-  >
+  <Label icon={<OutlinedStarIcon />} variant="outline" data-testid="ai-project-label" isCompact>
     AI
   </Label>
 );

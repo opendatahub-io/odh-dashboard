@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
+import {
+  Spinner,
+  Content,
+  ContentVariants,
+  Timestamp,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { OffIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '#~/k8sTypes';
@@ -81,8 +88,16 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           <TableRowTitleDescription
             title={
               <ResourceNameTooltip resource={project}>
-                <ProjectLink project={project} />
-                {shouldShowAiLabel && <AiLabel />}
+                <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                  <FlexItem>
+                    <ProjectLink project={project} />
+                  </FlexItem>
+                  {shouldShowAiLabel && (
+                    <FlexItem>
+                      <AiLabel />
+                    </FlexItem>
+                  )}
+                </Flex>
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}
