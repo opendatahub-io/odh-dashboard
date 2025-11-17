@@ -226,7 +226,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                 ))}
                 <FlexItem>
                   <Button
-                    data-testid="clear-filters-button"
+                    data-testid="clear-filters-button-filter-row"
                     variant={ButtonVariant.link}
                     onClick={onClearFilters}
                   >

@@ -158,6 +158,10 @@ class ProjectListPage {
     return cy.findByTestId('clear-filters-button');
   }
 
+  findChipClearFiltersButton() {
+    return cy.findByTestId('clear-filters-button-filter-row');
+  }
+
   findSortButton(name: string) {
     return this.findProjectsTable().find('thead').findByRole('button', { name });
   }

@@ -379,6 +379,7 @@ describe('Projects details', () => {
 
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
+    cy.findByTestId('filter-chip-name').should('contain.text', 'NonExistentProject');
 
     // Step 3: Click the 'clear filters' button
     projectListPage.findClearFiltersButton().click();
@@ -420,7 +421,22 @@ describe('Projects details', () => {
     projectListToolbar.findNameFilter().type('NonExistentProject-bb123');
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
-    projectListPage.findClearFiltersButton().click();
+    projectListPage.findChipClearFiltersButton().click();
+    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
+
+    // everything should show now:
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
+
+    // now type another value in that should not be there:
+    projectListToolbar.findNameFilter().type('NonExistentProject-not-there');
+    // Verify no results are shown
+    projectListPage.findEmptyResults().should('exist');
+    cy.findByTestId('filter-chip-name').find('button').should('exist');
+    cy.findByTestId('filter-chip-name').find('button').click();
+    cy.findByTestId('filter-chip-name').should('not.exist');
     projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
 
     // everything should show now:
