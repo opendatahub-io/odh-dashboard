@@ -177,4 +177,9 @@ export const initInterceptorsValidatingNimEnablement = (
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ hasAnnotations: true })]),
   );
+
+  // Template intercepts needed for platform selection UI
+  const templateMock = mockNimServingRuntimeTemplate();
+  cy.interceptK8sList(TemplateModel, mockK8sResourceList([templateMock]));
+  cy.interceptK8s(TemplateModel, templateMock);
 };
