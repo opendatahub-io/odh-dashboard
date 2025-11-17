@@ -16,7 +16,6 @@ import {
 } from '@patternfly/react-core';
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
@@ -143,7 +142,6 @@ const ModelDetailsDeploymentCard: React.FC<{ rmId?: string; mrName?: string }> =
   rmId,
   mrName,
 }) => {
-  const { projects } = React.useContext(ProjectsContext);
   const labelSelectors = React.useMemo(() => {
     if (!rmId) {
       return undefined;
@@ -156,11 +154,7 @@ const ModelDetailsDeploymentCard: React.FC<{ rmId?: string; mrName?: string }> =
   const filterFn = useModelRegistryFilter(mrName);
 
   return (
-    <ModelDeploymentsProvider
-      projects={projects}
-      labelSelectors={labelSelectors}
-      filterFn={filterFn}
-    >
+    <ModelDeploymentsProvider projects={[]} labelSelectors={labelSelectors} filterFn={filterFn}>
       <Card>
         <CardTitle>Latest deployments</CardTitle>
         <DeploymentCard rmId={rmId} preferredModelRegistry={mrName} />

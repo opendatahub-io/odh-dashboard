@@ -34,8 +34,24 @@ export const useWatchDeployments = (
 ): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
   const [inferenceServices, inferenceServiceLoaded, inferenceServiceError] =
     useWatchInferenceServices(project, labelSelectors, opts);
-  const [servingRuntimes, , servingRuntimeError] = useWatchServingRuntimes(project, opts);
-  const [deploymentPods, , deploymentPodsError] = useWatchDeploymentPods(project, opts);
+  const [servingRuntimes, servingRuntimeLoaded, servingRuntimeError] = useWatchServingRuntimes(
+    project,
+    opts,
+  );
+  const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useWatchDeploymentPods(
+    project,
+    opts,
+  );
+
+  const servingRuntimeEffectivelyLoaded =
+    servingRuntimeLoaded ||
+    (servingRuntimeError ? servingRuntimeError.message.includes('forbidden') : false);
+  const deploymentPodsEffectivelyLoaded =
+    deploymentPodsLoaded ||
+    (deploymentPodsError ? deploymentPodsError.message.includes('forbidden') : false);
+
+  const allLoaded =
+    inferenceServiceLoaded && servingRuntimeEffectivelyLoaded && deploymentPodsEffectivelyLoaded;
 
   const filteredInferenceServices = React.useMemo(() => {
     if (!filterFn) {
@@ -66,7 +82,7 @@ export const useWatchDeployments = (
 
   return [
     deployments,
-    inferenceServiceLoaded, // Only require InferenceServices - ServingRuntimes and Pods are optional metadata
+    allLoaded,
     inferenceServiceError || servingRuntimeError || deploymentPodsError,
   ];
 };

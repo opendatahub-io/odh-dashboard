@@ -29,6 +29,10 @@ export const useWatchDeployments = (
       opts,
     );
 
+  const effectivelyLoaded =
+    llmInferenceServiceLoaded ||
+    (llmInferenceServiceError ? llmInferenceServiceError.message.includes('forbidden') : false);
+
   const filteredLlmInferenceServices = React.useMemo(() => {
     if (!filterFn) {
       return llmInferenceServices;
@@ -48,9 +52,5 @@ export const useWatchDeployments = (
     [filteredLlmInferenceServices],
   );
 
-  return [
-    deployments,
-    llmInferenceServiceLoaded, // Only require LLMInferenceServices to be loaded
-    llmInferenceServiceError,
-  ];
+  return [deployments, effectivelyLoaded, llmInferenceServiceError];
 };
