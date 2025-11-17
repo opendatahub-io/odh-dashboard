@@ -2,7 +2,7 @@ import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
-import { ModelFormatField, modelFormatFieldSchema, useModelFormatField } from '../ModelFormatField';
+import { ModelFormatField, useModelFormatField } from '../ModelFormatField';
 import { useServingRuntimeTemplates } from '../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
 // Mock dependencies
@@ -43,38 +43,6 @@ describe('ModelFormatField', () => {
     mockUseServingRuntimeTemplates.mockReturnValue([[], false, undefined]);
     getModelTypesFromTemplate.mockReturnValue([]);
     getServingRuntimeFromTemplate.mockReturnValue(mockServingRuntime);
-  });
-
-  describe('Schema validation', () => {
-    it('should validate when format is provided for predictive models', () => {
-      const data = {
-        type: ServingRuntimeModelType.PREDICTIVE,
-        format: { name: 'tensorflow', version: '2.0' },
-      };
-      const result = modelFormatFieldSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it('should validate when no format is provided for generative models', () => {
-      const data = {
-        type: ServingRuntimeModelType.GENERATIVE,
-      };
-      const result = modelFormatFieldSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it('should fail validation when format is missing for predictive models', () => {
-      const data = {
-        type: ServingRuntimeModelType.PREDICTIVE,
-      };
-      const result = modelFormatFieldSchema.safeParse(data);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe(
-          'Model format is required for predictive models',
-        );
-      }
-    });
   });
 
   describe('useModelFormatField hook', () => {
