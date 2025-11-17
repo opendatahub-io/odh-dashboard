@@ -131,6 +131,7 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
               icon={<PlayIcon />}
               onClick={handleTryInPlayground}
               isDisabled={selectedCount === 0}
+              data-testid="try-in-playground-button"
             >
               Try in Playground{selectedCount > 0 ? ` (${selectedCount})` : ''}
             </Button>

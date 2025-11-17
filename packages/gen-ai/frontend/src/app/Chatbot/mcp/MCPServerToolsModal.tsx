@@ -62,6 +62,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       onClose={onClose}
       variant="large"
       aria-labelledby="mcp-tools-modal-title"
+      data-testid="mcp-tools-modal"
     >
       <ModalHeader>
         <Title headingLevel="h2" size="xl" id="mcp-tools-modal-title">
