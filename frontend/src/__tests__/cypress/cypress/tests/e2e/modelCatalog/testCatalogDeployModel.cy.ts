@@ -43,71 +43,70 @@ describe('Verify a model can be deployed from model catalog', () => {
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true, timeout: 300000 });
   });
-  it('Verify a model can be deployed from model catalog', () => {
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-    // Enable model catalog
-    cy.window().then((win) => {
-      win.sessionStorage.setItem('odh-feature-flags', '{"disableModelCatalog":false}');
-    });
-    cy.reload();
-
-    cy.step('Navigate to Model Catalog');
-    modelCatalog.visit();
-
-    // Find the first model card and click on the detail link
-    modelCatalog.findFirstModelCatalogCard().should('exist');
-    modelCatalog.findFirstModelCatalogCardLink().should('exist').click();
-    modelDetailsPage.findModelSourceImageLocation().should('exist');
-    modelDetailsPage
-      .findModelSourceImageLocation()
-      .invoke('text')
-      .then((text) => {
-        cy.wrap(text.trim()).as('modelSourceImageLocation');
+  it(
+    'Verify a model can be deployed from model catalog',
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    () => {
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      // Enable model catalog
+      cy.window().then((win) => {
+        win.sessionStorage.setItem('odh-feature-flags', '{"disableModelCatalog":false}');
       });
-    modelCatalog
-      .findCatalogDeployButton()
-      .should('be.enabled')
-      .should('be.visible')
-      .should('not.have.attr', 'aria-disabled', 'true')
-      .should('contain.text', 'Deploy model');
-    modelCatalog.findCatalogDeployButton().click();
+      cy.reload();
 
-    // Open the wizard and double check the model location gets prefilled
-    modelServingWizard.findModelSourceStep().click();
-    modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
-    cy.get('@modelSourceImageLocation').then((modelSourceImageLocation) => {
-      modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
-    });
-    modelServingWizard.findNextButton().should('be.enabled').click();
+      cy.step('Navigate to Model Catalog');
+      modelCatalog.visit();
 
-    // Step 2: Model deployment
-    modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-    modelServingWizard.findModelDeploymentProjectSelector().should('exist');
-    modelServingWizard.findModelDeploymentProjectSelector().click();
-    modelServingWizard
-      .findModelDeploymentProjectSelectorOption(projectName)
-      .should('exist')
-      .click();
+      // Find the first model card and click on the detail link
+      modelCatalog.findFirstModelCatalogCard().should('exist');
+      modelCatalog.findFirstModelCatalogCardLink().should('exist').click();
+      modelDetailsPage.findModelSourceImageLocation().should('exist');
+      modelDetailsPage
+        .findModelSourceImageLocation()
+        .invoke('text')
+        .then((text) => {
+          cy.wrap(text.trim()).as('modelSourceImageLocation');
+        });
 
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard
-      .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
-      .should('exist')
-      .click();
+      modelCatalog.clickDeployModelButtonWithRetry();
 
-    // Step 3: Advanced Options
-    modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
-    modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findNextButton().should('be.enabled').click();
+      // Open the wizard and double check the model location gets prefilled
+      modelServingWizard.findModelSourceStep().click();
+      modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
+      cy.get('@modelSourceImageLocation').then((modelSourceImageLocation) => {
+        modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
+      });
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
-    modelServingWizard.findSubmitButton().should('be.enabled').click();
+      // Step 2: Model deployment
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findModelDeploymentProjectSelector().should('exist');
+      modelServingWizard.findModelDeploymentProjectSelector().click();
+      modelServingWizard
+        .findModelDeploymentProjectSelectorOption(projectName)
+        .should('exist')
+        .click();
 
-    // Verify redirection to the global page
-    cy.url().should('include', '/ai-hub/deployments');
-    modelServingGlobal.getInferenceServiceRow(modelName);
-  });
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
+        .should('exist')
+        .click();
+
+      // Step 3: Advanced Options
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      // Verify redirection to the global page
+      cy.location('pathname').should('eq', `/ai-hub/deployments/${projectName}`);
+      modelServingGlobal.getInferenceServiceRow(modelName);
+    },
+  );
 });
