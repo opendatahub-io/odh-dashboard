@@ -1,11 +1,28 @@
-import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
+import { ClusterQueueKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { ContainerResourceAttributes } from '@odh-dashboard/internal/types';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
-import { getAllConsumedResources, convertToBaseUnit } from '../utils';
+import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
+import { getAllConsumedResources, convertToBaseUnit, getDefaultPodContainerName } from '../utils';
 
 const createMockClusterQueue = (overrides?: Partial<ClusterQueueKind>): ClusterQueueKind => ({
   ...mockClusterQueueK8sResource({}),
   ...overrides,
+});
+
+const createMockPod = (overrides?: Partial<PodKind>): PodKind => ({
+  ...mockPodK8sResource({ name: 'test-pod', namespace: 'test-namespace' }),
+  ...overrides,
+  metadata: {
+    ...mockPodK8sResource({ name: 'test-pod', namespace: 'test-namespace' }).metadata,
+    ...overrides?.metadata,
+  },
+  spec: {
+    ...mockPodK8sResource({ name: 'test-pod', namespace: 'test-namespace' }).spec,
+    ...overrides?.spec,
+    containers:
+      overrides?.spec?.containers ||
+      mockPodK8sResource({ name: 'test-pod', namespace: 'test-namespace' }).spec.containers,
+  },
 });
 
 describe('convertToBaseUnit', () => {
@@ -650,6 +667,163 @@ describe('getAllConsumedResources', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].consumed).toBe('40');
+    });
+  });
+});
+
+describe('getDefaultPodContainerName', () => {
+  describe('null/undefined pod handling', () => {
+    it('should return empty string when pod is null', () => {
+      expect(getDefaultPodContainerName(null)).toBe('');
+    });
+
+    it('should return empty string when pod is undefined', () => {
+      expect(getDefaultPodContainerName(undefined as unknown as PodKind | null)).toBe('');
+    });
+  });
+
+  describe('pod with no containers', () => {
+    it('should return empty string when pod has no containers', () => {
+      const pod = createMockPod({
+        spec: {
+          containers: [],
+        },
+      });
+
+      expect(getDefaultPodContainerName(pod)).toBe('');
+    });
+  });
+
+  describe('pod with single container', () => {
+    it('should return first container name when no default-container annotation', () => {
+      const pod = createMockPod({
+        spec: {
+          containers: [
+            {
+              name: 'my-container',
+              image: 'test-image:latest',
+              env: [],
+            },
+          ],
+        },
+      });
+
+      expect(getDefaultPodContainerName(pod)).toBe('my-container');
+    });
+
+    it('should return first container name when default-container annotation is empty', () => {
+      const pod = createMockPod({
+        metadata: {
+          name: 'test-pod',
+          namespace: 'test-namespace',
+          uid: 'test-uid',
+          annotations: {
+            'kubectl.kubernetes.io/default-container': '',
+          },
+        },
+        spec: {
+          containers: [
+            {
+              name: 'my-container',
+              image: 'test-image:latest',
+              env: [],
+            },
+          ],
+        },
+      });
+
+      expect(getDefaultPodContainerName(pod)).toBe('my-container');
+    });
+  });
+
+  describe('pod with multiple containers', () => {
+    it('should return first container name when no default-container annotation', () => {
+      const pod = createMockPod({
+        spec: {
+          containers: [
+            {
+              name: 'container-1',
+              image: 'test-image-1:latest',
+              env: [],
+            },
+            {
+              name: 'container-2',
+              image: 'test-image-2:latest',
+              env: [],
+            },
+            {
+              name: 'container-3',
+              image: 'test-image-3:latest',
+              env: [],
+            },
+          ],
+        },
+      });
+
+      expect(getDefaultPodContainerName(pod)).toBe('container-1');
+    });
+
+    it('should return container name from default-container annotation when present', () => {
+      const pod = createMockPod({
+        metadata: {
+          name: 'test-pod',
+          namespace: 'test-namespace',
+          uid: 'test-uid',
+          annotations: {
+            'kubectl.kubernetes.io/default-container': 'container-2',
+          },
+        },
+        spec: {
+          containers: [
+            {
+              name: 'container-1',
+              image: 'test-image-1:latest',
+              env: [],
+            },
+            {
+              name: 'container-2',
+              image: 'test-image-2:latest',
+              env: [],
+            },
+            {
+              name: 'container-3',
+              image: 'test-image-3:latest',
+              env: [],
+            },
+          ],
+        },
+      });
+
+      expect(getDefaultPodContainerName(pod)).toBe('container-2');
+    });
+
+    it('should return first container name when default-container annotation does not match any container', () => {
+      const pod = createMockPod({
+        metadata: {
+          name: 'test-pod',
+          namespace: 'test-namespace',
+          uid: 'test-uid',
+          annotations: {
+            'kubectl.kubernetes.io/default-container': 'non-existent-container',
+          },
+        },
+        spec: {
+          containers: [
+            {
+              name: 'container-1',
+              image: 'test-image-1:latest',
+              env: [],
+            },
+            {
+              name: 'container-2',
+              image: 'test-image-2:latest',
+              env: [],
+            },
+          ],
+        },
+      });
+
+      expect(getDefaultPodContainerName(pod)).toBe('container-1');
     });
   });
 });
