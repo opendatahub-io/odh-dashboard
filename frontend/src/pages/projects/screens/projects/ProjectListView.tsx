@@ -48,13 +48,8 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
   const [filterData, setFilterData] =
     React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
 
-  const [aiProjectNum, setAiProjectNum] = React.useState(0);
-  const [fullProjectNum, setFullProjectNum] = React.useState(projects.length || 0);
-
-  React.useEffect(() => {
-    setAiProjectNum(getAiProjects(projects).length || 0);
-    setFullProjectNum(projects.length || 0);
-  }, [projects]);
+  const aiProjectNum = getAiProjects(projects).length;
+  const fullProjectNum = projects.length;
 
   const filteredProjects = React.useMemo(
     () =>

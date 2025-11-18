@@ -9,12 +9,11 @@ import {
   SelectOption,
   MenuToggle,
   Badge,
-  Label,
   Flex,
   FlexItem,
   Divider,
 } from '@patternfly/react-core';
-import { FilterIcon, OutlinedStarIcon } from '@patternfly/react-icons';
+import { FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
   aiProjectFilterKey,
@@ -25,6 +24,7 @@ import {
 } from '#~/pages/projects/screens/projects/const';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import FilterToolbar from '#~/components/FilterToolbar.tsx';
+import { AILabel } from './AILabel';
 import NewProjectButton from './NewProjectButton';
 
 type ProjectsToolbarProps = {
@@ -36,12 +36,6 @@ type ProjectsToolbarProps = {
   projectFilter: string;
   setProjectFilter: (projectFilter: string) => void;
 };
-
-export const AiLabel: React.FC = () => (
-  <Label icon={<OutlinedStarIcon />} variant="outline" data-testid="ai-project-label" isCompact>
-    AI
-  </Label>
-);
 
 const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   allowCreate,
@@ -106,7 +100,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
               </FlexItem>
               {isAISelected && (
                 <FlexItem>
-                  <AiLabel />
+                  <AILabel />
                 </FlexItem>
               )}
             </Flex>
@@ -127,7 +121,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
                 </FlexItem>
                 {option.isAI && (
                   <FlexItem>
-                    <AiLabel />
+                    <AILabel />
                   </FlexItem>
                 )}
               </Flex>

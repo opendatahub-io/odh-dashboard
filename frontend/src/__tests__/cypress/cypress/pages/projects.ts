@@ -28,7 +28,7 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
   }
 
   findProjectTypeDropdownToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('project-type-dropdown-toggle');
+    return this.find().findByTestId('project-type-dropdown-toggle');
   }
 
   selectProjectType(projectType: string): void {
@@ -37,7 +37,7 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
   }
 
   findAIProjectLabel() {
-    return cy.findByTestId('ai-project-label');
+    return this.find().findByTestId('ai-project-label');
   }
 }
 

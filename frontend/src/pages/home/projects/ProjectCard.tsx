@@ -25,7 +25,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '#~/concepts/k8s/utils';
-import { AiLabel } from '#~/pages/projects/screens/projects/ProjectsToolbar';
+import { AILabel } from '#~/pages/projects/screens/projects/AILabel';
 
 interface ProjectCardProps {
   project: ProjectKind;
@@ -64,7 +64,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             </Button>
           </FlexItem>
           <FlexItem>
-            <AiLabel />
+            <AILabel />
           </FlexItem>
         </Flex>
       </CardHeader>

@@ -23,7 +23,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
 import { isAiProject } from './ProjectListView';
-import { AiLabel } from './ProjectsToolbar';
+import { AILabel } from './AILabel';
 
 // Plans to add other expandable columns in the future
 export enum ExpandableColumns {
@@ -94,7 +94,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
                   </FlexItem>
                   {shouldShowAiLabel && (
                     <FlexItem>
-                      <AiLabel />
+                      <AILabel />
                     </FlexItem>
                   )}
                 </Flex>
