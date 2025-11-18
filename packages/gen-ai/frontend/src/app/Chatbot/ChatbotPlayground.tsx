@@ -15,6 +15,9 @@ import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { isLlamaModelEnabled } from '~/app/utilities';
+import { TokenInfo } from '~/app/types';
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -61,14 +64,43 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const location = useLocation();
   const selectedAAModel = location.state?.model;
+  const mcpServersFromRoute = React.useMemo(() => {
+    const servers = location.state?.mcpServers;
+    return Array.isArray(servers) ? servers : [];
+  }, [location.state?.mcpServers]);
+
+  // Handle router state for MCP servers - initialize state with router value
+  const [selectedMcpServerIds, setSelectedMcpServerIds] =
+    React.useState<string[]>(mcpServersFromRoute);
+
+  // MCP hooks - fetch servers and manage statuses
+  const {
+    data: mcpServers = [],
+    loaded: mcpServersLoaded,
+    error: mcpServersLoadError,
+  } = useFetchMCPServers();
+  const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
+    useMCPServerStatuses(mcpServers, mcpServersLoaded);
+
+  const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
+
+  // Clear router state after a brief delay to ensure child components have consumed it
+  React.useEffect(() => {
+    if (location.state && (location.state.mcpServers || location.state.model)) {
+      const timeoutId = setTimeout(() => {
+        window.history.replaceState({}, '');
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+    return undefined;
+    // Only run when location.state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !selectedModel) {
       if (selectedAAModel) {
         setSelectedModel(selectedAAModel);
-        // Clear the location state after setting the selected model
-        // so that when refreshing the page, the selected model is not passed again
-        window.history.replaceState({}, '');
       } else {
         const availableModels = models.filter((model) =>
           isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
@@ -87,6 +119,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     maasModels,
     bffConfig,
     selectedAAModel,
+    mcpServersFromRoute,
   ]);
 
   // Custom hooks for managing different aspects of the chatbot
@@ -118,6 +151,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isStreamingEnabled,
     temperature,
     currentVectorStoreId: fileManagement.currentVectorStoreId,
+    selectedServerIds: selectedMcpServerIds,
+    mcpServers,
+    mcpServerStatuses,
+    mcpServerTokens,
   });
 
   // Create alert components
@@ -161,6 +198,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onStreamingToggle={setIsStreamingEnabled}
       temperature={temperature}
       onTemperatureChange={setTemperature}
+      onMcpServersChange={setSelectedMcpServerIds}
+      initialSelectedServerIds={mcpServersFromRoute}
+      selectedServersCount={selectedMcpServerIds.length}
+      mcpServers={mcpServers}
+      mcpServersLoaded={mcpServersLoaded}
+      mcpServersLoadError={mcpServersLoadError}
+      mcpServerStatuses={mcpServerStatuses}
+      mcpServerTokens={mcpServerTokens}
+      onMcpServerTokensChange={setMcpServerTokens}
+      checkMcpServerStatus={checkMcpServerStatus}
     />
   );
 
@@ -181,6 +228,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         model={selectedModel}
         systemInstruction={systemInstruction}
         files={fileManagement.files}
+        selectedMcpServerIds={selectedMcpServerIds}
+        mcpServers={mcpServers}
+        mcpServerTokens={mcpServerTokens}
       />
       <Drawer isExpanded isInline position="right">
         <Divider />

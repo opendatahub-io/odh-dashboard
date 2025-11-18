@@ -3,23 +3,14 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import ViewCodeModal from '~/app/Chatbot/components/ViewCodeModal';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { useMCPServers } from '~/app/hooks/useMCPServers';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { FileModel } from '~/app/types';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
-jest.mock('~/app/hooks/useMCPServers');
-jest.mock('~/app/context/MCPTokenContext');
-jest.mock('~/app/context/MCPSelectionContext');
 jest.mock('~/app/hooks/useFetchVectorStores');
 jest.mock('~/app/hooks/useGenAiAPI');
 
-const mockUseMCPServers = jest.mocked(useMCPServers);
-const mockUseMCPTokenContext = jest.mocked(useMCPTokenContext);
-const mockUseMCPSelectionContext = jest.mocked(useMCPSelectionContext);
 const mockUseFetchVectorStores = jest.mocked(useFetchVectorStores);
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 const mockExportCode = jest.fn();
@@ -72,30 +63,6 @@ describe('ViewCodeModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    mockUseMCPServers.mockReturnValue({
-      servers: [],
-      serversLoaded: true,
-      serversLoadError: null,
-      serverStatuses: new Map(),
-      statusesLoading: new Set(),
-      allStatusesChecked: true,
-      refresh: jest.fn(),
-      checkServerStatus: jest.fn(),
-    });
-
-    mockUseMCPTokenContext.mockReturnValue({
-      serverTokens: new Map(),
-      setServerTokens: jest.fn(),
-      isServerValidated: jest.fn(),
-    });
-
-    mockUseMCPSelectionContext.mockReturnValue({
-      playgroundSelectedServerIds: [],
-      saveSelectedServersToPlayground: jest.fn(),
-      selectedServersCount: 0,
-      setSelectedServersCount: jest.fn(),
-    });
 
     mockUseFetchVectorStores.mockReturnValue([[mockVectorStore], true, undefined, jest.fn()]);
 
@@ -218,27 +185,14 @@ describe('ViewCodeModal', () => {
       status: 'healthy' as const,
     };
 
-    mockUseMCPServers.mockReturnValue({
-      servers: [mockServer],
-      serversLoaded: true,
-      serversLoadError: null,
-      serverStatuses: new Map(),
-      statusesLoading: new Set(),
-      allStatusesChecked: true,
-      refresh: jest.fn(),
-      checkServerStatus: jest.fn(),
-    });
-
-    mockUseMCPSelectionContext.mockReturnValue({
-      playgroundSelectedServerIds: ['http://test-server'],
-      saveSelectedServersToPlayground: jest.fn(),
-      selectedServersCount: 1,
-      setSelectedServersCount: jest.fn(),
-    });
-
     render(
       <TestWrapper>
-        <ViewCodeModal {...defaultProps} />
+        <ViewCodeModal
+          {...defaultProps}
+          selectedMcpServerIds={['http://test-server']}
+          mcpServers={[mockServer]}
+          mcpServerTokens={new Map()}
+        />
       </TestWrapper>,
     );
 

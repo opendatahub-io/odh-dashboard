@@ -7,34 +7,47 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { MCPServer } from '~/app/types';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import { useMCPServersContext } from '~/app/context/MCPServersContext';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
-import { transformMCPServerData } from '~/app/utilities/mcp';
+import { MCPServer, MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
 import MCPServerConfigModal from './MCPServerConfigModal';
 import MCPServerToolsModal from './MCPServerToolsModal';
+import MCPServerSuccessModal from './MCPServerSuccessModal';
+import { useSelectAllTracking } from './hooks/useSelectAllTracking';
 
 interface MCPServersPanelProps {
+  // Data props (instead of contexts)
+  servers: MCPServerFromAPI[];
+  serversLoaded: boolean;
+  serversLoadError?: Error | null;
+  serverStatuses: Map<string, ServerStatusInfo>;
+  serverTokens: Map<string, TokenInfo>;
+  onServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
+  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  // Existing props
   onSelectionChange?: (selectedServers: string[]) => void;
+  initialSelectedServerIds?: string[];
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
 
-const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) => {
+const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
+  servers: apiServers,
+  serversLoaded,
+  serversLoadError = null,
+  serverTokens,
+  onServerTokensChange: setServerTokens,
+  checkServerStatus,
+  onSelectionChange,
+  initialSelectedServerIds,
+}) => {
   const { api, apiAvailable } = useGenAiAPI();
-  const { playgroundSelectedServerIds, setSelectedServersCount } = useMCPSelectionContext();
-  const {
-    servers: apiServers,
-    serversLoaded,
-    serversLoadError,
-    statusesLoading,
-    checkServerStatus,
-  } = useMCPServersContext();
-  const { serverTokens, setServerTokens } = useMCPTokenContext();
+
+  // Compute statusesLoading from the received data
+  const statusesLoading = React.useMemo(() => new Set<string>(), []);
 
   const transformedServers = React.useMemo(
     () => apiServers.map(transformMCPServerData),
@@ -45,8 +58,10 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
   const [selectedServerForConfig, setSelectedServerForConfig] = React.useState<MCPServer | null>(
     null,
   );
-  const [isSelectedServerAlreadyConnected, setIsSelectedServerAlreadyConnected] =
-    React.useState(false);
+  const [successModalOpen, setSuccessModalOpen] = React.useState(false);
+  const [selectedServerForSuccess, setSelectedServerForSuccess] = React.useState<MCPServer | null>(
+    null,
+  );
   const [toolsModalOpen, setToolsModalOpen] = React.useState(false);
   const [selectedServerForTools, setSelectedServerForTools] = React.useState<MCPServer | null>(
     null,
@@ -59,6 +74,15 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
 
   const [selectedServers, setSelectedServers] = React.useState<MCPServer[]>([]);
 
+  // Track tools count per server (serverUrl -> count)
+  const [serverToolsCount, setServerToolsCount] = React.useState<Map<string, number>>(new Map());
+
+  // Track which servers are currently fetching tools
+  const [fetchingToolsServers, setFetchingToolsServers] = React.useState<Set<string>>(new Set());
+
+  // Track if initial load from route state is complete to prevent auto-unlock on mount
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = React.useState(false);
+
   const { selections, tableProps, isSelected, toggleSelection } = useCheckboxTableBase(
     transformedServers,
     selectedServers,
@@ -69,10 +93,18 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
     { selectAll: { tooltip: 'Select all MCP servers' } as any },
   );
 
+  // Use custom hook to track "Select All" actions
+  const { wrappedTableProps, isSelectAllAction } = useSelectAllTracking(tableProps);
+
+  // Sync selected servers from initialSelectedServerIds prop on initial load
   React.useEffect(() => {
-    if (transformedServers.length > 0 && playgroundSelectedServerIds.length > 0) {
+    if (
+      transformedServers.length > 0 &&
+      initialSelectedServerIds &&
+      initialSelectedServerIds.length > 0
+    ) {
       const serversToSelect = transformedServers.filter((server) =>
-        playgroundSelectedServerIds.includes(server.id),
+        initialSelectedServerIds.includes(server.id),
       );
 
       if (serversToSelect.length > 0) {
@@ -87,24 +119,66 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
           setSelectedServers(serversToSelect);
         }
       }
+      // Mark initial load as complete after processing route state
+      setIsInitialLoadComplete(true);
+    } else if (transformedServers.length > 0) {
+      // If no initial selected servers, mark load complete immediately
+      setIsInitialLoadComplete(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transformedServers, playgroundSelectedServerIds]);
+  }, [transformedServers, initialSelectedServerIds]);
 
   React.useEffect(() => {
     const selectedConnectionUrls = selectedServers.map((server) => server.id);
-    setSelectedServersCount(selectedConnectionUrls.length);
 
     if (transformedServers.length > 0) {
       onSelectionChange?.(selectedConnectionUrls);
     }
-  }, [
-    selectedServers,
-    onSelectionChange,
-    setSelectedServersCount,
-    selections,
-    transformedServers.length,
-  ]);
+  }, [selectedServers, onSelectionChange, selections, transformedServers.length]);
+
+  // Function to fetch tools count for a server
+  const fetchToolsCount = React.useCallback(
+    async (serverUrl: string, token?: string) => {
+      if (!apiAvailable) {
+        return;
+      }
+
+      // Mark this server as fetching
+      setFetchingToolsServers((prev) => new Set(prev).add(serverUrl));
+
+      try {
+        const headers: Record<string, string> = {};
+        if (token && token.trim() !== '') {
+          const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+          headers['X-MCP-Bearer'] = bearerToken;
+        }
+
+        const response = await api.getMCPServerTools(
+          {
+            // eslint-disable-next-line camelcase
+            server_url: serverUrl,
+          },
+          { headers },
+        );
+
+        if (response.status === 'success' && response.tools_count !== undefined) {
+          setServerToolsCount((prev) => new Map(prev).set(serverUrl, response.tools_count || 0));
+        }
+      } catch (error) {
+        // Silently fail - keep the count at 0
+        // eslint-disable-next-line no-console
+        console.error(`Failed to fetch tools count for ${serverUrl}:`, error);
+      } finally {
+        // Remove from fetching set
+        setFetchingToolsServers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(serverUrl);
+          return newSet;
+        });
+      }
+    },
+    [api, apiAvailable],
+  );
 
   const validateServerToken = React.useCallback(
     async (serverUrl: string, token: string) => {
@@ -120,6 +194,9 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
       });
 
       try {
+        // Ensure token has Bearer prefix
+        const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
         const status = await api.getMCPServerStatus(
           {
             // eslint-disable-next-line camelcase
@@ -127,19 +204,19 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
           },
           {
             headers: {
-              'X-MCP-Bearer': token,
+              'X-MCP-Bearer': bearerToken,
             },
           },
         );
 
         if (status.status === 'connected') {
-          setServerTokens((prev) =>
-            new Map(prev).set(serverUrl, {
-              token,
-              authenticated: true,
-              autoConnected: false,
-            }),
-          );
+          const newTokens = new Map(serverTokens);
+          newTokens.set(serverUrl, {
+            token,
+            authenticated: true,
+            autoConnected: false,
+          });
+          setServerTokens(newTokens);
           setValidationErrors((prev) => {
             const newMap = new Map(prev);
             newMap.delete(serverUrl);
@@ -151,15 +228,26 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
             success: true,
           });
 
+          // Fetch tools count after successful authentication
+          fetchToolsCount(serverUrl, bearerToken);
+
+          // Close config modal and open success modal
+          setConfigModalOpen(false);
+          const server = transformedServers.find((s) => s.connectionUrl === serverUrl);
+          if (server) {
+            setSelectedServerForSuccess(server);
+            setSuccessModalOpen(true);
+          }
+
           return { success: true };
         }
-        setServerTokens((prev) =>
-          new Map(prev).set(serverUrl, {
-            token,
-            authenticated: false,
-            autoConnected: false,
-          }),
-        );
+        const newTokens2 = new Map(serverTokens);
+        newTokens2.set(serverUrl, {
+          token,
+          authenticated: false,
+          autoConnected: false,
+        });
+        setServerTokens(newTokens2);
         const errorMsg = status.error_details?.raw_error || status.message || 'Connection failed';
         setValidationErrors((prev) => new Map(prev).set(serverUrl, errorMsg));
         fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
@@ -185,11 +273,20 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
         });
       }
     },
-    [api, apiAvailable, setServerTokens],
+    [api, apiAvailable, setServerTokens, fetchToolsCount, transformedServers, serverTokens],
   );
 
   const handleLockClick = React.useCallback(
     async (server: MCPServer) => {
+      // Check if already authenticated
+      const tokenInfo = serverTokens.get(server.connectionUrl);
+      if (tokenInfo?.authenticated || tokenInfo?.autoConnected) {
+        // Server is already authenticated, show success modal
+        setSelectedServerForSuccess(server);
+        setSuccessModalOpen(true);
+        return;
+      }
+
       setCheckingServers((prev) => new Set(prev).add(server.connectionUrl));
       fireMiscTrackingEvent('Playground MCP Start Auth', {
         mcpServerName: server.name,
@@ -199,25 +296,26 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
         const statusInfo = await checkServerStatus(server.connectionUrl);
 
         if (statusInfo.status === 'connected') {
-          setServerTokens((prev) =>
-            new Map(prev).set(server.connectionUrl, {
-              token: '',
-              authenticated: true,
-              autoConnected: true,
-            }),
-          );
+          const newTokens3 = new Map(serverTokens);
+          newTokens3.set(server.connectionUrl, {
+            token: '',
+            authenticated: true,
+            autoConnected: true,
+          });
+          setServerTokens(newTokens3);
 
-          setSelectedServerForConfig(server);
-          setIsSelectedServerAlreadyConnected(true);
-          setConfigModalOpen(true);
+          // Fetch tools count for auto-connected server
+          fetchToolsCount(server.connectionUrl, '');
+
+          // Open success modal for auto-connected server
+          setSelectedServerForSuccess(server);
+          setSuccessModalOpen(true);
         } else {
           setSelectedServerForConfig(server);
-          setIsSelectedServerAlreadyConnected(false);
           setConfigModalOpen(true);
         }
       } catch {
         setSelectedServerForConfig(server);
-        setIsSelectedServerAlreadyConnected(false);
         setConfigModalOpen(true);
       } finally {
         setCheckingServers((prev) => {
@@ -227,7 +325,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
         });
       }
     },
-    [checkServerStatus, setServerTokens],
+    [checkServerStatus, setServerTokens, fetchToolsCount, serverTokens],
   );
 
   const handleToolsClick = React.useCallback((server: MCPServer) => {
@@ -241,7 +339,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
   const handleConfigModalClose = React.useCallback(() => {
     setConfigModalOpen(false);
     setSelectedServerForConfig(null);
-    setIsSelectedServerAlreadyConnected(false);
     fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
     });
@@ -250,6 +347,42 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
   const handleToolsModalClose = React.useCallback(() => {
     setToolsModalOpen(false);
     setSelectedServerForTools(null);
+  }, []);
+
+  const handleSuccessModalClose = React.useCallback(() => {
+    setSuccessModalOpen(false);
+    setSelectedServerForSuccess(null);
+  }, []);
+
+  const handleDisconnect = React.useCallback(
+    (serverUrl: string) => {
+      // Remove server from tokens map
+      const newTokens = new Map(serverTokens);
+      newTokens.delete(serverUrl);
+      setServerTokens(newTokens);
+
+      // Clear validation errors
+      setValidationErrors((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(serverUrl);
+        return newMap;
+      });
+
+      // Close success modal
+      setSuccessModalOpen(false);
+      setSelectedServerForSuccess(null);
+    },
+    [serverTokens, setServerTokens],
+  );
+
+  const handleEditToolsFromSuccess = React.useCallback((server: MCPServer) => {
+    // Close success modal first
+    setSuccessModalOpen(false);
+    setSelectedServerForSuccess(null);
+
+    // Then open tools modal
+    setSelectedServerForTools(server);
+    setToolsModalOpen(true);
   }, []);
 
   if (!serversLoaded) {
@@ -294,7 +427,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
     <>
       <div className="mcp-servers-panel">
         <Table
-          {...tableProps}
+          {...wrappedTableProps}
           data={transformedServers}
           columns={MCPPanelColumns}
           defaultSortColumn={0}
@@ -304,6 +437,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
             // Server is authenticated if it's either token-authenticated or auto-connected
             const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
             const isChecking = checkingServers.has(server.connectionUrl);
+            const toolsCount = serverToolsCount.get(server.connectionUrl);
+            const isFetchingTools = fetchingToolsServers.has(server.connectionUrl);
 
             return (
               <MCPServerPanelRow
@@ -311,17 +446,35 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
                 server={server}
                 isChecked={isSelected(server)}
                 onToggleCheck={() => {
+                  const wasSelected = isSelected(server);
                   toggleSelection(server);
                   fireMiscTrackingEvent('Playground MCP Select', {
                     mcpServerName: server.name,
-                    isSelected: !isSelected(server),
+                    isSelected: !wasSelected,
                   });
+
+                  // Check if auto-unlock should be triggered using utility function
+                  if (
+                    shouldTriggerAutoUnlock({
+                      isInitialLoadComplete,
+                      isSelectAllAction,
+                      wasSelected,
+                      isAuthenticated,
+                      isChecking,
+                      isValidating: validatingServers.has(server.connectionUrl),
+                    })
+                  ) {
+                    // Trigger the unlock flow automatically
+                    handleLockClick(server);
+                  }
                 }}
                 onLockClick={() => handleLockClick(server)}
                 onToolsClick={() => handleToolsClick(server)}
                 isLoading={validatingServers.has(server.connectionUrl) || isChecking}
                 isStatusLoading={statusesLoading.has(server.connectionUrl)}
                 isAuthenticated={isAuthenticated}
+                toolsCount={toolsCount}
+                isFetchingTools={isFetchingTools}
               />
             );
           }}
@@ -337,7 +490,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
           onTokenSave={validateServerToken}
           isValidating={validatingServers.has(selectedServerForConfig.connectionUrl)}
           validationError={validationErrors.get(selectedServerForConfig.connectionUrl)}
-          isAlreadyConnected={isSelectedServerAlreadyConnected}
         />
       )}
       {selectedServerForTools && (
@@ -346,6 +498,16 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({ onSelectionChange }) 
           onClose={handleToolsModalClose}
           server={selectedServerForTools}
           mcpBearerToken={serverTokens.get(selectedServerForTools.connectionUrl)?.token}
+        />
+      )}
+      {selectedServerForSuccess && (
+        <MCPServerSuccessModal
+          isOpen={successModalOpen}
+          onClose={handleSuccessModalClose}
+          server={selectedServerForSuccess}
+          toolsCount={serverToolsCount.get(selectedServerForSuccess.connectionUrl)}
+          onEditTools={() => handleEditToolsFromSuccess(selectedServerForSuccess)}
+          onDisconnect={() => handleDisconnect(selectedServerForSuccess.connectionUrl)}
         />
       )}
     </>
