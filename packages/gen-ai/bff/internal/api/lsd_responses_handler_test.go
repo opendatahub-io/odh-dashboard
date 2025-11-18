@@ -1,13 +1,16 @@
 package api
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -15,6 +18,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLlamaStackCreateResponseHandler(t *testing.T) {
@@ -699,4 +703,196 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		text := firstContent["text"].(string)
 		assert.Contains(t, text, "Continuing from previous response prev-response-123")
 	})
+}
+
+// TestStreamingContextCancellation tests that streaming responses properly handle
+// context cancellation (e.g., when the client clicks the stop button)
+func TestStreamingContextCancellation(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("should stop streaming when context is cancelled (simulating stop button)", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input:  "Tell me a long story",
+			Model:  "llama-3.1-8b",
+			Stream: true,
+		}
+
+		jsonData, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Attach LlamaStack client to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := &testResponseRecorder{
+			ResponseRecorder: httptest.NewRecorder(),
+			writeCount:       0,
+		}
+
+		// Start streaming in a goroutine
+		done := make(chan bool)
+		go func() {
+			app.LlamaStackCreateResponseHandler(rr, req, nil)
+			done <- true
+		}()
+
+		// Wait for some events to be written (streaming has started)
+		time.Sleep(500 * time.Millisecond)
+
+		// Record writes before cancellation
+		writesBefore := rr.writeCount
+
+		// Cancel the context (simulate stop button click)
+		cancel()
+
+		// Wait for handler to complete
+		select {
+		case <-done:
+			// Handler completed successfully
+		case <-time.After(2 * time.Second):
+			t.Fatal("Handler did not exit after context cancellation")
+		}
+
+		assert.Greater(t, writesBefore, 0, "Should have written some events before cancellation")
+
+		body := rr.Body.String()
+		assert.NotEmpty(t, body, "Should have some response data")
+
+		events := parseSSEEvents(body)
+		assert.Greater(t, len(events), 0, "Should have received at least one event")
+
+		assert.Less(t, len(events), 20, "Should not have received all events due to cancellation")
+
+		t.Logf("Received %d events before stopping (expected < 20 for a cancelled stream)", len(events))
+	})
+
+	t.Run("should handle immediate context cancellation (already cancelled)", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input:  "Hello",
+			Model:  "llama-3.1-8b",
+			Stream: true,
+		}
+
+		jsonData, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Create a context that's already cancelled
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		// Attach LlamaStack client to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		// Handler should exit very quickly
+		done := make(chan bool)
+		go func() {
+			app.LlamaStackCreateResponseHandler(rr, req, nil)
+			done <- true
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(1 * time.Second):
+			t.Fatal("Handler did not exit quickly for already-cancelled context")
+		}
+
+		body := rr.Body.String()
+		events := parseSSEEvents(body)
+
+		assert.LessOrEqual(t, len(events), 2, "Should have very few events for immediately cancelled context")
+		t.Logf("Received %d events for immediately cancelled context", len(events))
+	})
+
+	t.Run("should cleanup resources when context is cancelled", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input:  "Test cleanup",
+			Model:  "llama-3.1-8b",
+			Stream: true,
+		}
+
+		jsonData, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Attach LlamaStack client to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		// Start streaming
+		done := make(chan bool)
+		go func() {
+			app.LlamaStackCreateResponseHandler(rr, req, nil)
+			done <- true
+		}()
+
+		time.Sleep(300 * time.Millisecond)
+
+		cancel()
+
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatal("Handler did not clean up resources and exit after cancellation")
+		}
+	})
+}
+
+// testResponseRecorder wraps httptest.ResponseRecorder and tracks write count
+type testResponseRecorder struct {
+	*httptest.ResponseRecorder
+	writeCount int
+}
+
+func (trr *testResponseRecorder) Write(buf []byte) (int, error) {
+	trr.writeCount++
+	return trr.ResponseRecorder.Write(buf)
+}
+
+// parseSSEEvents parses Server-Sent Events from response body
+func parseSSEEvents(body string) []map[string]interface{} {
+	events := []map[string]interface{}{}
+	scanner := bufio.NewScanner(strings.NewReader(body))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "data: ") {
+			jsonData := strings.TrimPrefix(line, "data: ")
+			var event map[string]interface{}
+			if err := json.Unmarshal([]byte(jsonData), &event); err == nil {
+				events = append(events, event)
+			}
+		}
+	}
+
+	return events
 }
