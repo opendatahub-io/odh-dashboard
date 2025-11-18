@@ -5,7 +5,8 @@ const GlobalMLflowExperimentsPage: React.FC = () => {
   return (
     <ApplicationsPage loaded empty={false} title="MLflow Experiments">
       <iframe
-        src="/mlflow/#/experiments"
+        // TODO: Replace with the actual MLflow URL when the fork deployment is ready
+        src="/mlflow"
         style={{
           width: '100%',
           height: '100%',
