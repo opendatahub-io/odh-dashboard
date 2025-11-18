@@ -129,6 +129,7 @@ describe('[Product Bug: RHOAIENG-27761] Verify that all the URLs referenced in t
         '@ODS-492',
         '@Dashboard',
         '@RHOAIENG-9235',
+        // should this be removed
         '@Bug',
       ],
     },
