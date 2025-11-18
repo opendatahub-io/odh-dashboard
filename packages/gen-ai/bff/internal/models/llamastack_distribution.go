@@ -47,3 +47,8 @@ type LlamaStackDistributionDeleteRequest struct {
 type LlamaStackDistributionDeleteResponse struct {
 	Data string `json:"data"`
 }
+
+// BFFConfigModel represents BFF application-level configuration
+type BFFConfigModel struct {
+	IsCustomLSD bool `json:"isCustomLSD"`
+}
