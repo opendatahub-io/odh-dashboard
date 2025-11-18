@@ -4,9 +4,14 @@ import type {
   RouteExtension,
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import {
+  CATALOG_SETTINGS_PAGE_TITLE,
+  catalogSettingsUrl,
+} from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
+const ADMIN_USER = 'ADMIN_USER';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
@@ -101,6 +106,30 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: '/model-registry-settings/*',
       component: () => import('./ModelRegistrySettingsRoutesWrapper'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.AI_CATALOG_SETTINGS, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-model-catalog',
+      title: CATALOG_SETTINGS_PAGE_TITLE,
+      href: catalogSettingsUrl(),
+      section: 'settings-model-resources-and-operations',
+      path: `${catalogSettingsUrl()}/*`,
+      group: '2_model-resources',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.AI_CATALOG_SETTINGS, ADMIN_USER],
+    },
+    properties: {
+      path: `${catalogSettingsUrl()}/*`,
+      component: () => import('./ModelCatalogSettingsRoutesWrapper'),
     },
   },
 ];

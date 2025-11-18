@@ -11,7 +11,7 @@ import {
   isNavExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { useAccessReviewExtensions } from '@odh-dashboard/internal/utilities/useAccessReviewExtensions';
+import { useAccessReviewExtensions } from '#~/utilities/useAccessReviewExtensions';
 import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
 import { getStatusReportSummary } from '#~/app/status-provider/utils';
 import { NavItem } from './NavItem';

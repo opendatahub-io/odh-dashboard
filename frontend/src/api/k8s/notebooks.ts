@@ -45,10 +45,9 @@ export const assembleNotebook = (
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
-    podSpecOptions: { resources, lastSizeSelection, selectedHardwareProfile },
     connections,
+    hardwareProfileOptions,
   } = data;
-  const dashboardNamespace = data.dashboardNamespace ?? '';
   const {
     name: notebookName,
     description,
@@ -85,17 +84,11 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const hardwareProfileNamespace: Record<string, string | null> = selectedHardwareProfile
-    ? selectedHardwareProfile.metadata.namespace === projectName
-      ? { 'opendatahub.io/hardware-profile-namespace': projectName }
-      : { 'opendatahub.io/hardware-profile-namespace': dashboardNamespace }
-    : { 'opendatahub.io/hardware-profile-namespace': null };
-
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
     .join(',');
 
-  const resource: NotebookKind = {
+  const baseResource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
     metadata: {
@@ -106,19 +99,14 @@ export const assembleNotebook = (
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
-        ...hardwareProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
-        'notebooks.opendatahub.io/last-size-selection': lastSizeSelection || '',
         'notebooks.opendatahub.io/last-image-selection': imageSelection,
         'notebooks.opendatahub.io/inject-auth': 'true',
         'opendatahub.io/username': username,
-        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
         'opendatahub.io/connections': connectionsAnnotation ?? '',
-        'opendatahub.io/hardware-profile-resource-version':
-          selectedHardwareProfile?.metadata.resourceVersion || '',
       },
       name: notebookId,
       namespace: projectName,
@@ -148,7 +136,6 @@ export const assembleNotebook = (
                 },
               ],
               envFrom,
-              resources,
               volumeMounts,
               ports: [
                 {
@@ -184,13 +171,12 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations: [],
-          nodeSelector: {},
         },
       },
     },
   };
 
+  const resource = hardwareProfileOptions.applyToResource(baseResource);
   // set image display name
   if (image.imageStream && resource.metadata.annotations) {
     resource.metadata.annotations['opendatahub.io/image-display-name'] = getImageStreamDisplayName(

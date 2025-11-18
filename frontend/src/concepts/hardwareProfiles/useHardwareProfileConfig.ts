@@ -113,10 +113,15 @@ export const useHardwareProfileConfig = (
   namespace?: string,
   hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
-  const [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError] =
-    useHardwareProfilesByFeatureVisibility(visibleIn);
-  const [projectScopedProfiles, projectScopedProfilesLoaded, projectScopedProfilesLoadError] =
-    useHardwareProfilesByFeatureVisibility(visibleIn, namespace);
+  const {
+    globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
+    projectProfiles: [
+      projectScopedProfiles,
+      projectScopedProfilesLoaded,
+      projectScopedProfilesLoadError,
+    ],
+  } = useHardwareProfilesByFeatureVisibility(visibleIn);
+
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
