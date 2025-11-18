@@ -3,11 +3,28 @@ name: Cypress e2e Test PR Pipeline
 # This workflow currently executes on the ODH (Open Data Hub) dash-e2e cluster.
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
+#
+# This workflow is triggered after test.yml completes successfully.
+# It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
+# Labels (e2e-Pass/e2e-Fail) are applied to PRs based on test results.
 
-on: [push, pull_request]
+on:
+  # Trigger after test.yml completes successfully
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+  # Allow manual trigger for testing/debugging
+  workflow_dispatch:
+
+# Concurrency control: Only run latest E2E tests for each PR/branch
+# PRs get unique groups (e2e-pr-{number}), branches get branch-based groups (e2e-branch-{name})
+concurrency:
+  group: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('e2e-pr-{0}', github.event.workflow_run.pull_requests[0].number) || format('e2e-branch-{0}', github.event.workflow_run.head_branch || github.event.workflow_run.head_sha)) || format('e2e-manual-{0}', github.run_id) }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
+  pull-requests: write
 
 env:
   NODE_VERSION: 22.x
@@ -16,6 +33,8 @@ env:
 jobs:
   get-test-tags:
     runs-on: self-hosted
+    # Only run if test.yml succeeded (for workflow_run) or if manually triggered
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
@@ -62,6 +81,11 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # For workflow_run events from PRs, checkout using PR ref format
+          # For branch pushes, use head_sha or head_branch
+          # For manual triggers, use the default (current commit)
+          ref: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('refs/pull/{0}/head', github.event.workflow_run.pull_requests[0].number) || github.event.workflow_run.head_sha || github.event.workflow_run.head_branch) || github.ref }}
 
       - name: Restore npm dependencies cache
         uses: actions/cache/restore@v4
@@ -475,3 +499,72 @@ jobs:
           else
             echo "✅ Cleaned up $KILLED_COUNT process(es) for run_id: $CURRENT_RUN_ID"
           fi
+
+  update-pr-labels:
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    # Always run to update labels, but only for PRs
+    if: always() && github.event.workflow_run && github.event.workflow_run.pull_requests[0].number
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Update PR labels
+        uses: actions/github-script@v7
+        env:
+          E2E_JOB_RESULT: ${{ needs.e2e-tests.result }}
+        with:
+          script: |
+            const prNumber = context.payload.workflow_run.pull_requests[0]?.number;
+            const e2eResult = process.env.E2E_JOB_RESULT; // 'success', 'failure', 'cancelled', or 'skipped'
+            
+            if (!prNumber) {
+              console.log('Not a PR, skipping label update');
+              return;
+            }
+            
+            // Determine label based on E2E test result
+            // success -> e2e-Pass, anything else (failure/cancelled) -> e2e-Fail
+            const conclusion = e2eResult === 'success' ? 'success' : 'failure';
+            const label = conclusion === 'success' ? 'e2e-Pass' : 'e2e-Fail';
+            
+            console.log(`Updating labels for PR #${prNumber} (E2E result: ${e2eResult} -> ${label})`);
+            
+            // Remove both labels (idempotent - safe if label doesn't exist)
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: 'e2e-Pass'
+              });
+              console.log('✅ Removed e2e-Pass label');
+            } catch (error) {
+              // Label might not exist, that's okay
+              console.log('ℹ️  e2e-Pass label not found (or already removed)');
+            }
+            
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: 'e2e-Fail'
+              });
+              console.log('✅ Removed e2e-Fail label');
+            } catch (error) {
+              // Label might not exist, that's okay
+              console.log('ℹ️  e2e-Fail label not found (or already removed)');
+            }
+            
+            // Add appropriate label based on E2E test result
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: [label]
+              });
+              console.log(`✅ Added label: ${label} to PR #${prNumber}`);
+            } catch (error) {
+              console.error(`❌ Failed to add label ${label} to PR #${prNumber}:`, error.message);
+            }
