@@ -18,7 +18,7 @@ paths:
   # =============================================================================
   # UTILITY ENDPOINTS
   # =============================================================================
-  
+
   /healthcheck:
     summary: BFF service health check
     description: >-
@@ -125,6 +125,27 @@ paths:
       operationId: getCurrentUser
       summary: Get Current User
       description: Returns information about the currently authenticated user.
+
+  /gen-ai/api/v1/config:
+    summary: Get BFF configuration
+    description: >-
+      Retrieves BFF application-level configuration that applies globally across all namespaces.
+      Returns configuration flags that the UI needs to adapt behavior.
+    get:
+      tags:
+        - Configuration
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/BFFConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getBFFConfig
+      summary: Get BFF Configuration
+      description: Returns BFF application-level configuration settings.
 
   # =============================================================================
   # LLAMASTACK DISTRIBUTION (LSD) ENDPOINTS
@@ -531,7 +552,7 @@ paths:
     summary: Delete vector store
     description: >-
       Deletes a vector store by ID. This operation will permanently remove the vector store
-      and all associated files and embeddings. Requires namespace parameter for proper 
+      and all associated files and embeddings. Requires namespace parameter for proper
       multi-tenant isolation.
     delete:
       tags:
@@ -818,7 +839,7 @@ paths:
     summary: Remove file from vector store and delete file (temporary cascading delete)
     description: >-
       Removes a file from a specific vector store and also deletes the actual file from storage.
-      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion) 
+      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion)
       until proper file lifecycle management and sharing is implemented.
       Requires namespace parameter for proper multi-tenant isolation.
     delete:
@@ -1774,7 +1795,7 @@ components:
             Full conversation history for multi-turn conversations. Each message includes role (user/assistant)
             and content. The system will use this context to maintain conversation flow and provide
             contextually relevant responses. Messages should be ordered chronologically.
-            
+
             **Note**: Cannot be used together with `previous_response_id`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
 
@@ -1824,7 +1845,7 @@ components:
             Optional reference to a previous response ID for conversation continuity and thread tracking.
             When provided, the system validates that the response exists and links the new response to it.
             This enables conversation threading and context reconstruction from response chains.
-            
+
             **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
 
@@ -2263,6 +2284,16 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    BFFConfigModel:
+      type: object
+      required:
+        - isCustomLSD
+      properties:
+        isCustomLSD:
+          type: boolean
+          example: false
+          description: Indicates whether a custom LlamaStack URL is configured for the BFF
+
     LlamaStackDistributionInstallRequest:
       type: object
       required:
@@ -2289,7 +2320,7 @@ components:
         model_name:
           type: string
           description: |
-            Name of the model to install. For MaaS models, this must be the exact MaaS model ID 
+            Name of the model to install. For MaaS models, this must be the exact MaaS model ID
             (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
           example: 'llama-3-2-3b-instruct'
         is_maas_model:
@@ -3457,6 +3488,21 @@ components:
             $ref: '#/components/schemas/UserModel'
           example:
             userId: 'user@example.com'
+
+    BFFConfigResponse:
+      description: BFF application-level configuration
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/BFFConfigModel'
+          example:
+            data:
+              isCustomLSD: false
 
 tags:
   # =============================================================================
