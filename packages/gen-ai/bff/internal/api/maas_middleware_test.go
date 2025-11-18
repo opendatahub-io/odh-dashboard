@@ -43,11 +43,11 @@ func TestAttachMaaSClient(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("should return error when not in mock mode and MAAS_URL is not set", func(t *testing.T) {
+	t.Run("should attach nil client when not in mock mode and MAAS_URL is not set", func(t *testing.T) {
 		app := App{
 			config: config.EnvConfig{
 				MockMaaSClient: false,
-				// Intentionally NOT setting MaaSURL
+				// Intentionally NOT setting MaaSURL and no cluster domain
 			},
 			maasClientFactory: maasmocks.NewMockClientFactory(),
 			repositories:      repositories.NewRepositories(),
@@ -56,12 +56,17 @@ func TestAttachMaaSClient(t *testing.T) {
 		req := httptest.NewRequest("GET", "/gen-ai/api/v1/maas/models", nil)
 		rr := httptest.NewRecorder()
 
+		handlerCalled := false
 		app.AttachMaaSClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			// This should not be called
-			t.Error("Handler should not be called when MaaS URL is not configured")
+			handlerCalled = true
+			// Verify nil client was attached
+			maasClient := r.Context().Value(constants.MaaSClientKey)
+			assert.Nil(t, maasClient, "MaaS client should be nil when not configured")
+			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 
-		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.True(t, handlerCalled, "Handler should be called (middleware attaches nil, handler decides what to do)")
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
 	t.Run("should create real client when not in mock mode and MAAS_URL is set", func(t *testing.T) {

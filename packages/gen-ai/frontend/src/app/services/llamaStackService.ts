@@ -9,6 +9,7 @@ import {
 } from 'mod-arch-core';
 import {
   BackendResponseData,
+  BFFConfig,
   CodeExportRequest,
   CreateResponseRequest,
   FileUploadResult,
@@ -315,6 +316,10 @@ const buildApiUrl = (
   const queryString = qs.toString();
   return `${base}${path}${queryString ? `?${queryString}` : ''}`;
 };
+
+/** General endpoints */
+// BFF Configuration
+export const getBFFConfig = modArchRestGET<BFFConfig>('/config');
 
 /** LSD endpoints */
 // Llama Stack Distribution
