@@ -26,6 +26,7 @@ type ModelDeploymentWizardProps = {
   project?: ProjectKind;
   existingDeployment?: Deployment;
   returnRoute?: string;
+  cancelReturnRoute?: string;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -36,19 +37,24 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   project,
   existingDeployment,
   returnRoute,
+  cancelReturnRoute,
 }) => {
   const navigate = useNavigate();
 
   const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
 
-  const exitWizard = React.useCallback(() => {
+  const exitWizardOnCancel = React.useCallback(() => {
+    navigate(cancelReturnRoute ?? returnRoute ?? '/ai-hub/deployments');
+  }, [navigate, cancelReturnRoute, returnRoute]);
+
+  const exitWizardOnSubmit = React.useCallback(() => {
     navigate(returnRoute ?? '/ai-hub/deployments');
   }, [navigate, returnRoute]);
 
   const handleExitConfirm = React.useCallback(() => {
     setIsExitModalOpen(false);
-    exitWizard();
-  }, [exitWizard]);
+    exitWizardOnCancel();
+  }, [exitWizardOnCancel]);
 
   const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name);
   const validation = useModelDeploymentWizardValidation(wizardState.state);
@@ -126,7 +132,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         await deployModel(
           wizardState,
           secretName,
-          exitWizard,
+          exitWizardOnSubmit,
           deployMethod.properties.deploy,
           existingDeployment,
           serverResource,
@@ -144,7 +150,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       deployMethod,
       deployMethodLoaded,
       existingDeployment,
-      exitWizard,
+      exitWizardOnSubmit,
       currentProjectName,
       secretName,
       validation.isModelDeploymentStepValid,
@@ -179,6 +185,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         onClose={() => setIsExitModalOpen(true)}
         onSave={() => onSave()}
         footer={wizardFooter}
+        startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
       >
         <WizardStep name="Model details" id="source-model-step">
           {wizardState.loaded.modelSourceLoaded ? (

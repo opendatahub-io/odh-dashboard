@@ -9,20 +9,27 @@ type ModelCatalogBannerExtension = Extension<
   }
 >;
 
-const extensions: (AutofillConnectionButtonExtension | ModelCatalogBannerExtension)[] = [
-  {
-    type: 'model-registry.register/autofill-connection',
-    properties: {
-      component: () => import('./src/connection/AutofillConnectionButton'),
+const extensions: (AutofillConnectionButtonExtension | ModelCatalogBannerExtension | Extension)[] =
+  [
+    {
+      type: 'model-registry.register/autofill-connection',
+      properties: {
+        component: () => import('./src/connection/AutofillConnectionButton'),
+      },
     },
-  },
-  {
-    type: 'model-catalog.page/banner',
-    properties: {
-      id: 'validated-models-banner',
-      component: () => import('./src/modelCatalog/ValidatedModelsBanner').then((m) => m.default),
+    {
+      type: 'model-catalog.page/banner',
+      properties: {
+        id: 'validated-models-banner',
+        component: () => import('./src/modelCatalog/ValidatedModelsBanner').then((m) => m.default),
+      },
     },
-  },
-];
+    {
+      type: 'model-registry.admin/check',
+      properties: {
+        component: () => import('./upstream/frontend/src/odh/components/AdminCheck'),
+      },
+    },
+  ];
 
 export default extensions;

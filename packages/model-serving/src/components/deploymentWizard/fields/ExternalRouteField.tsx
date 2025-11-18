@@ -3,7 +3,8 @@ import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
-import type { ExternalRouteField as ExternalRouteFieldType } from '../types';
+import { isExternalRouteField } from '../types';
+import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 
 // Schema
 export const externalRouteFieldSchema = z.boolean();
@@ -23,21 +24,16 @@ export type ExternalRouteFieldHook = {
 
 export const useExternalRouteField = (
   existingData?: ExternalRouteFieldData,
-  externalRouteFields?: ExternalRouteFieldType[],
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
 ): ExternalRouteFieldHook => {
+  const externalRouteExtension = useWizardFieldFromExtension(isExternalRouteField, {
+    modelType: { data: modelType?.data },
+    modelServer: { data: modelServer?.data },
+  });
   const isVisible = React.useMemo(() => {
-    if (!modelType || !externalRouteFields) return true;
-
-    const activeField = externalRouteFields.find((field) =>
-      field.isActive({
-        modelType,
-        modelServer,
-      }),
-    );
-    return activeField?.isVisible ?? true;
-  }, [externalRouteFields, modelType, modelServer]);
+    return externalRouteExtension?.isVisible ?? true;
+  }, [externalRouteExtension]);
 
   const [externalRouteData, setExternalRouteData] = React.useState<
     ExternalRouteFieldData | undefined

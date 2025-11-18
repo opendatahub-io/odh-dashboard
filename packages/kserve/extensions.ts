@@ -128,6 +128,8 @@ const extensions: (
         import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
       extractDeploymentStrategy: () =>
         import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
+      extractModelServerTemplate: () =>
+        import('./src/deployServer').then((m) => m.extractModelServerTemplate),
     },
   },
   {

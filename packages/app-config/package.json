@@ -16,13 +16,12 @@
     }
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "rimraf dist && tsc -p tsconfig.prod.json",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
-    "tsdown": "^0.15.6"
+    "@odh-dashboard/tsconfig": "*"
   }
 }

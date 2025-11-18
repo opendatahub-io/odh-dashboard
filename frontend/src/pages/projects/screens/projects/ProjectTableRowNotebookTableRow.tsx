@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { NotebookKind, ProjectKind } from '#~/k8sTypes';
+import { HardwareProfileKind, NotebookKind, ProjectKind } from '#~/k8sTypes';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookState } from '#~/pages/projects/notebook/types';
@@ -9,9 +9,9 @@ import { startNotebook, stopNotebook } from '#~/api';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
-import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import StateActionToggle from '#~/components/StateActionToggle';
-import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils.ts';
+import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 
@@ -20,20 +20,26 @@ type ProjectTableRowNotebookTableRowProps = {
   obj: NotebookState;
   onNotebookDelete: (notebook: NotebookKind) => void;
   enablePipelines: boolean;
+  hardwareProfiles: [
+    profiles: HardwareProfileKind[],
+    loaded: boolean,
+    loadError: Error | undefined,
+  ];
 };
 const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowProps> = ({
   project,
   obj: notebookState,
   onNotebookDelete,
   enablePipelines,
+  hardwareProfiles,
 }) => {
   const { notebook, refresh } = notebookState;
-  const podSpecOptionsState = useNotebookKindPodSpecOptionsState(notebook);
+  const { podSpecOptionsState } = useNotebookHardwareProfile(notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = notebook.metadata;
-  const [hardwareProfileBindingState] = useHardwareProfileBindingState(notebook);
+  const [hardwareProfileBindingState] = useHardwareProfileBindingState(notebook, hardwareProfiles);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);
