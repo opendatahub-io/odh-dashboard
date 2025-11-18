@@ -156,6 +156,7 @@ describe('Model Catalog core', () => {
 
   it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
+
     modelCatalog.landingPage();
     appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
     appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
@@ -164,9 +165,7 @@ describe('Model Catalog core', () => {
 
   it('Navigates to Model Detail page on link click', () => {
     initIntercepts({ disableModelCatalogFeature: false });
-    modelCatalog.landingPage();
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).should('exist');
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
+    modelCatalog.visit();
     modelCatalog.findModelCatalogCards().should('exist');
     modelCatalog.findModelCatalogModelDetailLink().click();
     cy.location('pathname').should(

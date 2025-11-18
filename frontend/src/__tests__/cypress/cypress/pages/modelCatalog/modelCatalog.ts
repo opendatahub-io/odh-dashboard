@@ -11,11 +11,6 @@ class ModelCatalog {
     this.wait();
   }
 
-  visitTempDetails() {
-    cy.visitWithLogin(`/ai-hub/catalog/tempDetails`);
-    this.wait();
-  }
-
   navigate() {
     appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
     this.wait();
