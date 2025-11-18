@@ -297,7 +297,9 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project Alpha').should('not.exist');
   });
 
-  it('should toggle between AI projects and All projects filters', () => {
+  it.skip('should toggle between AI projects and All projects filters', () => {
+    // TODO: Re-enable this test when project type filtering is re-implemented
+    // The project type dropdown has been removed in the toolbar refactor
     const mockProjects: ProjectKind[] = [
       mockProjectK8sResource({
         k8sName: 'ai-project-1',
@@ -390,25 +392,11 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
     projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
 
-    // Step 4a: Verify filters are reset (text), but not the project toggle
-    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'A.I. projects');
+    // Step 4a: Verify filters are reset (text)
+    // Note: Project type dropdown no longer exists in refactored UI
 
-    // step 5: adjust the filter to show 'all projects'
-    projectListToolbar.selectProjectType('All projects');
-    // everything should show now:
-    projectListPage.getProjectRow('AI Project 1').find().should('exist');
-    projectListPage.getProjectRow('AI Project 2').find().should('exist');
-    projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
-    projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
-
-    // Verify AI projects have the AI label and non-AI projects don't
-    projectListPage.getProjectRow('AI Project 1').findAILabel().should('exist');
-    projectListPage.getProjectRow('AI Project 2').findAILabel().should('exist');
-    projectListPage.getProjectRow('Non-AI Project 1').findAILabel().should('not.exist');
-    projectListPage.getProjectRow('Non-AI Project 2').findAILabel().should('not.exist');
-
-    // Step 5: Verify filters are reset - 'All projects' should be selected
-    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
+    // TODO: Update this test when project type filtering is re-implemented
+    // For now, verify that projects are still filtered as expected
     // and other filters should be empty
 
     // Verify name filter is cleared
@@ -422,7 +410,6 @@ describe('Projects details', () => {
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
     projectListPage.findChipClearFiltersButton().click();
-    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
 
     // everything should show now:
     projectListPage.getProjectRow('AI Project 1').find().should('exist');
@@ -434,10 +421,9 @@ describe('Projects details', () => {
     projectListToolbar.findNameFilter().type('NonExistentProject-not-there');
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
-    cy.findByTestId('filter-chip-name').find('button').should('exist');
-    cy.findByTestId('filter-chip-name').find('button').click();
-    cy.findByTestId('filter-chip-name').should('not.exist');
-    projectListToolbar.findProjectTypeDropdownToggle().should('contain.text', 'All projects');
+    cy.findByTestId('Name-filter-chip').find('button').should('exist');
+    cy.findByTestId('Name-filter-chip').find('button').click();
+    cy.findByTestId('Name-filter-chip').should('not.exist');
 
     // everything should show now:
     projectListPage.getProjectRow('AI Project 1').find().should('exist');
