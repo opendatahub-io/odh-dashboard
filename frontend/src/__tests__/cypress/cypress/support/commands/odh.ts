@@ -21,12 +21,12 @@ import type {
   FeatureViewLineage,
 } from '@odh-dashboard/feature-store/types/lineage';
 import type {
+  CatalogSourceList,
   CatalogArtifactList,
   CatalogFilterOptionsList,
   CatalogModel,
   CatalogModelList,
-  CatalogSourceList,
-} from '@odh-dashboard/model-registry/types/';
+} from '@odh-dashboard/model-registry/types/modelCatalogTypes';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
