@@ -21,7 +21,7 @@ import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import EvenlySpacedGallery from '#~/components/EvenlySpacedGallery';
-import { isAiProject } from '#~/pages/projects/screens/projects/ProjectListView';
+import { isAiProject } from '#~/concepts/projects/utils';
 import ProjectsSectionHeader from './ProjectsSectionHeader';
 import EmptyProjectsCard from './EmptyProjectsCard';
 import ProjectsLoading from './ProjectsLoading';

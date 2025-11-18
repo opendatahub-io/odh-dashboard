@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table } from '#~/components/table';
-import { KnownLabels, ProjectKind } from '#~/k8sTypes';
-import { getProjectOwner } from '#~/concepts/projects/utils';
+import { ProjectKind } from '#~/k8sTypes';
+import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectTableRow from '#~/pages/projects/screens/projects/ProjectTableRow';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -23,10 +23,6 @@ const PROJECT_FILTER_STORAGE_KEY = 'odh.dashboard.projects.type.filter';
 
 type ProjectListViewProps = {
   allowCreate: boolean;
-};
-
-export const isAiProject = (project: ProjectKind): boolean => {
-  return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
 };
 
 const getAiProjects = (projects: ProjectKind[]) => {
@@ -58,10 +54,8 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         const userFilter = filterData.User?.toLowerCase();
         const aiProjectFilter = projectFilter === aiProjectFilterKey;
 
-        if (aiProjectFilter) {
-          if (!isAiProject(project)) {
-            return false;
-          }
+        if (aiProjectFilter && !isAiProject(project)) {
+          return false;
         }
         if (
           nameFilter &&

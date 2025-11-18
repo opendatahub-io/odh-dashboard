@@ -11,7 +11,7 @@ import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/
 import { OffIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '#~/k8sTypes';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
-import { getProjectOwner } from '#~/concepts/projects/utils';
+import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import ProjectTableRowNotebookTable from '#~/pages/projects/screens/projects/ProjectTableRowNotebookTable';
 import { TableRowTitleDescription } from '#~/components/table';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
@@ -22,7 +22,6 @@ import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
-import { isAiProject } from './ProjectListView';
 import { AILabel } from './AILabel';
 
 // Plans to add other expandable columns in the future
