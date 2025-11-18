@@ -402,14 +402,15 @@ describe('Projects details', () => {
     // Verify name filter is cleared
     projectListToolbar.findNameFilter().should('have.value', '');
 
-    // Verify user filter is cleared
-    projectListToolbar.findUserFilter().should('have.value', '');
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
+    projectListToolbar.findFilterInput('provider').should('have.value', '');
 
     // now type another value in that should not be there:
-    projectListToolbar.findNameFilter().type('NonExistentProject-bb123');
+
+    projectListToolbar.findUserFilter().type('non-existant-user');
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
-    projectListPage.findChipClearFiltersButton().click();
+    cy.findByRole('button', { name: 'Clear all filters' }).click();
 
     // everything should show now:
     projectListPage.getProjectRow('AI Project 1').find().should('exist');

@@ -7,6 +7,18 @@ import { TrustyAICRState } from '#~/__tests__/cypress/cypress/pages/components/T
 import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 
 class ProjectListToolbar extends Contextual<HTMLElement> {
+  findToggleButton(id: string) {
+    return this.find().pfSwitch(id).click();
+  }
+
+  findFilterMenuOption(id: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToggleButton(id).parents().findByRole('menuitem', { name });
+  }
+
+  findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText(`Filter by ${name}`);
+  }
+
   findNameFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('project-list-name-filter');
   }
