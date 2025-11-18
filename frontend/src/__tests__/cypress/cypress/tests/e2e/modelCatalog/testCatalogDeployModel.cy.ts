@@ -47,7 +47,7 @@ describe('Verify a model can be deployed from model catalog', () => {
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    { tags: ['@Dashboard', '@ModelServing', 'Featureflagged'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
@@ -72,7 +72,7 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       modelCatalog.clickDeployModelButtonWithRetry();
 
-      // Open the wizard and double check the model location gets prefilled
+      cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
       modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
       cy.get('@modelSourceImageLocation').then((modelSourceImageLocation) => {
@@ -80,7 +80,7 @@ describe('Verify a model can be deployed from model catalog', () => {
       });
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      // Step 2: Model deployment
+      cy.step('Model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelDeploymentProjectSelector().should('exist');
       modelServingWizard.findModelDeploymentProjectSelector().click();
@@ -89,22 +89,18 @@ describe('Verify a model can be deployed from model catalog', () => {
         .should('exist')
         .click();
 
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
-        .should('exist')
-        .click();
+      modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
 
-      // Step 3: Advanced Options
+      cy.step('Advanced options step');
       modelServingWizard.findNextButton().should('be.enabled').click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      // Step 4: Summary
+      cy.step('Summary step');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
-      // Verify redirection to the global page
+      cy.step('Verify redirection to the global page');
       cy.location('pathname').should('eq', `/ai-hub/deployments/${projectName}`);
       modelServingGlobal.getInferenceServiceRow(modelName);
     },
