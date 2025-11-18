@@ -13,6 +13,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
@@ -49,6 +50,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     setLastInput,
   } = React.useContext(ChatbotContext);
 
+  const { data: bffConfig } = useFetchBFFConfig();
+
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
   );
@@ -68,7 +71,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         window.history.replaceState({}, '');
       } else {
         const availableModels = models.filter((model) =>
-          isLlamaModelEnabled(model.id, aiModels, maasModels),
+          isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
         );
         if (availableModels.length > 0) {
           setSelectedModel(availableModels[0].id);
@@ -82,6 +85,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     setSelectedModel,
     aiModels,
     maasModels,
+    bffConfig,
     selectedAAModel,
   ]);
 
