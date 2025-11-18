@@ -299,7 +299,7 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project Alpha').should('not.exist');
   });
 
-  it.skip('should toggle between AI projects and All projects filters', () => {
+  it('should toggle between AI projects and All projects filters', () => {
     // TODO: Re-enable this test when project type filtering is re-implemented
     // The project type dropdown has been removed in the toolbar refactor
     const mockProjects: ProjectKind[] = [
