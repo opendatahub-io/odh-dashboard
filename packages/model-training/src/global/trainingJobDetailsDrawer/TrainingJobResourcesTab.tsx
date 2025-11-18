@@ -52,7 +52,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
                 isDisabled // TODO: RHOAIENG-37576 Uncomment this when scaling is implemented
                 data-testid="nodes-edit-button"
               >
-                {job.spec.trainer.numNodes}
+                {job.spec.trainer?.numNodes}
               </Button>
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -61,7 +61,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Processes per node:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="processes-per-node-value">
-              {job.spec.trainer.numProcPerNode || '-'}
+              {job.spec.trainer?.numProcPerNode || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
@@ -76,13 +76,13 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               CPU requests:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="cpu-requests-value">
-              {job.spec.trainer.resourcesPerNode?.requests?.cpu || '-'}
+              {job.spec.trainer?.resourcesPerNode?.requests?.cpu || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>CPU limits:</DescriptionListTerm>
             <DescriptionListDescription data-testid="cpu-limits-value">
-              {job.spec.trainer.resourcesPerNode?.limits?.cpu || '-'}
+              {job.spec.trainer?.resourcesPerNode?.limits?.cpu || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
@@ -90,7 +90,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Memory requests:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="memory-requests-value">
-              {job.spec.trainer.resourcesPerNode?.requests?.memory || '-'}
+              {job.spec.trainer?.resourcesPerNode?.requests?.memory || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
@@ -98,7 +98,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Memory limits:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="memory-limits-value">
-              {job.spec.trainer.resourcesPerNode?.limits?.memory || '-'}
+              {job.spec.trainer?.resourcesPerNode?.limits?.memory || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
