@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { ModelVersionsTab } from '~/app/pages/modelRegistry/screens/ModelVersions/const';
 type ModelVersionsTabProps = {
-    tab: ModelVersionsTab;
+    tab: ModelVersionsTab | string;
     registeredModel: RegisteredModel;
     modelVersions: ModelVersion[];
     isArchiveModel?: boolean;
