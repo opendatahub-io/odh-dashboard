@@ -57,10 +57,10 @@ const TrainingJobLogsTab: React.FC<TrainingJobLogsTabProps> = ({
 
   // Initialize selected pod when pods are loaded (default to first pod)
   React.useEffect(() => {
-    if (podsLoaded && pods.length > 0 && !selectedPod) {
+    if (podsLoaded && pods.length > 0 && !selectedPod && !selectedPodNameFromClick) {
       onPodChange(pods[0]);
     }
-  }, [podsLoaded, pods, selectedPod, onPodChange]);
+  }, [podsLoaded, pods, selectedPod, onPodChange, selectedPodNameFromClick]);
 
   // Get default container name for selected pod
   const containerName = React.useMemo(() => getDefaultPodContainerName(selectedPod), [selectedPod]);

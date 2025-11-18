@@ -582,6 +582,7 @@ describe('Model Training', () => {
         {
           model: PodModel,
           ns: projectName,
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
         },
         mockK8sResourceList(mockPods),
       );
@@ -771,7 +772,7 @@ describe('Model Training', () => {
         {
           model: PodModel,
           ns: projectName,
-          queryParams: { labelSelector: 'training.kubeflow.org/job-role=worker' },
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
         },
         mockK8sResourceList([]),
       );
@@ -780,7 +781,7 @@ describe('Model Training', () => {
         {
           model: PodModel,
           ns: projectName,
-          queryParams: { labelSelector: 'training.kubeflow.org/job-role=initializer' },
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
         },
         mockK8sResourceList([]),
       );
