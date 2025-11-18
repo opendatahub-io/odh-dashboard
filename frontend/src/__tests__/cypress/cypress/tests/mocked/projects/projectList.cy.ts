@@ -410,21 +410,27 @@ describe('Projects details', () => {
     projectListToolbar.findUserFilter().type('non-existant-user');
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
-    cy.findByRole('button', { name: 'Clear all filters' }).click();
+    cy.findAllByRole('button', { name: 'Clear all filters' }).first().click();
 
-    // everything should show now:
+    // still only ai project should show now
     projectListPage.getProjectRow('AI Project 1').find().should('exist');
     projectListPage.getProjectRow('AI Project 2').find().should('exist');
-    projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
-    projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
+    // projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
+    // projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
 
     // now type another value in that should not be there:
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
     projectListToolbar.findNameFilter().type('NonExistentProject-not-there');
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
-    cy.findByTestId('Name-filter-chip').find('button').should('exist');
-    cy.findByTestId('Name-filter-chip').find('button').click();
+    cy.findByTestId('Name-filter-chip').closest('.pf-v6-c-label').find('button').should('exist');
+    cy.findByTestId('Name-filter-chip').closest('.pf-v6-c-label').find('button').click();
     cy.findByTestId('Name-filter-chip').should('not.exist');
+
+    // switch to all projects:
+    projectListToolbar.selectProjectType('All projects');
 
     // everything should show now:
     projectListPage.getProjectRow('AI Project 1').find().should('exist');
