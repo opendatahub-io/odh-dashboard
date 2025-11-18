@@ -384,13 +384,13 @@ describe('Model Serving Global', () => {
       name: 'test-inference-service-latest',
       namespace: 'test-project',
       displayName: 'Latest Model',
-      modelName: 'test-inference-service-latest',
+      runtimeName: 'test-inference-service-latest',
     });
     const inferenceServiceOutdated = mockInferenceServiceK8sResource({
       name: 'test-inference-service-outdated',
       namespace: 'test-project',
       displayName: 'Outdated Model',
-      modelName: 'test-inference-service-outdated',
+      runtimeName: 'test-inference-service-outdated',
     });
 
     initIntercepts({
@@ -485,7 +485,7 @@ describe('Model Serving Global', () => {
         namespace: 'test-project',
         name: 'new-model',
         displayName: 'New Model',
-        modelName: 'test-inference-service-latest',
+        runtimeName: 'test-inference-service-latest',
         lastTransitionTime: '2025-07-10T12:12:41Z',
         activeModelState: 'Loaded',
         isReady: true,
@@ -494,7 +494,7 @@ describe('Model Serving Global', () => {
         namespace: 'test-project',
         name: 'old-model',
         displayName: 'Old Model',
-        modelName: 'test-inference-service-outdated',
+        runtimeName: 'test-inference-service-outdated',
         lastTransitionTime: '2024-09-04T16:12:41Z',
         activeModelState: 'Loaded',
         isReady: true,
@@ -639,35 +639,33 @@ describe('Model Serving Global', () => {
       });
 
       // Mock disabled hardware profile
-      cy.interceptK8s(
-        {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'disabled-profile',
-        },
-        mockHardwareProfile({
-          name: 'disabled-profile',
-          displayName: 'Disabled Profile',
-          annotations: {
-            'opendatahub.io/disabled': 'true',
-          },
-          identifiers: [
-            {
-              displayName: 'CPU',
-              identifier: 'cpu',
-              minCount: '1',
-              maxCount: '2',
-              defaultCount: '1',
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'disabled-profile',
+            displayName: 'Disabled Profile',
+            annotations: {
+              'opendatahub.io/disabled': 'true',
             },
-            {
-              displayName: 'Memory',
-              identifier: 'memory',
-              minCount: '2Gi',
-              maxCount: '4Gi',
-              defaultCount: '2Gi',
-            },
-          ],
-        }),
+            identifiers: [
+              {
+                displayName: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '2',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                identifier: 'memory',
+                minCount: '2Gi',
+                maxCount: '4Gi',
+                defaultCount: '2Gi',
+              },
+            ],
+          }),
+        ]),
       );
 
       modelServingGlobal.visit('test-project');
@@ -702,34 +700,32 @@ describe('Model Serving Global', () => {
       });
 
       // Mock hardware profile with different spec (updated)
-      cy.interceptK8s(
-        {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'updated-profile',
-        },
-        mockHardwareProfile({
-          name: 'updated-profile',
-          displayName: 'Updated Profile',
-          enabled: true,
-          identifiers: [
-            {
-              displayName: 'CPU',
-              identifier: 'cpu',
-              minCount: '2', // Changed from 1 to 2
-              maxCount: '4', // Changed from 1 to 4
-              defaultCount: '2', // Changed from 1 to 2
-            },
-            {
-              displayName: 'Memory',
-              identifier: 'memory',
-              minCount: '4Gi',
-              maxCount: '8Gi',
-              defaultCount: '4Gi',
-            },
-          ],
-          resourceVersion: '104110943',
-        }),
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'updated-profile',
+            displayName: 'Updated Profile',
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                identifier: 'cpu',
+                minCount: '2', // Changed from 1 to 2
+                maxCount: '4', // Changed from 1 to 4
+                defaultCount: '2', // Changed from 1 to 2
+              },
+              {
+                displayName: 'Memory',
+                identifier: 'memory',
+                minCount: '4Gi',
+                maxCount: '8Gi',
+                defaultCount: '4Gi',
+              },
+            ],
+            resourceVersion: '104110943',
+          }),
+        ]),
       );
 
       modelServingGlobal.visit('test-project');
@@ -761,13 +757,12 @@ describe('Model Serving Global', () => {
         inferenceServices: [mockInferenceService],
       });
 
-      cy.interceptK8s(
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
         {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'error-profile',
+          statusCode: 403,
+          body: mock403ErrorWithDetails({}),
         },
-        mock403ErrorWithDetails({}),
       );
 
       modelServingGlobal.visit('test-project');

@@ -608,7 +608,7 @@ describe('Serving Runtime List', () => {
           mockInferenceServiceK8sResource({
             name: 'test-model',
             displayName: 'test-model',
-            modelName: 'test-model',
+            runtimeName: 'test-model',
             activeModelState: 'Loaded',
           }),
         ],
@@ -623,7 +623,7 @@ describe('Serving Runtime List', () => {
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
         displayName: 'test-model',
-        modelName: 'test-model',
+        runtimeName: 'test-model',
         activeModelState: 'Unknown',
       });
       stoppedInferenceService.metadata.annotations = {
@@ -677,7 +677,7 @@ describe('Serving Runtime List', () => {
       const runningInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
         displayName: 'test-model',
-        modelName: 'test-model',
+        runtimeName: 'test-model',
         activeModelState: 'Loaded',
       });
 
@@ -710,7 +710,7 @@ describe('Serving Runtime List', () => {
           mockInferenceServiceK8sResource({
             name: 'llama-service',
             displayName: 'Llama Service',
-            modelName: 'llama-service',
+            runtimeName: 'llama-service',
             minReplicas: 3,
             maxReplicas: 3,
           }),
@@ -783,7 +783,7 @@ describe('Serving Runtime List', () => {
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'model-loaded',
-            modelName: 'test-model',
+            runtimeName: 'test-model',
             displayName: 'Loaded model',
             kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
             hasExternalRoute: false,
