@@ -49,14 +49,12 @@
     "./model-catalog-deploy": {
       "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
     },
-      "./mocks/*": [
+    "./mocks/*": [
       "./upstream/frontend/src/__mocks__/*",
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
-    "./types/*": [
-      "./upstream/frontend/src/app/modelCatalogTypes.ts",
-      "./upstream/frontend/src/app/types.ts"
-    ]
+    "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
+    "./types/types": "./upstream/frontend/src/app/types.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"

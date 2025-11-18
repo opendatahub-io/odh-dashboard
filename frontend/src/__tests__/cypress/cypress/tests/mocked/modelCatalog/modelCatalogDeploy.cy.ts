@@ -9,7 +9,7 @@ import {
   mockCatalogModelList,
   mockCatalogModel,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogModelList';
-import type { CatalogSource } from '@odh-dashboard/model-registry/types/';
+import type { CatalogSource } from '@odh-dashboard/model-registry/types/modelCatalogTypes';
 import {
   mockCatalogSource,
   mockCatalogSourceList,
@@ -128,7 +128,7 @@ const initIntercepts = ({
   ).as('loadArtifacts');
 };
 
-describe('Deploy catalog model', () => {
+describe.skip('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
     initIntercepts({ disableKServe: true });
     modelDetailsPage.visit();

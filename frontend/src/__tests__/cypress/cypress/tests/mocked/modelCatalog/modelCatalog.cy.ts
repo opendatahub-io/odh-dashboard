@@ -144,8 +144,6 @@ describe('Model Catalog core', () => {
 
     cy.visitWithLogin(`/ai-hub/catalog`);
     modelCatalog.findModelCatalogNotFoundState().should('exist');
-    cy.visitWithLogin(`/ai-hub/catalog`);
-    modelCatalog.findModelCatalogNotFoundState().should('exist');
   });
 
   it('Model Catalog Enabled in the cluster', () => {
