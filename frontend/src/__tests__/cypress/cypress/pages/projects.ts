@@ -170,10 +170,6 @@ class ProjectListPage {
     return cy.findByTestId('clear-filters-button');
   }
 
-  findChipClearFiltersButton() {
-    return cy.findByTestId('clear-filters-button-filter-row');
-  }
-
   findSortButton(name: string) {
     return this.findProjectsTable().find('thead').findByRole('button', { name });
   }
@@ -286,10 +282,6 @@ class ProjectDetails {
 
   findErrorSelectingPlatform() {
     return cy.findByTestId('error-selecting-serving-platform');
-  }
-
-  findDeployModelDropdown() {
-    return cy.findByTestId('deploy-model-dropdown');
   }
 
   findBackToRegistryButton() {

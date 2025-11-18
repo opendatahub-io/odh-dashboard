@@ -40,7 +40,7 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
           bodyContent={
             <Stack hasGutter>
               <StackItem>
-                Resource names and types are used to find your resources in OpenShift 888.
+                Resource names and types are used to find your resources in OpenShift.
               </StackItem>
               <StackItem>
                 <DescriptionList isCompact isHorizontal>
