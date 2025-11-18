@@ -40,6 +40,7 @@ export type ModelLocationDataField = {
   selectedConnection: Connection | undefined;
   setSelectedConnection: (connection: Connection | undefined) => void;
   isLoadingSecretData: boolean;
+  disableInputFields: boolean;
 };
 export const useModelLocationData = (
   projectName?: string,
@@ -185,6 +186,7 @@ export const useModelLocationData = (
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
     isLoadingSecretData: !isStableState && !!projectName,
+    disableInputFields: existingData?.disableInputFields ?? false,
   };
 };
 
@@ -373,6 +375,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
       <>
         {showCustomTypeSelect ? (
           <CustomTypeSelectField
+            isDisabled={modelLocationData?.disableInputFields}
             typeOptions={customTypeOptions ?? []}
             onSelect={(connectionType: ConnectionTypeConfigMapObj) => {
               setModelLocationData({

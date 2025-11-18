@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   EmptyStateBody,
   EmptyStateVariant,
@@ -20,7 +20,7 @@ import TrainingJobListView from './trainingJobList/TrainingJobListView';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 import { TrainJobKind } from '../k8sTypes';
 
-const title = 'Model training';
+const title = 'Training jobs';
 const description =
   'Select a project to view its training jobs. Monitor training progress and manage distributed training workloads across your data science projects.';
 
@@ -29,6 +29,7 @@ const ModelTraining = (): React.ReactElement => {
   const { trainJobs, project, preferredProject, projects } = React.useContext(ModelTrainingContext);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
+  const drawerRef = useRef<HTMLDivElement>(undefined);
 
   const handleSelectJob = React.useCallback((job: TrainJobKind) => {
     setSelectedJob((prev) => (prev?.metadata.uid === job.metadata.uid ? undefined : job));
@@ -60,7 +61,11 @@ const ModelTraining = (): React.ReactElement => {
   );
 
   return (
-    <Drawer isExpanded={isDrawerExpanded} isInline>
+    <Drawer
+      onExpand={() => drawerRef.current && drawerRef.current.focus()}
+      isExpanded={isDrawerExpanded}
+      isInline
+    >
       <DrawerContent panelContent={panelContent}>
         <DrawerContentBody>
           <ApplicationsPage
@@ -74,7 +79,7 @@ const ModelTraining = (): React.ReactElement => {
             loaded={trainJobLoaded}
             headerContent={
               <ModelTrainingProjectSelector
-                getRedirectPath={(ns: string) => `/modelTraining/${ns}`}
+                getRedirectPath={(ns: string) => `/develop-train/training-jobs/${ns}`}
               />
             }
             provideChildrenPadding
@@ -86,7 +91,7 @@ const ModelTraining = (): React.ReactElement => {
                   onCancel={() => {
                     const redirectProject = preferredProject ?? projects?.[0];
                     if (redirectProject) {
-                      navigate(`/modelTraining/${redirectProject.metadata.name}`);
+                      navigate(`/develop-train/training-jobs/${redirectProject.metadata.name}`);
                     }
                   }}
                 />

@@ -19,7 +19,7 @@ import BYONImageDependenciesList from './BYONImageDependenciesList';
 type BYONImagesTableRowProps = {
   obj: BYONImage;
   rowIndex: number;
-  hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>;
+  hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
 };

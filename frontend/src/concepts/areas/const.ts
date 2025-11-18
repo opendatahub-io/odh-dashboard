@@ -5,6 +5,7 @@ export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
   modelAsService: false,
+  aiCatalogSettings: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -58,7 +59,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
-  modelTraining: false,
+  trainingJobs: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -193,7 +194,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
   [SupportedArea.MODEL_TRAINING]: {
-    featureFlags: ['modelTraining'],
+    featureFlags: ['trainingJobs'],
+  },
+  [SupportedArea.AI_CATALOG_SETTINGS]: {
+    featureFlags: ['aiCatalogSettings'],
   },
 };
 

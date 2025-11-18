@@ -848,35 +848,33 @@ describe('Workbench Hardware Profiles', () => {
       );
 
       // Mock disabled hardware profile
-      cy.interceptK8s(
-        {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'disabled-profile',
-        },
-        mockHardwareProfile({
-          name: 'disabled-profile',
-          displayName: 'Disabled Profile',
-          annotations: {
-            'opendatahub.io/disabled': 'true',
-          },
-          identifiers: [
-            {
-              displayName: 'CPU',
-              identifier: 'cpu',
-              minCount: '1',
-              maxCount: '2',
-              defaultCount: '1',
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'disabled-profile',
+            displayName: 'Disabled Profile',
+            annotations: {
+              'opendatahub.io/disabled': 'true',
             },
-            {
-              displayName: 'Memory',
-              identifier: 'memory',
-              minCount: '2Gi',
-              maxCount: '4Gi',
-              defaultCount: '2Gi',
-            },
-          ],
-        }),
+            identifiers: [
+              {
+                displayName: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '2',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                identifier: 'memory',
+                minCount: '2Gi',
+                maxCount: '4Gi',
+                defaultCount: '2Gi',
+              },
+            ],
+          }),
+        ]),
       );
 
       projectDetails.visit(projectName);
@@ -920,36 +918,34 @@ describe('Workbench Hardware Profiles', () => {
       );
 
       // Mock hardware profile with different spec (updated)
-      cy.interceptK8s(
-        {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'updated-profile',
-        },
-        mockHardwareProfile({
-          name: 'updated-profile',
-          displayName: 'Updated Profile',
-          annotations: {
-            'opendatahub.io/disabled': 'false',
-          },
-          identifiers: [
-            {
-              displayName: 'CPU',
-              identifier: 'cpu',
-              minCount: '2',
-              maxCount: '4',
-              defaultCount: '2',
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'updated-profile',
+            displayName: 'Updated Profile',
+            annotations: {
+              'opendatahub.io/disabled': 'false',
             },
-            {
-              displayName: 'Memory',
-              identifier: 'memory',
-              minCount: '4Gi',
-              maxCount: '8Gi',
-              defaultCount: '4Gi',
-            },
-          ],
-          resourceVersion: '104110943',
-        }),
+            identifiers: [
+              {
+                displayName: 'CPU',
+                identifier: 'cpu',
+                minCount: '2',
+                maxCount: '4',
+                defaultCount: '2',
+              },
+              {
+                displayName: 'Memory',
+                identifier: 'memory',
+                minCount: '4Gi',
+                maxCount: '8Gi',
+                defaultCount: '4Gi',
+              },
+            ],
+            resourceVersion: '104110943',
+          }),
+        ]),
       );
 
       projectDetails.visit(projectName);
@@ -1044,13 +1040,12 @@ describe('Workbench Hardware Profiles', () => {
       );
 
       // Mock the hardware profile with a 403 error (forbidden)
-      cy.interceptK8s(
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
         {
-          model: HardwareProfileModel,
-          ns: 'opendatahub',
-          name: 'error-profile',
+          statusCode: 403,
+          body: mock403ErrorWithDetails({}),
         },
-        mock403ErrorWithDetails({}),
       );
 
       projectDetails.visit(projectName);

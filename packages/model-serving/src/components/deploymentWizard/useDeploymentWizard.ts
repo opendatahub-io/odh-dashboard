@@ -14,20 +14,10 @@ import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
-import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
-import {
-  isExternalRouteField,
-  isTokenAuthField,
-  isDeploymentStrategyField,
-  type DeploymentStrategyField,
-  type ExternalRouteField,
-  type InitialWizardFormData,
-  type TokenAuthField,
-  type WizardFormData,
-} from './types';
+import { type InitialWizardFormData, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
-import { useExtensionStateModifier, useWizardFieldsFromExtensions } from './dynamicFormUtils';
 import { useProjectSection } from './fields/ProjectSection';
+import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -35,11 +25,6 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     modelDeploymentLoaded: boolean;
     advancedOptionsLoaded: boolean;
     summaryLoaded: boolean;
-  };
-  fieldExtensions: {
-    externalRouteFields: ExternalRouteField[];
-    tokenAuthFields: TokenAuthField[];
-    deploymentStrategyFields: DeploymentStrategyField[];
   };
   advancedOptions: {
     isExternalRouteVisible: boolean;
@@ -51,8 +36,6 @@ export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
 ): UseModelDeploymentWizardState => {
-  const [fields] = useWizardFieldsFromExtensions();
-
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
@@ -74,6 +57,7 @@ export const useModelDeploymentWizard = (
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
+    editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
@@ -92,27 +76,19 @@ export const useModelDeploymentWizard = (
           prevFormat !== undefined
         ) {
           modelServer.setData(null);
+          modelServer.setIsAutoSelectChecked(undefined);
         }
       },
       [modelType.data],
     ),
   );
 
-  const modelServer = useExtensionStateModifier(
-    'modelServerTemplate',
-    useModelServerSelectField,
-    [
-      initialData?.modelServer,
-      project.projectName,
-      modelFormatState.templatesFilteredForModelType,
-      modelType.data === ServingRuntimeModelType.GENERATIVE // Don't pass model format for generative models
-        ? undefined
-        : modelFormatState.modelFormat,
-      modelType.data,
-    ],
-    {
-      modelType,
-    },
+  const modelServer = useModelServerSelectField(
+    initialData?.modelServer,
+    modelFormatState.templatesFilteredForModelType,
+    modelFormatState.modelFormat,
+    modelType.data,
+    hardwareProfileConfig.formData.selectedProfile,
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
@@ -123,48 +99,20 @@ export const useModelDeploymentWizard = (
   }, [hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
-  const modelAvailabilityFormData = React.useMemo(
-    () => ({
-      modelType,
-      modelServer,
-    }),
-    [modelType, modelServer],
+  const modelAvailability = useModelAvailabilityFields(
+    initialData?.modelAvailability,
+    modelType.data,
+    modelServer.data,
   );
-  const modelAvailability = useExtensionStateModifier(
-    'modelAvailability',
-    useModelAvailabilityFields,
-    [initialData?.modelAvailability, modelType.data],
-    modelAvailabilityFormData,
-  );
-
-  const externalRouteFields = React.useMemo(() => {
-    return fields.filter(isExternalRouteField);
-  }, [fields]);
-
-  const tokenAuthFields = React.useMemo(() => {
-    return fields.filter(isTokenAuthField);
-  }, [fields]);
-
-  const deploymentStrategyFields = React.useMemo(() => {
-    return fields.filter(isDeploymentStrategyField);
-  }, [fields]);
-
-  const fieldExtensions = {
-    externalRouteFields,
-    tokenAuthFields,
-    deploymentStrategyFields,
-  };
 
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
-    externalRouteFields,
     modelType,
     modelServer,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
-    tokenAuthFields,
     modelType,
     modelServer,
   );
@@ -175,7 +123,6 @@ export const useModelDeploymentWizard = (
   );
   const deploymentStrategy = useDeploymentStrategyField(
     initialData?.deploymentStrategy ?? undefined,
-    deploymentStrategyFields,
     modelType,
     modelServer,
   );
@@ -210,7 +157,6 @@ export const useModelDeploymentWizard = (
       advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
     },
-    fieldExtensions,
     advancedOptions: {
       isExternalRouteVisible: externalRoute.isVisible,
       shouldAutoCheckTokens: tokenAuthentication.shouldAutoCheck,

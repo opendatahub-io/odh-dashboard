@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ModelRegistry from './screens/ModelRegistry';
-import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
+import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
 import { modelRegistryUrl } from './screens/routeUtils';
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
-import ModelVersions from "./screens/ModelVersions/ModelVersions";
+import ModelVersions from './screens/ModelVersions/ModelVersions';
 import { ModelVersionDetailsTab } from './screens/ModelVersionDetails/const';
 import ModelVersionsDetails from './screens/ModelVersionDetails/ModelVersionDetails';
 import ModelVersionsArchive from './screens/ModelVersionsArchive/ModelVersionsArchive';
@@ -17,18 +17,20 @@ import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
 import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryVersionDetailsTabExtension, isModelRegistryDetailsTabExtension } from '~/odh/extension-points';
-
+import {
+  isModelRegistryVersionDetailsTabExtension,
+  isModelRegistryDetailsTabExtension,
+} from '~/odh/extension-points';
 
 const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
   const detailsTabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
-  return(
+  return (
     <Routes>
       <Route
         path={'/:modelRegistry?/*'}
         element={
-          <ModelRegistryCoreLoader
+          <OdhModelRegistryCoreLoader
             getInvalidRedirectPath={(modelRegistry) => modelRegistryUrl(modelRegistry)}
           />
         }
@@ -66,7 +68,10 @@ const ModelRegistryRoutes: React.FC = () => {
                   <ModelVersionsArchiveDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />
                 }
               />
-              {generateVersionDetailsTabExtensionRoutes({ tabExtensions, isModelVersionsArchiveDetails: true })}
+              {generateVersionDetailsTabExtensionRoutes({
+                tabExtensions,
+                isModelVersionsArchiveDetails: true,
+              })}
 
               <Route path="*" element={<Navigate to="." />} />
             </Route>
@@ -98,7 +103,10 @@ const ModelRegistryRoutes: React.FC = () => {
                   <ArchiveModelVersionDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />
                 }
               />
-              {generateVersionDetailsTabExtensionRoutes({ tabExtensions, isArchiveModelVersionDetails: true })}
+              {generateVersionDetailsTabExtensionRoutes({
+                tabExtensions,
+                isArchiveModelVersionDetails: true,
+              })}
 
               <Route path="*" element={<Navigate to="." />} />
             </Route>
@@ -112,6 +120,6 @@ const ModelRegistryRoutes: React.FC = () => {
       </Route>
     </Routes>
   );
-}
+};
 
 export default ModelRegistryRoutes;
