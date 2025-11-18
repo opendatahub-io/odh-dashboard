@@ -227,6 +227,8 @@ describe('Projects details', () => {
 
     // Type in the user filter
     const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
+
     projectListToolbar.findUserFilter().type('test-user');
     // Verify only rows with the typed run user exist
     projectListPage.getProjectRow('Test Project').find().should('exist');
@@ -332,7 +334,7 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project').should('not.exist');
   });
 
-  it.only('should clear filters and reset to show all projects', () => {
+  it('should clear filters and reset to show all projects', () => {
     const mockProjects: ProjectKind[] = [
       mockProjectK8sResource({
         k8sName: 'ai-project-1',

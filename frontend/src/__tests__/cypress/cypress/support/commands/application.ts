@@ -329,7 +329,7 @@ Cypress.Commands.add(
         if ($el.attr('aria-expanded') === 'false') {
           cy.wrap($el).click();
         }
-        return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
+        return cy.findByRole('menuitem', { name });
       });
   },
 );
