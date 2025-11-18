@@ -1,4 +1,4 @@
-import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes.js';
+import { ClusterQueueKind, PodKind } from '@odh-dashboard/internal/k8sTypes.js';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
@@ -103,4 +103,24 @@ export const getAllConsumedResources = (
     const bOrder = order[b.name] ?? DEFAULT_ORDER;
     return aOrder - bOrder;
   });
+};
+
+/**
+ * Gets the default container name for a pod.
+ * Returns the container name specified in the pod's default-container annotation,
+ * or the first container name if no annotation is present.
+ * @param pod - The pod resource (can be null)
+ * @returns The container name, or empty string if pod is null or has no containers
+ */
+export const getDefaultPodContainerName = (pod: PodKind | null): string => {
+  if (!pod) return '';
+
+  const podContainers = pod.spec.containers.map((c) => ({ name: c.name }));
+
+  if (podContainers.length === 0) return '';
+
+  const defaultContainerName =
+    pod.metadata.annotations?.['kubectl.kubernetes.io/default-container'];
+
+  return podContainers.find((c) => c.name === defaultContainerName)?.name || podContainers[0].name;
 };
