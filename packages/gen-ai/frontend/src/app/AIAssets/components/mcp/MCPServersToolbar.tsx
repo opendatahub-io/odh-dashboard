@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   MenuToggle,
   Dropdown,
@@ -16,8 +16,8 @@ import {
   Label,
   ButtonVariant,
 } from '@patternfly/react-core';
-import { PlayIcon, FilterIcon, SyncAltIcon, CloseIcon } from '@patternfly/react-icons';
-import { chatPlaygroundRootPath } from '~/app/utilities';
+import { PlayIcon, FilterIcon, CloseIcon } from '@patternfly/react-icons';
+import { genAiChatPlaygroundRoute } from '~/app/utilities';
 import { MCPFilterColors } from '~/app/AIAssets/data/mcpFilterOptions';
 
 interface MCPServersToolbarProps {
@@ -27,8 +27,6 @@ interface MCPServersToolbarProps {
   filterColors?: Record<string, MCPFilterColors>;
   selectedCount: number;
   selectedServerIds: string[];
-  onTryInPlayground: (serverIds: string[]) => void;
-  onRefresh?: () => void;
   onClearFilters: () => void;
 }
 
@@ -39,11 +37,10 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
   filterColors,
   selectedCount,
   selectedServerIds,
-  onTryInPlayground,
-  onRefresh,
   onClearFilters,
 }) => {
   const navigate = useNavigate();
+  const { namespace } = useParams<{ namespace: string }>();
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
     const keys = Object.keys(filterOptions);
@@ -51,23 +48,13 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
   });
   const [searchValue, setSearchValue] = React.useState('');
 
-  const handleSearch = () => {
-    onFilterUpdate(currentFilterType, searchValue);
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-  };
-
-  const handleRemoveFilter = (filterType: string) => {
-    onFilterUpdate(filterType, '');
-  };
-
   const handleTryInPlayground = React.useCallback(() => {
-    // Save selections to playground and navigate
-    onTryInPlayground(selectedServerIds);
-    navigate(chatPlaygroundRootPath);
-  }, [selectedServerIds, onTryInPlayground, navigate]);
+    navigate(genAiChatPlaygroundRoute(namespace), {
+      state: {
+        mcpServers: selectedServerIds,
+      },
+    });
+  }, [selectedServerIds, namespace, navigate]);
 
   // Get active filters for display
   const activeFilters = Object.entries(filterData).filter(([, value]) => value && value !== '');
@@ -118,8 +105,8 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
             <SearchInput
               placeholder={`Filter by ${filterOptions[currentFilterType].toLowerCase()}...`}
               value={searchValue}
-              onChange={(_event, value) => handleSearchChange(value || '')}
-              onSearch={handleSearch}
+              onChange={(_event, value) => setSearchValue(value || '')}
+              onSearch={() => onFilterUpdate(currentFilterType, searchValue)}
             />
           </ToolbarItem>
         </ToolbarGroup>
@@ -136,18 +123,6 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
               Try in Playground{selectedCount > 0 ? ` (${selectedCount})` : ''}
             </Button>
           </ToolbarItem>
-          {onRefresh && (
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<SyncAltIcon />}
-                onClick={onRefresh}
-                aria-label="Refresh MCP servers and connection status"
-              >
-                Refresh
-              </Button>
-            </ToolbarItem>
-          )}
         </ToolbarGroup>
       </ToolbarContent>
 
@@ -171,7 +146,7 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
                     <FlexItem key={filterType}>
                       <Label
                         color={getLabelColor(filterType)}
-                        onClose={() => handleRemoveFilter(filterType)}
+                        onClose={() => onFilterUpdate(filterType, '')}
                         closeBtnProps={{
                           'aria-label': `Remove ${filterOptions[filterType]} filter`,
                         }}

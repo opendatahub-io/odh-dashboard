@@ -1,5 +1,9 @@
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
-import { TokenAuthModal, MCPToolsModal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import {
+  TokenAuthModal,
+  MCPToolsModal,
+  MCPServerSuccessModal,
+} from '~/__tests__/cypress/cypress/pages/components/Modal';
 import {
   loadMCPTestConfig,
   initIntercepts,
@@ -54,8 +58,17 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
       cy.step('Wait for authentication status check');
       cy.wait('@statusCheck', { timeout: 10000 });
 
-      cy.step('Verify modal closes after successful authentication');
+      cy.step('Verify config modal closes after successful authentication');
       tokenModal.shouldBeOpen(false);
+
+      cy.step('Verify success modal opens');
+      const successModal = new MCPServerSuccessModal();
+      successModal.shouldBeOpen();
+      successModal.findHeading().should('be.visible');
+
+      cy.step('Close success modal');
+      successModal.findSaveButton().click();
+      successModal.shouldBeOpen(false);
 
       cy.step('Verify tools button becomes enabled after authentication');
       serverRow.findToolsButton().should('exist').should('not.have.attr', 'aria-disabled');
@@ -75,9 +88,6 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
 
       cy.step('Verify first tool has a name');
       toolsModal.verifyFirstToolHasName();
-
-      cy.step('Verify table headers are present');
-      toolsModal.verifyTableHeaders();
 
       cy.step('Close tools modal');
       toolsModal.findCloseButton().click();
@@ -156,8 +166,17 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
       cy.step('Wait for status check with token');
       cy.wait('@statusCheck', { timeout: 10000 });
 
-      cy.step('Verify modal closes after successful authentication');
+      cy.step('Verify config modal closes after successful authentication');
       tokenModal.shouldBeOpen(false);
+
+      cy.step('Verify success modal opens');
+      const successModal = new MCPServerSuccessModal();
+      successModal.shouldBeOpen();
+      successModal.findHeading().should('be.visible');
+
+      cy.step('Close success modal');
+      successModal.findSaveButton().click();
+      successModal.shouldBeOpen(false);
 
       cy.step('Test completed - Authorization workflow with valid token succeeds');
     },
@@ -171,7 +190,13 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
       const { name: serverName, url: serverUrl } = config.servers.github;
       const { test: testToken } = config.tokens;
 
-      initIntercepts({ config, namespace, serverName, serverUrl });
+      initIntercepts({
+        config,
+        namespace,
+        serverName,
+        serverUrl,
+        withStatusError: { errorType: '400', serverUrl },
+      });
 
       navigateToChatbot(namespace);
 
@@ -187,6 +212,18 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
       cy.step('Verify token field accepts input');
       tokenModal.findTokenInput().clear().type(testToken, { delay: 5 });
       tokenModal.findTokenInput().should('have.value', testToken);
+
+      cy.step('Submit with invalid token to trigger clear button visibility');
+      tokenModal.findSubmitButton().should('be.visible').and('not.be.disabled').click();
+
+      cy.step('Wait for error response');
+      cy.wait('@statusCheckError', { timeout: 10000 });
+
+      cy.step('Verify modal remains open after validation error');
+      tokenModal.shouldBeOpen();
+
+      cy.step('Verify clear button appears after validation attempt');
+      tokenModal.findClearButton().should('exist').and('be.visible');
 
       cy.step('Verify clear button functionality');
       tokenModal.findClearButton().click();
@@ -232,16 +269,11 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
       cy.step('Verify modal remains open after authentication failure');
       tokenModal.shouldBeOpen();
 
-      cy.step('Verify error message is displayed');
-      tokenModal.find().should(($modal) => {
-        const text = $modal.text();
-        const hasError =
-          text.includes('Token Validation Failed') ||
-          text.includes('Invalid request format') ||
-          text.includes('Authorization header is badly formatted');
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        expect(hasError).to.be.true;
-      });
+      cy.step('Verify error alert is displayed');
+      tokenModal
+        .find()
+        .findByRole('heading', { name: /Authorization failed/i })
+        .should('be.visible');
 
       cy.step('Test completed - Invalid token error handling works');
     },

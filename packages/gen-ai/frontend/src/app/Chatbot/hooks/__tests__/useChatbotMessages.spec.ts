@@ -3,27 +3,12 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotSourceSettings, CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import { useMCPServersContext } from '~/app/context/MCPServersContext';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
-}));
-
-jest.mock('~/app/context/MCPSelectionContext', () => ({
-  useMCPSelectionContext: jest.fn(),
-}));
-
-jest.mock('~/app/context/MCPServersContext', () => ({
-  useMCPServersContext: jest.fn(),
-}));
-
-jest.mock('~/app/context/MCPTokenContext', () => ({
-  useMCPTokenContext: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -37,13 +22,6 @@ jest.mock('react', () => ({
 }));
 
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
-const mockUseMCPSelectionContext = useMCPSelectionContext as jest.MockedFunction<
-  typeof useMCPSelectionContext
->;
-const mockUseMCPServersContext = useMCPServersContext as jest.MockedFunction<
-  typeof useMCPServersContext
->;
-const mockUseMCPTokenContext = useMCPTokenContext as jest.MockedFunction<typeof useMCPTokenContext>;
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -75,6 +53,13 @@ describe('useChatbotMessages', () => {
 
   const mockNamespace = { name: 'test-namespace' };
 
+  // Provide default MCP data as props to the hook
+  const defaultMcpProps = {
+    mcpServers: [],
+    mcpServerStatuses: new Map(),
+    mcpServerTokens: new Map(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure createResponse mock is properly reset
@@ -89,32 +74,6 @@ describe('useChatbotMessages', () => {
         createResponse: mockCreateResponse,
       },
     });
-
-    // Mock MCP contexts
-    mockUseMCPSelectionContext.mockReturnValue({
-      playgroundSelectedServerIds: [],
-      selectedServersCount: 0,
-      saveSelectedServersToPlayground: jest.fn(),
-      setSelectedServersCount: jest.fn(),
-    });
-
-    mockUseMCPServersContext.mockReturnValue({
-      servers: [],
-      serversLoaded: true,
-      serversLoadError: null,
-      serverStatuses: new Map(),
-      statusesLoading: new Set(),
-      allStatusesChecked: true,
-      refresh: jest.fn(),
-      checkServerStatus: jest.fn(),
-      getSelectedServersForAPI: jest.fn().mockReturnValue([]),
-    });
-
-    mockUseMCPTokenContext.mockReturnValue({
-      serverTokens: new Map(),
-      setServerTokens: jest.fn(),
-      isServerValidated: jest.fn().mockReturnValue(false),
-    });
   });
 
   describe('initialization', () => {
@@ -128,6 +87,9 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
+          ...defaultMcpProps,
         }),
       );
 
@@ -156,6 +118,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -193,6 +157,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -219,6 +185,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -260,6 +228,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -289,6 +259,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -335,6 +307,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -363,6 +337,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -391,6 +367,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -421,6 +399,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -460,6 +440,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -491,6 +473,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: 'vs_current_store_123',
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -534,6 +518,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -586,6 +572,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -615,6 +603,8 @@ describe('useChatbotMessages', () => {
             isStreamingEnabled: false,
             temperature: 0.7,
             currentVectorStoreId: null,
+            selectedServerIds: [],
+            ...defaultMcpProps,
           }),
         { initialProps: { modelId: 'model-1' } },
       );
@@ -663,6 +653,8 @@ describe('useChatbotMessages', () => {
             isStreamingEnabled: false,
             temperature: 0.7,
             currentVectorStoreId: null,
+            selectedServerIds: [],
+            ...defaultMcpProps,
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );
