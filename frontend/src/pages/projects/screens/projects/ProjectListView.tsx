@@ -130,7 +130,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             onFilterUpdate={onFilterUpdate}
             aiProjectNum={aiProjectNum}
             fullProjectNum={fullProjectNum}
-            onClearFilters={resetFilters}
           />
         }
       />

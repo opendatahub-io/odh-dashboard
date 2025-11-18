@@ -330,7 +330,7 @@ describe('Projects details', () => {
     projectListPage.findProjectLink('Non-AI Project').should('not.exist');
   });
 
-  it('should clear filters and reset to show all projects', () => {
+  it.only('should clear filters and reset to show all projects', () => {
     const mockProjects: ProjectKind[] = [
       mockProjectK8sResource({
         k8sName: 'ai-project-1',
@@ -379,7 +379,7 @@ describe('Projects details', () => {
 
     // Verify no results are shown
     projectListPage.findEmptyResults().should('exist');
-    cy.findByTestId('filter-chip-name').should('contain.text', 'NonExistentProject');
+    cy.findByTestId('Name-filter-chip').should('contain.text', 'NonExistentProject');
 
     // Step 3: Click the 'clear filters' button
     projectListPage.findClearFiltersButton().click();

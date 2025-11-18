@@ -1,8 +1,6 @@
 import * as React from 'react';
 import {
   SearchInput,
-  Toolbar,
-  ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
   // eslint-disable-next-line no-restricted-imports
@@ -14,8 +12,7 @@ import {
   Label,
   Flex,
   FlexItem,
-  Button,
-  ButtonVariant,
+  Divider,
 } from '@patternfly/react-core';
 import { FilterIcon, OutlinedStarIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -23,9 +20,11 @@ import {
   aiProjectFilterKey,
   allProjectFilterKey,
   ProjectsFilterDataType,
+  projectsFilterOptions,
   ProjectsFilterOptions,
 } from '#~/pages/projects/screens/projects/const';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
+import FilterToolbar from '#~/components/FilterToolbar.tsx';
 import NewProjectButton from './NewProjectButton';
 
 type ProjectsToolbarProps = {
@@ -36,7 +35,6 @@ type ProjectsToolbarProps = {
   fullProjectNum: number;
   projectFilter: string;
   setProjectFilter: (projectFilter: string) => void;
-  onClearFilters: () => void;
 };
 
 export const AiLabel: React.FC = () => (
@@ -53,7 +51,6 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
   fullProjectNum,
   projectFilter: currentProjectType,
   setProjectFilter,
-  onClearFilters,
 }) => {
   const navigate = useNavigate();
   const [isProjectTypeDropdownOpen, setIsProjectTypeDropdownOpen] = React.useState(false);
@@ -78,108 +75,93 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
     },
   ];
 
-  const activeFilters = React.useMemo(() => {
-    const filters: Array<[string, string]> = [];
-    if (filterData[ProjectsFilterOptions.name]) {
-      filters.push(['Name', filterData[ProjectsFilterOptions.name]]);
-    }
-    if (filterData[ProjectsFilterOptions.user]) {
-      filters.push(['User', filterData[ProjectsFilterOptions.user]]);
-    }
-    return filters;
-  }, [filterData]);
-
   return (
-    <Toolbar data-testid="projects-table-toolbar">
-      <ToolbarContent>
-        <ToolbarGroup variant="filter-group">
-          <ToolbarItem>
-            <Select
-              data-testid="project-type-dropdown"
-              isOpen={isProjectTypeDropdownOpen}
-              selected={currentProjectType}
-              onSelect={(_event, value) => {
-                setProjectFilter(String(value));
-                setIsProjectTypeDropdownOpen(false);
-              }}
-              onOpenChange={setIsProjectTypeDropdownOpen}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
-                  isExpanded={isProjectTypeDropdownOpen}
-                  data-testid="project-type-dropdown-toggle"
-                >
-                  <Flex
-                    spaceItems={{ default: 'spaceItemsSm' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                  >
-                    <FlexItem>
-                      <FilterIcon />
-                    </FlexItem>
-                    <FlexItem>{currentLabel}</FlexItem>
-                    <FlexItem>
-                      <Badge isRead>{currentCount}</Badge>
-                    </FlexItem>
-                    {isAISelected && (
-                      <FlexItem>
-                        <AiLabel />
-                      </FlexItem>
-                    )}
-                  </Flex>
-                </MenuToggle>
-              )}
-              popperProps={{ appendTo: 'inline' }}
+    <>
+      <Select
+        data-testid="project-type-dropdown"
+        isOpen={isProjectTypeDropdownOpen}
+        selected={currentProjectType}
+        onSelect={(_event, value) => {
+          setProjectFilter(String(value));
+          setIsProjectTypeDropdownOpen(false);
+        }}
+        onOpenChange={setIsProjectTypeDropdownOpen}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            ref={toggleRef}
+            onClick={() => setIsProjectTypeDropdownOpen(!isProjectTypeDropdownOpen)}
+            isExpanded={isProjectTypeDropdownOpen}
+            data-testid="project-type-dropdown-toggle"
+          >
+            <Flex
+              spaceItems={{ default: 'spaceItemsSm' }}
+              alignItems={{ default: 'alignItemsCenter' }}
             >
-              <SelectList>
-                {projectTypeOptions.map((option) => (
-                  <SelectOption
-                    key={option.key}
-                    value={option.key}
-                    description={option.description}
-                  >
-                    <Flex
-                      spaceItems={{ default: 'spaceItemsSm' }}
-                      alignItems={{ default: 'alignItemsCenter' }}
-                    >
-                      <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
-                      <FlexItem>
-                        <Badge isRead>{option.count}</Badge>
-                      </FlexItem>
-                      {option.isAI && (
-                        <FlexItem>
-                          <Label icon={<OutlinedStarIcon />} variant="outline">
-                            AI
-                          </Label>
-                        </FlexItem>
-                      )}
-                    </Flex>
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </ToolbarItem>
-          <ToolbarItem>
+              <FlexItem>
+                <FilterIcon />
+              </FlexItem>
+              <FlexItem>{currentLabel}</FlexItem>
+              <FlexItem>
+                <Badge isRead>{currentCount}</Badge>
+              </FlexItem>
+              {isAISelected && (
+                <FlexItem>
+                  <AiLabel />
+                </FlexItem>
+              )}
+            </Flex>
+          </MenuToggle>
+        )}
+        popperProps={{ appendTo: 'inline' }}
+      >
+        <SelectList>
+          {projectTypeOptions.map((option) => (
+            <SelectOption key={option.key} value={option.key} description={option.description}>
+              <Flex
+                spaceItems={{ default: 'spaceItemsSm' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <FlexItem style={{ fontWeight: 'bold' }}>{option.label}</FlexItem>
+                <FlexItem>
+                  <Badge isRead>{option.count}</Badge>
+                </FlexItem>
+                {option.isAI && (
+                  <FlexItem>
+                    <AiLabel />
+                  </FlexItem>
+                )}
+              </Flex>
+            </SelectOption>
+          ))}
+        </SelectList>
+      </Select>
+      <Divider orientation={{ default: 'vertical' }} />
+      <FilterToolbar
+        data-testid="projects-table-toolbar"
+        filterOptions={projectsFilterOptions}
+        filterOptionRenders={{
+          [ProjectsFilterOptions.name]: ({ onChange, ...props }) => (
             <SearchInput
+              {...props}
               data-testid="project-list-name-filter"
-              value={filterData[ProjectsFilterOptions.name] || ''}
               aria-label="Filter by name"
               placeholder="Filter by name"
-              onChange={(_event, value) => onFilterUpdate(ProjectsFilterOptions.name, value)}
-              onClear={() => onFilterUpdate(ProjectsFilterOptions.name, '')}
+              onChange={(_event, value) => onChange(value)}
             />
-          </ToolbarItem>
-          <ToolbarItem>
+          ),
+          [ProjectsFilterOptions.user]: ({ onChange, ...props }) => (
             <SearchInput
+              {...props}
               data-testid="project-list-user-filter"
-              value={filterData[ProjectsFilterOptions.user] || ''}
-              aria-label="Filter by user"
-              placeholder="Filter by user"
-              onChange={(_event, value) => onFilterUpdate(ProjectsFilterOptions.user, value)}
-              onClear={() => onFilterUpdate(ProjectsFilterOptions.user, '')}
+              aria-label="Filter by provider"
+              placeholder="Filter by provider"
+              onChange={(_event, value) => onChange(value)}
             />
-          </ToolbarItem>
-        </ToolbarGroup>
+          ),
+        }}
+        filterData={filterData}
+        onFilterUpdate={onFilterUpdate}
+      >
         <ToolbarGroup>
           <ToolbarItem>
             {allowCreate ? (
@@ -196,49 +178,8 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
             )}
           </ToolbarItem>
         </ToolbarGroup>
-      </ToolbarContent>
-      {activeFilters.length > 0 && (
-        <ToolbarContent>
-          <ToolbarGroup>
-            <ToolbarItem>
-              <Flex
-                spaceItems={{ default: 'spaceItemsSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                {activeFilters.map(([filterType, value]) => (
-                  <FlexItem key={filterType}>
-                    <Label
-                      data-testid={`filter-chip-${filterType.toLowerCase()}`}
-                      onClose={() => {
-                        const filterKey =
-                          filterType === 'Name'
-                            ? ProjectsFilterOptions.name
-                            : ProjectsFilterOptions.user;
-                        onFilterUpdate(filterKey, '');
-                      }}
-                      closeBtnProps={{
-                        'aria-label': `Remove ${filterType} filter`,
-                      }}
-                    >
-                      {filterType}: {value}
-                    </Label>
-                  </FlexItem>
-                ))}
-                <FlexItem>
-                  <Button
-                    data-testid="clear-filters-button-filter-row"
-                    variant={ButtonVariant.link}
-                    onClick={onClearFilters}
-                  >
-                    Clear filters
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </ToolbarItem>
-          </ToolbarGroup>
-        </ToolbarContent>
-      )}
-    </Toolbar>
+      </FilterToolbar>
+    </>
   );
 };
 
