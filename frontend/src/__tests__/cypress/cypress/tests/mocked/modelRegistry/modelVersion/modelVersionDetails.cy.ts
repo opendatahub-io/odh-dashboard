@@ -388,8 +388,12 @@ describe('Model version details', () => {
     });
 
     it('renders table with data', () => {
-      cy.interceptK8sList(
-        InferenceServiceModel,
+      // Cluster-wide intercepts for resources with label selectors
+      cy.intercept(
+        {
+          method: 'GET',
+          pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/inferenceservices',
+        },
         mockK8sResourceList([
           mockInferenceServiceK8sResource({
             url: 'test-inference-status.url.com',
@@ -423,9 +427,19 @@ describe('Model version details', () => {
           }),
         ]),
       );
-      cy.interceptK8sList(
-        ServingRuntimeModel,
+      cy.intercept(
+        {
+          method: 'GET',
+          pathname: '/api/k8s/apis/serving.kserve.io/v1alpha1/servingruntimes',
+        },
         mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
+      cy.intercept(
+        {
+          method: 'GET',
+          pathname: '/api/k8s/api/v1/pods',
+        },
+        mockK8sResourceList([]),
       );
 
       modelVersionDetails.visit();
