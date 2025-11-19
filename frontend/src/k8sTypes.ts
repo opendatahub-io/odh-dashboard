@@ -1329,7 +1329,10 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
   };
 };
-
+/**
+ * @deprecated -- accelerator profiles are going away; only in deprecation paths
+ * used by *both* modelmesh and finetuning
+ */
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
