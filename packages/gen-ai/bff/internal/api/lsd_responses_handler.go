@@ -272,7 +272,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		if _, ok := err.(*lsmocks.MockStreamError); ok {
 			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
 				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
-					mockClient.HandleMockStreaming(w, flusher, params)
+					mockClient.HandleMockStreaming(ctx, w, flusher, params)
 					return
 				}
 			}
@@ -295,6 +295,16 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 
 	// Stream events to client
 	for stream.Next() {
+		// Check if client disconnected
+		select {
+		case <-ctx.Done():
+			app.logger.Info("Client disconnected, stopping stream processing",
+				"context_error", ctx.Err())
+			return
+		default:
+			// Context still active, continue processing
+		}
+
 		event := stream.Current()
 
 		// Convert to clean streaming event
