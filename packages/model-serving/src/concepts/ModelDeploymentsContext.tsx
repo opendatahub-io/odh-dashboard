@@ -65,7 +65,7 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
       const deploymentNamespace = deployment.model.metadata.namespace;
       return deploymentNamespace && projectNames.has(deploymentNamespace);
     });
-  }, [allDeployments, projects]);
+  }, [allDeployments, projects, labelSelectors]);
 
   React.useEffect(() => {
     onStateChange(platformId, { deployments: filteredDeployments, loaded, error });

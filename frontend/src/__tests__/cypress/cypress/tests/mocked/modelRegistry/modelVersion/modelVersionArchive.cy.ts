@@ -219,12 +219,8 @@ describe('Archiving version', () => {
 
   it('Cannot archive version that has a deployment from versions table', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    // Cluster-wide intercept for InferenceServices with label selector
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/inferenceservices',
-      },
+    cy.interceptK8sList(
+      InferenceServiceModel,
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           additionalLabels: {
@@ -260,12 +256,8 @@ describe('Archiving version', () => {
 
   it('Cannot archive model version with deployment from the version detail page', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    // Cluster-wide intercept for InferenceServices with label selector
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: '/api/k8s/apis/serving.kserve.io/v1beta1/inferenceservices',
-      },
+    cy.interceptK8sList(
+      InferenceServiceModel,
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           additionalLabels: {

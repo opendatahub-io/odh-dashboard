@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import EmptyDeploymentsState from './EmptyDeploymentsState';
 import ModelRegistryDeploymentsTable from './ModelRegistryDeploymentsTable';
@@ -42,6 +43,7 @@ const ModelWideDeploymentsTab: React.FC<{
   rmId?: string;
   mrName?: string;
 }> = ({ rmId, mrName }) => {
+  const { projects } = React.useContext(ProjectsContext);
   const labelSelectors = React.useMemo(() => {
     if (!rmId) {
       return undefined;
@@ -54,7 +56,11 @@ const ModelWideDeploymentsTab: React.FC<{
   const filterFn = useModelRegistryFilter(mrName);
 
   return (
-    <ModelDeploymentsProvider projects={[]} labelSelectors={labelSelectors} filterFn={filterFn}>
+    <ModelDeploymentsProvider
+      projects={projects}
+      labelSelectors={labelSelectors}
+      filterFn={filterFn}
+    >
       <ModelWideDeploymentsTabContent mrName={mrName} />
     </ModelDeploymentsProvider>
   );
