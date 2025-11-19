@@ -253,11 +253,15 @@ describe('AI Assets - MCP Servers User Interactions (Mocked)', () => {
 
       cy.step('Open authorization modal');
       const serverRow = chatbotPage.getServerRow(serverName, serverUrl);
-      serverRow.findConfigureButton().should('exist').and('be.visible').click();
+      serverRow.find().should('be.visible');
+      serverRow.findConfigureButton().should('exist').and('be.visible').and('not.be.disabled');
+      serverRow.findConfigureButton().click();
 
-      cy.step('Enter invalid token');
+      cy.step('Wait for modal to open');
       const tokenModal = new TokenAuthModal();
       tokenModal.shouldBeOpen();
+
+      cy.step('Enter invalid token');
       tokenModal.findTokenInput().clear().type(invalidToken, { delay: 5 });
 
       cy.step('Submit with invalid token');
