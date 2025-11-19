@@ -100,7 +100,7 @@ const getLocationInfo = (url: string, allLocations?: Map<string, UrlLocation[]>)
   return ` [${locationInfo}]`;
 };
 
-describe('[Product Bug: RHOAIENG-27761] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
@@ -122,16 +122,7 @@ describe('[Product Bug: RHOAIENG-27761] Verify that all the URLs referenced in t
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@ODS-327',
-        '@ODS-492',
-        '@Dashboard',
-        '@RHOAIENG-9235',
-        // should this be removed
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'],
     },
     () => {
       const manifestsDir = '../../../../manifests';

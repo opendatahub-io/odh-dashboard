@@ -24,7 +24,7 @@ spec:
 
     [Pachyderm](https://github.com/pachyderm/pachyderm) provides the data layer that allows data science teams to productionize and scale their machine learning lifecycle. With Pachyderm’s industry-leading data versioning, pipelines, and lineage, teams gain data-driven automation, petabyte scalability, and end-to-end reproducibility. Teams using Pachyderm get their ML projects to market faster, lower data processing and storage costs, and can more easily meet regulatory compliance requirements.
 
-    Read about how our Customers leveraged Pachyderm to face their ML/AI challenges and operationalize their pipelines: [Case studies](https://github.com/pachyderm/pachyderm).
+    Read about how our Customers leveraged Pachyderm to face their ML/AI challenges and operationalize their pipelines: [Case studies](https://github.com/pachyderm/pachyderm#:~:text=Use%20Cases-,Case%20Studies,-Documentation).
 
     ## Features include
 
@@ -47,7 +47,7 @@ spec:
 
     Before you start the operator installation process, you will need to:
 
-    - Familiarize yourself with Pachyderm's **[main concepts](https://github.com/pachyderm/pachyderm?tab=readme-ov-file#getting-started)**, and Pachyderm's command-line tool `pachctl`. You will interact with Pachyderm using `pachctl` from the cells of your notebooks. Read through our written demo [Open CV](https://github.com/pachyderm/pachyderm?tab=readme-ov-file#getting-started) to get used to the main commands.
+    - Familiarize yourself with Pachyderm's **[main concepts](https://github.com/pachyderm/docs-content/blob/main/latest/learn/basic-concepts.md)**, and Pachyderm's command-line tool `pachctl`. You will interact with Pachyderm using `pachctl` from the cells of your notebooks. Read through our written demo [Open CV](https://github.com/pachyderm/docs-content/blob/main/latest/get-started/beginner-tutorial.md) to get used to the main commands.
     - Prepare the installation of Pachyderm by creating an **external object store** (Pachyderm supports all s3-compatible storage solutions) for your data. Make sure to match your cluster's region.
 
         * Ceph Nano users: Retrieve the `Cluster IP` of your service (in Networking > Services),  your `AWS_ACCESS_KEY_ID` (base 64), and `AWS_SECRET_ACCESS_KEY` (base 64).
@@ -203,6 +203,6 @@ spec:
             pachd               2.0.5
             ```
 
-    You are ready to run your first pipelines in a notebook. Check our **Quick Start** in the `Enabled` menu of your OpenShift AI Console. You can later extend this first notebook by following the steps in this written [tutorial](https://github.com/pachyderm/pachyderm?tab=readme-ov-file#getting-started) on our documentation website.
+    You are ready to run your first pipelines in a notebook. Check our **Quick Start** in the `Enabled` menu of your OpenShift AI Console. You can later extend this first notebook by following the steps in this written [tutorial](https://github.com/pachyderm/docs-content/blob/main/latest/get-started/beginner-tutorial.md) on our documentation website.
 
     Note that you might need to install additional libraries depending on the notebook you chose. For example, our [Housing prices notebook](https://github.com/pachyderm/examples/blob/master/housing-prices-intermediate/housing-prices.ipynb) requires the additional installation of [Pachyderm's python client](https://python-pachyderm.readthedocs.io/en/stable/): `pip install python-pachyderm`.

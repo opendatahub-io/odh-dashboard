@@ -10,7 +10,7 @@ spec:
   displayName: Getting started with Pachyderm concepts
   description: |-
     Learn Pachyderm's main concepts by creating pipelines that perform edge detection on a few images.
-  url: https://github.com/pachyderm/pachyderm?tab=readme-ov-file#getting-started
+  url: https://github.com/pachyderm/docs-content/blob/main/latest/get-started/beginner-tutorial.md
   durationMinutes: 15
 ---
 apiVersion: dashboard.opendatahub.io/v1
