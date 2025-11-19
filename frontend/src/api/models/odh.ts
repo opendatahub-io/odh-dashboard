@@ -7,7 +7,10 @@ export const ODHDashboardConfigModel: K8sModelCommon = {
   plural: 'odhdashboardconfigs',
 };
 
-/** @deprecated -- accelerator profiles are going away; only in deprecation paths */
+/**
+ * @deprecated -- accelerator profiles are going away; only in deprecation paths
+ * used by *both* modelmesh and finetuning
+ */
 export const AcceleratorProfileModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'dashboard.opendatahub.io',
