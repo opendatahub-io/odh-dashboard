@@ -55,9 +55,9 @@ describe('ConnectionsFormSection', () => {
 
     expect(result.getByRole('columnheader', { name: 'Name' })).toBeTruthy();
     expect(result.getByRole('columnheader', { name: 'Type' })).toBeTruthy();
-    expect(result.getByText('s3 connection 1')).toBeTruthy();
-    expect(result.getByText('s3 connection 2')).toBeTruthy();
-    expect(result.getAllByText('s3').length).toEqual(2);
+    expect(result.getByRole('cell', { name: 's3 connection 1' })).toBeTruthy();
+    expect(result.getByRole('cell', { name: 's3 connection 2' })).toBeTruthy();
+    expect(result.getAllByRole('cell', { name: 's3' }).length).toEqual(2);
   });
 
   it('should show env conflicts', async () => {
