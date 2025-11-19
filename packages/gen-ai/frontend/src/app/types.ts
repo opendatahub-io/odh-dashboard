@@ -390,7 +390,7 @@ type GetLSDModels = ModArchRestGET<LlamaModel[]>;
 type UploadSource = ModArchRestCREATE<FileUploadResult, FormData>;
 type CreateResponse = (
   data: CreateResponseRequest,
-  opts?: APIOptions & { onStreamData?: (chunk: string) => void },
+  opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
 type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
