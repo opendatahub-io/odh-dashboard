@@ -19,8 +19,25 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
     return this.find().findByLabelText(`Filter by ${name}`);
   }
 
-  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('filter-toolbar-text-field');
+  findNameFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('project-list-name-filter');
+  }
+
+  findUserFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('project-list-user-filter');
+  }
+
+  findProjectTypeDropdownToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-type-dropdown-toggle');
+  }
+
+  selectProjectType(projectType: string): void {
+    this.findProjectTypeDropdownToggle().click();
+    cy.findByRole('option', { name: new RegExp(projectType, 'i') }).click();
+  }
+
+  findAIProjectLabel() {
+    return cy.findByTestId('ai-project-label');
   }
 }
 
@@ -88,6 +105,10 @@ class ProjectRow extends TableRow {
   findNotebookLink(notebookName: string) {
     return this.findNotebookTable().findByRole('link', { name: notebookName });
   }
+
+  findAILabel() {
+    return this.find().findByTestId('ai-project-label');
+  }
 }
 
 class ProjectListPage {
@@ -145,6 +166,10 @@ class ProjectListPage {
     return cy.findByTestId('dashboard-empty-table-state');
   }
 
+  findClearFiltersButton() {
+    return cy.findByTestId('clear-filters-button');
+  }
+
   findSortButton(name: string) {
     return this.findProjectsTable().find('thead').findByRole('button', { name });
   }
@@ -163,8 +188,7 @@ class ProjectListPage {
    */
   filterProjectByName = (projectName: string) => {
     const projectListToolbar = projectListPage.getTableToolbar();
-    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
-    projectListToolbar.findSearchInput().type(projectName);
+    projectListToolbar.findNameFilter().type(projectName);
   };
 }
 
@@ -258,10 +282,6 @@ class ProjectDetails {
 
   findErrorSelectingPlatform() {
     return cy.findByTestId('error-selecting-serving-platform');
-  }
-
-  findDeployModelDropdown() {
-    return cy.findByTestId('deploy-model-dropdown');
   }
 
   findBackToRegistryButton() {
