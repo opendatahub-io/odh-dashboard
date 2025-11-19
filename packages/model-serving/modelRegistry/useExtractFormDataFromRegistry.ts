@@ -8,6 +8,7 @@ import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegist
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
 import { getModelRegistryTransform } from './utils/deployUtils';
 import {
   ModelLocationData,
@@ -139,6 +140,7 @@ export const useExtractFormDataFromRegistry = (
           const host = withoutProtocol.split('/')[0]?.split(':')[0] || withoutProtocol;
           fieldValues.OCI_HOST = host;
           additionalFields.modelUri = ociUri;
+          fieldValues.ACCESS_TYPE = [AccessTypes.PULL];
         } else if (modelLocation.uri) {
           fieldValues.URI = modelLocation.uri;
         } else {
