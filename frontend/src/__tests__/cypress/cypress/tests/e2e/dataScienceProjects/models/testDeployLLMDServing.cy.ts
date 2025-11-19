@@ -129,16 +129,15 @@ describe('A user can deploy an LLMD model', () => {
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
 
       cy.step('Verify the model Row');
-      // Reload the page to verify the model Row is updated.
-      cy.reload();
-      const llmdRow = modelServingSection.getKServeRow(modelName);
+      modelServingGlobal.visit(projectName);
 
-      llmdRow.findStatusLabel().invoke('text').should('match', 'Started');
+      const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
+      llmdRow.findStatusLabel('Started');
       // Verify external service is available
       llmdRow.findExternalServiceButton().click();
       llmdRow.findExternalServicePopover().should('exist');
       // Expand row to verify deployment details
-      llmdRow.shouldHaveServingRuntime('Distributed Inference Server with llm-d');
+      llmdRow.findServingRuntime().should('have.text', 'Distributed Inference Server with llm-d');
     },
   );
 });
