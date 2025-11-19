@@ -11,11 +11,6 @@ class ModelCatalog {
     this.wait();
   }
 
-  visitTempDetails() {
-    cy.visitWithLogin(`/ai-hub/catalog/tempDetails`);
-    this.wait();
-  }
-
   navigate() {
     appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub' }).click();
     this.wait();
@@ -45,12 +40,12 @@ class ModelCatalog {
     return cy.findByTestId('empty-model-catalog-state');
   }
 
-  findModelCatalogModelDetailLink(modelName: string) {
-    return cy.findByTestId(`model-catalog-detail-link`).contains(modelName);
+  findModelCatalogModelDetailLink() {
+    return cy.findAllByTestId(`model-catalog-card-name`).first();
   }
 
   findModelCatalogCards() {
-    return cy.findByTestId('model-catalog-cards');
+    return cy.findAllByTestId('model-catalog-card');
   }
 
   findModelCatalogCard(modelName: string) {

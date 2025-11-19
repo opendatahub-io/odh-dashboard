@@ -119,7 +119,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
     const deployModelButton = (
       <Button
         variant="primary"
-        data-testid="deploy-model-button"
+        data-testid="deploy-button"
         onClick={() => setIsDeployModalOpen(true)}
         isAriaDisabled={!deployButtonState.enabled}
       >

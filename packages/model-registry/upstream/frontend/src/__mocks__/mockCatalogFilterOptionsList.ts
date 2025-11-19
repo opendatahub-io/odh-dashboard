@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
+import { CatalogFilterOptionsList } from '../app/modelCatalogTypes';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -8,7 +8,7 @@ import {
   ModelCatalogTask,
   AllLanguageCode,
   UseCaseOptionValue,
-} from '~/concepts/modelCatalog/const';
+} from '../concepts/modelCatalog/const';
 
 export const mockCatalogFilterOptionsList = (
   partial?: Partial<CatalogFilterOptionsList>,

@@ -19,6 +19,7 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/feature-store": "*",
+    "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/llmd-serving": "*",
     "@odh-dashboard/model-serving": "*",
     "https-proxy-agent": "^7.0.6",

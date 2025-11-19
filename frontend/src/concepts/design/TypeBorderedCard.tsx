@@ -10,6 +10,7 @@ type TypeBorderedCardProps = CardProps & {
   sectionType?: SectionType;
   selectable?: boolean;
   selected?: boolean;
+  'data-testid'?: string;
 };
 const TypeBorderedCard: React.FC<TypeBorderedCardProps> = ({
   objectType,
@@ -17,9 +18,11 @@ const TypeBorderedCard: React.FC<TypeBorderedCardProps> = ({
   className,
   selectable,
   selected,
+  'data-testid': dataTestId,
   ...rest
 }) => (
   <Card
+    data-testid={dataTestId}
     className={css(
       className,
       'odh-type-bordered-card',

@@ -16,19 +16,14 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
-import {
-  ModelArtifactState,
-  ModelState,
-  type RegisteredModel,
-  type ModelVersion,
-  type ModelArtifact,
-} from '#~/concepts/modelRegistry/types';
+import { ModelArtifactState, ModelState } from '#~/concepts/modelRegistry/types';
 import { mockModelRegistry, mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
 import { KnownLabels } from '#~/k8sTypes';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
-const existingModelName = 'model1';
+const existingModelName = 'model';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -110,8 +105,8 @@ const initIntercepts = () => {
     {
       path: { modelRegistryName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION },
     },
-    { data: mockRegisteredModelList({ items: [mockRegisteredModel({ name: 'model' })] }) },
-  );
+    { data: mockRegisteredModel({ id: '1', name: 'Test model name' }) },
+  ).as('createRegisteredModel');
 
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
@@ -130,7 +125,7 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
-    `POST /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
+    'POST /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions',
     {
       path: {
         modelRegistryName: 'modelregistry-sample',
@@ -138,8 +133,22 @@ const initIntercepts = () => {
         registeredModelId: 1,
       },
     },
-    { data: mockModelVersionList({ items: [mockModelVersion({ name: 'model version' })] }) },
-  );
+    { data: mockModelVersion({ id: '2', name: 'Test version name', registeredModelId: '1' }) },
+  ).as('createModelVersion');
+
+  cy.interceptOdh(
+    'POST /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts',
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 2,
+      },
+    },
+    {
+      data: mockModelArtifact({}),
+    },
+  ).as('createModelArtifact');
 };
 
 describe('Register model page', () => {
@@ -289,8 +298,7 @@ describe('Register model page', () => {
     registerModelPage.findSubmitButton().should('be.enabled');
   });
 
-  // TODO: Fix this test
-  it.skip('Disables submit if model name is duplicated', () => {
+  it('Disables submit if model name is duplicated', () => {
     registerModelPage.findSubmitButton().should('be.disabled');
     registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('Test model name');
     registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type('Test version name');
@@ -308,8 +316,7 @@ describe('Register model page', () => {
     registerModelPage.findModelNameError().contains('Model name already exists');
   });
 
-  // TODO: Fix this test
-  it.skip('Creates expected resources on submit in object storage mode', () => {
+  it('Creates expected resources on submit in object storage mode', () => {
     const veryLongName = 'Test name'.repeat(15); // A string over 128 characters
     registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('Test model name');
     registerModelPage
@@ -345,34 +352,43 @@ describe('Register model page', () => {
 
     cy.wait('@createRegisteredModel').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model name',
-        description: 'Test model description',
-        customProperties: {},
-        state: ModelState.LIVE,
-      } satisfies Partial<RegisteredModel>);
+        data: {
+          name: 'Test model name',
+          description: 'Test model description',
+          owner: 'user@example.com',
+          customProperties: {},
+          state: ModelState.LIVE,
+        },
+      });
     });
+
     cy.wait('@createModelVersion').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test version name',
-        description: 'Test version description',
-        customProperties: {},
-        state: ModelState.LIVE,
-        author: 'test-user',
-        registeredModelId: '1',
-      } satisfies Partial<ModelVersion>);
+        data: {
+          name: 'Test version name',
+          description: 'Test version description',
+          customProperties: {},
+          state: ModelState.LIVE,
+          author: 'user@example.com',
+          registeredModelId: '1',
+        },
+      });
     });
+
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test version name',
-        description: 'Test version description',
-        customProperties: {},
-        state: ModelArtifactState.LIVE,
-        author: 'test-user',
-        modelFormatName: 'caikit',
-        modelFormatVersion: '1',
-        uri: 's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
-        artifactType: 'model-artifact',
-      } satisfies Partial<ModelArtifact>);
+        data: {
+          name: 'Test version name',
+          description: 'Test version description',
+          customProperties: {},
+          state: ModelArtifactState.LIVE,
+          author: 'user@example.com',
+          modelFormatName: 'caikit',
+          modelFormatVersion: '1',
+          uri: 's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
+          artifactType: 'model-artifact',
+        },
+      });
     });
 
     cy.url().should('include', '/registry/modelregistry-sample/registered-models/1');
@@ -391,8 +407,7 @@ describe('Register model page', () => {
     registerModelPage.findSubmitButton().should('be.enabled');
   });
 
-  // TODO: Fix this test
-  it.skip('Creates expected resources on submit in URI mode', () => {
+  it('Creates expected resources on submit in URI mode', () => {
     registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type('Test model name');
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
@@ -414,34 +429,41 @@ describe('Register model page', () => {
 
     cy.wait('@createRegisteredModel').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test model name',
-        description: 'Test model description',
-        customProperties: {},
-        state: ModelState.LIVE,
-      } satisfies Partial<RegisteredModel>);
+        data: {
+          name: 'Test model name',
+          description: 'Test model description',
+          owner: 'user@example.com',
+          customProperties: {},
+          state: ModelState.LIVE,
+        },
+      });
     });
     cy.wait('@createModelVersion').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test version name',
-        description: 'Test version description',
-        customProperties: {},
-        state: ModelState.LIVE,
-        author: 'test-user',
-        registeredModelId: '1',
-      } satisfies Partial<ModelVersion>);
+        data: {
+          name: 'Test version name',
+          description: 'Test version description',
+          customProperties: {},
+          state: ModelState.LIVE,
+          author: 'user@example.com',
+          registeredModelId: '1',
+        },
+      });
     });
     cy.wait('@createModelArtifact').then((interception) => {
       expect(interception.request.body).to.containSubset({
-        name: 'Test version name',
-        description: 'Test version description',
-        customProperties: {},
-        state: ModelArtifactState.LIVE,
-        author: 'test-user',
-        modelFormatName: 'caikit',
-        modelFormatVersion: '1',
-        uri: 's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
-        artifactType: 'model-artifact',
-      } satisfies Partial<ModelArtifact>);
+        data: {
+          name: 'Test version name',
+          description: 'Test version description',
+          customProperties: {},
+          state: ModelArtifactState.LIVE,
+          author: 'user@example.com',
+          modelFormatName: 'caikit',
+          modelFormatVersion: '1',
+          uri: 's3://test-bucket/demo-models/flan-t5-small-caikit?endpoint=http%3A%2F%2Fs3.amazonaws.com%2F&defaultRegion=us-east-1',
+          artifactType: 'model-artifact',
+        },
+      });
     });
 
     cy.url().should('include', '/registry/modelregistry-sample/registered-models/1');
