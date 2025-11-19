@@ -126,8 +126,8 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   ]);
 
   // Determine if we should show connection selection field
-  // Show it only when there are 2 or more matched connections
-  const showConnectionSelection = matchedConnections.length >= 2;
+  // Show it only when there are any matched connections
+  const showConnectionSelection = matchedConnections.length > 0;
 
   // Determine if submit button should be enabled
   // Enable when: project is selected AND (0 matches OR 1 match OR 2+ matches with selection)

@@ -2,7 +2,7 @@ import React from 'react';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { convertObjectStorageSecretData } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
-import { AwsKeys, AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
+import { AccessTypes, AwsKeys } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
 
 /**
  * Custom hook that filters connections to return only those that match a model artifact location.
@@ -58,7 +58,8 @@ const useRegistryConnections = (
       if (modelLocation.ociUri && connection.data?.OCI_HOST) {
         const findURI = modelLocation.ociUri.includes(window.atob(connection.data.OCI_HOST));
         const accessTypes = connection.data.ACCESS_TYPE && window.atob(connection.data.ACCESS_TYPE);
-        if (findURI && accessTypes && accessTypes.includes(AccessTypes.PULL)) {
+        // Match if ACCESS_TYPE is empty (not set) or if it includes Pull
+        if (findURI && (!accessTypes || accessTypes.includes(AccessTypes.PULL))) {
           return true;
         }
       }
