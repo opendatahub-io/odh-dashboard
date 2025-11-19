@@ -55,17 +55,17 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
 
   // Filter deployments to only include those from the specified projects
   const filteredDeployments = React.useMemo(() => {
-    if (!allDeployments || projects?.length === 1) {
+    if (!allDeployments || !projects || projects.length <= 1) {
       return allDeployments;
     }
 
-    const projectNames = new Set(projects?.map((p) => p.metadata.name));
+    const projectNames = new Set(projects.map((p) => p.metadata.name));
     return allDeployments.filter((deployment) => {
       // Check if deployment belongs to one of our projects
       const deploymentNamespace = deployment.model.metadata.namespace;
       return deploymentNamespace && projectNames.has(deploymentNamespace);
     });
-  }, [allDeployments, projects]);
+  }, [allDeployments, projects, labelSelectors]);
 
   React.useEffect(() => {
     onStateChange(platformId, { deployments: filteredDeployments, loaded, error });
