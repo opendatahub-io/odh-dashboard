@@ -40,7 +40,9 @@ jobs:
     steps:
       - name: Set default test tags
         id: set-tags
-        # Created 2 new tags - @ci-dashboard-set-1 and @ci-dashboard-set-2
+        # Test sets:
+        # @ci-dashboard-set-1: Pipelines (Import and Run), Workbenches (create with storage), Project Creation, User Login
+        # @ci-dashboard-set-2: Model Stop/Start, Cluster Settings, Connection Creation, Cluster Storage Creation
         # TODO: Use turbo to run tests according to PR changes.
         run: |
           echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
@@ -82,7 +84,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # For workflow_run events from PRs, checkout using PR ref format
+          # For workflow_run events from PRs (including forks), checkout using PR ref format
+          # This works for both same-repo PRs and fork PRs (refs/pull/{number}/head)
           # For branch pushes, use head_sha or head_branch
           # For manual triggers, use the default (current commit)
           ref: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('refs/pull/{0}/head', github.event.workflow_run.pull_requests[0].number) || github.event.workflow_run.head_sha || github.event.workflow_run.head_branch) || github.ref }}
@@ -137,9 +140,22 @@ jobs:
               exit 1
             fi
           else
-            echo "❌ GitLab secrets not available"
-            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets"
-            exit 1
+            echo "⚠️  GitLab secrets not available (forked PR or secrets not configured)"
+            echo "💡 Attempting to use fallback test-variables.yml if available"
+            # Check if test-variables.yml already exists (e.g., from a previous step or cached)
+            if [ ! -f "${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml" ]; then
+              echo "❌ No test-variables.yml found and secrets not available"
+              echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets"
+              exit 1
+            else
+              echo "✅ Using existing test-variables.yml file"
+            fi
+          fi
+          
+          # Update ODH_DASHBOARD_URL if secret is not available (for fork PRs)
+          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
+            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${WEBPACK_PORT}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || true
           fi
 
       - name: Login to OpenShift cluster
@@ -500,71 +516,3 @@ jobs:
             echo "✅ Cleaned up $KILLED_COUNT process(es) for run_id: $CURRENT_RUN_ID"
           fi
 
-  update-pr-labels:
-    needs: [e2e-tests]
-    runs-on: ubuntu-latest
-    # Always run to update labels, but only for PRs
-    if: always() && github.event.workflow_run && github.event.workflow_run.pull_requests[0].number
-    permissions:
-      pull-requests: write
-    steps:
-      - name: Update PR labels
-        uses: actions/github-script@v7
-        env:
-          E2E_JOB_RESULT: ${{ needs.e2e-tests.result }}
-        with:
-          script: |
-            const prNumber = context.payload.workflow_run.pull_requests[0]?.number;
-            const e2eResult = process.env.E2E_JOB_RESULT; // 'success', 'failure', 'cancelled', or 'skipped'
-            
-            if (!prNumber) {
-              console.log('Not a PR, skipping label update');
-              return;
-            }
-            
-            // Determine label based on E2E test result
-            // success -> e2e-Pass, anything else (failure/cancelled) -> e2e-Fail
-            const conclusion = e2eResult === 'success' ? 'success' : 'failure';
-            const label = conclusion === 'success' ? 'e2e-Pass' : 'e2e-Fail';
-            
-            console.log(`Updating labels for PR #${prNumber} (E2E result: ${e2eResult} -> ${label})`);
-            
-            // Remove both labels (idempotent - safe if label doesn't exist)
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                name: 'e2e-Pass'
-              });
-              console.log('✅ Removed e2e-Pass label');
-            } catch (error) {
-              // Label might not exist, that's okay
-              console.log('ℹ️  e2e-Pass label not found (or already removed)');
-            }
-            
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                name: 'e2e-Fail'
-              });
-              console.log('✅ Removed e2e-Fail label');
-            } catch (error) {
-              // Label might not exist, that's okay
-              console.log('ℹ️  e2e-Fail label not found (or already removed)');
-            }
-            
-            // Add appropriate label based on E2E test result
-            try {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                labels: [label]
-              });
-              console.log(`✅ Added label: ${label} to PR #${prNumber}`);
-            } catch (error) {
-              console.error(`❌ Failed to add label ${label} to PR #${prNumber}:`, error.message);
-            }
