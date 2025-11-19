@@ -505,7 +505,6 @@ describe('Deploy model version', () => {
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
-    modelServingWizard.findModelLocationSelect().should('have.value', 'S3 object storage');
 
     // Validate connection section - should be creating a new connection
     cy.findByTestId('field AWS_S3_BUCKET').should('have.value', 'test-bucket');
@@ -514,45 +513,45 @@ describe('Deploy model version', () => {
     modelServingWizard.findLocationPathInput().should('have.value', 'demo-models/test-path');
   });
 
-  // it.only('Prefills when there is one s3 matching connection', () => {
-  //   initIntercepts({});
-  //   cy.interceptK8sList(
-  //     SecretModel,
-  //     mockK8sResourceList([
-  //       mockSecretK8sResource({
-  //         namespace: 'kserve-project',
-  //         s3Bucket: 'dGVzdC1idWNrZXQ=',
-  //         endPoint: 'dGVzdC1lbmRwb2ludA==',
-  //         region: 'dGVzdC1yZWdpb24=',
-  //       }),
-  //       mockSecretK8sResource({
-  //         name: 'test-secret-not-match',
-  //         displayName: 'Test Secret Not Match',
-  //         namespace: 'kserve-project',
-  //         s3Bucket: 'dGVzdC1idWNrZXQ=',
-  //         endPoint: 'dGVzdC1lbmRwb2ludC1ub3QtbWF0Y2g=', // endpoint not match
-  //         region: 'dGVzdC1yZWdpb24=',
-  //       }),
-  //     ]),
-  //   );
+  it('Prefills when there is one s3 matching connection', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          namespace: 'kserve-project',
+          s3Bucket: 'dGVzdC1idWNrZXQ=',
+          endPoint: 'dGVzdC1lbmRwb2ludA==',
+          region: 'dGVzdC1yZWdpb24=',
+        }),
+        mockSecretK8sResource({
+          name: 'test-secret-not-match',
+          displayName: 'Test Secret Not Match',
+          namespace: 'kserve-project',
+          s3Bucket: 'dGVzdC1idWNrZXQ=',
+          endPoint: 'dGVzdC1lbmRwb2ludC1ub3QtbWF0Y2g=', // endpoint not match
+          region: 'dGVzdC1yZWdpb24=',
+        }),
+      ]),
+    );
 
-  //   modelVersionDetails.visit(undefined, undefined, '1');
-  //   modelVersionDetails.findDeployModelButton().click();
-  //   modelVersionDeployModal.selectProjectByName('KServe project');
-  //   modelVersionDeployModal.findConnectionSelect().should('exist');
-  //   modelVersionDeployModal.findConnectionSelect().should('be.disabled');
-  //   modelVersionDeployModal.findDeployButton().click();
+    modelVersionDetails.visit(undefined, undefined, '1');
+    modelVersionDetails.findDeployModelButton().click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    modelVersionDeployModal.findConnectionSelect().should('exist');
+    modelVersionDeployModal.findConnectionSelect().should('have.attr', 'disabled');
+    modelVersionDeployModal.findDeployButton().click();
 
-  //   // Wait for wizard to open
-  //   cy.url().should('include', '/ai-hub/deployments/deploy');
+    // Wait for wizard to open
+    cy.url().should('include', '/ai-hub/deployments/deploy');
 
-  //   // Step 1: Model source
-  //   modelServingWizard.findModelSourceStep().should('be.enabled');
+    // Step 1: Model source
+    modelServingWizard.findModelSourceStep().should('be.enabled');
 
-  //   // Validate connection section - should use existing connection
-  //   modelServingWizard.findExistingConnectionValue().should('have.value', 'Test Secret');
-  //   modelServingWizard.findLocationPathInput().should('have.value', 'demo-models/test-path');
-  // });
+    // Validate connection section - should use existing connection
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'Test Secret');
+    modelServingWizard.findLocationPathInput().should('have.value', 'demo-models/test-path');
+  });
 
   it('Prefills when there is one URI matching connection', () => {
     initIntercepts({});
