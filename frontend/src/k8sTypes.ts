@@ -1297,6 +1297,7 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
+  aiCatalogSettings?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
