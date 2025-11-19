@@ -1,10 +1,17 @@
 import * as React from 'react';
-import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
+import {
+  Spinner,
+  Content,
+  ContentVariants,
+  Timestamp,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { OffIcon, PlayIcon } from '@patternfly/react-icons';
 import { ProjectKind } from '#~/k8sTypes';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
-import { getProjectOwner } from '#~/concepts/projects/utils';
+import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import ProjectTableRowNotebookTable from '#~/pages/projects/screens/projects/ProjectTableRowNotebookTable';
 import { TableRowTitleDescription } from '#~/components/table';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
@@ -13,7 +20,9 @@ import useProjectNotebookStates from '#~/pages/projects/notebook/useProjectNoteb
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '#~/utilities/const';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
+import { AILabel } from './AILabel';
 
 // Plans to add other expandable columns in the future
 export enum ExpandableColumns {
@@ -25,12 +34,14 @@ type ProjectTableRowProps = {
   isRefreshing: boolean;
   setEditData: (data: ProjectKind) => void;
   setDeleteData: (data: ProjectKind) => void;
+  currentProjectFilterType?: string;
 };
 const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   obj: project,
   isRefreshing,
   setEditData,
   setDeleteData,
+  currentProjectFilterType,
 }) => {
   const owner = getProjectOwner(project);
   const [expandColumn, setExpandColumn] = React.useState<ExpandableColumns | undefined>();
@@ -66,6 +77,9 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
+  const thisIsAiProject = isAiProject(project);
+  const shouldShowAiLabel = currentProjectFilterType === allProjectFilterKey && thisIsAiProject;
+
   return (
     <Tbody isExpanded={!!expandColumn}>
       <Tr isControlRow>
@@ -73,7 +87,16 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
           <TableRowTitleDescription
             title={
               <ResourceNameTooltip resource={project}>
-                <ProjectLink project={project} />
+                <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                  <FlexItem>
+                    <ProjectLink project={project} />
+                  </FlexItem>
+                  {shouldShowAiLabel && (
+                    <FlexItem>
+                      <AILabel />
+                    </FlexItem>
+                  )}
+                </Flex>
               </ResourceNameTooltip>
             }
             description={getDescriptionFromK8sResource(project)}

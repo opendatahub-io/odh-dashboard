@@ -137,16 +137,15 @@ const initIntercepts = ({
       disableModelRegistry: disableModelRegistryFeature,
     }),
   );
+
   cy.interceptOdh(
-    `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions`,
+    `GET /model-registry/api/:apiVersion/user`,
     {
-      path: {
-        serviceName: 'modelregistry-sample',
-        apiVersion: MODEL_REGISTRY_API_VERSION,
-      },
+      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
     },
-    mockModelVersionList({ items: modelVersions }),
+    { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
+
   cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
   cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview());
@@ -197,14 +196,6 @@ const initIntercepts = ({
       path: { apiVersion: MODEL_REGISTRY_API_VERSION },
     },
     { data: [{ metadata: { name: 'odh-model-registries' } }] },
-  );
-
-  cy.interceptOdh(
-    `GET /model-registry/api/:apiVersion/user`,
-    {
-      path: { apiVersion: MODEL_REGISTRY_API_VERSION },
-    },
-    { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
 
   cy.interceptOdh(

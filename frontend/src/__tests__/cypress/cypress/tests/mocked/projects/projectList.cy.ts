@@ -214,10 +214,9 @@ describe('Projects details', () => {
     initIntercepts();
     projectListPage.visit();
 
-    // Select the "Name" filter
+    // Type in the name filter
     const projectListToolbar = projectListPage.getTableToolbar();
-    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
-    projectListToolbar.findFilterInput('name').type('Test Project');
+    projectListToolbar.findNameFilter().type('Test Project');
     // Verify only rows with the typed run name exist
     projectListPage.getProjectRow('Test Project').find().should('exist');
   });
@@ -226,12 +225,220 @@ describe('Projects details', () => {
     initIntercepts();
     projectListPage.visit();
 
-    // Select the "User" filter
+    // Type in the user filter
     const projectListToolbar = projectListPage.getTableToolbar();
     projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
-    projectListToolbar.findFilterInput('user').type('test-user');
+
+    projectListToolbar.findUserFilter().type('test-user');
     // Verify only rows with the typed run user exist
     projectListPage.getProjectRow('Test Project').find().should('exist');
+  });
+
+  it('should filter by AI projects', () => {
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-1',
+        displayName: 'AI Project 1',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-2',
+        displayName: 'AI Project 2',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project',
+        displayName: 'Non-AI Project',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    // By default, A.I. projects filter is selected, verify only AI projects are shown
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project').should('not.exist');
+  });
+
+  it('should filter by AI projects and name', () => {
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-alpha',
+        displayName: 'AI Project Alpha',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-beta',
+        displayName: 'AI Project Beta',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-gamma',
+        displayName: 'AI Project Gamma',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project',
+        displayName: 'Non-AI Project Alpha',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    // By default, A.I. projects filter is already selected
+    // Filter by name
+    const projectListToolbar = projectListPage.getTableToolbar();
+    projectListToolbar.findNameFilter().type('Alpha');
+
+    // Verify only AI Project Alpha is shown (not Non-AI Project Alpha)
+    projectListPage.getProjectRow('AI Project Alpha').find().should('exist');
+    projectListPage.findProjectLink('AI Project Beta').should('not.exist');
+    projectListPage.findProjectLink('AI Project Gamma').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project Alpha').should('not.exist');
+  });
+
+  it('should toggle between AI projects and All projects filters', () => {
+    // TODO: Re-enable this test when project type filtering is re-implemented
+    // The project type dropdown has been removed in the toolbar refactor
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-1',
+        displayName: 'AI Project 1',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project',
+        displayName: 'Non-AI Project',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    const projectListToolbar = projectListPage.getTableToolbar();
+
+    // By default, A.I. projects filter is selected
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project').should('not.exist');
+
+    // Switch to "All projects"
+    projectListToolbar.selectProjectType('All projects');
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project').find().should('exist');
+
+    // Switch back to "A.I. projects"
+    projectListToolbar.selectProjectType('A.I. projects');
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project').should('not.exist');
+  });
+
+  it('should clear filters and reset to show all projects', () => {
+    const mockProjects: ProjectKind[] = [
+      mockProjectK8sResource({
+        k8sName: 'ai-project-1',
+        displayName: 'AI Project 1',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'ai-project-2',
+        displayName: 'AI Project 2',
+        isDSProject: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project-1',
+        displayName: 'Non-AI Project 1',
+        isDSProject: false,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'non-ai-project-2',
+        displayName: 'Non-AI Project 2',
+        isDSProject: false,
+      }),
+    ];
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList(mockProjects));
+    projectListPage.visit();
+
+    const projectListToolbar = projectListPage.getTableToolbar();
+
+    // Step 1: Initially only AI projects should show (default filter)
+    // Verify only AI projects are visible
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+
+    projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
+
+    // also; that the ai projects don't have the label:
+
+    projectListPage.getProjectRow('AI Project 1').findAILabel().should('not.exist');
+    projectListPage.getProjectRow('AI Project 2').findAILabel().should('not.exist');
+
+    // Verify only 2 projects are showing (the AI ones)
+    cy.findAllByRole('link', { name: /AI Project / }).should('have.length', 2);
+
+    // Step 2: Enter text to search that doesn't match anything
+    projectListToolbar.findNameFilter().type('NonExistentProject');
+
+    // Verify no results are shown
+    projectListPage.findEmptyResults().should('exist');
+    cy.findByTestId('Name-filter-chip').should('contain.text', 'NonExistentProject');
+
+    // Step 3: Click the 'clear filters' button
+    projectListPage.findClearFiltersButton().click();
+
+    // Step 4: Verify thet still only ai  projects are now shown
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
+
+    // Step 4a: Verify filters are reset (text)
+    // Note: Project type dropdown no longer exists in refactored UI
+
+    // TODO: Update this test when project type filtering is re-implemented
+    // For now, verify that projects are still filtered as expected
+    // and other filters should be empty
+
+    // Verify name filter is cleared
+    projectListToolbar.findNameFilter().should('have.value', '');
+
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'User').click();
+    projectListToolbar.findFilterInput('provider').should('have.value', '');
+
+    // now type another value in that should not be there:
+
+    projectListToolbar.findUserFilter().type('non-existant-user');
+    // Verify no results are shown
+    projectListPage.findEmptyResults().should('exist');
+    cy.findAllByRole('button', { name: 'Clear all filters' }).first().click();
+
+    // still only ai project should show now
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.findProjectLink('Non-AI Project 1').should('not.exist');
+    projectListPage.findProjectLink('Non-AI Project 2').should('not.exist');
+    // projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
+    // projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
+
+    // now type another value in that should not be there:
+    projectListToolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Name').click();
+    projectListToolbar.findNameFilter().type('NonExistentProject-not-there');
+    // Verify no results are shown
+    projectListPage.findEmptyResults().should('exist');
+    cy.findByTestId('Name-filter-chip').closest('.pf-v6-c-label').find('button').should('exist');
+    cy.findByTestId('Name-filter-chip').closest('.pf-v6-c-label').find('button').click();
+    cy.findByTestId('Name-filter-chip').should('not.exist');
+
+    // switch to all projects:
+    projectListToolbar.selectProjectType('All projects');
+
+    // everything should show now:
+    projectListPage.getProjectRow('AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('AI Project 2').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
+    projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
   });
 
   it('should show list of workbenches when the column is expanded', () => {

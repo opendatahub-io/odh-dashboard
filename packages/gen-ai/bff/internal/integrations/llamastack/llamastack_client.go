@@ -358,6 +358,8 @@ type MCPServerParam struct {
 	ServerURL string
 	// Headers contains custom headers for MCP server authentication
 	Headers map[string]string
+	// AllowedTools contains list of specific tool names allowed from this server
+	AllowedTools []string
 }
 
 // CreateResponseParams contains parameters for creating AI responses.
@@ -370,16 +372,18 @@ type CreateResponseParams struct {
 	VectorStoreIDs []string
 	// ChatContext contains the full conversation history for multi-turn conversations.
 	ChatContext []ChatContextMessage
+	// PreviousResponseID links this response to a previous response for conversation continuity.
+	PreviousResponseID string
 	// Temperature controls response creativity/randomness (range: 0.0-2.0).
 	Temperature *float64
 	// TopP controls nucleus sampling for response variety (range: 0.0-1.0).
 	TopP *float64
 	// Instructions provides system-level guidance for AI behavior.
 	Instructions string
+	// Store controls whether to store the response for later retrieval (default true if nil).
+	Store *bool
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
-	// PreviousResponseID links this response to a previous response for conversation continuity.
-	PreviousResponseID string
 	// ProviderData contains custom provider headers (e.g., vllm_api_token)
 	ProviderData map[string]interface{}
 }
@@ -395,7 +399,12 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 
 	apiParams := &responses.ResponseNewParams{
 		Model: responses.ResponsesModel(params.Model),
-		Store: openai.Bool(true),
+	}
+	// Set store parameter (default true if not specified)
+	if params.Store != nil {
+		apiParams.Store = openai.Bool(*params.Store)
+	} else {
+		apiParams.Store = openai.Bool(true) // Default to true
 	}
 
 	if len(params.ChatContext) > 0 {
@@ -487,6 +496,9 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 					ServerLabel: mcpServer.ServerLabel,
 					ServerURL:   openai.String(mcpServer.ServerURL),
 					Headers:     mcpServer.Headers,
+					AllowedTools: responses.ToolMcpAllowedToolsUnionParam{
+						OfMcpAllowedTools: mcpServer.AllowedTools,
+					},
 				},
 			}
 			tools = append(tools, mcpServerToolParam)
