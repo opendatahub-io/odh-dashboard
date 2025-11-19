@@ -41,13 +41,11 @@ describe('Verify a model can be deployed from model catalog', () => {
     ),
   );
   after(() => {
-    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
-    // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true, timeout: 300000 });
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', 'Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
@@ -75,7 +73,7 @@ describe('Verify a model can be deployed from model catalog', () => {
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
       modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
-      cy.get('@modelSourceImageLocation').then((modelSourceImageLocation) => {
+      modelDetailsPage.getModelSourceImageLocation().then((modelSourceImageLocation) => {
         modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
       });
       modelServingWizard.findNextButton().should('be.enabled').click();
@@ -89,6 +87,7 @@ describe('Verify a model can be deployed from model catalog', () => {
         .should('exist')
         .click();
 
+      modelServingWizard.findServingRuntimeSelectRadio().click();
       modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
 
       cy.step('Advanced options step');

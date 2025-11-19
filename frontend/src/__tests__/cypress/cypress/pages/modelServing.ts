@@ -968,6 +968,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('serving-runtime-template-selection-toggle');
   }
 
+  findServingRuntimeSelectRadio() {
+    return cy.findByLabelText('Select from a list of serving runtimes, including custom ones');
+  }
+
   findFirstServingRuntimeTemplateOption() {
     // Open the menu
     this.findServingRuntimeTemplateSearchSelector().click();
