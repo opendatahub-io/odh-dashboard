@@ -5,12 +5,21 @@ import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from './useGenericObjectState';
 import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAcceleratorState';
 
+/**
+ * @deprecated
+ * used by *both* modelmesh and finetuning
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export type AcceleratorProfileFormData = {
   profile?: AcceleratorProfileKind;
   count: number;
   useExistingSettings?: boolean;
 };
 
+/**
+ * @deprecated modelmesh
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export type UseAcceleratorProfileFormResult = {
   initialState: AcceleratorProfileState;
   formData: AcceleratorProfileFormData;
@@ -21,8 +30,11 @@ export type UseAcceleratorProfileFormResult = {
   refresh: () => Promise<AcceleratorProfileState | undefined>;
 };
 
-/** @deprecated  accelerator profile is going away; only in deprecation paths (modelmesh; fine-tuning) */
-/** @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185 */
+/**
+ * @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * useb by *both* modelmesh and finetuning
+ */
 const useAcceleratorProfileFormState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],

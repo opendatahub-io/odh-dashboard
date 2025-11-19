@@ -3,8 +3,9 @@ import { determineTolerations } from './tolerations';
 import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from './useReadAcceleratorState';
 
-/** @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated)
- *  accel-modelMesh-deprecated
+/**
+ * @deprecated modelmesh
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
  */
 export const assemblePodSpecOptions = (
   resourceSettings: ContainerResources,
