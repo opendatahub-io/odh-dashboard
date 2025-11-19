@@ -91,13 +91,13 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 **List Available AI Models:**
 
 ```bash
-curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/models"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/models?namespace=default"
 ```
 
 **List Vector Stores:**
 
 ```bash
-curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/vectorstores?namespace=default"
 ```
 
 #### Test Kubernetes Endpoints
@@ -111,7 +111,7 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/n
 **Get LlamaStack Distribution Status:**
 
 ```bash
-curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=default"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/status?namespace=default"
 ```
 
 #### Test MaaS (Model as a Service) Endpoints
@@ -146,7 +146,7 @@ curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-a
 **List Available MCP Servers:**
 
 ```bash
-curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/aa/mcps?namespace=default"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/aaa/mcps?namespace=default"
 ```
 
 **Get MCP Server Status:**
@@ -180,14 +180,14 @@ curl -i -H "Authorization: Bearer $TOKEN" \
 **Request without token:**
 
 ```bash
-curl -i "http://localhost:8080/gen-ai/api/v1/models"
+curl -i "http://localhost:8080/gen-ai/api/v1/lsd/models"
 # Expected: 400 Bad Request - missing required Header: Authorization
 ```
 
 **Request without namespace parameter (LSD endpoint):**
 
 ```bash
-curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/status"
 # Expected: 400 Bad Request - missing required query parameter: namespace
 ```
 
@@ -582,7 +582,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 **Request:**
 
 ```bash
-curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=test-namespace"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/status?namespace=test-namespace"
 ```
 
 **Expected Response (200 OK):**
@@ -624,7 +624,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 **Request:**
 
 ```bash
-curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/models"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/models?namespace=default"
 ```
 
 **Expected Response (200 OK):**
@@ -653,7 +653,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 **Request:**
 
 ```bash
-curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/lsd/vectorstores?namespace=default"
 ```
 
 **Expected Response (200 OK):**
@@ -691,7 +691,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
-  "http://localhost:8080/gen-ai/api/v1/responses" \
+  "http://localhost:8080/gen-ai/api/v1/lsd/responses?namespace=default" \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"input": "Hello, how are you?", "model": "ollama/llama2:latest"}'
@@ -718,7 +718,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 **Request:**
 
 ```bash
-curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/aa/mcps?namespace=default"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/aaa/mcps?namespace=default"
 ```
 
 **Expected Response (200 OK):**
