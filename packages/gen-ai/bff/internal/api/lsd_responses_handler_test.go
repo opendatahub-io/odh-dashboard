@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,10 +21,12 @@ import (
 func TestLlamaStackCreateResponseHandler(t *testing.T) {
 	// Create test app with mock client
 	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	app := App{
 		config: config.EnvConfig{
 			Port: 4000,
 		},
+		logger:                  logger,
 		llamaStackClientFactory: llamaStackClientFactory,
 		repositories:            repositories.NewRepositories(),
 	}
@@ -183,6 +186,43 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 
 		errorObj := response["error"].(map[string]interface{})
 		assert.Contains(t, errorObj["message"], "model is required")
+	})
+
+	t.Run("should return error when allowed_tools contains empty string", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "Test MCP with allowed_tools validation",
+			Model: "llama-3.1-8b",
+			MCPServers: []MCPServer{
+				{
+					ServerLabel: "slack",
+					ServerURL:   "http://127.0.0.1:13080/sse",
+					Headers: map[string]string{
+						"Authorization": "Bearer test-token",
+					},
+					AllowedTools: []string{"send_message", "", "get_channel_history"}, // Empty string should cause validation error
+				},
+			},
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		errorObj := response["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "allowed_tools[1] cannot be empty")
+		assert.Contains(t, errorObj["message"], "slack")
 	})
 
 	t.Run("should handle chat context correctly", func(t *testing.T) {
