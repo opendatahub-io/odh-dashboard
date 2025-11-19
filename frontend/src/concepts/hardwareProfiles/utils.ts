@@ -64,8 +64,8 @@ export const formatResource = (identifier: string, request: string, limit: strin
  * changed order of arguments so that the deprecated accelerator profile is last;
  * to make it optional.
  *
- * when we finish removing modelmesh and fine tuning (the only place that still has the accelerator profile argument)
- * then remove the accelerator profile argument and remove all unreachable/deprecated code.
+ * when modelmesh is removed; then remove the second argument and remove all unreachable/deprecated code.
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
  */
 export const useProfileIdentifiers = (
   hardwareProfile?: HardwareProfileKind,
