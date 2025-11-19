@@ -125,6 +125,27 @@ paths:
       summary: Get Current User
       description: Returns information about the currently authenticated user.
 
+  /gen-ai/api/v1/config:
+    summary: Get BFF configuration
+    description: >-
+      Retrieves BFF application-level configuration that applies globally across all namespaces.
+      Returns configuration flags that the UI needs to adapt behavior.
+    get:
+      tags:
+        - Configuration
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/BFFConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getBFFConfig
+      summary: Get BFF Configuration
+      description: Returns BFF application-level configuration settings.
+
   # =============================================================================
   # LLAMASTACK DISTRIBUTION (LSD) ENDPOINTS
   # =============================================================================
@@ -530,7 +551,7 @@ paths:
     summary: Delete vector store
     description: >-
       Deletes a vector store by ID. This operation will permanently remove the vector store
-      and all associated files and embeddings. Requires namespace parameter for proper 
+      and all associated files and embeddings. Requires namespace parameter for proper
       multi-tenant isolation.
     delete:
       tags:
@@ -817,7 +838,7 @@ paths:
     summary: Remove file from vector store and delete file (temporary cascading delete)
     description: >-
       Removes a file from a specific vector store and also deletes the actual file from storage.
-      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion) 
+      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion)
       until proper file lifecycle management and sharing is implemented.
       Requires namespace parameter for proper multi-tenant isolation.
     delete:
@@ -2285,6 +2306,16 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    BFFConfigModel:
+      type: object
+      required:
+        - isCustomLSD
+      properties:
+        isCustomLSD:
+          type: boolean
+          example: false
+          description: Indicates whether a custom LlamaStack URL is configured for the BFF
+
     LlamaStackDistributionInstallRequest:
       type: object
       required:
@@ -2311,7 +2342,7 @@ components:
         model_name:
           type: string
           description: |
-            Name of the model to install. For MaaS models, this must be the exact MaaS model ID 
+            Name of the model to install. For MaaS models, this must be the exact MaaS model ID
             (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
           example: 'llama-3-2-3b-instruct'
         is_maas_model:
@@ -3479,6 +3510,21 @@ components:
             $ref: '#/components/schemas/UserModel'
           example:
             userId: 'user@example.com'
+
+    BFFConfigResponse:
+      description: BFF application-level configuration
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/BFFConfigModel'
+          example:
+            data:
+              isCustomLSD: false
 
 tags:
   # =============================================================================

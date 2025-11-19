@@ -86,6 +86,9 @@ export enum SupportedArea {
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
+
+  /* AI Catalog Settings */
+  AI_CATALOG_SETTINGS = 'ai-catalog-settings',
 }
 
 export type SupportedAreaType = SupportedArea | string;

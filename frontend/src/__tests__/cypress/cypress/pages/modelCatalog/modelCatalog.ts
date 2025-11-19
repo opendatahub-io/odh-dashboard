@@ -87,6 +87,12 @@ class ModelCatalog {
   findModelCatalogNotFoundState() {
     return cy.findByTestId('not-found-page');
   }
+
+  findModelCards() {
+    return cy.get('body').then(($body) => {
+      return $body.find('[data-testid="model-catalog-card"]').length > 0;
+    });
+  }
 }
 
 export const modelCatalog = new ModelCatalog();

@@ -360,6 +360,7 @@ const extensions: NavExtension[] = [
       href: '/settings/model-resources-operations/serving-runtimes',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/serving-runtimes/*',
+      group: '1_model-resources',
     },
   },
   {
@@ -373,6 +374,7 @@ const extensions: NavExtension[] = [
       href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/model-registry/*',
+      group: '3_model-resources',
     },
   },
 

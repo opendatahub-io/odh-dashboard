@@ -2,5 +2,4 @@ downloads
 coverage
 results
 .nyc_output
-test-variables.yml
 cypress/temp*.yaml
