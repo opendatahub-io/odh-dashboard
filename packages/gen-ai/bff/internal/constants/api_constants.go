@@ -32,6 +32,7 @@ const (
 	CodeExporterPath = ApiPathPrefix + "/code-exporter"
 	NamespacesPath   = ApiPathPrefix + "/namespaces"
 	UserPath         = ApiPathPrefix + "/user"
+	ConfigPath       = ApiPathPrefix + "/config"
 
 	// MCP (Model Context Protocol) endpoint paths
 	MCPToolsPath  = ApiPathPrefix + "/mcp/tools"

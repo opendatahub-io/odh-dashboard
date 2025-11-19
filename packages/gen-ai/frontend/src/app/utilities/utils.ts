@@ -41,7 +41,12 @@ export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
   maasModels: MaaSModel[],
+  isCustomLSD: boolean,
 ): boolean => {
+  if (isCustomLSD) {
+    return true;
+  }
+
   const { id } = splitLlamaModelId(modelId);
 
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);

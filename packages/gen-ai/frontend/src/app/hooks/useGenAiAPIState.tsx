@@ -2,6 +2,7 @@ import React from 'react';
 import { APIState, useAPIState } from 'mod-arch-core';
 import { GenAiAPIs } from '~/app/types';
 import {
+  getBFFConfig,
   getLSDStatus,
   installLSD,
   deleteLSD,
@@ -46,6 +47,7 @@ const useGenAiAPIState = (
       getMCPServerTools: getMCPServerTools(path, queryParameters),
       getMCPServers: getMCPServers(path, queryParameters),
       getMCPServerStatus: getMCPServerStatus(path, queryParameters),
+      getBFFConfig: getBFFConfig(path, queryParameters),
     }),
     [queryParameters],
   );
