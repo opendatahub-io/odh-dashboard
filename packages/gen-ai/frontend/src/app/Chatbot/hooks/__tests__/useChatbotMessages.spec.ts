@@ -704,6 +704,10 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          mcpServers: [],
+          mcpServerStatuses: new Map(),
+          mcpServerTokens: new Map(),
         }),
       );
 
@@ -771,6 +775,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -885,6 +891,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -942,6 +950,10 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          mcpServers: [],
+          mcpServerStatuses: new Map(),
+          mcpServerTokens: new Map(),
         }),
       );
 
@@ -965,6 +977,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -992,6 +1006,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 
@@ -1037,6 +1053,8 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          ...defaultMcpProps,
         }),
       );
 

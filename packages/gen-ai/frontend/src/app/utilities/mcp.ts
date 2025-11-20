@@ -167,7 +167,6 @@ export const extractMCPToolCallData = (output?: OutputItem[]): MCPToolCallData |
  *
  * @param params - Object containing all conditions for auto-unlock decision
  * @param params.isInitialLoadComplete - Whether initial load from route state is complete
- * @param params.isSelectAllAction - Whether this selection is from "Select All" action
  * @param params.wasSelected - Whether the server was already selected before this action
  * @param params.isAuthenticated - Whether the server is already authenticated
  * @param params.isChecking - Whether the server is currently being checked
@@ -176,20 +175,12 @@ export const extractMCPToolCallData = (output?: OutputItem[]): MCPToolCallData |
  */
 export const shouldTriggerAutoUnlock = (params: {
   isInitialLoadComplete: boolean;
-  isSelectAllAction: boolean;
   wasSelected: boolean;
   isAuthenticated: boolean;
   isChecking: boolean;
   isValidating: boolean;
 }): boolean => {
-  const {
-    isInitialLoadComplete,
-    isSelectAllAction,
-    wasSelected,
-    isAuthenticated,
-    isChecking,
-    isValidating,
-  } = params;
+  const { isInitialLoadComplete, wasSelected, isAuthenticated, isChecking, isValidating } = params;
 
   // User is selecting (checking the box, not unchecking)
   const isSelecting = !wasSelected;
@@ -197,7 +188,6 @@ export const shouldTriggerAutoUnlock = (params: {
   // All conditions must be met for auto-unlock to trigger
   return (
     isInitialLoadComplete && // Initial load from route state is complete
-    !isSelectAllAction && // Not from "Select All" action
     isSelecting && // User is selecting (not deselecting)
     !isAuthenticated && // Server is not already authenticated
     !isChecking && // Server is not already being checked

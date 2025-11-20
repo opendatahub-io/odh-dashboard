@@ -48,12 +48,12 @@ interface ChatbotSettingsPanelProps {
   onTemperatureChange: (value: number) => void;
   onMcpServersChange?: (serverIds: string[]) => void;
   initialSelectedServerIds?: string[];
+  initialServerStatuses?: Map<string, ServerStatusInfo>;
   selectedServersCount: number;
   // MCP data props
   mcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
   mcpServersLoadError?: Error | null;
-  mcpServerStatuses: Map<string, ServerStatusInfo>;
   mcpServerTokens: Map<string, TokenInfo>;
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
@@ -73,12 +73,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onTemperatureChange,
   onMcpServersChange,
   initialSelectedServerIds,
+  initialServerStatuses,
   selectedServersCount,
   // MCP data props
   mcpServers,
   mcpServersLoaded,
   mcpServersLoadError,
-  mcpServerStatuses,
   mcpServerTokens,
   onMcpServerTokensChange,
   checkMcpServerStatus,
@@ -318,12 +318,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 servers={mcpServers}
                 serversLoaded={mcpServersLoaded}
                 serversLoadError={mcpServersLoadError}
-                serverStatuses={mcpServerStatuses}
                 serverTokens={mcpServerTokens}
                 onServerTokensChange={onMcpServerTokensChange}
                 checkServerStatus={checkMcpServerStatus}
                 onSelectionChange={onMcpServersChange}
                 initialSelectedServerIds={initialSelectedServerIds}
+                initialServerStatuses={initialServerStatuses}
               />
             </AccordionContent>
           </AccordionItem>

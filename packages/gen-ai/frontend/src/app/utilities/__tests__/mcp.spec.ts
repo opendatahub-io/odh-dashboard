@@ -514,7 +514,6 @@ describe('MCP Utilities', () => {
     it('should return true when all conditions are met', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: true,
-        isSelectAllAction: false,
         wasSelected: false,
         isAuthenticated: false,
         isChecking: false,
@@ -527,20 +526,6 @@ describe('MCP Utilities', () => {
     it('should return false when initial load is not complete', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: false,
-        isSelectAllAction: false,
-        wasSelected: false,
-        isAuthenticated: false,
-        isChecking: false,
-        isValidating: false,
-      });
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false when action is from Select All', () => {
-      const result = shouldTriggerAutoUnlock({
-        isInitialLoadComplete: true,
-        isSelectAllAction: true,
         wasSelected: false,
         isAuthenticated: false,
         isChecking: false,
@@ -553,7 +538,6 @@ describe('MCP Utilities', () => {
     it('should return false when server was already selected (deselecting)', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: true,
-        isSelectAllAction: false,
         wasSelected: true,
         isAuthenticated: false,
         isChecking: false,
@@ -566,7 +550,6 @@ describe('MCP Utilities', () => {
     it('should return false when server is already authenticated', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: true,
-        isSelectAllAction: false,
         wasSelected: false,
         isAuthenticated: true,
         isChecking: false,
@@ -579,7 +562,6 @@ describe('MCP Utilities', () => {
     it('should return false when server is currently being checked', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: true,
-        isSelectAllAction: false,
         wasSelected: false,
         isAuthenticated: false,
         isChecking: true,
@@ -592,7 +574,6 @@ describe('MCP Utilities', () => {
     it('should return false when server is currently being validated', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: true,
-        isSelectAllAction: false,
         wasSelected: false,
         isAuthenticated: false,
         isChecking: false,
@@ -605,7 +586,6 @@ describe('MCP Utilities', () => {
     it('should return false when multiple conditions are not met', () => {
       const result = shouldTriggerAutoUnlock({
         isInitialLoadComplete: false,
-        isSelectAllAction: true,
         wasSelected: true,
         isAuthenticated: true,
         isChecking: true,

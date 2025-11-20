@@ -37,10 +37,6 @@ export class TokenAuthModal extends Modal {
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('mcp-token-cancel-button');
   }
-
-  findClearButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('mcp-token-clear-button');
-  }
 }
 
 export class MCPToolsModal extends Modal {
@@ -82,9 +78,5 @@ export class MCPServerSuccessModal extends Modal {
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('modal-submit-button');
-  }
-
-  findDisconnectButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('modal-cancel-button');
   }
 }
