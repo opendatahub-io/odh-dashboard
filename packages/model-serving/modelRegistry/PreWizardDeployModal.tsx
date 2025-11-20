@@ -1,3 +1,4 @@
+/* eslint-disable @odh-dashboard/no-restricted-imports */
 import React from 'react';
 import {
   Modal,
@@ -15,7 +16,6 @@ import useServingConnections from '@odh-dashboard/internal/pages/projects/screen
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { isOciModelUri } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import useRegistryConnections from './useRegistryConnections';
@@ -59,8 +59,6 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
 
   // Extract form data from registry using the hook
   const { formData: registryFormData } = useExtractFormDataFromRegistry(modelDeployPrefill);
-
-  const isOciModel = isOciModelUri(modelDeployPrefill.data.modelArtifactUri);
 
   // Auto-select connection if there's exactly one match
   React.useEffect(() => {
@@ -163,7 +161,6 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
                     }
                   : undefined
               }
-              isOciModel={isOciModel}
             />
           </FormSection>
           {selectedProject && showConnectionSelection && (
