@@ -47,11 +47,11 @@ dev-start-mock: ## Run both frontend and bff in development mode
 .PHONY: dev-portforward
 dev-portforward: ## Start port-forwarding in separate terminals
 	@echo "Starting port-forward for maas-api..."
-	@osascript -e 'tell application "Terminal" to do script "cd $(PWD) && oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api 8081:8080"'
+	@oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api 8081:8080 &
 	@sleep 1
 	@echo "Starting port-forward for lsd-genai-playground-service..."
-	@osascript -e 'tell application "Terminal" to do script "cd $(PWD) && oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321"'
-	@echo "Port-forwarding terminals opened!"
+	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
+	@echo "Port-forwarding started in background!"
 
 .PHONY: dev-start
 dev-start: dev-portforward ## Start frontend, bff, and port-forwarding
