@@ -44,28 +44,46 @@ jobs:
           COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           echo "Commit SHA: $COMMIT_SHA"
           
-          # Wait for Test workflow to start (max 2 minutes)
-          echo "Waiting for Test workflow to start..."
-          for i in {1..24}; do
-            WORKFLOW_RUN=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
-              --jq '.check_runs[] | select(.name == "Tests") | .id' 2>/dev/null || echo "")
+          # Phase 1: Wait for Test workflow to START (check for "Get-Test-Groups" job - max 1 minute)
+          echo "📍 Phase 1: Waiting for Test workflow to start..."
+          for i in {1..12}; do
+            GET_TEST_GROUPS_CHECK=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "Get-Test-Groups") | .id' 2>/dev/null || echo "")
             
-            if [ -n "$WORKFLOW_RUN" ]; then
-              echo "✅ Test workflow found!"
+            if [ -n "$GET_TEST_GROUPS_CHECK" ]; then
+              echo "✅ Test workflow started (Get-Test-Groups job found)!"
               break
             fi
             
-            if [ $i -eq 24 ]; then
-              echo "❌ Test workflow not found after 2 minutes"
+            if [ $i -eq 12 ]; then
+              echo "❌ Test workflow not found after 1 minute"
               exit 1
             fi
             
-            echo "Attempt $i/24: Test workflow not found yet, waiting 5s..."
+            echo "Attempt $i/12: Test workflow not started yet, waiting 5s..."
             sleep 5
           done
           
-          # Now wait for it to complete successfully (max 45 minutes total with timeout)
-          echo "Waiting for Test workflow to complete..."
+          # Phase 2: Wait for Test workflow to COMPLETE (check for "Tests" summary job - max 45 min total)
+          echo "📍 Phase 2: Waiting for Test workflow to complete (Tests summary job)..."
+          
+          # First wait for "Tests" job to appear (it only appears after all other jobs finish)
+          echo "Waiting for Tests summary job to appear..."
+          while true; do
+            TESTS_CHECK=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "Tests") | .id' 2>/dev/null || echo "")
+            
+            if [ -n "$TESTS_CHECK" ]; then
+              echo "✅ Tests summary job found!"
+              break
+            fi
+            
+            echo "Tests job not found yet (other tests still running), checking again in 30s..."
+            sleep 30
+          done
+          
+          # Now wait for Tests job to complete successfully
+          echo "Waiting for Tests summary job to complete..."
           while true; do
             CHECK_STATUS=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
               --jq '.check_runs[] | select(.name == "Tests") | "\(.status)|\(.conclusion)"')
@@ -73,7 +91,7 @@ jobs:
             STATUS=$(echo "$CHECK_STATUS" | cut -d'|' -f1)
             CONCLUSION=$(echo "$CHECK_STATUS" | cut -d'|' -f2)
             
-            echo "Current status: $STATUS, conclusion: $CONCLUSION"
+            echo "Tests job status: $STATUS, conclusion: $CONCLUSION"
             
             if [ "$STATUS" = "completed" ]; then
               if [ "$CONCLUSION" = "success" ]; then
@@ -85,7 +103,7 @@ jobs:
               fi
             fi
             
-            echo "Test workflow still running, checking again in 30s..."
+            echo "Tests job still running, checking again in 30s..."
             sleep 30
           done
 
