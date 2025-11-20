@@ -24,7 +24,7 @@ export const ModelDeploymentsContext = React.createContext<ModelDeploymentsConte
 type PlatformDeploymentWatcherProps = {
   platformId: string;
   watcher: ModelServingPlatformWatchDeployments;
-  projects: ProjectKind[];
+  project: ProjectKind;
   onStateChange: (
     platformId: string,
     state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
@@ -37,7 +37,7 @@ type PlatformDeploymentWatcherProps = {
 const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   platformId,
   watcher,
-  projects,
+  project,
   labelSelectors,
   onStateChange,
   unloadPlatformDeployments,
@@ -45,29 +45,8 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
 }) => {
   const useWatchDeployments = watcher.properties.watch;
 
-  // If there's only 1 project, scope the call to that project, otherwise call without project scoping
-  const projectToScope = projects?.length === 1 ? projects[0] : undefined;
-  const [allDeployments, loaded, error] = useWatchDeployments(
-    projectToScope,
-    labelSelectors,
-    filterFn,
-  );
-
-  // Filter deployments to only include those from the specified projects
-  const filteredDeployments = React.useMemo(() => {
-    if (!allDeployments || !projects || projects.length <= 1) {
-      return allDeployments;
-    }
-
-    const projectNames = new Set(projects.map((p) => p.metadata.name));
-    return allDeployments.filter((deployment) => {
-      // Check if deployment belongs to one of our projects
-      const deploymentNamespace = deployment.model.metadata.namespace;
-      return deploymentNamespace && projectNames.has(deploymentNamespace);
-    });
-  }, [allDeployments, projects, labelSelectors]);
-  // Always scope to the single project passed in
-  const [deployments, loaded, error] = useWatchDeployments(projects[0], labelSelectors, filterFn);
+  // Scope the call to the single project
+  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors, filterFn);
 
   React.useEffect(() => {
     onStateChange(platformId, { deployments, loaded, error });
@@ -169,7 +148,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
             key={`${platformId}-${project.metadata.name}`}
             platformId={`${platformId}-project-${index}`}
             watcher={watcher}
-            projects={[project]}
+            project={project}
             labelSelectors={labelSelectors}
             onStateChange={updatePlatformDeployments}
             unloadPlatformDeployments={unloadPlatformDeployments}
