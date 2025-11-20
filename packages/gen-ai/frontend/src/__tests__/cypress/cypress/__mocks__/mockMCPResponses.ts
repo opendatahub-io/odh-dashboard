@@ -11,6 +11,8 @@ import mcpStatusError401 from '~/__tests__/cypress/cypress/fixtures/mocked/mcpSe
 import mcpStatusError400 from '~/__tests__/cypress/cypress/fixtures/mocked/mcpServers/mcpStatusError400.json';
 import mcpToolsSuccess from '~/__tests__/cypress/cypress/fixtures/mocked/mcpServers/mcpToolsSuccess.json';
 import mcpToolsUnauthorized from '~/__tests__/cypress/cypress/fixtures/mocked/mcpServers/mcpToolsUnauthorized.json';
+import mcpStatusKubernetesConnected from '~/__tests__/cypress/cypress/fixtures/mocked/mcpServers/mcpStatusKubernetesConnected.json';
+import mcpToolsKubernetes from '~/__tests__/cypress/cypress/fixtures/mocked/mcpServers/mcpToolsKubernetes.json';
 
 /**
  * Mock MCP status endpoint with token validation
@@ -94,4 +96,54 @@ export const mockMCPToolsInterceptor = (
       }
     })
     .as('toolsRequest');
+};
+
+/**
+ * Mock MCP status endpoint for auto-connectable servers (no token required)
+ * Returns connected status without requiring authentication
+ *
+ * @param serverUrl - MCP server URL to include in response
+ * @returns Cypress chainable for the intercept
+ */
+export const mockMCPStatusAutoConnect = (serverUrl: string): Cypress.Chainable<null> => {
+  return cy
+    .intercept('GET', '/gen-ai/api/v1/mcp/status*', (req) => {
+      const queryServerUrl = new URL(req.url).searchParams.get('server_url');
+
+      // Only respond with auto-connect for the Kubernetes server
+      if (queryServerUrl === serverUrl) {
+        const response = JSON.parse(JSON.stringify(mcpStatusKubernetesConnected));
+        response.data.server_url = serverUrl;
+        req.reply({ statusCode: 200, body: response });
+      } else {
+        // Pass through for other servers
+        req.continue();
+      }
+    })
+    .as('statusCheckAutoConnect');
+};
+
+/**
+ * Mock MCP tools endpoint for auto-connectable servers
+ * Returns tools list without requiring authentication
+ *
+ * @param serverUrl - MCP server URL to include in response
+ * @returns Cypress chainable for the intercept
+ */
+export const mockMCPToolsAutoConnect = (serverUrl: string): Cypress.Chainable<null> => {
+  return cy
+    .intercept('GET', '/gen-ai/api/v1/mcp/tools*', (req) => {
+      const queryServerUrl = new URL(req.url).searchParams.get('server_url');
+
+      // Only respond with tools for the Kubernetes server
+      if (queryServerUrl === serverUrl) {
+        const response = JSON.parse(JSON.stringify(mcpToolsKubernetes));
+        response.data.server_url = serverUrl;
+        req.reply({ statusCode: 200, body: response });
+      } else {
+        // Pass through for other servers
+        req.continue();
+      }
+    })
+    .as('toolsRequestAutoConnect');
 };

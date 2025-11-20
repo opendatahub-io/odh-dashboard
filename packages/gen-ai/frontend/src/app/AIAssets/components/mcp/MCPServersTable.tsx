@@ -83,6 +83,7 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
             selectedCount={selections.length}
             selectedServerIds={selections}
             onClearFilters={onClearFilters}
+            serverStatuses={serverStatuses}
           />
         }
         onClearFilters={onClearFilters}

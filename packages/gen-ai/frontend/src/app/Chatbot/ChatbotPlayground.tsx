@@ -69,6 +69,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return Array.isArray(servers) ? servers : [];
   }, [location.state?.mcpServers]);
 
+  const mcpServerStatusesFromRoute = React.useMemo(() => {
+    const statuses = location.state?.mcpServerStatuses;
+    return statuses ? new Map(Object.entries(statuses)) : new Map();
+  }, [location.state?.mcpServerStatuses]);
+
   // Handle router state for MCP servers - initialize state with router value
   const [selectedMcpServerIds, setSelectedMcpServerIds] =
     React.useState<string[]>(mcpServersFromRoute);
@@ -86,7 +91,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
-    if (location.state && (location.state.mcpServers || location.state.model)) {
+    if (
+      location.state &&
+      (location.state.mcpServers || location.state.model || location.state.mcpServerStatuses)
+    ) {
       const timeoutId = setTimeout(() => {
         window.history.replaceState({}, '');
       }, 100);
@@ -200,11 +208,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onTemperatureChange={setTemperature}
       onMcpServersChange={setSelectedMcpServerIds}
       initialSelectedServerIds={mcpServersFromRoute}
+      initialServerStatuses={mcpServerStatusesFromRoute}
       selectedServersCount={selectedMcpServerIds.length}
       mcpServers={mcpServers}
       mcpServersLoaded={mcpServersLoaded}
       mcpServersLoadError={mcpServersLoadError}
-      mcpServerStatuses={mcpServerStatuses}
       mcpServerTokens={mcpServerTokens}
       onMcpServerTokensChange={setMcpServerTokens}
       checkMcpServerStatus={checkMcpServerStatus}

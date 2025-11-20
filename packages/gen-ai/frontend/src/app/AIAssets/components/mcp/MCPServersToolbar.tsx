@@ -19,6 +19,7 @@ import {
 import { PlayIcon, FilterIcon, CloseIcon } from '@patternfly/react-icons';
 import { genAiChatPlaygroundRoute } from '~/app/utilities';
 import { MCPFilterColors } from '~/app/AIAssets/data/mcpFilterOptions';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 
 interface MCPServersToolbarProps {
   onFilterUpdate: (filterType: string, value?: string) => void;
@@ -28,6 +29,7 @@ interface MCPServersToolbarProps {
   selectedCount: number;
   selectedServerIds: string[];
   onClearFilters: () => void;
+  serverStatuses: Map<string, ServerStatusInfo>;
 }
 
 const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
@@ -38,6 +40,7 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
   selectedCount,
   selectedServerIds,
   onClearFilters,
+  serverStatuses,
 }) => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
@@ -52,9 +55,10 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
     navigate(genAiChatPlaygroundRoute(namespace), {
       state: {
         mcpServers: selectedServerIds,
+        mcpServerStatuses: Object.fromEntries(serverStatuses),
       },
     });
-  }, [selectedServerIds, namespace, navigate]);
+  }, [selectedServerIds, namespace, navigate, serverStatuses]);
 
   // Get active filters for display
   const activeFilters = Object.entries(filterData).filter(([, value]) => value && value !== '');

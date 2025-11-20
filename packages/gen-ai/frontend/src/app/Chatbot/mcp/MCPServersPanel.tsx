@@ -16,20 +16,19 @@ import MCPServerPanelRow from './MCPServerPanelRow';
 import MCPServerConfigModal from './MCPServerConfigModal';
 import MCPServerToolsModal from './MCPServerToolsModal';
 import MCPServerSuccessModal from './MCPServerSuccessModal';
-import { useSelectAllTracking } from './hooks/useSelectAllTracking';
 
 interface MCPServersPanelProps {
   // Data props (instead of contexts)
   servers: MCPServerFromAPI[];
   serversLoaded: boolean;
   serversLoadError?: Error | null;
-  serverStatuses: Map<string, ServerStatusInfo>;
   serverTokens: Map<string, TokenInfo>;
   onServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
   checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
   // Existing props
   onSelectionChange?: (selectedServers: string[]) => void;
   initialSelectedServerIds?: string[];
+  initialServerStatuses?: Map<string, ServerStatusInfo>;
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
@@ -43,6 +42,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   checkServerStatus,
   onSelectionChange,
   initialSelectedServerIds,
+  initialServerStatuses,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
 
@@ -83,18 +83,15 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   // Track if initial load from route state is complete to prevent auto-unlock on mount
   const [isInitialLoadComplete, setIsInitialLoadComplete] = React.useState(false);
 
-  const { selections, tableProps, isSelected, toggleSelection } = useCheckboxTableBase(
+  // Track servers being auto-unlocked
+  const [autoUnlockingServers, setAutoUnlockingServers] = React.useState<Set<string>>(new Set());
+
+  const { selections, isSelected, toggleSelection } = useCheckboxTableBase(
     transformedServers,
     selectedServers,
     setSelectedServers,
     React.useCallback((server: MCPServer) => server.id, []),
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-    { selectAll: { tooltip: 'Select all MCP servers' } as any },
   );
-
-  // Use custom hook to track "Select All" actions
-  const { wrappedTableProps, isSelectAllAction } = useSelectAllTracking(tableProps);
 
   // Sync selected servers from initialSelectedServerIds prop on initial load
   React.useEffect(() => {
@@ -127,6 +124,35 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transformedServers, initialSelectedServerIds]);
+
+  // Auto-unlock servers that don't require tokens when coming from AI Assets
+  React.useEffect(() => {
+    if (
+      isInitialLoadComplete &&
+      initialServerStatuses &&
+      initialServerStatuses.size > 0 &&
+      selectedServers.length > 0
+    ) {
+      // Find servers that were selected from route and have 'connected' status
+      const serversToAutoUnlock = selectedServers.filter((server) => {
+        const statusInfo = initialServerStatuses.get(server.connectionUrl);
+        const tokenInfo = serverTokens.get(server.connectionUrl);
+
+        return (
+          statusInfo?.status === 'connected' &&
+          !tokenInfo?.authenticated &&
+          !autoUnlockingServers.has(server.connectionUrl)
+        );
+      });
+
+      // Auto-unlock each server without showing modal
+      serversToAutoUnlock.forEach((server) => {
+        handleAutoUnlock(server);
+      });
+    }
+    // Only run when initial load completes and servers are selected
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInitialLoadComplete, initialServerStatuses, selectedServers.length]);
 
   React.useEffect(() => {
     const selectedConnectionUrls = selectedServers.map((server) => server.id);
@@ -178,6 +204,39 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       }
     },
     [api, apiAvailable],
+  );
+
+  // Function to auto-unlock servers without showing confirmation modal
+  const handleAutoUnlock = React.useCallback(
+    async (server: MCPServer) => {
+      setAutoUnlockingServers((prev) => new Set(prev).add(server.connectionUrl));
+
+      try {
+        const statusInfo = await checkServerStatus(server.connectionUrl);
+
+        if (statusInfo.status === 'connected') {
+          const newTokens = new Map(serverTokens);
+          newTokens.set(server.connectionUrl, {
+            token: '',
+            authenticated: true,
+            autoConnected: true,
+          });
+          setServerTokens(newTokens);
+
+          // Fetch tools count for auto-connected server (silently)
+          fetchToolsCount(server.connectionUrl, '');
+        }
+      } catch {
+        // Silently fail - user can manually unlock later
+      } finally {
+        setAutoUnlockingServers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(server.connectionUrl);
+          return newSet;
+        });
+      }
+    },
+    [checkServerStatus, setServerTokens, fetchToolsCount, serverTokens],
   );
 
   const validateServerToken = React.useCallback(
@@ -427,7 +486,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     <>
       <div className="mcp-servers-panel">
         <Table
-          {...wrappedTableProps}
           data={transformedServers}
           columns={MCPPanelColumns}
           defaultSortColumn={0}
@@ -457,7 +515,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                   if (
                     shouldTriggerAutoUnlock({
                       isInitialLoadComplete,
-                      isSelectAllAction,
                       wasSelected,
                       isAuthenticated,
                       isChecking,
