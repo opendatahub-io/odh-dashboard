@@ -3,6 +3,8 @@ import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
+import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../row/DeploymentsTableRow';
@@ -49,6 +51,11 @@ jest.mock('../../deploymentWizard/useExtractFormDataFromDeployment', () => ({
   }),
 }));
 
+// Mock the useAssignHardwareProfile hook
+jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+  useAssignHardwareProfile: jest.fn(),
+}));
+
 // Mock the DeploymentHardwareProfileCell component
 jest.mock(
   '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell',
@@ -84,6 +91,7 @@ describe('DeploymentsTableRow', () => {
   beforeEach(() => {
     onDelete = jest.fn();
     mockExtensions();
+    (useAssignHardwareProfile as jest.Mock).mockReturnValue(mockUseAssignHardwareProfileResult());
   });
 
   it('should render the basic row', async () => {
