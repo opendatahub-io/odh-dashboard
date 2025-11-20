@@ -71,6 +71,7 @@ spec:
                       type: boolean
                     disableModelMesh:
                       type: boolean
+                      description: 'DEPRECATED: ModelMesh has been removed. This field will be removed in a future version.'
                     disableAcceleratorProfiles:
                       type: boolean
                       description: 'DEPRECATED: Accelerator Profiles are replaced by Hardware Profiles. This field will be removed in a future version.'

@@ -224,7 +224,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -246,7 +246,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -267,7 +267,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -286,7 +286,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
   });
@@ -317,7 +317,7 @@ describe('getServingRuntimeContext', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -338,7 +338,7 @@ describe('getServingRuntimeContext', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {

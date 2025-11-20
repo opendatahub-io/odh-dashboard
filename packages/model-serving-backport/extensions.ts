@@ -6,54 +6,9 @@ import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { ModelServingPlatformExtension } from '@odh-dashboard/model-serving/extension-points';
 
-const MODEL_MESH_ID = 'model-mesh';
 const NIM_ID = 'nvidia-nim';
 
 const extensions: ModelServingPlatformExtension[] = [
-  {
-    type: 'model-serving.platform',
-    properties: {
-      id: MODEL_MESH_ID,
-      manage: {
-        namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
-        priority: 10,
-        projectRequirements: {
-          labels: {
-            'modelmesh-enabled': 'true',
-          },
-        },
-      },
-      enableCardText: {
-        title: 'Multi-model serving platform',
-        description:
-          'Multiple models can be deployed on one shared model server. Choose this option when you want to deploy a number of small or medium-sized models that can share the server resources..',
-        selectText: 'Select multi-model',
-        enabledText: 'Multi-model serving enabled',
-        objectType: ProjectObjectType.multiModel,
-      },
-      deployedModelsView: {
-        startHintTitle: 'Start by adding a model server',
-        startHintDescription:
-          'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed. ',
-        deployButtonText: 'Add model server',
-      },
-      backport: {
-        ModelsProjectDetailsTab: () =>
-          import(
-            '@odh-dashboard/internal/pages/modelServing/screens/projects/ModelServingPlatform'
-          ),
-        ServeModelsSection: () =>
-          import(
-            '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/ServeModelsSection'
-          ),
-        GlobalModelsPage: () =>
-          import('@odh-dashboard/internal/pages/modelServing/ModelServingRoutes'),
-      },
-    },
-    flags: {
-      required: [SupportedArea.MODEL_MESH],
-    },
-  },
   {
     type: 'model-serving.platform',
     properties: {

@@ -25,7 +25,6 @@ import { ModelServingSize } from './pages/modelServing/screens/types';
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
-  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
   LABEL_SELECTOR_DATA_SCIENCE_PIPELINES = 'data-science-pipelines',
@@ -133,10 +132,6 @@ export type DashboardLabels = {
   [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
 };
 
-export type ModelServingProjectLabels = {
-  [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
-};
-
 export type K8sCondition = {
   type: string;
   status: string;
@@ -168,7 +163,6 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
-  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -428,7 +422,7 @@ export type ProjectKind = K8sResourceCommon & {
       Partial<{
         'openshift.io/requester': string; // the username of the user that requested this project
       }>;
-    labels?: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
+    labels?: Partial<DashboardLabels>;
     name: string;
   };
   status?: {
@@ -1281,7 +1275,6 @@ export type DashboardCommonConfig = {
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
-  disableModelMesh: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;

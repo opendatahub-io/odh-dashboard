@@ -18,7 +18,6 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
   userTrackingEnabled: false,
   modelServingPlatformEnabled: {
     kServe: true,
-    modelMesh: false,
   },
   useDistributedInferencing: false,
   defaultDeploymentStrategy: 'rolling',

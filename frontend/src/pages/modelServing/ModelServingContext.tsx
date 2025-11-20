@@ -107,13 +107,11 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
 
   const {
     kServe: { installed: kServeInstalled },
-    modelMesh: { installed: modelMeshInstalled },
   } = useServingPlatformStatuses();
 
-  const notInstalledError =
-    !kServeInstalled && !modelMeshInstalled
-      ? new Error('No model serving platform installed')
-      : undefined;
+  const notInstalledError = !kServeInstalled
+    ? new Error('No model serving platform installed')
+    : undefined;
 
   const filterTokens = React.useCallback(
     (servingRuntimeName?: string): SecretKind[] => {

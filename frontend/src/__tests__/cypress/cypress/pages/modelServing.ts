@@ -89,10 +89,6 @@ class ModelServingGlobal {
     });
   }
 
-  findMultiModelButton() {
-    return cy.findByTestId('model-mesh-select-button');
-  }
-
   private findModelsTable() {
     // TODO be more precise
     return cy.findByTestId('inference-service-table');
