@@ -1,4 +1,4 @@
-name: Cypress e2e Test PR Pipeline
+name: Cypress e2e Test
 
 # This workflow currently executes on the ODH (Open Data Hub) dash-e2e cluster.
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
