@@ -47,6 +47,10 @@ class ModelDetailsPage {
     return cy.findByTestId('source-image-location');
   }
 
+  getModelSourceImageLocation() {
+    return cy.get('@modelSourceImageLocation');
+  }
+
   findModelCardMarkdown() {
     return cy.findByTestId('model-card-markdown');
   }

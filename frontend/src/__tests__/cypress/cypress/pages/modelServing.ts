@@ -959,6 +959,20 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('serving-runtime-template-selection-toggle');
   }
 
+  findServingRuntimeSelectRadio() {
+    return cy.findByLabelText('Select from a list of serving runtimes, including custom ones');
+  }
+
+  findFirstServingRuntimeTemplateOption() {
+    // Open the menu
+    this.findServingRuntimeTemplateSearchSelector().click();
+    // Grab the first runtime whose testid starts with "servingRuntime"
+    return cy
+      .findByTestId('global-scoped-serving-runtimes')
+      .find('[data-testid^="servingRuntime"]')
+      .first();
+  }
+
   findServingRuntimeTemplateSearchInput() {
     return cy.findByTestId('serving-runtime-template-selection-search').find('input');
   }
