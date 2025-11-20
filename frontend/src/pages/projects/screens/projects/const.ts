@@ -3,6 +3,9 @@ export enum ProjectsFilterOptions {
   user = 'User',
 }
 
+export const aiProjectFilterKey = 'A.I. projects';
+export const allProjectFilterKey = 'All';
+
 export const projectsFilterOptions = {
   [ProjectsFilterOptions.name]: 'Name',
   [ProjectsFilterOptions.user]: 'User',

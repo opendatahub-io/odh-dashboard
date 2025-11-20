@@ -1,21 +1,51 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import React from 'react';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
-import { useDashboardNamespace } from '#~/redux/selectors';
+import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
-jest.mock('#~/utilities/useWatchHardwareProfiles');
-jest.mock('#~/redux/selectors');
+jest.mock('#~/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
+  HardwareProfilesContext: {
+    _currentValue: null,
+  },
+}));
 
-const mockUseWatchHardwareProfiles = jest.mocked(useWatchHardwareProfiles);
-const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
+jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
+  ProjectDetailsContext: {
+    _currentValue: null,
+  },
+}));
+
+const mockContexts = (
+  globalProfiles: HardwareProfileKind[],
+  globalLoaded = true,
+  globalError: Error | undefined = undefined,
+  projectProfiles: HardwareProfileKind[] = [],
+  projectLoaded = true,
+  projectError: Error | undefined = undefined,
+  inProject = false,
+) => {
+  jest.spyOn(React, 'useContext').mockImplementation((context: React.Context<unknown>) => {
+    if (context === HardwareProfilesContext) {
+      return {
+        globalHardwareProfiles: [globalProfiles, globalLoaded, globalError],
+      };
+    }
+    if (context === ProjectDetailsContext) {
+      return {
+        currentProject: { metadata: { name: inProject ? 'test-project' : '' } },
+        projectHardwareProfiles: [projectProfiles, projectLoaded, projectError],
+      };
+    }
+    return {};
+  });
+};
 
 describe('useHardwareProfilesByUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseWatchHardwareProfiles.mockReturnValue([[], true, undefined]);
-    mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'test-namespace' });
   });
 
   it('should return all profiles when no use cases specified', () => {
@@ -36,10 +66,11 @@ describe('useHardwareProfilesByUseCase', () => {
       }),
     ];
 
-    mockUseWatchHardwareProfiles.mockReturnValue([profiles, true, undefined]);
+    mockContexts(profiles);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)();
-    const [data, loaded, loadError] = renderResult.result.current;
+    const { globalProfiles } = renderResult.result.current;
+    const [data, loaded, loadError] = globalProfiles;
 
     expect(data).toEqual(profiles);
     expect(loaded).toBe(true);
@@ -63,16 +94,13 @@ describe('useHardwareProfilesByUseCase', () => {
       },
     });
 
-    mockUseWatchHardwareProfiles.mockReturnValue([
-      [notebookProfile, servingProfile],
-      true,
-      undefined,
-    ]);
+    mockContexts([notebookProfile, servingProfile]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
       HardwareProfileFeatureVisibility.WORKBENCH,
     ]);
-    const [data] = renderResult.result.current;
+    const { globalProfiles } = renderResult.result.current;
+    const [data] = globalProfiles;
 
     expect(data).toEqual([notebookProfile]);
     expect(renderResult).hookToHaveUpdateCount(1);
@@ -85,12 +113,13 @@ describe('useHardwareProfilesByUseCase', () => {
       },
     });
 
-    mockUseWatchHardwareProfiles.mockReturnValue([[invalidProfile], true, undefined]);
+    mockContexts([invalidProfile]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
       HardwareProfileFeatureVisibility.WORKBENCH,
     ]);
-    const [data] = renderResult.result.current;
+    const { globalProfiles } = renderResult.result.current;
+    const [data] = globalProfiles;
 
     expect(data).toEqual([invalidProfile]);
     expect(renderResult).hookToHaveUpdateCount(1);
@@ -99,12 +128,13 @@ describe('useHardwareProfilesByUseCase', () => {
   it('should include profiles without visible-in annotation', () => {
     const profileWithoutAnnotation = mockHardwareProfile({});
 
-    mockUseWatchHardwareProfiles.mockReturnValue([[profileWithoutAnnotation], true, undefined]);
+    mockContexts([profileWithoutAnnotation]);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)([
       HardwareProfileFeatureVisibility.WORKBENCH,
     ]);
-    const [data] = renderResult.result.current;
+    const { globalProfiles } = renderResult.result.current;
+    const [data] = globalProfiles;
 
     expect(data).toEqual([profileWithoutAnnotation]);
     expect(renderResult).hookToHaveUpdateCount(1);
@@ -112,10 +142,11 @@ describe('useHardwareProfilesByUseCase', () => {
 
   it('should handle loading and error states', () => {
     const error = new Error('Test error');
-    mockUseWatchHardwareProfiles.mockReturnValue([[], false, error]);
+    mockContexts([], false, error);
 
     const renderResult = testHook(useHardwareProfilesByFeatureVisibility)();
-    const [data, loaded, loadError] = renderResult.result.current;
+    const { globalProfiles } = renderResult.result.current;
+    const [data, loaded, loadError] = globalProfiles;
 
     expect(data).toEqual([]);
     expect(loaded).toBe(false);

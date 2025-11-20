@@ -6,6 +6,11 @@ approvers:
   - pnaik1
   - Schimuneck
   - varshaprasad96
+  - Lucifergene
+  - divyanshiGupta
+  - rohitkrai03
+  - danpierce1
+  - jharan1
 
 reviewers:
   - agagancarczyk
@@ -17,6 +22,11 @@ reviewers:
   - Schimuneck
   - varshaprasad96
   - Ygnas
+  - Lucifergene
+  - divyanshiGupta
+  - rohitkrai03
+  - danpierce1
+  - jharan1
 
 labels:
   - area/gen-ai

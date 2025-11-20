@@ -25,7 +25,10 @@ const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespa
 
 describe('useHardwareProfileConfig', () => {
   beforeEach(() => {
-    mockUseHardwareProfiles.mockReturnValue([[], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[], true, undefined],
+    });
     mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'test-namespace' });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
@@ -77,7 +80,10 @@ describe('useHardwareProfileConfig', () => {
       tolerations: [{ key: 'key1', value: 'value1' }],
       nodeSelector: { node: 'value1' },
     });
-    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
 
     const resources = {
       requests: { cpu: '1', memory: '1Gi' },
@@ -113,7 +119,10 @@ describe('useHardwareProfileConfig', () => {
     const hardwareProfile = mockHardwareProfile({
       name: 'test-profile',
     });
-    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
 
     const resources = {
       requests: { cpu: '1', memory: '1Gi' },
@@ -210,7 +219,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[hardwareProfile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
     const existingResources = {
       requests: { cpu: '2', memory: '4Gi' },
       limits: { cpu: '2', memory: '4Gi' },
@@ -243,7 +255,10 @@ describe('useHardwareProfileConfig', () => {
       name: 'empty-profile',
       identifiers: [],
     });
-    mockUseHardwareProfiles.mockReturnValue([[emptyProfile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[emptyProfile], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '2', memory: '4Gi' },
@@ -284,7 +299,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profile], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '2', memory: '4Gi' },
@@ -329,7 +347,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profileWithGPU], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profileWithGPU], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '2', memory: '4Gi' },
@@ -359,7 +380,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profileCpuOnly], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profileCpuOnly], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 1 },
@@ -381,7 +405,10 @@ describe('useHardwareProfileConfig', () => {
       name: 'empty-profile',
       identifiers: [],
     });
-    mockUseHardwareProfiles.mockReturnValue([[emptyProfile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[emptyProfile], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '2', memory: '4Gi' },
@@ -418,7 +445,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profile], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '4', memory: '8Gi' }, // User customized values
@@ -463,7 +493,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profileWithGPU], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profileWithGPU], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '4', memory: '8Gi' }, // User customized values
@@ -494,7 +527,10 @@ describe('useHardwareProfileConfig', () => {
         },
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profileCpuOnlyCustomized], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profileCpuOnlyCustomized], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': 2 }, // All customized
@@ -520,7 +556,10 @@ describe('useHardwareProfileConfig', () => {
       name: 'empty-profile',
       identifiers: [],
     });
-    mockUseHardwareProfiles.mockReturnValue([[emptyProfile], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[emptyProfile], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '4', memory: '8Gi' }, // User customized
@@ -558,7 +597,10 @@ describe('useHardwareProfileConfig', () => {
         }, // Changed from 2-16, default 4
       ],
     });
-    mockUseHardwareProfiles.mockReturnValue([[profileWithNewConstraints], true, undefined]);
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[profileWithNewConstraints], true, undefined],
+    });
 
     const existingResources = {
       requests: { cpu: '4', memory: '8Gi' }, // User customized (still within new ranges)

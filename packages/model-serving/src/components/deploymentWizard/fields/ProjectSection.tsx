@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FormGroup, Content, Popover, Button } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 
 type ProjectSectionType = {
   initialProjectName?: string;
@@ -14,7 +15,20 @@ export const isValidProjectName = (projectName?: string): boolean => {
 };
 
 export const useProjectSection = (initialProjectName?: string): ProjectSectionType => {
-  const [projectName, setProjectName] = React.useState<string | undefined>(initialProjectName);
+  const [projectName, setProjectNameState] = React.useState<string | undefined>(initialProjectName);
+  const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
+
+  const setProjectName = React.useCallback(
+    (newProjectName?: string) => {
+      setProjectNameState(newProjectName);
+
+      const project = projects.find(byName(newProjectName));
+      if (project) {
+        updatePreferredProject(project);
+      }
+    },
+    [projects, updatePreferredProject],
+  );
   return { initialProjectName, projectName, setProjectName };
 };
 

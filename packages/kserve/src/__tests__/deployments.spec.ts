@@ -39,19 +39,19 @@ describe('useWatchDeployments', () => {
         name: 'model-1',
         namespace: 'test-project',
         additionalLabels: { app: 'test' },
-        modelName: 'runtime-1',
+        runtimeName: 'runtime-1',
       }),
       mockInferenceServiceK8sResource({
         name: 'model-2',
         namespace: 'test-project',
         additionalLabels: { app: 'test' },
-        modelName: 'runtime-1',
+        runtimeName: 'runtime-1',
       }),
       mockInferenceServiceK8sResource({
         name: 'model-3',
         namespace: 'test-project',
         additionalLabels: { app: 'other' },
-        modelName: 'runtime-2',
+        runtimeName: 'runtime-2',
       }),
     ];
 
@@ -121,7 +121,7 @@ describe('useWatchDeployments', () => {
     const inferenceServiceWithoutRuntime = mockInferenceServiceK8sResource({
       name: 'model-no-runtime',
       namespace: 'test-project',
-      modelName: 'nonexistent-runtime',
+      runtimeName: 'nonexistent-runtime',
     });
 
     mockUseWatchInferenceServices.mockReturnValue([
@@ -222,7 +222,7 @@ describe('useWatchDeployments', () => {
       mockInferenceServiceK8sResource({
         name: 'model-4',
         namespace: 'test-project',
-        modelName: 'runtime-1',
+        runtimeName: 'runtime-1',
       }),
     ];
 

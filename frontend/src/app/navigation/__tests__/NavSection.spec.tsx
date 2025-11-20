@@ -10,14 +10,14 @@ import type {
   StatusReport,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { useAccessReviewExtensions } from '@odh-dashboard/internal/utilities/useAccessReviewExtensions';
+import { useAccessReviewExtensions } from '#~/utilities/useAccessReviewExtensions';
 import { NavSection } from '#~/app/navigation/NavSection';
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/utilities/useAccessReviewExtensions', () => ({
+jest.mock('#~/utilities/useAccessReviewExtensions', () => ({
   useAccessReviewExtensions: jest.fn(),
 }));
 

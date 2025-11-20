@@ -150,7 +150,7 @@ const ClusterSettings: React.FC = () => {
         addNotification({
           status: AlertVariant.success,
           title: 'Cluster settings changes saved',
-          message: 'It may take up to 2 minutes for configuration changes to be applied.',
+          message: 'It can take up to 2 minutes for configuration changes to be applied.',
           timestamp: new Date(),
         }),
       );

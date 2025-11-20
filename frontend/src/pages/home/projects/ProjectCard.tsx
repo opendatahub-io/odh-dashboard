@@ -11,6 +11,8 @@ import {
   Content,
   Timestamp,
   Truncate,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ProjectKind } from '#~/k8sTypes';
@@ -23,6 +25,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '#~/concepts/k8s/utils';
+import { AILabel } from '#~/pages/projects/screens/projects/AILabel';
 
 interface ProjectCardProps {
   project: ProjectKind;
@@ -32,27 +35,38 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const navigate = useNavigate();
 
   return (
-    <TypeBorderedCard key={project.metadata.uid} sectionType={SectionType.organize}>
+    <TypeBorderedCard
+      key={project.metadata.uid}
+      sectionType={SectionType.organize}
+      data-testid={`project-card-${project.metadata.name}`}
+    >
       <CardHeader>
-        <Button
-          data-testid={`project-link-${project.metadata.name}`}
-          variant="link"
-          isInline
-          onClick={() => {
-            navigate(`/projects/${project.metadata.name}`);
-            fireLinkTrackingEvent('HomeCardClicked', {
-              to: `/projects/${project.metadata.name}`,
-              type: 'project',
-            });
-          }}
-          style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
-        >
-          <Truncate
-            // TODO: Remove the inline style for underline once https://github.com/patternfly/patternfly/issues/7255 is resolved and PF versions are updated
-            style={{ textDecoration: 'underline' }}
-            content={getDisplayNameFromK8sResource(project)}
-          />
-        </Button>
+        <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem>
+            <Button
+              data-testid={`project-link-${project.metadata.name}`}
+              variant="link"
+              isInline
+              onClick={() => {
+                navigate(`/projects/${project.metadata.name}`);
+                fireLinkTrackingEvent('HomeCardClicked', {
+                  to: `/projects/${project.metadata.name}`,
+                  type: 'project',
+                });
+              }}
+              style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}
+            >
+              <Truncate
+                // TODO: Remove the inline style for underline once https://github.com/patternfly/patternfly/issues/7255 is resolved and PF versions are updated
+                style={{ textDecoration: 'underline' }}
+                content={getDisplayNameFromK8sResource(project)}
+              />
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <AILabel />
+          </FlexItem>
+        </Flex>
       </CardHeader>
       <CardBody>
         <Content>

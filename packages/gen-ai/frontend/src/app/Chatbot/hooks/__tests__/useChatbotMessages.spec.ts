@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotSourceSettings, CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
@@ -52,7 +52,7 @@ const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
   Promise<SimplifiedResponseData>,
-  [CreateResponseRequest, { onStreamData?: (chunk: string) => void }?]
+  [CreateResponseRequest, { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal }?]
 >();
 
 describe('useChatbotMessages', () => {
@@ -227,20 +227,25 @@ describe('useChatbotMessages', () => {
       });
 
       // Check that createResponse was called with the correct request data
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test query',
-        model: 'test-model-id',
-        vector_store_ids: ['test-vector-db'],
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-        stream: false,
-        temperature: 0.7,
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test query',
+          model: 'test-model-id',
+          vector_store_ids: ['test-vector-db'],
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+        },
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
     });
   });
 
@@ -298,19 +303,24 @@ describe('useChatbotMessages', () => {
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test message',
-        model: 'test-model-id',
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-        stream: false,
-        temperature: 0.7,
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test message',
+          model: 'test-model-id',
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+        },
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
     });
 
     it('should handle API errors', async () => {
@@ -489,20 +499,25 @@ describe('useChatbotMessages', () => {
       });
 
       expect(result.current.messages).toHaveLength(3); // initial + user + bot response
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test message',
-        model: 'test-model-id',
-        vector_store_ids: ['vs_current_store_123'],
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-        stream: false,
-        temperature: 0.7,
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test message',
+          model: 'test-model-id',
+          vector_store_ids: ['vs_current_store_123'],
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+        },
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
     });
   });
 
@@ -681,6 +696,390 @@ describe('useChatbotMessages', () => {
         role: 'assistant',
         content: 'This is a bot response',
       });
+    });
+  });
+
+  describe('stop button functionality', () => {
+    it('should provide handleStopStreaming function', () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      expect(result.current.handleStopStreaming).toBeDefined();
+      expect(typeof result.current.handleStopStreaming).toBe('function');
+    });
+
+    it('should abort streaming when handleStopStreaming is called', async () => {
+      let capturedAbortSignal: AbortSignal | undefined;
+      let streamDataCallback: ((chunk: string) => void) | undefined;
+
+      // Mock streaming response
+      mockCreateResponse.mockImplementation((request, opts) => {
+        capturedAbortSignal = opts?.abortSignal;
+        streamDataCallback = opts?.onStreamData;
+        return new Promise((resolve, reject) => {
+          const timeouts: NodeJS.Timeout[] = [];
+
+          // Listen for abort immediately
+          const abortHandler = () => {
+            // Clear all pending timeouts
+            timeouts.forEach(clearTimeout);
+            reject(new Error('Response stopped by user'));
+          };
+
+          if (capturedAbortSignal) {
+            if (capturedAbortSignal.aborted) {
+              reject(new Error('Response stopped by user'));
+              return;
+            }
+            capturedAbortSignal.addEventListener('abort', abortHandler);
+          }
+
+          // Simulate streaming with delayed chunks
+          timeouts.push(
+            setTimeout(() => {
+              if (streamDataCallback && !capturedAbortSignal?.aborted) {
+                streamDataCallback('Hello ');
+              }
+            }, 50),
+          );
+          timeouts.push(
+            setTimeout(() => {
+              if (streamDataCallback && !capturedAbortSignal?.aborted) {
+                streamDataCallback('world');
+              }
+            }, 100),
+          );
+          timeouts.push(
+            setTimeout(() => {
+              if (!capturedAbortSignal?.aborted) {
+                resolve(mockSuccessResponse);
+              }
+            }, 150),
+          );
+        });
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Start sending a message
+      act(() => {
+        result.current.handleMessageSend('Test message');
+      });
+
+      // Wait a bit for streaming to start
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 60);
+        });
+      });
+
+      // Call stop streaming
+      act(() => {
+        result.current.handleStopStreaming();
+      });
+
+      // Verify abort signal was triggered
+      expect(capturedAbortSignal?.aborted).toBe(true);
+
+      // Wait for error to be processed and state to update
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 300);
+        });
+      });
+
+      // Verify "You stopped this message" is shown (either appended or as message)
+      // Since we are stopping mid-stream, we expect the streaming message to have the partial content
+      // followed by the stop message
+      await waitFor(
+        () => {
+          const botMessages = result.current.messages.filter((msg) => msg.role === 'bot');
+          const lastBotMessage = botMessages[botMessages.length - 1];
+          expect(lastBotMessage.content).toContain('*You stopped this message*');
+        },
+        { timeout: 1000 },
+      );
+
+      const botMessages = result.current.messages.filter((msg) => msg.role === 'bot');
+      const lastBotMessage = botMessages[botMessages.length - 1];
+      expect(lastBotMessage.content).not.toContain('Response stopped by user');
+    });
+
+    it('should show stop message when streaming is stopped (unflushed buffers are discarded)', async () => {
+      let streamDataCallback: ((chunk: string) => void) | undefined;
+      let capturedAbortSignal: AbortSignal | undefined;
+
+      // Mock streaming response that gets stopped mid-stream
+      mockCreateResponse.mockImplementation((request, opts) => {
+        streamDataCallback = opts?.onStreamData;
+        capturedAbortSignal = opts?.abortSignal;
+        return new Promise((resolve, reject) => {
+          const timeouts: NodeJS.Timeout[] = [];
+
+          // Listen for abort immediately
+          const abortHandler = () => {
+            // Clear all pending timeouts
+            timeouts.forEach(clearTimeout);
+            reject(new Error('Response stopped by user'));
+          };
+
+          if (capturedAbortSignal) {
+            if (capturedAbortSignal.aborted) {
+              reject(new Error('Response stopped by user'));
+              return;
+            }
+            capturedAbortSignal.addEventListener('abort', abortHandler);
+          }
+
+          // Send some chunks
+          timeouts.push(
+            setTimeout(() => {
+              if (streamDataCallback && !capturedAbortSignal?.aborted) {
+                streamDataCallback('Hello ');
+              }
+            }, 50),
+          );
+          timeouts.push(
+            setTimeout(() => {
+              if (streamDataCallback && !capturedAbortSignal?.aborted) {
+                streamDataCallback('world, ');
+              }
+            }, 100),
+          );
+          timeouts.push(
+            setTimeout(() => {
+              if (streamDataCallback && !capturedAbortSignal?.aborted) {
+                streamDataCallback('this is ');
+              }
+            }, 150),
+          );
+          timeouts.push(
+            setTimeout(() => {
+              if (!capturedAbortSignal?.aborted) {
+                resolve(mockSuccessResponse);
+              }
+            }, 200),
+          );
+        });
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Start sending a message
+      act(() => {
+        result.current.handleMessageSend('Test message');
+      });
+
+      // Wait for some content to stream
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 160);
+        });
+      });
+
+      // Stop the stream
+      act(() => {
+        result.current.handleStopStreaming();
+      });
+
+      // Wait for stop to be processed and state to update
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 300);
+        });
+      });
+
+      // Verify partial content is preserved with stop message appended
+      await waitFor(
+        () => {
+          const botMessages = result.current.messages.filter((msg) => msg.role === 'bot');
+          const lastBotMessage = botMessages[botMessages.length - 1];
+          expect(lastBotMessage.content).toContain('*You stopped this message*');
+        },
+        { timeout: 1000 },
+      );
+
+      const botMessages = result.current.messages.filter((msg) => msg.role === 'bot');
+      const lastBotMessage = botMessages[botMessages.length - 1];
+      // The stop message should be shown
+      // Note: Unflushed buffered content is discarded, which is acceptable behavior
+      expect(lastBotMessage.content).toContain('*You stopped this message*');
+      expect(lastBotMessage.content).not.toContain('Response stopped by user');
+    });
+
+    it('should not break when handleStopStreaming is called without active stream', () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Call stop without any active stream
+      expect(() => {
+        act(() => {
+          result.current.handleStopStreaming();
+        });
+      }).not.toThrow();
+    });
+
+    it('should pass abortSignal to createResponse API call when streaming', async () => {
+      mockCreateResponse.mockImplementation(() => Promise.resolve(mockSuccessResponse));
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      // Verify abortSignal was passed
+      expect(mockCreateResponse).toHaveBeenCalled();
+      const callArgs = mockCreateResponse.mock.calls[0];
+      expect(callArgs[1]).toBeDefined();
+      expect(callArgs[1]?.abortSignal).toBeDefined();
+      expect(callArgs[1]?.abortSignal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('should pass abortSignal even when streaming is disabled', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      // Verify abortSignal is passed even for non-streaming requests
+      expect(mockCreateResponse).toHaveBeenCalled();
+      const callArgs = mockCreateResponse.mock.calls[0];
+      expect(callArgs[1]).toBeDefined();
+      expect(callArgs[1]?.abortSignal).toBeDefined();
+      expect(callArgs[1]?.abortSignal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('should handle stop button for non-streaming requests', async () => {
+      let capturedAbortSignal: AbortSignal | undefined;
+
+      // Mock non-streaming response
+      mockCreateResponse.mockImplementation((request, opts) => {
+        capturedAbortSignal = opts?.abortSignal;
+        return new Promise((resolve, reject) => {
+          // Simulate a delay for non-streaming request
+          setTimeout(() => {
+            resolve(mockSuccessResponse);
+          }, 200);
+
+          // Listen for abort
+          if (capturedAbortSignal) {
+            capturedAbortSignal.addEventListener('abort', () => {
+              reject(new Error('Response stopped by user'));
+            });
+          }
+        });
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Start sending a message (non-streaming)
+      act(() => {
+        result.current.handleMessageSend('Test message');
+      });
+
+      // Wait a bit for request to start
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 50);
+        });
+      });
+
+      // Call stop
+      act(() => {
+        result.current.handleStopStreaming();
+      });
+
+      // Verify abort signal was triggered
+      expect(capturedAbortSignal?.aborted).toBe(true);
+
+      // Wait for error to be processed
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 100);
+        });
+      });
+
+      // Verify "You stopped this message" is shown, not the error message
+      const botMessages = result.current.messages.filter((msg) => msg.role === 'bot');
+      const lastBotMessage = botMessages[botMessages.length - 1];
+      expect(lastBotMessage.content).toBe('*You stopped this message*');
+      expect(lastBotMessage.content).not.toContain('Response stopped by user');
     });
   });
 });
