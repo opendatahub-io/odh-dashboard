@@ -17,7 +17,7 @@ include ${ENV_FILE}
 export $(shell sed 's/=.*//' ${ENV_FILE})
 endif
 
-.PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start clean clean-all
+.PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start dev-start-no-portforward dev-portforward clean clean-all
 
 help: ## Display this help message
 	@echo "Available commands:"
@@ -33,7 +33,7 @@ dev-bff-mock: ## Run only the bff in development mode
 
 .PHONY: dev-bff
 dev-bff:
-	cd bff && LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run STATIC_ASSETS_DIR=../frontend/dist
+	cd bff && MAAS_URL=${MAAS_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run STATIC_ASSETS_DIR=../frontend/dist
 
 
 .PHONY: dev-frontend
@@ -44,8 +44,22 @@ dev-frontend: ## Run only the frontend in development mode
 dev-start-mock: ## Run both frontend and bff in development mode
 	make -j 2 dev-bff-mock dev-frontend
 
+.PHONY: dev-portforward
+dev-portforward: ## Start port-forwarding in separate terminals
+	@echo "Starting port-forward for maas-api..."
+	@osascript -e 'tell application "Terminal" to do script "cd $(PWD) && oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api 8081:8080"'
+	@sleep 1
+	@echo "Starting port-forward for lsd-genai-playground-service..."
+	@osascript -e 'tell application "Terminal" to do script "cd $(PWD) && oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321"'
+	@echo "Port-forwarding terminals opened!"
+
 .PHONY: dev-start
-dev-start:
+dev-start: dev-portforward ## Start frontend, bff, and port-forwarding
+	@sleep 2
+	make -j 2 dev-bff dev-frontend
+
+.PHONY: dev-start-no-portforward
+dev-start-no-portforward: ## Start frontend and bff without port-forwarding
 	make -j 2 dev-bff dev-frontend
 
 clean: ## Clean build artifacts and node_modules
