@@ -80,6 +80,8 @@ export const podSpecSizeSchema = z.object({
 /**
  *  used by fine-tuning only
  *  @deprecated fine-tuning use only; this schema (and the line exporting it) can be removed with fine-tuning
+ *  fine-tuning: RHOAIENG-36276, RHOAIENG-34285 
+ * 
  */
 const hardwareSchema = z.object({
   podSpecOptions: z
