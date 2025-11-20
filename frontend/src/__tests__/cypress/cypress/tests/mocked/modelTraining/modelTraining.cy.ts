@@ -1,0 +1,1030 @@
+/* eslint-disable camelcase */
+import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
+import { TrainingJobState } from '@odh-dashboard/model-training/types';
+import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import {
+  mockDashboardConfig,
+  mockK8sResourceList,
+  mockPodK8sResource,
+  mockPodLogs,
+  mockProjectK8sResource,
+} from '#~/__mocks__';
+import {
+  modelTrainingGlobal,
+  trainingJobTable,
+  trainingJobDetailsDrawer,
+  trainingJobResourcesTab,
+  trainingJobPodsTab,
+  trainingJobLogsTab,
+  trainingJobDetailsTab,
+} from '#~/__tests__/cypress/cypress/pages/modelTraining';
+import { ProjectModel, PodModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { ClusterQueueModel, LocalQueueModel, TrainJobModel } from '#~/api/models';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
+import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
+import { ContainerResourceAttributes } from '#~/types';
+
+const projectName = 'test-model-training-project';
+const projectDisplayName = 'Test Model Training Project';
+
+const mockTrainJobs = mockTrainJobK8sResourceList([
+  {
+    name: 'image-classification-job',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 4,
+    numProcPerNode: 1,
+    localQueueName: 'training-queue',
+    creationTimestamp: '2024-01-15T10:30:00Z',
+  },
+  {
+    name: 'nlp-model-training',
+    namespace: projectName,
+    status: TrainingJobState.SUCCEEDED,
+    numNodes: 3,
+    localQueueName: 'default-queue',
+    creationTimestamp: '2024-01-14T08:15:00Z',
+  },
+  {
+    name: 'failed-training-job',
+    namespace: projectName,
+    status: TrainingJobState.FAILED,
+    numNodes: 2,
+    localQueueName: 'urgent-queue',
+    creationTimestamp: '2024-01-13T14:45:00Z',
+  },
+  {
+    name: 'z-last-job',
+    namespace: projectName,
+    status: TrainingJobState.SUCCEEDED,
+    numNodes: 2,
+    localQueueName: 'z-queue',
+    creationTimestamp: '2024-01-16T10:30:00Z',
+  },
+  {
+    name: 'a-first-job',
+    namespace: projectName,
+    status: TrainingJobState.FAILED,
+    numNodes: 6,
+    localQueueName: 'a-queue',
+    creationTimestamp: '2024-01-13T08:15:00Z',
+  },
+  {
+    name: 'middle-job',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 4,
+    localQueueName: 'middle-queue',
+    creationTimestamp: '2024-01-15T14:45:00Z',
+  },
+  {
+    name: 'gpu-training-job',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 2,
+    localQueueName: 'gpu-queue',
+    creationTimestamp: '2024-01-17T09:00:00Z',
+  },
+  {
+    name: 'overconsumed-training-job',
+    namespace: projectName,
+    status: TrainingJobState.RUNNING,
+    numNodes: 8,
+    localQueueName: 'overconsumed-queue',
+    creationTimestamp: '2024-01-18T10:00:00Z',
+  },
+]);
+
+const mockLocalQueues = [
+  mockLocalQueueK8sResource({
+    name: 'training-queue',
+    namespace: projectName,
+  }),
+  mockLocalQueueK8sResource({
+    name: 'default-queue',
+    namespace: projectName,
+  }),
+  mockLocalQueueK8sResource({
+    name: 'urgent-queue',
+    namespace: projectName,
+  }),
+  mockLocalQueueK8sResource({
+    name: 'z-queue',
+    namespace: projectName,
+  }),
+  mockLocalQueueK8sResource({
+    name: 'a-queue',
+    namespace: projectName,
+  }),
+  mockLocalQueueK8sResource({
+    name: 'middle-queue',
+    namespace: projectName,
+  }),
+  {
+    ...mockLocalQueueK8sResource({
+      name: 'gpu-queue',
+      namespace: projectName,
+    }),
+    spec: {
+      clusterQueue: 'gpu-cluster-queue',
+    },
+  },
+  {
+    ...mockLocalQueueK8sResource({
+      name: 'overconsumed-queue',
+      namespace: projectName,
+    }),
+    spec: {
+      clusterQueue: 'overconsumed-cluster-queue',
+    },
+  },
+];
+
+const createGPUClusterQueue = () => {
+  const baseMock = mockClusterQueueK8sResource({ name: 'gpu-cluster-queue' });
+  return {
+    ...baseMock,
+    spec: {
+      ...baseMock.spec,
+      cohort: 'ml-training-cohort',
+      resourceGroups: [
+        {
+          coveredResources: [
+            ContainerResourceAttributes.CPU,
+            ContainerResourceAttributes.MEMORY,
+            'nvidia.com/gpu' as ContainerResourceAttributes,
+          ],
+          flavors: [
+            {
+              name: 'gpu-flavor',
+              resources: [
+                { name: ContainerResourceAttributes.CPU, nominalQuota: '200' },
+                { name: ContainerResourceAttributes.MEMORY, nominalQuota: '128Gi' },
+                { name: 'nvidia.com/gpu' as ContainerResourceAttributes, nominalQuota: '8' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    status: {
+      ...baseMock.status,
+      flavorsUsage: [
+        {
+          name: 'gpu-flavor',
+          resources: [
+            { name: ContainerResourceAttributes.CPU, total: '50' },
+            { name: ContainerResourceAttributes.MEMORY, total: '32Gi' },
+            { name: 'nvidia.com/gpu' as ContainerResourceAttributes, total: '2' },
+          ],
+        },
+      ],
+    },
+  };
+};
+
+const mockClusterQueues = [
+  mockClusterQueueK8sResource({
+    name: 'test-cluster-queue',
+  }),
+  createGPUClusterQueue(),
+  mockClusterQueueK8sResource({
+    name: 'overconsumed-cluster-queue',
+    isCpuOverQuota: true,
+    isMemoryOverQuota: true,
+  }),
+];
+
+const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      trainingJobs: true,
+    }),
+  );
+
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: projectName, displayName: projectDisplayName }),
+      mockProjectK8sResource({ k8sName: 'other-project', displayName: 'Other Project' }),
+    ]),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: TrainJobModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(isEmpty ? [] : mockTrainJobs),
+  );
+
+  cy.interceptK8sList(
+    {
+      model: LocalQueueModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(isEmpty ? [] : mockLocalQueues),
+  );
+
+  if (!isEmpty) {
+    mockLocalQueues.forEach((queue) => {
+      if (queue.metadata?.name) {
+        cy.interceptK8s(
+          {
+            model: LocalQueueModel,
+            ns: projectName,
+            name: queue.metadata.name,
+          },
+          queue,
+        );
+      }
+    });
+  }
+
+  if (!isEmpty) {
+    cy.interceptK8s({ model: ClusterQueueModel, name: 'test-cluster-queue' }, mockClusterQueues[0]);
+    cy.interceptK8s({ model: ClusterQueueModel, name: 'gpu-cluster-queue' }, mockClusterQueues[1]);
+    cy.interceptK8s(
+      { model: ClusterQueueModel, name: 'overconsumed-cluster-queue' },
+      mockClusterQueues[2],
+    );
+  }
+};
+
+describe('Model Training', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+  });
+
+  it('should display correct data in training job table rows', () => {
+    initIntercepts();
+    modelTrainingGlobal.visit(projectName);
+
+    const imageClassificationRow = trainingJobTable.getTableRow('image-classification-job');
+    imageClassificationRow.findTrainingJobName().should('contain', 'image-classification-job');
+    imageClassificationRow.findProject().should('contain', projectDisplayName);
+    imageClassificationRow.findNodes().should('contain', '4');
+    imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
+    imageClassificationRow.findStatus().should('contain', TrainingJobState.RUNNING);
+  });
+
+  it('should show empty state when no training jobs exist', () => {
+    initIntercepts({ isEmpty: true });
+    modelTrainingGlobal.visit(projectName);
+
+    modelTrainingGlobal.findEmptyState().should('contain', 'No training jobs');
+    modelTrainingGlobal
+      .findEmptyStateDescription()
+      .should('contain', 'No training jobs have been found in this project.');
+  });
+
+  describe('Training Job Details Drawer', () => {
+    it('should open drawer when clicking on a training job name', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      trainingJobDetailsDrawer.shouldBeClosed();
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+    });
+
+    it('should navigate between tabs in the drawer', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('nlp-model-training');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      trainingJobDetailsDrawer.findTab('Training details').should('exist');
+      trainingJobDetailsDrawer.findTab('Resources').should('exist');
+      trainingJobDetailsDrawer.findTab('Pods').should('exist');
+      trainingJobDetailsDrawer.findTab('Logs').should('exist');
+
+      trainingJobDetailsDrawer.selectTab('Training details');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Progress');
+
+      trainingJobDetailsDrawer.selectTab('Resources');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Node configurations');
+
+      trainingJobDetailsDrawer.selectTab('Pods');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Training pods');
+    });
+
+    it('should close drawer when clicking close button', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('failed-training-job');
+      row.findNameLink().click();
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      trainingJobDetailsDrawer.close();
+      trainingJobDetailsDrawer.shouldBeClosed();
+    });
+
+    it('should show kebab menu with delete option', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('a-first-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      trainingJobDetailsDrawer.clickKebabMenu();
+
+      trainingJobDetailsDrawer.findKebabMenuItem('Delete').should('exist');
+    });
+
+    it('should switch between different jobs in the drawer', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const firstRow = trainingJobTable.getTableRow('image-classification-job');
+      firstRow.findNameLink().click();
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.findTitle().should('contain', 'image-classification-job');
+
+      const secondRow = trainingJobTable.getTableRow('nlp-model-training');
+      secondRow.findNameLink().click();
+
+      trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
+    });
+
+    it('should display progress bar for running job with progress percentage', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findStatusProgressBar().should('exist');
+      row.findStatusProgressBar().should('contain', '64%');
+    });
+  });
+
+  describe('Training Details Tab', () => {
+    it('should display all sections in Training details tab', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      // Verify all sections are present
+      trainingJobDetailsTab.findProgressSection().should('exist');
+      trainingJobDetailsTab.findMetricsSection().should('exist');
+    });
+
+    it('should display progress information', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      // Check progress section
+      trainingJobDetailsTab.findProgressSection().should('contain', 'Progress');
+      trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '30 minutes');
+      trainingJobDetailsTab.findStepsValue().should('contain', '3000 / 4690');
+      trainingJobDetailsTab.findEpochsValue().should('contain', '3 / 5');
+    });
+
+    it('should display metrics information', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('nlp-model-training');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      // Check metrics section
+      trainingJobDetailsTab.findMetricsSection().should('contain', 'Metrics');
+      trainingJobDetailsTab.findLossValue().should('contain', '0.2344');
+      trainingJobDetailsTab.findAccuracyValue().should('contain', '0.8993774');
+      trainingJobDetailsTab.findTotalBatchesValue().should('contain', '854');
+      trainingJobDetailsTab.findTotalSamplesValue().should('contain', '4000');
+    });
+
+    it('should update Training details tab when switching between jobs', () => {
+      initIntercepts();
+
+      // Create jobs with different trainerStatus values
+      const jobsWithDifferentStatus = mockTrainJobK8sResourceList([
+        {
+          name: 'early-job',
+          namespace: projectName,
+          status: TrainingJobState.RUNNING,
+          numNodes: 2,
+          localQueueName: 'default-queue',
+          creationTimestamp: '2024-01-15T10:30:00Z',
+          trainerStatus: {
+            estimatedRemainingTimeSummary: '1 hour',
+            currentStep: 100,
+            totalSteps: 1000,
+            currentEpoch: 1,
+            totalEpochs: 10,
+            trainMetrics: {
+              loss: 0.9,
+              accuracy: 0.5,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_batches: 50,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_samples: 500,
+            },
+            lastUpdatedTime: '2024-01-15T10:45:00Z',
+          },
+        },
+        {
+          name: 'late-job',
+          namespace: projectName,
+          status: TrainingJobState.RUNNING,
+          numNodes: 3,
+          localQueueName: 'default-queue',
+          creationTimestamp: '2024-01-14T08:15:00Z',
+          trainerStatus: {
+            estimatedRemainingTimeSummary: '10 minutes',
+            currentStep: 9000,
+            totalSteps: 10000,
+            currentEpoch: 9,
+            totalEpochs: 10,
+            trainMetrics: {
+              loss: 0.1,
+              accuracy: 0.99,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_batches: 5000,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_samples: 50000,
+            },
+            lastUpdatedTime: '2024-01-15T10:45:00Z',
+          },
+        },
+      ]);
+
+      cy.interceptK8sList(
+        {
+          model: TrainJobModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(jobsWithDifferentStatus),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      // Check first job
+      const firstRow = trainingJobTable.getTableRow('early-job');
+      firstRow.findNameLink().click();
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '1 hour');
+      trainingJobDetailsTab.findStepsValue().should('contain', '100 / 1000');
+      trainingJobDetailsTab.findEpochsValue().should('contain', '1 / 10');
+      trainingJobDetailsTab.findLossValue().should('contain', '0.9');
+      trainingJobDetailsTab.findAccuracyValue().should('contain', '0.5');
+
+      // Switch to second job
+      const secondRow = trainingJobTable.getTableRow('late-job');
+      secondRow.findNameLink().click();
+
+      trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '10 minutes');
+      trainingJobDetailsTab.findStepsValue().should('contain', '9000 / 10000');
+      trainingJobDetailsTab.findEpochsValue().should('contain', '9 / 10');
+      trainingJobDetailsTab.findLossValue().should('contain', '0.1');
+      trainingJobDetailsTab.findAccuracyValue().should('contain', '0.99');
+    });
+  });
+
+  describe('Resources Tab', () => {
+    it('should display all sections in Resources tab', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify all sections are present
+      trainingJobResourcesTab.findNodeConfigurationsSection().should('exist');
+      trainingJobResourcesTab.findResourcesPerNodeSection().should('exist');
+      trainingJobResourcesTab.findClusterQueueSection().should('exist');
+      trainingJobResourcesTab.findQuotasSection().should('exist');
+    });
+
+    it('should display correct node configuration values', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findNodesValue().should('contain', '4');
+      trainingJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
+      trainingJobResourcesTab.findNodesEditButton().should('exist');
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+    });
+
+    it('should display correct resource values', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('nlp-model-training');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findCpuRequestsValue().should('contain', '1');
+      trainingJobResourcesTab.findCpuLimitsValue().should('contain', '2');
+      trainingJobResourcesTab.findMemoryRequestsValue().should('contain', '2Gi');
+      trainingJobResourcesTab.findMemoryLimitsValue().should('contain', '4Gi');
+    });
+
+    it('should display cluster queue information', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findQueueValue().should('contain', 'test-cluster-queue');
+    });
+
+    it('should display quota source', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findQuotaSourceValue().should('contain', '-');
+    });
+
+    it('should display CPU and Memory consumption', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findCPUQuotaTotal().should('contain', '100');
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '40 (40%)');
+
+      trainingJobResourcesTab.findMemoryQuotaTotal().should('contain', '64Gi');
+      trainingJobResourcesTab.findMemoryQuotaConsumed().should('contain', '20Gi (31%)');
+    });
+
+    it('should display GPU consumption when available', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('gpu-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // GPU cluster queue has: 200 CPU, 128Gi Memory, 8 GPU
+      trainingJobResourcesTab.findCPUQuotaTotal().should('contain', '200');
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '50 (25%)');
+
+      trainingJobResourcesTab.findMemoryQuotaTotal().should('contain', '128Gi');
+      trainingJobResourcesTab.findMemoryQuotaConsumed().should('contain', '32Gi (25%)');
+
+      trainingJobResourcesTab.findGPUQuotaTotal().should('contain', '8');
+      trainingJobResourcesTab.findGPUQuotaConsumed().should('contain', '2 (25%)');
+    });
+
+    it('should display cohort when set', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('gpu-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findQuotaSourceValue().should('contain', 'ml-training-cohort');
+    });
+
+    it('should display over-consumption correctly', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('overconsumed-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '180 (180%)');
+      trainingJobResourcesTab.findMemoryQuotaConsumed().should('contain', '100Gi (156%)');
+    });
+
+    it('should show dash when no consumed resources available', () => {
+      initIntercepts();
+
+      cy.interceptK8s(
+        { model: ClusterQueueModel, name: 'test-cluster-queue' },
+        {
+          ...mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+          status: {
+            flavorsUsage: [],
+          },
+        },
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      trainingJobResourcesTab.findConsumedQuotaValue().should('contain', '-');
+    });
+
+    it('should update resources tab when switching between jobs', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const firstRow = trainingJobTable.getTableRow('image-classification-job');
+      firstRow.findNameLink().click();
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+      trainingJobResourcesTab.findNodesValue().should('contain', '4');
+
+      const secondRow = trainingJobTable.getTableRow('nlp-model-training');
+      secondRow.findNameLink().click();
+      trainingJobResourcesTab.findNodesValue().should('contain', '3');
+
+      const thirdRow = trainingJobTable.getTableRow('a-first-job');
+      thirdRow.findNameLink().click();
+      trainingJobResourcesTab.findNodesValue().should('contain', '6');
+    });
+  });
+
+  describe('Pods Tab', () => {
+    const mockPods = [
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-0',
+        namespace: projectName,
+        isRunning: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-1',
+        namespace: projectName,
+        isRunning: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-2',
+        namespace: projectName,
+        isRunning: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-initializer-0',
+        namespace: projectName,
+        isRunning: false,
+        isPending: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+    ];
+
+    it('should display training pods in Pods tab', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
+        },
+        mockK8sResourceList(mockPods),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Pods');
+
+      trainingJobPodsTab.findInitializersSection().should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-initializer-0').should('exist');
+
+      trainingJobPodsTab.findTrainingPodsSection().should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-worker-0').should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-worker-1').should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-worker-2').should('exist');
+    });
+
+    it('should display pod status icons correctly', () => {
+      initIntercepts();
+
+      const mixedStatusPods = [
+        mockPodK8sResource({
+          name: 'running-pod',
+          namespace: projectName,
+          isRunning: true,
+        }),
+        mockPodK8sResource({
+          name: 'pending-pod',
+          namespace: projectName,
+          isRunning: false,
+          isPending: true,
+        }),
+      ];
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mixedStatusPods),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Pods');
+
+      trainingJobPodsTab.findPodByName('running-pod').should('exist');
+      trainingJobPodsTab.findPodByName('pending-pod').should('exist');
+    });
+  });
+
+  describe('Logs Tab', () => {
+    const mockTrainingPods = [
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-0',
+        namespace: projectName,
+        isRunning: true,
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-1',
+        namespace: projectName,
+        isRunning: true,
+      }),
+    ];
+
+    it('should display logs for selected pod', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-0',
+          containerName: 'image-classification-job-worker-0',
+        }),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findLogViewer().should('exist');
+      trainingJobLogsTab
+        .findLogContent()
+        .should('contain', 'sample log for namespace test-model-training-project');
+    });
+
+    it('should allow switching between pods in log viewer', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-0',
+          containerName: 'image-classification-job-worker-0',
+        }),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-1',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-1',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-1',
+          containerName: 'image-classification-job-worker-1',
+        }),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab
+        .findLogContent()
+        .should('contain', 'pod name image-classification-job-worker-0');
+
+      trainingJobLogsTab.selectPod('image-classification-job-worker-1');
+
+      trainingJobLogsTab
+        .findLogContent()
+        .should('contain', 'pod name image-classification-job-worker-1');
+    });
+
+    it('should show empty state when no pods available for logs', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
+        },
+        mockK8sResourceList([]),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findEmptyState().should('contain', 'No pods found');
+    });
+
+    it('should enable download button when logs are loaded', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-0',
+          containerName: 'image-classification-job-worker-0',
+        }),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findDownloadButton().should('exist');
+      trainingJobLogsTab.findDownloadButton().should('not.be.disabled');
+    });
+
+    it('should display loading state while fetching logs', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: 'training.kubeflow.org/job-role=worker' },
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        {
+          delay: 1000,
+          body: mockPodLogs({
+            namespace: projectName,
+            podName: 'image-classification-job-worker-0',
+            containerName: 'image-classification-job-worker-0',
+          }),
+        },
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findLoadingSpinner().should('exist');
+    });
+  });
+});
