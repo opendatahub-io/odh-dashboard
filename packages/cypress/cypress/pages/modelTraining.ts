@@ -115,6 +115,10 @@ class TrainingJobTableRow extends TableRow {
     return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
   }
 
+  findStatusProgressBar() {
+    return this.findStatus().findByTestId('training-job-progress-bar');
+  }
+
   findNameLink() {
     return this.findTrainingJobName().find('button');
   }
