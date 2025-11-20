@@ -18,7 +18,7 @@ import { ImageStreamAndVersion } from '#~/types';
 import ExtendedButton from '#~/components/ExtendedButton';
 import GenericSidebar from '#~/components/GenericSidebar';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
+import { HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
 import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
@@ -47,6 +47,7 @@ import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/use
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils.ts';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const.ts';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -283,7 +284,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 project={currentProject.metadata.name}
                 podSpecOptionsState={podSpecOptionsState}
                 isHardwareProfileSupported={isHardwareProfileSupported}
-                visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
+                visibleIn={WORKBENCH_VISIBILITY}
               />
             </FormSection>
             <FormSection

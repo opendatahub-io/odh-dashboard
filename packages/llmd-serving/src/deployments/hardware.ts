@@ -1,47 +1,5 @@
-import type {
-  HardwareProfileConfig,
-  useHardwareProfileConfig,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTypes';
-import { structuredCloneWithMainContainer } from './model';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
-
-export const applyHardwareProfileConfig = (
-  llmdInferenceService: LLMInferenceServiceKind,
-  hardwareProfile: HardwareProfileConfig,
-): LLMInferenceServiceKind => {
-  const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    'opendatahub.io/hardware-profile-name': hardwareProfile.selectedProfile?.metadata.name ?? '',
-    'opendatahub.io/hardware-profile-namespace':
-      hardwareProfile.selectedProfile?.metadata.namespace ?? '',
-  };
-  mainContainer.resources = hardwareProfile.resources ?? undefined;
-  return result;
-};
-
-export const extractHardwareProfileConfig = (
-  llmdDeployment: LLMdDeployment,
-): Parameters<typeof useHardwareProfileConfig> => {
-  const name = llmdDeployment.model.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
-  const resources = llmdDeployment.model.spec.template?.containers?.[0]?.resources;
-  const tolerations = undefined;
-  const nodeSelector = undefined;
-  const { namespace } = llmdDeployment.model.metadata;
-  const hardwareProfileNamespace =
-    llmdDeployment.model.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
-
-  return [
-    name,
-    resources,
-    tolerations,
-    nodeSelector,
-    [HardwareProfileFeatureVisibility.MODEL_SERVING],
-    namespace,
-    hardwareProfileNamespace,
-  ];
-};
 
 export const applyReplicas = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -77,4 +35,10 @@ export const extractEnvironmentVariables = (
       value: envVar.value?.toString() || '',
     })),
   };
+};
+
+export const LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
+  containerResourcesPath: 'spec.template.containers.0.resources',
+  tolerationsPath: 'spec.template.tolerations',
+  nodeSelectorPath: 'spec.template.nodeSelector',
 };

@@ -58,7 +58,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     exitWizardOnCancel();
   }, [exitWizardOnCancel]);
 
-  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name);
+  const wizardState = useModelDeploymentWizard(
+    existingData,
+    project?.metadata.name,
+    existingDeployment,
+  );
   const validation = useModelDeploymentWizardValidation(wizardState.state);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
 

@@ -206,10 +206,11 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
         optional: true,
       },
       {
-        key: 'hardwareProfileConfig',
+        key: 'hardwareProfileOptions',
         label: 'Hardware profile',
         comp: (state) =>
-          state.hardwareProfileConfig.formData.selectedProfile?.metadata.name || 'default',
+          state.hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData.selectedProfile
+            ?.metadata.name || 'default',
       },
       {
         key: 'modelFormatState',

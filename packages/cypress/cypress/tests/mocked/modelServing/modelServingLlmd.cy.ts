@@ -172,7 +172,6 @@ describe('Model Serving LLMD', () => {
       // expanded section of the row
       row.findToggleButton('llmd-serving').click();
       row.findDescriptionListItem('Model server replicas').next('dd').should('have.text', '2');
-      row.findDescriptionListItem('Model server size').next('dd').should('contain.text', 'Small');
       row
         .findDescriptionListItem('Model server size')
         .next('dd')

@@ -9,8 +9,9 @@ import {
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
-import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig, applyReplicas } from './hardware';
+import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
   applyModelEnvVarsAndArgs,
@@ -32,7 +33,7 @@ type CreateLLMdInferenceServiceParams = {
   projectName: string;
   k8sName: string;
   modelLocationData: ModelLocationData;
-  hardwareProfile: HardwareProfileConfig;
+  hardwareProfile?: UseAssignHardwareProfileResult<ModelResourceType>;
   createConnectionData?: CreateConnectionFieldData;
   displayName?: string;
   description?: string;
@@ -93,6 +94,13 @@ const assembleLLMdInferenceService = (
             route: {},
             gateway: {},
           },
+          template: {
+            containers: [
+              {
+                name: 'main',
+              },
+            ],
+          },
         },
       };
 
@@ -105,7 +113,12 @@ const assembleLLMdInferenceService = (
     createConnectionData,
     dryRun,
   );
-  llmInferenceService = applyHardwareProfileConfig(llmInferenceService, hardwareProfile);
+  if (hardwareProfile) {
+    llmInferenceService = hardwareProfile.applyToResource(
+      llmInferenceService,
+      LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    );
+  }
   llmInferenceService = applyReplicas(llmInferenceService, replicas);
   llmInferenceService = applyModelEnvVarsAndArgs(
     llmInferenceService,
@@ -168,7 +181,7 @@ export const deployLLMdDeployment = async (
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     displayName: wizardData.k8sNameDesc.data.name,
     description: wizardData.k8sNameDesc.data.description,
-    hardwareProfile: wizardData.hardwareProfileConfig.formData,
+    hardwareProfile: wizardData.hardwareProfileOptions,
     modelLocationData: wizardData.modelLocationData.data ?? {
       type: ModelLocationType.NEW,
       fieldValues: {},

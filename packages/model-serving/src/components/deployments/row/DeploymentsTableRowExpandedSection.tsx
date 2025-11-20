@@ -14,19 +14,17 @@ import {
 import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import type { ContainerResources } from '@odh-dashboard/internal/types';
-import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
-import { useDeepCompareMemoize } from '@odh-dashboard/internal/utilities/useDeepCompareMemoize';
-import { getModelServingSizes } from '@odh-dashboard/internal/concepts/modelServing/modelServingSizesUtils';
-import { getResourceSize } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
+import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
-import { useResolvedDeploymentExtension } from '../../../../src/concepts/extensionUtils';
+import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   isModelServingDeploymentFormDataExtension,
   type Deployment,
 } from '../../../../extension-points';
-import { ModelAvailabilityFieldsData } from '../../../components/deploymentWizard/types';
+import { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
+import { useModelServingHardwareProfile } from '../../deploymentWizard/useModelServingHardwareProfile.ts';
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
@@ -52,21 +50,13 @@ const ReplicasItem = ({ replicas }: { replicas?: number | null }) => {
 };
 
 const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
-  const { dashboardConfig } = useAppContext();
-  const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
-  const existingSizeName = useDeepCompareMemoize(
-    resources ? getResourceSize(sizes, resources).name : undefined,
-  );
-
   const { requests, limits } = resources || {};
-
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
       <DescriptionListGroup>
         <DescriptionListTerm>Model server size</DescriptionListTerm>
         <DescriptionListDescription>
           <List isPlain>
-            <ListItem>{existingSizeName || 'Custom'}</ListItem>
             <ListItem>
               {requests?.cpu ?? 'Unknown'} CPUs, {formatMemory(requests?.memory ?? 'Unknown')}{' '}
               Memory requested
@@ -153,7 +143,12 @@ const DescriptionItem = ({ description }: { description: string }) => {
 export const DeploymentRowExpandedSection: React.FC<{
   deployment: Deployment;
   isVisible: boolean;
-}> = ({ deployment, isVisible }) => {
+  hardwareProfilePaths: CrPathConfig;
+}> = ({ deployment, isVisible, hardwareProfilePaths }) => {
+  const hardwareProfileOptions = useModelServingHardwareProfile(
+    deployment.model,
+    hardwareProfilePaths,
+  );
   const [formDataExtension] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
     deployment,
@@ -167,10 +162,6 @@ export const DeploymentRowExpandedSection: React.FC<{
   );
   const replicas = React.useMemo(
     () => formDataExtension?.properties.extractReplicas(deployment),
-    [formDataExtension, deployment],
-  );
-  const hardwareProfileConfig = React.useMemo(
-    () => formDataExtension?.properties.extractHardwareProfileConfig(deployment),
     [formDataExtension, deployment],
   );
   const description = React.useMemo(
@@ -196,13 +187,13 @@ export const DeploymentRowExpandedSection: React.FC<{
             {description && <DescriptionItem description={description} />}
             {modelFormat && <FrameworkItem framework={modelFormat} />}
             <ReplicasItem replicas={replicas} />
-            <ModelSizeItem resources={hardwareProfileConfig?.[1]} />
-            {hardwareProfileConfig && (
-              <HardwareProfileNameValue
-                project={deployment.model.metadata.namespace}
-                hardwareProfileConfig={hardwareProfileConfig}
-              />
-            )}
+            <ModelSizeItem
+              resources={hardwareProfileOptions.podSpecOptionsState.podSpecOptions.resources}
+            />
+            <HardwareProfileNameValue
+              project={deployment.model.metadata.namespace}
+              hardwareProfile={hardwareProfileOptions}
+            />
             {modelAvailability && <ModelAvailabilityItem modelAvailability={modelAvailability} />}
             <TokenAuthenticationItem deployment={deployment} />
           </Stack>

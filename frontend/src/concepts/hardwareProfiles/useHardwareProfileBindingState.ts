@@ -1,16 +1,18 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import React from 'react';
-import { HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { HardwareProfileBindingStateInfo } from '#~/concepts/hardwareProfiles/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { CustomWatchK8sResult } from '#~/types.ts';
 import { HardwareProfileBindingState } from './const';
 
 export const useHardwareProfileBindingState = (
   resource?: NotebookKind | ModelResourceType,
-  extraProfiles?: [profiles: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined],
+  visibility?: HardwareProfileFeatureVisibility[],
+  extraProfiles?: CustomWatchK8sResult<HardwareProfileKind[]>,
 ): [HardwareProfileBindingStateInfo | null, boolean, Error | undefined] => {
   const { dashboardNamespace } = useDashboardNamespace();
   const hardwareProfileName =
@@ -24,7 +26,7 @@ export const useHardwareProfileBindingState = (
   const {
     globalProfiles: [globalProfilesList, globalProfilesLoaded, globalProfilesError],
     projectProfiles: [projectProfilesList, projectProfilesLoaded, projectProfilesError],
-  } = useHardwareProfilesByFeatureVisibility();
+  } = useHardwareProfilesByFeatureVisibility(visibility, extraProfiles);
 
   const extraProfilesList = extraProfiles?.[0];
   const extraProfilesLoaded = extraProfiles?.[1];

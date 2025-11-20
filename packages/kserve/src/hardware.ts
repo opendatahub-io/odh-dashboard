@@ -1,16 +1,6 @@
-import { extractHardwareProfileConfigFromInferenceService } from '@odh-dashboard/internal/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import type {
-  HardwareProfileConfig,
-  useHardwareProfileConfig,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import type { KServeDeployment } from './deployments';
-
-export const extractHardwareProfileConfig = (
-  kserveDeployment: KServeDeployment,
-): Parameters<typeof useHardwareProfileConfig> => {
-  return extractHardwareProfileConfigFromInferenceService(kserveDeployment.model);
-};
 
 export const extractReplicas = (kserveDeployment: KServeDeployment): number | null => {
   return (
@@ -43,31 +33,6 @@ export const extractEnvironmentVariables = (
   };
 };
 
-export const applyHardwareProfileToDeployment = (
-  inferenceService: InferenceServiceKind,
-  hardwareProfile: HardwareProfileConfig,
-): InferenceServiceKind => {
-  const result = structuredClone(inferenceService);
-  const hardwareProfileName = hardwareProfile.selectedProfile?.metadata.name ?? '';
-  const hardwareProfileNamespace = hardwareProfile.selectedProfile?.metadata.namespace ?? '';
-
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    'opendatahub.io/hardware-profile-name': hardwareProfileName,
-    'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
-  };
-
-  result.spec.predictor.model = {
-    ...result.spec.predictor.model,
-    resources: {
-      ...result.spec.predictor.model?.resources,
-      ...hardwareProfile.resources,
-    },
-  };
-
-  return result;
-};
-
 export const applyReplicas = (
   inferenceService: InferenceServiceKind,
   numReplicas: number,
@@ -77,3 +42,10 @@ export const applyReplicas = (
   result.spec.predictor.maxReplicas = numReplicas;
   return result;
 };
+
+export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
+  containerResourcesPath: 'spec.predictor.model.resources',
+  tolerationsPath: 'spec.predictor.tolerations',
+  nodeSelectorPath: 'spec.predictor.nodeSelector',
+};
+

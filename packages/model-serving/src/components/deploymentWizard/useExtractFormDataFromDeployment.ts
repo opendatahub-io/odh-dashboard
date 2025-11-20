@@ -105,11 +105,7 @@ export const useExtractFormDataFromDeployment = (
       // Setup K8s name and description fields with deployment model data
       k8sNameDesc: setupDefaults({ initialData: deployment.model }),
 
-      // Extract hardware profile configuration if the extension supports it
-      hardwareProfile:
-        typeof formDataExtension?.properties.extractHardwareProfileConfig === 'function'
-          ? formDataExtension.properties.extractHardwareProfileConfig(deployment) ?? undefined
-          : undefined,
+      hardwareProfilePaths: formDataExtension?.properties.hardwareProfilePaths,
 
       // Extract model format information if available
       modelFormat:
