@@ -356,6 +356,15 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
     });
+
+    it('should display progress bar for running job with progress percentage', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findStatusProgressBar().should('exist');
+      row.findStatusProgressBar().should('contain', '64%');
+    });
   });
 
   describe('Training Details Tab', () => {

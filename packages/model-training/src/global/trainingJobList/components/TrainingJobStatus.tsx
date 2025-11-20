@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, FlexItem, Label, Skeleton } from '@patternfly/react-core';
+import { Flex, FlexItem, Label, Progress, Skeleton } from '@patternfly/react-core';
 import { getTrainingJobStatusSync, getStatusInfo } from '../utils';
 import { TrainJobKind } from '../../../k8sTypes';
 import { TrainingJobState } from '../../../types';
@@ -19,6 +19,15 @@ const TrainingJobStatus = ({
   }
 
   const statusInfo = getStatusInfo(status);
+  const trainerStatus = job.status?.trainerStatus;
+  const progressPercentage = trainerStatus?.progressPercentage;
+
+  // Show progress bar for running jobs that have progress information
+  const showProgress =
+    status === TrainingJobState.RUNNING &&
+    progressPercentage != null &&
+    progressPercentage >= 0 &&
+    progressPercentage <= 100;
 
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
@@ -33,8 +42,16 @@ const TrainingJobStatus = ({
           {statusInfo.label}
         </Label>
       </FlexItem>
-      {/* Progress tracking is not directly available in TrainJob status */}
-      {/* TODO: Consider adding progress tracking if supported by TrainJob runtime */}
+      {showProgress && (
+        <FlexItem>
+          <Progress
+            value={progressPercentage}
+            size="sm"
+            style={{ width: '200px' }}
+            data-testid="training-job-progress-bar"
+          />
+        </FlexItem>
+      )}
     </Flex>
   );
 };
