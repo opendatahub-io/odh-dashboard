@@ -10,6 +10,9 @@ export const ODHDashboardConfigModel: K8sModelCommon = {
 /**
  * @deprecated -- accelerator profiles are going away; only in deprecation paths
  * used by *both* modelmesh and finetuning
+ *
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
  */
 export const AcceleratorProfileModel: K8sModelCommon = {
   apiVersion: 'v1',

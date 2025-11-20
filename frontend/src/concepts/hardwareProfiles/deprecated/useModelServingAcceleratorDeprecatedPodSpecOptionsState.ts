@@ -27,7 +27,11 @@ export type ModelServingPodSpecOptionsState =
 // it will be marked as deprecated and with the label: accel-modelMesh-deprecated
 // everything with this label can all be removed when the modelmesh classes are removed
 
-/** @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated) */
+/**
+ * @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated)
+ *
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export const useModelServingPodSpecOptionsState = (
   servingRuntime?: ServingRuntimeKind,
   inferenceService?: InferenceServiceKind,

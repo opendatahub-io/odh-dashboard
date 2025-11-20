@@ -9,6 +9,7 @@ import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAccel
  * @deprecated
  * used by *both* modelmesh and finetuning
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
  */
 export type AcceleratorProfileFormData = {
   profile?: AcceleratorProfileKind;
@@ -33,7 +34,9 @@ export type UseAcceleratorProfileFormResult = {
 /**
  * @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
- * useb by *both* modelmesh and finetuning
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ *
+ * used by *both* modelmesh and finetuning
  */
 const useAcceleratorProfileFormState = (
   resources?: ContainerResources,

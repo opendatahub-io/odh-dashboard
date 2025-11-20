@@ -12,6 +12,7 @@ import { AcceleratorProfileModel } from '#~/api/models';
  * remove this when they are *both* gone
  *
  * modelmesh: RHOAIENG-34917, finetuning: RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
  *
  */
 export const listAcceleratorProfiles = async (
