@@ -22,6 +22,10 @@ concurrency:
   group: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('e2e-pr-{0}', github.event.workflow_run.pull_requests[0].number) || format('e2e-branch-{0}', github.event.workflow_run.head_branch || github.event.workflow_run.head_sha)) || format('e2e-manual-{0}', github.run_id) }}
   cancel-in-progress: true
 
+concurrency:
+  group: e2e-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
