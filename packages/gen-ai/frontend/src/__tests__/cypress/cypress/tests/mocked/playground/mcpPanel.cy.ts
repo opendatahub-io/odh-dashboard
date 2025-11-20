@@ -148,8 +148,11 @@ describe('Playground - MCP Servers', () => {
       const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
-      cy.step('Enter valid token and submit');
+      cy.step('Verify token modal opens');
       const tokenModal = new TokenAuthModal();
+      tokenModal.shouldBeOpen();
+
+      cy.step('Enter valid token and submit');
       tokenModal.findTokenInput().clear().type(testToken);
       tokenModal.findSubmitButton().click();
 
