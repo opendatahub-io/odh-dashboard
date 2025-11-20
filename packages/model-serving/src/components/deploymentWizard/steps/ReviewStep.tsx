@@ -360,13 +360,11 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
                       lg: '18ch',
                       xl: '24ch',
                     }}
-                    style={{ rowGap: '0.35rem' }}
                   >
                     {visibleItems.map((item) => (
                       <DescriptionListGroup key={item.key}>
                         <DescriptionListTerm style={{ fontWeight: 'normal' }}>
                           {item.label}
-                          {': '}
                         </DescriptionListTerm>
                         <DescriptionListDescription>
                           {item.comp(wizardState.state)}
