@@ -11,7 +11,12 @@ import {
   createKueueResources,
   deleteKueueResources,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/distributedWorkloads';
+import {
+  getKueueManagementState,
+  updateKueueManagementState,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/dsc';
 import type { WorkloadMetricsTestData } from '#~/__tests__/cypress/cypress/types';
+import { ManagementState } from '#~/__tests__/cypress/cypress/types';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   findRefreshIntervalList,
@@ -22,6 +27,7 @@ import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerat
 describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
   let projectName: string;
+  let originalKueueState: ManagementState | undefined;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -29,6 +35,17 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as WorkloadMetricsTestData;
         projectName = `${testData.projectName}-${uuid}`;
+      })
+      .then(() => {
+        cy.log('Getting current Kueue management state');
+        return getKueueManagementState().then((state) => {
+          originalKueueState = state;
+          cy.log(`Original Kueue management state: ${originalKueueState ?? 'not set'}`);
+        });
+      })
+      .then(() => {
+        cy.log('Setting Kueue to UNMANAGED');
+        return updateKueueManagementState(ManagementState.UNMANAGED);
       })
       .then(() => {
         cy.log('Creating Namespace ${projectName}');
@@ -57,6 +74,19 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
     );
     cy.log('Deleting Namespace ${projectName}');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+
+    // Restore original Kueue management state
+    if (originalKueueState) {
+      cy.log(`Restoring Kueue management state to: ${originalKueueState}`);
+      cy.then(() => {
+        const stateToRestore = originalKueueState;
+        if (stateToRestore) {
+          updateKueueManagementState(stateToRestore, 'default-dsc');
+        }
+      });
+    } else {
+      cy.log('No original Kueue state to restore');
+    }
   });
 
   it(

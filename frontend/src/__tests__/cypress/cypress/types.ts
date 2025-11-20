@@ -375,3 +375,9 @@ export type SCAccessMode = {
   ReadOnlyMany?: boolean;
   ReadWriteOncePod?: boolean;
 };
+
+export enum ManagementState {
+  MANAGED = 'Managed',
+  UNMANAGED = 'Unmanaged',
+  REMOVED = 'Removed',
+}
