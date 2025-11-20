@@ -24,7 +24,7 @@ import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectCh
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 
-describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model registry', () => {
+describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify models can be deployed from model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let modelName: string;
@@ -73,7 +73,17 @@ describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model
 
   it(
     'Registers a model and deploys it via model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@NonConcurrent',
+        '@Sanity',
+        '@SanitySet4',
+        '@Bug',
+        '@Maintain',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
