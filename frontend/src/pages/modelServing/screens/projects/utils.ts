@@ -461,7 +461,9 @@ export const getSubmitServingRuntimeResourcesFn = (
 
   return ({ dryRun = false }) =>
     Promise.all([
-      ...(currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined
+      ...(currentProject &&
+      currentProject.metadata.labels?.['modelmesh-enabled'] === undefined &&
+      currentProject.metadata.annotations?.['opendatahub.io/nim-support'] === undefined
         ? [
             addSupportServingPlatformProject(
               currentProject.metadata.name,
