@@ -1,5 +1,18 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export interface TrainerStatus {
+  progressPercentage?: number | null;
+  estimatedRemainingDurationSeconds?: number | null;
+  estimatedRemainingTimeSummary?: string | null;
+  currentStep?: number | null;
+  totalSteps?: number | null;
+  currentEpoch?: number | null;
+  totalEpochs?: number | null;
+  trainMetrics?: Record<string, number> | null;
+  evalMetrics?: Record<string, number> | null;
+  lastUpdatedTime?: string;
+}
+
 export type TrainJobKind = K8sResourceCommon & {
   metadata: {
     annotations?: Partial<{
@@ -64,6 +77,7 @@ export type TrainJobKind = K8sResourceCommon & {
       succeeded?: number;
       suspended?: number;
     }>;
+    trainerStatus?: TrainerStatus;
   };
 };
 
