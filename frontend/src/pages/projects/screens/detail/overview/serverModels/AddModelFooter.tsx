@@ -8,21 +8,16 @@ import {
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
-import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
-import ManageServingRuntimeModal from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
 
 type AddModelFooterProps = {
-  selectedPlatform?: ServingRuntimePlatform;
   isNIM?: boolean;
 };
 
-const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM }) => {
+const AddModelFooter: React.FC<AddModelFooterProps> = ({ isNIM }) => {
   const [modalShown, setModalShown] = React.useState<boolean>(false);
-  const servingPlatformStatuses = useServingPlatformStatuses();
 
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
@@ -42,14 +37,6 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
 
   const emptyTemplates = templatesEnabled.length === 0;
 
-  const { platform: currentProjectServingPlatform } = getProjectModelServingPlatform(
-    currentProject,
-    servingPlatformStatuses,
-  );
-
-  const isProjectModelMesh =
-    (selectedPlatform || currentProjectServingPlatform) === ServingRuntimePlatform.MULTI;
-
   const onSubmit = (submit: boolean) => {
     setModalShown(false);
     if (submit) {
@@ -63,25 +50,15 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ selectedPlatform, isNIM
     <CardFooter>
       <Flex gap={{ default: 'gapMd' }}>
         <ModelServingPlatformButtonAction
-          isProjectModelMesh={isProjectModelMesh}
           emptyTemplates={emptyTemplates}
           onClick={() => setModalShown(true)}
           variant="link"
           isInline
           testId="model-serving-platform-button"
         />
-        {!isProjectModelMesh && <NavigateBackToRegistryButton />}
+        <NavigateBackToRegistryButton />
       </Flex>
-      {modalShown && isProjectModelMesh && !isNIM ? (
-        <ManageServingRuntimeModal
-          currentProject={currentProject}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
-          )}
-          onClose={onSubmit}
-        />
-      ) : null}
-      {modalShown && !isProjectModelMesh && !isNIM ? (
+      {modalShown && !isNIM ? (
         <ManageKServeModal
           projectContext={{ currentProject, connections }}
           servingRuntimeTemplates={templatesEnabled.filter((template) =>

@@ -33,7 +33,6 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
 }) => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
-  // Always KServe (no ModelMesh)
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
 
@@ -50,7 +49,6 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             <FlexItem>
               <InferenceServiceStatus
                 inferenceService={inferenceService}
-                isKserve={true} // Always KServe
                 stoppedStates={{
                   isStarting,
                   isStopping,

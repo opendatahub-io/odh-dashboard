@@ -134,7 +134,7 @@ export type DashboardLabels = {
 };
 
 export type ModelServingProjectLabels = {
-  [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
+  [KnownLabels.MODEL_SERVING_PROJECT]: 'false';
 };
 
 export type K8sCondition = {
@@ -168,7 +168,6 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
-  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -1281,7 +1280,6 @@ export type DashboardCommonConfig = {
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
-  disableModelMesh: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;

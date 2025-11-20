@@ -68,7 +68,7 @@ type HandlersProps = {
   inferenceServices?: InferenceServiceKind[];
   hasServingData: boolean;
   hasBiasData: boolean;
-  enableModelMesh?: boolean;
+  enableKServe?: boolean;
   enableNIM?: boolean;
   isTrustyAIAvailable?: boolean;
   isTrustyAIInstalled?: boolean;
@@ -98,6 +98,7 @@ const initIntercepts = ({
   inferenceServices = [mockInferenceServiceK8sResource({})],
   hasServingData = false,
   hasBiasData = false,
+  enableKServe = true,
   enableNIM = false,
   isTrustyAIAvailable = true,
   isTrustyAIInstalled = true,
@@ -125,7 +126,7 @@ const initIntercepts = ({
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
-      mockProjectK8sResource({ k8sName: 'test-project', enableModelMesh: false, enableNIM }),
+      mockProjectK8sResource({ k8sName: 'test-project', enableKServe, enableNIM }),
     ]),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
@@ -154,6 +155,7 @@ const initIntercepts = ({
     if (/query=undefined\b/.test(query)) {
       req.reply(mockPrometheusServing({ result: [] }));
     } else if (
+      // TODO: Remove ModelMesh metrics check - ModelMesh support removed
       !(
         query.includes(`modelmesh_api_request_milliseconds_count`) &&
         query.includes(`code%21%3D%27OK`)

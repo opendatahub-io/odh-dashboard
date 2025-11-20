@@ -30,7 +30,6 @@ import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconBu
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
 import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '#~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
-import EmptyMultiModelServingCard from '#~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import EmptyModelServingPlatform from '#~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import EmptyNIMModelServingCard from '#~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
@@ -41,8 +40,6 @@ import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/proj
 import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
-import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
-import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
 
@@ -55,12 +52,10 @@ const ModelServingPlatform: React.FC = () => {
 
   const servingPlatformStatuses = useServingPlatformStatuses();
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
-  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
   const {
     servingRuntimes: {
-      data: { items: servingRuntimes },
       loaded: servingRuntimesLoaded,
       error: servingRuntimeError,
       refresh: refreshServingRuntime,
@@ -92,11 +87,7 @@ const ModelServingPlatform: React.FC = () => {
   const shouldShowPlatformSelection =
     servingPlatformStatuses.platformEnabledCount !== 1 && !currentProjectServingPlatform;
 
-  const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
-
-  const emptyModelServer = isProjectModelMesh
-    ? servingRuntimes.length === 0
-    : inferenceServices.length === 0;
+  const emptyModelServer = inferenceServices.length === 0;
 
   const isCurrentPlatformEnabled = isCurrentServingPlatformEnabled(
     currentProjectServingPlatform,
@@ -113,15 +104,13 @@ const ModelServingPlatform: React.FC = () => {
   };
 
   const renderPlatformEmptyState = () => {
-    if (kServeEnabled || modelMeshEnabled) {
+    if (kServeEnabled) {
       return (
         <EmptyDetailsView
           allowCreate
           iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
-          imageAlt={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-          title={
-            isProjectModelMesh ? 'Start by adding a model server' : 'Start by deploying a model'
-          }
+          imageAlt="No deployed models"
+          title="Start by deploying a model"
           description={
             <Stack hasGutter>
               {errorSelectingPlatform && (
@@ -130,29 +119,20 @@ const ModelServingPlatform: React.FC = () => {
                   clearError={() => setErrorSelectingPlatform(undefined)}
                 />
               )}
-              <StackItem>
-                {isProjectModelMesh
-                  ? 'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed.\n'
-                  : 'Each model is deployed on its own model server.'}
-              </StackItem>
+              <StackItem>Each model is deployed on its own model server.</StackItem>
             </Stack>
           }
           createButton={
             <ModelServingPlatformButtonAction
-              isProjectModelMesh={isProjectModelMesh}
-              testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
+              testId="deploy-button"
               emptyTemplates={emptyTemplates}
               variant="primary"
               onClick={() => {
-                setPlatformSelected(
-                  isProjectModelMesh ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE,
-                );
+                setPlatformSelected(ServingRuntimePlatform.SINGLE);
               }}
             />
           }
-          footerExtraChildren={
-            !isProjectModelMesh && <NavigateBackToRegistryButton isEmptyStateAction /> // For modelmesh we don't want to offer this until there is a model server
-          }
+          footerExtraChildren={<NavigateBackToRegistryButton isEmptyStateAction />}
         />
       );
     }
@@ -165,17 +145,7 @@ const ModelServingPlatform: React.FC = () => {
       return null;
     }
 
-    if (platformSelected === ServingRuntimePlatform.MULTI) {
-      return (
-        <ManageServingRuntimeModal
-          currentProject={currentProject}
-          servingRuntimeTemplates={templatesEnabled.filter((template) =>
-            getTemplateEnabledForPlatform(template, ServingRuntimePlatform.MULTI),
-          )}
-          onClose={onSubmit}
-        />
-      );
-    }
+    // Now KServe-only
 
     if (isKServeNIMEnabled) {
       return <ManageNIMServingModal projectContext={{ currentProject }} onClose={onSubmit} />;
@@ -203,15 +173,10 @@ const ModelServingPlatform: React.FC = () => {
             ? undefined
             : [
                 <ModelServingPlatformButtonAction
-                  isProjectModelMesh={isProjectModelMesh}
-                  testId={`${isProjectModelMesh ? 'add-server' : 'deploy'}-button`}
+                  testId="deploy-button"
                   emptyTemplates={emptyTemplates}
                   onClick={() => {
-                    setPlatformSelected(
-                      isProjectModelMesh
-                        ? ServingRuntimePlatform.MULTI
-                        : ServingRuntimePlatform.SINGLE,
-                    );
+                    setPlatformSelected(ServingRuntimePlatform.SINGLE);
                   }}
                   key="serving-runtime-actions"
                 />,
@@ -268,13 +233,6 @@ const ModelServingPlatform: React.FC = () => {
                           />
                         </GalleryItem>
                       )}
-                      {modelMeshEnabled && (
-                        <GalleryItem>
-                          <EmptyMultiModelServingCard
-                            setErrorSelectingPlatform={setErrorSelectingPlatform}
-                          />
-                        </GalleryItem>
-                      )}
                       {isNIMAvailable && (
                         <GalleryItem>
                           <EmptyNIMModelServingCard
@@ -313,9 +271,7 @@ const ModelServingPlatform: React.FC = () => {
                     {isKServeNIMEnabled
                       ? 'NVIDIA NIM serving enabled'
                       : isCurrentPlatformEnabled
-                      ? isProjectModelMesh
-                        ? 'Multi-model serving enabled'
-                        : 'Single-model serving enabled'
+                      ? 'Single-model serving enabled'
                       : 'Current platform disabled'}
                   </Label>
 
@@ -337,13 +293,7 @@ const ModelServingPlatform: React.FC = () => {
             : undefined
         }
       >
-        {emptyModelServer ? (
-          renderPlatformEmptyState()
-        ) : isProjectModelMesh ? (
-          <ModelMeshServingRuntimeTable />
-        ) : (
-          <KServeInferenceServiceTable />
-        )}
+        {emptyModelServer ? renderPlatformEmptyState() : <KServeInferenceServiceTable />}
       </DetailsSection>
       {renderSelectedPlatformModal()}
     </>

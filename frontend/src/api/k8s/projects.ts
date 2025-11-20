@@ -12,7 +12,7 @@ import { ProjectModel, ProjectRequestModel } from '#~/api/models';
 import { throwErrorFromAxios } from '#~/api/errorUtils';
 import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '#~/const';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { groupVersionKind } from '#~/api/k8sUtils';
@@ -92,7 +92,7 @@ export const createProject = (
 };
 
 export const getModelServingProjects = (opts?: K8sAPIOptions): Promise<ProjectKind[]> =>
-  getProjects(`${LABEL_SELECTOR_DASHBOARD_RESOURCE},${LABEL_SELECTOR_MODEL_SERVING_PROJECT}`, opts);
+  getProjects(LABEL_SELECTOR_DASHBOARD_RESOURCE, opts);
 
 export const addSupportServingPlatformProject = (
   name: string,

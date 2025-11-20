@@ -55,8 +55,8 @@ type HandlersProps = {
   imageStreamTag?: string;
   disableKServe?: boolean;
   disableNIMConfig?: boolean;
-  enableModelMesh?: boolean;
-  enableNIM?: boolean;
+  projectEnableKServe?: boolean;
+  projectEnableNIM?: boolean;
   isEnabled?: string;
   isUnknown?: boolean;
   templates?: boolean;
@@ -77,8 +77,8 @@ type HandlersProps = {
 const initIntercepts = ({
   disableKServe,
   disableNIMConfig = true,
-  enableModelMesh,
-  enableNIM = false,
+  projectEnableKServe,
+  projectEnableNIM = false,
   isEmpty = false,
   imageStreamName = 'test-image',
   imageStreamTag = 'latest',
@@ -177,8 +177,8 @@ const initIntercepts = ({
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
 
   const mockProject = mockProjectK8sResource({
-    enableModelMesh,
-    enableNIM,
+    enableKServe: projectEnableKServe,
+    enableNIM: projectEnableNIM,
   });
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
   cy.interceptK8s(ProjectModel, mockProject);
@@ -338,7 +338,7 @@ const initIntercepts = ({
     { path: { internalRoute: 'nim' } },
     {
       isInstalled: true,
-      isEnabled: true,
+      isEnabled: !disableNIMConfig,
       canInstall: false,
       error: '',
     },
@@ -556,7 +556,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        enableModelMesh: false,
+        projectEnableKServe: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
@@ -575,8 +575,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        enableModelMesh: false,
-        enableNIM: true,
+        projectEnableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
@@ -595,7 +594,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        enableModelMesh: false,
+        projectEnableKServe: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
@@ -612,8 +611,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        enableModelMesh: false,
-        enableNIM: true,
+        projectEnableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
@@ -656,7 +654,7 @@ describe('Project Details', () => {
     beforeEach(() => {
       initIntercepts({
         disableKueue: true, // Kueue feature flag disabled
-        enableModelMesh: false,
+        projectEnableKServe: true,
         templates: true, // Enable serving runtime templates
       });
       initModelServingIntercepts({ isEmpty: true });
@@ -665,7 +663,7 @@ describe('Project Details', () => {
     it('should show Kueue alert and disable create workbench and deploy model buttons', () => {
       // Create a Kueue-enabled project
       const kueueEnabledProject = mockProjectK8sResource({
-        enableModelMesh: false,
+        enableKServe: true,
       });
       kueueEnabledProject.metadata.labels = {
         ...kueueEnabledProject.metadata.labels,
