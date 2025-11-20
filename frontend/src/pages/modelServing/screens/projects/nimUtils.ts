@@ -2,7 +2,14 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate, listNIMAccounts, listServingRuntimes } from '#~/api';
+import {
+  deletePvc,
+  deleteSecret,
+  getPvc,
+  getTemplate,
+  listNIMAccounts,
+  listServingRuntimes,
+} from '#~/api';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
@@ -88,6 +95,7 @@ export const getNIMServingRuntimeTemplate = async (
 export const updateServingRuntimeTemplate = (
   servingRuntime: ServingRuntimeKind,
   pvcName: string,
+  pvcSubPath?: string, // ← NEW: Optional subPath parameter
 ): ServingRuntimeKind => {
   const updatedServingRuntime = { ...servingRuntime };
 
@@ -98,6 +106,10 @@ export const updateServingRuntimeTemplate = (
           return {
             ...volumeMount,
             name: pvcName,
+            // ← NEW: Add subPath if provided
+            // SubPath allows mounting a subdirectory of the PVC
+            // Example: subPath: "/llama-3.1-8b-instruct"
+            ...(pvcSubPath ? { subPath: pvcSubPath } : {}),
           };
         }
         return volumeMount;
@@ -130,9 +142,6 @@ export const updateServingRuntimeTemplate = (
   return updatedServingRuntime;
 };
 
-/**
- * Check how many ServingRuntimes are using a specific PVC
- */
 export const checkPVCUsage = async (
   pvcName: string,
   namespace: string,
@@ -185,6 +194,8 @@ export const getNIMResourcesToDelete = async (
   }
 
   // Handle PVC deletion with reference counting
+  // IMPORTANT: With subPath support, multiple deployments may share the same PVC
+  // We only delete the PVC when NO deployments are using it anymore
   const pvcName = servingRuntime.spec.volumes?.find((vol) =>
     vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
   )?.persistentVolumeClaim?.claimName;
@@ -196,9 +207,43 @@ export const getNIMResourcesToDelete = async (
 
       // Only delete PVC if this is the last deployment using it
       if (pvcUsage.count <= 1) {
-        // eslint-disable-next-line no-console
-        console.log(`Deleting PVC ${pvcName} - no other deployments using it`);
-        resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+        // Two-tier check to identify Dashboard-managed PVCs
+        try {
+          const pvc = await getPvc(projectName, pvcName);
+
+          // Tier 1: Check for managed label (PVCs created after this feature)
+          const hasNewManagedLabel = pvc.metadata.labels?.['opendatahub.io/managed'] === 'true';
+
+          // Tier 2: Check for Dashboard naming pattern (old PVCs created before this feature)
+          // Dashboard uses getUniqueId('nim-pvc') which generates exactly 5-character IDs
+          // Pattern: nim-pvc
+          const isDashboardNamingPattern = /^nim-pvc-.+$/.test(pvcName);
+
+          const isDashboardManaged = hasNewManagedLabel || isDashboardNamingPattern;
+
+          if (isDashboardManaged) {
+            // Dashboard created this PVC (either new with label or old with pattern) → safe to delete
+            // eslint-disable-next-line no-console
+            console.log(
+              `Deleting Dashboard-managed PVC ${pvcName} - no other deployments using it ` +
+                `(hasLabel: ${hasNewManagedLabel}, matchesPattern: ${isDashboardNamingPattern})`,
+            );
+            resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+          } else {
+            // User provided this PVC (BYO-PVC) → preserve it
+            // eslint-disable-next-line no-console
+            console.log(
+              `Preserving BYO-PVC ${pvcName} - not Dashboard-managed ` +
+                `(no managed label and doesn't match nim-pvc-* pattern)`,
+            );
+          }
+        } catch (pvcFetchError) {
+          // If we can't fetch PVC metadata, err on the side of caution
+          // eslint-disable-next-line no-console
+          console.error(`Error fetching PVC metadata for ${pvcName}:`, pvcFetchError);
+          // eslint-disable-next-line no-console
+          console.log(`Preserving PVC ${pvcName} - could not verify if Dashboard-managed`);
+        }
       } else {
         // eslint-disable-next-line no-console
         console.log(

@@ -152,7 +152,10 @@ class NIMDeployModal extends Modal {
   }
 
   setModelPath(path: string) {
-    this.findModelPathInput().clear().type(path);
+    // Select all text and type to replace it, rather than clearing
+    // This prevents React's useEffect from re-filling the field with the default value
+    // when it detects an empty field
+    this.findModelPathInput().type('{selectall}').type(path);
     return this;
   }
 
