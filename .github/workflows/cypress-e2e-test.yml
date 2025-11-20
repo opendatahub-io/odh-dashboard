@@ -4,37 +4,50 @@ name: Cypress e2e Test PR Pipeline
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
 #
-# This workflow is triggered after test.yml completes successfully.
+# This workflow runs on pull_request events and waits for test.yml to complete successfully.
 # It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
-# Labels (e2e-Pass/e2e-Fail) are applied to PRs based on test results.
+# This approach ensures E2E checks appear in the PR's checks section.
 
 on:
-  # Trigger after test.yml completes successfully
-  workflow_run:
-    workflows: ["Test"]
-    types: [completed]
+  # Trigger on PR events to show up as PR checks
+  pull_request:
+    types: [opened, synchronize, reopened]
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
 
 # Concurrency control: Only run latest E2E tests for each PR/branch
-# PRs get unique groups (e2e-pr-{number}), branches get branch-based groups (e2e-branch-{name})
 concurrency:
-  group: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('e2e-pr-{0}', github.event.workflow_run.pull_requests[0].number) || format('e2e-branch-{0}', github.event.workflow_run.head_branch || github.event.workflow_run.head_sha)) || format('e2e-manual-{0}', github.run_id) }}
+  group: e2e-pr-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
+  statuses: read
+  checks: read
 
 env:
   NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
 
 jobs:
+  wait-for-test:
+    name: Wait for Test workflow to complete
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Wait for Test workflow to succeed
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: 'Tests'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          allowed-conclusions: success
+
   get-test-tags:
+    needs: [wait-for-test]
     runs-on: self-hosted
-    # Only run if test.yml succeeded (for workflow_run) or if manually triggered
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
@@ -84,11 +97,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # For workflow_run events from PRs (including forks), checkout using PR ref format
-          # This works for both same-repo PRs and fork PRs (refs/pull/{number}/head)
-          # For branch pushes, use head_sha or head_branch
-          # For manual triggers, use the default (current commit)
-          ref: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('refs/pull/{0}/head', github.event.workflow_run.pull_requests[0].number) || github.event.workflow_run.head_sha || github.event.workflow_run.head_branch) || github.ref }}
+          # For pull_request events, checkout the PR head
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Restore npm dependencies cache
         uses: actions/cache/restore@v4
