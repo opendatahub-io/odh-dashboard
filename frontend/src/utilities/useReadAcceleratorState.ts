@@ -12,6 +12,10 @@ import {
 import { getAcceleratorProfileCount, isEnumMember } from '#~/utilities/utils';
 import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
+/**
+ * @deprecated
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export type AcceleratorProfileState = {
   acceleratorProfiles: AcceleratorProfileKind[];
   count: number;
@@ -23,7 +27,10 @@ export type AcceleratorProfileState = {
     }
 );
 
-/**  @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185 */
+/**
+ * @deprecated
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 const useReadAcceleratorState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
