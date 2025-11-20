@@ -487,14 +487,14 @@ export const getModelExternalToken = (
  * @param modelName The name of the model to test.
  * @param namespace The namespace where the model is deployed.
  * @param token The (optional) token to use for the request.
- * @returns Cypress.Chainable<Cypress.Response<unknown>> that resolves after validation.
+ * @returns Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> that resolves after validation.
  */
 export const verifyModelExternalToken = (
   modelName: string,
   namespace: string,
   token?: string,
-): Cypress.Chainable<Cypress.Response<unknown>> =>
-  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
+  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 
@@ -502,16 +502,59 @@ export const verifyModelExternalToken = (
       throw new Error('External URL not found in InferenceService');
     }
 
-    return cy
-      .request({
-        method: 'GET',
-        url: `${url}/v2/models/${modelName}`,
-        headers: {
+    const makeRequest = (
+      attemptNumber = 1,
+      maxAttempts = 7, // Initial attempt + 6 retries = 30 seconds total
+      waitTime = 5000, // 5 seconds
+    ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
+      cy.log(`Request attempt ${attemptNumber} of ${maxAttempts}`);
+      cy.log(`Request URL: ${url}/v2/models/${modelName}`);
+      cy.log(`Request method: GET`);
+      cy.log(
+        `Request headers: ${JSON.stringify({
+          'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      })
-      .then((response) => {
-        cy.log('Model metadata:', JSON.stringify(response.body));
-        return cy.wrap(response);
-      });
+        })}`,
+      );
+      return cy
+        .request({
+          method: 'GET',
+          url: `${url}/v2/models/${modelName}`,
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          failOnStatusCode: false,
+        })
+        .then((response) => {
+          cy.log(`Response status: ${response.status}`);
+          cy.log(`Response body: ${JSON.stringify(response.body)}`);
+
+          // If the request is successful (200 status), return the result
+          if (response.status === 200) {
+            return cy.wrap({ url, response });
+          }
+
+          // Retry on 503 (Service Unavailable) or 502 (Bad Gateway) - external route not ready yet
+          if ((response.status === 503 || response.status === 502) && attemptNumber < maxAttempts) {
+            cy.log(
+              `Service unavailable (${response.status}), retrying in ${waitTime / 1000} seconds...`,
+            );
+            return cy
+              .wait(waitTime)
+              .then(() => makeRequest(attemptNumber + 1, maxAttempts, waitTime));
+          }
+
+          // If we've reached the maximum number of attempts, return the last response
+          if (attemptNumber >= maxAttempts) {
+            cy.log(`Maximum retry attempts (${maxAttempts}) reached, returning last response`);
+            return cy.wrap({ url, response });
+          }
+
+          // For other status codes, return immediately
+          return cy.wrap({ url, response });
+        });
+    };
+    // Start the request chain with the first attempt
+    return makeRequest();
   });
+};
