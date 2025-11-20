@@ -1,6 +1,7 @@
+/* eslint-disable camelcase */
 import * as _ from 'lodash-es';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
-import { TrainJobKind } from '@odh-dashboard/model-training/k8sTypes';
+import { TrainJobKind, TrainerStatus } from '@odh-dashboard/model-training/k8sTypes';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 
 type MockResourceConfigType = {
@@ -38,6 +39,7 @@ type MockResourceConfigType = {
     succeeded?: number;
     suspended?: number;
   }>;
+  trainerStatus?: TrainerStatus;
   additionalLabels?: Record<string, string>;
 };
 
@@ -149,6 +151,23 @@ export const mockTrainJobK8sResource = ({
       suspended: 0,
     },
   ],
+  trainerStatus = {
+    progressPercentage: 64,
+    estimatedRemainingDurationSeconds: 1800,
+    estimatedRemainingTimeSummary: '30 minutes',
+    currentStep: 3000,
+    totalSteps: 4690,
+    currentEpoch: 3,
+    totalEpochs: 5,
+    trainMetrics: {
+      loss: 0.2344,
+      accuracy: 0.8993774,
+      total_batches: 854,
+      total_samples: 4000,
+    },
+    evalMetrics: null,
+    lastUpdatedTime: '2024-01-15T10:45:00Z',
+  },
   additionalLabels = {},
 }: MockResourceConfigType = {}): TrainJobKind => {
   const baseLabels = {
@@ -203,6 +222,7 @@ export const mockTrainJobK8sResource = ({
       status: {
         conditions,
         jobsStatus,
+        trainerStatus,
       },
     },
     {},
