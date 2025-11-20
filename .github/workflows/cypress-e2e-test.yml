@@ -7,7 +7,7 @@ name: Cypress e2e Test PR Pipeline
 # This workflow runs on pull_request events and waits for test.yml to complete successfully.
 # It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
 # This approach ensures E2E checks appear in the PR's checks section.
-#  Dummy comment 
+
 on:
   # Trigger on PR events to show up as PR checks
   pull_request:
