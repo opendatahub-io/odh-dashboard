@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import {
   GroupKind,
-  HardwareProfileKind,
   InferenceServiceKind,
   PersistentVolumeClaimKind,
   ProjectKind,
@@ -33,7 +32,6 @@ import { getTokenNames } from '#~/pages/modelServing/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '#~/api';
-import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { NotebookState } from './notebook/types';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
@@ -54,7 +52,6 @@ export type ProjectDetailsContextType = {
   serverSecrets: FetchStateObject<SecretKind[]>;
   projectSharingRB: FetchStateObject<RoleBindingKind[]>;
   groups: CustomWatchK8sResult<GroupKind[]>;
-  projectHardwareProfiles: CustomWatchK8sResult<HardwareProfileKind[]>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -71,7 +68,6 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   serverSecrets: DEFAULT_LIST_FETCH_STATE,
   projectSharingRB: DEFAULT_LIST_FETCH_STATE,
   groups: DEFAULT_LIST_WATCH_RESULT,
-  projectHardwareProfiles: DEFAULT_LIST_WATCH_RESULT,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -95,8 +91,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const projectSharingRB = useProjectSharing(namespace, { refreshRate: POLL_INTERVAL });
 
   const groups = useGroups();
-  const projectHardwareProfiles = useWatchHardwareProfiles(namespace);
-
   const pageName = 'project details';
 
   const filterTokens = React.useCallback(
@@ -137,7 +131,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
             serverSecrets,
             projectSharingRB,
             groups,
-            projectHardwareProfiles,
           }
         : null,
     [
@@ -154,7 +147,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       serverSecrets,
       projectSharingRB,
       groups,
-      projectHardwareProfiles,
     ],
   );
 

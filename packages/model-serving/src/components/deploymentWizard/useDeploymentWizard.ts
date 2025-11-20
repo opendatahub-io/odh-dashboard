@@ -1,9 +1,12 @@
 import React from 'react';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types.js';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -18,6 +21,7 @@ import { type InitialWizardFormData, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import { Deployment } from '../../../extension-points';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -35,6 +39,8 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
+  existingDeployment?: Deployment,
+  hardwareProfilePaths?: CrPathConfig,
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -59,7 +65,16 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
   });
-  const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
+
+  const hardwareProfileOptions = useAssignHardwareProfile<K8sResourceCommon>(
+    existingDeployment?.model,
+    {
+      visibleIn: MODEL_SERVING_VISIBILITY,
+      paths: initialData?.hardwareProfilePaths || hardwareProfilePaths,
+    },
+    project.projectName,
+  );
+
   const modelFormatState = useModelFormatField(
     initialData?.modelFormat,
     modelType.data,
@@ -88,15 +103,15 @@ export const useModelDeploymentWizard = (
     modelFormatState.templatesFilteredForModelType,
     modelFormatState.modelFormat,
     modelType.data,
-    hardwareProfileConfig.formData.selectedProfile,
+    hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData.selectedProfile,
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
   // loaded state
   const modelDeploymentLoaded = React.useMemo(() => {
-    return hardwareProfileConfig.profilesLoaded;
-  }, [hardwareProfileConfig.profilesLoaded]);
+    return hardwareProfileOptions.loaded;
+  }, [hardwareProfileOptions.loaded]);
 
   // Step 3: Advanced Options - Individual Fields
   const modelAvailability = useModelAvailabilityFields(
@@ -135,7 +150,7 @@ export const useModelDeploymentWizard = (
       project,
       modelType,
       k8sNameDesc,
-      hardwareProfileConfig,
+      hardwareProfileOptions,
       modelFormatState,
       modelLocationData: {
         ...modelLocationData,

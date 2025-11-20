@@ -12,8 +12,9 @@ import {
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
 import { k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
-import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig, applyReplicas } from './hardware';
+import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import { applyReplicas } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
   applyModelEnvVars,
@@ -173,7 +174,7 @@ type CreateLLMdInferenceServiceParams = {
   connectionSecretName?: string;
   displayName?: string;
   description?: string;
-  hardwareProfile: HardwareProfileConfig;
+  hardwareProfile?: UseAssignHardwareProfileResult<ModelResourceType>;
   replicas?: number;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
@@ -239,7 +240,9 @@ const assembleLLMdInferenceServiceKind = (
     createConnectionData,
     dryRun,
   );
-  llmdInferenceService = applyHardwareProfileConfig(llmdInferenceService, hardwareProfile);
+  if (hardwareProfile) {
+    llmdInferenceService = hardwareProfile.applyToResource(llmdInferenceService);
+  }
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
   llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
   llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
@@ -266,7 +269,7 @@ export const deployLLMdDeployment = async (
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     displayName: wizardData.k8sNameDesc.data.name,
     description: wizardData.k8sNameDesc.data.description,
-    hardwareProfile: wizardData.hardwareProfileConfig.formData,
+    hardwareProfile: wizardData.hardwareProfileOptions,
     modelLocationData: wizardData.modelLocationData.data ?? {
       type: ModelLocationType.NEW,
       fieldValues: {},

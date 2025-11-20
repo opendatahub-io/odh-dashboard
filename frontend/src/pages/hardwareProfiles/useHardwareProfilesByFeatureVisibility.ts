@@ -6,30 +6,37 @@ import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwarePr
 
 export const useHardwareProfilesByFeatureVisibility = (
   visibility?: HardwareProfileFeatureVisibility[],
+  namespace?: string,
 ): {
   projectProfiles: [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined];
   globalProfiles: [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined];
 } => {
   const {
-    globalHardwareProfiles: [globalProfiles, globalLoaded, globalError],
+    globalHardwareProfiles: [globalProfiles, globalProfilesLoaded, globalProfilesError],
+    projectHardwareProfiles: [allProjectProfiles, projectProfilesLoaded, projectProfilesError],
   } = React.useContext(HardwareProfilesContext);
-  const {
-    currentProject,
-    projectHardwareProfiles: [projectProfiles, projectLoaded, projectError],
-  } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const currNamespace = namespace || currentProject.metadata.name;
 
-  const projectProfilesFiltered = React.useMemo(
-    () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility),
-    [projectProfiles, visibility],
-  );
+  const projectProfilesFiltered = React.useMemo(() => {
+    const projectProfiles = currNamespace
+      ? allProjectProfiles.filter((hp) => hp.metadata.namespace === currNamespace)
+      : [];
+    return filterHardwareProfileByFeatureVisibility(projectProfiles, visibility);
+  }, [allProjectProfiles, currNamespace, visibility]);
+
   const globalProfilesFiltered = React.useMemo(
     () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility),
     [globalProfiles, visibility],
   );
-  const inProject = !!currentProject.metadata.name;
+
   return {
-    projectProfiles: [projectProfilesFiltered, inProject ? projectLoaded : true, projectError],
-    globalProfiles: [globalProfilesFiltered, globalLoaded, globalError],
+    projectProfiles: [
+      projectProfilesFiltered,
+      currNamespace ? projectProfilesLoaded : true,
+      projectProfilesError,
+    ],
+    globalProfiles: [globalProfilesFiltered, globalProfilesLoaded, globalProfilesError],
   };
 };
 

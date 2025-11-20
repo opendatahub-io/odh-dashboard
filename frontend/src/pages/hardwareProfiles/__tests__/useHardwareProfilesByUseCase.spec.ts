@@ -31,12 +31,12 @@ const mockContexts = (
     if (context === HardwareProfilesContext) {
       return {
         globalHardwareProfiles: [globalProfiles, globalLoaded, globalError],
+        projectHardwareProfiles: [projectProfiles, projectLoaded, projectError],
       };
     }
     if (context === ProjectDetailsContext) {
       return {
         currentProject: { metadata: { name: inProject ? 'test-project' : '' } },
-        projectHardwareProfiles: [projectProfiles, projectLoaded, projectError],
       };
     }
     return {};

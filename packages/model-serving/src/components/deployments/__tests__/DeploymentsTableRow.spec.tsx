@@ -25,7 +25,19 @@ jest.mock('../../../concepts/useStopModalPreference', () => ({
 // Mock the useDeploymentExtension hook
 jest.mock('../../../concepts/extensionUtils', () => ({
   useDeploymentExtension: () => null,
-  useResolvedDeploymentExtension: () => [null, true, []],
+  useResolvedDeploymentExtension: () => [
+    {
+      properties: {
+        hardwareProfilePaths: {
+          containerResourcesPath: 'spec.predictor.model.resources',
+          tolerationsPath: 'spec.predictor.tolerations',
+          nodeSelectorPath: 'spec.predictor.nodeSelector',
+        },
+      },
+    },
+    true,
+    [],
+  ],
 }));
 
 // Mock the useExtractFormDataFromDeployment hook

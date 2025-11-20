@@ -19,20 +19,23 @@ import {
 
 export type UseAssignHardwareProfileResult<T extends K8sResourceCommon> = {
   podSpecOptionsState: HardwarePodSpecOptionsState<HardwarePodSpecOptions>;
-  applyToResource: (resource: T) => T; // apply the current hardware profile configuration to a custom resource
+  applyToResource: <R extends T>(resource: R) => R; // apply the current hardware profile configuration to a custom resource
   validateHardwareProfileForm: () => boolean;
+  loaded: boolean;
+  error?: Error;
 };
 
 export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
   cr: T | null | undefined,
   hardwareProfileOptions: HardwareProfileOptions,
+  projectNamespace?: string, // leave out if global namespace
 ): UseAssignHardwareProfileResult<T> => {
   const { visibleIn, paths } = hardwareProfileOptions;
   const { name: hwpName, namespace: hwpNamespace } = getExistingHardwareProfileData(cr);
   const existingResources = getExistingResources(cr, paths);
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
     existingResources;
-  const namespace = cr?.metadata?.namespace;
+  const namespace = projectNamespace || cr?.metadata?.namespace;
   const hardwareProfileConfig: UseHardwareProfileConfigResult = useHardwareProfileConfig(
     hwpName,
     existingContainerResources,
@@ -50,7 +53,7 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
   };
 
   const applyToResource = React.useCallback(
-    (targetResource: T): T => {
+    <R extends T>(targetResource: R): R => {
       return applyHardwareProfileConfig(targetResource, hardwareProfileConfig.formData, paths);
     },
     [paths, hardwareProfileConfig.formData],
@@ -64,5 +67,7 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
     podSpecOptionsState,
     applyToResource,
     validateHardwareProfileForm,
+    loaded: hardwareProfileConfig.profilesLoaded,
+    error: hardwareProfileConfig.profilesLoadError,
   };
 };

@@ -1,16 +1,13 @@
 import * as React from 'react';
 import { FormGroup, Icon, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import {
-  HardwareProfileKind,
-  HardwareProfileFeatureVisibility,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { HardwareProfileKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { ModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { MODEL_SERVING_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
@@ -98,7 +95,7 @@ const ServingRuntimeSizeSection = ({
           podSpecOptionsState={podSpecOptionState}
           isEditing={isEditing}
           isHardwareProfileSupported={isHardwareProfileSupported}
-          visibleIn={[HardwareProfileFeatureVisibility.MODEL_SERVING]}
+          visibleIn={MODEL_SERVING_VISIBILITY}
         />
       ) : (
         <FormGroup

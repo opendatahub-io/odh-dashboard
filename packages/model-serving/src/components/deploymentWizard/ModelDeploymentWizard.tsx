@@ -5,6 +5,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
@@ -27,6 +28,7 @@ type ModelDeploymentWizardProps = {
   existingDeployment?: Deployment;
   returnRoute?: string;
   cancelReturnRoute?: string;
+  hardwareProfilePaths?: CrPathConfig;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -38,6 +40,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   existingDeployment,
   returnRoute,
   cancelReturnRoute,
+  hardwareProfilePaths,
 }) => {
   const navigate = useNavigate();
 
@@ -56,7 +59,12 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     exitWizardOnCancel();
   }, [exitWizardOnCancel]);
 
-  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name);
+  const wizardState = useModelDeploymentWizard(
+    existingData,
+    project?.metadata.name,
+    existingDeployment,
+    hardwareProfilePaths,
+  );
   const validation = useModelDeploymentWizardValidation(wizardState.state);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
 
