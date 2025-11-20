@@ -58,8 +58,8 @@ type HandlersProps = {
   disableKServeRaw?: boolean;
   disableKServeMetrics?: boolean;
   disableNIMConfig?: boolean;
-  enableNIM?: boolean;
-  projectEnableModelMesh?: boolean;
+  projetcEnableNIM?: boolean;
+  projectEnableKServe?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
   rejectAddSupportServingPlatformProject?: boolean;
@@ -80,7 +80,7 @@ const initIntercepts = ({
   disableKServeAuth,
   disableServingRuntimeParams = true,
   disableKServeRaw = true,
-  projectEnableModelMesh,
+  projectEnableKServe,
   disableProjectScoped = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
@@ -111,7 +111,7 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   templates = false,
   disableNIMConfig = true,
-  enableNIM = false,
+  projetcEnableNIM: enableNIM = false,
   DscComponents,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -155,7 +155,7 @@ const initIntercepts = ({
     ProjectModel,
     mockK8sResourceList([
       mockProjectK8sResource({
-        enableModelMesh: projectEnableModelMesh,
+        enableKServe: projectEnableKServe,
         enableNIM,
       }),
     ]),
@@ -163,7 +163,7 @@ const initIntercepts = ({
   cy.interceptK8s(
     ProjectModel,
     mockProjectK8sResource({
-      enableModelMesh: projectEnableModelMesh,
+      enableKServe: projectEnableKServe,
       enableNIM,
     }),
   );
@@ -322,9 +322,11 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
 
       modelServingGlobal.findSingleServingModelButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -338,8 +340,8 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projectEnableModelMesh: false,
-        enableNIM: false,
+        projectEnableKServe: true,
+        projetcEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
@@ -358,10 +360,12 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
         rejectAddSupportServingPlatformProject: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
@@ -371,8 +375,8 @@ describe('Serving Runtime List', () => {
         disableKServe: false,
         disableNIMConfig: false,
         rejectAddSupportServingPlatformProject: true,
-        projectEnableModelMesh: false,
-        enableNIM: false,
+        projectEnableKServe: true,
+        projetcEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
@@ -381,9 +385,14 @@ describe('Serving Runtime List', () => {
     });
 
     it('Select single-model serving on overview tab', () => {
-      initIntercepts({ disableKServe: false, disableNIMConfig: false });
+      initIntercepts({
+        disableKServe: false,
+        disableNIMConfig: false,
+        templates: true,
+      });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
@@ -396,8 +405,8 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projectEnableModelMesh: false,
-        enableNIM: false,
+        projectEnableKServe: true,
+        projetcEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
@@ -413,10 +422,12 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
         rejectAddSupportServingPlatformProject: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
@@ -426,8 +437,8 @@ describe('Serving Runtime List', () => {
         disableKServe: false,
         disableNIMConfig: false,
         rejectAddSupportServingPlatformProject: true,
-        projectEnableModelMesh: false,
-        enableNIM: false,
+        projectEnableKServe: true,
+        projetcEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
@@ -447,8 +458,8 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projectEnableModelMesh: false,
-        enableNIM: false,
+        projectEnableKServe: true,
+        projetcEnableNIM: false,
         inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [],
       });
@@ -487,8 +498,8 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projectEnableModelMesh: false,
-        enableNIM: false,
+        projectEnableKServe: true,
+        projetcEnableNIM: false,
         inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [nonDashboardServingRuntime],
       });
@@ -516,9 +527,11 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
@@ -531,8 +544,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projectEnableModelMesh: false,
-        enableNIM: true,
+        projetcEnableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
@@ -548,9 +560,11 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
+        templates: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
+      cy.wait('@templates'); // Wait for serving runtime templates to load
       projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
@@ -563,8 +577,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projectEnableModelMesh: false,
-        enableNIM: true,
+        projetcEnableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
@@ -579,9 +592,7 @@ describe('Serving Runtime List', () => {
 
   describe('KServe', () => {
     it('KServe Model list', () => {
-      initIntercepts({
-        projectEnableModelMesh: false,
-      });
+      initIntercepts({ projectEnableKServe: true });
       projectDetails.visitSection('test-project', 'model-server');
 
       // Check that we get the correct model name

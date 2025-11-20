@@ -33,6 +33,7 @@ export const getServerMetricsQueries = (
   const { name } = server.metadata;
 
   return {
+    // TODO: Remove ModelMesh metrics - ModelMesh support removed, these queries will always return empty
     [ServerMetricType.REQUEST_COUNT]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${PROMETHEUS_REQUEST_RESOLUTION}])))`,
     [ServerMetricType.AVG_RESPONSE_TIME]: `sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}])) / sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))`,
     [ServerMetricType.CPU_UTILIZATION]: `sum(pod:container_cpu_usage:sum{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="cpu", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
@@ -47,6 +48,7 @@ export const getModelMetricsQueries = (
   const { name } = model.metadata;
 
   return {
+    // TODO: Remove ModelMesh metrics - ModelMesh support removed, these queries will always return empty
     [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))) OR on() vector(0)`,
     [ModelMetricType.REQUEST_COUNT_FAILED]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))) OR on() vector(0)`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,

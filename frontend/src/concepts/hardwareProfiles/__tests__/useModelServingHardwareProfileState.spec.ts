@@ -185,29 +185,6 @@ describe('useModelServingHardwareProfileState', () => {
     });
   });
 
-  it('should handle ModelMesh mode with basic resource settings', () => {
-    const renderResult = testHook(useModelServingHardwareProfileState)(undefined, undefined, true);
-    const state = renderResult.result.current;
-
-    expect(state.podSpecOptions).toEqual({
-      resources: {
-        requests: {
-          cpu: DEFAULT_MODEL_SIZES[0].resources.requests?.cpu,
-          memory: DEFAULT_MODEL_SIZES[0].resources.requests?.memory,
-        },
-        limits: {
-          cpu: DEFAULT_MODEL_SIZES[0].resources.limits?.cpu,
-          memory: DEFAULT_MODEL_SIZES[0].resources.limits?.memory,
-        },
-      },
-      tolerations: undefined,
-      nodeSelector: undefined,
-    });
-
-    // Ensure no accelerator profile properties in ModelMesh mode
-    expect(state.podSpecOptions).not.toHaveProperty('selectedAcceleratorProfile');
-  });
-
   it('should update model size when setSelectedSize is called', () => {
     const renderResult = testHook(useModelServingHardwareProfileState)();
     const { rerender } = renderResult;

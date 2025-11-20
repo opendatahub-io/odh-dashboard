@@ -65,12 +65,6 @@ export const applyNamespaceChange = async (
         checkPermissionsFn = checkAdminNamespacePermission;
       }
       break;
-    case NamespaceApplicationCase.MODEL_MESH_PROMOTION:
-      {
-        labels = { 'modelmesh-enabled': 'true' };
-        checkPermissionsFn = checkEditNamespacePermission;
-      }
-      break;
     case NamespaceApplicationCase.KSERVE_PROMOTION:
       {
         labels = { 'modelmesh-enabled': 'false' };
@@ -80,7 +74,6 @@ export const applyNamespaceChange = async (
     case NamespaceApplicationCase.KSERVE_NIM_PROMOTION:
       {
         annotations = { 'opendatahub.io/nim-support': 'true' };
-        labels = { 'modelmesh-enabled': 'false' };
         checkPermissionsFn = checkEditNamespacePermission;
       }
       break;

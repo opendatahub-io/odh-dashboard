@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
+import { ModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation';
 
 /**
@@ -17,9 +17,9 @@ jest.mock('#~/utilities/useValidation', () => ({
 const mockUseValidation = jest.mocked(require('#~/utilities/useValidation').useValidation);
 
 describe('useModelServerSizeValidation', () => {
-  const createMockPodSpecOptionsState = (
-    overrides: Partial<ModelServingPodSpecOptionsState> = {},
-  ): ModelServingPodSpecOptionsState => ({
+  const createMockHardwareProfileState = (
+    overrides: Partial<ModelServingHardwareProfileState> = {},
+  ): ModelServingHardwareProfileState => ({
     modelSize: {
       selectedSize: {
         name: 'Small',
@@ -30,24 +30,6 @@ describe('useModelServerSizeValidation', () => {
       },
       setSelectedSize: jest.fn(),
       sizes: [],
-    },
-    acceleratorProfile: {
-      formData: {
-        profile: undefined,
-        count: 0,
-        useExistingSettings: false,
-      },
-      setFormData: jest.fn(),
-      loaded: true,
-      loadError: undefined,
-      initialState: {
-        acceleratorProfiles: [],
-        acceleratorProfile: undefined,
-        count: 0,
-        unknownProfileDetected: false,
-      },
-      resetFormData: jest.fn(),
-      refresh: jest.fn(),
     },
     hardwareProfile: {
       formData: {
@@ -82,7 +64,7 @@ describe('useModelServerSizeValidation', () => {
       hasValidationIssue: jest.fn(),
     });
 
-    const mockState = createMockPodSpecOptionsState();
+    const mockState = createMockHardwareProfileState();
     const { result } = renderHook(() => useModelServerSizeValidation(mockState));
 
     expect(result.current.isValid).toBe(true);
@@ -104,14 +86,14 @@ describe('useModelServerSizeValidation', () => {
       hasValidationIssue: jest.fn(),
     });
 
-    const mockState = createMockPodSpecOptionsState();
+    const mockState = createMockHardwareProfileState();
     const { result } = renderHook(() => useModelServerSizeValidation(mockState));
 
     expect(result.current.isValid).toBe(false);
   });
 
   it('should validate the selected model size', () => {
-    const mockState = createMockPodSpecOptionsState();
+    const mockState = createMockHardwareProfileState();
 
     mockUseValidation.mockReturnValue({
       validationResult: { success: true },
@@ -136,7 +118,7 @@ describe('useModelServerSizeValidation', () => {
       hasValidationIssue: jest.fn(),
     });
 
-    const mockState = createMockPodSpecOptionsState();
+    const mockState = createMockHardwareProfileState();
     const { result } = renderHook(() => useModelServerSizeValidation(mockState));
 
     expect(result.current.isValid).toBe(true);
@@ -163,14 +145,14 @@ describe('useModelServerSizeValidation', () => {
       hasValidationIssue: jest.fn(),
     });
 
-    const mockState = createMockPodSpecOptionsState();
+    const mockState = createMockHardwareProfileState();
     const { result } = renderHook(() => useModelServerSizeValidation(mockState));
 
     expect(result.current.isValid).toBe(false);
   });
 
   it('should update validation when model size changes', () => {
-    const mockState = createMockPodSpecOptionsState();
+    const mockState = createMockHardwareProfileState();
 
     mockUseValidation.mockReturnValue({
       validationResult: { success: true },
@@ -184,7 +166,7 @@ describe('useModelServerSizeValidation', () => {
     });
 
     // Update the model size
-    const updatedState = createMockPodSpecOptionsState({
+    const updatedState = createMockHardwareProfileState({
       modelSize: {
         ...mockState.modelSize,
         selectedSize: {

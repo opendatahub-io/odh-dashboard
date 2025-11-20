@@ -45,7 +45,7 @@ import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
-  projectEnableModelMesh?: boolean;
+  projectEnableKServe?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
   delayInferenceServices?: boolean;
@@ -58,7 +58,7 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableKServeConfig,
-  projectEnableModelMesh,
+  projectEnableKServe = true,
   servingRuntimes = [mockServingRuntimeK8sResource({})],
   inferenceServices = [mockInferenceServiceK8sResource({})],
   delayInferenceServices,
@@ -163,7 +163,7 @@ const initIntercepts = ({
   cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
   cy.interceptK8sList(
     ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: projectEnableModelMesh })]),
+    mockK8sResourceList([mockProjectK8sResource({ enableKServe: projectEnableKServe })]),
   );
   cy.interceptK8sList(
     TemplateModel,
