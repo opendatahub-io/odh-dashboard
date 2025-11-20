@@ -56,6 +56,7 @@ const TrainingJobStatus = ({
             value={progressPercentage}
             size="sm"
             style={{ width: '200px' }}
+            aria-label={`Training progress: ${progressPercentage}%`}
             data-testid="training-job-progress-bar"
           />
         </FlexItem>
