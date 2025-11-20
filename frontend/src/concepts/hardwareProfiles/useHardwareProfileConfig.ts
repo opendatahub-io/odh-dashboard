@@ -1,10 +1,9 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import { ContainerResources, NodeSelector, Toleration } from '#~/types';
+import { ContainerResources, CustomWatchK8sResult, NodeSelector, Toleration } from '#~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import {
@@ -12,6 +11,7 @@ import {
   useKueueConfiguration,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -112,6 +112,7 @@ export const useHardwareProfileConfig = (
   visibleIn?: HardwareProfileFeatureVisibility[],
   namespace?: string,
   hardwareProfileNamespace?: string | null,
+  projectHardwareProfiles?: CustomWatchK8sResult<HardwareProfileKind[]>,
 ): UseHardwareProfileConfigResult => {
   const {
     globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
@@ -120,7 +121,7 @@ export const useHardwareProfileConfig = (
       projectScopedProfilesLoaded,
       projectScopedProfilesLoadError,
     ],
-  } = useHardwareProfilesByFeatureVisibility(visibleIn);
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, projectHardwareProfiles);
 
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
@@ -131,7 +132,7 @@ export const useHardwareProfileConfig = (
   let profiles = dashboardProfiles;
   let profilesLoaded = dashboardProfilesLoaded;
   let profilesLoadError = dashboardProfilesLoadError;
-  if (namespace) {
+  if (namespace || projectScopedProfiles.length > 0) {
     profiles = [...dashboardProfiles, ...projectScopedProfiles];
     profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
     profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;

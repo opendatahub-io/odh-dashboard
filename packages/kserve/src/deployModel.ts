@@ -1,10 +1,9 @@
-import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
   type SupportedModelFormats,
   type InferenceServiceKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-
 import {
   DeploymentStrategyFieldData,
   type ModelLocationData,
@@ -18,6 +17,7 @@ import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/componen
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import * as _ from 'lodash-es';
+import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -30,7 +30,7 @@ import {
   applyModelType,
   applyDeploymentStrategy,
 } from './deployUtils';
-import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
+import { applyReplicas, INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
   createInferenceService,
   patchInferenceService,
@@ -45,7 +45,7 @@ export type CreatingInferenceServiceObject = {
   description: string;
   modelType?: ServingRuntimeModelType;
   modelLocationData?: ModelLocationData;
-  hardwareProfile: HardwareProfileConfig;
+  hardwareProfileOptions?: UseAssignHardwareProfileResult<ModelResourceType>;
   modelFormat?: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
@@ -73,7 +73,7 @@ const assembleInferenceService = (
     modelLocationData,
     createConnectionData,
     modelFormat,
-    hardwareProfile,
+    hardwareProfileOptions,
     numReplicas,
     modelAvailability,
     externalRoute,
@@ -119,7 +119,12 @@ const assembleInferenceService = (
     secretName,
   );
 
-  inferenceService = applyHardwareProfileToDeployment(inferenceService, hardwareProfile);
+  if (hardwareProfileOptions) {
+    inferenceService = hardwareProfileOptions.applyToResource(
+      inferenceService,
+      INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    );
+  }
 
   inferenceService = applyAuth(
     inferenceService,

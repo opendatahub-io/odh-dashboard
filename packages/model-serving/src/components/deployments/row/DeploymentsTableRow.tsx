@@ -8,6 +8,9 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
 import { DeploymentHardwareProfileCell } from '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell';
+import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { HardwareProfileKind } from '@odh-dashboard/internal/k8sTypes';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
@@ -18,12 +21,14 @@ import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
+  isModelServingDeploymentFormDataExtension,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
 } from '../../../../extension-points';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
+import { ModelDeploymentsContext } from '../../../concepts/ModelDeploymentsContext.tsx';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -45,6 +50,26 @@ export const DeploymentRow: React.FC<{
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
+
+  const [formDataExtensions, formDataResolved] = useResolvedExtensions(
+    isModelServingDeploymentFormDataExtension,
+  );
+  const formDataExtension = React.useMemo(
+    () =>
+      formDataExtensions.find(
+        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+      ) ?? null,
+    [formDataExtensions, deployment.modelServingPlatformId],
+  );
+  const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
+  const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
+
+  const { projectHardwareProfiles, projectHardwareProfilesLoaded, projectHardwareProfilesError } =
+    React.useContext(ModelDeploymentsContext);
+  const projectProfiles: CustomWatchK8sResult<HardwareProfileKind[]> | undefined =
+    projectHardwareProfiles
+      ? [projectHardwareProfiles, projectHardwareProfilesLoaded, projectHardwareProfilesError]
+      : undefined;
 
   const onStart = React.useCallback(() => {
     if (!startStopActionExtension) return;
@@ -70,7 +95,7 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedToggle && (
+        {showExpandedToggle && pathsLoaded && (
           <Td
             {...{
               'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
@@ -111,7 +136,11 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        <DeploymentHardwareProfileCell deployment={deployment} />
+        <DeploymentHardwareProfileCell
+          deployment={deployment}
+          hardwareProfilePaths={hardwareProfilePaths}
+          projectHardwareProfiles={projectProfiles}
+        />
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>
@@ -162,8 +191,12 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
       </ResourceTr>
-      {showExpandedToggle && (
-        <DeploymentRowExpandedSection deployment={deployment} isVisible={isExpanded} />
+      {showExpandedToggle && pathsLoaded && (
+        <DeploymentRowExpandedSection
+          deployment={deployment}
+          isVisible={isExpanded}
+          hardwareProfilePaths={hardwareProfilePaths}
+        />
       )}
       {isOpenConfirm && startStopActionExtension && (
         <ModelServingStopModal

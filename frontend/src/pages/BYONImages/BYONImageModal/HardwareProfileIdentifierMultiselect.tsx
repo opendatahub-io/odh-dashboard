@@ -1,7 +1,7 @@
 import React from 'react';
 import { MultiSelection } from '#~/components/MultiSelection';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { WORKBENCH_VISIBILITY } from '#~/pages/BYONImages/const';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 
 type HardwareProfileIdentifierMultiselectProps = {
   data: string[];

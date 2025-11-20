@@ -1,4 +1,5 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
 import { HardwareProfileBindingConfig } from './types';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
@@ -75,3 +76,6 @@ export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
     path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
   },
 ];
+
+export const WORKBENCH_VISIBILITY = [HardwareProfileFeatureVisibility.WORKBENCH];
+export const MODEL_SERVING_VISIBILITY = [HardwareProfileFeatureVisibility.MODEL_SERVING];

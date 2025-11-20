@@ -39,8 +39,10 @@ const extensions: (
     type: 'model-serving.deployment/form-data',
     properties: {
       platform: LLMD_SERVING_ID,
-      extractHardwareProfileConfig: () =>
-        import('../src/deployments/hardware').then((m) => m.extractHardwareProfileConfig),
+      hardwareProfilePaths: () =>
+        import('../src/deployments/hardware').then(
+          (m) => m.LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+        ),
       extractModelFormat: () =>
         import('../src/deployments/model').then((m) => m.extractModelFormat),
       extractReplicas: () => import('../src/deployments/hardware').then((m) => m.extractReplicas),

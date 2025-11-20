@@ -22,7 +22,11 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
       properties: {
         extractModelFormat: () => ({ name: 'test-model-format' }),
         extractReplicas: () => 1,
-        extractHardwareProfileConfig: () => [null, {}],
+        hardwareProfilePaths: {
+          containerResourcesPath: 'spec.predictor.model.resources',
+          tolerationsPath: 'spec.predictor.tolerations',
+          nodeSelectorPath: 'spec.predictor.nodeSelector',
+        },
         extractModelAvailabilityData: () => ({
           saveAsAiAsset: true,
           saveAsMaaS: true,
@@ -56,7 +60,17 @@ describe('DeploymentsTableRowExpandedSection', () => {
     mockExtensions();
   });
   it('should render the expanded row with correct data', () => {
-    render(<DeploymentRowExpandedSection deployment={mockDeployment()} isVisible />);
+    render(
+      <DeploymentRowExpandedSection
+        deployment={mockDeployment()}
+        isVisible
+        hardwareProfilePaths={{
+          containerResourcesPath: 'spec.predictor.model.resources',
+          tolerationsPath: 'spec.predictor.tolerations',
+          nodeSelectorPath: 'spec.predictor.nodeSelector',
+        }}
+      />,
+    );
     // description
     expect(screen.getByText('test-description')).toBeInTheDocument();
     // model format
@@ -64,7 +78,7 @@ describe('DeploymentsTableRowExpandedSection', () => {
     // replicas
     expect(screen.getByText('1')).toBeInTheDocument();
     // hardware profile
-    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
     // model availability
     expect(screen.getByText('AI asset endpoint, Model-as-a-Service (MaaS)')).toBeInTheDocument();
     // use case
