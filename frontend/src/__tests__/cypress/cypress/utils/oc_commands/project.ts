@@ -23,7 +23,17 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.code}`);
     }
-    return result;
+    // Add dashboard label immediately after project creation
+    const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
+    return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
+      if (labelResult.code !== 0) {
+        cy.log(`WARNING: Failed to add dashboard label to ${projectName}
+                  stdout: ${labelResult.stdout}
+                  stderr: ${labelResult.stderr}`);
+        // Don't fail the entire operation if labeling fails, but log it
+      }
+      return result; // Return the original creation result
+    });
   });
 };
 

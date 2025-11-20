@@ -426,6 +426,10 @@ describe('createNIMPVC', () => {
       projectName,
       { dryRun },
       true,
+      undefined,
+      {
+        'opendatahub.io/managed': 'true',
+      },
     );
     expect(result).toEqual(pvcMock);
   });
@@ -444,6 +448,10 @@ describe('createNIMPVC', () => {
       projectName,
       { dryRun: dryRunFlag },
       true,
+      undefined,
+      {
+        'opendatahub.io/managed': 'true',
+      },
     );
   });
 });
