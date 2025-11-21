@@ -333,9 +333,28 @@ export const assembleConnectionSecret = (
     [key: string]: ConnectionTypeValueType;
   },
 ): Connection => {
+  const isOCI =
+    connectionTypeName ===
+    modelServingCompatibleTypesMetadata[ModelServingCompatibleTypes.OCI].resource;
+  const valuesWithDefaults = isOCI
+    ? {
+        ...values,
+        '.dockerconfigjson': values['.dockerconfigjson'] ?? '',
+        OCI_HOST: values.OCI_HOST ?? '',
+      }
+    : values;
+
   const connectionValuesAsStrings = Object.fromEntries(
-    Object.entries(values)
+    Object.entries(valuesWithDefaults)
       .map(([key, value]) => {
+        // For OCI connections, convert empty .dockerconfigjson and OCI_HOST to '{}'
+        if (
+          isOCI &&
+          (key === '.dockerconfigjson' || key === 'OCI_HOST') &&
+          (!value || value === '')
+        ) {
+          return [key, '{}'];
+        }
         if (Array.isArray(value)) {
           return [key, JSON.stringify(value)]; // multi select
         }

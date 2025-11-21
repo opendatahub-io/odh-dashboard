@@ -230,7 +230,21 @@ const hasRequiredConnectionTypeFields = (modelLocationData: ModelLocationData): 
       (field): field is ConnectionTypeDataField => 'envVar' in field && 'required' in field,
     ) || [];
 
-  const requiredFields = dataFields.filter((field) => field.required).map((field) => field.envVar);
+  const isOCI = isModelServingCompatible(
+    modelLocationData.connectionTypeObject,
+    ModelServingCompatibleTypes.OCI,
+  );
+
+  const requiredFields = dataFields
+    .filter((field) => {
+      if (!field.required) return false;
+      if (isOCI && (field.envVar === '.dockerconfigjson' || field.envVar === 'OCI_HOST')) {
+        return false;
+      }
+      return true;
+    })
+    .map((field) => field.envVar);
+
   if (
     isModelServingCompatible(
       modelLocationData.connectionTypeObject,

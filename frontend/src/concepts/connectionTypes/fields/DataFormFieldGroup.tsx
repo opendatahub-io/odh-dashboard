@@ -22,8 +22,6 @@ const DataFormFieldGroup: React.FC<Props> = ({ field, id, children }): React.Rea
     label={field.name}
     fieldId={id}
     data-testid={`field-group ${field.type} ${field.envVar}`}
-    // do not mark read only fields as required
-    isRequired={field.required && !field.properties.defaultReadOnly}
     labelHelp={
       <Popover
         headerContent="Field details"
