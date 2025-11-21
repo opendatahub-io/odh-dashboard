@@ -1,0 +1,14 @@
+{
+  "data": {
+    "server_url": "https://kubernetes-mcp-server.local/mcp",
+    "status": "connected",
+    "message": "Connection successful",
+    "last_checked": 1762270087,
+    "server_info": {
+      "name": "kubernetes-mcp-server",
+      "version": "1.0.0",
+      "protocol_version": "2025-06-18"
+    },
+    "ping_response_time_ms": 125
+  }
+}

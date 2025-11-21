@@ -3,16 +3,22 @@ import { MCPTool } from '~/app/types';
 
 const MCPToolsColumns: SortableData<MCPTool>[] = [
   {
-    field: 'nameAndPermissions',
+    field: 'checkbox',
     label: '',
     sortable: false,
-    width: 50,
+    width: 10,
+  },
+  {
+    field: 'toolName',
+    label: 'Tool name',
+    sortable: (a, b) => a.name.localeCompare(b.name),
+    width: 40,
   },
   {
     field: 'description',
-    label: '',
-    sortable: false,
-    width: 40,
+    label: 'Description',
+    sortable: (a, b) => a.description.localeCompare(b.description),
+    width: 60,
   },
 ];
 
