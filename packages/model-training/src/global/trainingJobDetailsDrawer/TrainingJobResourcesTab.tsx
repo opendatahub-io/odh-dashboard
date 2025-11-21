@@ -52,7 +52,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
                 isDisabled // TODO: RHOAIENG-37576 Uncomment this when scaling is implemented
                 data-testid="nodes-edit-button"
               >
-                {job.spec.trainer?.numNodes}
+                {job.spec.trainer?.numNodes || '-'}
               </Button>
             </DescriptionListDescription>
           </DescriptionListGroup>

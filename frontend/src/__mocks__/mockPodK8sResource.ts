@@ -8,6 +8,7 @@ type MockResourceConfigType = {
   namespace?: string;
   isPending?: boolean;
   isRunning?: boolean;
+  labels?: Record<string, string>;
 };
 
 export const mockPodK8sResource = ({
@@ -16,6 +17,7 @@ export const mockPodK8sResource = ({
   namespace = 'test-project',
   isPending = false,
   isRunning = true,
+  labels,
 }: MockResourceConfigType): PodKind => ({
   kind: 'Pod',
   apiVersion: 'project.openshift.io/v1',
@@ -35,6 +37,7 @@ export const mockPodK8sResource = ({
       'opendatahub.io/user': user,
       statefulset: name,
       'statefulset.kubernetes.io/pod-name': name,
+      ...labels,
     },
     annotations: {
       'openshift.io/scc': 'restricted-v2',
