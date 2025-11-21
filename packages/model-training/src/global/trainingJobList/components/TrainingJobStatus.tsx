@@ -8,12 +8,14 @@ type TrainingJobStatusProps = {
   job: TrainJobKind;
   jobStatus?: TrainingJobState;
   onClick?: () => void;
+  isCompact?: boolean;
 };
 
 const TrainingJobStatus = ({
   job,
   jobStatus,
   onClick,
+  isCompact = true,
 }: TrainingJobStatusProps): React.ReactElement => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const isLoadingStatus = jobStatus === undefined;
@@ -26,7 +28,7 @@ const TrainingJobStatus = ({
 
   return (
     <Label
-      isCompact
+      isCompact={isCompact}
       status={statusInfo.status}
       color={statusInfo.color}
       icon={<statusInfo.IconComponent />}

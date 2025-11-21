@@ -36,12 +36,13 @@ import {
   getSectionStatusesFromJobsStatus,
   getSectionExistence,
   JobSectionName,
+  handlePauseResume as handlePauseResumeUtil,
+  handleRetry as handleRetryUtil,
 } from './utils';
 import { useWorkloadForTrainJob } from './hooks/useWorkloadForTrainJob';
 import { usePauseTrainJob } from './hooks/usePauseTrainJob';
 import { useRetryTrainJob } from './hooks/useRetryTrainJob';
 import { useWatchTrainJobEvents } from '../../api/events';
-import { resumeTrainJob } from '../../api/scaling';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 
@@ -105,33 +106,20 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   }, [job.status?.jobsStatus]);
 
   const statusFlags = React.useMemo(() => getStatusFlags(status), [status]);
-  const { isFailed, isPaused, inProgress, isComplete } = statusFlags;
+  const { isFailed, isPaused, inProgress, isComplete, isInadmissible } = statusFlags;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
   const handlePauseResume = React.useCallback(async () => {
-    try {
-      if (isPaused) {
-        const result = await resumeTrainJob(job);
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to resume job');
-        }
-      } else {
-        await pauseJob();
-      }
+    await handlePauseResumeUtil(job, isPaused, pauseJob, () => {
       onPause?.();
       onClose?.();
-    } catch (error) {
-      console.error(`Failed to ${isPaused ? 'resume' : 'pause'} job:`, error);
-    }
+    });
   }, [job, isPaused, pauseJob, onPause, onClose]);
 
   const handleRetry = React.useCallback(async () => {
-    try {
-      await retryJob();
+    await handleRetryUtil(retryJob, () => {
       onClose?.();
-    } catch (error) {
-      console.error('Failed to retry job:', error);
-    }
+    });
   }, [retryJob, onClose]);
 
   const statusMessage = React.useMemo(
@@ -312,14 +300,10 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         data-testid="training-job-status-modal-header"
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>
-              <Title headingLevel="h2" size="lg">
-                Training Job Status
-              </Title>
-            </FlexItem>
-            <FlexItem>
-              <TrainingJobStatus job={job} jobStatus={status} />
-            </FlexItem>
+            <Title headingLevel="h2" size="lg">
+              Training Job Status
+            </Title>
+            <TrainingJobStatus job={job} jobStatus={status} />
           </Flex>
         }
       />
@@ -364,7 +348,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
           >
             Retry Job
           </Button>
-        ) : (inProgress || isPaused) && !isComplete ? (
+        ) : (inProgress || isPaused) && !isComplete && !isInadmissible ? (
           <Button
             variant="primary"
             onClick={handlePauseResume}

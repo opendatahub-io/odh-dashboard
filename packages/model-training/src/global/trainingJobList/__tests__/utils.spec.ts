@@ -10,19 +10,27 @@ import {
   getStatusAlert,
   getSectionExistence,
   getSectionStatusesFromJobsStatus,
+  handlePauseResume,
+  handleRetry,
   TrainJobConditionType,
   WorkloadConditionType,
   ConditionStatus,
   JobSectionName,
 } from '../utils';
 import { getWorkloadForTrainJob } from '../../../api';
+import { resumeTrainJob } from '../../../api/scaling';
 
-// Mock the API function
+// Mock the API functions
 jest.mock('../../../api', () => ({
   getWorkloadForTrainJob: jest.fn(),
 }));
 
+jest.mock('../../../api/scaling', () => ({
+  resumeTrainJob: jest.fn(),
+}));
+
 const mockGetWorkloadForTrainJob = jest.mocked(getWorkloadForTrainJob);
+const mockResumeTrainJob = jest.mocked(resumeTrainJob);
 
 // Test constants
 const TEST_JOB_NAME = 'test-job';
@@ -298,6 +306,58 @@ describe('getStatusFlags', () => {
     const flags = getStatusFlags(TrainingJobState.PAUSED);
     expect(flags.isPaused).toBe(true);
     expect(flags.inProgress).toBe(false);
+  });
+
+  describe('canPauseResume flag', () => {
+    it('should return true for RUNNING status', () => {
+      const flags = getStatusFlags(TrainingJobState.RUNNING);
+      expect(flags.canPauseResume).toBe(true);
+    });
+
+    it('should return true for PAUSED status', () => {
+      const flags = getStatusFlags(TrainingJobState.PAUSED);
+      expect(flags.canPauseResume).toBe(true);
+    });
+
+    it('should return true for PENDING status', () => {
+      const flags = getStatusFlags(TrainingJobState.PENDING);
+      expect(flags.canPauseResume).toBe(true);
+    });
+
+    it('should return true for QUEUED status', () => {
+      const flags = getStatusFlags(TrainingJobState.QUEUED);
+      expect(flags.canPauseResume).toBe(true);
+    });
+
+    it('should return true for PREEMPTED status', () => {
+      const flags = getStatusFlags(TrainingJobState.PREEMPTED);
+      expect(flags.canPauseResume).toBe(true);
+    });
+
+    it('should return false for INADMISSIBLE status', () => {
+      const flags = getStatusFlags(TrainingJobState.INADMISSIBLE);
+      expect(flags.canPauseResume).toBe(false);
+    });
+
+    it('should return false for SUCCEEDED status', () => {
+      const flags = getStatusFlags(TrainingJobState.SUCCEEDED);
+      expect(flags.canPauseResume).toBe(false);
+    });
+
+    it('should return false for FAILED status', () => {
+      const flags = getStatusFlags(TrainingJobState.FAILED);
+      expect(flags.canPauseResume).toBe(false);
+    });
+
+    it('should return false for DELETING status', () => {
+      const flags = getStatusFlags(TrainingJobState.DELETING);
+      expect(flags.canPauseResume).toBe(false);
+    });
+
+    it('should return false for UNKNOWN status', () => {
+      const flags = getStatusFlags(TrainingJobState.UNKNOWN);
+      expect(flags.canPauseResume).toBe(false);
+    });
   });
 });
 
@@ -972,10 +1032,14 @@ describe('getTrainingJobStatus', () => {
     });
     mockGetWorkloadForTrainJob.mockRejectedValue(new Error('API error'));
 
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBeDefined();
     expect(result.error).toBeDefined();
     expect(result.isLoading).toBe(false);
+
+    consoleWarnSpy.mockRestore();
   });
 
   it('should respect skipHibernationCheck option', async () => {
@@ -1027,5 +1091,129 @@ describe('getTrainingJobStatus', () => {
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.FAILED);
     expect(result.isLoading).toBe(false);
+  });
+});
+
+describe('handlePauseResume', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should resume job when isPaused is true', async () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const pauseJob = jest.fn();
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    mockResumeTrainJob.mockResolvedValue({ success: true });
+
+    await handlePauseResume(job, true, pauseJob, onSuccess, onError);
+
+    expect(mockResumeTrainJob).toHaveBeenCalledWith(job);
+    expect(pauseJob).not.toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('should pause job when isPaused is false', async () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const pauseJob = jest.fn().mockResolvedValue(undefined);
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    await handlePauseResume(job, false, pauseJob, onSuccess, onError);
+
+    expect(mockResumeTrainJob).not.toHaveBeenCalled();
+    expect(pauseJob).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('should call onError when resume fails', async () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const pauseJob = jest.fn();
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    mockResumeTrainJob.mockResolvedValue({ success: false, error: 'Resume failed' });
+
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await expect(handlePauseResume(job, true, pauseJob, onSuccess, onError)).rejects.toThrow(
+      'Resume failed',
+    );
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should call onError when pause fails', async () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const pauseJob = jest.fn().mockRejectedValue(new Error('Pause failed'));
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await expect(handlePauseResume(job, false, pauseJob, onSuccess, onError)).rejects.toThrow(
+      'Pause failed',
+    );
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should work without callbacks', async () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const pauseJob = jest.fn().mockResolvedValue(undefined);
+
+    mockResumeTrainJob.mockResolvedValue({ success: true });
+
+    await handlePauseResume(job, true, pauseJob);
+    expect(mockResumeTrainJob).toHaveBeenCalledWith(job);
+  });
+});
+
+describe('handleRetry', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should call retryJob and onSuccess on success', async () => {
+    const retryJob = jest.fn().mockResolvedValue(undefined);
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    await handleRetry(retryJob, onSuccess, onError);
+
+    expect(retryJob).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('should call onError when retry fails', async () => {
+    const retryJob = jest.fn().mockRejectedValue(new Error('Retry failed'));
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await expect(handleRetry(retryJob, onSuccess, onError)).rejects.toThrow('Retry failed');
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should work without callbacks', async () => {
+    const retryJob = jest.fn().mockResolvedValue(undefined);
+
+    await handleRetry(retryJob);
+    expect(retryJob).toHaveBeenCalled();
   });
 });
