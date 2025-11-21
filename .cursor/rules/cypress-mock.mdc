@@ -162,6 +162,147 @@ it('Feature should be hidden by feature flag', () => {
 });
 ```
 
+### Test Structure Best Practices
+
+**CRITICAL: Focus on essential flows, not exhaustive edge cases**
+
+Before writing tests, review existing tests of similar features to learn established patterns. When writing mock tests:
+
+1. **Prioritize main user flows** - Test the happy path and critical error scenarios
+2. **Avoid over-testing** - Don't test every possible edge case (save that for unit tests)
+3. **Keep tests focused** - Each test should validate one specific behavior or flow
+4. **Aim for 3-7 tests per feature** - Not 15+ granular tests
+5. **Combine related validations** - Group related assertions in fewer tests
+
+**Example: Good test coverage (focused)**
+```typescript
+describe('User Management', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptK8s(AuthModel, mockAuth({}));
+    cy.interceptK8sList(
+      GroupModel,
+      mockK8sResourceList([mockGroup({}), mockGroup({ name: 'odh-admins-1' })]),
+    );
+    userManagement.visit();
+  });
+
+  it('Administrator group setting', () => {
+    // ✅ Tests the complete admin group flow in one test
+    const administratorGroupSection = userManagement.getAdministratorGroupSection();
+    userManagement.findSubmitButton().should('be.disabled');
+    administratorGroupSection.findChipItem(/^odh-admins$/).should('exist');
+    administratorGroupSection.clearMultiChipItem();
+    administratorGroupSection.selectMultiGroup('odh-admins');
+    administratorGroupSection.removeChipItem('odh-admins');
+    administratorGroupSection.findErrorText().should('exist');
+    administratorGroupSection.findMultiGroupOptions('odh-admins').click();
+    userManagement.findSubmitButton().should('be.enabled');
+  });
+
+  it('User group setting', () => {
+    // ✅ Tests the main user group flow with save and payload validation
+    const userGroupSection = userManagement.getUserGroupSection();
+    userGroupSection.clearMultiChipItem();
+    userGroupSection.selectMultiGroup('odh-admins');
+    
+    const mockedAuth = mockAuth({ allowedGroups: ['odh-admins'] });
+    cy.interceptK8s('PATCH', AuthModel, mockedAuth).as('saveGroupSetting');
+    
+    userManagement.findSubmitButton().click();
+    cy.wait('@saveGroupSetting').then((interception) => {
+      // Validate the actual PATCH payload structure
+      expect(interception.request.body).to.eql([
+        { value: ['odh-admins'], op: 'replace', path: '/spec/adminGroups' },
+        { value: ['odh-admins'], op: 'replace', path: '/spec/allowedGroups' },
+      ]);
+    });
+    userManagement.shouldHaveSuccessAlertMessage();
+  });
+
+  it('redirect from v2 to v3 route', () => {
+    // ✅ Tests route redirect
+    cy.visitWithLogin('/groupSettings');
+    cy.findByTestId('app-page-title').contains('User management');
+    cy.url().should('include', '/settings/user-management');
+  });
+});
+```
+
+**Example: Over-testing (avoid this)**
+```typescript
+describe('Group Settings', () => {
+  // ❌ BAD: 15 separate micro-tests for every small interaction
+  it('should display group settings page', () => { /* ... */ });
+  it('should show administrator info alert', () => { /* ... */ });
+  it('should enable save button when admin groups change', () => { /* ... */ });
+  it('should enable save button when user groups change', () => { /* ... */ });
+  it('should save group settings successfully', () => { /* ... */ });
+  it('should prevent saving with empty admin groups', () => { /* ... */ });
+  it('should prevent saving with empty user groups', () => { /* ... */ });
+  it('should allow creating new admin group', () => { /* ... */ });
+  it('should allow creating new user group', () => { /* ... */ });
+  it('should handle save error', () => { /* ... */ });
+  it('should handle loading error', () => { /* ... */ });
+  it('should display existing group selections', () => { /* ... */ });
+  it('should show helper text for both sections', () => { /* ... */ });
+  it('should disable save button while saving', () => { /* ... */ });
+  // This is too granular - combine related tests into comprehensive flows!
+});
+```
+
+**Minimal mocking principle**:
+
+Only mock what's necessary for the test. Don't over-mock endpoints that aren't used:
+
+```typescript
+// ✅ GOOD: Only mocks what's needed
+describe('User Management', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptK8s(AuthModel, mockAuth({}));
+    cy.interceptK8sList(GroupModel, mockK8sResourceList([mockGroup({})]));
+    // That's it - just Auth and Groups
+  });
+});
+
+// ❌ BAD: Mocks unnecessary endpoints
+describe('User Management', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({})); // Not needed!
+    cy.interceptOdh('GET /api/notifications', []); // Not needed!
+    cy.interceptK8s(AuthModel, mockAuth({}));
+    cy.interceptK8sList(GroupModel, mockK8sResourceList([mockGroup({})]));
+  });
+});
+```
+
+**Payload validation in interceptors**:
+
+When testing save/update operations, validate the actual request payload structure, not just that it was called:
+
+```typescript
+// ✅ GOOD: Validates the actual PATCH payload with JSONPath operations
+cy.wait('@saveGroupSetting').then((interception) => {
+  expect(interception.request.body).to.eql([
+    { value: ['odh-admins'], op: 'replace', path: '/spec/adminGroups' },
+    { value: ['odh-admins'], op: 'replace', path: '/spec/allowedGroups' },
+  ]);
+  expect(interception.response?.body.spec).to.eql({
+    adminGroups: ['odh-admins'],
+    allowedGroups: ['odh-admins'],
+  });
+});
+
+// ❌ BAD: Just checks that patches exist
+cy.wait('@patchAuth').then((interception) => {
+  expect(interception.request.body).to.have.property('patches');
+  const patches = interception.request.body.patches;
+  expect(patches).to.be.an('array');
+});
+```
+
 ### Navigation and Page Interactions
 
 **MANDATORY: Use page objects for ALL UI interactions**:
@@ -253,6 +394,191 @@ it('should interact with table row', () => {
   
   deleteModal.findSubmitButton().click();
 });
+```
+
+### Advanced Page Object Patterns
+
+**CRITICAL: Learn from existing tests before creating new page objects**
+
+Before creating a new page object:
+1. Search for existing tests of the same page or similar functionality
+2. Review the existing page object patterns and reuse them
+3. Check for `Contextual` pattern usage for reusable sections
+4. Avoid duplicating logic that already exists
+
+**Contextual pattern for reusable sections**:
+
+When a page has multiple instances of the same UI pattern (e.g., multiple form sections, multiple settings groups), use the `Contextual` pattern:
+
+```typescript
+import { Contextual } from './components/Contextual';
+
+// Reusable section class that can be instantiated multiple times
+class GroupSettingSection extends Contextual<HTMLElement> {
+  clearMultiChipItem() {
+    this.find().findByRole('button', { name: 'Clear input value' }).click();
+  }
+
+  findMultiGroupInput() {
+    return this.find().find('input');
+  }
+
+  findMultiGroupOptions(name: string) {
+    // Use .document() to search outside the component context (e.g., for dropdowns)
+    return this.find().document().findByRole('option', { name });
+  }
+
+  private findChipGroup() {
+    return this.find().findByRole('list', { name: 'Current selections' });
+  }
+
+  findChipItem(name: string | RegExp) {
+    return this.findChipGroup().find('li').contains('span', name);
+  }
+
+  removeChipItem(name: string) {
+    this.findChipGroup()
+      .find('li')
+      .findByRole('button', { name: `Close ${name}` })
+      .click();
+  }
+
+  selectMultiGroup(name: string) {
+    this.findMultiGroupSelectButton().click();
+    this.findMultiGroupOptions(name).click();
+  }
+}
+
+// Main page object that creates section instances
+class UserManagement {
+  visit(wait = true) {
+    cy.visitWithLogin('/settings/user-management');
+    if (wait) {
+      this.wait();
+    }
+  }
+
+  private wait() {
+    // Validate specific content, not just existence
+    cy.findByTestId('app-page-title').should('have.text', 'User management');
+    cy.testA11y();
+  }
+
+  // Create section instances for different areas of the page
+  getAdministratorGroupSection() {
+    return new GroupSettingSection(() => cy.findByTestId('data-science-administrator-groups'));
+  }
+
+  getUserGroupSection() {
+    return new GroupSettingSection(() => cy.findByTestId('data-science-user-groups'));
+  }
+}
+```
+
+**Benefits of the Contextual pattern**:
+- Eliminates duplication (one class for multiple similar sections)
+- Encapsulates section-specific logic
+- Makes tests more readable and maintainable
+- Follows DRY principles
+
+**Using Contextual sections in tests**:
+```typescript
+it('Administrator group setting', () => {
+  const administratorGroupSection = userManagement.getAdministratorGroupSection();
+  
+  administratorGroupSection.findChipItem(/^odh-admins$/).should('exist');
+  administratorGroupSection.clearMultiChipItem();
+  administratorGroupSection.selectMultiGroup('odh-admins');
+  administratorGroupSection.removeChipItem('odh-admins');
+});
+```
+
+**Navigation and appChrome usage**:
+
+For finding navigation items, use `appChrome` with structured parameters instead of simple test IDs:
+
+```typescript
+import { appChrome } from './appChrome';
+
+class MyPage {
+  findNavItem() {
+    // ✅ GOOD: Uses appChrome with structure
+    return appChrome.findNavItem({ 
+      name: 'User management', 
+      rootSection: 'Settings' 
+    });
+  }
+  
+  navigate() {
+    this.findNavItem().click();
+    this.wait();
+  }
+}
+
+// ❌ BAD: Simple testId lookup
+findNavItem() {
+  return cy.findByTestId('settings-nav-item');
+}
+```
+
+**Wait methods with specific validation**:
+
+Always validate specific content in wait methods, not just existence:
+
+```typescript
+class MyPage {
+  private wait() {
+    // ✅ GOOD: Validates specific text content
+    cy.findByTestId('app-page-title').should('have.text', 'User management');
+    cy.testA11y();
+  }
+}
+
+// ❌ BAD: Only checks existence
+private wait() {
+  cy.findByTestId('app-page-title');
+  cy.testA11y();
+}
+```
+
+**Success/Error validation patterns**:
+
+Use semantic HTML roles and accessible names for robust validation:
+
+```typescript
+class MyPage {
+  shouldHaveSuccessAlertMessage() {
+    // ✅ GOOD: Uses alert role and accessible name
+    cy.findByRole('heading', { 
+      name: 'Success alert: Group settings changes saved' 
+    }).should('exist');
+    return this;
+  }
+}
+
+// ❌ BAD: Simple text search
+shouldHaveSuccessMessage() {
+  cy.findByText('Group settings changes saved').should('exist');
+  return this;
+}
+```
+
+**Scope management with .document()**:
+
+When elements appear outside the component context (e.g., dropdown menus, popovers), use `.document()` to search from document root:
+
+```typescript
+class MySection extends Contextual<HTMLElement> {
+  findDropdownOption(name: string) {
+    // ✅ GOOD: Searches from document root for portaled content
+    return this.find().document().findByRole('option', { name });
+  }
+}
+
+// ❌ BAD: Searches within component only, misses portaled dropdowns
+findDropdownOption(name: string) {
+  return this.find().findByRole('option', { name });
+}
 ```
 
 ### Backend Mocking with Interceptors
