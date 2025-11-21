@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: odh-dashboard
+  name: dashboard
 spec:
   replicas: 2
   selector:
     matchLabels:
-      deployment: odh-dashboard
+      deployment: dashboard
   template:
     metadata:
       labels:
-        deployment: odh-dashboard
+        deployment: dashboard
     spec:
       affinity:
         podAntiAffinity:
@@ -22,11 +22,11 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - odh-dashboard
+                        - dashboard
                 topologyKey: topology.kubernetes.io/zone
-      serviceAccount: odh-dashboard
+      serviceAccount: dashboard
       containers:
-        - name: odh-dashboard
+        - name: dashboard
           image: $(odh-dashboard-image)
           imagePullPolicy: Always
           ports:
