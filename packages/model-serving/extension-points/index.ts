@@ -125,7 +125,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
       platform: D['modelServingPlatformId'];
       watch: CodeRef<
         (
-          project?: ProjectKind,
+          project: ProjectKind,
           labelSelectors?: { [key: string]: string },
           filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,

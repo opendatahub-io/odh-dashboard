@@ -82,7 +82,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : undefined}>
+    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : []}>
       <ModelDeploymentWizard
         project={currentProject}
         title={existingDeployment ? 'Edit model deployment' : 'Deploy a model'}

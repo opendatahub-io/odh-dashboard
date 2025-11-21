@@ -280,15 +280,6 @@ describe('useWatchDeployments', () => {
     expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts);
   });
 
-  it('should work without a project', () => {
-    const renderResult = testHook(useWatchDeployments)(undefined, undefined, undefined);
-
-    const [deployments] = renderResult.result.current as DeploymentHookResult;
-
-    expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(undefined, undefined, undefined);
-    expect(deployments).toHaveLength(3);
-  });
-
   it('should handle complex filterFn logic', () => {
     // Add more specific labels to test complex filtering
     const servicesWithLabels = [
