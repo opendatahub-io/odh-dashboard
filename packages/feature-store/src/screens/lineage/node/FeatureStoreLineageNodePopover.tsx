@@ -27,6 +27,7 @@ export interface FeatureStoreLineageNodePopoverProps {
   node: LineageNode | null;
   isVisible: boolean;
   onClose: () => void;
+  featureViewName?: string;
 }
 
 const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
@@ -59,6 +60,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   node,
   isVisible,
   onClose,
+  featureViewName,
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const navigate = useNavigate();
@@ -150,19 +152,26 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <FlexItem>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const route = goToDetailsPage(node, currentProject);
-                if (route) {
-                  navigate(route);
-                }
-              }}
-            >
-              View {getFsObjectTypeLabel(node.fsObjectTypes)} page
-            </Button>
-          </FlexItem>
+          {/* Hide CTA button only if this is a feature view node matching the current page's feature view */}
+          {!(
+            node.fsObjectTypes === 'feature_view' &&
+            featureViewName &&
+            node.name === featureViewName
+          ) && (
+            <FlexItem>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const route = goToDetailsPage(node, currentProject);
+                  if (route) {
+                    navigate(route);
+                  }
+                }}
+              >
+                View {getFsObjectTypeLabel(node.fsObjectTypes)} page
+              </Button>
+            </FlexItem>
+          )}
           {node.fsObjectTypes === 'feature_view' && (
             <FlexItem>
               <Button
