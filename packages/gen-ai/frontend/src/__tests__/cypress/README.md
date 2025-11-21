@@ -14,21 +14,20 @@ Automatically starts dev server, runs tests, then cleans up:
 npm run test:cypress-ci
 ```
 
-### Headless Mode
-
-Run tests in headless mode (requires dev server running separately):
-
-```bash
-npm run cypress:run:mock
-```
-
 ### Interactive Mode
 
-Open Cypress UI for debugging and test development:
+Open Cypress UI for debugging and test development with **mocked backend**:
 
 ```bash
-npm run cypress:open
+npm run test:cypress-open
 ```
+
+This will:
+
+- Automatically start the dev server with mocked APIs
+- Open the Cypress interactive UI
+- Click on "E2E Testing" → Select browser → Choose a test file to run
+- Watch tests execute with full debugging capabilities
 
 ## Test Filtering with Tags
 
@@ -49,13 +48,21 @@ npm run cypress:run:mock -- --env grepTags="@GenAI,@MCPServers"
 
 - `@GenAI` - Gen-AI specific tests
 - `@MCPServers` - MCP server functionality
+- `@Playground` - Playground/Chatbot tests
 - `@Authentication` - Authentication and token flows
 - `@Tools` - MCP tools functionality
+- `@Search` - Search and filtering functionality
+- `@Selection` - Tool selection features
 - `@Modal` - Modal dialog interactions
 - `@Validation` - Form validation tests
 - `@Error` - Error handling tests
+- `@ErrorHandling` - Error handling scenarios
 - `@UI` - UI component tests
+- `@UIState` - UI state management tests
 - `@MultiServer` - Multiple server scenarios
+- `@AutoUnlock` - Auto-unlock functionality
+- `@Success` - Success scenarios
+- `@E2E` - End-to-end workflows
 
 ## Directory Structure
 
@@ -73,6 +80,10 @@ cypress/
 ├── pages/                        # Page Object Model
 │   ├── appChrome.ts             # App navigation
 │   ├── chatbotPage.ts           # Chatbot/Playground page
+│   ├── playgroundPage.ts        # Playground main page
+│   ├── playgroundPage/          # Playground-specific page objects
+│   │   ├── mcpPanel.ts          # MCP panel interactions
+│   │   └── mcpModals.ts         # MCP modal dialogs (auth, tools, success)
 │   ├── aiAssetsPage.ts          # AI Assets page with tab switching
 │   ├── aiAssetsPage/            # Tab-specific page objects
 │   │   ├── baseTab.ts           # Base class for all tabs
@@ -91,8 +102,10 @@ cypress/
 ├── tests/
 │   └── mocked/                 # Mocked tests
 │       ├── ci-smoke.cy.ts
-│       └── aiAssets/
-│           └── mcpServers.cy.ts
+│       ├── aiAssets/
+│       │   └── mcpServers.cy.ts
+│       └── playground/
+│           └── mcpPanel.cy.ts  # MCP panel tests with tool selection
 └── utils/                       # Utilities
     ├── logger.ts
     └── testConfig.ts

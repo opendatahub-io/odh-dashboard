@@ -10,6 +10,8 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { MCPServer, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
@@ -45,6 +47,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   initialServerStatuses,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = React.useContext(GenAiContext);
+  const { getToolSelections } = useMCPToolSelections();
 
   // Compute statusesLoading from the received data
   const statusesLoading = React.useMemo(() => new Set<string>(), []);
@@ -91,6 +95,20 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     selectedServers,
     setSelectedServers,
     React.useCallback((server: MCPServer) => server.id, []),
+  );
+
+  // Helper to get tool counts for a server
+  const getToolCounts = React.useCallback(
+    (serverUrl: string) => {
+      const namespaceName = namespace?.name;
+      const totalToolsCount = serverToolsCount.get(serverUrl);
+      const savedTools = namespaceName ? getToolSelections(namespaceName, serverUrl) : undefined;
+      // If savedTools is undefined (never configured), all tools are selected by default
+      const selectedToolsCount = savedTools === undefined ? totalToolsCount : savedTools.length;
+
+      return { totalToolsCount, selectedToolsCount };
+    },
+    [namespace?.name, serverToolsCount, getToolSelections],
   );
 
   // Sync selected servers from initialSelectedServerIds prop on initial load
@@ -444,6 +462,25 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     setToolsModalOpen(true);
   }, []);
 
+  // Prepare success modal props
+  const successModalProps = React.useMemo(() => {
+    if (!selectedServerForSuccess) {
+      return null;
+    }
+
+    const { totalToolsCount, selectedToolsCount } = getToolCounts(
+      selectedServerForSuccess.connectionUrl,
+    );
+
+    return {
+      server: selectedServerForSuccess,
+      selectedToolsCount,
+      totalToolsCount,
+      onEditTools: () => handleEditToolsFromSuccess(selectedServerForSuccess),
+      onDisconnect: () => handleDisconnect(selectedServerForSuccess.connectionUrl),
+    };
+  }, [selectedServerForSuccess, getToolCounts, handleEditToolsFromSuccess, handleDisconnect]);
+
   if (!serversLoaded) {
     return <EmptyState titleText="Loading" headingLevel="h4" icon={Spinner} />;
   }
@@ -495,8 +532,10 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
             // Server is authenticated if it's either token-authenticated or auto-connected
             const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
             const isChecking = checkingServers.has(server.connectionUrl);
-            const toolsCount = serverToolsCount.get(server.connectionUrl);
             const isFetchingTools = fetchingToolsServers.has(server.connectionUrl);
+
+            // Get tool counts for the badge
+            const { selectedToolsCount: toolsCount } = getToolCounts(server.connectionUrl);
 
             return (
               <MCPServerPanelRow
@@ -557,14 +596,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
           mcpBearerToken={serverTokens.get(selectedServerForTools.connectionUrl)?.token}
         />
       )}
-      {selectedServerForSuccess && (
+      {successModalProps && (
         <MCPServerSuccessModal
           isOpen={successModalOpen}
           onClose={handleSuccessModalClose}
-          server={selectedServerForSuccess}
-          toolsCount={serverToolsCount.get(selectedServerForSuccess.connectionUrl)}
-          onEditTools={() => handleEditToolsFromSuccess(selectedServerForSuccess)}
-          onDisconnect={() => handleDisconnect(selectedServerForSuccess.connectionUrl)}
+          {...successModalProps}
         />
       )}
     </>
