@@ -15,6 +15,7 @@ import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { getWorkloadForTrainJob } from '../../api';
+import { resumeTrainJob } from '../../api/scaling';
 
 export enum TrainJobConditionType {
   Succeeded = 'Succeeded',
@@ -453,6 +454,7 @@ export const getStatusFlags = (
   isRestarting: boolean;
   isUnknown: boolean;
   inProgress: boolean;
+  canPauseResume: boolean;
 } => {
   const flags = {
     isRunning: status === TrainingJobState.RUNNING,
@@ -470,14 +472,22 @@ export const getStatusFlags = (
     isUnknown: status === TrainingJobState.UNKNOWN,
   };
 
+  const inProgress =
+    flags.isRunning ||
+    flags.isPending ||
+    flags.isQueued ||
+    flags.isInadmissible ||
+    flags.isPreempted;
+
   return {
     ...flags,
-    inProgress:
-      flags.isRunning ||
-      flags.isPending ||
-      flags.isQueued ||
-      flags.isInadmissible ||
-      flags.isPreempted,
+    inProgress,
+    canPauseResume:
+      ((inProgress && !flags.isInadmissible) || flags.isPaused) &&
+      !flags.isComplete &&
+      !flags.isFailed &&
+      !flags.isDeleting &&
+      !flags.isUnknown,
   };
 };
 
@@ -786,4 +796,45 @@ export const getSectionStatusesFromJobsStatus = (
     modelInitializer: modelInitializerStatus,
     training: trainingStatus,
   };
+};
+
+export const handlePauseResume = async (
+  job: TrainJobKind,
+  isPaused: boolean,
+  pauseJob: () => Promise<void>,
+  onSuccess?: () => void,
+  onError?: (error: Error) => void,
+): Promise<void> => {
+  try {
+    if (isPaused) {
+      const result = await resumeTrainJob(job);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to resume job');
+      }
+    } else {
+      await pauseJob();
+    }
+    onSuccess?.();
+  } catch (error) {
+    const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
+    console.error(`Failed to ${isPaused ? 'resume' : 'pause'} job:`, errorObj);
+    onError?.(errorObj);
+    throw errorObj;
+  }
+};
+
+export const handleRetry = async (
+  retryJob: () => Promise<void>,
+  onSuccess?: () => void,
+  onError?: (error: Error) => void,
+): Promise<void> => {
+  try {
+    await retryJob();
+    onSuccess?.();
+  } catch (error) {
+    const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
+    console.error('Failed to retry job:', errorObj);
+    onError?.(errorObj);
+    throw errorObj;
+  }
 };

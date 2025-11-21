@@ -6,7 +6,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import TrainingJobProject from './TrainingJobProject';
-import { getTrainingJobStatusSync } from './utils';
+import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
@@ -60,11 +60,16 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const isPaused = status === TrainingJobState.PAUSED;
-  const isPreempted = status === TrainingJobState.PREEMPTED;
-  const isQueued = status === TrainingJobState.QUEUED;
-  const isRunning = status === TrainingJobState.RUNNING;
-  const isPending = status === TrainingJobState.PENDING;
+  const {
+    isPaused,
+    isPreempted,
+    isQueued,
+    isRunning,
+    isPending,
+    canPauseResume: canPauseResumeFromFlags,
+  } = getStatusFlags(status);
+
+  const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -185,7 +190,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           />
         </Td>
         <Td>
-          {(isRunning || isPaused) && (
+          {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
               onPause={() => setHibernationModalOpen(true)}
