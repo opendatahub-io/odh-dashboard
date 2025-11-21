@@ -58,7 +58,7 @@ type HandlersProps = {
   disableKServeRaw?: boolean;
   disableKServeMetrics?: boolean;
   disableNIMConfig?: boolean;
-  projetcEnableNIM?: boolean;
+  projectEnableNIM?: boolean;
   projectEnableKServe?: boolean;
   servingRuntimes?: ServingRuntimeKind[];
   inferenceServices?: InferenceServiceKind[];
@@ -111,7 +111,7 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   templates = false,
   disableNIMConfig = true,
-  projetcEnableNIM: enableNIM = false,
+  projectEnableNIM: enableNIM = false,
   DscComponents,
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -341,7 +341,7 @@ describe('Serving Runtime List', () => {
         disableKServe: false,
         disableNIMConfig: false,
         projectEnableKServe: true,
-        projetcEnableNIM: false,
+        projectEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
@@ -376,7 +376,7 @@ describe('Serving Runtime List', () => {
         disableNIMConfig: false,
         rejectAddSupportServingPlatformProject: true,
         projectEnableKServe: true,
-        projetcEnableNIM: false,
+        projectEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
@@ -406,7 +406,7 @@ describe('Serving Runtime List', () => {
         disableKServe: false,
         disableNIMConfig: false,
         projectEnableKServe: true,
-        projetcEnableNIM: false,
+        projectEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
@@ -438,7 +438,7 @@ describe('Serving Runtime List', () => {
         disableNIMConfig: false,
         rejectAddSupportServingPlatformProject: true,
         projectEnableKServe: true,
-        projetcEnableNIM: false,
+        projectEnableNIM: false,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
@@ -459,7 +459,7 @@ describe('Serving Runtime List', () => {
         disableKServe: false,
         disableNIMConfig: false,
         projectEnableKServe: true,
-        projetcEnableNIM: false,
+        projectEnableNIM: false,
         inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [],
       });
@@ -499,7 +499,7 @@ describe('Serving Runtime List', () => {
         disableKServe: false,
         disableNIMConfig: false,
         projectEnableKServe: true,
-        projetcEnableNIM: false,
+        projectEnableNIM: false,
         inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [nonDashboardServingRuntime],
       });
@@ -544,7 +544,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projetcEnableNIM: true,
+        projectEnableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
@@ -577,7 +577,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         disableKServe: false,
         disableNIMConfig: false,
-        projetcEnableNIM: true,
+        projectEnableNIM: true,
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
