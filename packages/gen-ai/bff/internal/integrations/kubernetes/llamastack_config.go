@@ -1,4 +1,4 @@
-package constants
+package kubernetes
 
 import (
 	"encoding/json"
@@ -276,6 +276,32 @@ func NewVLLMProvider(providerID string, url string) Provider {
 			"url": url,
 		},
 	}
+}
+
+// AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
+// This is a helper for building LlamaStack configurations with vLLM providers
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}) {
+	// Create provider config
+	providerConfig := EmptyConfig()
+	providerConfig["url"] = endpointURL
+	providerConfig["max_tokens"] = "${env.VLLM_MAX_TOKENS:=4096}"
+	providerConfig["api_token"] = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", index+1)
+	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
+
+	// Add provider
+	provider := NewProvider(providerID, "remote::vllm", providerConfig)
+	c.AddInferenceProvider(provider)
+
+	// Add model
+	var model Model
+	if metadata == nil {
+		// For MaaS models or when no metadata is provided
+		model = NewLLMModel(modelID, providerID, modelID)
+	} else {
+		// For regular models with metadata
+		model = NewModel(modelID, providerID, modelType, metadata)
+	}
+	c.AddModel(model)
 }
 
 // AddInferenceProvider adds a new inference provider to the config
