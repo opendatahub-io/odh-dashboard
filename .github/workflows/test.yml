@@ -1,5 +1,12 @@
 name: Test
 on: [push, pull_request]
+
+# Concurrency control: Only run latest tests for each PR/branch
+# Cancel in-progress runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
