@@ -1,40 +1,115 @@
-name: Cypress e2e Test PR Pipeline
+name: Cypress e2e Test
 
 # This workflow currently executes on the ODH (Open Data Hub) dash-e2e cluster.
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
 #
-# This workflow is triggered after test.yml completes successfully.
+# This workflow runs on pull_request events and waits for test.yml to complete successfully.
 # It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
-# Labels (e2e-Pass/e2e-Fail) are applied to PRs based on test results.
+# This approach ensures E2E checks appear in the PR's checks section.
 
 on:
-  # Trigger after test.yml completes successfully
-  workflow_run:
-    workflows: ["Test"]
-    types: [completed]
+  # Trigger on PR events to show up as PR checks
+  pull_request:
+    types: [opened, synchronize, reopened]
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
 
 # Concurrency control: Only run latest E2E tests for each PR/branch
-# PRs get unique groups (e2e-pr-{number}), branches get branch-based groups (e2e-branch-{name})
 concurrency:
-  group: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('e2e-pr-{0}', github.event.workflow_run.pull_requests[0].number) || format('e2e-branch-{0}', github.event.workflow_run.head_branch || github.event.workflow_run.head_sha)) || format('e2e-manual-{0}', github.run_id) }}
+  group: e2e-pr-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
+  statuses: read
+  checks: read
 
 env:
   NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
 
 jobs:
+  wait-for-test:
+    name: Wait for Test workflow to complete
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Wait for Test workflow to succeed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "⏳ Waiting for Test workflow to complete..."
+          COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "Commit SHA: $COMMIT_SHA"
+          
+          # Phase 1: Wait for Test workflow to START (check for "Get-Test-Groups" job - max 1 minute)
+          echo "📍 Phase 1: Waiting for Test workflow to start..."
+          for i in {1..12}; do
+            GET_TEST_GROUPS_CHECK=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "Get-Test-Groups") | .id' 2>/dev/null || echo "")
+            
+            if [ -n "$GET_TEST_GROUPS_CHECK" ]; then
+              echo "✅ Test workflow started (Get-Test-Groups job found)!"
+              break
+            fi
+            
+            if [ $i -eq 12 ]; then
+              echo "❌ Test workflow not found after 1 minute"
+              exit 1
+            fi
+            
+            echo "Attempt $i/12: Test workflow not started yet, waiting 5s..."
+            sleep 5
+          done
+          
+          # Phase 2: Wait for Test workflow to COMPLETE (check for "Tests" summary job - max 45 min total)
+          echo "📍 Phase 2: Waiting for Test workflow to complete (Tests summary job)..."
+          
+          # First wait for "Tests" job to appear (it only appears after all other jobs finish)
+          echo "Waiting for Tests summary job to appear..."
+          while true; do
+            TESTS_CHECK=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "Tests") | .id' 2>/dev/null || echo "")
+            
+            if [ -n "$TESTS_CHECK" ]; then
+              echo "✅ Tests summary job found!"
+              break
+            fi
+            
+            echo "Tests job not found yet (other tests still running), checking again in 30s..."
+            sleep 30
+          done
+          
+          # Now wait for Tests job to complete successfully
+          echo "Waiting for Tests summary job to complete..."
+          while true; do
+            CHECK_STATUS=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "Tests") | "\(.status)|\(.conclusion)"')
+            
+            STATUS=$(echo "$CHECK_STATUS" | cut -d'|' -f1)
+            CONCLUSION=$(echo "$CHECK_STATUS" | cut -d'|' -f2)
+            
+            echo "Tests job status: $STATUS, conclusion: $CONCLUSION"
+            
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "✅ Test workflow completed successfully!"
+                exit 0
+              else
+                echo "❌ Test workflow completed with conclusion: $CONCLUSION"
+                exit 1
+              fi
+            fi
+            
+            echo "Tests job still running, checking again in 30s..."
+            sleep 30
+          done
+
   get-test-tags:
+    needs: [wait-for-test]
     runs-on: self-hosted
-    # Only run if test.yml succeeded (for workflow_run) or if manually triggered
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
     steps:
@@ -84,11 +159,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # For workflow_run events from PRs (including forks), checkout using PR ref format
-          # This works for both same-repo PRs and fork PRs (refs/pull/{number}/head)
-          # For branch pushes, use head_sha or head_branch
-          # For manual triggers, use the default (current commit)
-          ref: ${{ github.event.workflow_run && (github.event.workflow_run.pull_requests[0].number && format('refs/pull/{0}/head', github.event.workflow_run.pull_requests[0].number) || github.event.workflow_run.head_sha || github.event.workflow_run.head_branch) || github.ref }}
+          # For pull_request events, checkout the PR head
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Restore npm dependencies cache
         uses: actions/cache/restore@v4
