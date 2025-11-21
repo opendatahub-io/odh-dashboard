@@ -19,9 +19,7 @@
     "backend",
     "packages/*",
     "frontend",
-    "frontend/src",
-    "frontend/src/__tests__/cypress",
-    "frontend/packages/*"
+    "frontend/src"
   ],
   "scripts": {
     "build": "run-p -l build:*",

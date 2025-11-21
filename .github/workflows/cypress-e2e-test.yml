@@ -135,7 +135,7 @@ jobs:
         run: |
           # Dynamic port allocation for parallel execution
           BASE_PORT=$((4000 + (${{ github.run_id }} % 1000) * 5))
-          
+
           # Add matrix offset to separate concurrent jobs within same PR
           if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
             MATRIX_OFFSET=0
@@ -144,14 +144,14 @@ jobs:
           else
             MATRIX_OFFSET=2
           fi
-          
+
           WEBPACK_PORT=$((BASE_PORT + MATRIX_OFFSET))
-          
+
           # Store port info with run_id for cleanup tracking
           PORT_INFO_DIR="/tmp/gha-ports"
           mkdir -p "$PORT_INFO_DIR"
           echo "${{ github.run_id }}" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
-          
+
           echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
           echo "PORT_INFO_FILE=$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id" >> $GITHUB_ENV
           echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.test-tag }} (run_id: ${{ github.run_id }})"
@@ -201,11 +201,11 @@ jobs:
       - name: Download test configuration
         run: |
           echo "🔧 Downloading test configuration from GitLab..."
-          
+
           if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
             if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                        -o ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml; then
+                        -o ${{ github.workspace }}/packages/cypress/test-variables.yml; then
               echo "✅ Successfully downloaded test configuration"
             else
               echo "❌ Failed to download test configuration from GitLab"
@@ -215,7 +215,7 @@ jobs:
             echo "⚠️  GitLab secrets not available (forked PR or secrets not configured)"
             echo "💡 Attempting to use fallback test-variables.yml if available"
             # Check if test-variables.yml already exists (e.g., from a previous step or cached)
-            if [ ! -f "${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml" ]; then
+            if [ ! -f "${{ github.workspace }}/packages/cypress/test-variables.yml" ]; then
               echo "❌ No test-variables.yml found and secrets not available"
               echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets"
               exit 1
@@ -223,11 +223,11 @@ jobs:
               echo "✅ Using existing test-variables.yml file"
             fi
           fi
-          
+
           # Update ODH_DASHBOARD_URL if secret is not available (for fork PRs)
           if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
             echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${WEBPACK_PORT}|" ${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml || true
+            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${WEBPACK_PORT}|" ${{ github.workspace }}/packages/cypress/test-variables.yml || true
           fi
 
       - name: Login to OpenShift cluster
@@ -239,7 +239,7 @@ jobs:
           fi
 
           # Read credentials from downloaded test-variables.yml
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
           # Extract OC_USERNAME from OCP_ADMIN_USER section
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
@@ -250,10 +250,10 @@ jobs:
           # Mask sensitive data in logs
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
-          
+
           echo "Logging in to OpenShift cluster..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify > /dev/null 2>&1
-          
+
           if [ $? -eq 0 ]; then
             echo "✅ Successfully logged in to OpenShift cluster (dash-e2e-odh)"
           else
@@ -267,10 +267,10 @@ jobs:
 
       - name: Override namespace values from secrets
         run: |
-          TEST_VARS_FILE="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
-          
+          TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
+
           echo "Overriding RHOAI namespaces with ODH namespaces from secrets..."
-          
+
           # Helper function to set or update a key-value pair in YAML
           set_yaml_value() {
             local key="$1"
@@ -286,25 +286,25 @@ jobs:
               echo "${key}: ${value}" >> "$TEST_VARS_FILE"
             fi
           }
-          
+
           # Read ODH namespace values from GitHub secret
           # This overrides the default RHOAI namespaces in test-variables.yml
           ODH_NAMESPACES="${{ secrets.ODH_NAMESPACES }}"
-          
+
           if [ -z "$ODH_NAMESPACES" ]; then
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
             exit 0
           fi
-          
+
           # Mask namespace values in logs
           echo "::add-mask::$ODH_NAMESPACES"
-          
+
           echo "📝 Overriding namespaces with ODH values..."
-          
+
           # Parse comma-separated values from secret
           # Format: OPERATOR_NAMESPACE,APPLICATIONS_NAMESPACE,NOTEBOOKS_NAMESPACE,OPERATOR_NAME,ODH_DASHBOARD_PROJECT_NAME
           IFS=',' read -r OPERATOR_NS APPLICATIONS_NS NOTEBOOKS_NS OPERATOR_NAME PROJECT_NAME <<< "$ODH_NAMESPACES"
-          
+
           # Override RHOAI namespaces with ODH values
           set_yaml_value "PRODUCT" "ODH"
           set_yaml_value "OPERATOR_NAMESPACE" "$OPERATOR_NS"
@@ -313,24 +313,24 @@ jobs:
           set_yaml_value "NOTEBOOKS_NAMESPACE" "$NOTEBOOKS_NS"
           set_yaml_value "OPERATOR_NAME" "$OPERATOR_NAME"
           set_yaml_value "ODH_DASHBOARD_PROJECT_NAME" "$PROJECT_NAME"
-          
+
           echo "✅ Overridden namespaces with ODH values"
           echo "Namespace configuration updated"
 
       - name: Set test configuration
         run: |
-          export CY_TEST_CONFIG="${{ github.workspace }}/frontend/src/__tests__/cypress/test-variables.yml"
+          export CY_TEST_CONFIG="${{ github.workspace }}/packages/cypress/test-variables.yml"
           echo "CY_TEST_CONFIG=$CY_TEST_CONFIG" >> $GITHUB_ENV
           echo "✅ Test configuration set (Cypress will connect to localhost:${WEBPACK_PORT})"
 
       - name: Start Cypress Server
         run: |
           echo "🧹 Cleaning up port ${WEBPACK_PORT}..."
-          
+
           PORT_INFO_DIR="/tmp/gha-ports"
           PORT_INFO_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
           CURRENT_RUN_ID="${{ github.run_id }}"
-          
+
           # Check if port is in use
           if lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; then
             # Check if there's a run_id file for this port
@@ -375,7 +375,7 @@ jobs:
               fi
             fi
           fi
-          
+
           # Verify port is free with retry logic
           RETRY_COUNT=0
           while lsof -i:${WEBPACK_PORT} > /dev/null 2>&1; do
@@ -388,25 +388,25 @@ jobs:
             echo "⏳ Retrying cleanup... (attempt $RETRY_COUNT/10)"
             sleep 2
           done
-          
+
           # Claim the port with our run_id
           mkdir -p "$PORT_INFO_DIR"
           echo "$CURRENT_RUN_ID" > "$PORT_INFO_FILE"
           echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
           echo "PORT_INFO_FILE=$PORT_INFO_FILE" >> $GITHUB_ENV
-          
+
           echo "✅ Port ${WEBPACK_PORT} is free and claimed by run_id: $CURRENT_RUN_ID"
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} (dash-e2e-odh)..."
-          
+
           # Start webpack and filter sensitive output
           cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
-          
+
           # Give server time to initialize
           sleep 20
-          
+
           # Show filtered webpack status (hide sensitive cluster URLs)
           if [ -f /tmp/webpack_${WEBPACK_PORT}.log ]; then
             tail -20 /tmp/webpack_${WEBPACK_PORT}.log | \
@@ -420,7 +420,7 @@ jobs:
         run: |
           echo "⏳ Waiting for localhost:${WEBPACK_PORT} to be ready..."
           npx wait-on http://localhost:${WEBPACK_PORT} --timeout 120000
-          
+
           # Verify the application loads with dashboard content
           for i in {1..10}; do
             if curl -s -f http://localhost:${WEBPACK_PORT}/ | grep -q "Data Science Projects\|ODH\|Open Data Hub\|Dashboard"; then
@@ -444,7 +444,7 @@ jobs:
           echo "🧪 Running E2E tests for ${{ matrix.test-tag }}..."
           echo "🚀 Running tests against live dashboard on port ${WEBPACK_PORT}"
 
-          export CY_RESULTS_DIR="${{ github.workspace }}/frontend/src/__tests__/cypress/results/${{ matrix.test-tag }}"
+          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.test-tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
           # Run Cypress tests with Chrome browser
@@ -465,10 +465,10 @@ jobs:
         with:
           name: e2e-test-results-${{ matrix.test-tag }}
           path: |
-            frontend/src/__tests__/cypress/results/
-            frontend/src/__tests__/cypress/videos/
-            frontend/src/__tests__/cypress/screenshots/
-            frontend/src/__tests__/cypress/coverage/
+            packages/cypress/results/
+            packages/cypress/videos/
+            packages/cypress/screenshots/
+            packages/cypress/coverage/
           retention-days: 7
 
       - name: Log test completion
@@ -493,11 +493,11 @@ jobs:
       - name: Stop Cypress Servers
         run: |
           echo "🛑 Stopping webpack dev server for run_id: ${{ github.run_id }}..."
-          
+
           PORT_INFO_DIR="/tmp/gha-ports"
           CURRENT_RUN_ID="${{ github.run_id }}"
           KILLED_COUNT=0
-          
+
           # Find all port files owned by this run_id
           if [ -d "$PORT_INFO_DIR" ]; then
             for port_file in "$PORT_INFO_DIR"/port-*.run_id; do
@@ -577,14 +577,13 @@ jobs:
               fi
             done
           fi
-          
+
           # Clean up any stale port files older than 24 hours
           find "$PORT_INFO_DIR" -name "*.run_id" -mtime +1 -delete 2>/dev/null || true
           find "$PORT_INFO_DIR" -name "*.pid" -mtime +1 -delete 2>/dev/null || true
-          
+
           if [ $KILLED_COUNT -eq 0 ]; then
             echo "✅ No processes found for run_id: $CURRENT_RUN_ID"
           else
             echo "✅ Cleaned up $KILLED_COUNT process(es) for run_id: $CURRENT_RUN_ID"
           fi
-

@@ -142,13 +142,13 @@ jobs:
           set -x  # Enable debug mode to see each command
 
           echo "Checking directory structure..."
-          ls -la frontend/src/__tests__/cypress/cypress/tests/ || echo "Base test directory not found"
+          ls -la packages/cypress/cypress/tests/ || echo "Base test directory not found"
 
-          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
+          if [ -d "packages/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
             
             # Get directories and create JSON array - force compact output with -c
-            DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
+            DIRS=$(cd packages/cypress/cypress/tests/mocked && \
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
             
@@ -275,7 +275,7 @@ jobs:
           if [ "${{ matrix.test-group }}" == "default" ]; then
             npm run test:cypress-ci:coverage:nobuild
           else
-            npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
+            npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
           fi
         working-directory: ./frontend
       - name: Test group name
@@ -286,12 +286,12 @@ jobs:
         if: ${{ always() }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
-          path: ./frontend/src/__tests__/cypress/results/mocked
+          path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
         uses: actions/upload-artifact@v4
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
-          path: ./frontend/src/__tests__/cypress/coverage
+          path: ./packages/cypress/coverage
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
