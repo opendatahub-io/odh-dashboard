@@ -13,3 +13,10 @@ export const TrainJobModel: K8sModelCommon = {
   kind: 'TrainJob',
   plural: 'trainjobs',
 };
+
+export const ClusterTrainingRuntimeModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'trainer.kubeflow.org',
+  kind: 'ClusterTrainingRuntime',
+  plural: 'clustertrainingruntimes',
+};

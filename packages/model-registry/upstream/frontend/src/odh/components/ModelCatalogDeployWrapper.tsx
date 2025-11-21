@@ -60,19 +60,22 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     return navigateExtensionsLoaded && navigateExtensions.length > 0;
   }, [navigateExtensions, navigateExtensionsLoaded]);
 
-  const buttonState =
+  const canInitializeWizardNavigation =
     navigateExtensionsLoaded &&
     navigateExtensions.length > 0 &&
     artifactsLoaded &&
-    !artifactsLoadError
+    !artifactsLoadError &&
+    !!uri;
+
+  const buttonState =
+    canInitializeWizardNavigation && navigateToWizard !== null
       ? { enabled: true }
       : { enabled: false, tooltip: 'Deployment wizard is not available' };
 
   return (
     <>
-      {/* Get navigation function */}
-      {navigateExtensionsLoaded &&
-        navigateExtensions.length > 0 &&
+      {/* Get navigation function only when we have all the prefill data */}
+      {canInitializeWizardNavigation &&
         navigateExtensions.map((extension) => {
           if (!extension.properties.useNavigateToDeploymentWizardWithData) {
             return null;

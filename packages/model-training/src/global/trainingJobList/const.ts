@@ -24,8 +24,8 @@ export const columns: SortableData<TrainJobKind>[] = [
     label: 'Nodes',
     width: 15,
     sortable: (a: TrainJobKind, b: TrainJobKind): number => {
-      const aNodes = a.spec.trainer.numNodes || 0;
-      const bNodes = b.spec.trainer.numNodes || 0;
+      const aNodes = a.spec.trainer?.numNodes || 0;
+      const bNodes = b.spec.trainer?.numNodes || 0;
 
       return aNodes - bNodes;
     },
