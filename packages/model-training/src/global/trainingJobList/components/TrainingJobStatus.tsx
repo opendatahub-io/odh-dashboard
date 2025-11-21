@@ -1,16 +1,22 @@
 import React from 'react';
-import { Flex, FlexItem, Label, Skeleton } from '@patternfly/react-core';
+import { Label, Skeleton } from '@patternfly/react-core';
 import { getTrainingJobStatusSync, getStatusInfo } from '../utils';
 import { TrainJobKind } from '../../../k8sTypes';
 import { TrainingJobState } from '../../../types';
 
+type TrainingJobStatusProps = {
+  job: TrainJobKind;
+  jobStatus?: TrainingJobState;
+  onClick?: () => void;
+  isCompact?: boolean;
+};
+
 const TrainingJobStatus = ({
   job,
   jobStatus,
-}: {
-  job: TrainJobKind;
-  jobStatus?: TrainingJobState;
-}): React.ReactElement => {
+  onClick,
+  isCompact = true,
+}: TrainingJobStatusProps): React.ReactElement => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const isLoadingStatus = jobStatus === undefined;
 
@@ -21,21 +27,17 @@ const TrainingJobStatus = ({
   const statusInfo = getStatusInfo(status);
 
   return (
-    <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
-      <FlexItem>
-        <Label
-          isCompact
-          status={statusInfo.status}
-          color={statusInfo.color}
-          icon={<statusInfo.IconComponent />}
-          data-testid="training-job-status"
-        >
-          {statusInfo.label}
-        </Label>
-      </FlexItem>
-      {/* Progress tracking is not directly available in TrainJob status */}
-      {/* TODO: Consider adding progress tracking if supported by TrainJob runtime */}
-    </Flex>
+    <Label
+      isCompact={isCompact}
+      status={statusInfo.status}
+      color={statusInfo.color}
+      icon={<statusInfo.IconComponent />}
+      data-testid="training-job-status"
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
+      {statusInfo.label}
+    </Label>
   );
 };
 

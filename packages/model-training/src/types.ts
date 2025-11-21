@@ -9,5 +9,7 @@ export enum TrainingJobState {
   PAUSED = 'Paused',
   SUSPENDED = 'Suspended',
   PREEMPTED = 'Preempted',
+  INADMISSIBLE = 'Inadmissible',
+  DELETING = 'Deleting',
   UNKNOWN = 'Unknown',
 }
