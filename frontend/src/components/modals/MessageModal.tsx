@@ -43,8 +43,29 @@ const MessageModal: React.FC<MessageModalProps> = ({
       if (event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
-        // Programmatically click the button to trigger visual feedback
-        buttonRefs.current[clickOnEnterIndex]?.click();
+
+        const button = buttonRefs.current[clickOnEnterIndex];
+        if (button) {
+          // Focus the button to show visual feedback
+          button.focus();
+
+          // Store original styles
+          const originalTransform = button.style.transform;
+          const originalTransition = button.style.transition;
+
+          // Add press effect
+          button.style.transition = 'transform 0.1s ease';
+          button.style.transform = 'scale(0.95)';
+
+          // Wait for animation to be visible before executing action
+          setTimeout(() => {
+            button.style.transform = originalTransform;
+            setTimeout(() => {
+              button.style.transition = originalTransition;
+              buttonActions?.[clickOnEnterIndex]?.onClick();
+            }, 100);
+          }, 100);
+        }
       }
     };
 
