@@ -1,11 +1,33 @@
+import type { AccessMode } from '#~/__tests__/cypress/cypress/types';
 import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
+class SelectStorageClass {
+  find() {
+    return cy.findByTestId('storage-classes-selector');
+  }
+
+  selectStorageClassSelectOption(name: string | RegExp) {
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findSelectStorageClassLabel(name: string | RegExp, accessMode: AccessMode) {
+    return cy.findByRole('option', { name, hidden: true }).findByTestId(`${accessMode}-label`);
+  }
+}
 class StorageModal extends Modal {
   constructor() {
     super('Add storage to Test Notebook');
+  }
+
+  findNameInput() {
+    return this.find().findByTestId('create-new-storage-name');
+  }
+
+  findStorageClassSelect() {
+    return new SelectStorageClass();
   }
 
   selectExistingPersistentStorage(name: string) {
@@ -16,7 +38,7 @@ class StorageModal extends Modal {
   }
 
   findSubmitButton() {
-    return this.find().findByTestId('attach-storage');
+    return this.find().findByTestId('modal-submit-button');
   }
 
   findWorkbenchRestartAlert() {
@@ -25,6 +47,18 @@ class StorageModal extends Modal {
 
   findMountField() {
     return this.find().findByTestId('mount-path-folder-value');
+  }
+
+  findRWOAccessMode() {
+    return this.find().findByTestId('ReadWriteOnce-radio');
+  }
+
+  findRWXAccessMode() {
+    return this.find().findByTestId('ReadWriteMany-radio');
+  }
+
+  findROXAccessMode() {
+    return this.find().findByTestId('ReadOnlyMany-radio');
   }
 }
 class WorkbenchPage {
@@ -397,6 +431,27 @@ class StorageTable {
         >,
     );
   }
+
+  /**
+   * Verify that a storage with a specific name has the expected access mode
+   * @param storageName - The name of the storage to find
+   * @param accessMode - The expected access mode label (e.g., 'ReadWriteOnce')
+   */
+  verifyStorageAccessMode(storageName: string, accessMode: string) {
+    this.find().within(() => {
+      cy.contains('tr', storageName).within(() => {
+        cy.contains(accessMode).should('exist');
+      });
+    });
+  }
+
+  /**
+   * Find a table row by storage name
+   * @param storageName - The name of the storage to find
+   */
+  findRowByName(storageName: string) {
+    return this.find().contains('tr', storageName);
+  }
 }
 
 class NotebookImageGroup extends Contextual<HTMLElement> {}
@@ -449,6 +504,10 @@ class CreateSpawnerPage {
 
   findAttachExistingStorageButton() {
     return cy.findByTestId('existing-storage-button');
+  }
+
+  findCreateStorageButton() {
+    return cy.findByTestId('create-storage-button');
   }
 
   selectPVSize(name: string) {
