@@ -73,7 +73,8 @@ class SelectStorageClass {
   }
 
   selectStorageClassSelectOption(name: string | RegExp) {
-    cy.findByRole('option', { name, hidden: true }).click();
+    // Use contains to find the visible option text and click it
+    cy.contains('[role="option"]', name).should('be.visible').click();
   }
 
   findSelectStorageClassLabel(name: string | RegExp, accessMode: AccessMode) {

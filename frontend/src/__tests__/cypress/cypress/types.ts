@@ -141,6 +141,33 @@ export type WBStatusTestData = {
   wbStatusTestDescription: string;
 };
 
+export type WBStorageClassesTestData = {
+  projectName: string;
+  storageClassRWO: string;
+  storageClassMultiA: string;
+  storageClassMultiB: string;
+  workbenchRWO: string;
+  workbenchMultiAccessA: string;
+  workbenchMultiAccessB: string;
+  storageRWO: string;
+  storageMultiAccessA: string;
+  storageMultiAccessB: string;
+  mountPathA: string;
+  mountPathB: string;
+  mountPathC: string;
+};
+
+export type ClusterStorageAccessModesTestData = {
+  projectName: string;
+  storageClassRWO: string;
+  storageClassRWX: string;
+  storageClassROX: string;
+  storageClassRWOP: string;
+  storageClassMultiAccess: string;
+  storageRWX: string;
+  storageDescription: string;
+};
+
 export type WBNegativeTestsData = {
   wbNegativeTestNamespace: string;
   hardwareProfileName: string;

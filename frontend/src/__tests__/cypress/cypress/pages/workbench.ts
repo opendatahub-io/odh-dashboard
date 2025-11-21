@@ -431,6 +431,27 @@ class StorageTable {
         >,
     );
   }
+
+  /**
+   * Verify that a storage with a specific name has the expected access mode
+   * @param storageName - The name of the storage to find
+   * @param accessMode - The expected access mode label (e.g., 'ReadWriteOnce')
+   */
+  verifyStorageAccessMode(storageName: string, accessMode: string) {
+    this.find().within(() => {
+      cy.contains('tr', storageName).within(() => {
+        cy.contains(accessMode).should('exist');
+      });
+    });
+  }
+
+  /**
+   * Find a table row by storage name
+   * @param storageName - The name of the storage to find
+   */
+  findRowByName(storageName: string) {
+    return this.find().contains('tr', storageName);
+  }
 }
 
 class NotebookImageGroup extends Contextual<HTMLElement> {}
