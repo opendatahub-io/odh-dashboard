@@ -19,7 +19,8 @@ spec:
   csvName: gpu-operator-certified
   docsLink: https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/openshift/contents.html
   quickStart: gpu-quickstart
-  getStartedLink: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling_accelerators#enabling-nvidia-gpus_managing-rhoai
+  getStartedLink: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling-accelerators#enabling-nvidia-gpus_managing-rhoai
+
   getStartedMarkDown: >-
     # NVIDIA GPU Add-on
 
@@ -28,4 +29,4 @@ spec:
     The NVIDIA GPU Operator uses the operator framework within Kubernetes to automate the management of all NVIDIA software components needed to provision GPU. These components include the NVIDIA drivers (to enable CUDA), Kubernetes device plugin for GPUs, the NVIDIA Container Toolkit, automatic node labelling using GFD, DCGM based monitoring and others.
 
     Documentation :
-    [Enabling GPU Support in OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling_accelerators#enabling-nvidia-gpus_managing-rhoai)
+    [Enabling GPU Support in OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/enabling-accelerators#enabling-nvidia-gpus_managing-rhoai)
