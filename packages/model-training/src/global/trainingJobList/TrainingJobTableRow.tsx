@@ -14,6 +14,7 @@ import StateActionToggle from './StateActionToggle';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { toggleTrainJobHibernation } from '../../api';
+import useClusterTrainingRuntime from '../../hooks/useClusterTrainingRuntime';
 
 type TrainingJobTableRowProps = {
   job: TrainJobKind;
@@ -35,7 +36,25 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const [isToggling, setIsToggling] = React.useState(false);
 
   const displayName = getDisplayNameFromK8sResource(job);
-  const nodesCount = job.spec.trainer.numNodes || 0;
+
+  // Fetch ClusterTrainingRuntime if trainer spec is not available
+  const runtimeName =
+    job.spec.runtimeRef.kind === 'ClusterTrainingRuntime' ? job.spec.runtimeRef.name : null;
+  const { clusterTrainingRuntime, loaded: runtimeLoaded } = useClusterTrainingRuntime(
+    !job.spec.trainer ? runtimeName : null,
+  );
+
+  // Get numNodes from trainer spec or ClusterTrainingRuntime
+  const nodesCount = React.useMemo(() => {
+    if (job.spec.trainer?.numNodes) {
+      return job.spec.trainer.numNodes;
+    }
+    if (runtimeLoaded && clusterTrainingRuntime?.spec.mlPolicy?.numNodes) {
+      return clusterTrainingRuntime.spec.mlPolicy.numNodes;
+    }
+    return 0;
+  }, [job.spec.trainer?.numNodes, runtimeLoaded, clusterTrainingRuntime]);
+
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);

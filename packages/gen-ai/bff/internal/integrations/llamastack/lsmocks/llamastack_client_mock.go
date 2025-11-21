@@ -305,7 +305,16 @@ func (e *MockStreamError) Error() string {
 }
 
 // HandleMockStreaming writes realistic streaming events to the response writer
-func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
+func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
+	sleepWithContext := func(d time.Duration) bool {
+		select {
+		case <-ctx.Done():
+			return false // Context cancelled
+		case <-time.After(d):
+			return true // Sleep completed
+		}
+	}
+
 	// Set hardened headers for Server-Sent Events (same as real handler)
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
@@ -351,7 +360,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	})
 
 	// Small delay after creation
-	time.Sleep(200 * time.Millisecond)
+	if !sleepWithContext(200 * time.Millisecond) {
+		return
+	}
 	flusher.Flush()
 
 	// 2. If MCP tools provided, simulate MCP tool processing
@@ -367,7 +378,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 			"server_label":    params.Tools[0].ServerLabel,
 		})
 		sequenceNum++
-		time.Sleep(300 * time.Millisecond)
+		if !sleepWithContext(300 * time.Millisecond) {
+			return
+		}
 		flusher.Flush()
 
 		// Simulate MCP tool call event
@@ -384,7 +397,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 			"output":          mcpOutput,
 		})
 		sequenceNum++
-		time.Sleep(500 * time.Millisecond)
+		if !sleepWithContext(500 * time.Millisecond) {
+			return
+		}
 		flusher.Flush()
 
 		// Update response text to reflect MCP tool usage
@@ -395,7 +410,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	if len(params.VectorStoreIDs) > 0 {
 		// RAG processing happens in background (skip some sequence numbers)
 		sequenceNum += 3 // Skip some numbers for RAG background processing
-		time.Sleep(500 * time.Millisecond)
+		if !sleepWithContext(500 * time.Millisecond) {
+			return
+		}
 	}
 
 	// 4. Content part added event
@@ -408,7 +425,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	})
 
 	// Small delay before starting text generation
-	time.Sleep(150 * time.Millisecond)
+	if !sleepWithContext(150 * time.Millisecond) {
+		return
+	}
 	flusher.Flush()
 
 	// 4. Split text into words and send as delta events (like real streaming)
@@ -429,7 +448,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 		})
 
 		// Add realistic delay between chunks to simulate real streaming
-		time.Sleep(300 * time.Millisecond)
+		if !sleepWithContext(300 * time.Millisecond) {
+			return
+		}
 		flusher.Flush()
 	}
 
@@ -443,7 +464,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(w http.ResponseWriter, flushe
 	})
 
 	// Brief delay before completion
-	time.Sleep(100 * time.Millisecond)
+	if !sleepWithContext(100 * time.Millisecond) {
+		return
+	}
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
 	}

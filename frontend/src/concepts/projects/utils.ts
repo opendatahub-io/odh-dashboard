@@ -1,5 +1,9 @@
-import { ProjectKind } from '#~/k8sTypes';
+import { KnownLabels, ProjectKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+
+export const isAiProject = (project: ProjectKind): boolean => {
+  return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
+};
 
 export const isAvailableProject = (projectName: string, dashboardNamespace: string): boolean =>
   !(

@@ -231,8 +231,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                         setLastInput(message);
                       }
                     }}
+                    handleStopButton={chatbotMessages.handleStopStreaming}
                     hasAttachButton={false}
                     isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
+                    hasStopButton={chatbotMessages.isLoading}
                     data-testid="chatbot-message-bar"
                     onAttach={async (acceptedFiles, fileRejections, event) => {
                       try {

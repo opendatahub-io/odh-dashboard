@@ -16,6 +16,10 @@ const TrainingJobClusterQueue: React.FC<TrainingJobClusterQueueProps> = ({
     namespace,
   );
 
+  if (!localQueueName) {
+    return '-';
+  }
+
   if (!clusterQueueLoaded) {
     return <Skeleton width="100px" />;
   }

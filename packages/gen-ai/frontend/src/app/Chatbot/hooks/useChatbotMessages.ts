@@ -28,6 +28,7 @@ export interface UseChatbotMessagesReturn {
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
   handleMessageSend: (message: string) => Promise<void>;
+  handleStopStreaming: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -58,6 +59,8 @@ const useChatbotMessages = ({
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const isStoppingStreamRef = React.useRef<boolean>(false);
   const { playgroundSelectedServerIds } = useMCPSelectionContext();
   const serversContext = useMCPServersContext();
   const tokenContext = useMCPTokenContext();
@@ -79,11 +82,14 @@ const useChatbotMessages = ({
     ],
   );
 
-  // Cleanup timeout on unmount
+  // Cleanup timeout and abort controller on unmount
   React.useEffect(
     () => () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     },
     [],
@@ -111,6 +117,19 @@ const useChatbotMessages = ({
     },
     [],
   );
+
+  const handleStopStreaming = React.useCallback(() => {
+    if (abortControllerRef.current) {
+      isStoppingStreamRef.current = true;
+      // Clear any pending streaming updates to prevent them from overwriting the stop message
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   const handleMessageSend = async (message: string) => {
     const userMessage: MessageProps = {
@@ -173,6 +192,9 @@ const useChatbotMessages = ({
         throw new Error('API is not available');
       }
 
+      // Create abort controller for this request (works for both streaming and non-streaming)
+      abortControllerRef.current = new AbortController();
+
       if (isStreamingEnabled) {
         // Create initial bot message for streaming with loading state
         botMessageId = getId();
@@ -213,6 +235,7 @@ const useChatbotMessages = ({
         };
 
         const streamingResponse = await api.createResponse(responsesPayload, {
+          abortSignal: abortControllerRef.current.signal,
           onStreamData: (chunk: string) => {
             // Track if we have any content
             const hasAnyContent =
@@ -245,7 +268,10 @@ const useChatbotMessages = ({
               }
 
               // Update UI every 50ms for smooth streaming effect on partial lines
-              timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
+              // Only schedule update if not stopping
+              if (!isStoppingStreamRef.current) {
+                timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
+              }
             }
           },
         });
@@ -266,7 +292,9 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
-        const response = await api.createResponse(responsesPayload);
+        const response = await api.createResponse(responsesPayload, {
+          abortSignal: abortControllerRef.current.signal,
+        });
 
         const toolResponse = response.toolCallData
           ? createToolResponse(response.toolCallData)
@@ -289,25 +317,46 @@ const useChatbotMessages = ({
           ? error.message
           : 'Sorry, I encountered an error while processing your request. Please try again.';
 
-      const botErrorMessage: MessageProps = {
-        id: isStreamingEnabled ? botMessageId : getId(),
-        role: 'bot',
-        content: errorMessage,
-        name: 'Bot',
-        avatar: botAvatar,
-        timestamp: new Date().toLocaleString(),
-      };
+      // Check if this was a user-initiated stop
+      const wasUserStopped =
+        isStoppingStreamRef.current && errorMessage === 'Response stopped by user';
 
-      setMessages((prevMessages) => {
-        if (isStreamingEnabled) {
-          return prevMessages.map((msg) => (msg.id === botMessageId ? botErrorMessage : msg));
-        }
-        return [...prevMessages, botErrorMessage];
-      });
+      if (isStreamingEnabled && botMessageId) {
+        // For streaming, update existing bot message
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id === botMessageId) {
+              if (wasUserStopped) {
+                // Append "You stopped this message" to existing content
+                const stoppedContent = msg.content
+                  ? `${msg.content}\n\n*You stopped this message*`
+                  : '*You stopped this message*';
+                return { ...msg, content: stoppedContent, isLoading: false };
+              }
+              // For other errors, replace content with error message
+              return { ...msg, content: errorMessage, isLoading: false };
+            }
+            return msg;
+          }),
+        );
+      } else {
+        // For non-streaming, add error/stop message as new message
+        const botErrorMessage: MessageProps = {
+          id: getId(),
+          role: 'bot',
+          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
+          name: 'Bot',
+          avatar: botAvatar,
+          timestamp: new Date().toLocaleString(),
+        };
+        setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+      }
     } finally {
       setIsMessageSendButtonDisabled(false);
       setIsLoading(false);
       setIsStreamingWithoutContent(false);
+      isStoppingStreamRef.current = false;
+      abortControllerRef.current = null;
     }
   };
 
@@ -317,6 +366,7 @@ const useChatbotMessages = ({
     isLoading,
     isStreamingWithoutContent,
     handleMessageSend,
+    handleStopStreaming,
     scrollToBottomRef,
   };
 };
