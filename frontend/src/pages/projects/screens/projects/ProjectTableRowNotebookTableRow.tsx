@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { HardwareProfileKind, NotebookKind, ProjectKind } from '#~/k8sTypes';
+import { NotebookKind, ProjectKind } from '#~/k8sTypes';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookState } from '#~/pages/projects/notebook/types';
@@ -14,32 +14,31 @@ import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
   obj: NotebookState;
   onNotebookDelete: (notebook: NotebookKind) => void;
   enablePipelines: boolean;
-  hardwareProfiles: [
-    profiles: HardwareProfileKind[],
-    loaded: boolean,
-    loadError: Error | undefined,
-  ];
 };
 const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowProps> = ({
   project,
   obj: notebookState,
   onNotebookDelete,
   enablePipelines,
-  hardwareProfiles,
 }) => {
   const { notebook, refresh } = notebookState;
-  const { podSpecOptionsState } = useNotebookHardwareProfile(notebook);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = notebook.metadata;
-  const [hardwareProfileBindingState] = useHardwareProfileBindingState(notebook, hardwareProfiles);
+  const { podSpecOptionsState } = useNotebookHardwareProfile(notebook, notebookNamespace);
+  const [hardwareProfileBindingState] = useHardwareProfileBindingState(
+    notebook,
+    WORKBENCH_VISIBILITY,
+    notebookNamespace,
+  );
 
   const onStart = React.useCallback(() => {
     setInProgress(true);

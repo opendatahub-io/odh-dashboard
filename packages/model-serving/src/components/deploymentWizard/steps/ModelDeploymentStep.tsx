@@ -34,7 +34,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         />
         <ModelServingHardwareProfileSection
           project={projectName}
-          hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
+          hardwareProfileOptions={wizardState.state.hardwareProfileOptions}
           isEditing={wizardState.initialData?.isEditing}
         />
         {wizardState.state.modelFormatState.isVisible && (
@@ -45,7 +45,10 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         )}
         <ModelServerTemplateSelectField
           modelServerState={wizardState.state.modelServer}
-          hardwareProfile={wizardState.state.hardwareProfileConfig.formData.selectedProfile}
+          hardwareProfile={
+            wizardState.state.hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData
+              .selectedProfile
+          }
           isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
         />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />

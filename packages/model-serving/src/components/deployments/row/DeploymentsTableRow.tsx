@@ -8,6 +8,11 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
 import { DeploymentHardwareProfileCell } from '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import {
+  useAssignHardwareProfile,
+  UseAssignHardwareProfileResult,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
@@ -20,10 +25,12 @@ import {
   DeploymentsTableColumn,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
+  ModelResourceType,
 } from '../../../../extension-points';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
+import { useExtractHardwareProfilePaths } from '../../deploymentWizard/useExtractHardwareProfilePaths.ts';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -45,6 +52,13 @@ export const DeploymentRow: React.FC<{
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
+
+  const hardwareProfilePaths = useExtractHardwareProfilePaths(deployment.modelServingPlatformId);
+  const hardwareProfileOptions: UseAssignHardwareProfileResult<ModelResourceType> =
+    useAssignHardwareProfile(deployment.model, {
+      visibleIn: MODEL_SERVING_VISIBILITY,
+      paths: hardwareProfilePaths,
+    });
 
   const onStart = React.useCallback(() => {
     if (!startStopActionExtension) return;
@@ -111,7 +125,10 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        <DeploymentHardwareProfileCell deployment={deployment} />
+        <DeploymentHardwareProfileCell
+          deployment={deployment}
+          hardwareProfileOptions={hardwareProfileOptions}
+        />
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>
@@ -163,7 +180,11 @@ export const DeploymentRow: React.FC<{
         </Td>
       </ResourceTr>
       {showExpandedToggle && (
-        <DeploymentRowExpandedSection deployment={deployment} isVisible={isExpanded} />
+        <DeploymentRowExpandedSection
+          deployment={deployment}
+          isVisible={isExpanded}
+          hardwareProfileOptions={hardwareProfileOptions}
+        />
       )}
       {isOpenConfirm && startStopActionExtension && (
         <ModelServingStopModal

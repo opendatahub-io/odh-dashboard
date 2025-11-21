@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
+import { useExtractHardwareProfilePaths } from './useExtractHardwareProfilePaths';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
@@ -56,6 +57,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
+  const hardwareProfilePaths = useExtractHardwareProfilePaths(activePlatform?.properties.id);
 
   if (!projectsLoaded || !clusterPlatformsLoaded) {
     return (
@@ -96,6 +98,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
         existingDeployment={existingDeployment}
         returnRoute={returnRoute}
         cancelReturnRoute={cancelReturnRoute}
+        hardwareProfilePaths={hardwareProfilePaths}
       />
     </ModelDeploymentsProvider>
   );
