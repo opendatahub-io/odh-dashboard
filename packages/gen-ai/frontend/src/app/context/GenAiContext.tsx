@@ -9,7 +9,6 @@ import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
 import useGenAiAPIState, { GenAiAPIState } from '~/app/hooks/useGenAiAPIState';
 import { URL_PREFIX } from '~/app/utilities';
 import { GenAiAPIs } from '~/app/types';
-import { MCPSelectionProvider } from './MCPContextProvider';
 
 type GenAiContextProps = {
   namespace: Namespace | undefined;
@@ -51,9 +50,7 @@ export const GenAiContextProvider: React.FC<GenAiContextProviderProps> = ({
 
   return (
     <GenAiContext.Provider value={contextValue}>
-      <BrowserStorageContextProvider>
-        <MCPSelectionProvider>{children}</MCPSelectionProvider>
-      </BrowserStorageContextProvider>
+      <BrowserStorageContextProvider>{children}</BrowserStorageContextProvider>
     </GenAiContext.Provider>
   );
 };

@@ -1,17 +1,5 @@
 import * as React from 'react';
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  Title,
-  Spinner,
-  Alert,
-  Button,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from '@patternfly/react-core';
-import { SyncAltIcon } from '@patternfly/react-icons';
+import { Modal, ModalHeader, ModalBody, Title, Spinner, Alert } from '@patternfly/react-core';
 import { Table } from 'mod-arch-shared';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
 import { MCPServer, MCPTool } from '~/app/types';
@@ -37,7 +25,6 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     toolsLoadError,
     toolsStatus,
     isLoading,
-    refetch,
   } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
 
   const tools = React.useMemo(
@@ -52,10 +39,6 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     [apiTools, server.id],
   );
 
-  const handleRetry = React.useCallback(() => {
-    refetch();
-  }, [refetch]);
-
   return (
     <Modal
       isOpen={isOpen}
@@ -66,14 +49,13 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     >
       <ModalHeader>
         <Title headingLevel="h2" size="xl" id="mcp-tools-modal-title">
-          {server.name} - Tools
+          {server.name}
         </Title>
       </ModalHeader>
       <ModalBody>
         {isLoading && !toolsLoaded && (
           <div className="pf-v6-u-text-align-center pf-v6-u-p-xl" role="status" aria-live="polite">
             <Spinner size="lg" aria-label="Loading tools" />
-            <div className="pf-v6-u-mt-md">Loading tools from {server.name}...</div>
           </div>
         )}
 
@@ -81,16 +63,6 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
           <Alert
             variant="danger"
             title={`Failed to load tools from ${server.name}`}
-            actionLinks={
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="pf-v6-c-button pf-m-link"
-                aria-label={`Retry loading tools from ${server.name}`}
-              >
-                Try again
-              </button>
-            }
             className="pf-v6-u-mb-md"
           >
             {toolsLoadError.message}
@@ -111,29 +83,13 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
                   : 'Unable to retrieve tools - please check server configuration'}
               </div>
             ) : (
-              <>
-                <Table
-                  data={tools}
-                  columns={MCPToolsColumns}
-                  enablePagination="compact"
-                  rowRenderer={(tool: MCPTool) => <MCPToolsTableRow key={tool.id} tool={tool} />}
-                  toolbarContent={
-                    <Toolbar>
-                      <ToolbarContent>
-                        <ToolbarItem>
-                          <div className="pf-v6-u-align-self-center pf-v6-u-font-weight-bold">
-                            Available tools on the {server.name}
-                          </div>
-                          <Button variant="link" onClick={handleRetry} icon={<SyncAltIcon />}>
-                            Retry
-                          </Button>
-                        </ToolbarItem>
-                      </ToolbarContent>
-                    </Toolbar>
-                  }
-                  data-testid="mcp-tools-modal-table"
-                />
-              </>
+              <Table
+                data={tools}
+                columns={MCPToolsColumns}
+                enablePagination="compact"
+                rowRenderer={(tool: MCPTool) => <MCPToolsTableRow key={tool.id} tool={tool} />}
+                data-testid="mcp-tools-modal-table"
+              />
             )}
           </>
         )}

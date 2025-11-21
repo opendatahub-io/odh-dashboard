@@ -36,10 +36,10 @@ export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
       description: 'MCP server for GitHub integration',
     }),
     mockMCPServer({
-      name: 'Filesystem-MCP-Server',
-      url: 'http://filesystem-mcp-server.crimson-show.svc.cluster.local:8080/sse',
+      name: 'Kubernetes-MCP-Server',
+      url: 'http://kubernetes-mcp-server.crimson-show.svc.cluster.local:8080/sse',
       status: 'Ready',
-      description: 'MCP server for filesystem access',
+      description: 'MCP server for Kubernetes cluster access',
     }),
   ];
 

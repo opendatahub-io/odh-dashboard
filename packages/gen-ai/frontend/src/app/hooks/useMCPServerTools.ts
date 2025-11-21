@@ -8,7 +8,6 @@ export type UseMCPServerToolsReturn = {
   toolsLoadError: Error | null;
   toolsStatus: MCPToolsStatus | null;
   isLoading: boolean;
-  refetch: () => void;
 };
 
 export const useMCPServerTools = (
@@ -96,11 +95,6 @@ export const useMCPServerTools = (
     }
   }, [serverUrl, enabled, mcpBearerToken, apiAvailable, api]);
 
-  const refetch = React.useCallback(() => {
-    setToolsLoaded(false);
-    fetchTools();
-  }, [fetchTools]);
-
   React.useEffect(() => {
     fetchTools();
   }, [fetchTools]);
@@ -111,6 +105,5 @@ export const useMCPServerTools = (
     toolsLoadError,
     toolsStatus,
     isLoading,
-    refetch,
   };
 };
