@@ -7,6 +7,8 @@ import type {
   WBControlSuiteTestData,
   WBVariablesTestData,
   WBStatusTestData,
+  WBStorageClassesTestData,
+  ClusterStorageAccessModesTestData,
   OOTBConnectionTypesData,
   WBTolerationsTestData,
   WBImagesTestData,
@@ -62,6 +64,24 @@ export const loadWBVariablesFixture = (
 export const loadWBStatusFixture = (fixturePath: string): Cypress.Chainable<WBStatusTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBStatusTestData;
+
+    return data;
+  });
+
+export const loadWBStorageClassesFixture = (
+  fixturePath: string,
+): Cypress.Chainable<WBStorageClassesTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WBStorageClassesTestData;
+
+    return data;
+  });
+
+export const loadClusterStorageAccessModesFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ClusterStorageAccessModesTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ClusterStorageAccessModesTestData;
 
     return data;
   });

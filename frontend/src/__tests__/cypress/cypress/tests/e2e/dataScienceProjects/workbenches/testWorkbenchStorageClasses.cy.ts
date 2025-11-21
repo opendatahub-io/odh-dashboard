@@ -1,3 +1,4 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
@@ -18,27 +19,40 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import type { SCAccessMode } from '#~/__tests__/cypress/cypress/types';
+import type { SCAccessMode, WBStorageClassesTestData } from '#~/__tests__/cypress/cypress/types';
 import { selectNotebookImageWithBackendFallback } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
+import { loadWBStorageClassesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 
 describe('Workbench Storage Classes Tests', () => {
+  let testData: WBStorageClassesTestData;
   const createdStorageClasses: string[] = [];
-  const projectName = 'test-workbench-storage-preset';
-
-  const scRWOName = 'sc-rwo-preset';
 
   retryableBefore(() => {
-    cy.step('Provisioning storage class');
-    const scRWO: SCAccessMode = {
-      ReadWriteOnce: true,
-      ReadWriteMany: true,
-    };
-    provisionStorageClass(scRWOName, StorageProvisioner.VSPHERE_VOLUME, scRWO);
-    createdStorageClasses.push(scRWOName);
+    // Load test data from fixtures
+    return loadWBStorageClassesFixture('e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml')
+      .then((fixtureData: WBStorageClassesTestData) => {
+        testData = fixtureData;
+        cy.log('Loaded test data from fixtures');
+      })
+      .then(() => {
+        cy.step('Provisioning storage class');
+        const scRWO: SCAccessMode = {
+          ReadWriteOnce: true,
+          ReadWriteMany: true,
+        };
+        provisionStorageClass(testData.storageClassRWO, StorageProvisioner.VSPHERE_VOLUME, scRWO);
+        // Only add if not already in the array (prevent duplicates on retry)
+        if (!createdStorageClasses.includes(testData.storageClassRWO)) {
+          createdStorageClasses.push(testData.storageClassRWO);
+        }
 
-    cy.step('Provisioning project');
-    provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+        cy.step('Provisioning project');
+        provisionClusterStorageSCFeature(
+          testData.projectName,
+          HTPASSWD_CLUSTER_ADMIN_USER.USERNAME,
+        );
+      });
   });
 
   after(() => {
@@ -47,35 +61,35 @@ describe('Workbench Storage Classes Tests', () => {
       tearDownStorageClassFeature(createdStorageClasses);
     }
     cy.step('Cleaning up project');
-    tearDownClusterStorageSCFeature(projectName);
+    tearDownClusterStorageSCFeature(testData.projectName);
   });
 
   beforeEach(() => {
     cy.step('Log into the application');
     cy.visitWithLogin('/projects', HTPASSWD_CLUSTER_ADMIN_USER);
 
-    cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-    projectListPage.filterProjectByName(projectName);
-    projectListPage.findProjectLink(projectName).click();
+    cy.step(`Navigate to the Project list tab and search for ${testData.projectName}`);
+    projectListPage.filterProjectByName(testData.projectName);
+    projectListPage.findProjectLink(testData.projectName).click();
   });
 
   it(
     'Create workbench with RWO storage and verify storage attachment',
     { tags: ['@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'] },
     () => {
-      const workbenchName = 'wb-rwo-storage';
-      const storageName = 'rwo-storage';
-      const mountPath = 'mnt/different-path';
+      const workbenchName = testData.workbenchRWO;
+      const storageName = testData.storageRWO;
+      const mountPath = testData.mountPathA;
       let selectedImageStream: string;
 
       cy.step('Navigate to cluster storage and create RWO storage');
       projectDetails.findSectionTab('cluster-storages').click();
-      clusterStorage.findCreateButton().click();
+      findAddClusterStorageButton().click();
       addClusterStorageModal.findNameInput().type(storageName);
 
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWOName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(testData.storageClassRWO, 'i'));
 
       cy.step('Submit the form');
       addClusterStorageModal.findSubmitButton().should('not.be.disabled').click();
@@ -92,7 +106,6 @@ describe('Workbench Storage Classes Tests', () => {
           cy.step('Attach RWO storage to workbench');
           createSpawnerPage.findAttachExistingStorageButton().click();
           attachExistingStorageModal.findStandardPathInput().fill(mountPath);
-          attachExistingStorageModal.findAttachButton().should('be.enabled');
           attachExistingStorageModal.findAttachButton().click();
           createSpawnerPage.findSubmitButton().click();
 
@@ -103,13 +116,9 @@ describe('Workbench Storage Classes Tests', () => {
           notebookRow.findKebab().click();
           notebookRow.findKebabAction('Edit workbench').click();
 
-          createSpawnerPage
-            .getStorageTable()
-            .find()
-            .within(() => {
-              cy.contains(storageName).should('exist');
-              cy.contains('ReadWriteOnce').should('exist');
-            });
+          cy.step('Verify storage access mode in table');
+          const storageTable = createSpawnerPage.getStorageTable();
+          storageTable.verifyStorageAccessMode(storageName, 'ReadWriteOnce');
 
           createSpawnerPage.findSubmitButton().click();
         },
@@ -121,23 +130,31 @@ describe('Workbench Storage Classes Tests', () => {
     'Display access mode information when selecting storage to attach to workbench',
     { tags: ['@Storage', '@Dashboard', '@Workbenches'] },
     () => {
-      const storageRWO = 'rwo-storage-attach';
-      const storageRWX = 'rwx-storage-attach';
-      const storageROX = 'rox-storage-attach';
+      // Use fixtures for consistent test data - construct storage names with access mode suffix
+      const storageRWO = `${testData.storageMultiAccessA}-rwo`;
+      const storageRWX = `${testData.storageMultiAccessA}-rwx`;
+      const storageROX = `${testData.storageMultiAccessA}-rox`;
+      const rwoMountPath = testData.mountPathA;
+      const rwxMountPath = testData.mountPathB;
+      const roxMountPath = testData.mountPathC;
+      const scMultiAccessName = testData.storageClassMultiA;
 
-      // Create storage classes
-      const scMultiAccessName = 'sc-multi';
+      // Access mode labels
+      const rwoLabel = 'ReadWriteOnce';
+      const rwxLabel = 'ReadWriteMany';
+      const roxLabel = 'ReadOnlyMany';
+
+      // Create storage class with multi-access support
       const scMultiAccess: SCAccessMode = {
         ReadWriteOnce: true,
         ReadWriteMany: true,
         ReadOnlyMany: true,
       };
       provisionStorageClass(scMultiAccessName, StorageProvisioner.AZURE_FILE, scMultiAccess);
-      createdStorageClasses.push(scMultiAccessName);
-
-      const rwoMountPath = 'rwo-mount-path';
-      const roxMountPath = 'rox-mount-path';
-      const rwxMountPath = 'rwx-mount-path';
+      // Only add if not already in the array (prevent duplicates on retry)
+      if (!createdStorageClasses.includes(scMultiAccessName)) {
+        createdStorageClasses.push(scMultiAccessName);
+      }
 
       cy.step('Create storages with different access modes');
       projectDetails.findSectionTab('cluster-storages').click();
@@ -175,59 +192,44 @@ describe('Workbench Storage Classes Tests', () => {
       cy.step('Open workbench creation form');
       projectDetails.findSectionTab('workbenches').click();
       workbenchPage.findCreateButton().click();
-      createSpawnerPage.getNameInput().fill('wb-attach-storage');
+      createSpawnerPage.getNameInput().fill(testData.workbenchMultiAccessA);
 
       selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(() => {
         cy.step('Open attach storage modal');
         createSpawnerPage.findAttachExistingStorageButton().click();
 
-        cy.step('Select RWO storage and verify ReadWriteOnce is displayed');
+        cy.step(`Select RWO storage and verify ${rwoLabel} is displayed`);
         attachExistingStorageModal.selectExistingPersistentStorage(storageRWO);
         attachExistingStorageModal.find().within(() => {
-          cy.contains('ReadWriteOnce').should('exist');
+          cy.contains(rwoLabel).should('exist');
         });
         attachExistingStorageModal.findStandardPathInput().fill(rwoMountPath);
         attachExistingStorageModal.findAttachButton().click();
 
-        cy.step('Select RWX storage and verify ReadWriteMany is displayed');
+        cy.step(`Select RWX storage and verify ${rwxLabel} is displayed`);
         createSpawnerPage.findAttachExistingStorageButton().click();
         attachExistingStorageModal.selectExistingPersistentStorage(storageRWX);
         attachExistingStorageModal.find().within(() => {
-          cy.contains('ReadWriteMany').should('exist');
+          cy.contains(rwxLabel).should('exist');
         });
         attachExistingStorageModal.findStandardPathInput().fill(rwxMountPath);
         attachExistingStorageModal.findAttachButton().click();
 
-        cy.step('Select ROX storage and verify ReadOnlyMany is displayed');
+        cy.step(`Select ROX storage and verify ${roxLabel} is displayed`);
         createSpawnerPage.findAttachExistingStorageButton().click();
         attachExistingStorageModal.selectExistingPersistentStorage(storageROX);
         attachExistingStorageModal.find().within(() => {
-          cy.contains('ReadOnlyMany').should('exist');
+          cy.contains(roxLabel).should('exist');
         });
         attachExistingStorageModal.findStandardPathInput().fill(roxMountPath);
         attachExistingStorageModal.findAttachButton().click();
       });
 
       cy.step('Verify storages are attached to workbench');
-      createSpawnerPage
-        .getStorageTable()
-        .find()
-        .within(() => {
-          // Verify RWO storage exists with ReadWriteOnce
-          cy.contains('tr', storageRWO).within(() => {
-            cy.contains('ReadWriteOnce').should('exist');
-          });
-
-          // Verify RWX storage exists with ReadWriteMany
-          cy.contains('tr', storageRWX).within(() => {
-            cy.contains('ReadWriteMany').should('exist');
-          });
-
-          // Verify ROX storage exists with ReadOnlyMany
-          cy.contains('tr', storageROX).within(() => {
-            cy.contains('ReadOnlyMany').should('exist');
-          });
-        });
+      const storageTable = createSpawnerPage.getStorageTable();
+      storageTable.verifyStorageAccessMode(storageRWO, rwoLabel);
+      storageTable.verifyStorageAccessMode(storageRWX, rwxLabel);
+      storageTable.verifyStorageAccessMode(storageROX, roxLabel);
     },
   );
 
@@ -235,23 +237,32 @@ describe('Workbench Storage Classes Tests', () => {
     'Create new storage with different access modes during workbench creation',
     { tags: ['@Storage', '@Dashboard', '@Workbenches'] },
     () => {
-      const workbenchName = 'wb-inline-storage';
-      const rwoStorageName = 'rwo-inline-storage';
-      const rwxStorageName = 'rwx-inline-storage';
-      const roxStorageName = 'rox-inline-storage';
+      // Use fixtures for consistent test data - construct storage names with access mode suffix
+      const workbenchName = testData.workbenchMultiAccessB;
+      const rwoStorageName = `${testData.storageMultiAccessB}-rwo`;
+      const rwxStorageName = `${testData.storageMultiAccessB}-rwx`;
+      const roxStorageName = `${testData.storageMultiAccessB}-rox`;
+      const rwoMountPath = testData.mountPathA;
+      const rwxMountPath = testData.mountPathB;
+      const roxMountPath = testData.mountPathC;
+      const scMultiAccessName = testData.storageClassMultiB;
 
-      const rwoMountPath = 'rwo-mount-path';
-      const roxMountPath = 'rox-mount-path';
-      const rwxMountPath = 'rwx-mount-path';
+      // Access mode labels
+      const rwoLabel = 'ReadWriteOnce';
+      const rwxLabel = 'ReadWriteMany';
+      const roxLabel = 'ReadOnlyMany';
 
-      const scMultiAccessName = 'sc-multi-inline';
+      // Create storage class with multi-access support
       const scMultiAccess: SCAccessMode = {
         ReadWriteOnce: true,
         ReadWriteMany: true,
         ReadOnlyMany: true,
       };
       provisionStorageClass(scMultiAccessName, StorageProvisioner.AZURE_FILE, scMultiAccess);
-      createdStorageClasses.push(scMultiAccessName);
+      // Only add if not already in the array (prevent duplicates on retry)
+      if (!createdStorageClasses.includes(scMultiAccessName)) {
+        createdStorageClasses.push(scMultiAccessName);
+      }
 
       cy.step('Open workbench creation form');
       projectDetails.findSectionTab('workbenches').click();
@@ -290,25 +301,10 @@ describe('Workbench Storage Classes Tests', () => {
         storageModal.findSubmitButton().click();
 
         cy.step('Verify storages are created with the correct access modes');
-        createSpawnerPage
-          .getStorageTable()
-          .find()
-          .within(() => {
-            // Verify RWO storage exists with ReadWriteOnce
-            cy.contains('tr', rwoStorageName).within(() => {
-              cy.contains('ReadWriteOnce').should('exist');
-            });
-
-            // Verify RWX storage exists with ReadWriteMany
-            cy.contains('tr', rwxStorageName).within(() => {
-              cy.contains('ReadWriteMany').should('exist');
-            });
-
-            // Verify ROX storage exists with ReadOnlyMany
-            cy.contains('tr', roxStorageName).within(() => {
-              cy.contains('ReadOnlyMany').should('exist');
-            });
-          });
+        const storageTable = createSpawnerPage.getStorageTable();
+        storageTable.verifyStorageAccessMode(rwoStorageName, rwoLabel);
+        storageTable.verifyStorageAccessMode(rwxStorageName, rwxLabel);
+        storageTable.verifyStorageAccessMode(roxStorageName, roxLabel);
       });
     },
   );
