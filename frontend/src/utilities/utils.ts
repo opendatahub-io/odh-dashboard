@@ -161,6 +161,10 @@ export const normalizeBetween = (value: number, min?: number, max?: number): num
   return Math.floor(returnedValue);
 };
 
+/**
+ * @deprecated
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export const getAcceleratorProfileCount = (
   acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,

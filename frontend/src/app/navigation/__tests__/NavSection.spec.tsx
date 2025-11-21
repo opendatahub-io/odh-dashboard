@@ -106,7 +106,7 @@ describe('NavSection', () => {
           path: '/hardwareProfiles/*',
           accessReview: {
             group: 'dashboard.opendatahub.io',
-            resource: 'acceleratorprofiles',
+            resource: 'hardwareprofiles',
             verb: 'list',
           },
         },
@@ -750,7 +750,7 @@ describe('NavSection', () => {
           path: '/hardwareProfiles/*',
           accessReview: {
             group: 'dashboard.opendatahub.io',
-            resource: 'acceleratorprofiles',
+            resource: 'hardwareprofiles',
             verb: 'list',
           },
         },
@@ -1597,7 +1597,7 @@ describe('NavSection', () => {
           path: '/hardwareProfiles/*',
           accessReview: {
             group: 'dashboard.opendatahub.io',
-            resource: 'acceleratorprofiles',
+            resource: 'hardwareprofiles',
             verb: 'list',
           },
         },

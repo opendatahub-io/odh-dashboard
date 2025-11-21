@@ -65,7 +65,7 @@ export enum ProjectObjectType {
   dataConnection = 'data-connection',
   connections = 'connections',
   clusterSettings = 'cluster-settings',
-  acceleratorProfile = 'accelerator-profile',
+  hardwareProfile = 'hardware-profile',
   permissions = 'permissions',
   user = 'user',
   group = 'group',
@@ -127,7 +127,7 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.distributedWorkload:
       return 'var(--ai-serving--IconColor)';
     case ProjectObjectType.clusterSettings:
-    case ProjectObjectType.acceleratorProfile:
+    case ProjectObjectType.hardwareProfile:
       return 'var(--ai-set-up--IconColor)';
     case ProjectObjectType.modelEvaluation:
       return 'var(--ai-model-server--IconColor)';
@@ -192,7 +192,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.distributedWorkload:
       return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.clusterSettings:
-    case ProjectObjectType.acceleratorProfile:
+    case ProjectObjectType.hardwareProfile:
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--BackgroundColor)';

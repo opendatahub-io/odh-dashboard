@@ -5,12 +5,22 @@ import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from './useGenericObjectState';
 import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAcceleratorState';
 
+/**
+ * @deprecated
+ * used by *both* modelmesh and finetuning
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
 export type AcceleratorProfileFormData = {
   profile?: AcceleratorProfileKind;
   count: number;
   useExistingSettings?: boolean;
 };
 
+/**
+ * @deprecated modelmesh
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export type UseAcceleratorProfileFormResult = {
   initialState: AcceleratorProfileState;
   formData: AcceleratorProfileFormData;
@@ -21,7 +31,13 @@ export type UseAcceleratorProfileFormResult = {
   refresh: () => Promise<AcceleratorProfileState | undefined>;
 };
 
-// TODO: Deprecate accelerator profile UI support in favor for hardware profiles. Remove in https://issues.redhat.com/browse/RHOAIENG-18070
+/**
+ * @deprecated modelmesh: https://issues.redhat.com/browse/RHOAIENG-19185
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ *
+ * used by *both* modelmesh and finetuning
+ */
 const useAcceleratorProfileFormState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],

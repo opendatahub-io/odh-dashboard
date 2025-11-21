@@ -1,7 +1,7 @@
 import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
-const AcceleratorProfileIcon = createIcon({
-  name: 'AcceleratorProfileIcon',
+const HardwareProfileIcon = createIcon({
+  name: 'HardwareProfileIcon',
   width: 36,
   height: 36,
   svgPath:
@@ -10,4 +10,4 @@ const AcceleratorProfileIcon = createIcon({
   yOffset: 0,
 });
 
-export default AcceleratorProfileIcon;
+export default HardwareProfileIcon;

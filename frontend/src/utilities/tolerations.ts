@@ -3,7 +3,9 @@ import { Toleration } from '#~/types';
 import { AcceleratorProfileState } from './useReadAcceleratorState';
 import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 
-/** @deprecated in modelMesh deprecation path */
+/**
+ * @deprecated in modelMesh deprecation path: RHOAIENG-34917, RHOAIENG-19185
+ */
 export const determineTolerations = (
   initialAcceleratorProfile?: AcceleratorProfileState,
   selectedAcceleratorProfile?: AcceleratorProfileFormData,
