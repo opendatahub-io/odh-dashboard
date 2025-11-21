@@ -25,13 +25,11 @@ enum FilterStates {
 interface DeployedModelsCardProps {
   deployedModels: InferenceServiceKind[];
   servingRuntimes: ServingRuntimeKind[];
-  isMultiPlatform: boolean;
 }
 
 const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
   deployedModels,
   servingRuntimes,
-  isMultiPlatform,
 }) => {
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -74,11 +72,7 @@ const DeployedModelsCard: React.FC<DeployedModelsCardProps> = ({
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
             <Label style={{ float: 'right' }}>
-              {isKServeNIMEnabled
-                ? 'NVIDIA NIM serving enabled'
-                : isMultiPlatform
-                ? 'Multi-model serving enabled'
-                : 'Single-model serving enabled'}
+              {isKServeNIMEnabled ? 'NVIDIA NIM serving enabled' : 'Single-model serving enabled'}
             </Label>
           </FlexItem>
         </Flex>

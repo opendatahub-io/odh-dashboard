@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
-import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 import {
   getSortedTemplates,
@@ -45,11 +44,6 @@ const ServeModelButton: React.FC = () => {
   );
   const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
 
-  const isProjectModelMesh =
-    project &&
-    getProjectModelServingPlatform(project, servingPlatformStatuses).platform ===
-      ServingRuntimePlatform.MULTI;
-
   const onSubmit = (submit: boolean) => {
     if (submit) {
       refreshInferenceServices();
@@ -72,7 +66,7 @@ const ServeModelButton: React.FC = () => {
         !project ||
         templatesEnabled.length === 0 ||
         (!isNIMAvailable && isKServeNIMEnabled) ||
-        (!isProjectModelMesh && isKueueDisabled)
+        isKueueDisabled
       }
     >
       Deploy model
@@ -93,24 +87,14 @@ const ServeModelButton: React.FC = () => {
     );
   }
 
-  if (!isProjectModelMesh && isKueueDisabled) {
+  if (isKueueDisabled) {
     return <Tooltip content={KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE}>{deployButton}</Tooltip>;
   }
 
   return (
     <>
       {deployButton}
-      {platformSelected === ServingRuntimePlatform.MULTI ? (
-        <ManageInferenceServiceModal
-          projectContext={{
-            currentProject: project,
-            connections,
-          }}
-          onClose={(submit: boolean) => {
-            onSubmit(submit);
-          }}
-        />
-      ) : null}
+      {/* Now KServe-only */}
       {platformSelected === ServingRuntimePlatform.SINGLE ? (
         isKServeNIMEnabled ? (
           <ManageNIMServingModal projectContext={{ currentProject: project }} onClose={onSubmit} />
