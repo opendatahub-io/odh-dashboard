@@ -10,7 +10,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import type { UrlLocation } from '#~/__tests__/cypress/cypress/utils/urlFormatter';
+import type { UrlLocation } from '#~/__tests__/cypress/cypress/utils/urlFormatters';
 
 type YamlValue = string | number | boolean | null | YamlObject | YamlArray;
 interface YamlObject {
