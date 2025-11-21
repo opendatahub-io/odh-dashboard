@@ -14,7 +14,7 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
 * **Team Field**:
   * ID: `customfield_12313240`
   * Value: `'4158'` (This string value represents the "RHOAI Dashboard" team).
-* **Component**: `'Dashboard'` (This string value should be used for the components field).
+* **Component**: `'AI Core Dashboard'` (This string value should be used for the components field).
 * **Epic Link Custom Field ID** (for Stories/Tasks under an Epic): `customfield_12311140`.
 * **Verify Information**: Always confirm specific details like summaries, descriptions, parent epic keys, and any ambiguous fields with the user.
 * **Team Value is a STRING**: The team field value (`'4158'`) must be passed as a string.
@@ -143,7 +143,7 @@ project_key="RHOAIENG",
 issue_type="Bug",
 summary="BUG: [User-provided summary]",
 description="[Formatted markdown string including Description, Steps, Actual, Expected, Reproducibility, and Acceptance Criteria]",
-components="Dashboard",
+components="AI Core Dashboard",
 additional_fields={
 	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Critical", "Major", "Normal", "Minor" (See Appendix A)
@@ -188,7 +188,7 @@ project_key="RHOAIENG",
 issue_type="Story",
 summary="STORY: [User-provided summary]",
 description="[Formatted markdown string including Description of enhancement, Acceptance Criteria, and Additional info]",
-components="Dashboard",
+components="AI Core Dashboard",
 additional_fields={
 	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Major", "Normal" (See Appendix A)
@@ -231,7 +231,7 @@ project_key="RHOAIENG",
 issue_type="Task",
 summary="TASK: [User-provided summary]",
 description="[Formatted markdown string including Description of task, Acceptance Criteria, and Additional info]",
-components="Dashboard",
+components="AI Core Dashboard",
 additional_fields={
 	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Normal", "Minor" (See Appendix A)
@@ -263,7 +263,7 @@ project_key="RHOAIENG",  # Can be inferred if PARENT_EPIC_KEY is for RHOAIENG
 issue_type="Story",
 summary="STORY: [User-provided summary]",
 description="[Formatted markdown string for Story description, AC, and Additional Info]",
-components="Dashboard",
+components="AI Core Dashboard",
 additional_fields={
 	"customfield_12311140": PARENT_EPIC_KEY,  # Epic Link field
 	"customfield_12313240": "4158",           # Team: RHOAI Dashboard
@@ -297,7 +297,7 @@ project_key="RHOAIENG",  # Can be inferred
 issue_type="Task",
 summary="TASK: [User-provided summary]",
 description="[Formatted markdown string for Task description, AC, and Additional Info]",
-components="Dashboard",
+components="AI Core Dashboard",
 additional_fields={
 	"customfield_12311140": PARENT_EPIC_KEY,  # Epic Link field
 	"customfield_12313240": "4158",           # Team: RHOAI Dashboard
@@ -346,7 +346,7 @@ project_key="RHOAIENG",
 issue_type="Epic",
 summary="EPIC: [User-provided Epic Name]",
 description="[User-provided concise, high-level description of what the Epic aims to accomplish]",
-components="Dashboard",  # Or other relevant components for the Epic
+components="AI Core Dashboard",  # Or other relevant components for the Epic
 additional_fields={
 	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Major", "Critical"
