@@ -9,4 +9,3 @@ resources:
   - ./rhoai
   - ./nvidia-nim
   - ./pgvector
-  - ./jupyter
