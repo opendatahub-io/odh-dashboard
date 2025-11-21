@@ -1,5 +1,6 @@
 import {
   k8sDeleteResource,
+  K8sResourceCommon,
   K8sStatus,
   k8sPatchResource,
   k8sGetResource,
@@ -195,3 +196,107 @@ export const getPodsForTrainJob = (job: TrainJobKind): Promise<PodKind[]> =>
       queryParams: { labelSelector: `jobset.sigs.k8s.io/jobset-name=${job.metadata.name}` },
     },
   }).then((r) => r.items);
+export const deleteJobSetForTrainJob = async (
+  jobName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<void> => {
+  try {
+    const jobSetModel = {
+      apiGroup: 'jobset.x-k8s.io',
+      apiVersion: 'v1alpha2',
+      kind: 'JobSet',
+      plural: 'jobsets',
+    };
+    await k8sDeleteResource<K8sResourceCommon, K8sStatus>(
+      applyK8sAPIOptions(
+        {
+          model: jobSetModel,
+          queryOptions: { name: jobName, ns: namespace },
+        },
+        opts,
+      ),
+    );
+  } catch (error) {
+    console.warn(
+      `JobSet deletion for ${jobName} in namespace ${namespace} returned error (expected if resource doesn't exist):`,
+      error,
+    );
+  }
+};
+
+export const deleteWorkloadForTrainJob = async (
+  job: TrainJobKind,
+  opts?: K8sAPIOptions,
+): Promise<void> => {
+  try {
+    /*** The Workload needs to be deleted so Kueue can recreate it.
+     * This allows the job to be re-queued and re-admitted. */
+    const workload = await getWorkloadForTrainJob(job);
+    if (workload && workload.metadata?.name) {
+      await k8sDeleteResource<WorkloadKind, K8sStatus>(
+        applyK8sAPIOptions(
+          {
+            model: WorkloadModel,
+            queryOptions: {
+              name: workload.metadata.name,
+              ns: workload.metadata.namespace || job.metadata.namespace || '',
+            },
+          },
+          opts,
+        ),
+      );
+    }
+  } catch (error) {
+    console.warn(
+      `Workload deletion for TrainJob ${job.metadata.name} in namespace ${job.metadata.namespace} returned error (expected if resource doesn't exist):`,
+      error,
+    );
+  }
+};
+
+export const retryTrainJob = async (
+  job: TrainJobKind,
+  opts?: K8sAPIOptions,
+): Promise<TrainJobKind> => {
+  const jobName = job.metadata.name;
+  const namespace = job.metadata.namespace || '';
+
+  await deleteJobSetForTrainJob(jobName, namespace, opts);
+
+  await deleteWorkloadForTrainJob(job, opts);
+
+  try {
+    if (job.spec.suspend === true) {
+      return await patchTrainJobSuspension(job, false, opts);
+    }
+
+    const retryAnnotation = {
+      'trainer.kubeflow.org/retry-timestamp': new Date().toISOString(),
+    };
+    const patches = [
+      {
+        op: 'add',
+        path: '/metadata/annotations/trainer.kubeflow.org~1retry-timestamp',
+        value: retryAnnotation['trainer.kubeflow.org/retry-timestamp'],
+      },
+    ];
+
+    return await k8sPatchResource<TrainJobKind>(
+      applyK8sAPIOptions(
+        {
+          model: TrainJobModel,
+          queryOptions: {
+            name: job.metadata.name || '',
+            ns: job.metadata.namespace || '',
+          },
+          patches,
+        },
+        opts,
+      ),
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to retry job: ${errorMessage}`);
+  }
+};

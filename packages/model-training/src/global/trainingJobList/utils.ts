@@ -1,6 +1,8 @@
+import { ComponentType } from 'react';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
+  ExclamationTriangleIcon,
   InProgressIcon,
   PendingIcon,
   PlayIcon,
@@ -8,10 +10,44 @@ import {
   OutlinedClockIcon,
   PauseCircleIcon,
 } from '@patternfly/react-icons';
-import { LabelProps } from '@patternfly/react-core';
+import { AlertVariant, LabelProps } from '@patternfly/react-core';
+import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { getWorkloadForTrainJob } from '../../api';
+
+export enum TrainJobConditionType {
+  Succeeded = 'Succeeded',
+  Complete = 'Complete',
+  Failed = 'Failed',
+  Running = 'Running',
+  Created = 'Created',
+  Restarting = 'Restarting',
+}
+
+export enum WorkloadConditionType {
+  Finished = 'Finished',
+  Evicted = 'Evicted',
+  Preempted = 'Preempted',
+  QuotaReserved = 'QuotaReserved',
+  PodsReady = 'PodsReady',
+  Admitted = 'Admitted',
+}
+
+export enum ConditionStatus {
+  True = 'True',
+  False = 'False',
+}
+
+export enum JobSectionName {
+  Node = 'node',
+  DatasetInitializer = 'dataset-initializer',
+  DataInitializer = 'data-initializer',
+  ModelInitializer = 'model-initializer',
+}
+
+// Kueue label keys
+const KUEUE_QUEUE_NAME_LABEL = 'kueue.x-k8s.io/queue-name';
 
 export const getStatusInfo = (
   status: TrainingJobState,
@@ -19,20 +55,28 @@ export const getStatusInfo = (
   label: string;
   status?: LabelProps['status'];
   color?: LabelProps['color'];
-  IconComponent: React.ComponentType;
+  IconComponent: ComponentType;
+  alertTitle?: string;
+  alertVariant?: AlertVariant;
 } => {
   switch (status) {
     case TrainingJobState.SUCCEEDED:
       return {
-        label: 'Succeeded',
+        status: 'success',
+        label: 'Complete',
         color: 'green',
         IconComponent: CheckCircleIcon,
+        alertTitle: 'Training Job Complete',
+        alertVariant: AlertVariant.success,
       };
     case TrainingJobState.FAILED:
       return {
+        status: 'danger',
         label: 'Failed',
         color: 'red',
         IconComponent: ExclamationCircleIcon,
+        alertTitle: 'Training Job Failed',
+        alertVariant: AlertVariant.danger,
       };
     case TrainingJobState.RUNNING:
       return {
@@ -49,13 +93,13 @@ export const getStatusInfo = (
     case TrainingJobState.PENDING:
       return {
         label: 'Pending',
-        color: 'teal',
+        color: 'purple',
         IconComponent: PendingIcon,
       };
     case TrainingJobState.QUEUED:
       return {
         label: 'Queued',
-        color: 'teal',
+        color: 'grey',
         IconComponent: OutlinedClockIcon,
       };
     case TrainingJobState.CREATED:
@@ -79,8 +123,26 @@ export const getStatusInfo = (
     case TrainingJobState.PREEMPTED:
       return {
         label: 'Preempted',
+        color: 'orange',
+        status: 'warning',
+        IconComponent: ExclamationTriangleIcon,
+        alertTitle: 'Job Preempted',
+        alertVariant: AlertVariant.warning,
+      };
+    case TrainingJobState.INADMISSIBLE:
+      return {
+        label: 'Inadmissible',
+        color: 'orange',
+        status: 'warning',
+        IconComponent: ExclamationTriangleIcon,
+        alertTitle: 'Job Inadmissible',
+        alertVariant: AlertVariant.warning,
+      };
+    case TrainingJobState.DELETING:
+      return {
+        label: 'Deleting',
         color: 'grey',
-        IconComponent: PendingIcon,
+        IconComponent: InProgressIcon,
       };
     default:
       return {
@@ -89,6 +151,56 @@ export const getStatusInfo = (
         IconComponent: ExclamationCircleIcon,
       };
   }
+};
+
+/**
+ * Extract and categorize workload conditions by status type
+ * Returns a map of condition types (Failed, Succeeded, etc.) to their matching conditions
+ * Similar to the pattern used in distributedWorkloads/utils.tsx
+ */
+const extractWorkloadConditions = (
+  conditions: WorkloadCondition[],
+): Record<string, WorkloadCondition | undefined> => {
+  return {
+    Failed: conditions.find(
+      ({ type, status, message, reason }) =>
+        status === ConditionStatus.True &&
+        type === WorkloadConditionType.Finished &&
+        /error|failed|rejected/.test(`${message || ''} ${reason || ''}`.toLowerCase()),
+    ),
+    Succeeded: conditions.find(
+      ({ type, status, message, reason }) =>
+        status === ConditionStatus.True &&
+        type === WorkloadConditionType.Finished &&
+        /success|succeeded/.test(`${message || ''} ${reason || ''}`.toLowerCase()),
+    ),
+    Evicted: conditions.find(
+      ({ type, status }) =>
+        type === WorkloadConditionType.Evicted && status === ConditionStatus.True,
+    ),
+    Preempted: conditions.find(
+      ({ type, status }) =>
+        type === WorkloadConditionType.Preempted && status === ConditionStatus.True,
+    ),
+    Inadmissible: conditions.find(
+      ({ type, status, reason }) =>
+        type === WorkloadConditionType.QuotaReserved &&
+        status === ConditionStatus.False &&
+        reason === 'Inadmissible',
+    ),
+    Pending: conditions.find(
+      ({ type, status }) =>
+        type === WorkloadConditionType.QuotaReserved && status === ConditionStatus.False,
+    ),
+    Running: conditions.find(
+      ({ type, status }) =>
+        type === WorkloadConditionType.PodsReady && status === ConditionStatus.True,
+    ),
+    Admitted: conditions.find(
+      ({ type, status }) =>
+        type === WorkloadConditionType.Admitted && status === ConditionStatus.True,
+    ),
+  };
 };
 
 /**
@@ -106,22 +218,25 @@ const getBasicJobStatus = (job: TrainJobKind): TrainingJobState => {
   );
 
   // Find the most recent condition with status='True' (current active state)
-  const currentCondition = sortedConditions.find((condition) => condition.status === 'True');
+  const currentCondition = sortedConditions.find(
+    (condition) => condition.status === ConditionStatus.True,
+  );
 
   if (!currentCondition) {
     return TrainingJobState.UNKNOWN;
   }
 
   switch (currentCondition.type) {
-    case 'Succeeded':
+    case TrainJobConditionType.Succeeded:
+    case TrainJobConditionType.Complete:
       return TrainingJobState.SUCCEEDED;
-    case 'Failed':
+    case TrainJobConditionType.Failed:
       return TrainingJobState.FAILED;
-    case 'Running':
+    case TrainJobConditionType.Running:
       return TrainingJobState.RUNNING;
-    case 'Created':
+    case TrainJobConditionType.Created:
       return TrainingJobState.CREATED;
-    case 'Restarting':
+    case TrainJobConditionType.Restarting:
       return TrainingJobState.RESTARTING;
     default:
       return TrainingJobState.UNKNOWN;
@@ -129,7 +244,28 @@ const getBasicJobStatus = (job: TrainJobKind): TrainingJobState => {
 };
 
 /**
- * Unified function to get training job status with hibernation support (async)
+ * Get training job status with hibernation support (async)
+ *
+ * Status determination follows this priority order (higher priority checked first):
+ *
+ * 1. Terminal states:
+ *    - Deleting: TrainJob has deletionTimestamp set
+ *    - Complete: TrainJob Succeeded condition
+ *    - Failed: TrainJob Failed condition (takes priority over Queued)
+ *
+ * 2. System states (checked before user actions):
+ *    - Inadmissible: Workload QuotaReserved=False with reason=Inadmissible
+ *    - Preempted: Workload Evicted or Preempted condition
+ *    - Queued: Admitted but quota not reserved, or waiting for admission
+ *
+ * 3. User actions:
+ *    - Paused: workload.spec.active=false or spec.suspend=true
+ *
+ * 4. Active states:
+ *    - Running: Workload PodsReady=True or TrainJob Running condition
+ *    - Pending: QuotaReserved=True but pods not ready yet
+ *    - Created: TrainJob Created condition
+ *
  * @param job - TrainJob to check status for
  * @param options - Configuration options
  * @returns Promise resolving to the job's current status
@@ -143,70 +279,126 @@ export const getTrainingJobStatus = async (
   const { skipHibernationCheck = false } = options;
 
   try {
-    // Get basic status from TrainJob conditions
+    // Terminal states (checked first)
+    if (job.metadata.deletionTimestamp) {
+      return { status: TrainingJobState.DELETING, isLoading: false };
+    }
+
     const basicStatus = getBasicJobStatus(job);
 
-    // Skip hibernation check if disabled or job is in terminal state
-    if (
-      skipHibernationCheck ||
-      basicStatus === TrainingJobState.SUCCEEDED ||
-      basicStatus === TrainingJobState.FAILED
-    ) {
+    if (skipHibernationCheck) {
+      if (basicStatus === TrainingJobState.SUCCEEDED) {
+        return { status: TrainingJobState.SUCCEEDED, isLoading: false };
+      }
       return { status: basicStatus, isLoading: false };
     }
 
-    // Check workload status for Kueue-enabled jobs and spec.suspend for non-Kueue jobs
+    if (basicStatus === TrainingJobState.SUCCEEDED) {
+      return { status: TrainingJobState.SUCCEEDED, isLoading: false };
+    }
+
+    // Kueue workload status (for Kueue-enabled jobs)
     const workload = await getWorkloadForTrainJob(job);
-
     if (workload) {
-      // Kueue-enabled job: Check workload status for queuing, hibernation and preemption
+      const conditions = workload.status?.conditions || [];
+      const workloadConditionsMap = extractWorkloadConditions(conditions);
 
-      // Priority 1: Check for paused/hibernated status - workload.spec.active = false
-      if (workload.spec.active === false) {
-        return { status: TrainingJobState.PAUSED, isLoading: false };
+      // System rejection (takes priority over failure states)
+      if (workloadConditionsMap.Inadmissible) {
+        return { status: TrainingJobState.INADMISSIBLE, isLoading: false };
       }
 
-      // Use correct priority order for workload status determination
-      const conditions = workload.status?.conditions || [];
+      // TrainJob failure (takes priority over Workload queued state)
+      if (basicStatus === TrainingJobState.FAILED) {
+        return { status: TrainingJobState.FAILED, isLoading: false };
+      }
 
-      // Priority 2: Check for preempted status - Evicted or Preempted conditions with status=True
-      const evictedCondition = conditions.find((c) => c.type === 'Evicted' && c.status === 'True');
-      const preemptedCondition = conditions.find(
-        (c) => c.type === 'Preempted' && c.status === 'True',
-      );
-
-      if (evictedCondition || preemptedCondition) {
+      // Terminal and active states (checked in priority order)
+      if (workloadConditionsMap.Failed) {
+        return { status: TrainingJobState.FAILED, isLoading: false };
+      }
+      if (workloadConditionsMap.Succeeded) {
+        return { status: TrainingJobState.SUCCEEDED, isLoading: false };
+      }
+      if (workloadConditionsMap.Evicted || workloadConditionsMap.Preempted) {
         return { status: TrainingJobState.PREEMPTED, isLoading: false };
       }
-
-      // Priority 3: Check for running status - PodsReady condition with status=True
-      const podsReadyCondition = conditions.find(
-        (c) => c.type === 'PodsReady' && c.status === 'True',
-      );
-
-      if (podsReadyCondition) {
+      if (workloadConditionsMap.Running) {
         return { status: TrainingJobState.RUNNING, isLoading: false };
       }
 
-      // Priority 4: Check for queued status - Everything else is queued
-      // Also check if the workload conditions list contains type "Admitted"
-      // (if it doesn't, it means it was never in a running state)
+      // Queued: Admitted but no quota reserved, or waiting for admission
+      const quotaReservedCondition = conditions.find(
+        (c) => c.type === WorkloadConditionType.QuotaReserved,
+      );
+      const podsReady = conditions.find(
+        (c) => c.type === WorkloadConditionType.PodsReady && c.status === ConditionStatus.True,
+      );
+      const isQuotaReserved = quotaReservedCondition?.status === ConditionStatus.True;
+
+      if (
+        (!workloadConditionsMap.Admitted &&
+          quotaReservedCondition?.status === ConditionStatus.False) ||
+        (workloadConditionsMap.Admitted && !podsReady && !isQuotaReserved)
+      ) {
+        return { status: TrainingJobState.QUEUED, isLoading: false };
+      }
+
+      // Paused (user action - checked after system states)
+      if (workload.spec.active === false || job.spec.suspend === true) {
+        return { status: TrainingJobState.PAUSED, isLoading: false };
+      }
+
+      // Pending: Quota reserved but pods not ready yet
+      if (isQuotaReserved && !podsReady) {
+        return { status: TrainingJobState.PENDING, isLoading: false };
+      }
+
+      // Fallback: Check TrainJob Running condition
+      if (basicStatus === TrainingJobState.RUNNING) {
+        return { status: TrainingJobState.RUNNING, isLoading: false };
+      }
+
+      // Fallback: Use jobsStatus if workload has no conditions
+      if (conditions.length === 0) {
+        return { status: TrainingJobState.QUEUED, isLoading: false };
+      }
+
+      // Fallback: Check jobsStatus for Running state
+      const jobsStatus = job.status?.jobsStatus || [];
+      const nodeJobStatus = jobsStatus.find((js) => js.name === JobSectionName.Node);
+      if (nodeJobStatus && ((nodeJobStatus.active ?? 0) > 0 || (nodeJobStatus.ready ?? 0) > 0)) {
+        return { status: TrainingJobState.RUNNING, isLoading: false };
+      }
+
       return { status: TrainingJobState.QUEUED, isLoading: false };
     }
-    // Non-Kueue job: Check TrainJob spec.suspend for hibernation
-    const isSuspended = job.spec.suspend === true;
 
-    if (isSuspended) {
+    // Non-Kueue jobs (no workload exists)
+    if (job.spec.suspend === true) {
       return { status: TrainingJobState.PAUSED, isLoading: false };
     }
 
-    // Return basic status if no special conditions are met
+    if (basicStatus === TrainingJobState.FAILED) {
+      return { status: TrainingJobState.FAILED, isLoading: false };
+    }
+
+    // Kueue-enabled but no workload yet
+    const hasQueueLabel =
+      job.metadata.labels?.[KUEUE_QUEUE_NAME_LABEL] || job.spec.labels?.[KUEUE_QUEUE_NAME_LABEL];
+    if (hasQueueLabel) {
+      return { status: TrainingJobState.QUEUED, isLoading: false };
+    }
+
+    if (basicStatus === TrainingJobState.CREATED) {
+      return { status: TrainingJobState.CREATED, isLoading: false };
+    }
+
     return { status: basicStatus, isLoading: false };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.warn(`Failed to get status for TrainJob ${job.metadata.name}:`, errorMessage);
 
-    // Fallback to basic status on error
     return {
       status: getBasicJobStatus(job),
       isLoading: false,
@@ -217,11 +409,17 @@ export const getTrainingJobStatus = async (
 
 /**
  * Get training job status (synchronous version for sorting/filtering)
- * This version checks basic TrainJob status and spec.suspend for non-Kueue jobs
+ * This version checks basic TrainJob status, deletionTimestamp, and spec.suspend
+ * Note: This does NOT check Workload status (async operation). Use getTrainingJobStatus for full status.
  * @param job - TrainJob to check status for
- * @returns Job status including basic hibernation check
+ * @returns Job status including basic checks (deleting, paused, terminal states)
  */
 export const getTrainingJobStatusSync = (job: TrainJobKind): TrainingJobState => {
+  // Priority 1: Check if job is being deleted
+  if (job.metadata.deletionTimestamp) {
+    return TrainingJobState.DELETING;
+  }
+
   const basicStatus = getBasicJobStatus(job);
 
   // Skip hibernation check for terminal states
@@ -236,4 +434,356 @@ export const getTrainingJobStatusSync = (job: TrainJobKind): TrainingJobState =>
   }
 
   return basicStatus;
+};
+
+export const getStatusFlags = (
+  status: TrainingJobState,
+): {
+  isRunning: boolean;
+  isFailed: boolean;
+  isComplete: boolean;
+  isQueued: boolean;
+  isPending: boolean;
+  isInadmissible: boolean;
+  isPreempted: boolean;
+  isPaused: boolean;
+  isSuspended: boolean;
+  isDeleting: boolean;
+  isCreated: boolean;
+  isRestarting: boolean;
+  isUnknown: boolean;
+  inProgress: boolean;
+} => {
+  const flags = {
+    isRunning: status === TrainingJobState.RUNNING,
+    isFailed: status === TrainingJobState.FAILED,
+    isComplete: status === TrainingJobState.SUCCEEDED,
+    isQueued: status === TrainingJobState.QUEUED,
+    isPending: status === TrainingJobState.PENDING,
+    isInadmissible: status === TrainingJobState.INADMISSIBLE,
+    isPreempted: status === TrainingJobState.PREEMPTED,
+    isPaused: status === TrainingJobState.PAUSED,
+    isSuspended: status === TrainingJobState.SUSPENDED,
+    isDeleting: status === TrainingJobState.DELETING,
+    isCreated: status === TrainingJobState.CREATED,
+    isRestarting: status === TrainingJobState.RESTARTING,
+    isUnknown: status === TrainingJobState.UNKNOWN,
+  };
+
+  return {
+    ...flags,
+    inProgress:
+      flags.isRunning ||
+      flags.isPending ||
+      flags.isQueued ||
+      flags.isInadmissible ||
+      flags.isPreempted,
+  };
+};
+
+/**
+ * Extract title and description from a condition/event
+ * Uses reason as title (short, title-like) and message as description
+ */
+const extractTitleAndDescription = (
+  condition: { reason?: string; message?: string },
+  fallbackTitle: string,
+): { title: string; description?: string } => {
+  const title = condition.reason || fallbackTitle;
+  const description = condition.message || condition.reason;
+  return { title, description };
+};
+
+/**
+ * Update title and description from extracted data if not already set
+ */
+const updateTitleAndDescription = (
+  extracted: { title: string; description?: string },
+  currentTitle: string,
+  currentDescription: string | undefined,
+  fallbackTitle: string,
+): { title: string; description?: string } => {
+  return {
+    title: currentTitle === fallbackTitle ? extracted.title : currentTitle,
+    description: currentDescription || extracted.description,
+  };
+};
+
+/**
+ * Get status alert with title and description from backend sources
+ *
+ * Priority order for fetching alert data:
+ * 1. TrainJob conditions (most direct)
+ * 2. Workload conditions (uses extractWorkloadConditions for consistency)
+ * 3. Events (fallback, only for failed jobs)
+ *
+ * Falls back to hardcoded title from getStatusInfo if no backend data found.
+ */
+export const getStatusAlert = (
+  status: TrainingJobState,
+  workloadConditions?: WorkloadCondition[],
+  trainJobConditions?: Array<{
+    type: string;
+    status: string;
+    reason?: string;
+    message?: string;
+  }>,
+  events?: Array<{
+    message?: string;
+    reason?: string;
+    type?: string;
+  }>,
+): {
+  title: string;
+  description?: string;
+  variant: AlertVariant;
+} | null => {
+  const statusInfo = getStatusInfo(status);
+  if (!statusInfo.alertTitle || !statusInfo.alertVariant) {
+    return null;
+  }
+
+  let title = statusInfo.alertTitle;
+  let description: string | undefined;
+
+  // Priority 1: TrainJob conditions
+  if (trainJobConditions && trainJobConditions.length > 0) {
+    if (status === TrainingJobState.FAILED) {
+      const failedCondition = trainJobConditions.find(
+        (c) => c.type === TrainJobConditionType.Failed && c.status === ConditionStatus.True,
+      );
+      if (failedCondition) {
+        const extracted = extractTitleAndDescription(failedCondition, statusInfo.alertTitle);
+        title = extracted.title;
+        description = extracted.description;
+      }
+    } else if (status === TrainingJobState.SUCCEEDED) {
+      const succeededCondition = trainJobConditions.find(
+        (c) =>
+          (c.type === TrainJobConditionType.Succeeded ||
+            c.type === TrainJobConditionType.Complete) &&
+          c.status === ConditionStatus.True,
+      );
+      if (succeededCondition) {
+        const extracted = extractTitleAndDescription(succeededCondition, statusInfo.alertTitle);
+        title = extracted.title;
+        description = extracted.description;
+      }
+    }
+  }
+
+  // Priority 2: Workload conditions (reuse extractWorkloadConditions for consistency)
+  if ((!description || title === statusInfo.alertTitle) && workloadConditions) {
+    const workloadConditionsMap = extractWorkloadConditions(workloadConditions);
+    let condition: WorkloadCondition | undefined;
+
+    if (status === TrainingJobState.FAILED) {
+      condition = workloadConditionsMap.Failed;
+    } else if (status === TrainingJobState.SUCCEEDED) {
+      condition = workloadConditionsMap.Succeeded;
+    } else if (status === TrainingJobState.INADMISSIBLE) {
+      condition = workloadConditionsMap.Inadmissible;
+    } else if (status === TrainingJobState.PREEMPTED) {
+      condition = workloadConditionsMap.Evicted || workloadConditionsMap.Preempted;
+    }
+
+    if (condition) {
+      const extracted = extractTitleAndDescription(condition, statusInfo.alertTitle);
+      const updated = updateTitleAndDescription(
+        extracted,
+        title,
+        description,
+        statusInfo.alertTitle,
+      );
+      title = updated.title;
+      description = updated.description;
+    }
+  }
+
+  // Priority 3: Events (fallback, only for failed jobs)
+  if (
+    (!description || title === statusInfo.alertTitle) &&
+    events &&
+    status === TrainingJobState.FAILED
+  ) {
+    const warningEvent = events.find((e) => e.type === 'Warning');
+    if (warningEvent) {
+      const extracted = extractTitleAndDescription(warningEvent, statusInfo.alertTitle);
+      const updated = updateTitleAndDescription(
+        extracted,
+        title,
+        description,
+        statusInfo.alertTitle,
+      );
+      title = updated.title;
+      description = updated.description;
+    }
+  }
+
+  return {
+    title,
+    description,
+    variant: statusInfo.alertVariant,
+  };
+};
+
+/**
+ * Get section status from jobsStatus entry
+ * Determines status based on job counts: failed > succeeded > active/ready > suspended > unknown
+ */
+const getStatusFromJobStatus = (jobStatus: {
+  failed?: number;
+  succeeded?: number;
+  active?: number;
+  ready?: number;
+  suspended?: number;
+}): TrainingJobState => {
+  if (jobStatus.failed && jobStatus.failed > 0) {
+    return TrainingJobState.FAILED;
+  }
+  if (jobStatus.succeeded && jobStatus.succeeded > 0) {
+    return TrainingJobState.SUCCEEDED;
+  }
+  if ((jobStatus.active && jobStatus.active > 0) || (jobStatus.ready && jobStatus.ready > 0)) {
+    return TrainingJobState.RUNNING;
+  }
+  if (jobStatus.suspended && jobStatus.suspended > 0) {
+    return TrainingJobState.PENDING;
+  }
+  return TrainingJobState.UNKNOWN;
+};
+
+/**
+ * Check if sections exist in jobsStatus (not inferred)
+ * Returns which sections are actually configured
+ */
+export const getSectionExistence = (
+  jobsStatus?: Array<{
+    name: string;
+    failed?: number;
+    succeeded?: number;
+    active?: number;
+    ready?: number;
+    suspended?: number;
+  }>,
+): {
+  hasDataInitializer: boolean;
+  hasModelInitializer: boolean;
+  hasTraining: boolean;
+} => {
+  if (!jobsStatus) {
+    return {
+      hasDataInitializer: false,
+      hasModelInitializer: false,
+      hasTraining: false,
+    };
+  }
+
+  const hasDataInitializer = jobsStatus.some(
+    (js) =>
+      js.name === JobSectionName.DatasetInitializer || js.name === JobSectionName.DataInitializer,
+  );
+  const hasModelInitializer = jobsStatus.some((js) => js.name === JobSectionName.ModelInitializer);
+  const hasTraining = jobsStatus.some((js) => js.name === JobSectionName.Node);
+
+  return {
+    hasDataInitializer,
+    hasModelInitializer,
+    hasTraining,
+  };
+};
+
+/**
+ * Get section statuses directly from jobsStatus (without needing pods)
+ * This is the preferred method as it doesn't require fetching pods
+ */
+export const getSectionStatusesFromJobsStatus = (
+  jobsStatus?: Array<{
+    name: string;
+    failed?: number;
+    succeeded?: number;
+    active?: number;
+    ready?: number;
+    suspended?: number;
+  }>,
+  overallJobStatus?: TrainingJobState,
+): {
+  initialization: TrainingJobState;
+  dataInitializer: TrainingJobState;
+  modelInitializer: TrainingJobState;
+  training: TrainingJobState;
+} => {
+  let dataInitializerStatus: TrainingJobState = TrainingJobState.UNKNOWN;
+  let modelInitializerStatus: TrainingJobState = TrainingJobState.UNKNOWN;
+  let trainingStatus: TrainingJobState = TrainingJobState.UNKNOWN;
+
+  if (jobsStatus) {
+    // Find data initializer job
+    const dataInitJob = jobsStatus.find(
+      (js) =>
+        js.name === JobSectionName.DatasetInitializer || js.name === JobSectionName.DataInitializer,
+    );
+    if (dataInitJob) {
+      dataInitializerStatus = getStatusFromJobStatus(dataInitJob);
+    }
+
+    // Find model initializer job
+    const modelInitJob = jobsStatus.find((js) => js.name === JobSectionName.ModelInitializer);
+    if (modelInitJob) {
+      modelInitializerStatus = getStatusFromJobStatus(modelInitJob);
+    }
+
+    // Find training job (node)
+    const trainingJob = jobsStatus.find((js) => js.name === JobSectionName.Node);
+    if (trainingJob) {
+      trainingStatus = getStatusFromJobStatus(trainingJob);
+    }
+  }
+
+  // If overall job succeeded and a section is unknown, infer it succeeded
+  if (overallJobStatus === TrainingJobState.SUCCEEDED) {
+    if (dataInitializerStatus === TrainingJobState.UNKNOWN) {
+      dataInitializerStatus = TrainingJobState.SUCCEEDED;
+    }
+    if (modelInitializerStatus === TrainingJobState.UNKNOWN) {
+      modelInitializerStatus = TrainingJobState.SUCCEEDED;
+    }
+    if (trainingStatus === TrainingJobState.UNKNOWN) {
+      trainingStatus = TrainingJobState.SUCCEEDED;
+    }
+  }
+
+  // If overall job failed and training is unknown, infer it failed
+  if (overallJobStatus === TrainingJobState.FAILED && trainingStatus === TrainingJobState.UNKNOWN) {
+    trainingStatus = TrainingJobState.FAILED;
+  }
+
+  const getInitializationStatus = (
+    dataStatus: TrainingJobState,
+    modelStatus: TrainingJobState,
+  ): TrainingJobState => {
+    if (dataStatus === TrainingJobState.SUCCEEDED && modelStatus === TrainingJobState.SUCCEEDED) {
+      return TrainingJobState.SUCCEEDED;
+    }
+    if (dataStatus === TrainingJobState.FAILED || modelStatus === TrainingJobState.FAILED) {
+      return TrainingJobState.FAILED;
+    }
+    if (dataStatus === TrainingJobState.RUNNING || modelStatus === TrainingJobState.RUNNING) {
+      return TrainingJobState.RUNNING;
+    }
+    if (dataStatus === TrainingJobState.PENDING || modelStatus === TrainingJobState.PENDING) {
+      return TrainingJobState.PENDING;
+    }
+    if (dataStatus === TrainingJobState.UNKNOWN && modelStatus === TrainingJobState.UNKNOWN) {
+      return TrainingJobState.UNKNOWN;
+    }
+    return TrainingJobState.RUNNING;
+  };
+
+  return {
+    initialization: getInitializationStatus(dataInitializerStatus, modelInitializerStatus),
+    dataInitializer: dataInitializerStatus,
+    modelInitializer: modelInitializerStatus,
+    training: trainingStatus,
+  };
 };
