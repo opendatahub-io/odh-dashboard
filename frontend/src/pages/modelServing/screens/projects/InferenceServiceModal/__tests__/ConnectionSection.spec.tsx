@@ -313,7 +313,9 @@ describe('ConnectionsFormSection', () => {
           },
         },
         stringData: {
+          '.dockerconfigjson': '{}',
           ACCESS_TYPE: '["Push"]',
+          OCI_HOST: '{}',
         },
       }),
     );
