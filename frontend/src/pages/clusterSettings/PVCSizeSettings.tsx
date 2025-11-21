@@ -73,7 +73,7 @@ const PVCSizeSettings: React.FC<PVCSizeSettingsProps> = ({ initialValue, pvcSize
               setPvcSize(DEFAULT_PVC_SIZE);
             }}
           >
-            Restore Default
+            Restore default
           </Button>
         </StackItem>
         <StackItem>

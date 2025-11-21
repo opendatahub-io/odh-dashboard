@@ -15,7 +15,7 @@ export const useNavigateToDeploymentWizardWithData = (
 ): ((projectName?: string) => void) => {
   const resourceName = translateDisplayNameForK8s(deployPrefillData.modelName);
 
-  const [connectionTypes] = useWatchConnectionTypes(true);
+  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
   const uri = deployPrefillData.modelUri;
   let connectionTypeName = ConnectionTypeRefs.URI;
 
@@ -64,11 +64,21 @@ export const useNavigateToDeploymentWizardWithData = (
     }),
     [deployPrefillData, connectionTypeObject, resourceName],
   );
-  const navigationFunction = useNavigateToDeploymentWizard(
+  const navigateToWizardInner = useNavigateToDeploymentWizard(
     null,
     prefillInfo,
     deployPrefillData.returnRouteValue,
     deployPrefillData.cancelReturnRouteValue,
   );
-  return navigationFunction;
+
+  return React.useCallback(
+    (projectName?: string) => {
+      if (!uri || !connectionTypesLoaded || !connectionTypeObject) {
+        // If we don't have all the prefill data, don't navigate to the wizard
+        return;
+      }
+      navigateToWizardInner(projectName);
+    },
+    [uri, connectionTypesLoaded, connectionTypeObject, navigateToWizardInner],
+  );
 };

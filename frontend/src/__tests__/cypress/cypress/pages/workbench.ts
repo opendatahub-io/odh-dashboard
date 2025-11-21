@@ -490,13 +490,6 @@ class CreateSpawnerPage {
     );
   }
 
-  findAcceleratorProfile(name: string) {
-    return cy.findByRole('menuitem', {
-      name,
-      hidden: true,
-    });
-  }
-
   findNotebookImageSelector() {
     return cy.findByTestId('workbench-image-stream-selection');
   }
@@ -621,10 +614,6 @@ class EditSpawnerPage extends CreateSpawnerPage {
 
   findCancelButton() {
     return cy.findByTestId('workbench-cancel-button');
-  }
-
-  findAcceleratorProfileSelect() {
-    return cy.findByTestId('accelerator-profile-select');
   }
 }
 
