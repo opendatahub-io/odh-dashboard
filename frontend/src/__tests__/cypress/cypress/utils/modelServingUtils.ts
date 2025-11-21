@@ -115,12 +115,12 @@ export const initDeployPrefilledModelIntercepts = ({
     mockK8sResourceList(
       [
         mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
+          name: 'template-5',
           displayName: 'OpenVINO Local',
           platforms: [ServingRuntimePlatform.SINGLE],
         }),
         mockServingRuntimeTemplateK8sResource({
-          name: 'template-3',
+          name: 'template-6',
           displayName: 'Caikit Local',
           platforms: [ServingRuntimePlatform.SINGLE],
           supportedModelFormats: [

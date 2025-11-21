@@ -53,7 +53,7 @@ export const useNavigateToDeploymentWizard = (
   initialData?: InitialWizardFormData | null,
   returnRouteValue?: string,
   cancelReturnRouteValue?: string,
-): ((projectName?: string) => void) => {
+): ((projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
 
   // Load hooks needed for the deployment wizard
@@ -72,10 +72,11 @@ export const useNavigateToDeploymentWizard = (
 
   // Extract the navigation logic into a reusable callback
   const executeNavigation = React.useCallback(
-    (projectName?: string): void => {
+    (projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null): void => {
       const mergedInitialData = {
         ...(formData ?? {}),
         ...(initialData ?? {}),
+        ...(initialDataOnNavigate ?? {}),
       };
 
       navigate(getDeploymentWizardRoute(), {
@@ -101,7 +102,7 @@ export const useNavigateToDeploymentWizard = (
 
   // Memoize the navigation function to prevent unnecessary re-renders
   return React.useCallback(
-    (projectName?: string): void => {
+    (projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null): void => {
       // If there's an error loading form data, don't navigate
       if (deployment && error) {
         console.error('useNavigateToDeploymentWizard: Failed to load form data:', error.message);
@@ -118,7 +119,7 @@ export const useNavigateToDeploymentWizard = (
       }
 
       // Navigate immediately if data is ready or no deployment is being edited
-      executeNavigation(projectName);
+      executeNavigation(projectName, initialDataOnNavigate);
     },
     [executeNavigation, loaded, error, deployment],
   );

@@ -21,6 +21,27 @@ class ModelVersionDeployModal extends Modal {
   findGoToProjectPageLink() {
     return cy.findByTestId('go-to-project-page-link');
   }
+
+  findConnectionSelectionSection() {
+    return this.find().findByText('Connection selection').parent();
+  }
+
+  findConnectionSelect() {
+    return this.find().findByTestId('typeahead-menu-toggle');
+  }
+
+  findConnectionSelectValue() {
+    return this.findConnectionSelect().findByRole('combobox');
+  }
+
+  selectConnectionByName(name: string) {
+    this.findConnectionSelect().click();
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findDeployButton() {
+    return this.findFooter().findByTestId('deploy-button');
+  }
 }
 
 export const modelVersionDeployModal = new ModelVersionDeployModal();
