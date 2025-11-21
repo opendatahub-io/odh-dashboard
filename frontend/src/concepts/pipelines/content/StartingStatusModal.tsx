@@ -208,6 +208,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
       onClick: onClose,
       variant: 'link' as const,
       dataTestId: 'pipeline-close-status-modal',
+      clickOnEnter: true,
     },
   ];
 

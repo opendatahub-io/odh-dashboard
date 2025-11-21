@@ -30,6 +30,30 @@ const MessageModal: React.FC<MessageModalProps> = ({
   disableFocusTrap,
   dataTestId = 'pipeline-server-starting-modal',
 }) => {
+  const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Handle Enter key to trigger button action
+  React.useEffect(() => {
+    const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
+    if (clickOnEnterIndex === -1) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        // Programmatically click the button to trigger visual feedback
+        buttonRefs.current[clickOnEnterIndex]?.click();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [buttonActions]);
+
   return (
     <Modal
       data-testid={dataTestId}
@@ -47,6 +71,9 @@ const MessageModal: React.FC<MessageModalProps> = ({
         {buttonActions?.map((action, index) => (
           <Button
             key={`${action.label}-${index}`}
+            ref={(el) => {
+              buttonRefs.current[index] = el;
+            }}
             variant={action.variant}
             onClick={action.onClick}
             data-testid={action.dataTestId}
