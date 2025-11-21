@@ -10,6 +10,7 @@ import { getTrainingJobStatusSync } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
+import TrainingJobStatusModal from './TrainingJobStatusModal';
 import StateActionToggle from './StateActionToggle';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
@@ -34,6 +35,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const notification = useNotification();
   const [hibernationModalOpen, setHibernationModalOpen] = React.useState(false);
   const [isToggling, setIsToggling] = React.useState(false);
+  const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const displayName = getDisplayNameFromK8sResource(job);
 
@@ -176,7 +178,11 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status">
-          <TrainingJobStatus job={job} jobStatus={jobStatus} />
+          <TrainingJobStatus
+            job={job}
+            jobStatus={jobStatus}
+            onClick={() => setStatusModalOpen(true)}
+          />
         </Td>
         <Td>
           {(isRunning || isPaused) && (
@@ -200,6 +206,21 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
         onClose={() => setHibernationModalOpen(false)}
         onConfirm={handleHibernationToggle}
       />
+      {statusModalOpen && (
+        <TrainingJobStatusModal
+          job={job}
+          jobStatus={jobStatus}
+          onClose={() => setStatusModalOpen(false)}
+          onPause={() => {
+            setStatusModalOpen(false);
+            setHibernationModalOpen(true);
+          }}
+          onDelete={() => {
+            setStatusModalOpen(false);
+            onDelete(job);
+          }}
+        />
+      )}
     </>
   );
 };
