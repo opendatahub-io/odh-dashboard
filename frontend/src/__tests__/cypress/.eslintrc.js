@@ -47,6 +47,12 @@ module.exports = require('@odh-dashboard/eslint-config')
           ],
         },
       },
+      {
+        files: ['**/*.yaml', '**/*.yml'],
+        parser: 'yaml-eslint-parser',
+        plugins: ['yml'],
+        extends: ['plugin:yml/recommended'],
+      },
     ],
   })
   .recommendedTypescript(__dirname);

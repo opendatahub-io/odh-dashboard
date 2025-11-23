@@ -54,24 +54,28 @@ export const applyOpenShiftYaml = (
  * @param resourceType The type of resource to patch (e.g., 'storageclass')
  * @param resourceName The name of the resource to patch
  * @param patchContent The patch content as a JSON string
+ * @param namespace Optional namespace for namespaced resources
  * @returns Cypress Chainable
  */
 export const patchOpenShiftResource = (
   resourceType: string,
   resourceName: string,
   patchContent: string,
+  namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
   // Escape single quotes in the patch content
   const escapedPatchContent = patchContent.replace(/'/g, "'\\''");
 
-  const ocCommand = `oc patch ${resourceType} ${resourceName} --type=merge -p '${escapedPatchContent}'`;
+  const nsFlag = namespace ? `-n ${namespace}` : '';
+  const ocCommand =
+    `oc patch ${resourceType} ${resourceName} ${nsFlag} --type=merge -p '${escapedPatchContent}'`.trim();
 
   cy.log(ocCommand);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       // If there is an error, log the error and fail the test
-      cy.log(`ERROR patching ${resourceType} ${resourceName}
+      cy.log(`ERROR patching ${resourceType} ${resourceName}${namespace ? ` in ${namespace}` : ''}
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.code}`);

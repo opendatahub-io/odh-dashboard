@@ -15,6 +15,7 @@ import {
   getKueueManagementState,
   updateKueueManagementState,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/dsc';
+import { installKueueOperator } from '#~/__tests__/cypress/cypress/utils/oc_commands/operators';
 import type { WorkloadMetricsTestData } from '#~/__tests__/cypress/cypress/types';
 import { ManagementState } from '#~/__tests__/cypress/cypress/types';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
@@ -35,6 +36,14 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as WorkloadMetricsTestData;
         projectName = `${testData.projectName}-${uuid}`;
+      })
+      .then(() => {
+        cy.log('Ensuring kueue-operator is installed');
+        return cy
+          .fixture('e2e/operators/keue-operator-subscription.yaml', 'utf8')
+          .then((subscriptionYaml: string) => {
+            return installKueueOperator(subscriptionYaml);
+          });
       })
       .then(() => {
         cy.log('Getting current Kueue management state');
