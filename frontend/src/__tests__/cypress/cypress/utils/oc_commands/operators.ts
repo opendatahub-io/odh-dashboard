@@ -188,61 +188,56 @@ export const installKueueOperator = (
 ): Cypress.Chainable<void> => {
   cy.log('Installing kueue-operator');
 
-  return isOperatorInstalled('kueue-operator', namespace)
-    .then((installed) => {
-      if (installed) {
-        cy.log('kueue-operator is already installed, skipping installation');
-        return cy.then(() => {
-          // Return void
-        });
-      }
-
-      // Step 2: Install the operator
-      cy.log('Installing kueue-operator subscription');
-      return installOperatorFromYaml(subscriptionYamlContent).then(() => {
-        // Convert to void
+  return isOperatorInstalled('kueue-operator', namespace).then((installed) => {
+    if (installed) {
+      cy.log('kueue-operator is already installed, verifying CSV is Succeeded');
+      // Just verify the CSV is Succeeded and return
+      return waitForCsvSucceeded('kueue-operator', namespace, 300).then(() => {
+        cy.log('kueue-operator is already installed and CSV is Succeeded');
       });
-    })
-    .then(() => {
-      // Convert to void - ignore any return value
-    })
-    .then(() => {
-      // Wait a bit for OLM to create the install plan
-      cy.log('Waiting for install plan to be created');
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      return cy.wait(5000);
-    })
-    .then(() => {
-      // Step 3: Get the install plan
-      cy.log('Getting install plan');
-      return getInstallPlanName('kueue-operator', namespace);
-    })
-    .then((installPlanName) => {
-      if (!installPlanName) {
-        cy.log(
-          'No install plan found, operator may already be installed or installation may be automatic',
-        );
-        // Still wait for CSV in case it's installing
-        return cy.then(() => {
-          // Return void
-        });
-      }
+    }
 
-      // Step 4: Approve the install plan
-      cy.log(`Approving install plan: ${installPlanName}`);
-      return approveInstallPlan(installPlanName, namespace).then(() => {
-        // Wait a bit for OLM to start creating the CSV after approval
-        cy.log('Waiting for CSV to be created after install plan approval');
+    // Step 2: Install the operator
+    cy.log('Installing kueue-operator subscription');
+    return installOperatorFromYaml(subscriptionYamlContent)
+      .then(() => {
+        // Wait a bit for OLM to create the install plan
+        cy.log('Waiting for install plan to be created');
         // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(10000);
+        return cy.wait(5000);
+      })
+      .then(() => {
+        // Step 3: Get the install plan
+        cy.log('Getting install plan');
+        return getInstallPlanName('kueue-operator', namespace);
+      })
+      .then((installPlanName) => {
+        if (!installPlanName) {
+          cy.log(
+            'No install plan found, operator may already be installed or installation may be automatic',
+          );
+          // Still wait for CSV in case it's installing
+          return cy.then(() => {
+            // Return void
+          });
+        }
+
+        // Step 4: Approve the install plan
+        cy.log(`Approving install plan: ${installPlanName}`);
+        return approveInstallPlan(installPlanName, namespace).then(() => {
+          // Wait a bit for OLM to start creating the CSV after approval
+          cy.log('Waiting for CSV to be created after install plan approval');
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          return cy.wait(10000);
+        });
+      })
+      .then(() => {
+        // Step 5: Wait for CSV to be Succeeded
+        cy.log('Waiting for CSV to reach Succeeded phase');
+        return waitForCsvSucceeded('kueue-operator', namespace, 300);
+      })
+      .then(() => {
+        cy.log('kueue-operator installation completed successfully');
       });
-    })
-    .then(() => {
-      // Step 5: Wait for CSV to be Succeeded
-      cy.log('Waiting for CSV to reach Succeeded phase');
-      return waitForCsvSucceeded('kueue-operator', namespace, 300);
-    })
-    .then(() => {
-      cy.log('kueue-operator installation completed successfully');
-    }) as unknown as Cypress.Chainable<void>;
+  }) as unknown as Cypress.Chainable<void>;
 };
