@@ -46,17 +46,15 @@ export const installOperatorFromYaml = (
 };
 
 /**
- * Get the install plan name for a subscription
+ * Get the install plan name for a subscription (single check, no polling)
  * @param subscriptionName The name of the subscription
  * @param namespace The namespace where the subscription exists (default: 'openshift-operators')
  * @returns Cypress Chainable that resolves to the install plan name or undefined
  */
-export const getInstallPlanName = (
+const getInstallPlanNameOnce = (
   subscriptionName: string,
   namespace = 'openshift-operators',
 ): Cypress.Chainable<string | undefined> => {
-  cy.log(`Getting install plan for subscription ${subscriptionName} in ${namespace}`);
-
   // First, try to get from subscription status (most reliable)
   const subscriptionCommand = `oc get subscription ${subscriptionName} -n ${namespace} -o jsonpath='{.status.installPlanRef.name}' 2>/dev/null || echo ''`;
   return execWithOutput(subscriptionCommand).then(({ code, stdout }) => {
@@ -74,10 +72,72 @@ export const getInstallPlanName = (
         cy.log(`Found pending install plan: ${installPlanName}`);
         return cy.wrap(installPlanName);
       }
-      cy.log(`No install plan found for ${subscriptionName}`);
       return cy.wrap(undefined);
     });
   }) as unknown as Cypress.Chainable<string | undefined>;
+};
+
+/**
+ * Wait for an install plan to be created for a subscription
+ * @param subscriptionName The name of the subscription
+ * @param namespace The namespace where the subscription exists (default: 'openshift-operators')
+ * @param timeout Timeout in seconds (default: 60)
+ * @returns Cypress Chainable that resolves to the install plan name
+ */
+export const waitForInstallPlan = (
+  subscriptionName: string,
+  namespace = 'openshift-operators',
+  timeout = 60,
+): Cypress.Chainable<string> => {
+  cy.log(`Waiting for install plan to be created for ${subscriptionName} in ${namespace}`);
+  const maxAttempts = Math.floor(timeout / 5);
+  let attempts = 0;
+
+  const checkForInstallPlan = (isFirstAttempt = false): Cypress.Chainable<string> => {
+    attempts += 1;
+    return getInstallPlanNameOnce(subscriptionName, namespace).then((installPlanName) => {
+      if (installPlanName) {
+        cy.log(`Install plan found: ${installPlanName}`);
+        return cy.wrap(installPlanName);
+      }
+
+      cy.log(`Install plan check (attempt ${attempts}/${maxAttempts}): not found yet`);
+      if (attempts >= maxAttempts) {
+        const errorMsg = `Timeout waiting for install plan for ${subscriptionName} to be created`;
+        cy.log(`ERROR: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      // Only wait between retries, not before the first attempt
+      if (isFirstAttempt) {
+        return checkForInstallPlan(false);
+      }
+
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(5000).then(() => checkForInstallPlan(false));
+    });
+  };
+
+  return checkForInstallPlan(true);
+};
+
+/**
+ * Get the install plan name for a subscription
+ * @param subscriptionName The name of the subscription
+ * @param namespace The namespace where the subscription exists (default: 'openshift-operators')
+ * @returns Cypress Chainable that resolves to the install plan name or undefined
+ */
+export const getInstallPlanName = (
+  subscriptionName: string,
+  namespace = 'openshift-operators',
+): Cypress.Chainable<string | undefined> => {
+  cy.log(`Getting install plan for subscription ${subscriptionName} in ${namespace}`);
+  return getInstallPlanNameOnce(subscriptionName, namespace).then((installPlanName) => {
+    if (!installPlanName) {
+      cy.log(`No install plan found for ${subscriptionName}`);
+    }
+    return cy.wrap(installPlanName);
+  });
 };
 
 /**
@@ -114,7 +174,10 @@ export const waitForCsvSucceeded = (
   // Search by CSV name (metadata.name) which starts with the operator name, e.g., "kueue-operator.v1.0.1"
   const findCsvCommand = `oc get csv -n ${namespace} -o json | jq -r '.items[] | select(.metadata.name | startswith("${operatorName}.")) | .metadata.name' | head -n 1`;
 
-  const checkCsvPhase = (csvName?: string): Cypress.Chainable<CommandLineResult> => {
+  const checkCsvPhase = (
+    csvName?: string,
+    isFirstAttempt = false,
+  ): Cypress.Chainable<CommandLineResult> => {
     attempts += 1;
 
     // If we don't have CSV name yet, find it first
@@ -126,7 +189,7 @@ export const waitForCsvSucceeded = (
           // Now check its phase using the exact CSV name
           const ocCommand = `oc get csv ${foundCsvName} -n ${namespace} -o jsonpath='{.status.phase}' 2>/dev/null || echo ''`;
           return execWithOutput(ocCommand).then((result) => {
-            return checkPhaseResult(result, foundCsvName);
+            return checkPhaseResult(result, foundCsvName, isFirstAttempt);
           });
         }
         // CSV not found yet
@@ -136,21 +199,26 @@ export const waitForCsvSucceeded = (
           cy.log(`ERROR: ${errorMsg}`);
           throw new Error(errorMsg);
         }
+        // Only wait between retries, not before the first attempt
+        if (isFirstAttempt) {
+          return checkCsvPhase(undefined, false);
+        }
         // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(5000).then(() => checkCsvPhase());
+        return cy.wait(5000).then(() => checkCsvPhase(undefined, false));
       });
     }
 
     // We have CSV name, check its phase directly using jsonpath
     const ocCommand = `oc get csv ${csvName} -n ${namespace} -o jsonpath='{.status.phase}' 2>/dev/null || echo ''`;
     return execWithOutput(ocCommand).then((result) => {
-      return checkPhaseResult(result, csvName);
+      return checkPhaseResult(result, csvName, isFirstAttempt);
     });
   };
 
   const checkPhaseResult = (
     result: CommandLineResult,
     currentCsvName: string,
+    isFirstAttempt = false,
   ): Cypress.Chainable<CommandLineResult> => {
     const phase = result.stdout.trim();
     cy.log(`CSV phase check (attempt ${attempts}/${maxAttempts}): ${phase || 'not found'}`);
@@ -168,12 +236,17 @@ export const waitForCsvSucceeded = (
       throw new Error(errorMsg);
     }
 
+    // Only wait between retries, not before the first attempt
+    if (isFirstAttempt) {
+      return checkCsvPhase(currentCsvName, false);
+    }
+
     // Wait 5 seconds before next attempt, pass the CSV name so we don't need to find it again
     // eslint-disable-next-line cypress/no-unnecessary-waiting
-    return cy.wait(5000).then(() => checkCsvPhase(currentCsvName));
+    return cy.wait(5000).then(() => checkCsvPhase(currentCsvName, false));
   };
 
-  return checkCsvPhase();
+  return checkCsvPhase(undefined, true);
 };
 
 /**
@@ -201,15 +274,9 @@ export const installKueueOperator = (
     cy.log('Installing kueue-operator subscription');
     return installOperatorFromYaml(subscriptionYamlContent)
       .then(() => {
-        // Wait a bit for OLM to create the install plan
+        // Step 3: Wait for install plan to be created
         cy.log('Waiting for install plan to be created');
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(5000);
-      })
-      .then(() => {
-        // Step 3: Get the install plan
-        cy.log('Getting install plan');
-        return getInstallPlanName('kueue-operator', namespace);
+        return waitForInstallPlan('kueue-operator', namespace, 60);
       })
       .then((installPlanName) => {
         if (!installPlanName) {
@@ -224,16 +291,11 @@ export const installKueueOperator = (
 
         // Step 4: Approve the install plan
         cy.log(`Approving install plan: ${installPlanName}`);
-        return approveInstallPlan(installPlanName, namespace).then(() => {
-          // Wait a bit for OLM to start creating the CSV after approval
-          cy.log('Waiting for CSV to be created after install plan approval');
-          // eslint-disable-next-line cypress/no-unnecessary-waiting
-          return cy.wait(10000);
-        });
+        return approveInstallPlan(installPlanName, namespace);
       })
       .then(() => {
-        // Step 5: Wait for CSV to be Succeeded
-        cy.log('Waiting for CSV to reach Succeeded phase');
+        // Step 5: Wait for CSV to be created and reach Succeeded phase
+        cy.log('Waiting for CSV to be created and reach Succeeded phase');
         return waitForCsvSucceeded('kueue-operator', namespace, 300);
       })
       .then(() => {
