@@ -73,17 +73,3 @@ export const updateKueueManagementState = (
   // Note: If 'datasciencecluster' short name doesn't work, try: 'datasciencecluster.v1.datasciencecluster.opendatahub.io'
   return patchOpenShiftResource('datasciencecluster', dscName, patchContent);
 };
-
-// import { updateKueueManagementState, getKueueManagementState } from '#~/__tests__/cypress/cypress/utils/oc_commands/dsc';
-// import { ManagementState } from '#~/__tests__/cypress/cypress/types';
-
-// // Get current state
-// getKueueManagementState().then((state) => {
-//   cy.log(`Current kueue state: ${state}`);
-// });
-
-// // Update to Managed
-// updateKueueManagementState(ManagementState.MANAGED);
-
-// // Update to Removed
-// updateKueueManagementState(ManagementState.REMOVED);
