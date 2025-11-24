@@ -1,35 +1,14 @@
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
-type ModelCatalogDeployModalExtension = Extension<
-  'model-catalog.model-details/deploy-modal',
+const extensions: Extension[] = [
   {
-    useAvailablePlatformIds: CodeRef<() => string[]>;
-    modalComponent: CodeRef<
-      React.ComponentType<{
-        modelDeployPrefill: {
-          data: ModelDeployPrefillInfo;
-          loaded: boolean;
-          error: Error | undefined;
-        };
-        onSubmit: () => void;
-        onClose: () => void;
-      }>
-    >;
-  }
->;
-
-const extensions: ModelCatalogDeployModalExtension[] = [
-  {
-    type: 'model-catalog.model-details/deploy-modal',
+    type: 'model-catalog.deployment/navigate-wizard',
     properties: {
-      useAvailablePlatformIds: () =>
-        import('../modelRegistry/useAvailablePlatformIds').then((m) => m.default),
-      modalComponent: () =>
-        import('../modelRegistry/DeployRegisteredVersionModal').then(
-          (m) => m.DeployRegisteredVersionModal,
+      useNavigateToDeploymentWizardWithData: () =>
+        import('../modelRegistry/useNavigateToDeploymentWizardWithData').then(
+          (m) => m.useNavigateToDeploymentWizardWithData,
         ),
     },
     flags: {

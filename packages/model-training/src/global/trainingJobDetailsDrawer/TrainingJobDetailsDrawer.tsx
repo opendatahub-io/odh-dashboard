@@ -17,6 +17,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
+import TrainingJobResourcesTab from './TrainingJobResourcesTab';
 import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobDetailsDrawerProps = {
@@ -42,7 +43,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
   return (
     <DrawerPanelContent
       isResizable
-      defaultSize="50%"
+      defaultSize="25%"
       minSize="25%"
       data-testid="training-job-details-drawer"
     >
@@ -93,20 +94,21 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
           aria-label="Training job details tabs"
           role="region"
         >
-          <Tab
+          {/* TODO: RHOAIENG-38270	 Uncomment this when training details are implemented */}
+          {/* <Tab
             eventKey={0}
             title={<TabTitleText>Training details</TabTitleText>}
             aria-label="Training details"
           >
             <div style={{ padding: '16px 0' }}>Training details content</div>
+          </Tab> */}
+          <Tab eventKey={0} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
+            <TrainingJobResourcesTab job={job} />
           </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
-            <div style={{ padding: '16px 0' }}>Resources content</div>
-          </Tab>
-          <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
+          <Tab eventKey={1} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
             <div style={{ padding: '16px 0' }}>Pods content</div>
           </Tab>
-          <Tab eventKey={3} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
+          <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
             <div style={{ padding: '16px 0' }}>Logs content</div>
           </Tab>
         </Tabs>

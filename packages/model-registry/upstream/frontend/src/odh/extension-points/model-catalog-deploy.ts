@@ -1,25 +1,25 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
-import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
-export type ModelCatalogDeployModalExtension = Extension<
-  'model-catalog.model-details/deploy-modal',
+export type DeployPrefillData = {
+  modelName: string;
+  modelUri?: string;
+  returnRouteValue?: string;
+  cancelReturnRouteValue?: string;
+  wizardStartIndex?: number;
+  modelType?: ServingRuntimeModelType;
+}
+
+export type NavigateToDeploymentWizardWithDataExtension = Extension<
+  'model-catalog.deployment/navigate-wizard',
   {
-    useAvailablePlatformIds: CodeRef<() => string[]>;
-    modalComponent: CodeRef<
-      React.ComponentType<{
-        modelDeployPrefill: {
-          data: ModelDeployPrefillInfo;
-          loaded: boolean;
-          error: Error | undefined;
-        };
-        onSubmit: () => void;
-        onClose: () => void;
-      }>
+    useNavigateToDeploymentWizardWithData: CodeRef<
+      (deployPrefillData: DeployPrefillData) => (projectName?: string) => void
     >;
   }
 >;
 
-export const isModelCatalogDeployModalExtension = (
+export const isNavigateToDeploymentWizardWithDataExtension = (
   extension: Extension,
-): extension is ModelCatalogDeployModalExtension =>
-  extension.type === 'model-catalog.model-details/deploy-modal';
+): extension is NavigateToDeploymentWizardWithDataExtension =>
+  extension.type === 'model-catalog.deployment/navigate-wizard';

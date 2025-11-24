@@ -109,34 +109,34 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   );
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
   const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
-  const [selectedKey, setSelectedKey] = React.useState<{ key: string; label: string } | undefined>(
-    modelLocationData?.connectionTypeObject
-      ? {
-          key: isModelServingCompatible(
-            modelLocationData.connectionTypeObject,
-            ModelServingCompatibleTypes.S3ObjectStorage,
-          )
-            ? s3Option.key
-            : isModelServingCompatible(
-                modelLocationData.connectionTypeObject,
-                ModelServingCompatibleTypes.OCI,
-              )
-            ? ociOption.key
-            : uriOption.key,
-          label: isModelServingCompatible(
-            modelLocationData.connectionTypeObject,
-            ModelServingCompatibleTypes.S3ObjectStorage,
-          )
-            ? s3Option.label
-            : isModelServingCompatible(
-                modelLocationData.connectionTypeObject,
-                ModelServingCompatibleTypes.OCI,
-              )
-            ? ociOption.label
-            : uriOption.label,
-        }
-      : undefined,
-  );
+
+  // Compute selectedKey from connectionTypeObject when available (for prefilled data)
+  const computedSelectedKey = React.useMemo<{ key: string; label: string } | undefined>(() => {
+    if (modelLocationData?.connectionTypeObject && modelLocation === ModelLocationType.NEW) {
+      const connectionType = modelLocationData.connectionTypeObject;
+      return {
+        key: isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
+          ? s3Option.key
+          : isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+          ? ociOption.key
+          : uriOption.key,
+        label: isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
+          ? s3Option.label
+          : isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+          ? ociOption.label
+          : uriOption.label,
+      };
+    }
+    return undefined;
+  }, [modelLocationData?.connectionTypeObject, modelLocation]);
+
+  // State for user selections (overrides computed when user changes)
+  const [userSelectedKey, setUserSelectedKey] = React.useState<
+    { key: string; label: string } | undefined
+  >(undefined);
+
+  // Use user selection if available, otherwise use computed
+  const selectedKey = userSelectedKey ?? computedSelectedKey;
   React.useEffect(() => {
     if (!modelLocationData?.connectionTypeObject && !selectedKey) {
       setShowCustomTypeSelect(false);
@@ -162,7 +162,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       setShowCustomTypeSelect(false);
       setTypeOptions([]);
     }
-  }, [modelLocationData?.connectionTypeObject, connectionTypesLoaded]);
+  }, [modelLocationData?.connectionTypeObject, connectionTypesLoaded, selectedKey]);
 
   const selectedConnectionType = React.useMemo(() => {
     if (modelLocationData?.type === ModelLocationType.NEW) {
@@ -222,6 +222,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           <Stack hasGutter>
             <StackItem>
               <SimpleSelect
+                isDisabled={modelLocationData?.disableInputFields}
                 dataTestId="model-location-select"
                 options={selectOptions}
                 onChange={(key) => {
@@ -230,7 +231,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   }
                   setSelectedConnection(undefined);
                   resetModelLocationData();
-                  setSelectedKey(undefined);
+                  setUserSelectedKey(undefined);
                   if (isValidModelLocation(key) && key !== ModelLocationType.NEW) {
                     setModelLocationData({
                       type: key,
@@ -240,7 +241,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   } else {
                     switch (key) {
                       case s3Option.key:
-                        setSelectedKey({ key: s3Option.key, label: s3Option.label });
+                        setUserSelectedKey({ key: s3Option.key, label: s3Option.label });
                         if (s3ConnectionTypes.length > 1) {
                           setShowCustomTypeSelect(true);
                           setTypeOptions(s3ConnectionTypes);
@@ -261,7 +262,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                         }
                         break;
                       case ociOption.key:
-                        setSelectedKey({ key: ociOption.key, label: ociOption.label });
+                        setUserSelectedKey({ key: ociOption.key, label: ociOption.label });
                         if (ociConnectionTypes.length > 1) {
                           setShowCustomTypeSelect(true);
                           setTypeOptions(ociConnectionTypes);
@@ -282,7 +283,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                         }
                         break;
                       case uriOption.key:
-                        setSelectedKey({ key: uriOption.key, label: uriOption.label });
+                        setUserSelectedKey({ key: uriOption.key, label: uriOption.label });
                         if (uriConnectionTypes.length > 1) {
                           setShowCustomTypeSelect(true);
                           setTypeOptions(uriConnectionTypes);

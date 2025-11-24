@@ -94,9 +94,10 @@ type SearchResult struct {
 
 // MCPServer represents MCP server configuration for responses
 type MCPServer struct {
-	ServerLabel string            `json:"server_label"` // Label identifier for the MCP server
-	ServerURL   string            `json:"server_url"`   // URL endpoint for the MCP server
-	Headers     map[string]string `json:"headers"`      // Custom headers for MCP server authentication
+	ServerLabel  string            `json:"server_label"`            // Label identifier for the MCP server
+	ServerURL    string            `json:"server_url"`              // URL endpoint for the MCP server
+	Headers      map[string]string `json:"headers"`                 // Custom headers for MCP server authentication
+	AllowedTools []string          `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
 }
 
 // CreateResponseRequest represents the request body for creating a response
@@ -112,6 +113,7 @@ type CreateResponseRequest struct {
 	Stream             bool                 `json:"stream,omitempty"`               // Enable streaming response
 	MCPServers         []MCPServer          `json:"mcp_servers,omitempty"`          // MCP server configurations
 	PreviousResponseID string               `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
+	Store              *bool                `json:"store,omitempty"`                // Store response for later retrieval (default true)
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -199,11 +201,38 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 				return
 			}
 
+			// Validate allowed_tools if provided
+			// Note: LlamaStack behavior:
+			//   - nil/undefined: ALL tools allowed (no restrictions)
+			//   - []: NO tools allowed (explicitly disabled)
+			//   - ["tool1", "tool2"]: ONLY these tools allowed
+			// We only validate non-empty arrays to ensure tool names are not empty strings
+			if len(server.AllowedTools) > 0 {
+				for j, toolName := range server.AllowedTools {
+					if strings.TrimSpace(toolName) == "" {
+						app.badRequestResponse(w, r, fmt.Errorf("MCP server '%s': allowed_tools[%d] cannot be empty string", server.ServerLabel, j))
+						return
+					}
+				}
+			}
+
 			// Create MCP server parameter for LlamaStack
 			mcpServerParam := llamastack.MCPServerParam{
-				ServerLabel: server.ServerLabel,
-				ServerURL:   server.ServerURL,
-				Headers:     make(map[string]string),
+				ServerLabel:  server.ServerLabel,
+				ServerURL:    server.ServerURL,
+				Headers:      make(map[string]string),
+				AllowedTools: server.AllowedTools, // Pass through allowed_tools from MCP server config
+			}
+
+			// Log the allowed_tools being sent to LlamaStack
+			if len(server.AllowedTools) > 0 {
+				app.logger.Debug("MCP server with specific allowed_tools", "server_label", server.ServerLabel, "allowed_tools", server.AllowedTools)
+			} else if server.AllowedTools != nil {
+				// Empty array explicitly provided - no tools allowed
+				app.logger.Debug("MCP server with no tools allowed", "server_label", server.ServerLabel, "allowed_tools", "[] (empty array)")
+			} else {
+				// Nil/undefined - all tools allowed
+				app.logger.Debug("MCP server with no tool restrictions", "server_label", server.ServerLabel, "allowed_tools", "undefined (all tools allowed)")
 			}
 
 			// Copy provided headers
@@ -245,6 +274,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		Instructions:       createRequest.Instructions,
 		Tools:              mcpServerParams,
 		PreviousResponseID: createRequest.PreviousResponseID,
+		Store:              createRequest.Store,
 		ProviderData:       providerData,
 	}
 
@@ -272,7 +302,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		if _, ok := err.(*lsmocks.MockStreamError); ok {
 			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
 				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
-					mockClient.HandleMockStreaming(w, flusher, params)
+					mockClient.HandleMockStreaming(ctx, w, flusher, params)
 					return
 				}
 			}
@@ -295,6 +325,16 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 
 	// Stream events to client
 	for stream.Next() {
+		// Check if client disconnected
+		select {
+		case <-ctx.Done():
+			app.logger.Info("Client disconnected, stopping stream processing",
+				"context_error", ctx.Err())
+			return
+		default:
+			// Context still active, continue processing
+		}
+
 		event := stream.Current()
 
 		// Convert to clean streaming event

@@ -20,11 +20,11 @@ import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTab
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import { HardwareProfileModel, patchDashboardConfigHardwareProfileOrder } from '#~/api';
 import { generateWarningForHardwareProfiles } from '#~/pages/hardwareProfiles/utils';
-import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
-import { useApplicationSettings } from '#~/app/useApplicationSettings.tsx';
+import { useApplicationSettings } from '#~/app/useApplicationSettings';
+import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 
 const description =
   'Manage hardware profiles for your organization. Administrators can use hardware profiles to determine resource allocation strategies for specific workloads or to explicitly define hardware configurations for users.';
@@ -33,8 +33,9 @@ const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
 
-  const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
-    useWatchHardwareProfiles(dashboardNamespace);
+  const {
+    globalHardwareProfiles: [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles],
+  } = React.useContext(HardwareProfilesContext);
 
   const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(

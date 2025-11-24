@@ -15,7 +15,7 @@ import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pa
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import type { SCAccessMode } from '#~/__tests__/cypress/cypress/types';
 
-describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', () => {
+describe('Cluster Storage Access Modes Tests', () => {
   const createdStorageClasses: string[] = [];
 
   const projectName = 'test-cluster-storage-access-modes-preset';
@@ -93,7 +93,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
 
   it(
     'Should display storage classes with different access modes in cluster storage dropdown',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
       clusterStorage.findCreateButton().click();
@@ -120,7 +120,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
   );
 
   it(
-    'Should show correct access modes when selecting storage classes with RWO access mode',
+    '[Automation Bug: RHOAIENG-33410] Should show correct access modes when selecting storage classes with RWO access mode',
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
     () => {
       cy.step('Open the Create cluster storage modal');
@@ -159,7 +159,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
   );
 
   it(
-    'Should show multiple access modes when selecting storage class with multiple access modes',
+    '[Automation Bug: RHOAIENG-33410] Should show multiple access modes when selecting storage class with multiple access modes',
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
     () => {
       cy.step('Open the Create cluster storage modal');
@@ -197,7 +197,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
   );
 
   it(
-    'Should successfully create cluster storage with different access modes, and not be allowed to change access modes on edit',
+    '[Automation Bug: RHOAIENG-33410] Should successfully create cluster storage with different access modes, and not be allowed to change access modes on edit',
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
     () => {
       cy.step('Fill in the create cluster storage with ReadWriteMany access mode');
