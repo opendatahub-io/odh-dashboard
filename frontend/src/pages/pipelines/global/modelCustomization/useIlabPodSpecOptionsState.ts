@@ -10,7 +10,6 @@ import { getParamsValueFromPipelineInput } from './utils';
 
 /**
  * @deprecated  fine-tuning is going away
- * 
  * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
  */
 export type IlabPodSpecOptions = {
