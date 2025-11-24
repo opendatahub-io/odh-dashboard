@@ -190,6 +190,7 @@ describe('Playground - MCP Servers', () => {
       serverRow.findConfigureButton().click();
 
       const tokenModal = new TokenAuthModal();
+      tokenModal.shouldBeOpen();
       tokenModal.findTokenInput().clear().type(invalidToken);
       tokenModal.findSubmitButton().click();
 
