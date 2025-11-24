@@ -270,7 +270,8 @@ class ChatbotPage {
 
   // Chat Messages
   findChatMessage(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText(new RegExp(text, 'i'));
+    // Use Cypress string matching instead of RegExp to avoid ReDoS
+    return cy.findByText(text);
   }
 
   findBotMessages(): Cypress.Chainable<JQuery<HTMLElement>> {
