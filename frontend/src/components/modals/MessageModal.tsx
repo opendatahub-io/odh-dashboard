@@ -50,10 +50,14 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) =
 };
 
 /**
+ * Generic Modal component with a focusable div for autofocusing on the button when the enter key is pressed;
+ * This is used to make the modal more accessible for users who use keyboard navigation.
+ *
+ * The buttons are defined via the buttonActions prop; only one button can have clickOnEnter set to true
+ * (if more than one button has clickOnEnter set to true, only the first one will be autofocused on)
+ *
  * for autofocusing on the button when the enter key is pressed;
  * disableFocusTrap needs to be false
- * @param param0 for
- * @returns
  */
 const MessageModal: React.FC<MessageModalProps> = ({
   onClose,
@@ -70,28 +74,15 @@ const MessageModal: React.FC<MessageModalProps> = ({
   const hasClickOnEnter = clickOnEnterIndex !== -1;
 
   const handleEnterPress = () => {
-    console.log('handleEnterPress (clicked here avo44a)', clickOnEnterIndex);
     const button = buttonRefs.current[clickOnEnterIndex];
     if (button) {
       // Focus the button to show visual feedback
       button.focus();
 
-      // Store original styles
-      const originalTransform = button.style.transform;
-      const originalTransition = button.style.transition;
-
-      // Add press effect
-      button.style.transition = 'transform 0.1s ease';
-      button.style.transform = 'scale(0.95)';
-
-      // Wait for animation to be visible before executing action
+      // the timeout allows the user to see the button being pressed; else the modal just closes
       setTimeout(() => {
-        button.style.transform = originalTransform;
-        setTimeout(() => {
-          button.style.transition = originalTransition;
-          buttonActions?.[clickOnEnterIndex]?.onClick();
-        }, 100);
-      }, 100);
+        buttonActions?.[clickOnEnterIndex]?.onClick();
+      }, 200);
     }
   };
 
@@ -134,4 +125,3 @@ const MessageModal: React.FC<MessageModalProps> = ({
 };
 
 export default MessageModal;
-export { FocusableDiv };
