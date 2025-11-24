@@ -794,7 +794,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.shouldBeOpen();
       trainingJobDetailsDrawer.selectTab('Logs');
 
-      trainingJobLogsTab.findEmptyState().should('exist');
+      trainingJobLogsTab.findEmptyState().should('contain', 'No pods found');
     });
 
     it('should enable download button when logs are loaded', () => {

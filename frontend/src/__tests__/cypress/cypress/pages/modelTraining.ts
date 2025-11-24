@@ -323,7 +323,7 @@ class TrainingJobLogsTab {
   }
 
   findEmptyState() {
-    return cy.findByText('No pods found');
+    return cy.findByTestId('empty-state-title');
   }
 
   findErrorState() {

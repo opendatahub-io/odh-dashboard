@@ -132,7 +132,12 @@ const TrainingJobLogsTab: React.FC<TrainingJobLogsTabProps> = ({
 
   if (pods.length === 0) {
     return (
-      <EmptyState headingLevel="h4" icon={CubesIcon} titleText="No pods found">
+      <EmptyState
+        headingLevel="h4"
+        icon={CubesIcon}
+        titleText="No pods found"
+        data-testid="empty-state-title"
+      >
         <EmptyStateBody>
           No pods are available for this training job. Pods may not have been created yet or may
           have been deleted.
