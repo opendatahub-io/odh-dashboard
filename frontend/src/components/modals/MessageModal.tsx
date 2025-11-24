@@ -1,7 +1,9 @@
 import * as React from 'react';
+import { useRef, useEffect } from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
+// todo: deal with the scss above; remove it?????
 type ButtonAction = {
   label: string;
   onClick: () => void;
@@ -27,9 +29,9 @@ type FocusableDivProps = {
 };
 
 const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) => {
-  const divRef = React.useRef<HTMLDivElement>(null);
+  const divRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // As soon as this mounts, move focus here instead of the close button
     divRef.current?.focus();
   }, []);
@@ -68,7 +70,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
   disableFocusTrap,
   dataTestId = 'pipeline-server-starting-modal',
 }) => {
-  const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
   const hasClickOnEnter = clickOnEnterIndex !== -1;
