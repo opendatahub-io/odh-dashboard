@@ -271,14 +271,14 @@ export const retryTrainJob = async (
       return await patchTrainJobSuspension(job, false, opts);
     }
 
-    const retryAnnotation = {
-      'trainer.kubeflow.org/retry-timestamp': new Date().toISOString(),
-    };
     const patches = [
       {
         op: 'add',
-        path: '/metadata/annotations/trainer.kubeflow.org~1retry-timestamp',
-        value: retryAnnotation['trainer.kubeflow.org/retry-timestamp'],
+        path: '/metadata/annotations',
+        value: {
+          ...(job.metadata.annotations || {}),
+          'trainer.kubeflow.org/retry-timestamp': new Date().toISOString(),
+        },
       },
     ];
 

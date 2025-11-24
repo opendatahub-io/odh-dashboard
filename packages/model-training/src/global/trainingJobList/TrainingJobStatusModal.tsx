@@ -177,11 +177,11 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
             variant={statusMessage.variant}
             title={isLoading ? <Skeleton height="20px" width="60%" /> : statusMessage.title}
           >
-            {isLoading || !statusMessage.description ? (
+            {isLoading ? (
               <Skeleton height="20px" width="80%" />
-            ) : (
+            ) : statusMessage.description ? (
               <Content>{statusMessage.description}</Content>
-            )}
+            ) : null}
           </Alert>
         </StackItem>
       );

@@ -1787,8 +1787,7 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.INADMISSIBLE);
-        trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-        trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
+        trainingJobStatusModal.findPauseResumeButton().should('not.exist');
         trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
