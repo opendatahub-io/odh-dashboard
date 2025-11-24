@@ -19,7 +19,11 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page Contents', () => {
+// Note: In order to run this tests the following cluster configuration is required:
+// - kueue set to Unmanaged in the DSC
+// - Kueue Operator installed in cluster
+
+describe('Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -61,7 +65,7 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
 
   it(
     'Verify Workload Metrics Home page Contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -80,7 +84,7 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
 
   it(
     'Verify Project Metrics Default Page contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -121,7 +125,7 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
 
   it(
     'Verify Distributed Workload status Default Page contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
