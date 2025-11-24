@@ -219,7 +219,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
       description={modalDesc}
       contents={contents}
       buttonActions={buttonActions}
-      disableFocusTrap
       dataTestId="pipeline-server-starting-modal"
     />
   );

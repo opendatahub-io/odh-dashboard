@@ -29,6 +29,11 @@ type FocusableDivProps = {
 const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) => {
   const divRef = React.useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    // As soon as this mounts, move focus here instead of the close button
+    divRef.current?.focus();
+  }, []);
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -44,6 +49,12 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) =
   );
 };
 
+/**
+ * for autofocusing on the button when the enter key is pressed;
+ * disableFocusTrap needs to be false
+ * @param param0 for
+ * @returns
+ */
 const MessageModal: React.FC<MessageModalProps> = ({
   onClose,
   contents,
@@ -59,6 +70,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
   const hasClickOnEnter = clickOnEnterIndex !== -1;
 
   const handleEnterPress = () => {
+    console.log('handleEnterPress (clicked here avo44a)', clickOnEnterIndex);
     const button = buttonRefs.current[clickOnEnterIndex];
     if (button) {
       // Focus the button to show visual feedback
