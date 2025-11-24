@@ -17,7 +17,10 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
+import { PodKind } from '@odh-dashboard/internal/k8sTypes';
 import TrainingJobResourcesTab from './TrainingJobResourcesTab';
+import TrainingJobPodsTab from './TrainingJobPodsTab';
+import TrainingJobLogsTab from './TrainingJobLogsTab';
 import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobDetailsDrawerProps = {
@@ -33,17 +36,34 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [selectedPodForLogs, setSelectedPodForLogs] = React.useState<PodKind | null>(null);
+  const [selectedPodNameFromClick, setSelectedPodNameFromClick] = React.useState<
+    string | undefined
+  >(undefined);
 
   if (!job) {
     return null;
   }
+
+  const handlePodClick = (podName: string) => {
+    setSelectedPodNameFromClick(podName);
+    setActiveTabKey(2);
+  };
+
+  const handlePodChange = (pod: PodKind | null) => {
+    setSelectedPodForLogs(pod);
+    // Clear the pod name from click once it's been used
+    if (selectedPodNameFromClick) {
+      setSelectedPodNameFromClick(undefined);
+    }
+  };
 
   const description = `Description goes here. TrainJob in ${job.metadata.namespace}.`;
 
   return (
     <DrawerPanelContent
       isResizable
-      defaultSize="25%"
+      defaultSize="40%"
       minSize="25%"
       data-testid="training-job-details-drawer"
     >
@@ -106,10 +126,15 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
             <TrainingJobResourcesTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
-            <div style={{ padding: '16px 0' }}>Pods content</div>
+            <TrainingJobPodsTab job={job} onPodClick={handlePodClick} />
           </Tab>
           <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
-            <div style={{ padding: '16px 0' }}>Logs content</div>
+            <TrainingJobLogsTab
+              job={job}
+              selectedPod={selectedPodForLogs}
+              selectedPodNameFromClick={selectedPodNameFromClick}
+              onPodChange={handlePodChange}
+            />
           </Tab>
         </Tabs>
       </DrawerPanelBody>

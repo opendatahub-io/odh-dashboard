@@ -2,16 +2,22 @@ import {
   k8sDeleteResource,
   K8sStatus,
   k8sPatchResource,
+  k8sGetResource,
+  k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { K8sAPIOptions, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions, WorkloadKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { PodModel } from '@odh-dashboard/internal/api/models/index';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
-import { TrainJobKind } from './k8sTypes';
+import {
+  TrainJobModel,
+  ClusterTrainingRuntimeModel,
+} from '@odh-dashboard/internal/api/models/kubeflow';
+import { TrainJobKind, ClusterTrainingRuntimeKind } from './k8sTypes';
 
 export const useTrainJobs = (namespace: string): CustomWatchK8sResult<TrainJobKind[]> =>
   useK8sWatchResourceList(
@@ -166,3 +172,26 @@ export const toggleTrainJobHibernation = async (
     };
   }
 };
+
+export const getClusterTrainingRuntime = (
+  name: string,
+  opts?: K8sAPIOptions,
+): Promise<ClusterTrainingRuntimeKind> =>
+  k8sGetResource<ClusterTrainingRuntimeKind>(
+    applyK8sAPIOptions(
+      {
+        model: ClusterTrainingRuntimeModel,
+        queryOptions: { name },
+      },
+      opts,
+    ),
+  );
+
+export const getPodsForTrainJob = (job: TrainJobKind): Promise<PodKind[]> =>
+  k8sListResource<PodKind>({
+    model: PodModel,
+    queryOptions: {
+      ns: job.metadata.namespace,
+      queryParams: { labelSelector: `jobset.sigs.k8s.io/jobset-name=${job.metadata.name}` },
+    },
+  }).then((r) => r.items);
