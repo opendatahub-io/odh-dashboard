@@ -260,7 +260,84 @@ class TrainingJobResourcesTab {
   }
 }
 
+class TrainingJobPodsTab {
+  findInitializersSection() {
+    return cy.findByRole('button', { name: /Initializers/ });
+  }
+
+  findTrainingPodsSection() {
+    return cy.findByText('Training pods');
+  }
+
+  findPodByName(podName: string) {
+    return cy.findByRole('button', { name: podName });
+  }
+
+  findPodList() {
+    return cy.findAllByRole('button').filter((_, el) => {
+      const text = Cypress.$(el).text();
+      return text.includes('-pod-') || text.includes('pod');
+    });
+  }
+
+  findNoPods() {
+    return cy.findByText('No pods found');
+  }
+
+  findNoInitializers() {
+    return cy.findByText('No initializers found');
+  }
+
+  expandInitializers() {
+    this.findInitializersSection().click();
+    return this;
+  }
+}
+
+class TrainingJobLogsTab {
+  findPodSelector() {
+    // Find the pod selector dropdown - it may show "Select pod..." or a pod name
+    return cy.findByTestId('logs-pod-selector');
+  }
+
+  findPodDropdown() {
+    return cy.findByRole('menu');
+  }
+
+  selectPod(podName: string) {
+    this.findPodSelector().click();
+    cy.findByRole('menuitem', { name: podName }).click();
+    return this;
+  }
+
+  findDownloadButton() {
+    return cy.findByRole('button', { name: /Download/ });
+  }
+
+  findLogViewer() {
+    return cy.get('.pf-v6-c-log-viewer');
+  }
+
+  findLogContent() {
+    return cy.get('.pf-v6-c-log-viewer__text');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-state-title');
+  }
+
+  findErrorState() {
+    return cy.findByText(/Failed to load logs/);
+  }
+
+  findLoadingSpinner() {
+    return cy.get('.pf-v6-c-spinner');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
+export const trainingJobPodsTab = new TrainingJobPodsTab();
+export const trainingJobLogsTab = new TrainingJobLogsTab();

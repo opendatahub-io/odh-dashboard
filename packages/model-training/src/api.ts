@@ -3,9 +3,11 @@ import {
   K8sStatus,
   k8sPatchResource,
   k8sGetResource,
+  k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { K8sAPIOptions, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions, WorkloadKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { PodModel } from '@odh-dashboard/internal/api/models/index';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
@@ -184,3 +186,12 @@ export const getClusterTrainingRuntime = (
       opts,
     ),
   );
+
+export const getPodsForTrainJob = (job: TrainJobKind): Promise<PodKind[]> =>
+  k8sListResource<PodKind>({
+    model: PodModel,
+    queryOptions: {
+      ns: job.metadata.namespace,
+      queryParams: { labelSelector: `jobset.sigs.k8s.io/jobset-name=${job.metadata.name}` },
+    },
+  }).then((r) => r.items);

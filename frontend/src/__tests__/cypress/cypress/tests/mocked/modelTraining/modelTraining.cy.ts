@@ -2,14 +2,22 @@
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockDashboardConfig, mockK8sResourceList, mockProjectK8sResource } from '#~/__mocks__';
+import {
+  mockDashboardConfig,
+  mockK8sResourceList,
+  mockPodK8sResource,
+  mockPodLogs,
+  mockProjectK8sResource,
+} from '#~/__mocks__';
 import {
   modelTrainingGlobal,
   trainingJobTable,
   trainingJobDetailsDrawer,
   trainingJobResourcesTab,
+  trainingJobPodsTab,
+  trainingJobLogsTab,
 } from '#~/__tests__/cypress/cypress/pages/modelTraining';
-import { ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { ProjectModel, PodModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { ClusterQueueModel, LocalQueueModel, TrainJobModel } from '#~/api/models';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
@@ -300,10 +308,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Node configurations');
 
       trainingJobDetailsDrawer.selectTab('Pods');
-      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Pods content');
-
-      trainingJobDetailsDrawer.selectTab('Logs');
-      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Logs content');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Training pods');
     });
 
     it('should close drawer when clicking close button', () => {
@@ -530,6 +535,342 @@ describe('Model Training', () => {
       const thirdRow = trainingJobTable.getTableRow('a-first-job');
       thirdRow.findNameLink().click();
       trainingJobResourcesTab.findNodesValue().should('contain', '6');
+    });
+  });
+
+  describe('Pods Tab', () => {
+    const mockPods = [
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-0',
+        namespace: projectName,
+        isRunning: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-1',
+        namespace: projectName,
+        isRunning: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-2',
+        namespace: projectName,
+        isRunning: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-initializer-0',
+        namespace: projectName,
+        isRunning: false,
+        isPending: true,
+        labels: {
+          'jobset.sigs.k8s.io/jobset-name': 'image-classification-job',
+        },
+      }),
+    ];
+
+    it('should display training pods in Pods tab', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
+        },
+        mockK8sResourceList(mockPods),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Pods');
+
+      trainingJobPodsTab.findInitializersSection().should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-initializer-0').should('exist');
+
+      trainingJobPodsTab.findTrainingPodsSection().should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-worker-0').should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-worker-1').should('exist');
+      trainingJobPodsTab.findPodByName('image-classification-job-worker-2').should('exist');
+    });
+
+    it('should display pod status icons correctly', () => {
+      initIntercepts();
+
+      const mixedStatusPods = [
+        mockPodK8sResource({
+          name: 'running-pod',
+          namespace: projectName,
+          isRunning: true,
+        }),
+        mockPodK8sResource({
+          name: 'pending-pod',
+          namespace: projectName,
+          isRunning: false,
+          isPending: true,
+        }),
+      ];
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mixedStatusPods),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Pods');
+
+      trainingJobPodsTab.findPodByName('running-pod').should('exist');
+      trainingJobPodsTab.findPodByName('pending-pod').should('exist');
+    });
+  });
+
+  describe('Logs Tab', () => {
+    const mockTrainingPods = [
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-0',
+        namespace: projectName,
+        isRunning: true,
+      }),
+      mockPodK8sResource({
+        name: 'image-classification-job-worker-1',
+        namespace: projectName,
+        isRunning: true,
+      }),
+    ];
+
+    it('should display logs for selected pod', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-0',
+          containerName: 'image-classification-job-worker-0',
+        }),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findLogViewer().should('exist');
+      trainingJobLogsTab
+        .findLogContent()
+        .should('contain', 'sample log for namespace test-model-training-project');
+    });
+
+    it('should allow switching between pods in log viewer', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-0',
+          containerName: 'image-classification-job-worker-0',
+        }),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-1',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-1',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-1',
+          containerName: 'image-classification-job-worker-1',
+        }),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab
+        .findLogContent()
+        .should('contain', 'pod name image-classification-job-worker-0');
+
+      trainingJobLogsTab.selectPod('image-classification-job-worker-1');
+
+      trainingJobLogsTab
+        .findLogContent()
+        .should('contain', 'pod name image-classification-job-worker-1');
+    });
+
+    it('should show empty state when no pods available for logs', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
+        },
+        mockK8sResourceList([]),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findEmptyState().should('contain', 'No pods found');
+    });
+
+    it('should enable download button when logs are loaded', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectName,
+          podName: 'image-classification-job-worker-0',
+          containerName: 'image-classification-job-worker-0',
+        }),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findDownloadButton().should('exist');
+      trainingJobLogsTab.findDownloadButton().should('not.be.disabled');
+    });
+
+    it('should display loading state while fetching logs', () => {
+      initIntercepts();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: 'training.kubeflow.org/job-role=worker' },
+        },
+        mockK8sResourceList(mockTrainingPods),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'image-classification-job-worker-0',
+          ns: projectName,
+          queryParams: {
+            container: 'image-classification-job-worker-0',
+            tailLines: '500',
+          },
+        },
+        {
+          delay: 1000,
+          body: mockPodLogs({
+            namespace: projectName,
+            podName: 'image-classification-job-worker-0',
+            containerName: 'image-classification-job-worker-0',
+          }),
+        },
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Logs');
+
+      trainingJobLogsTab.findLoadingSpinner().should('exist');
     });
   });
 });
