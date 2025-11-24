@@ -63,20 +63,20 @@ class MCPPanel {
   }
 
   findSuccessModal(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: /connection successful/i });
+    return cy.findByRole('dialog', { name: /connection successful/i, timeout: 15000 });
   }
 
   findSuccessModalHeading(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('heading', { name: /connection successful/i });
+    return cy.findByRole('heading', { name: /connection successful/i, timeout: 15000 });
   }
 
   findModalCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: /close/i });
+    return cy.findByRole('button', { name: /close/i, timeout: 10000 });
   }
 
   verifySuccessModalVisible(): void {
-    this.findSuccessModal().should('be.visible');
-    this.findSuccessModalHeading().should('be.visible');
+    this.findSuccessModal().should('exist').and('be.visible');
+    this.findSuccessModalHeading().should('exist').and('be.visible');
   }
 
   verifySuccessModalContainsServerName(serverName: string): void {

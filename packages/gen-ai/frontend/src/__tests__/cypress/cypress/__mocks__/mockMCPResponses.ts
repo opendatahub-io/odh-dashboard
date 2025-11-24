@@ -108,16 +108,17 @@ export const mockMCPToolsInterceptor = (
 export const mockMCPStatusAutoConnect = (serverUrl: string): Cypress.Chainable<null> => {
   return cy
     .intercept('GET', '/gen-ai/api/v1/mcp/status*', (req) => {
-      const queryServerUrl = new URL(req.url).searchParams.get('server_url');
+      const url = new URL(req.url);
+      const queryServerUrl = url.searchParams.get('server_url');
 
-      // Only respond with auto-connect for the Kubernetes server
+      // Only respond with auto-connect for the matching server
       if (queryServerUrl === serverUrl) {
         const response = JSON.parse(JSON.stringify(mcpStatusKubernetesConnected));
         response.data.server_url = serverUrl;
         req.reply({ statusCode: 200, body: response });
       } else {
-        // Pass through for other servers
-        req.continue();
+        // For other servers, reply with an error or pass through
+        req.reply({ statusCode: 404, body: { error: 'Server not found' } });
       }
     })
     .as('statusCheckAutoConnect');
@@ -133,16 +134,17 @@ export const mockMCPStatusAutoConnect = (serverUrl: string): Cypress.Chainable<n
 export const mockMCPToolsAutoConnect = (serverUrl: string): Cypress.Chainable<null> => {
   return cy
     .intercept('GET', '/gen-ai/api/v1/mcp/tools*', (req) => {
-      const queryServerUrl = new URL(req.url).searchParams.get('server_url');
+      const url = new URL(req.url);
+      const queryServerUrl = url.searchParams.get('server_url');
 
-      // Only respond with tools for the Kubernetes server
+      // Only respond with tools for the matching server
       if (queryServerUrl === serverUrl) {
         const response = JSON.parse(JSON.stringify(mcpToolsKubernetes));
         response.data.server_url = serverUrl;
         req.reply({ statusCode: 200, body: response });
       } else {
-        // Pass through for other servers
-        req.continue();
+        // For other servers, reply with an error or pass through
+        req.reply({ statusCode: 404, body: { error: 'Server not found' } });
       }
     })
     .as('toolsRequestAutoConnect');

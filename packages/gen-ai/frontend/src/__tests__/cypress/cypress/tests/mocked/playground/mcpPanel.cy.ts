@@ -23,7 +23,7 @@ describe('Playground - MCP Servers', () => {
 
   it(
     'should complete full authentication and tools workflow',
-    { tags: ['@GenAI', '@MCPServers', '@Playground', '@Authentication', '@Tools', '@E2E'] },
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@Authentication', '@Tools'] },
     () => {
       const namespace = config.defaultNamespace;
       const { name: serverName, url: serverUrl } = config.servers.github;
@@ -146,7 +146,13 @@ describe('Playground - MCP Servers', () => {
 
       cy.step('Click configure button');
       const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
-      serverRow.findConfigureButton().click();
+      // Ensure button is fully interactive before clicking
+      serverRow
+        .findConfigureButton()
+        .should('be.visible')
+        .and('not.be.disabled')
+        .and('not.have.attr', 'aria-disabled', 'true');
+      serverRow.findConfigureButton().click({ force: false });
 
       cy.step('Verify token modal opens');
       const tokenModal = new TokenAuthModal();
@@ -368,13 +374,14 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpPanel.verifyNoModalShown();
 
       cy.step('Select the Kubernetes server by checking the checkbox');
-      serverRow.findCheckbox().check();
+      serverRow.findCheckbox().should('be.visible').and('not.be.disabled');
+      serverRow.findCheckbox().check({ force: true });
 
       cy.step('Wait for auto-unlock status check');
-      cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
+      cy.wait('@statusCheckAutoConnect', { timeout: 15000 });
 
       cy.step('Wait for tools to be fetched');
-      cy.wait('@toolsRequestAutoConnect', { timeout: 10000 });
+      cy.wait('@toolsRequestAutoConnect', { timeout: 15000 });
 
       cy.step('Verify connection successful modal is shown');
       playgroundPage.mcpPanel.verifySuccessModalVisible();

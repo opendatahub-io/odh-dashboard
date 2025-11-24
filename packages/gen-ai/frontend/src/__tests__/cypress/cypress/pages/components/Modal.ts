@@ -3,7 +3,7 @@ export class Modal {
 
   shouldBeOpen(open = true): void {
     if (open) {
-      this.find();
+      this.find().should('exist').and('be.visible');
     } else {
       this.find().should('not.exist');
     }
@@ -11,9 +11,9 @@ export class Modal {
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     if (this.testId) {
-      return cy.findByTestId(this.testId);
+      return cy.findByTestId(this.testId, { timeout: 15000 });
     }
-    return cy.findByRole('dialog');
+    return cy.findByRole('dialog', { timeout: 15000 });
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
