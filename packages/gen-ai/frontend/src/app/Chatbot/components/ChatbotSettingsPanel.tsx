@@ -128,7 +128,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     onModelChange={onModelChange}
                   />
                 </FormGroup>
-                <FormGroup label="System instructions" fieldId="system-instructions">
+                <FormGroup
+                  label="System instructions"
+                  fieldId="system-instructions"
+                  data-testid="system-instructions-section"
+                >
                   <SystemPromptFormGroup
                     systemInstruction={systemInstruction}
                     onSystemInstructionChange={onSystemInstructionChange}
@@ -183,7 +187,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 }}
               >
                 <FlexItem>
-                  <Title headingLevel="h2" size="lg">
+                  <Title headingLevel="h2" size="lg" data-testid="rag-section-title">
                     RAG
                   </Title>
                 </FlexItem>
@@ -206,6 +210,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                       id="no-label-switch-on"
                       aria-label="Toggle uploaded mode"
                       isChecked={sourceManagement.isRawUploaded}
+                      data-testid="rag-toggle-switch"
                       onChange={(_, checked) => {
                         sourceManagement.setIsRawUploaded(checked);
                         fireMiscTrackingEvent('Playground RAG Toggle Selected', {
@@ -270,7 +275,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             >
               <Flex alignItems={{ default: 'alignItemsCenter' }}>
                 <FlexItem>
-                  <Title headingLevel="h2" size="lg">
+                  <Title headingLevel="h2" size="lg" data-testid="mcp-servers-section-title">
                     MCP servers
                   </Title>
                 </FlexItem>

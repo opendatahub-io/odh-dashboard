@@ -25,6 +25,14 @@ class AppChrome {
     this.findGenAiStudioNav().should('exist');
   }
 
+  findNavItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`[data-id="${name}"]`);
+  }
+
+  navigateToNavItem(name: string): void {
+    this.findNavItem(name).click();
+  }
+
   navigateToPath(path: string): void {
     cy.visit(path);
     this.waitForPageLoad();

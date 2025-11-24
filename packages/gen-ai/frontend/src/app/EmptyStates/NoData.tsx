@@ -26,7 +26,11 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
       {description}
       {actionButtonText && handleActionButtonClick && (
         <EmptyStateFooter>
-          <Button variant="primary" onClick={handleActionButtonClick}>
+          <Button
+            variant="primary"
+            onClick={handleActionButtonClick}
+            data-testid="empty-state-action-button"
+          >
             {actionButtonText}
           </Button>
         </EmptyStateFooter>

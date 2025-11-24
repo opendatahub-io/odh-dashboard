@@ -47,6 +47,8 @@ alwaysApply: false
 ## Framework Structure and Standards
 
 ### Folder Structure
+
+**Main Dashboard Tests** (`frontend/src/__tests__/cypress/cypress/`):
 ```
 frontend/src/__tests__/cypress/cypress/
 ├── fixtures/mocked/       # Test fixture files (rarely used for mocks)
@@ -55,6 +57,111 @@ frontend/src/__tests__/cypress/cypress/
 ├── utils/                 # Utility functions (shared with E2E)
 └── types.ts               # Type definitions
 ```
+
+**Module-Based Tests** (e.g., `packages/gen-ai/frontend/src/__tests__/cypress/cypress/`):
+```
+packages/<module-name>/frontend/src/__tests__/cypress/cypress/
+├── __mocks__/             # Module-specific mock functions (TypeScript)
+├── fixtures/mocked/       # Module-specific test data (YAML/JSON)
+├── pages/                 # Module-specific page objects
+├── support/               # Module-specific commands and helpers
+├── tests/mocked/          # Module-specific mock tests
+└── utils/                 # Module-specific utilities
+```
+
+### Module-Based Architecture (e.g., Gen AI)
+
+**CRITICAL: Understanding BFF (Backend For Frontend) vs Pure Mock Tests**
+
+Some modules like `gen-ai`, `model-registry`, etc. have a **BFF (Backend For Frontend)** architecture:
+
+**BFF Architecture:**
+- Modules have a `bff/` directory with a Go backend service
+- BFF handles API proxying, authentication, and business logic
+- Frontend communicates with BFF, BFF communicates with backend services
+
+**Two Testing Approaches:**
+
+1. **Pure Mock Tests (Default for Mock Tests)** - NO BFF Running
+   - All network requests are intercepted with Cypress `cy.intercept*` commands
+   - Frontend runs standalone with webpack dev server
+   - BFF is NOT started
+   - Fastest approach, true component isolation
+   - **Commands:**
+     ```bash
+     # In module frontend directory (e.g., packages/gen-ai/frontend)
+     npm run test:cypress-ci  # Starts frontend dev server + runs mocked tests
+     npm run cypress:run:mock # Just runs tests (server must be running)
+     ```
+   - **Environment:** `CY_MOCK=1` flag is set, runs on port 8080 (frontend only)
+
+2. **E2E Tests with BFF** - BFF Running with Mock Clients
+   - BFF runs with mock flags: `MOCK_LS_CLIENT=true`, `MOCK_K8S_CLIENT=true`, etc.
+   - Frontend communicates with real BFF, BFF mocks external services
+   - More integration-like, tests BFF logic
+   - **Commands:**
+     ```bash
+     # In module frontend directory
+     npm run cypress:server      # Starts BFF with mocks (cd ../bff && make run PORT=9001)
+     npm run cypress:run:e2e     # Runs E2E tests against BFF
+     ```
+   - **Environment:** Runs on port 4010 (with BFF)
+
+**When to Use Each Approach:**
+
+| Scenario | Approach | Why |
+|----------|----------|-----|
+| Testing UI components | Pure Mock Tests | Fast, isolated, no BFF needed |
+| Testing form validation | Pure Mock Tests | UI logic only |
+| Testing table interactions | Pure Mock Tests | Component behavior |
+| Testing BFF API logic | E2E with BFF | Need actual BFF processing |
+| Testing authentication flow | E2E with BFF | Auth handled by BFF |
+| Testing complex data transformations | E2E with BFF | BFF transforms data |
+
+**Default for Mock Tests: NO BFF**
+
+Unless specifically testing BFF logic, mock tests should run WITHOUT the BFF using pure Cypress intercepts. This is faster and provides true component isolation.
+
+**Example - Gen AI Module Structure:**
+```
+packages/gen-ai/
+├── bff/                           # Go backend service
+│   ├── cmd/                       # BFF entry point
+│   ├── Makefile                   # BFF commands (make run)
+│   └── ...
+├── frontend/
+│   ├── src/__tests__/cypress/     # Cypress tests
+│   └── package.json               # Test scripts
+│       ├── cypress:server         # Runs BFF: "cd ../bff && make run PORT=9001"
+│       ├── cypress:server:dev     # Runs frontend only: webpack dev server
+│       ├── cypress:run:mock       # Mock tests (CY_MOCK=1, no BFF)
+│       ├── cypress:run:e2e        # E2E tests (with BFF)
+│       └── test:cypress-ci        # CI: "npm run cypress:server:dev" + mock tests
+└── package.json                   # Module root scripts
+```
+
+**Running Mock Tests for Modules:**
+
+```bash
+# From module root (e.g., packages/gen-ai)
+npm run test:cypress-ci            # Builds + starts frontend + runs tests
+
+# From module frontend directory
+cd packages/gen-ai/frontend
+npm run test:cypress-ci            # Same as above
+
+# Development mode (separate terminals)
+npm run cypress:server:dev         # Terminal 1: Start webpack dev server
+npm run cypress:run:mock           # Terminal 2: Run mock tests
+npm run cypress:open               # Terminal 2: Or open Cypress GUI
+```
+
+**IMPORTANT: Check Module Documentation**
+
+Each module may have specific setup requirements. Always check:
+- `packages/<module>/frontend/package.json` - Available test scripts
+- `packages/<module>/frontend/src/__tests__/cypress/README.md` - Module-specific docs
+- `packages/<module>/bff/Makefile` - BFF configuration (if applicable)
 
 ### Test Data Management
 
@@ -173,6 +280,37 @@ Before writing tests, review existing tests of similar features to learn establi
 3. **Keep tests focused** - Each test should validate one specific behavior or flow
 4. **Aim for 3-7 tests per feature** - Not 15+ granular tests
 5. **Combine related validations** - Group related assertions in fewer tests
+
+**CRITICAL: DO NOT use tags or cy.step() in mock tests** (with module exceptions)
+
+**General rule**: Mock tests should NOT include:
+- ❌ **Tags** - Do NOT add `tags: ['@Feature', '@Smoke']` to test definitions
+- ❌ **cy.step()** - Do NOT wrap test steps in `cy.step('description')` calls
+
+**Exception**: The **GenAI module** uses tags and `cy.step()` in their mock tests (team decision). When working on GenAI tests, follow the existing patterns in `mcpServers.cy.ts`.
+
+**APPROACH WITH STEPS/TAGS (E2E-style with tags and cy.step):**
+```typescript
+it('should do something', { tags: ['@Feature', '@Smoke'] }, () => {
+  cy.step('Setup the test');
+  somePage.visit();
+  
+  cy.step('Perform action');
+  somePage.clickButton();
+  
+  cy.step('Verify result');
+  somePage.verifyResult();
+});
+```
+
+**GOOD (Mock test style - clean and simple):**
+```typescript
+it('should do something', () => {
+  somePage.visit();
+  somePage.clickButton();
+  somePage.verifyResult();
+});
+```
 
 **Example: Good test coverage (focused)**
 ```typescript
@@ -305,16 +443,140 @@ cy.wait('@patchAuth').then((interception) => {
 
 ### Navigation and Page Interactions
 
-**MANDATORY: Use page objects for ALL UI interactions**:
-- **NEVER use `cy.findByTestId()` directly in tests**
-- **NEVER use `cy.findByRole()` directly in tests**
-- **Do NOT call `cy.get()` directly in test files**
-- All UI interactions must go through page objects
-- If a test ID exists but no page object, create the page object method
-- If a test ID doesn't exist, you MUST:
-  1. Add `data-testid` attribute to the UI component
-  2. Create corresponding page object method
-- Search existing page objects first before creating new ones
+**MANDATORY: Use page objects with testIDs for ALL UI interactions**:
+
+**CRITICAL RULE: Always add `data-testid` to components first, then create page object methods**
+
+- **NEVER use `cy.findByTestId()` directly in tests** - Always use page object methods
+- **NEVER use `cy.findByRole()` directly in tests** - Always use page object methods  
+- **NEVER use `cy.get()` directly in test files** - Always use page object methods
+- **NEVER use brittle selectors** (text, placeholders, CSS classes) - Add testIDs instead
+
+**Process when a UI element needs testing**:
+1. ✅ **Check if `data-testid` exists** - Search the React component
+2. ✅ **If missing, ADD `data-testid` to component** - Modify the React/TSX file
+3. ✅ **Create page object method** - Use `cy.findByTestId('testid-name')`
+4. ✅ **Use page object method in test** - e.g., `chatbotPage.findButton()`
+
+**If a brittle selector exists in old code**:
+1. 🔧 **Add `data-testid` to the component**
+2. 🔧 **Update page object to use testID**
+3. 🔧 **Tests automatically become more robust**
+
+**Examples of testID naming conventions**:
+- Buttons: `create-button`, `save-button`, `delete-playground-button`
+- Inputs: `temperature-input`, `message-input`, `search-input`
+- Toggles: `streaming-toggle`, `rag-toggle-switch`
+- Sections: `rag-section-title`, `mcp-servers-section-title`
+- Menus: `header-kebab-menu-toggle`, `configure-menu-item`
+- Actions: `empty-state-action-button`, `submit-form-button`
+
+Search existing page objects first before creating new ones
+
+**CRITICAL: Selector Priority and data-testid Requirements**
+
+**RULE #1: ALWAYS use `data-testid` for test selectors**
+
+`data-testid` attributes are **MANDATORY** for all interactive elements and key UI components. Never use brittle selectors when a testID can be added.
+
+**Process for adding testIDs**:
+1. **Check if testID exists** - Search the component for `data-testid`
+2. **If missing, ADD IT** - Modify the React component to add `data-testid="descriptive-name"`
+3. **Use kebab-case naming** - e.g., `message-input`, `delete-button`, `user-settings-form`
+4. **Be specific and descriptive** - e.g., `header-kebab-menu-toggle` not just `button`
+5. **Update page object** - Use `cy.findByTestId('testid-name')` in page object method
+
+**Selector Priority** (in order of preference):
+1. ✅ `data-testid` - **REQUIRED** for all interactive elements, buttons, inputs, forms, modals
+2. ✅ `findByLabelText` / `findByRole` - ONLY if testID cannot be added (e.g., external library components)
+3. ⚠️ Text content - ONLY for non-interactive content like headings, static labels (NOT for buttons or inputs)
+4. ❌ **NEVER USE**: DOM structure, CSS classes, placeholders, parent().find() chains
+
+**Examples of CORRECT testID usage**:
+```typescript
+// ✅ BEST: data-testid on component
+// Component: <Button data-testid="save-button">Save</Button>
+findSaveButton() {
+  return cy.findByTestId('save-button');
+}
+
+// ✅ BEST: data-testid on input
+// Component: <TextInput data-testid="temperature-input" />
+findTemperatureInput() {
+  return cy.findByTestId('temperature-input');
+}
+
+// ✅ BEST: data-testid on section
+// Component: <Title data-testid="rag-section-title">RAG</Title>
+findRAGSection() {
+  return cy.findByTestId('rag-section-title').parent();
+}
+
+// ✅ ACCEPTABLE: Semantic query ONLY if testID cannot be added
+findSystemInstructionInput() {
+  return cy.findByLabelText(/System instructions/i);
+}
+```
+
+**Examples of INCORRECT selectors (DO NOT DO THIS)**:
+```typescript
+// ❌ BAD: Placeholder text
+cy.get('textarea[placeholder*="Send"]')
+
+// ❌ BAD: Text + DOM traversal
+cy.findByText(/Temperature/i).parent().find('input')
+
+// ❌ BAD: Generic CSS selectors
+cy.get('input[type="checkbox"]')
+
+// ❌ BAD: Button text without testID
+cy.findByRole('button', { name: /Delete/i })
+
+// ❌ BAD: Class names
+cy.get('.pf-chatbot__message--bot')
+```
+
+**Component testID examples**:
+```tsx
+// ✅ Button with testID
+<Button data-testid="create-playground-button" onClick={handleCreate}>
+  Create playground
+</Button>
+
+// ✅ Input with testID
+<TextInput 
+  id="temperature-input"
+  data-testid="temperature-input"
+  value={temperature}
+/>
+
+// ✅ Toggle with testID
+<MenuToggle
+  data-testid="header-kebab-menu-toggle"
+  aria-label="Actions"
+>
+  <EllipsisVIcon />
+</MenuToggle>
+
+// ✅ Section title with testID
+<Title data-testid="mcp-servers-section-title">
+  MCP servers
+</Title>
+
+// ✅ Menu item with testID
+<DropdownItem
+  data-testid="delete-playground-menu-item"
+  onClick={onDelete}
+>
+  Delete playground
+</DropdownItem>
+```
+
+**When you encounter missing testIDs**:
+1. **DO NOT** write tests with brittle selectors
+2. **DO** add `data-testid` to the React component first
+3. **DO** commit the component changes along with the test
+4. **DO** inform the user if you added testIDs to components
 
 **Page object pattern** (stored in `pages/` directory):
 ```typescript
@@ -353,6 +615,46 @@ class FeaturePage {
 export const featurePage = new FeaturePage();
 ```
 
+**CRITICAL: Never add timeouts to page object methods**
+
+❌ **BAD - Timeout in page object**:
+```typescript
+class ChatbotPage {
+  findMessageInput() {
+    // ❌ NEVER do this - timeouts belong in tests, not page objects
+    return cy.findByTestId('chatbot-message-bar', { timeout: 20000 });
+  }
+}
+```
+
+✅ **GOOD - Timeout in test**:
+```typescript
+class ChatbotPage {
+  findMessageInput() {
+    // ✅ GOOD - No timeout in page object
+    return cy.findByTestId('chatbot-message-bar');
+  }
+}
+
+// In test file:
+it('should load message input', () => {
+  // ✅ GOOD - Timeout specified in test when needed
+  chatbotPage.findMessageInput({ timeout: 20000 }).should('be.visible');
+});
+```
+
+**Why?**
+- Page objects should be reusable across different test scenarios
+- Different tests may need different timeouts
+- Timeouts are test-specific concerns, not page structure concerns
+- Keeps page objects clean and focused on element location
+
+**When to use timeouts in tests**:
+- Slow-loading dynamic content (e.g., API-dependent UI)
+- Elements that appear after animations or transitions
+- First interaction with a page after navigation
+- **Always specify timeout at the test level, never in page objects**
+
 **Table row page object pattern**:
 ```typescript
 class FeatureTableRow extends TableRow {
@@ -382,6 +684,195 @@ class FeaturePage {
   }
 }
 ```
+
+**CRITICAL: Avoid Brittle Locators - Add testIDs Instead**
+
+❌ **BAD - Brittle selectors without testIDs (NEVER DO THIS)**:
+```typescript
+// ❌ Placeholder text (breaks when placeholder changes)
+cy.get('textarea[placeholder*="Send"]').type('message');
+cy.findByPlaceholderText(/Send a message/i).type('test');
+
+// ❌ Text + DOM traversal (breaks when structure or text changes)
+cy.findByText(/Temperature/i).parent().find('input').clear();
+cy.findByText(/RAG/i).parent().find('input[type="checkbox"]');
+
+// ❌ Generic selectors (breaks with any DOM changes)
+cy.get('input[type="checkbox"]').uncheck();
+cy.get('textarea').type('message');
+
+// ❌ Button text matching (breaks when button text changes)
+cy.findByRole('button', { name: /Create playground/i }).click();
+cy.findByRole('button', { name: /Delete/i }).click();
+
+// ❌ CSS classes (breaks when styling changes)
+cy.get('.pf-chatbot__message--bot').should('contain', 'response');
+cy.get('[class*="kebab"]').click();
+```
+
+✅ **CORRECT - Add testIDs to components, then use them in page objects**:
+
+**Step 1: Add testIDs to React components**:
+```tsx
+// Component file: ChatbotPlayground.tsx
+<textarea 
+  placeholder="Send a message..."
+  data-testid="chatbot-message-bar"  // ← ADD THIS
+/>
+
+<TextInput 
+  id="temperature-input"
+  data-testid="temperature-input"  // ← ADD THIS
+  type="number"
+/>
+
+<Switch
+  id="rag-toggle"
+  data-testid="rag-toggle-switch"  // ← ADD THIS
+/>
+
+<Button
+  onClick={onCreate}
+  data-testid="empty-state-action-button"  // ← ADD THIS
+>
+  Create playground
+</Button>
+
+<MenuToggle
+  aria-label="Actions"
+  data-testid="header-kebab-menu-toggle"  // ← ADD THIS
+/>
+```
+
+**Step 2: Use testIDs in page object methods**:
+```typescript
+class ChatbotPage {
+  // ✅ GOOD: Using testID
+  findMessageInput() {
+    return cy.findByTestId('chatbot-message-bar');
+  }
+
+  // ✅ GOOD: Using testID
+  findTemperatureInput() {
+    return cy.findByTestId('temperature-input');
+  }
+
+  // ✅ GOOD: Using testID
+  findRAGToggle() {
+    return cy.findByTestId('rag-toggle-switch');
+  }
+
+  // ✅ GOOD: Using testID
+  findCreatePlaygroundButton() {
+    return cy.findByTestId('empty-state-action-button');
+  }
+
+  // ✅ GOOD: Using testID
+  findKebabMenuButton() {
+    return cy.findByTestId('header-kebab-menu-toggle');
+  }
+
+  // ✅ GOOD: Action methods using testID-based finders
+  setTemperature(value: string) {
+    this.findTemperatureInput().clear().type(value);
+  }
+
+  toggleRAG(enable: boolean) {
+    if (enable) {
+      this.findRAGToggle().check();
+    } else {
+      this.findRAGToggle().uncheck();
+    }
+  }
+
+  openKebabMenu() {
+    this.findKebabMenuButton().click();
+  }
+}
+```
+
+**Step 3: Use page object methods in tests**:
+```typescript
+it('should interact with chatbot settings', () => {
+  chatbotPage.visit();
+  chatbotPage.setTemperature('0.8');
+  chatbotPage.toggleRAG(true);
+  chatbotPage.openKebabMenu();
+});
+```
+
+**Real-world example from Gen AI chatbot tests**:
+
+Before (brittle):
+```typescript
+// ❌ BAD: Multiple brittle selectors
+cy.findByPlaceholderText(/Send a message/i).type('Hello');
+cy.findByText(/Temperature/i).parent().find('input[type="number"]').clear().type('0.8');
+cy.findByText(/RAG/i).parent().find('input[type="checkbox"]').check();
+cy.findByRole('button', { name: /kebab/i }).click();
+cy.findByText(/Delete/i).click();
+```
+
+After (robust with testIDs):
+```typescript
+// ✅ GOOD: testID-based page object methods
+chatbotPage.findMessageInput().type('Hello');
+chatbotPage.setTemperature('0.8');
+chatbotPage.toggleRAG(true);
+chatbotPage.openKebabMenu();
+chatbotPage.findDeleteMenuItem().click();
+```
+
+Components updated:
+```tsx
+// ModelParameterFormGroup.tsx - Added data-testid
+<TextInput data-testid="temperature-input" />
+
+// ChatbotSettingsPanel.tsx - Added data-testid
+<Title data-testid="rag-section-title">RAG</Title>
+<Switch data-testid="rag-toggle-switch" />
+
+// ChatbotHeaderActions.tsx - Added data-testid
+<MenuToggle data-testid="header-kebab-menu-toggle" />
+<DropdownItem data-testid="delete-playground-menu-item">Delete</DropdownItem>
+```
+
+**Extract Common Patterns to Page Objects**
+
+When you see repeated patterns like:
+```typescript
+// ❌ BAD: Repeated DOM traversal in tests
+cy.findByText(/Temperature/i).parent().within(() => {
+  cy.get('input[type="number"]').clear().type('0.8');
+});
+```
+
+Extract to reusable page object methods:
+```typescript
+// ✅ GOOD: Page object with finder + action methods
+class ChatbotPage {
+  findTemperatureSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByText(/Temperature/i).parent();
+  }
+
+  findTemperatureInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTemperatureSection().find('input[type="number"]');
+  }
+
+  setTemperature(value: string): void {
+    this.findTemperatureInput().clear().type(value);
+  }
+}
+
+// In test:
+chatbotPage.setTemperature('0.8');
+```
+
+**Benefits**:
+- Single source of truth for selectors
+- Easier to update when UI changes
+- More readable tests
+- Reusable across multiple tests
 
 **Using page objects in tests**:
 ```typescript
@@ -1296,6 +1787,132 @@ export const featurePage = new FeaturePage();
 | **User Context** | Mocked (asProductAdminUser) | Real login |
 | **Use Case** | UI logic, validation, forms | Full integration, workflows |
 | **CI/CD** | Runs on every PR | Runs periodically |
+
+## Module-Specific Testing Patterns
+
+### Overview
+
+Some modules (like GenAI) have their own Cypress test suites with unique patterns and helper functions. When working with module-specific tests:
+
+1. **Always check for existing test helpers** - Modules may have centralized setup functions
+2. **Follow established patterns** - Look at existing passing tests in the module
+3. **Use module-specific intercepts** - Different modules may use different intercept commands
+4. **Respect module conventions** - Tags, steps, and structure may vary by module (e.g., GenAI uses `tags` and `cy.step()` in mock tests)
+
+### Module Testing Best Practices
+
+**CRITICAL**: When creating tests for any module, ALWAYS:
+
+1. **Discover the existing pattern first**:
+   - Find similar passing tests in the module
+   - Identify helper functions (look for `*TestHelpers.ts` files)
+   - Check for test configuration files (YAML, JSON)
+   - Review page objects specific to the module
+
+2. **Use helper functions consistently**:
+   - Never manually replicate setup that helpers provide
+   - Helpers ensure consistent configuration and state
+   - Deviating from helpers leads to hard-to-debug failures
+
+3. **Wait for UI readiness**:
+   - After navigation, always wait for key UI elements
+   - Don't assume the page is ready after `visit()`
+   - Check for specific elements before interaction
+
+### Example: GenAI Module Pattern
+
+The GenAI module demonstrates these principles well:
+
+```typescript
+import {
+  loadMCPTestConfig,
+  initIntercepts,
+  navigateToChatbot,
+  type MCPTestConfig,
+} from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
+
+describe('My GenAI Feature Test', () => {
+  let config: MCPTestConfig;
+
+  before(() => {
+    loadMCPTestConfig().then((data) => {
+      config = data;
+    });
+  });
+
+  it('should test feature', { tags: ['@GenAI', '@MyFeature'] }, () => {
+    const namespace = config.defaultNamespace;
+    const { name: serverName, url: serverUrl } = config.servers.github;
+
+    cy.step('Setup base mocks with MCP servers');
+    initIntercepts({
+      config,
+      namespace,
+      serverName,
+      serverUrl,
+    });
+
+    cy.step('Navigate to chatbot playground');
+    navigateToChatbot(namespace);
+
+    cy.step('Wait for chatbot playground to be ready');
+    chatbotPage.findChatbotPlayground().should('be.visible');
+
+    // Your test steps here...
+  });
+});
+```
+
+**Key Principles (using GenAI as example)**:
+- Use helper functions when they exist (`initIntercepts()` consolidates 10+ mocks into one call)
+- Follow navigation helpers (`navigateToChatbot()`) for consistent page state  
+- ALWAYS wait for UI readiness after navigation before interacting with elements
+- Use module-specific intercepts (`cy.interceptGenAi()` vs `cy.interceptOdh()`)
+
+### Universal Pattern: Discover Before Implementing
+
+**Step 1**: Find existing working tests in the module
+**Step 2**: Identify helper functions (look for `*TestHelpers.ts`, `*Helpers.ts`)
+**Step 3**: Use the same pattern - don't deviate
+**Step 4**: Wait for UI elements before interaction
+
+### Common Mistakes (All Modules)
+
+❌ **Setting up mocks manually when helpers exist**
+```typescript
+// Antipattern - hard to maintain, easy to forget mocks
+cy.interceptApi('GET /endpoint1', mock1());
+cy.interceptApi('GET /endpoint2', mock2());
+// ... many more
+```
+
+✅ **Use helper functions**
+```typescript
+// Correct - consistent, maintainable
+setupBaseHelpers({ config, ...options });
+```
+
+❌ **Navigating without waiting for UI**
+```typescript
+// Antipattern - race conditions, flaky tests
+myPage.visit();
+myPage.clickButton(); // May fail!
+```
+
+✅ **Wait for specific UI elements**
+```typescript
+// Correct - reliable, explicit
+myPage.visit();
+myPage.findMainContent().should('be.visible');
+myPage.findButton().should('be.visible');
+myPage.clickButton(); // Safe
+```
+
+**GenAI module demonstrates these principles**:
+- See `mcpServers.cy.ts` for working examples
+- Helper: `mcpServersTestHelpers.ts`
+- Page objects: `packages/gen-ai/frontend/src/__tests__/cypress/cypress/pages/`
+
 
 ## Final Notes
 
