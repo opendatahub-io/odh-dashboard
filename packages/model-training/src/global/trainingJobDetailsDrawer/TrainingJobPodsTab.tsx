@@ -10,9 +10,9 @@ import {
   StackItem,
   Timestamp,
   TimestampTooltipVariant,
-  ExpandableSection,
   Icon,
   Title,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
@@ -22,6 +22,11 @@ import {
 } from '@patternfly/react-icons';
 import { PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import {
+  t_global_color_brand_default as BrandDefaultColor,
+  t_global_text_color_regular as RegularColor,
+  t_global_text_color_200 as TextColor200,
+} from '@patternfly/react-tokens';
 import { TrainJobKind } from '../../k8sTypes';
 import useTrainJobPods from '../../hooks/useTrainJobPods';
 
@@ -53,7 +58,7 @@ const getPodStatusIcon = (pod: PodKind) => {
     case 'running':
       return (
         <Icon>
-          <InProgressIcon color="var(--pf-t--global--color--brand--default)" />
+          <InProgressIcon color={BrandDefaultColor.var} />
         </Icon>
       );
     case 'pending':
@@ -133,34 +138,20 @@ const InitializersSection: React.FC<{
 }> = ({ pods, loaded = true, onPodClick }) => {
   const [isExpanded, setIsExpanded] = React.useState<boolean>(true);
 
-  const toggleContent = (
-    <Title
-      headingLevel="h3"
-      size="md"
-      style={{ color: 'var(--pf-t--global--text--color--regular)' }}
-    >
-      Initializers
-    </Title>
-  );
-
-  const expandableSectionProps = {
-    isExpanded,
-    onToggle: (_: React.MouseEvent, expanded: boolean) => setIsExpanded(expanded),
-    toggleContent,
-  };
-
-  if (!loaded) {
-    return (
-      <ExpandableSection {...expandableSectionProps}>
-        <Skeleton height="50px" />
-      </ExpandableSection>
-    );
-  }
-
   return (
-    <ExpandableSection {...expandableSectionProps}>
-      {pods.length === 0 ? (
-        <span>No initializers found</span>
+    <ExpandableSection
+      toggleContent={
+        <Title headingLevel="h3" size="md" style={{ color: RegularColor.var }}>
+          Initializers
+        </Title>
+      }
+      isExpanded={isExpanded}
+      onToggle={() => setIsExpanded(!isExpanded)}
+    >
+      {!loaded ? (
+        <Skeleton height="50px" />
+      ) : pods.length === 0 ? (
+        <div style={{ color: TextColor200.var }}>No initializers found</div>
       ) : (
         <List isPlain>
           {pods.map((pod) => (
@@ -202,9 +193,7 @@ const TrainingPodsSection: React.FC<{
             ))}
           </List>
         ) : (
-          <div style={{ padding: '16px', color: 'var(--pf-v6-global--Color--200)' }}>
-            No pods found
-          </div>
+          <div style={{ color: TextColor200.var }}>No pods found</div>
         )}
       </StackItem>
     </Stack>

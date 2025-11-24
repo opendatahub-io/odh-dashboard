@@ -129,14 +129,12 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
             <TrainingJobPodsTab job={job} onPodClick={handlePodClick} />
           </Tab>
           <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <TrainingJobLogsTab
-                job={job}
-                selectedPod={selectedPodForLogs}
-                selectedPodNameFromClick={selectedPodNameFromClick}
-                onPodChange={handlePodChange}
-              />
-            </div>
+            <TrainingJobLogsTab
+              job={job}
+              selectedPod={selectedPodForLogs}
+              selectedPodNameFromClick={selectedPodNameFromClick}
+              onPodChange={handlePodChange}
+            />
           </Tab>
         </Tabs>
       </DrawerPanelBody>

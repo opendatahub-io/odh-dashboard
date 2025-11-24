@@ -208,16 +208,14 @@ const TrainingJobLogsTab: React.FC<TrainingJobLogsTabProps> = ({
       ) : !logsLoaded ? (
         <Spinner size="lg" />
       ) : (
-        <div style={{ height: '60vh' }}>
-          <LogViewer
-            data={data}
-            innerRef={logViewerRef}
-            height="100%"
-            hasLineNumbers
-            isTextWrapped={false}
-            onScroll={onScroll}
-          />
-        </div>
+        <LogViewer
+          data={data}
+          innerRef={logViewerRef}
+          height="60vh"
+          hasLineNumbers
+          isTextWrapped={false}
+          onScroll={onScroll}
+        />
       )}
     </div>
   );
