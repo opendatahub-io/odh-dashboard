@@ -777,15 +777,6 @@ describe('Model Training', () => {
         mockK8sResourceList([]),
       );
 
-      cy.interceptK8sList(
-        {
-          model: PodModel,
-          ns: projectName,
-          queryParams: { labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job' },
-        },
-        mockK8sResourceList([]),
-      );
-
       modelTrainingGlobal.visit(projectName);
 
       const row = trainingJobTable.getTableRow('image-classification-job');

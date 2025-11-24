@@ -211,7 +211,9 @@ const TrainingJobLogsTab: React.FC<TrainingJobLogsTabProps> = ({
           <EmptyStateBody>Failed to load logs: {error.message}</EmptyStateBody>
         </EmptyState>
       ) : !logsLoaded ? (
-        <Spinner size="lg" />
+        <Bullseye>
+          <Spinner size="lg" />
+        </Bullseye>
       ) : (
         <LogViewer
           data={data}
