@@ -3,6 +3,7 @@ name: Cypress e2e Test
 # This workflow currently executes on the ODH (Open Data Hub) dash-e2e cluster.
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
+# TEST: Verifying pull_request_target works with fork PRs and secrets
 #
 # This workflow runs on pull_request events and waits for test.yml to complete successfully.
 # It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
