@@ -146,13 +146,7 @@ describe('Playground - MCP Servers', () => {
 
       cy.step('Click configure button');
       const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
-      // Ensure button is fully interactive before clicking
-      serverRow
-        .findConfigureButton()
-        .should('be.visible')
-        .and('not.be.disabled')
-        .and('not.have.attr', 'aria-disabled', 'true');
-      serverRow.findConfigureButton().click({ force: false });
+      serverRow.findConfigureButton().click();
 
       cy.step('Verify token modal opens');
       const tokenModal = new TokenAuthModal();
@@ -374,8 +368,7 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpPanel.verifyNoModalShown();
 
       cy.step('Select the Kubernetes server by checking the checkbox');
-      serverRow.findCheckbox().should('be.visible').and('not.be.disabled');
-      serverRow.findCheckbox().check({ force: true });
+      serverRow.findCheckbox().check();
 
       cy.step('Wait for auto-unlock status check');
       cy.wait('@statusCheckAutoConnect', { timeout: 15000 });

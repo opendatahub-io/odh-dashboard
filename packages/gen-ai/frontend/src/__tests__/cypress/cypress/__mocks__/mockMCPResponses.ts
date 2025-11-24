@@ -106,20 +106,14 @@ export const mockMCPToolsInterceptor = (
  * @returns Cypress chainable for the intercept
  */
 export const mockMCPStatusAutoConnect = (serverUrl: string): Cypress.Chainable<null> => {
-  return cy
-    .intercept('GET', '/gen-ai/api/v1/mcp/status*', (req) => {
-      const url = new URL(req.url);
-      const queryServerUrl = url.searchParams.get('server_url');
+  // Encode the server URL to match how it appears in the query string
+  const encodedServerUrl = encodeURIComponent(serverUrl);
 
-      // Only respond with auto-connect for the matching server
-      if (queryServerUrl === serverUrl) {
-        const response = JSON.parse(JSON.stringify(mcpStatusKubernetesConnected));
-        response.data.server_url = serverUrl;
-        req.reply({ statusCode: 200, body: response });
-      } else {
-        // For other servers, reply with an error or pass through
-        req.reply({ statusCode: 404, body: { error: 'Server not found' } });
-      }
+  return cy
+    .intercept('GET', `**/mcp/status*server_url=${encodedServerUrl}*`, (req) => {
+      const response = JSON.parse(JSON.stringify(mcpStatusKubernetesConnected));
+      response.data.server_url = serverUrl;
+      req.reply({ statusCode: 200, body: response });
     })
     .as('statusCheckAutoConnect');
 };
@@ -132,20 +126,14 @@ export const mockMCPStatusAutoConnect = (serverUrl: string): Cypress.Chainable<n
  * @returns Cypress chainable for the intercept
  */
 export const mockMCPToolsAutoConnect = (serverUrl: string): Cypress.Chainable<null> => {
-  return cy
-    .intercept('GET', '/gen-ai/api/v1/mcp/tools*', (req) => {
-      const url = new URL(req.url);
-      const queryServerUrl = url.searchParams.get('server_url');
+  // Encode the server URL to match how it appears in the query string
+  const encodedServerUrl = encodeURIComponent(serverUrl);
 
-      // Only respond with tools for the matching server
-      if (queryServerUrl === serverUrl) {
-        const response = JSON.parse(JSON.stringify(mcpToolsKubernetes));
-        response.data.server_url = serverUrl;
-        req.reply({ statusCode: 200, body: response });
-      } else {
-        // For other servers, reply with an error or pass through
-        req.reply({ statusCode: 404, body: { error: 'Server not found' } });
-      }
+  return cy
+    .intercept('GET', `**/mcp/tools*server_url=${encodedServerUrl}*`, (req) => {
+      const response = JSON.parse(JSON.stringify(mcpToolsKubernetes));
+      response.data.server_url = serverUrl;
+      req.reply({ statusCode: 200, body: response });
     })
     .as('toolsRequestAutoConnect');
 };
