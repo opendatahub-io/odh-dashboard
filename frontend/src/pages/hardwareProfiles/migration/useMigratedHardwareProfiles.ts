@@ -5,6 +5,7 @@ import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/u
 import { SchedulingType, Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/notebookController/const';
 import { DEFAULT_MODEL_SERVER_SIZES } from '#~/concepts/modelServing/modelServingSizesUtils';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 import { useApplicationSettings } from '#~/app/useApplicationSettings';
 import {
@@ -23,6 +24,7 @@ const useMigratedHardwareProfiles = (
   refresh: () => Promise<void>;
   getMigrationAction: (name: string) => MigrationAction | undefined;
 } => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const {
     dashboardConfig,
     refresh: refreshDashboardConfig,
@@ -125,6 +127,10 @@ const useMigratedHardwareProfiles = (
       migratedAcceleratorProfiles.push(newNotebooksProfile, newServingProfile);
     });
 
+    if (namespace !== dashboardNamespace) {
+      return [migratedAcceleratorProfiles, migrationMapBuilder];
+    }
+
     // migrate notebook container sizes
     const migratedNotebookContainerSizes = notebookContainerSizes.map((size, index) => {
       const name = `${size.name}-notebooks-${getUUIDSuffix(size.name)}`;
@@ -216,6 +222,7 @@ const useMigratedHardwareProfiles = (
     acceleratorProfiles,
     dashboardConfig,
     namespace,
+    dashboardNamespace,
     loadedAcceleratorProfiles,
     refreshAcceleratorProfiles,
     refreshDashboardConfig,
