@@ -70,6 +70,5 @@ export const updateKueueManagementState = (
   });
 
   cy.log(`Patching DSC ${dscName} kueue component with managementState: ${managementState}`);
-  // Note: If 'datasciencecluster' short name doesn't work, try: 'datasciencecluster.v1.datasciencecluster.opendatahub.io'
   return patchOpenShiftResource('datasciencecluster', dscName, patchContent);
 };
