@@ -63,7 +63,10 @@ export const useNavigateToDeploymentWizard = (
   if (returnRoute.includes('projects')) {
     returnRoute += '?section=model-server';
   }
-  const cancelReturnRoute = cancelReturnRouteValue;
+  let cancelReturnRoute = cancelReturnRouteValue ?? location.pathname;
+  if (cancelReturnRoute.includes('projects')) {
+    cancelReturnRoute += '?section=model-server';
+  }
 
   // Track pending navigation requests while waiting for form data to load
   const [pendingNavigate, setPendingNavigate] = React.useState<

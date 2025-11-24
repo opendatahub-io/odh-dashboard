@@ -18,6 +18,7 @@ import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/typ
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
+import { modelVersionDeploymentsUrl } from '@odh-dashboard/model-registry/routeUtils';
 import useRegistryConnections from './useRegistryConnections';
 import { useExtractFormDataFromRegistry } from './useExtractFormDataFromRegistry';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
@@ -73,7 +74,15 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
     }
   }, [matchedConnections, selectedConnection]);
 
-  const navigateToWizard = useNavigateToDeploymentWizard();
+  const navigateToWizard = useNavigateToDeploymentWizard(
+    undefined,
+    undefined,
+    modelVersionDeploymentsUrl(
+      modelDeployPrefill.data.modelRegistryInfo?.modelVersionId ?? '',
+      modelDeployPrefill.data.modelRegistryInfo?.registeredModelId ?? '',
+      modelDeployPrefill.data.modelRegistryInfo?.mrName ?? undefined,
+    ),
+  );
 
   const handleDeploy = React.useCallback(() => {
     if (!selectedProject || !registryFormData) return;
@@ -131,6 +140,7 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   // Enable when: project is selected AND (0 matches OR 1 match OR 2+ matches with selection)
   const canSubmit =
     selectedProject &&
+    !!registryFormData &&
     (matchedConnections.length === 0 ||
       matchedConnections.length === 1 ||
       (matchedConnections.length >= 2 && selectedConnection !== undefined));
