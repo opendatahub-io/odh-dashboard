@@ -7,7 +7,7 @@ import '#~/concepts/dashboard/ModalStyles.scss';
 type ButtonAction = {
   label: string;
   onClick: () => void;
-  variant: 'primary' | 'secondary' | 'danger' | 'link';
+  variant?: 'primary' | 'secondary' | 'danger' | 'link';
   clickOnEnter?: boolean;
   dataTestId?: string;
 };
@@ -94,6 +94,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
     contents
   );
 
+  // todo; test that a button *without* a variant is rendered properly
   return (
     <Modal
       data-testid={dataTestId}
