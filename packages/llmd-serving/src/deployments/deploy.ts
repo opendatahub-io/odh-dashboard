@@ -16,8 +16,7 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
-  applyModelEnvVars,
-  applyModelArgs,
+  applyModelEnvVarsAndArgs,
   applyModelLocation,
   applyDisplayNameDesc,
   applyDashboardResourceLabel,
@@ -241,8 +240,11 @@ const assembleLLMdInferenceServiceKind = (
   );
   llmdInferenceService = applyHardwareProfileConfig(llmdInferenceService, hardwareProfile);
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
-  llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
-  llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
+  llmdInferenceService = applyModelEnvVarsAndArgs(
+    llmdInferenceService,
+    environmentVariables,
+    runtimeArgs,
+  );
   llmdInferenceService = applyModelAvailabilityData(llmdInferenceService, modelAvailability);
   llmdInferenceService = applyTokenAuthentication(llmdInferenceService, tokenAuthentication);
 

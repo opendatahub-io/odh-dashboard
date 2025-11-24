@@ -19,6 +19,7 @@ import {
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
+import { VLLM_ADDITIONAL_ARGS } from '../types';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -102,41 +103,39 @@ export const structuredCloneWithMainContainer = (
   return { result, mainContainer };
 };
 
-export const applyModelArgs = (
+export const applyModelEnvVarsAndArgs = (
   llmdInferenceService: LLMInferenceServiceKind,
+  modelEnvVars?: EnvironmentVariablesFieldData,
   modelArgs?: RuntimeArgsFieldData,
 ): LLMInferenceServiceKind => {
   const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
-  if (!modelArgs?.enabled) {
-    delete mainContainer.args;
-    return result;
-  }
-  mainContainer.args = modelArgs.args;
-  return result;
-};
-
-export const applyModelEnvVars = (
-  llmdInferenceService: LLMInferenceServiceKind,
-  modelEnvVars?: EnvironmentVariablesFieldData,
-): LLMInferenceServiceKind => {
-  const { result, mainContainer } = structuredCloneWithMainContainer(llmdInferenceService);
-  if (!modelEnvVars?.enabled) {
+  if (!modelEnvVars?.enabled && !modelArgs?.enabled) {
     delete mainContainer.env;
     return result;
   }
-  mainContainer.env = modelEnvVars.variables;
+  if (modelEnvVars?.enabled) {
+    mainContainer.env = [...(mainContainer.env || []), ...modelEnvVars.variables];
+  }
+  if (modelArgs?.enabled) {
+    mainContainer.env = [
+      ...(mainContainer.env || []),
+      { name: VLLM_ADDITIONAL_ARGS, value: modelArgs.args.join(' ') },
+    ];
+  }
   return result;
 };
 
 export const extractRuntimeArgs = (
   llmdDeployment: LLMdDeployment,
 ): { enabled: boolean; args: string[] } | null => {
-  const args =
-    llmdDeployment.model.spec.template?.containers?.find((container) => container.name === 'main')
-      ?.args || [];
+  const args = llmdDeployment.model.spec.template?.containers
+    ?.find((container) => container.name === 'main')
+    ?.env?.find((env) => env.name === VLLM_ADDITIONAL_ARGS)?.value;
+
+  const argsArray = typeof args === 'string' ? args.split(' ') : [];
   return {
-    enabled: args.length > 0,
-    args,
+    enabled: argsArray.length > 0,
+    args: argsArray,
   };
 };
 
@@ -144,8 +143,9 @@ export const extractEnvironmentVariables = (
   llmdDeployment: LLMdDeployment,
 ): { enabled: boolean; variables: { name: string; value: string }[] } | null => {
   const envVars =
-    llmdDeployment.model.spec.template?.containers?.find((container) => container.name === 'main')
-      ?.env || [];
+    llmdDeployment.model.spec.template?.containers
+      ?.find((container) => container.name === 'main')
+      ?.env?.filter((env) => env.name !== VLLM_ADDITIONAL_ARGS) || [];
   return {
     enabled: envVars.length > 0,
     variables: envVars.map((envVar) => ({
