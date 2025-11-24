@@ -89,6 +89,9 @@ export enum SupportedArea {
 
   /* AI Catalog Settings */
   AI_CATALOG_SETTINGS = 'ai-catalog-settings',
+
+  /* MLflow */
+  MLFLOW = 'mlflow-application',
 }
 
 export type SupportedAreaType = SupportedArea | string;
