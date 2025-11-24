@@ -49,17 +49,18 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
     undefined,
   );
 
-  const [connections] = useServingConnections(selectedProject?.metadata.name);
+  const [connections, connectionsLoaded] = useServingConnections(selectedProject?.metadata.name);
 
   const matchedConnections = useRegistryConnections(
     modelDeployPrefill.data.modelArtifactUri,
     connections,
   );
 
-  const [connectionTypes] = useWatchConnectionTypes(true);
+  const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
 
   // Extract form data from registry using the hook
-  const { formData: registryFormData } = useExtractFormDataFromRegistry(modelDeployPrefill);
+  const { formData: registryFormData, loaded: registryFormDataLoaded } =
+    useExtractFormDataFromRegistry(modelDeployPrefill);
 
   // Auto-select connection if there's exactly one match
   React.useEffect(() => {
@@ -137,9 +138,12 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   const showConnectionSelection = matchedConnections.length > 0;
 
   // Determine if submit button should be enabled
-  // Enable when: project is selected AND (0 matches OR 1 match OR 2+ matches with selection)
+  // Enable when: project is selected AND all data is loaded AND (0 matches OR 1 match OR 2+ matches with selection)
   const canSubmit =
     selectedProject &&
+    registryFormDataLoaded &&
+    connectionTypesLoaded &&
+    connectionsLoaded &&
     !!registryFormData &&
     (matchedConnections.length === 0 ||
       matchedConnections.length === 1 ||
