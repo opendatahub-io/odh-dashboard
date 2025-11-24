@@ -7,10 +7,9 @@ name: Cypress e2e Test
 # This workflow runs on pull_request events and waits for test.yml to complete successfully.
 # It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
 # This approach ensures E2E checks appear in the PR's checks section.
-
 on:
-  # Trigger on PR events to show up as PR checks
-  pull_request:
+  # Use pull_request_target to access secrets even from fork PRs
+  pull_request_target:
     types: [opened, synchronize, reopened]
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
@@ -159,8 +158,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # For pull_request events, checkout the PR head
+          # For pull_request_target, explicitly checkout the PR head (from fork)
+          # This is safe because we only run after test.yml passes
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Fetch from the fork repository if it's a fork PR
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
       - name: Restore npm dependencies cache
         uses: actions/cache/restore@v4
