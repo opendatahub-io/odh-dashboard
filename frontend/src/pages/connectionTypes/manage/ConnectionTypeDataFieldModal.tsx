@@ -14,7 +14,11 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon, WarningTriangleIcon } from '@patternfly/react-icons';
+import {
+  OutlinedQuestionCircleIcon,
+  WarningTriangleIcon,
+  ExclamationCircleIcon,
+} from '@patternfly/react-icons';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   ConnectionTypeDataField,
@@ -26,6 +30,7 @@ import {
   fieldNameToEnvVar,
   fieldTypeToString,
   isConnectionTypeDataField,
+  isModelServingEnvVar,
   isValidEnvVar,
 } from '#~/concepts/connectionTypes/utils';
 import { isEnumMember } from '#~/utilities/utils';
@@ -83,6 +88,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   const isEnvVarValid = !envVar || isValidEnvVar(envVar);
 
   const isValid = isPropertiesValid && !!name && !!envVar;
+
+  const isModelServingVar = React.useMemo(
+    () => isModelServingEnvVar(field?.envVar || ''),
+    [field?.envVar],
+  );
+  const [showEnvVarError, setShowEnvVarError] = React.useState(false);
 
   // Cast from specific type to generic type
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
@@ -170,6 +181,11 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               id="envVar"
               value={envVar}
               onChange={(_ev, value) => {
+                if (isModelServingVar && value !== field?.envVar) {
+                  setShowEnvVarError(true);
+                } else {
+                  setShowEnvVarError(false);
+                }
                 if (autoGenerateEnvVar) {
                   setAutoGenerateEnvVar(false);
                 }
@@ -192,6 +208,12 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                 <HelperText data-testid="envvar-conflict-warning">
                   <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
                     {envVar} already exists within this connection type. Try a different name.
+                  </HelperTextItem>
+                </HelperText>
+              ) : showEnvVarError ? (
+                <HelperText data-testid="envvar-compatibility-warning">
+                  <HelperTextItem icon={<ExclamationCircleIcon />} variant="warning">
+                    Changing this environment variable may break model serving compatibility.
                   </HelperTextItem>
                 </HelperText>
               ) : undefined}

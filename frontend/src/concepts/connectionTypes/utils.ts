@@ -153,6 +153,15 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_BUCKET',
 ];
 
+export const isModelServingEnvVar = (envVar: string): boolean => {
+  return (
+    S3ConnectionTypeKeys.includes(envVar) ||
+    URIConnectionTypeKeys.includes(envVar) ||
+    OCIConnectionTypeKeys.includes(envVar) ||
+    OCIAccessTypeKey.includes(envVar)
+  );
+};
+
 const modelServingCompatibleTypesMetadata: Record<
   ModelServingCompatibleTypes,
   {
