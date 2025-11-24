@@ -21,6 +21,29 @@ type MessageModalProps = {
   dataTestId?: string;
 };
 
+type FocusableDivProps = {
+  children: React.ReactNode;
+  onEnterPress: () => void;
+};
+
+const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) => {
+  const divRef = React.useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      onEnterPress();
+    }
+  };
+
+  return (
+    <div ref={divRef} onKeyDown={handleKeyDown} tabIndex={-1}>
+      {children}
+    </div>
+  );
+};
+
 const MessageModal: React.FC<MessageModalProps> = ({
   onClose,
   contents,
@@ -32,48 +55,39 @@ const MessageModal: React.FC<MessageModalProps> = ({
 }) => {
   const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Handle Enter key to trigger button action
-  React.useEffect(() => {
-    const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
-    if (clickOnEnterIndex === -1) {
-      return;
+  const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
+  const hasClickOnEnter = clickOnEnterIndex !== -1;
+
+  const handleEnterPress = () => {
+    const button = buttonRefs.current[clickOnEnterIndex];
+    if (button) {
+      // Focus the button to show visual feedback
+      button.focus();
+
+      // Store original styles
+      const originalTransform = button.style.transform;
+      const originalTransition = button.style.transition;
+
+      // Add press effect
+      button.style.transition = 'transform 0.1s ease';
+      button.style.transform = 'scale(0.95)';
+
+      // Wait for animation to be visible before executing action
+      setTimeout(() => {
+        button.style.transform = originalTransform;
+        setTimeout(() => {
+          button.style.transition = originalTransition;
+          buttonActions?.[clickOnEnterIndex]?.onClick();
+        }, 100);
+      }, 100);
     }
+  };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const button = buttonRefs.current[clickOnEnterIndex];
-        if (button) {
-          // Focus the button to show visual feedback
-          button.focus();
-
-          // Store original styles
-          const originalTransform = button.style.transform;
-          const originalTransition = button.style.transition;
-
-          // Add press effect
-          button.style.transition = 'transform 0.1s ease';
-          button.style.transform = 'scale(0.95)';
-
-          // Wait for animation to be visible before executing action
-          setTimeout(() => {
-            button.style.transform = originalTransform;
-            setTimeout(() => {
-              button.style.transition = originalTransition;
-              buttonActions?.[clickOnEnterIndex]?.onClick();
-            }, 100);
-          }, 100);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [buttonActions]);
+  const modalContents = hasClickOnEnter ? (
+    <FocusableDiv onEnterPress={handleEnterPress}>{contents}</FocusableDiv>
+  ) : (
+    contents
+  );
 
   return (
     <Modal
@@ -87,7 +101,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
       <ModalHeader title={typeof title === 'string' ? title : undefined} description={description}>
         {typeof title !== 'string' ? title : null}
       </ModalHeader>
-      <ModalBody className="odh-modal__content-height">{contents}</ModalBody>
+      <ModalBody className="odh-modal__content-height">{modalContents}</ModalBody>
       <ModalFooter>
         {buttonActions?.map((action, index) => (
           <Button
@@ -108,3 +122,4 @@ const MessageModal: React.FC<MessageModalProps> = ({
 };
 
 export default MessageModal;
+export { FocusableDiv };
