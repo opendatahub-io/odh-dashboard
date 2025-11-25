@@ -80,6 +80,7 @@ describe('useChatbotMessages', () => {
     it('should initialize with correct default values', () => {
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -88,8 +89,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
-          ...defaultMcpProps,
         }),
       );
 
@@ -111,6 +110,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -119,7 +119,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -150,6 +149,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -158,7 +158,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -178,6 +177,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -186,7 +186,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -221,6 +220,7 @@ describe('useChatbotMessages', () => {
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: '',
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -229,7 +229,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -252,6 +251,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: null,
           systemInstruction: '',
@@ -260,7 +260,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -300,6 +299,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -308,7 +308,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -330,6 +329,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -338,7 +338,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -360,6 +359,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -368,7 +368,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -392,6 +391,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -400,7 +400,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -433,6 +432,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -441,7 +441,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -466,6 +465,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: null,
           systemInstruction: '',
@@ -474,7 +474,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: 'vs_current_store_123',
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -511,6 +510,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: 'You are a helpful assistant.',
@@ -519,7 +519,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -565,6 +564,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -573,7 +573,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -596,6 +595,7 @@ describe('useChatbotMessages', () => {
       const { result, rerender } = renderHook(
         ({ modelId }) =>
           useChatbotMessages({
+            ...defaultMcpProps,
             modelId,
             selectedSourceSettings: mockSourceSettings,
             systemInstruction: 'Be helpful.',
@@ -604,7 +604,6 @@ describe('useChatbotMessages', () => {
             temperature: 0.7,
             currentVectorStoreId: null,
             selectedServerIds: [],
-            ...defaultMcpProps,
           }),
         { initialProps: { modelId: 'model-1' } },
       );
@@ -646,6 +645,7 @@ describe('useChatbotMessages', () => {
       const { result, rerender } = renderHook(
         ({ systemInstruction }) =>
           useChatbotMessages({
+            ...defaultMcpProps,
             modelId: mockModelId,
             selectedSourceSettings: mockSourceSettings,
             systemInstruction,
@@ -654,7 +654,6 @@ describe('useChatbotMessages', () => {
             temperature: 0.7,
             currentVectorStoreId: null,
             selectedServerIds: [],
-            ...defaultMcpProps,
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );
@@ -768,6 +767,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -776,7 +776,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -884,6 +883,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -892,7 +892,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -970,6 +969,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -978,7 +978,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -999,6 +998,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -1007,7 +1007,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 
@@ -1046,6 +1045,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -1054,7 +1054,6 @@ describe('useChatbotMessages', () => {
           temperature: 0.7,
           currentVectorStoreId: null,
           selectedServerIds: [],
-          ...defaultMcpProps,
         }),
       );
 

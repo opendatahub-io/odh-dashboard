@@ -89,21 +89,25 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
+  const shouldClearRouterState = React.useMemo(
+    () =>
+      Boolean(
+        location.state &&
+          (location.state.mcpServers || location.state.model || location.state.mcpServerStatuses),
+      ),
+    [location.state],
+  );
+
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
-    if (
-      location.state &&
-      (location.state.mcpServers || location.state.model || location.state.mcpServerStatuses)
-    ) {
+    if (shouldClearRouterState) {
       const timeoutId = setTimeout(() => {
         window.history.replaceState({}, '');
       }, 100);
       return () => clearTimeout(timeoutId);
     }
     return undefined;
-    // Only run when location.state changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
+  }, [shouldClearRouterState]);
 
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !selectedModel) {
