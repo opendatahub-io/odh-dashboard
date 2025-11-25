@@ -46,9 +46,11 @@ export type MockDashboardConfigType = {
   aiCatalogSettings?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
+  mlflow?: boolean;
 };
 
 export const mockDashboardConfig = ({
+  mlflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -207,6 +209,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
+      mlflow,
       enablement: true,
       disableInfo,
       disableSupport,
