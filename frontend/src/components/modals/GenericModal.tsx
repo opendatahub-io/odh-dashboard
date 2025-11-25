@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useRef, useEffect, useId } from 'react';
-import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from '@patternfly/react-core';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import GenericModalFooter from './GenericModalFooter';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
 // todo: deal with the scss above; remove it?????
@@ -10,6 +11,8 @@ type ButtonAction = {
   variant?: 'primary' | 'secondary' | 'danger' | 'link';
   clickOnEnter?: boolean;
   dataTestId?: string;
+  isDisabled?: boolean;
+  isLoading?: boolean;
 };
 
 type GenericModalProps = {
@@ -21,6 +24,9 @@ type GenericModalProps = {
   description?: React.ReactNode;
   disableFocusTrap?: boolean;
   dataTestId?: string;
+  error?: Error | React.ReactNode;
+  alertTitle?: string;
+  alertLinks?: React.ReactNode;
 };
 
 type FocusableDivProps = {
@@ -69,6 +75,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
 /**
  * Generic Modal component with a focusable div for autofocusing on the button when the enter key is pressed;
  * This is used to make the modal more accessible for users who use keyboard navigation.
+ * and easier to use in general.
  *
  * The buttons are defined via the buttonActions prop; only one button can have clickOnEnter set to true
  * (if more than one button has clickOnEnter set to true, only the first one will be autofocused on)
@@ -84,6 +91,9 @@ const GenericModal: React.FC<GenericModalProps> = ({
   description,
   disableFocusTrap,
   dataTestId = 'pipeline-server-starting-modal',
+  error,
+  alertTitle,
+  alertLinks,
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
@@ -130,19 +140,15 @@ const GenericModal: React.FC<GenericModalProps> = ({
       </ModalHeader>
       <ModalBody className="odh-modal__content-height">{modalContents}</ModalBody>
       <ModalFooter>
-        {buttonActions?.map((action, index) => (
-          <Button
-            key={`${action.label}-${index}`}
-            ref={(el) => {
-              buttonRefs.current[index] = el;
-            }}
-            variant={action.variant}
-            onClick={action.onClick}
-            data-testid={action.dataTestId}
-          >
-            {action.label}
-          </Button>
-        ))}
+        {buttonActions && (
+          <GenericModalFooter
+            buttonActions={buttonActions}
+            buttonRefs={buttonRefs}
+            error={error}
+            alertTitle={alertTitle}
+            alertLinks={alertLinks}
+          />
+        )}
       </ModalFooter>
     </Modal>
   );
