@@ -1,0 +1,94 @@
+# Multi-stage workspace-aware Dockerfile for Module Federation packages
+# This Dockerfile is designed to build federated modules that depend on workspace packages
+# Build from repository root: docker build --file ./packages/<module>/Dockerfile.workspace .
+
+# Source code arguments - can be overridden for different modules
+ARG MODULE_NAME=mod-arch
+ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
+ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
+
+# Set the base images for the build stages
+ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.24
+ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
+
+# UI build stage
+FROM ${NODE_BASE_IMAGE} AS ui-builder
+
+ARG UI_SOURCE_CODE
+ARG MODULE_NAME
+ARG DEPLOYMENT_MODE
+ARG PLATFORM_MODE
+
+WORKDIR /usr/src/workspace
+
+### Workspace setup
+# Copy root workspace manifest first (allows npm to compute workspace graph)
+COPY --chown=default:root package.json package-lock.json* ./
+# Copy the frontend workspace manifest so its dependencies can be resolved if referenced
+COPY --chown=default:root frontend/package.json ./frontend/
+# Copy required shared workspace packages needed for module builds
+COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+# Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
+COPY --chown=default:root frontend/src/ ./frontend/src/
+
+# Copy the specific module source code
+COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
+
+# Change file ownership to the assemble user
+USER default
+
+# Install workspace dependencies first (this creates node_modules at workspace level)
+RUN npm cache clean --force
+# Install all workspace dependencies (includes root + any copied workspaces)
+RUN npm ci --omit=optional --ignore-scripts
+
+# Set up the specific module
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+
+# Install module dependencies
+RUN npm ci --omit=optional --ignore-scripts
+
+# Build the module
+RUN npm run build:prod
+
+# BFF build stage
+FROM ${GOLANG_BASE_IMAGE} AS bff-builder
+
+ARG BFF_SOURCE_CODE
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /usr/src/app
+
+# Copy the Go Modules manifests
+COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the go source files
+COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
+COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
+
+# Build the Go application
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+
+# Final stage
+FROM ${DISTROLESS_BASE_IMAGE}
+
+ARG UI_SOURCE_CODE
+
+WORKDIR /
+COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
+COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
+USER 65532:65532
+
+# Set environment variables
+# Expose port 8080
+EXPOSE 8080
+
+ENTRYPOINT ["/bff"]
