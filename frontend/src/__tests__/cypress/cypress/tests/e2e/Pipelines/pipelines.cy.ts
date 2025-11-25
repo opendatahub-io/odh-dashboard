@@ -43,7 +43,7 @@ describe(
         projectListPage.findProjectLink(projectName).click();
 
         cy.step('Import a pipeline by URL');
-        // Increasing the timeout to ~3mins so the DSPA can be loaded
+        // Increasing the timeout to ~5mins so the DSPA can be loaded
         projectDetails.findImportPipelineButton(300000).click();
         // Fill the Import Pipeline modal
         pipelineImportModal.findPipelineNameInput().type(testPipelineName);
