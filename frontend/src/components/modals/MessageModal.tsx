@@ -42,7 +42,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
   }, []);
 
   const clickEnterButtonLabelText = clickEnterButtonLabel
-    ? `Press Enter to Select the ${clickEnterButtonLabel} button.`
+    ? `Press Enter to activate the ${clickEnterButtonLabel} button.`
     : '';
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -58,6 +58,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
       ref={divRef}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
+      role="group"
       aria-label={clickEnterButtonLabelText}
     >
       {children}
