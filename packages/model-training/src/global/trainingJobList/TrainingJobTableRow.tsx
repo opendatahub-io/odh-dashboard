@@ -11,7 +11,6 @@ import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import TrainingJobStatusModal from './TrainingJobStatusModal';
-import StateActionToggle from './StateActionToggle';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { toggleTrainJobHibernation } from '../../api';
@@ -60,16 +59,9 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const {
-    isPaused,
-    isPreempted,
-    isQueued,
-    isRunning,
-    isPending,
-    canPauseResume: canPauseResumeFromFlags,
-  } = getStatusFlags(status);
+  const { isPaused, isPreempted, isQueued, isRunning, isPending } = getStatusFlags(status);
 
-  const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
+  // const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -189,7 +181,8 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
             onClick={() => setStatusModalOpen(true)}
           />
         </Td>
-        <Td>
+        {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend*/}
+        {/* <Td>
           {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
@@ -198,7 +191,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
               isLoading={isToggling}
             />
           )}
-        </Td>
+        </Td> */}
         <Td isActionCell>
           <ActionsColumn items={actions} />
         </Td>
@@ -216,10 +209,10 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           job={job}
           jobStatus={jobStatus}
           onClose={() => setStatusModalOpen(false)}
-          onPause={() => {
-            setStatusModalOpen(false);
-            setHibernationModalOpen(true);
-          }}
+          // onPause={() => {
+          //   setStatusModalOpen(false);
+          //   setHibernationModalOpen(true);
+          // }}
           onDelete={() => {
             setStatusModalOpen(false);
             onDelete(job);

@@ -36,12 +36,8 @@ import {
   getSectionStatusesFromJobsStatus,
   getSectionExistence,
   JobSectionName,
-  handlePauseResume as handlePauseResumeUtil,
-  handleRetry as handleRetryUtil,
 } from './utils';
 import { useWorkloadForTrainJob } from './hooks/useWorkloadForTrainJob';
-import { usePauseTrainJob } from './hooks/usePauseTrainJob';
-import { useRetryTrainJob } from './hooks/useRetryTrainJob';
 import { useWatchTrainJobEvents } from '../../api/events';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
@@ -50,7 +46,7 @@ type TrainingJobStatusModalProps = {
   job: TrainJobKind;
   jobStatus?: TrainingJobState;
   onClose?: () => void;
-  onPause?: () => void;
+  // onPause?: () => void;
   onDelete?: () => void;
 };
 
@@ -77,7 +73,6 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   job,
   jobStatus,
   onClose,
-  onPause,
   onDelete,
 }) => {
   const status = jobStatus || getTrainingJobStatusSync(job);
@@ -94,8 +89,8 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     workload?.metadata?.name,
   );
 
-  const { pauseJob, isPausing } = usePauseTrainJob(job);
-  const { retryJob, isRetrying } = useRetryTrainJob(job);
+  // const { pauseJob, isPausing } = usePauseTrainJob(job);
+  // const { retryJob, isRetrying } = useRetryTrainJob(job);
 
   const sectionStatuses = React.useMemo(() => {
     return getSectionStatusesFromJobsStatus(job.status?.jobsStatus, status);
@@ -106,21 +101,21 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   }, [job.status?.jobsStatus]);
 
   const statusFlags = React.useMemo(() => getStatusFlags(status), [status]);
-  const { isFailed, isPaused, inProgress, isComplete, isInadmissible } = statusFlags;
+  const { isFailed } = statusFlags;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
-  const handlePauseResume = React.useCallback(async () => {
-    await handlePauseResumeUtil(job, isPaused, pauseJob, () => {
-      onPause?.();
-      onClose?.();
-    });
-  }, [job, isPaused, pauseJob, onPause, onClose]);
+  // const handlePauseResume = React.useCallback(async () => {
+  //   await handlePauseResumeUtil(job, isPaused, pauseJob, () => {
+  //     onPause?.();
+  //     onClose?.();
+  //   });
+  // }, [job, isPaused, pauseJob, onPause, onClose]);
 
-  const handleRetry = React.useCallback(async () => {
-    await handleRetryUtil(retryJob, () => {
-      onClose?.();
-    });
-  }, [retryJob, onClose]);
+  // const handleRetry = React.useCallback(async () => {
+  //   await handleRetryUtil(retryJob, () => {
+  //     onClose?.();
+  //   });
+  // }, [retryJob, onClose]);
 
   const statusMessage = React.useMemo(
     () => getStatusAlert(status, workloadConditions, job.status?.conditions, events),
@@ -154,37 +149,6 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   const renderStatus = () => {
     if (isFailed) {
       return renderFailureMessage();
-    }
-
-    if (!statusMessage && inProgress) {
-      if (!eventsLoaded) {
-        return (
-          <StackItem>
-            <Skeleton height="24px" width="60%" />
-          </StackItem>
-        );
-      }
-      return null;
-    }
-
-    if (statusMessage) {
-      const isLoading = !workloadLoaded;
-
-      return (
-        <StackItem>
-          <Alert
-            isInline
-            variant={statusMessage.variant}
-            title={isLoading ? <Skeleton height="20px" width="60%" /> : statusMessage.title}
-          >
-            {isLoading ? (
-              <Skeleton height="20px" width="80%" />
-            ) : statusMessage.description ? (
-              <Content>{statusMessage.description}</Content>
-            ) : null}
-          </Alert>
-        </StackItem>
-      );
     }
 
     return null;
@@ -338,7 +302,8 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         </Stack>
       </ModalBody>
       <ModalFooter>
-        {isFailed ? (
+        {/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/}
+        {/* {isFailed ? (
           <Button
             variant="primary"
             onClick={handleRetry}
@@ -358,13 +323,13 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
           >
             {isPaused ? 'Resume Job' : 'Pause Job'}
           </Button>
-        ) : null}
+        ) : null} */}
         <Button
           variant="secondary"
           onClick={() => {
             onDelete?.();
           }}
-          isDisabled={isPausing || isRetrying}
+          // isDisabled={isPausing || isRetrying}
           data-testid="delete-job-button"
         >
           Delete Job

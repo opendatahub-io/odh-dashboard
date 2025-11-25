@@ -1178,8 +1178,9 @@ describe('Model Training', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-      trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
+      // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+      // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
+      // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
     });
 
     it('should display retry button for failed jobs', () => {
@@ -1189,9 +1190,10 @@ describe('Model Training', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findRetryButton().should('be.visible');
-      trainingJobStatusModal.findRetryButton().should('contain', 'Retry Job');
-      trainingJobStatusModal.findPauseResumeButton().should('not.exist');
+      // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+      // trainingJobStatusModal.findRetryButton().should('be.visible');
+      // trainingJobStatusModal.findRetryButton().should('contain', 'Retry Job');
+      // trainingJobStatusModal.findPauseResumeButton().should('not.exist');
     });
 
     it('should display delete button', () => {
@@ -1639,9 +1641,10 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.RUNNING);
-        trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-        trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
+        // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1655,9 +1658,10 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.FAILED);
-        trainingJobStatusModal.findRetryButton().should('be.visible');
-        trainingJobStatusModal.findRetryButton().should('contain', 'Retry Job');
-        trainingJobStatusModal.findPauseResumeButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findRetryButton().should('be.visible');
+        // trainingJobStatusModal.findRetryButton().should('contain', 'Retry Job');
+        // trainingJobStatusModal.findPauseResumeButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1672,8 +1676,9 @@ describe('Model Training', () => {
         trainingJobStatusModal.shouldBeOpen();
         // The UI displays "Complete" for SUCCEEDED status
         trainingJobStatusModal.getTrainingJobStatus('Complete');
-        trainingJobStatusModal.findPauseResumeButton().should('not.exist');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('not.exist');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1711,9 +1716,10 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.QUEUED);
-        trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-        trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
+        // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1730,9 +1736,10 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.PENDING);
-        trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-        trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
+        // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1749,9 +1756,10 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.PAUSED);
-        trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-        trainingJobStatusModal.findPauseResumeButton().should('contain', 'Resume Job');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
+        // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Resume Job');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1768,9 +1776,10 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.PREEMPTED);
-        trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-        trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
+        // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
 
@@ -1787,8 +1796,9 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.INADMISSIBLE);
-        trainingJobStatusModal.findPauseResumeButton().should('not.exist');
-        trainingJobStatusModal.findRetryButton().should('not.exist');
+        // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
+        // trainingJobStatusModal.findPauseResumeButton().should('not.exist');
+        // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
     });
