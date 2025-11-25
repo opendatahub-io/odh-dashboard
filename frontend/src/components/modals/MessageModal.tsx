@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useId } from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter, Button } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -85,6 +85,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
   dataTestId = 'pipeline-server-starting-modal',
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const headingId = useId(); // for the aria-labelledby attribute (a11y)
 
   const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
   const hasClickOnEnter = clickOnEnterIndex !== -1;
@@ -120,9 +121,11 @@ const MessageModal: React.FC<MessageModalProps> = ({
       onClose={onClose}
       title={typeof title === 'string' ? title : 'Modal'}
       disableFocusTrap={disableFocusTrap}
+      aria-label={typeof title === 'string' ? title : undefined}
+      aria-labelledby={typeof title !== 'string' ? headingId : undefined}
     >
       <ModalHeader title={typeof title === 'string' ? title : undefined} description={description}>
-        {typeof title !== 'string' ? title : null}
+        {typeof title !== 'string' ? <span id={headingId}>{title}</span> : null}
       </ModalHeader>
       <ModalBody className="odh-modal__content-height">{modalContents}</ModalBody>
       <ModalFooter>
