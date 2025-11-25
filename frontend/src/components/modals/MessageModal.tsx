@@ -42,7 +42,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
   }, []);
 
   const clickEnterButtonLabelText = clickEnterButtonLabel
-    ? `Press Enter to Select this button: ${clickEnterButtonLabel}`
+    ? `Press Enter to Select the ${clickEnterButtonLabel} button.`
     : '';
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
