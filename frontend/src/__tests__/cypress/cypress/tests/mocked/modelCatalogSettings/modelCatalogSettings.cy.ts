@@ -31,6 +31,11 @@ const setupMocksForMCSettingAccess = () => {
       aiCatalogSettings: true,
     }),
   );
+  cy.interceptOdh(
+    'GET /model-registry/api/:apiVersion/user',
+    { path: { apiVersion: 'v1' } },
+    { data: { userId: 'user@example.com', clusterAdmin: true } },
+  );
 };
 
 it('AI catalog settings should not be available for non product admins', () => {
