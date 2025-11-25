@@ -26,15 +26,24 @@ type MessageModalProps = {
 type FocusableDivProps = {
   children: React.ReactNode;
   onEnterPress: () => void;
+  clickEnterButtonLabel?: string;
 };
 
-const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) => {
+const FocusableDiv: React.FC<FocusableDivProps> = ({
+  children,
+  onEnterPress,
+  clickEnterButtonLabel,
+}) => {
   const divRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // As soon as this mounts, move focus here instead of the close button
     divRef.current?.focus();
   }, []);
+
+  const clickEnterButtonLabelText = clickEnterButtonLabel
+    ? `Press Enter to Select this button: ${clickEnterButtonLabel}`
+    : '';
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
@@ -45,7 +54,12 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({ children, onEnterPress }) =
   };
 
   return (
-    <div ref={divRef} onKeyDown={handleKeyDown} tabIndex={-1}>
+    <div
+      ref={divRef}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
+      aria-label={clickEnterButtonLabelText}
+    >
       {children}
     </div>
   );
@@ -74,6 +88,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
 
   const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
   const hasClickOnEnter = clickOnEnterIndex !== -1;
+  const clickOnEnterButtonLabel = buttonActions?.[clickOnEnterIndex]?.label;
 
   const handleEnterPress = () => {
     const button = buttonRefs.current[clickOnEnterIndex];
@@ -89,7 +104,9 @@ const MessageModal: React.FC<MessageModalProps> = ({
   };
 
   const modalContents = hasClickOnEnter ? (
-    <FocusableDiv onEnterPress={handleEnterPress}>{contents}</FocusableDiv>
+    <FocusableDiv onEnterPress={handleEnterPress} clickEnterButtonLabel={clickOnEnterButtonLabel}>
+      {contents}
+    </FocusableDiv>
   ) : (
     contents
   );
