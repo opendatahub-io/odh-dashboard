@@ -1,19 +1,8 @@
 import * as React from 'react';
 import { useRef, useEffect, useId } from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import GenericModalFooter from './GenericModalFooter';
+import GenericModalFooter, { ButtonAction } from './GenericModalFooter';
 import '#~/concepts/dashboard/ModalStyles.scss';
-
-// todo: deal with the scss above; remove it?????
-type ButtonAction = {
-  label: string;
-  onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'link';
-  clickOnEnter?: boolean;
-  dataTestId?: string;
-  isDisabled?: boolean;
-  isLoading?: boolean;
-};
 
 type GenericModalProps = {
   onClose: () => void;
@@ -53,6 +42,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
+      console.log('handleKeyDown avo44a', event);
       event.preventDefault();
       event.stopPropagation();
       onEnterPress();
@@ -98,7 +88,15 @@ const GenericModal: React.FC<GenericModalProps> = ({
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
 
-  const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
+  const actualOnClose = () => {
+    console.log('actualOnClose called');
+    onClose();
+  };
+
+  const clickOnEnterIndex =
+    buttonActions?.findIndex(
+      (action) => action.clickOnEnter && action.isDisabled !== true && action.isLoading !== true,
+    ) ?? -1;
   const hasClickOnEnter = clickOnEnterIndex !== -1;
   const clickOnEnterButtonLabel = buttonActions?.[clickOnEnterIndex]?.label;
 
@@ -129,7 +127,7 @@ const GenericModal: React.FC<GenericModalProps> = ({
       data-testid={dataTestId}
       isOpen
       variant="medium"
-      onClose={onClose}
+      onClose={actualOnClose}
       title={typeof title === 'string' ? title : 'Modal'}
       disableFocusTrap={disableFocusTrap}
       aria-label={typeof title === 'string' ? title : undefined}

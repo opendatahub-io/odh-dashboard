@@ -1,20 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Alert,
-  Form,
-  Stack,
-  StackItem,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-  ExpandableSection,
-} from '@patternfly/react-core';
+import { Alert, Form, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import GenericModal from '#~/components/modals/GenericModal';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import SamplePipelineSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
@@ -63,6 +53,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
   const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
+  // const [error, setError] = React.useState<Error>('tempError ugh ugh ugh');
+
   const [error, setError] = React.useState<Error>();
   const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
@@ -215,80 +207,92 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       });
   };
 
-  return (
-    <Modal variant="medium" isOpen onClose={onCancel}>
-      <ModalHeader
-        title="Configure pipeline server"
-        description="Configuring a pipeline server enables you to create and manage pipelines."
-      />
-      <ModalBody>
-        <Stack hasGutter>
-          <StackItem>
-            <Alert
-              variant="info"
-              isInline
-              title="Pipeline server configuration cannot be edited after creation. To use a different configuration after creation, delete the pipeline server and create a new one."
-            />
-          </StackItem>
-          <StackItem>
-            <Form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submit();
-              }}
-            >
-              <ObjectStorageSection
-                setConfig={setConfig}
-                config={config}
-                loaded={loaded}
-                connections={connections}
-              />
-              <ExpandableSection
-                data-testid="advanced-settings-section"
-                isIndented
-                toggleId="advanced-settings-toggle"
-                toggleText="Advanced settings"
-                onToggle={() => {
-                  setAdvancedSettingsExpanded(!advancedSettingsExpanded);
-
-                  if (!advancedSettingsExpanded) {
-                    requestAnimationFrame(() => {
-                      advancedSettingsRef.current?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start',
-                      });
-                    });
-                  }
-                }}
-                isExpanded={advancedSettingsExpanded}
-              >
-                <div ref={advancedSettingsRef}>
-                  <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-                  {isFineTuningAvailable && (
-                    <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-                  )}
-                  <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
-                  <PipelineCachingSection
-                    enableCaching={config.enableCaching}
-                    setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
-                  />
-                </div>
-              </ExpandableSection>
-            </Form>
-          </StackItem>
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          submitLabel="Configure pipeline server"
-          onSubmit={submit}
-          isSubmitLoading={fetching}
-          isSubmitDisabled={!canSubmit || fetching}
-          onCancel={onCancel}
-          alertTitle="Error configuring pipeline server"
-          error={error}
+  const contents = (
+    <Stack hasGutter>
+      <StackItem>
+        <Alert
+          variant="info"
+          isInline
+          title="Pipeline server configuration cannot be edited after creation. To use a different configuration after creation, delete the pipeline server and create a new one."
         />
-      </ModalFooter>
-    </Modal>
+      </StackItem>
+      <StackItem>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <ObjectStorageSection
+            setConfig={setConfig}
+            config={config}
+            loaded={loaded}
+            connections={connections}
+          />
+          <ExpandableSection
+            data-testid="advanced-settings-section"
+            isIndented
+            toggleId="advanced-settings-toggle"
+            toggleText="Advanced settings"
+            onToggle={() => {
+              setAdvancedSettingsExpanded(!advancedSettingsExpanded);
+
+              if (!advancedSettingsExpanded) {
+                requestAnimationFrame(() => {
+                  advancedSettingsRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                  });
+                });
+              }
+            }}
+            isExpanded={advancedSettingsExpanded}
+          >
+            <div ref={advancedSettingsRef}>
+              <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+              {isFineTuningAvailable && (
+                <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
+              )}
+              <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+              <PipelineCachingSection
+                enableCaching={config.enableCaching}
+                setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+              />
+            </div>
+          </ExpandableSection>
+        </Form>
+      </StackItem>
+    </Stack>
+  );
+
+  const buttonActions = [
+    {
+      label: 'Configure pipeline server',
+      onClick: submit,
+      variant: 'primary' as const,
+      isDisabled: !canSubmit || fetching,
+      isLoading: fetching,
+      dataTestId: 'modal-submit-button',
+      clickOnEnter: true,
+    },
+    {
+      label: 'Cancel',
+      onClick: onCancel,
+      variant: 'link' as const,
+      dataTestId: 'modal-cancel-button',
+    },
+  ];
+
+  return (
+    <GenericModal
+      onClose={onCancel}
+      title="Configure pipeline server"
+      description="Configuring a pipeline server enables you to create and manage pipelines."
+      contents={contents}
+      buttonActions={buttonActions}
+      error={error}
+      alertTitle="Error configuring pipeline server"
+      dataTestId="configure-pipeline-server-modal"
+    />
   );
 };
