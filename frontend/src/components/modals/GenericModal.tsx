@@ -12,7 +12,7 @@ type ButtonAction = {
   dataTestId?: string;
 };
 
-type MessageModalProps = {
+type GenericModalProps = {
   onClose: () => void;
   contents: React.ReactNode;
   title: string | React.ReactNode;
@@ -76,7 +76,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
  * for autofocusing on the button when the enter key is pressed;
  * disableFocusTrap needs to be false
  */
-const MessageModal: React.FC<MessageModalProps> = ({
+const GenericModal: React.FC<GenericModalProps> = ({
   onClose,
   contents,
   title,
@@ -148,4 +148,4 @@ const MessageModal: React.FC<MessageModalProps> = ({
   );
 };
 
-export default MessageModal;
+export default GenericModal;

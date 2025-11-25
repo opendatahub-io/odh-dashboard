@@ -24,7 +24,7 @@ import PipelineComponentStatusIcon, {
 import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes';
 import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
-import MessageModal from '#~/components/modals/MessageModal';
+import GenericModal from '#~/components/modals/GenericModal.tsx';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
 const PROGRESS_TAB = 'Progress';
@@ -213,7 +213,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
   ];
 
   return (
-    <MessageModal
+    <GenericModal
       onClose={onClose}
       title={modalTitle}
       description={modalDesc}
