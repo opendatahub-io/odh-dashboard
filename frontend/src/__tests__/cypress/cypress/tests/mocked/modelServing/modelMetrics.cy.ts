@@ -14,7 +14,6 @@ import {
   modelMetricsKserve,
   modelMetricsKserveNim,
   modelMetricsPerformance,
-  serverMetrics,
 } from '#~/__tests__/cypress/cypress/pages/modelMetrics';
 import type {
   InferenceServiceKind,
@@ -154,13 +153,7 @@ const initIntercepts = ({
     // all the other serving endpoints get data
     if (/query=undefined\b/.test(query)) {
       req.reply(mockPrometheusServing({ result: [] }));
-    } else if (
-      // TODO: Remove ModelMesh metrics check - ModelMesh support removed
-      !(
-        query.includes(`modelmesh_api_request_milliseconds_count`) &&
-        query.includes(`code%21%3D%27OK`)
-      )
-    ) {
+    } else if (!query.includes(`code%21%3D%27OK`)) {
       req.reply(mockPrometheusServing({ result: hasServingData ? undefined : [] }));
     } else {
       req.reply(mockPrometheusServing({ result: [] }));
@@ -315,36 +308,6 @@ describe('Model Metrics', () => {
     modelMetricsBias
       .getMetricsChart('Disparate impact ratio (DIR)', 'Loan acceptance 2 STRICT')
       .shouldHaveData();
-  });
-
-  it('Server metrics show no data available', () => {
-    initIntercepts({
-      disableTrustyBiasMetrics: false,
-      disablePerformanceMetrics: false,
-      hasServingData: false,
-      hasBiasData: false,
-    });
-
-    serverMetrics.visit('test-project', 'test-model');
-    serverMetrics.getMetricsChart('HTTP requests per 5 minutes').shouldHaveNoData();
-    serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveNoData();
-    serverMetrics.getMetricsChart('CPU utilization %').shouldHaveNoData();
-    serverMetrics.getMetricsChart('Memory utilization %').shouldHaveNoData();
-  });
-
-  it('Server metrics show data', () => {
-    initIntercepts({
-      disableTrustyBiasMetrics: false,
-      disablePerformanceMetrics: false,
-      hasServingData: true,
-      hasBiasData: false,
-    });
-
-    serverMetrics.visit('test-project', 'test-model');
-    serverMetrics.getMetricsChart('HTTP requests per 5 minutes').shouldHaveData();
-    serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveData();
-    serverMetrics.getMetricsChart('CPU utilization %').shouldHaveData();
-    serverMetrics.getMetricsChart('Memory utilization %').shouldHaveData();
   });
 
   it('Bias metrics is not configured', () => {
@@ -728,10 +691,10 @@ describe('KServe performance metrics', () => {
 
     modelMetricsKserve.visit('test-project', 'test-inference-service');
     modelMetricsKserve.getAllMetricsCharts().should('have.length', 4);
-    serverMetrics.getMetricsChart('Requests per 5 minutes').shouldHaveData();
-    serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveData();
-    serverMetrics.getMetricsChart('CPU utilization %').shouldHaveData();
-    serverMetrics.getMetricsChart('Memory utilization %').shouldHaveData();
+    modelMetricsKserve.getMetricsChart('Requests per 5 minutes').shouldHaveData();
+    modelMetricsKserve.getMetricsChart('Average response time (ms)').shouldHaveData();
+    modelMetricsKserve.getMetricsChart('CPU utilization %').shouldHaveData();
+    modelMetricsKserve.getMetricsChart('Memory utilization %').shouldHaveData();
   });
 
   it('charts should not error out if a query is missing and there is no data', () => {
@@ -750,10 +713,10 @@ describe('KServe performance metrics', () => {
 
     modelMetricsKserve.visit('test-project', 'test-inference-service');
     modelMetricsKserve.getAllMetricsCharts().should('have.length', 4);
-    serverMetrics.getMetricsChart('Requests per 5 minutes').shouldHaveNoData();
-    serverMetrics.getMetricsChart('Average response time (ms)').shouldHaveNoData();
-    serverMetrics.getMetricsChart('CPU utilization %').shouldHaveNoData();
-    serverMetrics.getMetricsChart('Memory utilization %').shouldHaveNoData();
+    modelMetricsKserve.getMetricsChart('Requests per 5 minutes').shouldHaveNoData();
+    modelMetricsKserve.getMetricsChart('Average response time (ms)').shouldHaveNoData();
+    modelMetricsKserve.getMetricsChart('CPU utilization %').shouldHaveNoData();
+    modelMetricsKserve.getMetricsChart('Memory utilization %').shouldHaveNoData();
   });
 
   it('charts should show data when serving data is available', () => {

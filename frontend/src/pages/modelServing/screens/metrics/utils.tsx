@@ -4,7 +4,7 @@ import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { TimeframeTitle } from '#~/concepts/metrics/types';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '#~/types';
 import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '#~/api';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
@@ -24,23 +24,12 @@ import {
   NamedMetricChartLine,
   TranslatePoint,
 } from './types';
-import { ModelMetricType, ServerMetricType } from './ModelServingMetricsContext';
+import { ModelMetricType } from './ModelServingMetricsContext';
 
-export const getServerMetricsQueries = (
-  server: ServingRuntimeKind,
-): { [key in ServerMetricType]: string } => {
-  const { namespace } = server.metadata;
-  const { name } = server.metadata;
-
-  return {
-    // TODO: Remove ModelMesh metrics - ModelMesh support removed, these queries will always return empty
-    [ServerMetricType.REQUEST_COUNT]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*"}[${PROMETHEUS_REQUEST_RESOLUTION}])))`,
-    [ServerMetricType.AVG_RESPONSE_TIME]: `sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_sum{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}])) / sum without (vModelId, modelId) (increase(modelmesh_api_request_milliseconds_count{namespace="${namespace}",pod=~"modelmesh-serving-${name}-.*", code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))`,
-    [ServerMetricType.CPU_UTILIZATION]: `sum(pod:container_cpu_usage:sum{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="cpu", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
-    [ServerMetricType.MEMORY_UTILIZATION]: `sum(container_memory_working_set_bytes{namespace="${namespace}", pod=~"modelmesh-serving-${name}-.*"})/sum(kube_pod_resource_limit{resource="memory", pod=~"modelmesh-serving-${name}-.*", namespace="${namespace}"})`,
-  };
-};
-
+/**
+ * The `REQUEST_COUNT_SUCCESS` and `REQUEST_COUNT_FAILED` don't seem to be used directly and just for a isLoaded check,
+ * but I updated it to use KServe based query: https://github.com/opendatahub-io/kserve/blob/master/docs/samples/metrics-and-monitoring/README.md#access-prometheus-metrics
+ */
 export const getModelMetricsQueries = (
   model: InferenceServiceKind,
 ): { [key in ModelMetricType]: string } => {
@@ -48,9 +37,8 @@ export const getModelMetricsQueries = (
   const { name } = model.metadata;
 
   return {
-    // TODO: Remove ModelMesh metrics - ModelMesh support removed, these queries will always return empty
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))) OR on() vector(0)`,
-    [ModelMetricType.REQUEST_COUNT_FAILED]: `round(sum(increase(modelmesh_api_request_milliseconds_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))) OR on() vector(0)`,
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: `round(sum(increase(revision_app_request_latencies_count{namespace='${namespace}',vModelId='${name}', code='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))) OR on() vector(0)`,
+    [ModelMetricType.REQUEST_COUNT_FAILED]: `round(sum(increase(revision_app_request_latencies_count{namespace='${namespace}',vModelId='${name}', code!='OK'}[${PROMETHEUS_REQUEST_RESOLUTION}]))) OR on() vector(0)`,
     [ModelMetricType.TRUSTY_AI_SPD]: `trustyai_spd{model="${name}"}`,
     [ModelMetricType.TRUSTY_AI_DIR]: `trustyai_dir{model="${name}"}`,
   };
