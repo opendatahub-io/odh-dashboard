@@ -36,6 +36,7 @@ type ButtonActionShortcutProps = {
   isSubmitDisabled?: boolean;
   isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
+  enterButton?: 'submit' | 'cancel';
 };
 
 const makeButtonActions = ({
@@ -46,6 +47,7 @@ const makeButtonActions = ({
   isSubmitDisabled,
   isSubmitLoading,
   isCancelDisabled,
+  enterButton,
 }: ButtonActionShortcutProps): ButtonAction[] => {
   const submitVariant: ButtonAction['variant'] =
     submitButtonVariant === 'primary' ||
@@ -55,6 +57,8 @@ const makeButtonActions = ({
       ? submitButtonVariant
       : 'primary';
 
+  const submitOnEnter = enterButton === 'submit';
+  const cancelOnEnter = enterButton === 'cancel';
   return [
     {
       label: submitLabel,
@@ -63,6 +67,7 @@ const makeButtonActions = ({
       isDisabled: isSubmitDisabled,
       isLoading: isSubmitLoading,
       dataTestId: 'modal-submit-button',
+      clickOnEnter: submitOnEnter,
     },
     {
       label: 'Cancel',
@@ -70,6 +75,7 @@ const makeButtonActions = ({
       variant: 'link' as const,
       dataTestId: 'modal-cancel-button',
       isDisabled: isCancelDisabled,
+      clickOnEnter: cancelOnEnter,
     },
   ];
 };

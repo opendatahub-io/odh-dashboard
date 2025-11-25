@@ -271,10 +271,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     submitButtonVariant: 'primary',
     isSubmitDisabled: !canSubmit || fetching,
     isSubmitLoading: fetching,
+    enterButton: 'submit',
   });
 
-  // Add clickOnEnter to the submit button
-  buttonActions[0].clickOnEnter = true;
+  console.log('made buttonActions:tt', buttonActions);
 
   return (
     <GenericModal
