@@ -53,8 +53,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
   const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
-  // const [error, setError] = React.useState<Error>('tempError ugh ugh ugh');
-
   const [error, setError] = React.useState<Error>();
   const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
