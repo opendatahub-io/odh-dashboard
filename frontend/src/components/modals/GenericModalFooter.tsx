@@ -34,8 +34,7 @@ const GenericModalFooter: React.FC<GenericModalFooterProps> = ({
   alertTitle,
   alertLinks,
 }) => (
-  // make sure alert uses the full width
-  <Stack hasGutter style={{ flex: 'auto' }}>
+  <Stack hasGutter>
     {error && (
       <StackItem>
         <Alert
