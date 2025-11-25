@@ -1,3 +1,4 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
@@ -15,7 +16,7 @@ import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pa
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import type { SCAccessMode } from '#~/__tests__/cypress/cypress/types';
 
-describe('Cluster Storage Access Modes Tests', () => {
+describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', () => {
   const createdStorageClasses: string[] = [];
 
   const projectName = 'test-cluster-storage-access-modes-preset';
