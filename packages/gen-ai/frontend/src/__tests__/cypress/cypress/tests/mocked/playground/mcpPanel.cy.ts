@@ -140,6 +140,7 @@ describe('Playground - MCP Servers', () => {
         serverName,
         serverUrl,
         withStatusInterceptor: { token: testToken, serverUrl },
+        withToolsInterceptor: { token: testToken, serverUrl },
       });
 
       navigateToPlayground(namespace);
