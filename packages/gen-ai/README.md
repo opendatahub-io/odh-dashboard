@@ -110,6 +110,20 @@ make run MOCK_MAAS_CLIENT=true
 make dev-bff-mock
 ```
 
+## Running Frontend and BFF Together
+
+For convenience, you can start both the frontend and BFF simultaneously using these Makefile targets from the root of the gen-ai package:
+
+```bash
+# Start frontend, bff, and port-forwarding
+make dev-start
+
+# Start frontend and bff without port-forwarding
+make dev-start-no-portforward
+```
+
+These commands will run both services in parallel, making it easier to start your development environment with a single command.
+
 ## Building and Running with Docker
 
 The project includes a multi-stage Dockerfile that builds both the frontend and backend components and creates a minimal production image.
@@ -179,8 +193,8 @@ docker run -p 8080:8080 \
 A complimentary script is provided to build and run GenAI Studio as standalone application
 in OpenShift by using the build and deploy capacities of OpenShift through the `oc new-app` command.
 
-
 Prerequisites:
+
 - Logged into OpenShift (`oc login`) and a target project selected (`oc project <name>`)
 - Current git branch tracks a remote and the remote fetch URL uses HTTPS
 - A browser extension that allows "Autorization: Bearer <oc whoami -t >" token
@@ -192,6 +206,7 @@ Run from the repository root:
 ```
 
 What the script does (high level):
+
 - Detects repo URL and current branch; validates HTTPS fetch URL
 - Creates a Docker BuildConfig via `oc new-app` (scoped to `packages/gen-ai`)
 - Patches the BuildConfig to use `packages/gen-ai/Dockerfile`

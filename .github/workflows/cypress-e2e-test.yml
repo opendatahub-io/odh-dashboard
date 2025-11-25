@@ -146,6 +146,7 @@ jobs:
 
   e2e-tests:
     needs: [get-test-tags]
+    # Will automatically skip if get-test-tags was skipped
     runs-on: self-hosted
     timeout-minutes: 30
     strategy:
