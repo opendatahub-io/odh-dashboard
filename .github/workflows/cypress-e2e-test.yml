@@ -34,8 +34,11 @@ jobs:
     name: Wait for Test workflow to complete
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      tests-passed: ${{ steps.check-tests.outputs.tests-passed }}
     steps:
       - name: Wait for Test workflow to succeed
+        id: check-tests
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -56,7 +59,8 @@ jobs:
             
             if [ $i -eq 12 ]; then
               echo "❌ Test workflow not found after 1 minute"
-              exit 1
+              echo "tests-passed=false" >> $GITHUB_OUTPUT
+              exit 0
             fi
             
             echo "Attempt $i/12: Test workflow not started yet, waiting 5s..."
@@ -95,10 +99,23 @@ jobs:
             if [ "$STATUS" = "completed" ]; then
               if [ "$CONCLUSION" = "success" ]; then
                 echo "✅ Test workflow completed successfully!"
+                echo "tests-passed=true" >> $GITHUB_OUTPUT
+                exit 0
+              elif [ "$CONCLUSION" = "skipped" ]; then
+                echo "⏭️  Tests were skipped - a required test job likely failed"
+                echo "E2E tests will not run because tests did not complete successfully."
+                echo "tests-passed=false" >> $GITHUB_OUTPUT
+                exit 0
+              elif [ "$CONCLUSION" = "cancelled" ]; then
+                echo "🚫 Tests were cancelled by user or timeout"
+                echo "E2E tests will not run."
+                echo "tests-passed=false" >> $GITHUB_OUTPUT
                 exit 0
               else
-                echo "❌ Test workflow completed with conclusion: $CONCLUSION"
-                exit 1
+                echo "❌ Tests completed with unexpected conclusion: $CONCLUSION"
+                echo "E2E tests will not run."
+                echo "tests-passed=false" >> $GITHUB_OUTPUT
+                exit 0
               fi
             fi
             
@@ -108,6 +125,8 @@ jobs:
 
   get-test-tags:
     needs: [wait-for-test]
+    # Only run if tests actually passed
+    if: needs.wait-for-test.outputs.tests-passed == 'true'
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -123,6 +142,7 @@ jobs:
 
   e2e-tests:
     needs: [get-test-tags]
+    # Will automatically skip if get-test-tags was skipped
     runs-on: self-hosted
     timeout-minutes: 30
     strategy:
