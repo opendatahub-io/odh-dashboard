@@ -7,6 +7,7 @@ import {
   Button,
   Stack,
   StackItem,
+  ButtonProps,
 } from '@patternfly/react-core';
 
 export type ButtonAction = {
@@ -25,6 +26,52 @@ type GenericModalFooterProps = {
   alertTitle?: string;
   error?: Error | React.ReactNode;
   alertLinks?: React.ReactNode;
+};
+
+type ButtonActionShortcutProps = {
+  submitLabel: string;
+  submitButtonVariant?: ButtonProps['variant'];
+  onSubmit: () => void;
+  onCancel: () => void;
+  isSubmitDisabled?: boolean;
+  isSubmitLoading?: boolean;
+  isCancelDisabled?: boolean;
+};
+
+const makeButtonActions = ({
+  submitLabel,
+  onSubmit,
+  onCancel,
+  submitButtonVariant = 'primary',
+  isSubmitDisabled,
+  isSubmitLoading,
+  isCancelDisabled,
+}: ButtonActionShortcutProps): ButtonAction[] => {
+  const submitVariant: ButtonAction['variant'] =
+    submitButtonVariant === 'primary' ||
+    submitButtonVariant === 'secondary' ||
+    submitButtonVariant === 'danger' ||
+    submitButtonVariant === 'link'
+      ? submitButtonVariant
+      : 'primary';
+
+  return [
+    {
+      label: submitLabel,
+      variant: submitVariant,
+      onClick: onSubmit,
+      isDisabled: isSubmitDisabled,
+      isLoading: isSubmitLoading,
+      dataTestId: 'modal-submit-button',
+    },
+    {
+      label: 'Cancel',
+      onClick: onCancel,
+      variant: 'link' as const,
+      dataTestId: 'modal-cancel-button',
+      isDisabled: isCancelDisabled,
+    },
+  ];
 };
 
 const GenericModalFooter: React.FC<GenericModalFooterProps> = ({
@@ -76,3 +123,4 @@ const GenericModalFooter: React.FC<GenericModalFooterProps> = ({
 );
 
 export default GenericModalFooter;
+export { makeButtonActions };

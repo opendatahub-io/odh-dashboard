@@ -5,6 +5,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 import GenericModal from '#~/components/modals/GenericModal';
+import { makeButtonActions } from '#~/components/modals/GenericModalFooter';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import SamplePipelineSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
@@ -263,23 +264,17 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     </Stack>
   );
 
-  const buttonActions = [
-    {
-      label: 'Configure pipeline server',
-      onClick: submit,
-      variant: 'primary' as const,
-      isDisabled: !canSubmit || fetching,
-      isLoading: fetching,
-      dataTestId: 'modal-submit-button',
-      clickOnEnter: true,
-    },
-    {
-      label: 'Cancel',
-      onClick: onCancel,
-      variant: 'link' as const,
-      dataTestId: 'modal-cancel-button',
-    },
-  ];
+  const buttonActions = makeButtonActions({
+    submitLabel: 'Configure pipeline server',
+    onSubmit: submit,
+    onCancel,
+    submitButtonVariant: 'primary',
+    isSubmitDisabled: !canSubmit || fetching,
+    isSubmitLoading: fetching,
+  });
+
+  // Add clickOnEnter to the submit button
+  buttonActions[0].clickOnEnter = true;
 
   return (
     <GenericModal
