@@ -112,6 +112,10 @@ class TrainingJobTableRow extends TableRow {
     return this.find().find('[data-label="Status"]');
   }
 
+  findStatusProgressBar() {
+    return this.findStatus().findByTestId('training-job-progress-bar');
+  }
+
   findNameLink() {
     return this.findTrainingJobName().find('button');
   }
@@ -335,9 +339,48 @@ class TrainingJobLogsTab {
   }
 }
 
+class TrainingJobDetailsTab {
+  findProgressSection() {
+    return cy.findByTestId('progress-section');
+  }
+
+  findMetricsSection() {
+    return cy.findByTestId('metrics-section');
+  }
+
+  findEstimatedTimeRemainingValue() {
+    return cy.findByTestId('estimated-time-remaining-value');
+  }
+
+  findStepsValue() {
+    return cy.findByTestId('steps-value');
+  }
+
+  findEpochsValue() {
+    return cy.findByTestId('epochs-value');
+  }
+
+  findLossValue() {
+    return cy.findByTestId('loss-value');
+  }
+
+  findAccuracyValue() {
+    return cy.findByTestId('accuracy-value');
+  }
+
+  findTotalBatchesValue() {
+    return cy.findByTestId('total-batches-value');
+  }
+
+  findTotalSamplesValue() {
+    return cy.findByTestId('total-samples-value');
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
+export const trainingJobDetailsTab = new TrainingJobDetailsTab();
