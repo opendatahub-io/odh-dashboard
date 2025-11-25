@@ -26,8 +26,10 @@ export const mockMCPStatusInterceptor = (
   testToken: string,
   serverUrl: string,
 ): Cypress.Chainable<null> => {
+  const encodedServerUrl = encodeURIComponent(serverUrl);
+
   return cy
-    .intercept('GET', '/gen-ai/api/v1/mcp/status*', (req) => {
+    .intercept('GET', `**/mcp/status*server_url=${encodedServerUrl}*`, (req) => {
       const authHeader = req.headers['x-mcp-bearer'] || req.headers['X-MCP-Bearer'];
 
       if (authHeader && authHeader.includes(testToken)) {
@@ -58,9 +60,10 @@ export const mockMCPStatusError = (
   serverUrl: string,
 ): Cypress.Chainable<null> => {
   const fixtureData = errorType === '400' ? mcpStatusError400 : mcpStatusError401;
+  const encodedServerUrl = encodeURIComponent(serverUrl);
 
   return cy
-    .intercept('GET', '/gen-ai/api/v1/mcp/status*', (req) => {
+    .intercept('GET', `**/mcp/status*server_url=${encodedServerUrl}*`, (req) => {
       const response = JSON.parse(JSON.stringify(fixtureData));
       response.data.server_url = serverUrl;
       req.reply({ statusCode: 200, body: response });
@@ -80,8 +83,10 @@ export const mockMCPToolsInterceptor = (
   testToken: string,
   serverUrl: string,
 ): Cypress.Chainable<null> => {
+  const encodedServerUrl = encodeURIComponent(serverUrl);
+
   return cy
-    .intercept('GET', '/gen-ai/api/v1/mcp/tools*', (req) => {
+    .intercept('GET', `**/mcp/tools*server_url=${encodedServerUrl}*`, (req) => {
       const authHeader = req.headers['x-mcp-bearer'] || req.headers['X-MCP-Bearer'];
 
       if (authHeader && authHeader.includes(testToken)) {
