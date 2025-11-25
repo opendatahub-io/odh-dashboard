@@ -113,15 +113,14 @@ export const applyModelEnvVarsAndArgs = (
     delete mainContainer.env;
     return result;
   }
+  const envHolder: { name: string; value: string }[] = [];
   if (modelEnvVars?.enabled) {
-    mainContainer.env = [...(mainContainer.env || []), ...modelEnvVars.variables];
+    envHolder.push(...modelEnvVars.variables);
   }
   if (modelArgs?.enabled) {
-    mainContainer.env = [
-      ...(mainContainer.env || []),
-      { name: VLLM_ADDITIONAL_ARGS, value: modelArgs.args.join(' ') },
-    ];
+    envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: modelArgs.args.join(' ') });
   }
+  mainContainer.env = envHolder;
   return result;
 };
 
