@@ -174,25 +174,73 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Select hardware profile');
       cy.findByTestId('hardware-profile-select').click();
       cy.findByRole('option', {
-        name: (content) => content.includes('gpu-profile'),
+        name: (content) => content.includes('default-profile'),
       }).click();
+
+      cy.step('Expand "Customize resource requests and limits" section');
+      cy.findByRole('button', { name: /Customize resource requests and limits/i }).click();
+
+      cy.step('Verify default resource values are displayed');
+      modelServingWizard.findCPURequestedInput().should('have.value', '2');
+      modelServingWizard.findCPULimitInput().should('have.value', '2');
+      modelServingWizard.findMemoryRequestedInput().should('have.value', '4');
+      modelServingWizard.findMemoryLimitInput().should('have.value', '4');
+
+      cy.step('Modify CPU requests from 2 to 1');
+      modelServingWizard.findCPURequestedButton('Minus').click();
+      modelServingWizard.findCPURequestedInput().should('have.value', '1');
+
+      cy.step('Modify CPU limits from 2 to 4');
+      modelServingWizard.findCPULimitButton('Plus').click();
+      modelServingWizard.findCPULimitButton('Plus').click();
+      modelServingWizard.findCPULimitInput().should('have.value', '4');
+
+      cy.step('Modify Memory requests from 4 to 8');
+      modelServingWizard.findMemoryRequestedButton('Plus').click();
+      modelServingWizard.findMemoryRequestedButton('Plus').click();
+      modelServingWizard.findMemoryRequestedButton('Plus').click();
+      modelServingWizard.findMemoryRequestedButton('Plus').click();
+      modelServingWizard.findMemoryRequestedInput().should('have.value', '8');
+
+      cy.step('Modify Memory limits from 4 to 8');
+      modelServingWizard.findMemoryLimitButton('Plus').click();
+      modelServingWizard.findMemoryLimitButton('Plus').click();
+      modelServingWizard.findMemoryLimitButton('Plus').click();
+      modelServingWizard.findMemoryLimitButton('Plus').click();
+      modelServingWizard.findMemoryLimitInput().should('have.value', '8');
+
+      cy.step('Select serving runtime');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      cy.step('Wait for serving runtime options to load');
+      cy.findByTestId('global-scoped-serving-runtimes').should('exist');
+
+      cy.step('Select vLLM CPU (amd64 - EXPERIMENTAL) serving runtime');
+      cy.findByTestId('global-scoped-serving-runtimes')
+        .contains(/vLLM CPU.*\(amd64 - EXPERIMENTAL\)/i)
+        .should('exist')
+        .click();
+
+      cy.step('Verify global-scoped label is displayed');
+      modelServingWizard.findGlobalScopedLabel().should('be.visible');
+
       modelServingWizard.findNextButton().click();
 
       cy.step('Enable AI asset endpoint');
       modelServingWizard.findSaveAiAssetCheckbox().click();
 
-      cy.step('Enable external route');
-      modelServingWizard.findExternalRouteCheckbox().click();
+      //       cy.step('Enable external route');
+      //       modelServingWizard.findExternalRouteCheckbox().click();
 
-      cy.step('Add serving runtime arguments');
-      modelServingWizard.findRuntimeArgsCheckbox().should('exist').click();
-      modelServingWizard.findRuntimeArgsTextBox().type(
-        `--dtype=half
---gpu-memory-utilization=0.95
---enable-auto-tool-choice
---tool-call-parser=llama3_json
---chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja`,
-      );
+      //       cy.step('Add serving runtime arguments');
+      //       modelServingWizard.findRuntimeArgsCheckbox().should('exist').click();
+      //       modelServingWizard.findRuntimeArgsTextBox().type(
+      //         `--dtype=half
+      // --gpu-memory-utilization=0.95
+      // --enable-auto-tool-choice
+      // --tool-call-parser=llama3_json
+      // --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja`,
+      //       );
       modelServingWizard.findNextButton().click();
 
       cy.step('Deploy model');
@@ -310,6 +358,16 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
             'Response should mention United States or America',
           );
         });
+
+      // cy.step('Set LlamaStack to Removed');
+      // cy.exec(
+      //   `oc patch datasciencecluster default-dsc --type=merge -p '{"spec":{"components": {"llamastackoperator":{"managementState":"Removed"}}}}'`,
+      // );
+
+      // cy.step('Disable Gen AI Studio and Model as Service');
+      // cy.exec(
+      //   `oc patch odhdashboardconfig odh-dashboard-config -n redhat-ods-applications --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":false, "modelAsService":false}}}'`,
+      // );
     },
   );
 });
