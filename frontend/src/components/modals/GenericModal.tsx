@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useRef, useEffect, useId } from 'react';
-import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import { Modal, ModalBody, ModalHeader, ModalFooter, ModalProps } from '@patternfly/react-core';
 import GenericModalFooter, { ButtonAction } from './GenericModalFooter';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -17,6 +17,8 @@ type GenericModalProps = {
   alertTitle?: string;
   alertLinks?: React.ReactNode;
   bodyClassName?: string;
+  variant?: ModalProps['variant'];
+  appendTo?: HTMLElement | (() => HTMLElement);
 };
 
 type FocusableDivProps = {
@@ -57,6 +59,13 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
       tabIndex={-1}
       role="group"
       aria-label={clickEnterButtonLabelText}
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        outline: 'none',
+        flex: 1,
+      }}
     >
       {children}
     </div>
@@ -86,6 +95,8 @@ const GenericModal: React.FC<GenericModalProps> = ({
   alertTitle,
   alertLinks,
   bodyClassName = 'odh-modal__content-height',
+  variant = 'medium',
+  appendTo,
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
@@ -128,12 +139,13 @@ const GenericModal: React.FC<GenericModalProps> = ({
     <Modal
       data-testid={dataTestId}
       isOpen
-      variant="medium"
+      variant={variant}
       onClose={actualOnClose}
       title={typeof title === 'string' ? title : 'Modal'}
       disableFocusTrap={disableFocusTrap}
       aria-label={typeof title === 'string' ? title : undefined}
       aria-labelledby={typeof title !== 'string' ? headingId : undefined}
+      appendTo={appendTo}
     >
       <ModalHeader title={typeof title === 'string' ? title : undefined} description={description}>
         {typeof title !== 'string' ? <span id={headingId}>{title}</span> : null}
