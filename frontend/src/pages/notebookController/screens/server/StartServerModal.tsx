@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { ActionList, ActionListItem, AlertVariant, Button } from '@patternfly/react-core';
+import { AlertVariant } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookRedirectLink, useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
+import { ButtonAction } from '#~/components/modals/GenericModalFooter';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
 import '#~/pages/notebookController/NotebookController.scss';
@@ -74,39 +75,40 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
     };
   }, [isNotebookRunning, isUsingCurrentTab, navigateToNotebook]);
 
-  const renderButtons = () =>
-    !isNotebookRunning ? (
-      <Button
-        data-id="close-spawn"
-        key="cancel"
-        variant={spawnFailed ? 'primary' : 'secondary'}
-        onClick={onClose}
-        isDisabled={!open}
-      >
-        Cancel
-      </Button>
-    ) : isUsingCurrentTab ? null : (
-      <ActionList>
-        <ActionListItem>
-          <Button
-            variant="primary"
-            key="open-new-tab-button"
-            onClick={() => navigateToNotebook(false)}
-          >
-            Open in new tab
-          </Button>
-        </ActionListItem>
-        <ActionListItem>
-          <Button
-            variant="secondary"
-            key="open-new-tab-button"
-            onClick={() => navigateToNotebook(true)}
-          >
-            Open in current tab
-          </Button>
-        </ActionListItem>
-      </ActionList>
-    );
+  const makeButtons = (): ButtonAction[] | undefined => {
+    if (!isNotebookRunning) {
+      return [
+        {
+          label: 'Cancel',
+          dataTestId: 'close-spawn',
+          variant: spawnFailed ? 'primary' : 'secondary',
+          onClick: onClose,
+          isDisabled: !open,
+          clickOnEnter: true,
+        },
+      ];
+    }
+
+    if (!isUsingCurrentTab) {
+      return [
+        {
+          label: 'Open in new tab',
+          variant: 'primary',
+          onClick: () => navigateToNotebook(false),
+          dataTestId: 'open-new-tab-button',
+          clickOnEnter: true,
+        },
+        {
+          label: 'Open in current tab',
+          variant: 'secondary',
+          onClick: () => navigateToNotebook(true),
+          dataTestId: 'open-current-tab-button',
+        },
+      ];
+    }
+
+    return undefined;
+  };
 
   return (
     <StartNotebookModal
@@ -115,7 +117,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
       isStopping={false}
       notebookStatus={notebookStatus}
       events={events}
-      buttons={renderButtons()}
+      buttonActions={makeButtons()}
     />
   );
 };

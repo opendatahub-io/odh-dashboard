@@ -24,6 +24,10 @@ import { modelCustomizationRootPath } from '#~/routes/pipelines/modelCustomizati
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
+/**
+ * @deprecated fine tuning is deprecated
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
 export type StartRunModalProps = {
   onSubmit: (selectedProject: string) => void;
   onCancel: () => void;
