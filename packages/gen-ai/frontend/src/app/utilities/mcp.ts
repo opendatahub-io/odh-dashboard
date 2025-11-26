@@ -7,7 +7,7 @@ import {
   OutputItem,
   MCPToolCallData,
 } from '~/app/types';
-import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { generateMCPServerConfig } from './utils';
 
 /**
@@ -161,6 +161,41 @@ export const extractMCPToolCallData = (output?: OutputItem[]): MCPToolCallData |
 };
 
 /**
+ * Determines if the auto-unlock flow should be triggered for an MCP server selection
+ * This function encapsulates the business logic for when to automatically unlock a server
+ * when a user checks its checkbox in the MCP servers panel.
+ *
+ * @param params - Object containing all conditions for auto-unlock decision
+ * @param params.isInitialLoadComplete - Whether initial load from route state is complete
+ * @param params.wasSelected - Whether the server was already selected before this action
+ * @param params.isAuthenticated - Whether the server is already authenticated
+ * @param params.isChecking - Whether the server is currently being checked
+ * @param params.isValidating - Whether the server is currently being validated
+ * @returns boolean - True if auto-unlock should be triggered, false otherwise
+ */
+export const shouldTriggerAutoUnlock = (params: {
+  isInitialLoadComplete: boolean;
+  wasSelected: boolean;
+  isAuthenticated: boolean;
+  isChecking: boolean;
+  isValidating: boolean;
+}): boolean => {
+  const { isInitialLoadComplete, wasSelected, isAuthenticated, isChecking, isValidating } = params;
+
+  // User is selecting (checking the box, not unchecking)
+  const isSelecting = !wasSelected;
+
+  // All conditions must be met for auto-unlock to trigger
+  return (
+    isInitialLoadComplete && // Initial load from route state is complete
+    isSelecting && // User is selecting (not deselecting)
+    !isAuthenticated && // Server is not already authenticated
+    !isChecking && // Server is not already being checked
+    !isValidating // Server is not being validated
+  );
+};
+
+/**
  * Converts selected MCP servers to API-ready format with authentication headers
  *
  * @param selectedServerIds - Array of server URLs that are selected
@@ -175,24 +210,21 @@ export const getSelectedServersForAPI = (
   serverStatuses: Map<string, ServerStatusInfo>,
   serverTokens: Map<string, { token: string; authenticated: boolean; autoConnected: boolean }>,
 ): MCPServerConfig[] => {
-  const selectedServerUrls = new Set(selectedServerIds);
   const validServers: MCPServerConfig[] = [];
   let excludedCount = 0;
 
   servers.forEach((server) => {
-    if (!selectedServerUrls.has(server.url)) {
+    if (!selectedServerIds.includes(server.url)) {
       return;
     }
 
     const statusInfo = serverStatuses.get(server.url);
     const tokenInfo = serverTokens.get(server.url);
-    const isValidated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
-    const isConnected = statusInfo?.status === 'connected' || tokenInfo?.authenticated === true;
+    const isValidated = tokenInfo?.authenticated || tokenInfo?.autoConnected;
+    const isConnected = statusInfo?.status === 'connected' || tokenInfo?.authenticated;
 
     if (isConnected && isValidated) {
-      const serverConfig = generateMCPServerConfig(server, serverTokens);
-
-      validServers.push(serverConfig);
+      validServers.push(generateMCPServerConfig(server, serverTokens));
     } else {
       excludedCount++;
     }

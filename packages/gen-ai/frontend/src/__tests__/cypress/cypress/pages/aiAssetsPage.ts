@@ -8,10 +8,6 @@ class AIAssetsPage {
     this.waitForPageLoad();
   }
 
-  navigate(namespace?: string): void {
-    this.visit(namespace);
-  }
-
   private waitForPageLoad(): void {
     cy.findByTestId('page-title', { timeout: 15000 })
       .should('be.visible')
@@ -23,22 +19,13 @@ class AIAssetsPage {
     cy.findByRole('tabpanel', { timeout: 10000 }).should('be.visible');
   }
 
-  findModelsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-assets-tab-ai-assets-models-tab');
-  }
-
-  findMaaSTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-assets-tab-ai-assets-maas-tab');
-  }
-
   findMCPServersTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('ai-assets-tab-ai-assets-mcp-servers-tab');
   }
 
-  verifyAllTabsVisible(): void {
-    this.findModelsTab().should('be.visible');
-    this.findMaaSTab().should('be.visible');
-    this.findMCPServersTab().should('be.visible');
+  switchToMCPServersTab(): void {
+    this.findMCPServersTab().click();
+    this.waitForTabLoad();
   }
 }
 

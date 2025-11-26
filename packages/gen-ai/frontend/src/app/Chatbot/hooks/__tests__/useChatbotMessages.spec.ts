@@ -3,27 +3,12 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotSourceSettings, CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import { useMCPServersContext } from '~/app/context/MCPServersContext';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
-}));
-
-jest.mock('~/app/context/MCPSelectionContext', () => ({
-  useMCPSelectionContext: jest.fn(),
-}));
-
-jest.mock('~/app/context/MCPServersContext', () => ({
-  useMCPServersContext: jest.fn(),
-}));
-
-jest.mock('~/app/context/MCPTokenContext', () => ({
-  useMCPTokenContext: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -37,13 +22,6 @@ jest.mock('react', () => ({
 }));
 
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
-const mockUseMCPSelectionContext = useMCPSelectionContext as jest.MockedFunction<
-  typeof useMCPSelectionContext
->;
-const mockUseMCPServersContext = useMCPServersContext as jest.MockedFunction<
-  typeof useMCPServersContext
->;
-const mockUseMCPTokenContext = useMCPTokenContext as jest.MockedFunction<typeof useMCPTokenContext>;
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -75,6 +53,13 @@ describe('useChatbotMessages', () => {
 
   const mockNamespace = { name: 'test-namespace' };
 
+  // Provide default MCP data as props to the hook
+  const defaultMcpProps = {
+    mcpServers: [],
+    mcpServerStatuses: new Map(),
+    mcpServerTokens: new Map(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure createResponse mock is properly reset
@@ -89,38 +74,13 @@ describe('useChatbotMessages', () => {
         createResponse: mockCreateResponse,
       },
     });
-
-    // Mock MCP contexts
-    mockUseMCPSelectionContext.mockReturnValue({
-      playgroundSelectedServerIds: [],
-      selectedServersCount: 0,
-      saveSelectedServersToPlayground: jest.fn(),
-      setSelectedServersCount: jest.fn(),
-    });
-
-    mockUseMCPServersContext.mockReturnValue({
-      servers: [],
-      serversLoaded: true,
-      serversLoadError: null,
-      serverStatuses: new Map(),
-      statusesLoading: new Set(),
-      allStatusesChecked: true,
-      refresh: jest.fn(),
-      checkServerStatus: jest.fn(),
-      getSelectedServersForAPI: jest.fn().mockReturnValue([]),
-    });
-
-    mockUseMCPTokenContext.mockReturnValue({
-      serverTokens: new Map(),
-      setServerTokens: jest.fn(),
-      isServerValidated: jest.fn().mockReturnValue(false),
-    });
   });
 
   describe('initialization', () => {
     it('should initialize with correct default values', () => {
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -128,6 +88,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -149,6 +110,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -156,6 +118,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -186,6 +149,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -193,6 +157,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -212,6 +177,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -219,6 +185,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -253,6 +220,7 @@ describe('useChatbotMessages', () => {
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: '',
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -260,6 +228,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -282,6 +251,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: null,
           systemInstruction: '',
@@ -289,6 +259,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -328,6 +299,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -335,6 +307,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -356,6 +329,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -363,6 +337,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -384,6 +359,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -391,6 +367,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -414,6 +391,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -421,6 +399,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -453,6 +432,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -460,6 +440,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -484,6 +465,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: null,
           systemInstruction: '',
@@ -491,6 +473,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: 'vs_current_store_123',
+          selectedServerIds: [],
         }),
       );
 
@@ -527,6 +510,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: 'You are a helpful assistant.',
@@ -534,6 +518,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -579,6 +564,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -586,6 +572,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -608,6 +595,7 @@ describe('useChatbotMessages', () => {
       const { result, rerender } = renderHook(
         ({ modelId }) =>
           useChatbotMessages({
+            ...defaultMcpProps,
             modelId,
             selectedSourceSettings: mockSourceSettings,
             systemInstruction: 'Be helpful.',
@@ -615,6 +603,7 @@ describe('useChatbotMessages', () => {
             isStreamingEnabled: false,
             temperature: 0.7,
             currentVectorStoreId: null,
+            selectedServerIds: [],
           }),
         { initialProps: { modelId: 'model-1' } },
       );
@@ -656,6 +645,7 @@ describe('useChatbotMessages', () => {
       const { result, rerender } = renderHook(
         ({ systemInstruction }) =>
           useChatbotMessages({
+            ...defaultMcpProps,
             modelId: mockModelId,
             selectedSourceSettings: mockSourceSettings,
             systemInstruction,
@@ -663,6 +653,7 @@ describe('useChatbotMessages', () => {
             isStreamingEnabled: false,
             temperature: 0.7,
             currentVectorStoreId: null,
+            selectedServerIds: [],
           }),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );
@@ -712,6 +703,10 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          mcpServers: [],
+          mcpServerStatuses: new Map(),
+          mcpServerTokens: new Map(),
         }),
       );
 
@@ -772,6 +767,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -779,6 +775,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -886,6 +883,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -893,6 +891,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -950,6 +949,10 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
+          mcpServers: [],
+          mcpServerStatuses: new Map(),
+          mcpServerTokens: new Map(),
         }),
       );
 
@@ -966,6 +969,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -973,6 +977,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: true,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -993,6 +998,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -1000,6 +1006,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
@@ -1038,6 +1045,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() =>
         useChatbotMessages({
+          ...defaultMcpProps,
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
           systemInstruction: '',
@@ -1045,6 +1053,7 @@ describe('useChatbotMessages', () => {
           isStreamingEnabled: false,
           temperature: 0.7,
           currentVectorStoreId: null,
+          selectedServerIds: [],
         }),
       );
 
