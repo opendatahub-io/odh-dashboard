@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { useCheckboxTable, Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
-import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import NoData from '~/app/EmptyStates/NoData';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { transformMCPServerData } from '~/app/utilities/mcp';
 import useMCPServersFilter from '~/app/AIAssets/hooks/useMCPServersFilter';
 import {
@@ -18,25 +16,17 @@ import MCPServerColumns from './MCPServerColumns';
 interface MCPServersTableProps {
   /** Array of MCP servers from API */
   servers: MCPServerFromAPI[];
-  /** Error from MCP servers fetch */
-  error?: Error | null;
   /** Map of server statuses by server URL */
   serverStatuses: Map<string, ServerStatusInfo>;
   /** Set of server URLs currently being checked */
   statusesLoading: Set<string>;
-  /** Callback to refresh servers and statuses */
-  onRefresh?: () => void;
 }
 
 const MCPServersTable: React.FC<MCPServersTableProps> = ({
   servers: apiServers,
-  error,
   serverStatuses,
   statusesLoading,
-  onRefresh,
 }) => {
-  const { saveSelectedServersToPlayground } = useMCPSelectionContext();
-
   const transformedServers = React.useMemo(
     () => apiServers.map(transformMCPServerData),
     [apiServers],
@@ -55,26 +45,6 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
     [],
     false,
   );
-
-  if (error) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to load MCP servers configuration', error);
-    return (
-      <NoData
-        title="No MCP configuration found"
-        description="This playground does not have an MCP configuration. Contact your cluster administrator to add MCP servers."
-      />
-    );
-  }
-
-  if (transformedServers.length === 0) {
-    return (
-      <NoData
-        title="No valid MCP servers available"
-        description="An MCP configuration exists, but no valid servers were found. Contact your cluster administrator to update the configuration."
-      />
-    );
-  }
 
   return (
     <>
@@ -112,9 +82,8 @@ const MCPServersTable: React.FC<MCPServersTableProps> = ({
             }}
             selectedCount={selections.length}
             selectedServerIds={selections}
-            onTryInPlayground={saveSelectedServersToPlayground}
-            onRefresh={onRefresh}
             onClearFilters={onClearFilters}
+            serverStatuses={serverStatuses}
           />
         }
         onClearFilters={onClearFilters}

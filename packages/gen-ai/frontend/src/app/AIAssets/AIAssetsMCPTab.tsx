@@ -1,40 +1,50 @@
 import * as React from 'react';
-import { EmptyState, Spinner } from '@patternfly/react-core';
-import { GenAiContext } from '~/app/context/GenAiContext';
-import { MCPDataProvider } from '~/app/context/MCPContextProvider';
-import { useMCPServers } from '~/app/hooks/useMCPServers';
+import { Bullseye, Spinner } from '@patternfly/react-core';
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import MCPServersTable from '~/app/AIAssets/components/mcp/MCPServersTable';
+import NoData from '~/app/EmptyStates/NoData';
 
-const MCPTabContent: React.FC = () => {
-  const { servers, serversLoaded, serversLoadError, serverStatuses, statusesLoading, refresh } =
-    useMCPServers();
+/**
+ * MCP tab component using hooks directly.
+ * Loads MCP servers and checks their statuses when the tab is accessed.
+ */
+const AIAssetsMCPTab: React.FC = () => {
+  const { data: servers = [], loaded, error } = useFetchMCPServers();
+  const { serverStatuses, statusesLoading } = useMCPServerStatuses(servers, loaded);
 
-  if (!serversLoaded) {
-    return <EmptyState titleText="Loading" headingLevel="h4" icon={Spinner} />;
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (error) {
+    return (
+      <NoData
+        title="No MCP configuration found"
+        description="This playground does not have an MCP configuration. Contact your cluster administrator to add MCP servers."
+      />
+    );
+  }
+
+  if (servers.length === 0) {
+    return (
+      <NoData
+        title="No valid MCP servers available"
+        description="An MCP configuration exists, but no valid servers were found. Contact your cluster administrator to update the configuration."
+      />
+    );
   }
 
   return (
     <MCPServersTable
       servers={servers}
-      error={serversLoadError}
       serverStatuses={serverStatuses}
       statusesLoading={statusesLoading}
-      onRefresh={refresh}
     />
-  );
-};
-
-/**
- * MCP tab component with complete context provider.
- * Provides MCP data context and loads data only when the tab is accessed.
- */
-const AIAssetsMCPTab: React.FC = () => {
-  const { namespace } = React.useContext(GenAiContext);
-
-  return (
-    <MCPDataProvider namespace={namespace} autoCheckStatuses>
-      <MCPTabContent />
-    </MCPDataProvider>
   );
 };
 

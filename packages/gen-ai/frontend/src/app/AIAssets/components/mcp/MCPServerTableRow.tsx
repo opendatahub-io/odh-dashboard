@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Truncate, Button } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CheckboxTd, TruncatedText } from 'mod-arch-shared';
-import { ServerStatusInfo } from '~/app/hooks/useMCPServers';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { MCPServer } from '~/app/types';
 import MCPServerStatus from './MCPServerStatus';
 import MCPServerEndpointPopover from './MCPServerEndpointPopover';

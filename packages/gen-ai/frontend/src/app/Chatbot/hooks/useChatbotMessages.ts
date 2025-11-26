@@ -10,12 +10,12 @@ import {
   ChatMessageRole,
   CreateResponseRequest,
   MCPToolCallData,
+  MCPServerFromAPI,
+  TokenInfo,
 } from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import { useMCPServersContext } from '~/app/context/MCPServersContext';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import {
   ToolResponseCardTitle,
   ToolResponseCardBody,
@@ -41,6 +41,11 @@ interface UseChatbotMessagesProps {
   isStreamingEnabled: boolean;
   temperature: number;
   currentVectorStoreId: string | null;
+  selectedServerIds: string[];
+  // MCP data as props (instead of contexts)
+  mcpServers: MCPServerFromAPI[];
+  mcpServerStatuses: Map<string, ServerStatusInfo>;
+  mcpServerTokens: Map<string, TokenInfo>;
 }
 
 const useChatbotMessages = ({
@@ -52,6 +57,10 @@ const useChatbotMessages = ({
   isStreamingEnabled,
   temperature,
   currentVectorStoreId,
+  selectedServerIds,
+  mcpServers,
+  mcpServerStatuses,
+  mcpServerTokens,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -61,25 +70,12 @@ const useChatbotMessages = ({
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
-  const { playgroundSelectedServerIds } = useMCPSelectionContext();
-  const serversContext = useMCPServersContext();
-  const tokenContext = useMCPTokenContext();
   const { api, apiAvailable } = useGenAiAPI();
 
   const getSelectedServersForAPICallback = React.useCallback(
     () =>
-      getSelectedServersForAPI(
-        playgroundSelectedServerIds,
-        serversContext.servers,
-        serversContext.serverStatuses,
-        tokenContext.serverTokens,
-      ),
-    [
-      playgroundSelectedServerIds,
-      serversContext.servers,
-      serversContext.serverStatuses,
-      tokenContext.serverTokens,
-    ],
+      getSelectedServersForAPI(selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens),
+    [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens],
   );
 
   // Cleanup timeout and abort controller on unmount
@@ -157,7 +153,7 @@ const useChatbotMessages = ({
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
 
-      const mcpServers = getSelectedServersForAPICallback();
+      const selectedMcpServers = getSelectedServersForAPICallback();
 
       // Determine vector store ID to use for RAG
       const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
@@ -179,12 +175,12 @@ const useChatbotMessages = ({
         instructions: systemInstruction,
         stream: isStreamingEnabled,
         temperature,
-        ...(mcpServers.length > 0 && { mcp_servers: mcpServers }),
+        ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
         isRag: isRawUploaded,
-        countofMCP: mcpServers.length,
+        countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
       });
 
