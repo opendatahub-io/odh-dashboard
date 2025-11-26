@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from 'react';!!!!!!!
 import { Button, Split, SplitItem, Title } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import ErrorDetails from './ErrorDetails';
