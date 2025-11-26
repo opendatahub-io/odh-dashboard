@@ -118,6 +118,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
       notebookStatus={notebookStatus}
       events={events}
       buttonActions={makeButtons()}
+      onClose={onClose}
     />
   );
 };

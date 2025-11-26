@@ -101,11 +101,6 @@ const GenericModal: React.FC<GenericModalProps> = ({
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
 
-  const actualOnClose = () => {
-    console.log('actualOnClose called');
-    onClose();
-  };
-
   const clickOnEnterIndex =
     buttonActions?.findIndex(
       (action) => action.clickOnEnter && action.isDisabled !== true && action.isLoading !== true,
@@ -140,14 +135,18 @@ const GenericModal: React.FC<GenericModalProps> = ({
       data-testid={dataTestId}
       isOpen
       variant={variant}
-      onClose={actualOnClose}
+      onClose={onClose}
       title={typeof title === 'string' ? title : 'Modal'}
       disableFocusTrap={disableFocusTrap}
       aria-label={typeof title === 'string' ? title : undefined}
       aria-labelledby={typeof title !== 'string' ? headingId : undefined}
       appendTo={appendTo}
     >
-      <ModalHeader title={typeof title === 'string' ? title : undefined} description={description}>
+      <ModalHeader
+        title={typeof title === 'string' ? title : undefined}
+        description={description}
+        data-testid="generic-modal-header"
+      >
         {typeof title !== 'string' ? <span id={headingId}>{title}</span> : null}
       </ModalHeader>
       <ModalBody className={bodyClassName}>{modalContents}</ModalBody>

@@ -55,7 +55,7 @@ type StartNotebookModalProps = {
   isStopping: boolean;
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
-  onClose?: () => void;
+  onClose: () => void;
   buttonActions?: ButtonAction[];
 };
 
@@ -246,8 +246,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     </Flex>
   );
 
+  console.log('onclose????', onClose);
+
   const contents = (
     <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div> somedays just suck</div>
       {renderLastUpdate()}
       {renderStatus()}
       <StackItem>
@@ -276,15 +279,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     </Stack>
   );
 
-  const handleClose =
-    onClose ||
-    (() => {
-      // No-op if onClose is not provided
-    });
-
   return (
     <GenericModal
-      onClose={handleClose}
+      onClose={onClose}
       title={modalTitle}
       contents={contents}
       buttonActions={buttonActions}
