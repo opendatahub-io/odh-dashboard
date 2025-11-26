@@ -90,7 +90,7 @@ jobs:
           echo "Waiting for Tests summary job to complete..."
           while true; do
             CHECK_STATUS=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
-              --jq '.check_runs[] | select(.name == "Tests") | "\(.status)|\(.conclusion)"')
+              --jq '.check_runs[] | select(.name == "Tests") | "\(.status)|\(.conclusion)"' | head -n 1)
             
             STATUS=$(echo "$CHECK_STATUS" | cut -d'|' -f1 | tr -d '[:space:]')
             CONCLUSION=$(echo "$CHECK_STATUS" | cut -d'|' -f2 | tr -d '[:space:]')
