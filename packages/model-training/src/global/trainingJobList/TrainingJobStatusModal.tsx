@@ -1,3 +1,4 @@
+/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/
 import * as React from 'react';
 import {
   Alert,
