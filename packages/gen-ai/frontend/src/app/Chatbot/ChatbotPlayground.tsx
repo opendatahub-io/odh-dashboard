@@ -31,15 +31,20 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
+import NewChatModal from './components/NewChatModal';
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
   setIsViewCodeModalOpen: (isOpen: boolean) => void;
+  isNewChatModalOpen: boolean;
+  setIsNewChatModalOpen: (isOpen: boolean) => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   isViewCodeModalOpen,
   setIsViewCodeModalOpen,
+  isNewChatModalOpen,
+  setIsNewChatModalOpen,
 }) => {
   const { username } = useUserContext();
   const {
@@ -243,6 +248,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         selectedMcpServerIds={selectedMcpServerIds}
         mcpServers={mcpServers}
         mcpServerTokens={mcpServerTokens}
+      />
+      <NewChatModal
+        isOpen={isNewChatModalOpen}
+        onClose={() => {
+          setIsNewChatModalOpen(false);
+        }}
+        onConfirm={() => {
+          chatbotMessages.clearConversation();
+          setIsNewChatModalOpen(false);
+        }}
       />
       <Drawer isExpanded isInline position="right">
         <Divider />

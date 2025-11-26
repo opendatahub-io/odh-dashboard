@@ -1091,4 +1091,328 @@ describe('useChatbotMessages', () => {
       expect(lastBotMessage.content).not.toContain('Response stopped by user');
     });
   });
+
+  describe('clearConversation', () => {
+    it('should reset messages to initial state', () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Send a message first to add to conversation
+      act(() => {
+        result.current.handleMessageSend('Test message');
+      });
+
+      // Clear conversation
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Should have only the initial bot message
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0]).toMatchObject({
+        role: 'bot',
+        content: 'Send a message to test your configuration',
+        name: 'Bot',
+      });
+    });
+
+    it('should reset all state variables', () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Send a message to change state
+      act(() => {
+        result.current.handleMessageSend('Test');
+      });
+
+      // Clear conversation
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      expect(result.current.isMessageSendButtonDisabled).toBe(false);
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isStreamingWithoutContent).toBe(false);
+    });
+
+    it('should stop any ongoing streaming when clearing conversation', async () => {
+      let capturedAbortSignal: AbortSignal | undefined;
+
+      mockCreateResponse.mockImplementation((request, opts) => {
+        capturedAbortSignal = opts?.abortSignal;
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(mockSuccessResponse);
+          }, 1000);
+        });
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Start a message
+      act(() => {
+        result.current.handleMessageSend('Test message');
+      });
+
+      // Clear conversation while message is being sent
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Abort signal should have been triggered
+      expect(capturedAbortSignal?.aborted).toBe(true);
+
+      // Messages should be reset
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+    });
+
+    it('should preserve model and configuration settings', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const customSystemInstruction = 'You are a helpful assistant.';
+      const customTemperature = 0.9;
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: customSystemInstruction,
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: customTemperature,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Send a message
+      await act(async () => {
+        await result.current.handleMessageSend('First message');
+      });
+
+      // Clear conversation
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Send another message after clearing
+      await act(async () => {
+        await result.current.handleMessageSend('Second message');
+      });
+
+      // Verify that settings are preserved in the API call
+      const lastCall = mockCreateResponse.mock.calls[mockCreateResponse.mock.calls.length - 1];
+      expect(lastCall[0].model).toBe(mockModelId);
+      expect(lastCall[0].instructions).toBe(customSystemInstruction);
+      expect(lastCall[0].temperature).toBe(customTemperature);
+      expect(lastCall[0].stream).toBe(true);
+    });
+
+    it('should not throw error when called without active stream', () => {
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Clear conversation without sending any messages
+      expect(() => {
+        act(() => {
+          result.current.clearConversation();
+        });
+      }).not.toThrow();
+
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+    });
+
+    it('should clear conversation history but retain RAG configuration', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Send a message with RAG configuration
+      await act(async () => {
+        await result.current.handleMessageSend('Test with RAG');
+      });
+
+      // Clear conversation
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Send another message
+      await act(async () => {
+        await result.current.handleMessageSend('Test after clear');
+      });
+
+      // Verify RAG settings are still used
+      const lastCall = mockCreateResponse.mock.calls[mockCreateResponse.mock.calls.length - 1];
+      expect(lastCall[0].vector_store_ids).toEqual(['test-vector-db']);
+    });
+
+    it('should provide clearConversation function from the hook', () => {
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      expect(result.current.clearConversation).toBeDefined();
+      expect(typeof result.current.clearConversation).toBe('function');
+    });
+
+    it('should silently handle abort when clearing during active request', async () => {
+      mockCreateResponse.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(mockSuccessResponse);
+            }, 1000);
+          }),
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: false,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Start a message
+      act(() => {
+        result.current.handleMessageSend('Test message');
+      });
+
+      // Clear conversation while request is in progress
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Wait for any async operations
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 200);
+        });
+      });
+
+      // Should only have the initial message - abort error was silently ignored
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+    });
+
+    it('should silently handle abort when clearing during streaming', async () => {
+      mockCreateResponse.mockImplementation((request, opts) => {
+        if (opts?.onStreamData) {
+          setTimeout(() => {
+            opts.onStreamData?.('Streaming content...');
+          }, 50);
+        }
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(mockSuccessResponse);
+          }, 1000);
+        });
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          modelId: mockModelId,
+          selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
+          isStreamingEnabled: true,
+          temperature: 0.7,
+          currentVectorStoreId: null,
+        }),
+      );
+
+      // Start streaming a message
+      act(() => {
+        result.current.handleMessageSend('Test streaming');
+      });
+
+      // Wait for streaming to start
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 100);
+        });
+      });
+
+      // Clear conversation while streaming
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Wait for async operations
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 200);
+        });
+      });
+
+      // Should only have the initial message - abort was silently handled
+      expect(result.current.messages).toHaveLength(1);
+      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+    });
+  });
 });
