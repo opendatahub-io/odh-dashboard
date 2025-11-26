@@ -144,10 +144,15 @@ const GenericModal: React.FC<GenericModalProps> = ({
     >
       <ModalHeader
         title={typeof title === 'string' ? title : undefined}
-        description={description}
+        description={typeof title === 'string' ? description : undefined}
         data-testid="generic-modal-header"
       >
-        {typeof title !== 'string' ? <span id={headingId}>{title}</span> : null}
+        {typeof title !== 'string' ? (
+          <>
+            <span id={headingId}>{title}</span>
+            {description && <div style={{ marginTop: '8px' }}>{description}</div>}
+          </>
+        ) : null}
       </ModalHeader>
       <ModalBody className={bodyClassName}>{modalContents}</ModalBody>
       <ModalFooter>
