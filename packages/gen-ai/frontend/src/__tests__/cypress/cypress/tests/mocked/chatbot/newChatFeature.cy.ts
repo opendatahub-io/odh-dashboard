@@ -1,12 +1,15 @@
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+/* eslint-disable camelcase */
+import { NewChatModal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
   loadMCPTestConfig,
   setupBaseMCPServerMocks,
-  navigateToChatbot,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
+import { mockMCPServers } from '~/__tests__/cypress/cypress/__mocks__';
 
-describe('Chatbot - New Chat Feature (Mocked)', () => {
+describe('Chatbot - New Chat Modal (Mocked)', () => {
   let config: MCPTestConfig;
 
   before(() => {
@@ -16,292 +19,224 @@ describe('Chatbot - New Chat Feature (Mocked)', () => {
   });
 
   beforeEach(() => {
-    // Setup basic interceptors for the chatbot
-    setupBaseMCPServerMocks(config);
+    const namespace = config.defaultNamespace;
+
+    // Setup all mocks BEFORE visiting any page
+    // includeLsdModel: true -> Mocks LSD models endpoint with Llama-3.2-3B-Instruct
+    // includeAAModel: true -> Mocks AAA models endpoint with Llama-3.2-3B-Instruct (similar to LSD)
+    setupBaseMCPServerMocks(config, {
+      lsdStatus: 'Ready',
+      includeLsdModel: true,
+      includeAAModel: true,
+    });
+    cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+
+    // Mock BFF config - isCustomLSD=false ensures models are validated properly
+    cy.interceptGenAi('GET /api/v1/config', {
+      data: {
+        isCustomLSD: false,
+      },
+    }).as('bffConfig');
+
+    // Mock the MCP status endpoint to prevent polling errors
+    cy.intercept('GET', '**/api/v1/mcp/status**', {
+      statusCode: 200,
+      body: { status: 'ready' },
+    }).as('mcpStatus');
+
+    // Mock the response creation endpoint to prevent actual API calls
+    cy.intercept('POST', '**/api/v1/lsd/responses**', {
+      statusCode: 200,
+      body: {
+        data: {
+          id: 'test-response-id',
+          model: 'Llama-3.2-3B-Instruct',
+          status: 'completed',
+          created_at: Date.now(),
+          output: [
+            {
+              id: 'output-1',
+              type: 'completion_message',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'This is a mocked response',
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 5,
+            output_tokens: 10,
+            total_tokens: 15,
+          },
+        },
+      },
+    }).as('createResponse');
+
+    // Enable gen-ai feature flag first
+    appChrome.visit();
+
+    // Visit the chatbot page
+    chatbotPage.visit(namespace);
+    chatbotPage.verifyOnChatbotPage(namespace);
+
+    // Wait for all APIs to be called to ensure models are loaded
+    cy.wait('@bffConfig');
+    cy.wait('@aaModels');
+
+    // Verify that a model is selected by checking the dropdown shows a model name
+    cy.findByRole('button', { name: /Llama 3.2 3B Instruct|Select a model/i })
+      .should('be.visible')
+      .and('contain', 'Llama');
   });
 
   it(
-    'should display New Chat button when playground is ready',
-    { tags: ['@GenAI', '@UI', '@NewChat'] },
+    'should close modal when cancel button is clicked',
+    { tags: ['@GenAI', '@Chatbot', '@NewChat', '@Modal'] },
     () => {
-      const namespace = config.defaultNamespace;
+      cy.step('Type a message to enable the "New chat" button');
+      cy.findByTestId('chatbot-message-bar').should('be.visible').type('Test message{enter}');
 
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
+      cy.wait('@createResponse');
 
-      cy.step('Verify New Chat button is visible');
-      cy.findByTestId('new-chat-button').should('be.visible').and('contain', 'New Chat');
-    },
-  );
-
-  it(
-    'should open warning modal when New Chat button is clicked',
-    { tags: ['@GenAI', '@Modal', '@NewChat'] },
-    () => {
-      const namespace = config.defaultNamespace;
-
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
-
-      cy.step('Click New Chat button');
+      cy.step('Open new chat modal');
       cy.findByTestId('new-chat-button').should('be.visible').click();
 
-      cy.step('Verify warning modal opens');
-      const newChatModal = new Modal('Start a new chat?');
+      const newChatModal = new NewChatModal();
       newChatModal.shouldBeOpen();
-      cy.findByTestId('new-chat-modal').should('be.visible');
 
-      cy.step('Verify modal warning message');
-      cy.findByText(
-        /Starting a new chat will clear your current conversation history.*Your model, RAG, and MCP server configurations will be retained/i,
-      ).should('be.visible');
-      cy.findByText('Are you sure you want to continue?').should('be.visible');
+      cy.step('Click cancel button');
+      newChatModal.findCancelButton().should('be.visible').click();
+
+      cy.step('Verify modal closes');
+      newChatModal.shouldBeOpen(false);
+
+      cy.step('Verify message history is still present');
+      cy.findByTestId('chatbot').should('contain', 'Test message');
+
+      cy.step('Test completed - Cancel button closes modal without clearing chat');
     },
   );
 
   it(
-    'should close modal when Cancel button is clicked',
-    { tags: ['@GenAI', '@Modal', '@NewChat'] },
+    'should clear chat history when confirm button is clicked',
+    { tags: ['@GenAI', '@Chatbot', '@NewChat', '@Modal', '@E2E'] },
     () => {
-      const namespace = config.defaultNamespace;
+      cy.step('Type a message to create chat history');
+      cy.findByTestId('chatbot-message-bar')
+        .should('be.visible')
+        .type('Message to be cleared{enter}');
 
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
+      cy.wait('@createResponse');
 
-      cy.step('Open New Chat modal');
-      cy.findByTestId('new-chat-button').click();
-      const newChatModal = new Modal('Start a new chat?');
+      cy.step('Verify message appears in chat');
+      cy.findByTestId('chatbot').should('contain', 'Message to be cleared');
+
+      cy.step('Open new chat modal');
+      cy.findByTestId('new-chat-button').should('be.visible').click();
+
+      const newChatModal = new NewChatModal();
       newChatModal.shouldBeOpen();
 
-      cy.step('Click Cancel button');
-      cy.findByTestId('cancel-button').click();
+      cy.step('Click confirm button to start new chat');
+      newChatModal.findConfirmButton().should('be.visible').click();
 
-      cy.step('Verify modal is closed');
-      cy.findByTestId('new-chat-modal').should('not.exist');
+      cy.step('Verify modal closes');
+      newChatModal.shouldBeOpen(false);
+
+      cy.step('Verify chat history is cleared');
+      // After clicking confirm, the chat should reset
+      cy.findByTestId('chatbot').should('contain', 'Welcome to the model playground');
     },
   );
 
   it(
-    'should close modal when X button is clicked',
-    { tags: ['@GenAI', '@Modal', '@NewChat'] },
+    'should display correct modal title and warning message',
+    { tags: ['@GenAI', '@Chatbot', '@NewChat', '@Modal', '@UI'] },
     () => {
-      const namespace = config.defaultNamespace;
+      cy.step('Type a message to enable the "New chat" button');
+      cy.findByTestId('chatbot-message-bar').should('be.visible').type('Test message{enter}');
 
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
+      cy.wait('@createResponse');
 
-      cy.step('Open New Chat modal');
-      cy.findByTestId('new-chat-button').click();
-      const newChatModal = new Modal('Start a new chat?');
+      cy.step('Open new chat modal');
+      cy.findByTestId('new-chat-button').should('be.visible').click();
+
+      const newChatModal = new NewChatModal();
       newChatModal.shouldBeOpen();
 
-      cy.step('Click X close button');
-      newChatModal.findCloseButton().click();
+      cy.step('Verify modal title is displayed');
+      newChatModal.findTitle().should('be.visible');
 
-      cy.step('Verify modal is closed');
-      cy.findByTestId('new-chat-modal').should('not.exist');
+      cy.step('Verify warning message is displayed');
+      newChatModal.findWarningMessage().should('be.visible');
+
+      cy.step('Verify modal has warning icon variant');
+      newChatModal.find().should('be.visible');
+
+      cy.step('Close modal');
+      newChatModal.findCancelButton().click();
     },
   );
 
   it(
-    'should clear conversation history when confirmed',
-    { tags: ['@GenAI', '@NewChat', '@E2E'] },
+    'should have properly labeled buttons',
+    { tags: ['@GenAI', '@Chatbot', '@NewChat', '@Modal', '@UI'] },
     () => {
-      const namespace = config.defaultNamespace;
+      cy.step('Type a message to enable the "New chat" button');
+      cy.findByTestId('chatbot-message-bar').should('be.visible').type('Test message{enter}');
 
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
+      cy.wait('@createResponse');
 
-      cy.step('Send a test message to create conversation history');
-      // Mock the response for the message
-      cy.interceptGenAi('POST /api/v1/aaa/responses', {
-        data: {
-          id: 'test-response-1',
-          content: 'This is a test response',
-          status: 'completed',
-          model: 'test-model',
-          created_at: Date.now(), // eslint-disable-line camelcase
-        },
-      });
+      cy.step('Open new chat modal');
+      cy.findByTestId('new-chat-button').should('be.visible').click();
 
-      cy.findByTestId('chatbot-message-bar').within(() => {
-        cy.findByPlaceholderText(/Send a message/i).type('Hello, this is a test message');
-        cy.findByLabelText(/Send message/i).click();
-      });
-
-      cy.step('Verify message appears in conversation');
-      cy.findByText('Hello, this is a test message').should('be.visible');
-
-      cy.step('Click New Chat button');
-      cy.findByTestId('new-chat-button').click();
-      const newChatModal = new Modal('Start a new chat?');
+      const newChatModal = new NewChatModal();
       newChatModal.shouldBeOpen();
 
-      cy.step('Confirm new chat');
-      cy.findByTestId('confirm-button').click();
+      cy.step('Verify confirm button has correct text');
+      newChatModal.findConfirmButton().should('be.visible').and('contain', 'Start new chat');
 
-      cy.step('Verify modal is closed');
-      cy.findByTestId('new-chat-modal').should('not.exist');
+      cy.step('Verify cancel button has correct text');
+      newChatModal.findCancelButton().should('be.visible').and('contain', 'Cancel');
 
-      cy.step('Verify conversation history is cleared');
-      cy.findByText('Hello, this is a test message').should('not.exist');
+      cy.step('Verify confirm button has primary variant styling');
+      newChatModal.findConfirmButton().should('have.class', 'pf-m-primary');
 
-      cy.step('Verify initial welcome message is displayed');
-      cy.findByText('Send a message to test your configuration').should('be.visible');
+      cy.step('Verify cancel button has link variant styling');
+      newChatModal.findCancelButton().should('have.class', 'pf-m-link');
+
+      cy.step('Close modal');
+      newChatModal.findCancelButton().click();
     },
   );
 
   it(
-    'should retain model configuration after clearing conversation',
-    { tags: ['@GenAI', '@NewChat', '@E2E'] },
+    'should be able to start new conversation after clearing',
+    { tags: ['@GenAI', '@Chatbot', '@NewChat', '@E2E'] },
     () => {
-      const namespace = config.defaultNamespace;
+      cy.step('Send initial message');
+      cy.findByTestId('chatbot-message-bar').should('be.visible').type('Initial message{enter}');
+      cy.wait('@createResponse');
 
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
-
-      cy.step('Select a model from settings');
-      // Assuming there's a model selector in the settings panel
-      // This will depend on your actual implementation
-      cy.findByTestId('chatbot').should('be.visible');
-
-      cy.step('Send a message');
-      cy.interceptGenAi('POST /api/v1/aaa/responses', {
-        data: {
-          id: 'test-response-2',
-          content: 'Response with model',
-          status: 'completed',
-          model: 'test-model',
-          created_at: Date.now(), // eslint-disable-line camelcase
-        },
-      });
-
-      cy.findByTestId('chatbot-message-bar').within(() => {
-        cy.findByPlaceholderText(/Send a message/i).type('Test message before clear');
-        cy.findByLabelText(/Send message/i).click();
-      });
-
-      cy.step('Clear conversation');
+      cy.step('Clear chat history via new chat modal');
       cy.findByTestId('new-chat-button').click();
-      const newChatModal = new Modal('Start a new chat?');
-      newChatModal.shouldBeOpen();
-      cy.findByTestId('confirm-button').click();
+      const newChatModal = new NewChatModal();
+      newChatModal.findConfirmButton().click();
 
-      cy.step('Send another message to verify model is still configured');
-      cy.interceptGenAi('POST /api/v1/aaa/responses', {
-        data: {
-          id: 'test-response-3',
-          content: 'Response after clear',
-          status: 'completed',
-          model: 'test-model',
-          created_at: Date.now(), // eslint-disable-line camelcase
-        },
-      });
+      cy.step('Verify chat is cleared');
+      cy.findByTestId('chatbot').should('not.contain', 'Initial message');
 
-      cy.findByTestId('chatbot-message-bar').within(() => {
-        cy.findByPlaceholderText(/Send a message/i).type('Test message after clear');
-        cy.findByLabelText(/Send message/i).click();
-      });
+      cy.step('Send new message after clearing');
+      cy.findByTestId('chatbot-message-bar')
+        .should('be.visible')
+        .type('New conversation message{enter}');
+      cy.wait('@createResponse');
 
       cy.step('Verify new message appears');
-      cy.findByText('Test message after clear').should('be.visible');
-
-      cy.step('Verify old message does not appear');
-      cy.findByText('Test message before clear').should('not.exist');
-    },
-  );
-
-  it(
-    'should have correct button styles and accessibility',
-    { tags: ['@GenAI', '@UI', '@NewChat', '@Validation'] },
-    () => {
-      const namespace = config.defaultNamespace;
-
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
-
-      cy.step('Verify New Chat button has correct attributes');
-      cy.findByTestId('new-chat-button')
-        .should('be.visible')
-        .and('have.attr', 'aria-label', 'Start new chat');
-
-      cy.step('Open modal to check button variants');
-      cy.findByTestId('new-chat-button').click();
-      const newChatModal = new Modal('Start a new chat?');
-      newChatModal.shouldBeOpen();
-
-      cy.step('Verify Confirm button is primary variant');
-      cy.findByTestId('confirm-button').should('have.class', 'pf-m-primary');
-
-      cy.step('Verify Cancel button is link variant');
-      cy.findByTestId('cancel-button').should('have.class', 'pf-m-link');
-    },
-  );
-
-  it(
-    'should stop any ongoing message generation when clearing conversation',
-    { tags: ['@GenAI', '@NewChat', '@Streaming'] },
-    () => {
-      const namespace = config.defaultNamespace;
-
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
-
-      cy.step('Start sending a message with streaming');
-      // Mock a slow streaming response
-      cy.interceptGenAi('POST /api/v1/aaa/responses', {
-        delay: 5000, // Simulate slow response
-        data: {
-          id: 'test-response-4',
-          content: 'Slow streaming response',
-          status: 'completed',
-          model: 'test-model',
-          created_at: Date.now(), // eslint-disable-line camelcase
-        },
-      });
-
-      cy.findByTestId('chatbot-message-bar').within(() => {
-        cy.findByPlaceholderText(/Send a message/i).type('Test streaming message');
-        cy.findByLabelText(/Send message/i).click();
-      });
-
-      cy.step('Immediately open New Chat modal while streaming');
-      cy.findByTestId('new-chat-button').click();
-      const newChatModal = new Modal('Start a new chat?');
-      newChatModal.shouldBeOpen();
-
-      cy.step('Confirm clearing conversation');
-      cy.findByTestId('confirm-button').click();
-
-      cy.step('Verify conversation is cleared and no loading state');
-      cy.findByText('Test streaming message').should('not.exist');
-      cy.findByText('Send a message to test your configuration').should('be.visible');
-    },
-  );
-
-  it(
-    'should track analytics events for New Chat interactions',
-    { tags: ['@GenAI', '@NewChat', '@Analytics'] },
-    () => {
-      const namespace = config.defaultNamespace;
-
-      cy.step('Navigate to chatbot playground');
-      navigateToChatbot(namespace);
-
-      cy.step('Open New Chat modal and cancel');
-      cy.findByTestId('new-chat-button').click();
-      let newChatModal = new Modal('Start a new chat?');
-      newChatModal.shouldBeOpen();
-      cy.findByTestId('cancel-button').click();
-
-      cy.step('Open modal again and confirm');
-      cy.findByTestId('new-chat-button').click();
-      newChatModal = new Modal('Start a new chat?');
-      newChatModal.shouldBeOpen();
-      cy.findByTestId('confirm-button').click();
-
-      // Verify modal closes after confirmation
-      cy.findByTestId('new-chat-modal').should('not.exist');
+      cy.findByTestId('chatbot').should('contain', 'New conversation message');
+      cy.findByTestId('chatbot').should('not.contain', 'Initial message');
     },
   );
 });

@@ -20,14 +20,14 @@ interface NewChatModalProps {
 
 const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const handleCancel = () => {
-    fireFormTrackingEvent('Playground New Chat', {
+    fireFormTrackingEvent('Playground New Chat Canceled', {
       outcome: TrackingOutcome.cancel,
     });
     onClose();
   };
 
   const handleConfirm = () => {
-    fireFormTrackingEvent('Playground New Chat', {
+    fireFormTrackingEvent('Playground New Chat Confirmed', {
       outcome: TrackingOutcome.submit,
       success: true,
     });
