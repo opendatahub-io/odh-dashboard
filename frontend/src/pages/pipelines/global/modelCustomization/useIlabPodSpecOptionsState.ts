@@ -8,7 +8,10 @@ import { HardwareFormData } from '#~/concepts/pipelines/content/modelCustomizati
 import { CONTAINER_RESOURCE_DEFAULT, KnownFineTuningPipelineParameters } from './const';
 import { getParamsValueFromPipelineInput } from './utils';
 
-/** @deprecated  fine-tuning is going away*/
+/**
+ * @deprecated  fine-tuning is going away
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
 export type IlabPodSpecOptions = {
   resources: ContainerResources;
   tolerations?: Toleration[];
