@@ -24,7 +24,7 @@ export type TrainJobKind = K8sResourceCommon & {
     labels?: {
       'kueue.x-k8s.io/queue-name'?: string;
     };
-    trainer: {
+    trainer?: {
       env?: Array<{
         name: string;
         value: string;
@@ -64,5 +64,31 @@ export type TrainJobKind = K8sResourceCommon & {
       succeeded?: number;
       suspended?: number;
     }>;
+  };
+};
+
+export type ClusterTrainingRuntimeKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    labels?: {
+      [key: string]: string | undefined;
+    };
+  };
+  spec: {
+    mlPolicy?: {
+      numNodes?: number;
+      torch?: {
+        numProcPerNode?: string | number;
+      };
+    };
+    template?: {
+      spec?: {
+        replicatedJobs?: Array<{
+          name: string;
+          replicas?: number;
+          [key: string]: unknown;
+        }>;
+      };
+    };
   };
 };

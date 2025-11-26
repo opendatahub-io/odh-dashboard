@@ -2,7 +2,11 @@ import { renderHook } from '@testing-library/react';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation';
 
-/* @deprecated -- only in deprecation paths (modelmesh) */
+/**
+ * @deprecated
+ * only in deprecation paths (modelmesh)
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 // this file tests a deprecated hook; so will be removed/deleted when the hook is removed */
 
 // Mock the useValidation hook

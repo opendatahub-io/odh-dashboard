@@ -1156,6 +1156,44 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 				},
 			}),
 		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties: performanceMetricsCustomProperties(map[string]openapi.MetadataValue{
+				"hardware_type": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "A100",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"hardware_count": {
+					MetadataIntValue: &openapi.MetadataIntValue{
+						IntValue:     "8",
+						MetadataType: "MetadataIntValue",
+					},
+				},
+				"requests_per_second": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  25,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"ttft_mean": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  28.5,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"use_case": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "long_rag",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+			}),
+		},
 	}
 	artifacts = artifacts[:itemCount]
 	return artifacts
@@ -1256,6 +1294,22 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
+	// String type filter for use cases
+	filterOptions["use_case"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"chatbot", "code_fixing", "long_rag", "rag",
+		},
+	}
+
+	// String type filter for use cases
+	filterOptions["use_case"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"chatbot", "code_fixing", "long_rag", "rag",
+		},
+	}
+
 	filterOptions["ttft_mean"] = models.FilterOption{
 		Type: FilterOptionTypeNumber,
 		Range: &models.FilterRange{
@@ -1272,5 +1326,92 @@ func GetFilterOptionsListMock() models.FilterOptionsList {
 
 	return models.FilterOptionsList{
 		Filters: &filterOptions,
+	}
+}
+
+func CreateSampleCatalogSource(id string, name string, catalogType string) models.CatalogSourceConfig {
+	defaultCatalog := id == "catalog-1"
+
+	sourceConfig := models.CatalogSourceConfig{
+		Name:           name,
+		Id:             id,
+		Type:           catalogType,
+		Enabled:        BoolPtr(true),
+		Labels:         []string{"source-1"},
+		IsDefault:      &defaultCatalog,
+		IncludedModels: []string{"rhelai1/modelcar-granite-7b-starter"},
+		ExcludedModels: []string{"model-a:1.0", "model-b:*"},
+	}
+
+	switch catalogType {
+	case "yaml":
+		sourceConfig.Yaml = stringToPointer("models:\n  - name: model1")
+	case "huggingface":
+		sourceConfig.AllowedOrganization = stringToPointer("org1")
+		sourceConfig.ApiKey = stringToPointer("apikey")
+	}
+
+	return sourceConfig
+}
+
+func BoolPtr(b bool) *bool {
+	return &b
+}
+
+func GetCatalogSourceConfigsMocks() []models.CatalogSourceConfig {
+	return []models.CatalogSourceConfig{
+		CreateSampleCatalogSource("catalog-1", "Default Catalog", "yaml"),
+		CreateSampleCatalogSource("catalog-2", "HuggingFace Catalog", "huggingface"),
+		CreateSampleCatalogSource("catalog-3", "Custom Catalog", "yaml"),
+	}
+}
+
+func GetCatalogSourceConfigListMock() models.CatalogSourceConfigList {
+	allCatalogSourceConfigs := GetCatalogSourceConfigsMocks()
+
+	return models.CatalogSourceConfigList{
+		Catalogs: allCatalogSourceConfigs,
+	}
+}
+
+func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {
+	return []models.CatalogSourcePreviewModel{
+		{
+			Name:     "sample-source/granite",
+			Included: true,
+		},
+		{
+			Name:     "sample-source/model-1",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-2",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-3",
+			Included: false,
+		},
+	}
+}
+
+func GetCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalModels:    1500,
+		IncludedModels: 850,
+		ExcludedModels: 650,
+	}
+}
+
+func CreateCatalogSourcePreviewMock() models.CatalogSourcePreviewResult {
+	catalogModelPreview := GetModelsWithInclusionStatusListMocks()
+	catalogSourcePreviewSummary := GetCatalogSourcePreviewSummaryMock()
+
+	return models.CatalogSourcePreviewResult{
+		Items:         catalogModelPreview,
+		Summary:       catalogSourcePreviewSummary,
+		NextPageToken: "",
+		PageSize:      int32(10),
+		Size:          int32(len(catalogModelPreview)),
 	}
 }
