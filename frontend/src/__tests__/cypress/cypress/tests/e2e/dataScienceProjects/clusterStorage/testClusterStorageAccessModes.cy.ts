@@ -1,8 +1,6 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
-  provisionStorageClass,
+  provisionStorageClassesForAccessModeTests,
   tearDownStorageClassFeature,
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
@@ -14,10 +12,7 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import type {
-  SCAccessMode,
-  ClusterStorageAccessModesTestData,
-} from '#~/__tests__/cypress/cypress/types';
+import type { ClusterStorageAccessModesTestData } from '#~/__tests__/cypress/cypress/types';
 import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
 import { loadClusterStorageAccessModesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 
@@ -36,58 +31,14 @@ describe('Cluster Storage Access Modes Tests', () => {
       })
       .then(() => {
         cy.step('Provisioning storage classes with different access modes');
-
-        const scRWO: SCAccessMode = {
-          ReadWriteOnce: true,
-          ReadWriteMany: false,
-        };
-        provisionStorageClass(testData.storageClassRWO, StorageProvisioner.VSPHERE_VOLUME, scRWO);
-        if (!createdStorageClasses.includes(testData.storageClassRWO)) {
-          createdStorageClasses.push(testData.storageClassRWO);
-        }
-
-        const scRWX: SCAccessMode = {
-          ReadWriteOnce: false,
-          ReadWriteMany: true,
-        };
-        provisionStorageClass(testData.storageClassRWX, StorageProvisioner.BLOCK_CSI_IBM, scRWX);
-        if (!createdStorageClasses.includes(testData.storageClassRWX)) {
-          createdStorageClasses.push(testData.storageClassRWX);
-        }
-
-        const scROX: SCAccessMode = {
-          ReadWriteOnce: false,
-          ReadWriteMany: false,
-          ReadOnlyMany: true,
-        };
-        provisionStorageClass(testData.storageClassROX, StorageProvisioner.QUOBYTE, scROX);
-        if (!createdStorageClasses.includes(testData.storageClassROX)) {
-          createdStorageClasses.push(testData.storageClassROX);
-        }
-
-        const scRWOP: SCAccessMode = {
-          ReadOnlyMany: false,
-          ReadWriteOncePod: true,
-        };
-        provisionStorageClass(testData.storageClassRWOP, StorageProvisioner.PD_CSI_GKE, scRWOP);
-        if (!createdStorageClasses.includes(testData.storageClassRWOP)) {
-          createdStorageClasses.push(testData.storageClassRWOP);
-        }
-
-        const scMultiAccess: SCAccessMode = {
-          ReadWriteOnce: true,
-          ReadWriteMany: true,
-          ReadOnlyMany: true,
-          ReadWriteOncePod: false,
-        };
-        provisionStorageClass(
-          testData.storageClassMultiAccess,
-          StorageProvisioner.AZURE_FILE,
-          scMultiAccess,
-        );
-        if (!createdStorageClasses.includes(testData.storageClassMultiAccess)) {
-          createdStorageClasses.push(testData.storageClassMultiAccess);
-        }
+        const provisionedStorageClasses = provisionStorageClassesForAccessModeTests({
+          storageClassRWO: testData.storageClassRWO,
+          storageClassRWX: testData.storageClassRWX,
+          storageClassROX: testData.storageClassROX,
+          storageClassRWOP: testData.storageClassRWOP,
+          storageClassMultiAccess: testData.storageClassMultiAccess,
+        });
+        createdStorageClasses.push(...provisionedStorageClasses);
 
         cy.step('Provisioning project');
         provisionClusterStorageSCFeature(

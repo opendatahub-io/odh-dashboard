@@ -1,8 +1,7 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
-  provisionStorageClass,
+  provisionDualAccessStorageClass,
+  provisionMultiAccessStorageClass,
   tearDownStorageClassFeature,
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
@@ -19,7 +18,7 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import type { SCAccessMode, WBStorageClassesTestData } from '#~/__tests__/cypress/cypress/types';
+import type { WBStorageClassesTestData } from '#~/__tests__/cypress/cypress/types';
 import { selectNotebookImageWithBackendFallback } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
 import { loadWBStorageClassesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -37,11 +36,7 @@ describe('Workbench Storage Classes Tests', () => {
       })
       .then(() => {
         cy.step('Provisioning storage class');
-        const scRWO: SCAccessMode = {
-          ReadWriteOnce: true,
-          ReadWriteMany: true,
-        };
-        provisionStorageClass(testData.storageClassRWO, StorageProvisioner.VSPHERE_VOLUME, scRWO);
+        provisionDualAccessStorageClass(testData.storageClassRWO);
         // Only add if not already in the array (prevent duplicates on retry)
         if (!createdStorageClasses.includes(testData.storageClassRWO)) {
           createdStorageClasses.push(testData.storageClassRWO);
@@ -145,12 +140,7 @@ describe('Workbench Storage Classes Tests', () => {
       const roxLabel = 'ReadOnlyMany';
 
       // Create storage class with multi-access support
-      const scMultiAccess: SCAccessMode = {
-        ReadWriteOnce: true,
-        ReadWriteMany: true,
-        ReadOnlyMany: true,
-      };
-      provisionStorageClass(scMultiAccessName, StorageProvisioner.AZURE_FILE, scMultiAccess);
+      provisionMultiAccessStorageClass(scMultiAccessName);
       // Only add if not already in the array (prevent duplicates on retry)
       if (!createdStorageClasses.includes(scMultiAccessName)) {
         createdStorageClasses.push(scMultiAccessName);
@@ -253,12 +243,7 @@ describe('Workbench Storage Classes Tests', () => {
       const roxLabel = 'ReadOnlyMany';
 
       // Create storage class with multi-access support
-      const scMultiAccess: SCAccessMode = {
-        ReadWriteOnce: true,
-        ReadWriteMany: true,
-        ReadOnlyMany: true,
-      };
-      provisionStorageClass(scMultiAccessName, StorageProvisioner.AZURE_FILE, scMultiAccess);
+      provisionMultiAccessStorageClass(scMultiAccessName);
       // Only add if not already in the array (prevent duplicates on retry)
       if (!createdStorageClasses.includes(scMultiAccessName)) {
         createdStorageClasses.push(scMultiAccessName);
