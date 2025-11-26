@@ -1,6 +1,6 @@
 export const LLMD_OPTION = {
   name: 'llmd-serving',
-  label: 'Distributed Inference Server with llm-d',
+  label: 'Distributed inference with llm-d',
 };
 
 export const extractModelServerTemplate = (): {
@@ -11,6 +11,6 @@ export const extractModelServerTemplate = (): {
 } => {
   return {
     name: 'llmd-serving',
-    label: 'Distributed Inference Server with llm-d',
+    label: 'Distributed inference with llm-d',
   };
 };

@@ -178,7 +178,7 @@ describe('Model Serving LLMD', () => {
 
       // Verify deployment details
       const row = modelServingSection.getKServeRow('Facebook OPT 125M');
-      row.shouldHaveServingRuntime('Distributed Inference Server with llm-d');
+      row.shouldHaveServingRuntime('Distributed inference with llm-d');
       row.findExternalServiceButton().click();
       row.findExternalServicePopover().findByText('External').should('exist');
       row
@@ -313,7 +313,7 @@ describe('Model Serving LLMD', () => {
       hardwareProfileSection.findSelect().should('contain.text', 'Small');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
         .should('exist')
         .click();
 
@@ -420,7 +420,7 @@ describe('Model Serving LLMD', () => {
         mockK8sResourceList([
           mockServingRuntimeTemplateK8sResource({
             name: 'llmd-serving',
-            displayName: 'Distributed Inference Server with llm-d',
+            displayName: 'Distributed inference with llm-d',
             modelTypes: [ServingRuntimeModelType.GENERATIVE],
           }),
         ]),
@@ -475,7 +475,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit
         .findServingRuntimeTemplateSearchSelector()
         .should('be.disabled')
-        .should('contain.text', 'Distributed Inference Server with llm-d');
+        .should('contain.text', 'Distributed inference with llm-d');
 
       modelServingWizardEdit.findNumReplicasInputField().should('have.value', '2');
       modelServingWizardEdit.findNumReplicasPlusButton().click();
@@ -539,9 +539,7 @@ describe('Model Serving LLMD', () => {
 
       modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
-        .click();
+      modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
       modelServingWizard.findNextButton().click();
 
       // Focus on MaaS feature testing
