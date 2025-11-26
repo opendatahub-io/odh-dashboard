@@ -92,28 +92,33 @@ jobs:
             CHECK_STATUS=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
               --jq '.check_runs[] | select(.name == "Tests") | "\(.status)|\(.conclusion)"')
             
-            STATUS=$(echo "$CHECK_STATUS" | cut -d'|' -f1)
-            CONCLUSION=$(echo "$CHECK_STATUS" | cut -d'|' -f2)
+            STATUS=$(echo "$CHECK_STATUS" | cut -d'|' -f1 | tr -d '[:space:]')
+            CONCLUSION=$(echo "$CHECK_STATUS" | cut -d'|' -f2 | tr -d '[:space:]')
             
-            echo "Tests job status: $STATUS, conclusion: $CONCLUSION"
+            echo "Tests job status: [$STATUS], conclusion: [$CONCLUSION]"
             
-            if [ "$STATUS" = "completed" ]; then
-              if [ "$CONCLUSION" = "success" ]; then
+            # Check if status is completed (using string matching to handle any edge cases)
+            if [[ "$STATUS" == "completed" ]]; then
+              if [[ "$CONCLUSION" == "success" ]]; then
                 echo "✅ Test workflow completed successfully!"
                 echo "tests-passed=true" >> $GITHUB_OUTPUT
                 exit 0
-              elif [ "$CONCLUSION" = "skipped" ]; then
+              elif [[ "$CONCLUSION" == "failure" ]]; then
+                echo "❌ Tests failed - E2E tests will not run"
+                echo "tests-passed=false" >> $GITHUB_OUTPUT
+                exit 0
+              elif [[ "$CONCLUSION" == "skipped" ]]; then
                 echo "⏭️  Tests were skipped - a required test job likely failed"
                 echo "E2E tests will not run because tests did not complete successfully."
                 echo "tests-passed=false" >> $GITHUB_OUTPUT
                 exit 0
-              elif [ "$CONCLUSION" = "cancelled" ]; then
+              elif [[ "$CONCLUSION" == "cancelled" ]]; then
                 echo "🚫 Tests were cancelled by user or timeout"
                 echo "E2E tests will not run."
                 echo "tests-passed=false" >> $GITHUB_OUTPUT
                 exit 0
               else
-                echo "❌ Tests completed with unexpected conclusion: $CONCLUSION"
+                echo "❌ Tests completed with unexpected conclusion: [$CONCLUSION]"
                 echo "E2E tests will not run."
                 echo "tests-passed=false" >> $GITHUB_OUTPUT
                 exit 0
