@@ -16,6 +16,7 @@ type GenericModalProps = {
   error?: Error | React.ReactNode;
   alertTitle?: string;
   alertLinks?: React.ReactNode;
+  bodyClassName?: string;
 };
 
 type FocusableDivProps = {
@@ -84,6 +85,7 @@ const GenericModal: React.FC<GenericModalProps> = ({
   error,
   alertTitle,
   alertLinks,
+  bodyClassName = 'odh-modal__content-height',
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
@@ -136,7 +138,7 @@ const GenericModal: React.FC<GenericModalProps> = ({
       <ModalHeader title={typeof title === 'string' ? title : undefined} description={description}>
         {typeof title !== 'string' ? <span id={headingId}>{title}</span> : null}
       </ModalHeader>
-      <ModalBody className="odh-modal__content-height">{modalContents}</ModalBody>
+      <ModalBody className={bodyClassName}>{modalContents}</ModalBody>
       <ModalFooter>
         {buttonActions && (
           <GenericModalFooter

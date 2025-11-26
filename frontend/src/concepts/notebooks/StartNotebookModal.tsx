@@ -289,6 +289,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       contents={contents}
       buttonActions={buttonActions}
       dataTestId="notebook-status-modal"
+      bodyClassName="start-notebook-modal__content-height"
     />
   );
 };

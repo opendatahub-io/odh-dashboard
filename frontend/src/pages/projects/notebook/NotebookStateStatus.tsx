@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Flex, FlexItem } from '@patternfly/react-core';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_status_danger_default as DangerColor,
@@ -10,6 +10,7 @@ import { EventStatus, NotebookStatus } from '#~/types';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
+import { ButtonAction } from '#~/components/modals/GenericModalFooter';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
@@ -57,6 +58,37 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const [isStartModalOpen, setStartModalOpen] = React.useState(false);
 
+  const makeButtonActions = (): ButtonAction[] => {
+    const primaryButton: ButtonAction = isStopped
+      ? {
+          label: 'Start workbench',
+          onClick: () => startNotebook(),
+          variant: 'primary',
+          dataTestId: 'start-spawn',
+          clickOnEnter: true,
+        }
+      : {
+          label: 'Stop workbench',
+          onClick: () => stopNotebook(),
+          variant: 'primary',
+          dataTestId: 'close-spawn',
+          clickOnEnter: true,
+        };
+
+    const editButton: ButtonAction = {
+      label: 'Edit workbench',
+      onClick: () => {
+        if (notebook.metadata.namespace && notebook.metadata.name) {
+          navigate(`/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`);
+        }
+      },
+      variant: 'link',
+      dataTestId: 'edit-workbench',
+    };
+
+    return [primaryButton, editButton];
+  };
+
   return (
     <>
       <Flex
@@ -94,43 +126,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           onClose={() => {
             setStartModalOpen(false);
           }}
-          buttons={
-            <>
-              {isStopped ? (
-                <Button
-                  data-id="start-spawn"
-                  key="start"
-                  variant="primary"
-                  onClick={() => startNotebook()}
-                >
-                  Start workbench
-                </Button>
-              ) : (
-                <Button
-                  data-id="close-spawn"
-                  key="stop"
-                  variant="primary"
-                  onClick={() => stopNotebook()}
-                >
-                  Stop workbench
-                </Button>
-              )}
-              <Button
-                data-id="edit-workbench"
-                key="edit"
-                variant="link"
-                onClick={() => {
-                  if (notebook.metadata.namespace && notebook.metadata.name) {
-                    navigate(
-                      `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`,
-                    );
-                  }
-                }}
-              >
-                Edit workbench
-              </Button>
-            </>
-          }
+          buttonActions={makeButtonActions()}
         />
       ) : null}
     </>
