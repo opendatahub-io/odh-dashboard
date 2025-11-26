@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { Truncate, Button, Tooltip, Spinner } from '@patternfly/react-core';
+import { Truncate, Button, Tooltip, Spinner, Badge } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { LockIcon, UnlockIcon } from '@patternfly/react-icons';
 import { CheckboxTd } from 'mod-arch-shared';
-import ScrewWrenchIcon from '@odh-dashboard/internal/images/icons/ScrewWrenchIcon';
 import { MCPServer } from '~/app/types';
 
 interface MCPServerPanelRowProps {
@@ -15,6 +14,8 @@ interface MCPServerPanelRowProps {
   isLoading?: boolean;
   isStatusLoading?: boolean;
   isAuthenticated?: boolean;
+  toolsCount?: number;
+  isFetchingTools?: boolean;
 }
 
 const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
@@ -26,8 +27,14 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
   isLoading = false,
   isStatusLoading = false,
   isAuthenticated = false,
+  toolsCount,
+  isFetchingTools = false,
 }) => {
   const disableToolIcon = isLoading || isStatusLoading || !isAuthenticated;
+
+  // Determine badge text based on authentication and tools count
+  const badgeText =
+    !isAuthenticated || toolsCount === undefined ? '0 active' : `${toolsCount} active`;
 
   const lockIcon = isLoading ? (
     <Spinner size="sm" />
@@ -62,7 +69,13 @@ const MCPServerPanelRow: React.FC<MCPServerPanelRowProps> = ({
             className="pf-v6-u-p-xs pf-v6-u-min-height-auto"
             isAriaDisabled={disableToolIcon}
           >
-            <ScrewWrenchIcon className="pf-v6-u-w-sm pf-v6-u-h-sm" />
+            {isFetchingTools ? (
+              <Spinner size="sm" />
+            ) : (
+              <Badge isRead className="pf-v6-u-font-weight-normal">
+                {badgeText}
+              </Badge>
+            )}
           </Button>
         </Tooltip>
       </Td>
