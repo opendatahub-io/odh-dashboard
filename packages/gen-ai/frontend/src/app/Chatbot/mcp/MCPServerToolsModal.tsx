@@ -64,10 +64,11 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     [tools, searchValue],
   );
 
+  const namespaceName = namespace?.name;
+
   const initialSelectedTools = React.useMemo(() => {
-    const namespaceName = namespace?.name;
-    if (!namespaceName || !toolsLoaded) {
-      return [];
+    if (!namespaceName || !toolsLoaded || tools.length === 0) {
+      return null;
     }
 
     const savedTools = getToolSelections(namespaceName, server.connectionUrl);
@@ -82,7 +83,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       .filter((tool): tool is MCPTool => tool !== undefined);
 
     return savedToolObjects;
-  }, [namespace?.name, server.connectionUrl, toolsLoaded, getToolSelections, tools]);
+  }, [namespaceName, server.connectionUrl, toolsLoaded, getToolSelections, tools]);
 
   const [selectedTools, setSelectedTools] = React.useState<MCPTool[]>([]);
 
@@ -97,7 +98,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   const hasInitialized = React.useRef(false);
 
   React.useEffect(() => {
-    if (isOpen && toolsLoaded && !hasInitialized.current) {
+    if (isOpen && toolsLoaded && initialSelectedTools !== null && !hasInitialized.current) {
       setSelectedTools(initialSelectedTools);
       hasInitialized.current = true;
     } else if (!isOpen && hasInitialized.current) {
@@ -106,7 +107,6 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   }, [isOpen, toolsLoaded, initialSelectedTools]);
 
   const handleSave = React.useCallback(() => {
-    const namespaceName = namespace?.name;
     if (!namespaceName) {
       onClose();
       return;
@@ -122,14 +122,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     );
 
     onClose();
-  }, [
-    namespace?.name,
-    selections,
-    tools.length,
-    saveToolSelections,
-    server.connectionUrl,
-    onClose,
-  ]);
+  }, [namespaceName, selections, tools.length, saveToolSelections, server.connectionUrl, onClose]);
 
   return (
     <Modal
