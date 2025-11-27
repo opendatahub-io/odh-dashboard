@@ -13,11 +13,13 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
+import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -42,6 +44,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsViewCodeModalOpen,
 }) => {
   const { username } = useUserContext();
+  const { namespace } = React.useContext(GenAiContext);
+  const { getToolSelections } = useMCPToolSelections();
   const {
     models,
     modelsLoaded,
@@ -167,6 +171,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     mcpServers,
     mcpServerStatuses,
     mcpServerTokens,
+    toolSelections: getToolSelections,
+    namespace: namespace?.name,
   });
 
   // Create alert components

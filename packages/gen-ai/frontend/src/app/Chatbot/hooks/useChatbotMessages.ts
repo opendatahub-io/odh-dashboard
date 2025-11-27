@@ -46,6 +46,8 @@ interface UseChatbotMessagesProps {
   mcpServers: MCPServerFromAPI[];
   mcpServerStatuses: Map<string, ServerStatusInfo>;
   mcpServerTokens: Map<string, TokenInfo>;
+  toolSelections?: (ns: string, url: string) => string[] | undefined;
+  namespace?: string;
 }
 
 const useChatbotMessages = ({
@@ -61,6 +63,8 @@ const useChatbotMessages = ({
   mcpServers,
   mcpServerStatuses,
   mcpServerTokens,
+  toolSelections,
+  namespace,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -74,8 +78,15 @@ const useChatbotMessages = ({
 
   const getSelectedServersForAPICallback = React.useCallback(
     () =>
-      getSelectedServersForAPI(selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens),
-    [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens],
+      getSelectedServersForAPI(
+        selectedServerIds,
+        mcpServers,
+        mcpServerStatuses,
+        mcpServerTokens,
+        toolSelections,
+        namespace,
+      ),
+    [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens, toolSelections, namespace],
   );
 
   // Cleanup timeout and abort controller on unmount

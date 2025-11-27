@@ -57,7 +57,8 @@ export class MCPToolsModal extends Modal {
   }
 
   verifyFirstToolHasName(): void {
-    this.findToolRows().first().find('td').first().invoke('text').should('not.be.empty');
+    // First td is checkbox, second td is the tool name
+    this.findToolRows().first().find('td').eq(1).invoke('text').should('not.be.empty');
   }
 
   verifyTableHeaders(): void {
