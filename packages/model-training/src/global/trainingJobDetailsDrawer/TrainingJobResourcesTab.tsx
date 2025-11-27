@@ -19,9 +19,17 @@ import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
+  nodesCount: number;
+  canScaleNodes?: boolean;
+  onScaleNodes?: () => void;
 };
 
-const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }) => {
+const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
+  job,
+  nodesCount,
+  canScaleNodes = false,
+  onScaleNodes,
+}) => {
   const { clusterQueueName, loaded: clusterQueueLoaded } = useClusterQueueFromLocalQueue(
     job.metadata.labels?.['kueue.x-k8s.io/queue-name'],
     job.metadata.namespace,
@@ -49,10 +57,11 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
                 icon={<PencilAltIcon />}
                 iconPosition="end"
                 style={{ fontSize: 'inherit', padding: 0 }}
-                isDisabled // TODO: RHOAIENG-37576 Uncomment this when scaling is implemented
+                isDisabled={!canScaleNodes}
+                onClick={onScaleNodes}
                 data-testid="nodes-edit-button"
               >
-                {job.spec.trainer?.numNodes || '-'}
+                {nodesCount || '-'}
               </Button>
             </DescriptionListDescription>
           </DescriptionListGroup>

@@ -11,6 +11,7 @@ import {
   createKueueResources,
   deleteKueueResources,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/distributedWorkloads';
+import { isKueueUnmanaged } from '#~/__tests__/cypress/cypress/utils/oc_commands/dsc';
 import type { WorkloadMetricsTestData } from '#~/__tests__/cypress/cypress/types';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
@@ -19,34 +20,56 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page Contents', () => {
+// Note: In order to run this tests the following cluster configuration is required:
+// - kueue set to Unmanaged in the DSC
+// - Kueue Operator installed in cluster
+
+describe('Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
   let projectName: string;
   const uuid = generateTestUUID();
+  let skipTest = false;
 
   retryableBefore(() => {
-    cy.fixture('e2e/workloadMetricsResources/testWorkloadMetricsResources.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as WorkloadMetricsTestData;
-        projectName = `${testData.projectName}-${uuid}`;
-      })
-      .then(() => {
-        cy.log('Creating Namespace ${projectName}');
-        createCleanProject(projectName);
+    // Check if Kueue is set to Unmanaged in the DSC
+    cy.step('Check if Kueue is set to Unmanaged in the DSC');
+    isKueueUnmanaged().then((isUnmanaged) => {
+      if (!isUnmanaged) {
+        cy.log('Kueue is not set to Unmanaged in the DSC. Skipping tests.');
+        skipTest = true;
+        return;
+      }
 
-        cy.log('Creating Kueue resources');
-        createKueueResources(
-          testData.resourceFlavour,
-          testData.clusterQueue,
-          testData.localQueue,
-          projectName,
-          testData.cpuQuota,
-          testData.memoryQuota,
-        );
-      });
+      cy.fixture('e2e/workloadMetricsResources/testWorkloadMetricsResources.yaml', 'utf8')
+        .then((yamlContent: string) => {
+          testData = yaml.load(yamlContent) as WorkloadMetricsTestData;
+          projectName = `${testData.projectName}-${uuid}`;
+        })
+        .then(() => {
+          cy.log('Creating Namespace ${projectName}');
+          createCleanProject(projectName);
+
+          cy.log('Creating Kueue resources');
+          createKueueResources(
+            testData.resourceFlavour,
+            testData.clusterQueue,
+            testData.localQueue,
+            projectName,
+            testData.cpuQuota,
+            testData.memoryQuota,
+          );
+        });
+    });
   });
 
   after(() => {
+    if (skipTest) {
+      cy.log('Skipping cleanup: Tests were skipped');
+      return;
+    }
+
+    // Cleanup resources (testData and projectName are guaranteed to be defined
+    // if skipTest is false, as the setup code would have run)
     cy.log('Deleting Kueue resources');
     deleteKueueResources(
       testData.localQueue,
@@ -61,8 +84,13 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
 
   it(
     'Verify Workload Metrics Home page Contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
+      if (skipTest) {
+        cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
+        return;
+      }
+
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -80,8 +108,13 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
 
   it(
     'Verify Project Metrics Default Page contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
+      if (skipTest) {
+        cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
+        return;
+      }
+
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -121,8 +154,13 @@ describe('[Automation Bug: RHOAIENG-38624] Verify Workload Metrics Default page 
 
   it(
     'Verify Distributed Workload status Default Page contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
     () => {
+      if (skipTest) {
+        cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
+        return;
+      }
+
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 

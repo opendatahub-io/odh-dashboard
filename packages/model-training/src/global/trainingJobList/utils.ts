@@ -14,8 +14,7 @@ import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
-import { getWorkloadForTrainJob } from '../../api';
-import { resumeTrainJob } from '../../api/scaling';
+import { getWorkloadForTrainJob, resumeTrainJob } from '../../api';
 
 export enum TrainJobConditionType {
   Succeeded = 'Succeeded',

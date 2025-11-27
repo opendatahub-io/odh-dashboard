@@ -445,6 +445,57 @@ class TrainingJobLogsTab {
   }
 }
 
+class ScaleNodesModal extends Modal {
+  constructor() {
+    super('Edit node count');
+  }
+
+  find() {
+    return cy.findByTestId('scale-nodes-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findNodeCountInput() {
+    return cy.findByTestId('node-count-input');
+  }
+
+  setNodeCount(count: number) {
+    this.findNodeCountInput().clear();
+    this.findNodeCountInput().type(count.toString());
+    return this;
+  }
+
+  findSaveButton() {
+    return cy.findByRole('button', { name: 'Save' });
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  findErrorMessage() {
+    return cy.get('.pf-v6-c-helper-text__item-text');
+  }
+
+  save() {
+    this.findSaveButton().click();
+    return this;
+  }
+
+  cancel() {
+    this.findCancelButton().click();
+    return this;
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
@@ -452,3 +503,4 @@ export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
+export const scaleNodesModal = new ScaleNodesModal();
