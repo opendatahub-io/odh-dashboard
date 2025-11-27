@@ -5,14 +5,12 @@ class ChatbotPage {
   }
 
   private waitForPageLoad(): void {
-    cy.findByTestId('page-title', { timeout: 30000 })
-      .should('be.visible')
-      .and('contain.text', 'Playground');
+    cy.findByTestId('page-title').should('be.visible').and('contain.text', 'Playground');
   }
 
   verifyOnChatbotPage(expectedNamespace?: string): void {
     if (expectedNamespace) {
-      cy.location('pathname', { timeout: 60000 }).should((pathname) => {
+      cy.location('pathname').should((pathname) => {
         expect([
           `/gen-ai-studio/playground/${expectedNamespace}`,
           '/gen-ai-studio/playground',
