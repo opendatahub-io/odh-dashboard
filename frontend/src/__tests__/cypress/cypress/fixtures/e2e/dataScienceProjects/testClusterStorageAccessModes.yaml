@@ -1,0 +1,9 @@
+# testClusterStorageAccessModes.cy.ts Test Data #
+projectName: "test-cluster-storage-access-modes"
+storageClassRWO: "sc-rwo-preset"
+storageClassRWX: "sc-rwx-preset"
+storageClassROX: "sc-rox-preset"
+storageClassRWOP: "sc-rwop-preset"
+storageClassMultiAccess: "sc-multi-preset"
+storageName: "test-storage-rwx"
+storageDescription: "Test storage with ReadWriteMany access mode"
