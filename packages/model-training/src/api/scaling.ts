@@ -17,6 +17,7 @@ export const updateTrainJobNumNodes = async (
   newNodeCount: number,
   opts?: K8sAPIOptions,
 ): Promise<TrainJobKind> => {
+  const patchOp = job.spec.trainer?.numNodes === undefined ? 'add' : 'replace';
   const result = await k8sPatchResource<TrainJobKind>(
     applyK8sAPIOptions(
       {
@@ -27,7 +28,7 @@ export const updateTrainJobNumNodes = async (
         },
         patches: [
           {
-            op: 'replace',
+            op: patchOp,
             path: '/spec/trainer/numNodes',
             value: newNodeCount,
           },
@@ -134,60 +135,6 @@ export const pauseTrainJob = async (
       error: `Failed to pause job: ${errorMessage}`,
     };
   }
-};
-
-/**
- * Scale nodes and keep the job paused
- * @param job - The TrainJob to update
- * @param newNodeCount - The new number of nodes
- * @param opts - Optional K8s API options
- * @returns Promise with the updated job and pause result
- */
-export const scaleNodesAndStayPaused = async (
-  job: TrainJobKind,
-  newNodeCount: number,
-  opts?: K8sAPIOptions,
-): Promise<{
-  updatedJob: TrainJobKind;
-  pauseResult: Awaited<ReturnType<typeof pauseTrainJob>>;
-}> => {
-  // First scale the nodes
-  const updatedJob = await updateTrainJobNumNodes(job, newNodeCount, opts);
-
-  // Then ensure the job stays paused
-  const pauseResult = await pauseTrainJob(updatedJob, opts);
-
-  return {
-    updatedJob,
-    pauseResult,
-  };
-};
-
-/**
- * Scale nodes and resume the job in one operation
- * @param job - The TrainJob to update
- * @param newNodeCount - The new number of nodes
- * @param opts - Optional K8s API options
- * @returns Promise with the updated job and hibernation result
- */
-export const scaleNodesAndResume = async (
-  job: TrainJobKind,
-  newNodeCount: number,
-  opts?: K8sAPIOptions,
-): Promise<{
-  updatedJob: TrainJobKind;
-  hibernationResult: Awaited<ReturnType<typeof resumeTrainJob>>;
-}> => {
-  // First scale the nodes
-  const updatedJob = await updateTrainJobNumNodes(job, newNodeCount, opts);
-
-  // Then resume the job (always sets to active state)
-  const hibernationResult = await resumeTrainJob(updatedJob, opts);
-
-  return {
-    updatedJob,
-    hibernationResult,
-  };
 };
 
 /**

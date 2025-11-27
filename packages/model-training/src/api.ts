@@ -300,3 +300,5 @@ export const retryTrainJob = async (
     throw new Error(`Failed to retry job: ${errorMessage}`);
   }
 };
+// Export scaling functions
+export { updateTrainJobNumNodes, scaleNodes } from './api/scaling';
