@@ -148,6 +148,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
           <Tab eventKey={0} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
             <TrainingJobResourcesTab
               job={job}
+              nodesCount={nodesCount}
               canScaleNodes={canScaleNodes}
               onScaleNodes={openScaleNodesModal}
             />

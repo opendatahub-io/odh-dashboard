@@ -61,6 +61,16 @@ const ModelTraining = (): React.ReactElement => {
     [selectedJob],
   );
 
+  // Sync selectedJob with the latest data from trainJobData when it updates
+  React.useEffect(() => {
+    if (selectedJob) {
+      const updatedJob = trainJobData.find((job) => job.metadata.uid === selectedJob.metadata.uid);
+      if (updatedJob && updatedJob !== selectedJob) {
+        setSelectedJob(updatedJob);
+      }
+    }
+  }, [trainJobData, selectedJob]);
+
   const isDrawerExpanded = !!selectedJob;
   const selectedJobDisplayName = selectedJob ? getDisplayNameFromK8sResource(selectedJob) : '';
   const selectedJobId = selectedJob ? selectedJob.metadata.uid || selectedJob.metadata.name : '';

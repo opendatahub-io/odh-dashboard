@@ -19,12 +19,14 @@ import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
+  nodesCount: number;
   canScaleNodes?: boolean;
   onScaleNodes?: () => void;
 };
 
 const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
   job,
+  nodesCount,
   canScaleNodes = false,
   onScaleNodes,
 }) => {
@@ -59,7 +61,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
                 onClick={onScaleNodes}
                 data-testid="nodes-edit-button"
               >
-                {job.spec.trainer?.numNodes || '-'}
+                {nodesCount || '-'}
               </Button>
             </DescriptionListDescription>
           </DescriptionListGroup>
