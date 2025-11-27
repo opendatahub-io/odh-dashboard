@@ -2,6 +2,7 @@
 import yaml from 'js-yaml';
 import {
   mockNamespaces,
+  mockNamespace,
   mockEmptyList,
   mockStatus,
   mockAAModels,
@@ -55,15 +56,26 @@ export const setupBaseMCPServerMocks = (
     lsdStatus: 'Ready' | 'NotReady';
     includeLsdModel?: boolean;
     includeAAModel?: boolean;
+    namespace?: string;
   } = {
     lsdStatus: 'NotReady',
     includeLsdModel: false,
     includeAAModel: false,
   },
 ): void => {
-  const namespace = config.defaultNamespace;
+  const namespace = options.namespace ?? config.defaultNamespace;
 
-  cy.interceptGenAi('GET /api/v1/namespaces', mockNamespaces());
+  // If a custom namespace is provided, include it in the namespaces list
+  const namespacesData =
+    options.namespace && options.namespace !== config.defaultNamespace
+      ? [
+          // eslint-disable-next-line camelcase
+          mockNamespace({ name: options.namespace, display_name: options.namespace }),
+          ...mockNamespaces().data,
+        ]
+      : mockNamespaces().data;
+
+  cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
   // Mock AAA models endpoint
   if (options.includeAAModel) {

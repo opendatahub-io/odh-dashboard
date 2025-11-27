@@ -69,6 +69,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                     aria-label="View generated code (disabled)"
                     icon={<CodeIcon />}
                     isAriaDisabled={isViewCodeDisabled}
+                    data-testid="view-code-button"
                   >
                     View Code
                   </Button>
@@ -79,6 +80,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   aria-label="View generated code"
                   icon={<CodeIcon />}
                   onClick={onViewCode}
+                  data-testid="view-code-button"
                 >
                   View Code
                 </Button>
@@ -97,6 +99,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 isExpanded={isDropdownOpen}
                 aria-label="Action list single group kebab"
                 icon={<EllipsisVIcon />}
+                data-testid="header-kebab-menu-toggle"
               />
             )}
             isOpen={isDropdownOpen}
@@ -108,6 +111,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 onClick={onConfigurePlayground}
                 key="update-configuration"
                 isDisabled={!lsdStatus}
+                data-testid="configure-playground-menu-item"
               >
                 Update configuration
               </DropdownItem>
@@ -116,6 +120,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 onClick={onDeletePlayground}
                 key="delete-playground"
                 isDisabled={!lsdStatus}
+                data-testid="delete-playground-menu-item"
               >
                 Delete playground
               </DropdownItem>
