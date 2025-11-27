@@ -80,3 +80,27 @@ export class MCPServerSuccessModal extends Modal {
     return this.find().findByTestId('modal-submit-button');
   }
 }
+
+export class NewChatModal extends Modal {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('new-chat-modal');
+  }
+
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Start a new chat?');
+  }
+
+  findWarningMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText(
+      /Starting a new chat clears your previous chat history permanently/i,
+    );
+  }
+}

@@ -1,9 +1,11 @@
+/* eslint-disable camelcase */
 import yaml from 'js-yaml';
 import {
   mockNamespaces,
   mockNamespace,
   mockEmptyList,
   mockStatus,
+  mockAAModels,
   mockMCPServers,
   mockMCPServer,
   mockMCPStatusInterceptor,
@@ -50,9 +52,15 @@ export interface MCPTestConfig {
 
 export const setupBaseMCPServerMocks = (
   config: MCPTestConfig,
-  options: { lsdStatus: 'Ready' | 'NotReady'; includeLsdModel?: boolean; namespace?: string } = {
+  options: {
+    lsdStatus: 'Ready' | 'NotReady';
+    includeLsdModel?: boolean;
+    includeAAModel?: boolean;
+    namespace?: string;
+  } = {
     lsdStatus: 'NotReady',
     includeLsdModel: false,
+    includeAAModel: false,
   },
 ): void => {
   const namespace = options.namespace ?? config.defaultNamespace;
@@ -69,7 +77,29 @@ export const setupBaseMCPServerMocks = (
 
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
+  // Mock AAA models endpoint
+  if (options.includeAAModel) {
+    cy.interceptGenAi(
+      'GET /api/v1/aaa/models',
+      { query: { namespace } },
+      mockAAModels([
+        {
+          model_name: 'Llama-3.2-3B-Instruct',
+          // IMPORTANT: model_id should be WITHOUT provider prefix (just the model name)
+          // LSD has: 'meta-llama/Llama-3.2-3B-Instruct'
+          // After splitLlamaModelId: 'Llama-3.2-3B-Instruct'
+          // AAA model_id must match the split result
+          model_id: 'Llama-3.2-3B-Instruct',
+          serving_runtime: 'vllm',
+          api_protocol: 'openai',
+          status: 'Running',
+          display_name: 'Llama 3.2 3B Instruct',
+        },
+      ]),
+    ).as('aaModels');
+  } else {
+    cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
+  }
 
   cy.interceptGenAi(
     'GET /api/v1/lsd/status',
@@ -92,7 +122,7 @@ export const setupBaseMCPServerMocks = (
           },
         ],
       },
-    );
+    ).as('lsdModels');
   } else {
     cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
   }
