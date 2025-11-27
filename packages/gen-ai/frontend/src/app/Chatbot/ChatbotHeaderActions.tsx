@@ -11,19 +11,21 @@ import {
   MenuToggle,
   Tooltip,
 } from '@patternfly/react-core';
-import { CodeIcon, EllipsisVIcon } from '@patternfly/react-icons';
+import { CodeIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 
 type ChatbotHeaderActionsProps = {
   onViewCode: () => void;
   onConfigurePlayground: () => void;
   onDeletePlayground: () => void;
+  onNewChat: () => void;
 };
 
 const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onViewCode,
   onConfigurePlayground,
   onDeletePlayground,
+  onNewChat,
 }) => {
   const { lsdStatus, lastInput, selectedModel } = React.useContext(ChatbotContext);
   const isViewCodeDisabled = !lastInput || !selectedModel;
@@ -47,29 +49,42 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
     <ActionList>
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
-          <ActionListItem>
-            {isViewCodeDisabled ? (
-              <Tooltip content={getDisabledReason()}>
+          <>
+            <ActionListItem>
+              <Button
+                variant="link"
+                aria-label="Start new chat"
+                icon={<PlusIcon />}
+                onClick={onNewChat}
+                data-testid="new-chat-button"
+              >
+                New Chat
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              {isViewCodeDisabled ? (
+                <Tooltip content={getDisabledReason()}>
+                  <Button
+                    variant="secondary"
+                    aria-label="View generated code (disabled)"
+                    icon={<CodeIcon />}
+                    isAriaDisabled={isViewCodeDisabled}
+                  >
+                    View Code
+                  </Button>
+                </Tooltip>
+              ) : (
                 <Button
                   variant="secondary"
-                  aria-label="View generated code (disabled)"
+                  aria-label="View generated code"
                   icon={<CodeIcon />}
-                  isAriaDisabled={isViewCodeDisabled}
+                  onClick={onViewCode}
                 >
                   View Code
                 </Button>
-              </Tooltip>
-            ) : (
-              <Button
-                variant="secondary"
-                aria-label="View generated code"
-                icon={<CodeIcon />}
-                onClick={onViewCode}
-              >
-                View Code
-              </Button>
-            )}
-          </ActionListItem>
+              )}
+            </ActionListItem>
+          </>
         )}
         <ActionListItem>
           <Dropdown
