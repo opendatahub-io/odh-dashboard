@@ -1,4 +1,5 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
+import { act } from 'react';
 import { useTrainingJobNodeScaling } from '../useTrainingJobNodeScaling';
 import { TrainingJobState } from '../../types';
 import { scaleNodes } from '../../api';
@@ -62,12 +63,30 @@ describe('useTrainingJobNodeScaling', () => {
 
   describe('initialization', () => {
     it('should return correct initial values when job has numNodes', () => {
+      mockGetStatusFlags.mockReturnValue({
+        isRunning: false,
+        isPaused: true,
+        isQueued: false,
+        isPreempted: false,
+        isPending: false,
+        isFailed: false,
+        isComplete: false,
+        isInadmissible: false,
+        isSuspended: false,
+        isDeleting: false,
+        isCreated: false,
+        isRestarting: false,
+        isUnknown: false,
+        inProgress: false,
+        canPauseResume: true,
+      });
+
       const jobWithNodes = mockTrainJobK8sResource({
         numNodes: 5,
       });
 
       const { result } = renderHook(() =>
-        useTrainingJobNodeScaling(jobWithNodes, TrainingJobState.RUNNING),
+        useTrainingJobNodeScaling(jobWithNodes, TrainingJobState.PAUSED),
       );
 
       expect(result.current.nodesCount).toBe(5);
@@ -107,7 +126,7 @@ describe('useTrainingJobNodeScaling', () => {
   });
 
   describe('canScaleNodes', () => {
-    it('should allow scaling when job is running and status is loaded', () => {
+    it('should not allow scaling when job is running', () => {
       mockGetStatusFlags.mockReturnValue({
         isRunning: true,
         isPaused: false,
@@ -130,7 +149,7 @@ describe('useTrainingJobNodeScaling', () => {
         useTrainingJobNodeScaling(mockJob, TrainingJobState.RUNNING),
       );
 
-      expect(result.current.canScaleNodes).toBe(true);
+      expect(result.current.canScaleNodes).toBe(false);
     });
 
     it('should allow scaling when job is paused and status is loaded', () => {
@@ -154,6 +173,84 @@ describe('useTrainingJobNodeScaling', () => {
 
       const { result } = renderHook(() =>
         useTrainingJobNodeScaling(mockJob, TrainingJobState.PAUSED),
+      );
+
+      expect(result.current.canScaleNodes).toBe(true);
+    });
+
+    it('should allow scaling when job is queued and status is loaded', () => {
+      mockGetStatusFlags.mockReturnValue({
+        isRunning: false,
+        isPaused: false,
+        isQueued: true,
+        isPreempted: false,
+        isPending: false,
+        isFailed: false,
+        isComplete: false,
+        isInadmissible: false,
+        isSuspended: false,
+        isDeleting: false,
+        isCreated: false,
+        isRestarting: false,
+        isUnknown: false,
+        inProgress: true,
+        canPauseResume: false,
+      });
+
+      const { result } = renderHook(() =>
+        useTrainingJobNodeScaling(mockJob, TrainingJobState.QUEUED),
+      );
+
+      expect(result.current.canScaleNodes).toBe(true);
+    });
+
+    it('should allow scaling when job is inadmissible and status is loaded', () => {
+      mockGetStatusFlags.mockReturnValue({
+        isRunning: false,
+        isPaused: false,
+        isQueued: false,
+        isPreempted: false,
+        isPending: false,
+        isFailed: false,
+        isComplete: false,
+        isInadmissible: true,
+        isSuspended: false,
+        isDeleting: false,
+        isCreated: false,
+        isRestarting: false,
+        isUnknown: false,
+        inProgress: true,
+        canPauseResume: false,
+      });
+
+      const { result } = renderHook(() =>
+        useTrainingJobNodeScaling(mockJob, TrainingJobState.INADMISSIBLE),
+      );
+
+      expect(result.current.canScaleNodes).toBe(true);
+    });
+
+    it('should allow scaling when job is preempted and status is loaded', () => {
+      mockGetStatusFlags.mockReturnValue({
+        isRunning: false,
+        isPaused: false,
+        isQueued: false,
+        isPreempted: true,
+        isPending: false,
+        isFailed: false,
+        isComplete: false,
+        isInadmissible: false,
+        isSuspended: false,
+        isDeleting: false,
+        isCreated: false,
+        isRestarting: false,
+        isUnknown: false,
+        inProgress: true,
+        canPauseResume: false,
+      });
+
+      const { result } = renderHook(() =>
+        useTrainingJobNodeScaling(mockJob, TrainingJobState.PREEMPTED),
       );
 
       expect(result.current.canScaleNodes).toBe(true);
@@ -193,7 +290,7 @@ describe('useTrainingJobNodeScaling', () => {
   });
 
   describe('modal state management', () => {
-    it('should open modal when openScaleNodesModal is called', () => {
+    it('should open modal when setScaleNodesModalOpen is called with true', () => {
       const { result } = renderHook(() =>
         useTrainingJobNodeScaling(mockJob, TrainingJobState.RUNNING),
       );
@@ -201,25 +298,25 @@ describe('useTrainingJobNodeScaling', () => {
       expect(result.current.scaleNodesModalOpen).toBe(false);
 
       act(() => {
-        result.current.openScaleNodesModal();
+        result.current.setScaleNodesModalOpen(true);
       });
 
       expect(result.current.scaleNodesModalOpen).toBe(true);
     });
 
-    it('should close modal when closeScaleNodesModal is called', () => {
+    it('should close modal when setScaleNodesModalOpen is called with false', () => {
       const { result } = renderHook(() =>
         useTrainingJobNodeScaling(mockJob, TrainingJobState.RUNNING),
       );
 
       act(() => {
-        result.current.openScaleNodesModal();
+        result.current.setScaleNodesModalOpen(true);
       });
 
       expect(result.current.scaleNodesModalOpen).toBe(true);
 
       act(() => {
-        result.current.closeScaleNodesModal();
+        result.current.setScaleNodesModalOpen(false);
       });
 
       expect(result.current.scaleNodesModalOpen).toBe(false);
@@ -235,7 +332,7 @@ describe('useTrainingJobNodeScaling', () => {
       );
 
       act(() => {
-        result.current.openScaleNodesModal();
+        result.current.setScaleNodesModalOpen(true);
       });
 
       await act(async () => {
@@ -262,7 +359,7 @@ describe('useTrainingJobNodeScaling', () => {
       );
 
       act(() => {
-        result.current.openScaleNodesModal();
+        result.current.setScaleNodesModalOpen(true);
       });
 
       await act(async () => {

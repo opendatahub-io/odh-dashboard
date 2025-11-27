@@ -54,8 +54,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
     canScaleNodes,
     isScaling,
     scaleNodesModalOpen,
-    openScaleNodesModal,
-    closeScaleNodesModal,
+    setScaleNodesModalOpen,
     handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
 
@@ -110,12 +109,12 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
     if (canScaleNodes) {
       items.push({
         title: 'Edit node count',
-        onClick: openScaleNodesModal,
+        onClick: () => setScaleNodesModalOpen(true),
       });
     }
 
     return items;
-  }, [canScaleNodes, job, onDelete, openScaleNodesModal]);
+  }, [canScaleNodes, job, onDelete, setScaleNodesModalOpen]);
 
   return (
     <>
@@ -150,7 +149,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                   <Button
                     variant="link"
                     isInline
-                    onClick={openScaleNodesModal}
+                    onClick={() => setScaleNodesModalOpen(true)}
                     className="pf-u-p-0 pf-u-color-200"
                     aria-label="Scale nodes"
                   >
@@ -233,7 +232,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
         job={scaleNodesModalOpen ? job : undefined}
         currentNodeCount={nodesCount}
         isScaling={isScaling}
-        onClose={closeScaleNodesModal}
+        onClose={() => setScaleNodesModalOpen(false)}
         onConfirm={handleScaleNodes}
       />
     </>

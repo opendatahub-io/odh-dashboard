@@ -53,8 +53,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
     canScaleNodes,
     isScaling,
     scaleNodesModalOpen,
-    openScaleNodesModal,
-    closeScaleNodesModal,
+    setScaleNodesModalOpen,
     handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
 
@@ -116,7 +115,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                     Delete
                   </DropdownItem>
                   {canScaleNodes && (
-                    <DropdownItem key="scale-nodes" onClick={openScaleNodesModal}>
+                    <DropdownItem key="scale-nodes" onClick={() => setScaleNodesModalOpen(true)}>
                       Edit node count
                     </DropdownItem>
                   )}
@@ -150,7 +149,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
               job={job}
               nodesCount={nodesCount}
               canScaleNodes={canScaleNodes}
-              onScaleNodes={openScaleNodesModal}
+              onScaleNodes={() => setScaleNodesModalOpen(true)}
             />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
@@ -171,7 +170,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
         job={scaleNodesModalOpen ? job : undefined}
         currentNodeCount={nodesCount}
         isScaling={isScaling}
-        onClose={closeScaleNodesModal}
+        onClose={() => setScaleNodesModalOpen(false)}
         onConfirm={handleScaleNodes}
       />
     </DrawerPanelContent>

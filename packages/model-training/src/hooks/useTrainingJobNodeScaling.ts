@@ -11,14 +11,19 @@ type UseTrainingJobNodeScalingReturn = {
   canScaleNodes: boolean;
   isScaling: boolean;
   scaleNodesModalOpen: boolean;
-  openScaleNodesModal: () => void;
-  closeScaleNodesModal: () => void;
+  setScaleNodesModalOpen: (open: boolean) => void;
   handleScaleNodes: (newNodeCount: number) => Promise<void>;
 };
 
 /**
  * Custom hook to manage node scaling functionality for training jobs
  * Handles node count calculation, scaling eligibility, and scaling operations
+ *
+ * Node scaling is enabled when the job is in one of these statuses:
+ * - Paused: Job is paused
+ * - Queued: Job is waiting for resources
+ * - Inadmissible: Job cannot be admitted due to quota/resource constraints
+ * - Preempted: Job was preempted by higher priority workloads
  *
  * @param job - The training job to manage scaling for (can be undefined)
  * @param jobStatus - Optional pre-fetched job status (falls back to sync calculation)
@@ -55,10 +60,18 @@ export const useTrainingJobNodeScaling = (
 
   // Determine if scaling is allowed
   const status = job && jobStatus ? jobStatus : job ? getTrainingJobStatusSync(job) : undefined;
-  const { isRunning, isPaused } = status
+  const { isPaused, isQueued, isInadmissible, isPreempted } = status
     ? getStatusFlags(status)
-    : { isRunning: false, isPaused: false };
-  const canScaleNodes = job !== undefined && jobStatus !== undefined && (isRunning || isPaused);
+    : {
+        isPaused: false,
+        isQueued: false,
+        isInadmissible: false,
+        isPreempted: false,
+      };
+  const canScaleNodes =
+    job !== undefined &&
+    jobStatus !== undefined &&
+    (isPaused || isQueued || isInadmissible || isPreempted);
 
   const handleScaleNodes = React.useCallback(
     async (newNodeCount: number) => {
@@ -84,21 +97,12 @@ export const useTrainingJobNodeScaling = (
     [job, notification],
   );
 
-  const openScaleNodesModal = React.useCallback(() => {
-    setScaleNodesModalOpen(true);
-  }, []);
-
-  const closeScaleNodesModal = React.useCallback(() => {
-    setScaleNodesModalOpen(false);
-  }, []);
-
   return {
     nodesCount,
     canScaleNodes,
     isScaling,
     scaleNodesModalOpen,
-    openScaleNodesModal,
-    closeScaleNodesModal,
+    setScaleNodesModalOpen,
     handleScaleNodes,
   };
 };
