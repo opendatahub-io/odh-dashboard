@@ -1,15 +1,12 @@
 # testWorkbenchStorageClasses.cy.ts Test Data #
 projectName: "test-workbench-storage-preset"
 storageClassRWO: "sc-rwo"
-storageClassMultiA: "sc-multi-access-a"
-storageClassMultiB: "sc-multi-access-b"
+storageClassMultiAccess: "sc-multi-access"
 workbenchRWO: "wb-rwo-test"
 workbenchMultiAccessA: "wb-multi-a"
 workbenchMultiAccessB: "wb-multi-b"
 storageRWO: "storage-rwo"
-storageMultiAccessA: "storage-multi-a"
-storageMultiAccessB: "storage-multi-b"
+storageMultiAccess: "storage-multi"
 mountPathA: "mnt/path-a"
 mountPathB: "mnt/path-b"
 mountPathC: "mnt/path-c"
-

@@ -84,7 +84,7 @@ describe('[Product Bug: RHOAIENG-38674] Verify a model can be deployed from a PV
       // Navigate to cluster storage page
       cy.step('Navigate to cluster storage page');
       projectDetails.findSectionTab('cluster-storages').click();
-      clusterStorage.findCreateButton().click();
+      clusterStorage.findAddClusterStorageButton().click();
 
       // Enter cluster storage details
       cy.step('Enter cluster storage details');

@@ -85,7 +85,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       //Navigate to Cluster Storage and click to Add Storage
       cy.step('Navigate to Cluster Storage and click to create Cluster Storage');
       projectDetails.findSectionTab('cluster-storages').click();
-      clusterStorage.findCreateButton().click();
+      clusterStorage.findAddClusterStorageButton().click();
 
       // Enter validate Cluster Storage details into the Cluster Storage Modal
       cy.step('Enter valid Cluster Storage details and verify creation');

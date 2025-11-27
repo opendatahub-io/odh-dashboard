@@ -5,6 +5,5 @@ storageClassRWX: "sc-rwx-preset"
 storageClassROX: "sc-rox-preset"
 storageClassRWOP: "sc-rwop-preset"
 storageClassMultiAccess: "sc-multi-preset"
-storageRWX: "test-storage-rwx"
+storageName: "test-storage-rwx"
 storageDescription: "Test storage with ReadWriteMany access mode"
-
