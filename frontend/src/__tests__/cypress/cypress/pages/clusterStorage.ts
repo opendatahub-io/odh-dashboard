@@ -73,7 +73,8 @@ class SelectStorageClass {
   }
 
   selectStorageClassSelectOption(name: string | RegExp) {
-    cy.findByRole('option', { name, hidden: true }).click();
+    // Use contains to find the visible option text and click it
+    cy.contains('[role="option"]', name).should('be.visible').click();
   }
 
   findSelectStorageClassLabel(name: string | RegExp, accessMode: AccessMode) {
@@ -284,12 +285,16 @@ class ClusterStorage {
     );
   }
 
-  findCreateButton() {
-    return cy.findByTestId('cluster-storage-button');
-  }
-
-  findCreateButtonFromActions() {
-    return cy.findByTestId('actions-cluster-storage-button');
+  findAddClusterStorageButton() {
+    // Use Cypress's built-in handling to try one selector, then another if the first fails
+    return cy.get('body').then(() =>
+      cy
+        .get(
+          '[data-testid="cluster-storage-button"], [data-testid="actions-cluster-storage-button"]',
+        )
+        .first()
+        .then(($el) => cy.wrap($el)),
+    );
   }
 
   findKebabToggle() {

@@ -1,3 +1,4 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import type {
   CommandLineResult,
@@ -118,6 +119,114 @@ export const provisionClusterStorageSCFeature = (projectName: string, userName: 
 export const tearDownClusterStorageSCFeature = (projectName: string): void => {
   // Delete provisioned projectName
   deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+};
+
+/**
+ * Provision a storage class with dual access modes (RWO and RWX)
+ *
+ * @param scName Storage class name to create
+ * @param provisioner Storage provisioner to use (defaults to VSPHERE_VOLUME)
+ * @returns The created storage class name
+ */
+export const provisionDualAccessStorageClass = (
+  scName: string,
+  provisioner = StorageProvisioner.VSPHERE_VOLUME,
+): string => {
+  const scDualAccess: SCAccessMode = {
+    ReadWriteOnce: true,
+    ReadWriteMany: true,
+  };
+  provisionStorageClass(scName, provisioner, scDualAccess);
+  return scName;
+};
+
+/**
+ * Provision a storage class with multiple access modes (RWO, RWX, ROX)
+ *
+ * @param scName Storage class name to create
+ * @param provisioner Storage provisioner to use (defaults to AZURE_FILE)
+ * @returns The created storage class name
+ */
+export const provisionMultiAccessStorageClass = (
+  scName: string,
+  provisioner = StorageProvisioner.AZURE_FILE,
+): string => {
+  const scMultiAccess: SCAccessMode = {
+    ReadWriteOnce: true,
+    ReadWriteMany: true,
+    ReadOnlyMany: true,
+  };
+  provisionStorageClass(scName, provisioner, scMultiAccess);
+  return scName;
+};
+
+/**
+ * Provision storage classes with different access modes for cluster storage access mode testing
+ *
+ * @param storageClassNames Object containing names for each storage class to create
+ * @returns Array of created storage class names
+ */
+export const provisionStorageClassesForAccessModeTests = (storageClassNames: {
+  storageClassRWO: string;
+  storageClassRWX: string;
+  storageClassROX: string;
+  storageClassRWOP: string;
+  storageClassMultiAccess: string;
+}): string[] => {
+  const createdStorageClasses: string[] = [];
+
+  // Provision ReadWriteOnce storage class
+  const scRWO: SCAccessMode = {
+    ReadWriteOnce: true,
+    ReadWriteMany: false,
+  };
+  provisionStorageClass(
+    storageClassNames.storageClassRWO,
+    StorageProvisioner.VSPHERE_VOLUME,
+    scRWO,
+  );
+  createdStorageClasses.push(storageClassNames.storageClassRWO);
+
+  // Provision ReadWriteMany storage class
+  const scRWX: SCAccessMode = {
+    ReadWriteOnce: false,
+    ReadWriteMany: true,
+  };
+  provisionStorageClass(storageClassNames.storageClassRWX, StorageProvisioner.BLOCK_CSI_IBM, scRWX);
+  createdStorageClasses.push(storageClassNames.storageClassRWX);
+
+  // Provision ReadOnlyMany storage class
+  const scROX: SCAccessMode = {
+    ReadWriteOnce: false,
+    ReadWriteMany: false,
+    ReadOnlyMany: true,
+  };
+  provisionStorageClass(storageClassNames.storageClassROX, StorageProvisioner.QUOBYTE, scROX);
+  createdStorageClasses.push(storageClassNames.storageClassROX);
+
+  // Provision ReadWriteOncePod storage class
+  const scRWOP: SCAccessMode = {
+    ReadOnlyMany: false,
+    ReadWriteOncePod: true,
+  };
+  provisionStorageClass(storageClassNames.storageClassRWOP, StorageProvisioner.PD_CSI_GKE, scRWOP);
+  createdStorageClasses.push(storageClassNames.storageClassRWOP);
+
+  // Provision storage class with multiple access modes
+  const scMultiAccess: SCAccessMode = {
+    ReadWriteOnce: true,
+    ReadWriteMany: true,
+    ReadOnlyMany: true,
+    ReadWriteOncePod: false,
+  };
+  provisionStorageClass(
+    storageClassNames.storageClassMultiAccess,
+    StorageProvisioner.AZURE_FILE,
+    scMultiAccess,
+  );
+  createdStorageClasses.push(storageClassNames.storageClassMultiAccess);
+
+  return createdStorageClasses;
 };
 
 /**

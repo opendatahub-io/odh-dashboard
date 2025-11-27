@@ -4,37 +4,29 @@ import TrainingJobTable from './TrainingJobTable';
 import TrainingJobToolbar from './TrainingJobToolbar';
 import { initialTrainingJobFilterData, TrainingJobFilterDataType } from './const';
 import { getTrainingJobStatusSync } from './utils';
-import { useTrainingJobStatuses } from './hooks/useTrainingJobStatuses';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 
 type TrainingJobListViewProps = {
   trainingJobs: TrainJobKind[];
+  jobStatuses: Map<string, TrainingJobState>;
+  onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: TrainJobKind) => void;
 };
 
 const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   trainingJobs: unfilteredTrainingJobs,
+  jobStatuses,
+  onStatusUpdate,
   onSelectJob,
 }) => {
   const [filterData, setFilterData] = React.useState<TrainingJobFilterDataType>(
     initialTrainingJobFilterData,
   );
 
-  // Use the custom hook for cleaner status management
-  const { jobStatuses, updateJobStatus } = useTrainingJobStatuses(unfilteredTrainingJobs);
-
   const onClearFilters = React.useCallback(
     () => setFilterData(initialTrainingJobFilterData),
     [setFilterData],
-  );
-
-  // Handle status updates from hibernation toggle
-  const handleStatusUpdate = React.useCallback(
-    (jobId: string, newStatus: TrainingJobState) => {
-      updateJobStatus(jobId, newStatus);
-    },
-    [updateJobStatus],
   );
 
   const filteredTrainingJobs = React.useMemo(
@@ -80,7 +72,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
     <TrainingJobTable
       trainingJobs={filteredTrainingJobs}
       jobStatuses={jobStatuses}
-      onStatusUpdate={handleStatusUpdate}
+      onStatusUpdate={onStatusUpdate}
       onSelectJob={onSelectJob}
       onClearFilters={onClearFilters}
       clearFilters={Object.values(filterData).some((value) => !!value) ? onClearFilters : undefined}

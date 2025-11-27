@@ -1,3 +1,4 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import type { SCReplacements, CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
@@ -31,7 +32,7 @@ export const createStorageClass = (
  * @returns Result Object of the operation
  */
 export const deleteStorageClass = (scName: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete storageclass ${scName}`;
+  const ocCommand = `oc delete storageclass ${scName} --ignore-not-found=true`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
       cy.log(`ERROR deleting ${scName} Storage Class
