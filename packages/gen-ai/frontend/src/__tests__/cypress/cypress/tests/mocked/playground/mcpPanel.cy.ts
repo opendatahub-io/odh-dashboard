@@ -1,9 +1,9 @@
 import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
 import {
-  TokenAuthModal,
-  MCPToolsModal,
-  MCPServerSuccessModal,
-} from '~/__tests__/cypress/cypress/pages/components/Modal';
+  mcpTokenAuthModal,
+  mcpServerSuccessModal,
+  mcpToolsModal,
+} from '~/__tests__/cypress/cypress/pages/playgroundPage/mcpModals';
 import {
   loadMCPTestConfig,
   initIntercepts,
@@ -49,26 +49,24 @@ describe('Playground - MCP Servers', () => {
       serverRow.findConfigureButton().click();
 
       cy.step('Verify token modal opens');
-      const tokenModal = new TokenAuthModal();
-      tokenModal.shouldBeOpen();
+      mcpTokenAuthModal.find().should('be.visible');
 
       cy.step('Enter valid token');
-      tokenModal.findTokenInput().clear().type(testToken);
+      mcpTokenAuthModal.findTokenInput().clear().type(testToken);
 
       cy.step('Submit token for validation');
-      tokenModal.findSubmitButton().click();
+      mcpTokenAuthModal.findSubmitButton().click();
 
       cy.step('Wait for authentication status check');
       cy.wait('@statusCheck', { timeout: 10000 });
 
       cy.step('Verify success modal appears');
-      const successModal = new MCPServerSuccessModal();
-      successModal.shouldBeOpen();
-      successModal.findHeading().should('be.visible');
+      mcpServerSuccessModal.find().should('be.visible');
+      mcpServerSuccessModal.findHeading().should('be.visible');
 
       cy.step('Close success modal');
-      successModal.findSaveButton().click();
-      successModal.shouldBeOpen(false);
+      mcpServerSuccessModal.findSaveButton().click();
+      mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify server is now authenticated and tools button is enabled');
       serverRow.findToolsButton().should('exist').should('not.have.attr', 'aria-disabled');
@@ -80,14 +78,13 @@ describe('Playground - MCP Servers', () => {
       cy.wait('@toolsRequest', { timeout: 10000 });
 
       cy.step('Verify tools modal displays');
-      const toolsModal = new MCPToolsModal();
-      toolsModal.shouldBeOpen();
-      toolsModal.verifyHasTools();
-      toolsModal.verifyFirstToolHasName();
+      mcpToolsModal.find().should('be.visible');
+      mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+      mcpToolsModal.findToolRows().first().find('td').eq(1).invoke('text').should('not.be.empty');
 
       cy.step('Close tools modal');
-      toolsModal.findCloseButton().click();
-      toolsModal.shouldBeOpen(false);
+      mcpToolsModal.findCloseButton().click();
+      mcpToolsModal.find().should('not.exist');
 
       cy.step('Test completed - Full authentication and tools workflow successful');
     },
@@ -113,14 +110,13 @@ describe('Playground - MCP Servers', () => {
       serverRow.findConfigureButton().click();
 
       cy.step('Verify token modal opens');
-      const tokenModal = new TokenAuthModal();
-      tokenModal.shouldBeOpen();
+      mcpTokenAuthModal.find().should('be.visible');
 
       cy.step('Verify submit button is disabled when no token is entered');
-      tokenModal.findSubmitButton().should('be.disabled');
+      mcpTokenAuthModal.findSubmitButton().should('be.disabled');
 
       cy.step('Close modal');
-      tokenModal.findCancelButton().click();
+      mcpTokenAuthModal.findCancelButton().click();
 
       cy.step('Test completed - Empty token validation works correctly');
     },
@@ -150,19 +146,17 @@ describe('Playground - MCP Servers', () => {
       serverRow.findConfigureButton().click();
 
       cy.step('Verify token modal opens');
-      const tokenModal = new TokenAuthModal();
-      tokenModal.shouldBeOpen();
+      mcpTokenAuthModal.find().should('be.visible');
 
       cy.step('Enter valid token and submit');
-      tokenModal.findTokenInput().clear().type(testToken);
-      tokenModal.findSubmitButton().click();
+      mcpTokenAuthModal.findTokenInput().clear().type(testToken);
+      mcpTokenAuthModal.findSubmitButton().click();
 
       cy.step('Wait for status check with token');
       cy.wait('@statusCheck', { timeout: 10000 });
 
       cy.step('Verify success modal appears');
-      const successModal = new MCPServerSuccessModal();
-      successModal.shouldBeOpen();
+      mcpServerSuccessModal.find().should('be.visible');
 
       cy.step('Test completed - Valid token authentication successful');
     },
@@ -190,16 +184,14 @@ describe('Playground - MCP Servers', () => {
       const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
-      const tokenModal = new TokenAuthModal();
-      tokenModal.shouldBeOpen();
-      tokenModal.findTokenInput().clear().type(invalidToken);
-      tokenModal.findSubmitButton().click();
+      mcpTokenAuthModal.findTokenInput().clear().type(invalidToken);
+      mcpTokenAuthModal.findSubmitButton().click();
 
       cy.step('Wait for error response');
       cy.wait('@statusCheckError', { timeout: 10000 });
 
       cy.step('Verify error message is displayed in modal');
-      tokenModal
+      mcpTokenAuthModal
         .find()
         .findByRole('heading', { name: /Authorization failed/i })
         .should('be.visible');
@@ -230,15 +222,14 @@ describe('Playground - MCP Servers', () => {
       const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
-      const tokenModal = new TokenAuthModal();
-      tokenModal.findTokenInput().clear().type(testToken);
-      tokenModal.findSubmitButton().click();
+      mcpTokenAuthModal.findTokenInput().clear().type(testToken);
+      mcpTokenAuthModal.findSubmitButton().click();
 
       cy.step('Wait for error response');
       cy.wait('@statusCheckError', { timeout: 10000 });
 
       cy.step('Verify error alert is visible');
-      tokenModal
+      mcpTokenAuthModal
         .find()
         .findByRole('heading', { name: /Authorization failed/i })
         .should('be.visible');
@@ -269,13 +260,11 @@ describe('Playground - MCP Servers', () => {
       const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
-      const tokenModal = new TokenAuthModal();
-      tokenModal.shouldBeOpen();
-      tokenModal.findTokenInput().clear().type(invalidToken);
-      tokenModal.findSubmitButton().click();
+      mcpTokenAuthModal.findTokenInput().clear().type(invalidToken);
+      mcpTokenAuthModal.findSubmitButton().click();
 
       cy.step('Verify error is displayed');
-      tokenModal
+      mcpTokenAuthModal
         .find()
         .findByRole('heading', { name: /Authorization failed/i })
         .should('be.visible');
@@ -390,7 +379,186 @@ describe('Playground - MCP Servers', () => {
       cy.step('Verify tools button is enabled after closing modal');
       serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
 
-      cy.step('Test completed - Auto-unlock in playground shows success modal');
+      cy.step('Click tools button to open tools modal');
+      serverRow.findToolsButton().click();
+
+      cy.step('Verify tools modal opens with all tools selected by default');
+      mcpToolsModal.find().should('be.visible');
+      mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+
+      cy.step('Get initial tool count and verify all selected');
+      mcpToolsModal
+        .findToolCountText()
+        .invoke('text')
+        .then((text) => {
+          const match = text.match(/(\d+) out of (\d+)/);
+          const totalTools = parseInt(match![2], 10);
+          const initialSelected = parseInt(match![1], 10);
+          // Verify all tools are selected initially
+          expect(initialSelected).to.equal(totalTools);
+
+          cy.step('Deselect first 2 tools');
+          mcpToolsModal.findToolCheckbox(0).click();
+          mcpToolsModal.findToolCheckbox(1).click();
+
+          cy.step('Verify count updated to show 2 fewer tools selected');
+          mcpToolsModal
+            .findToolCountText()
+            .invoke('text')
+            .then((countText) => {
+              const countMatch = countText.match(/(\d+) out of \d+/);
+              const selected = parseInt(countMatch![1], 10);
+              expect(selected).to.equal(totalTools - 2);
+            });
+
+          cy.step('Save tool selection');
+          mcpToolsModal.findSaveButton().click();
+          mcpToolsModal.find().should('not.exist');
+
+          cy.step('Re-open tools modal to verify persistence');
+          serverRow.findToolsButton().click();
+          mcpToolsModal.find().should('be.visible');
+
+          cy.step('Verify tool selection persisted (2 tools deselected)');
+          mcpToolsModal
+            .findToolCountText()
+            .invoke('text')
+            .then((persistedText) => {
+              const persistedMatch = persistedText.match(/(\d+) out of \d+/);
+              const persistedSelected = parseInt(persistedMatch![1], 10);
+              expect(persistedSelected).to.equal(totalTools - 2);
+            });
+        });
+
+      cy.step('Close tools modal');
+      mcpToolsModal.findCloseButton().click();
+      mcpToolsModal.find().should('not.exist');
+
+      cy.step('Test completed - Auto-unlock with tool selection workflow successful');
+    },
+  );
+
+  it(
+    'should allow comprehensive tool selection operations in tools modal',
+    {
+      tags: ['@GenAI', '@MCPServers', '@Playground', '@Tools', '@Search', '@Selection', '@E2E'],
+    },
+    () => {
+      const namespace = config.defaultNamespace;
+      const { name: serverName, url: serverUrl } = config.servers.kubernetes;
+
+      initAutoConnectIntercepts({
+        config,
+        namespace,
+        serverName,
+        serverUrl,
+      });
+
+      navigateToPlayground(namespace);
+
+      cy.step('Select server to trigger auto-unlock');
+      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      serverRow.findCheckbox().check();
+      cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
+      cy.wait('@toolsRequestAutoConnect', { timeout: 10000 });
+
+      cy.step('Close success modal and open tools modal');
+      playgroundPage.mcpPanel.closeSuccessModal();
+      serverRow.findToolsButton().click();
+
+      cy.step('Verify tools modal opens with all tools selected');
+      mcpToolsModal.find().should('be.visible');
+      mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+      mcpToolsModal
+        .findToolCountText()
+        .invoke('text')
+        .then((text) => {
+          const match = text.match(/(\d+) out of (\d+)/);
+          const totalTools = parseInt(match![2], 10);
+          const initialSelected = parseInt(match![1], 10);
+          expect(initialSelected).to.equal(totalTools); // All selected initially
+
+          cy.step('Test search functionality - search for "pod"');
+          mcpToolsModal.findSearchInput().clear().type('pod');
+
+          cy.step('Verify only pod-related tools are visible');
+          mcpToolsModal.findToolRows().then(($rows) => {
+            const filteredCount = $rows.length;
+            expect(filteredCount).to.be.greaterThan(0);
+            // Verify all visible rows contain "pod"
+            $rows.each((_, row) => {
+              expect(row.textContent.toLowerCase()).to.include('pod');
+            });
+
+            cy.step('Deselect all filtered tools');
+            mcpToolsModal.findSelectAllCheckbox().uncheck();
+
+            cy.step('Verify 0 tools selected after deselect all');
+            mcpToolsModal.find().should('contain.text', `0 out of ${totalTools} selected`);
+
+            cy.step('Select all filtered tools again');
+            mcpToolsModal.findSelectAllCheckbox().check();
+
+            cy.step('Verify only filtered tools are selected');
+            mcpToolsModal
+              .findToolCountText()
+              .invoke('text')
+              .then((countText) => {
+                const countMatch = countText.match(/(\d+) out of \d+/);
+                const selected = parseInt(countMatch![1], 10);
+                expect(selected).to.equal(filteredCount);
+              });
+
+            cy.step('Clear search to show all tools');
+            mcpToolsModal.findSearchInput().clear();
+
+            cy.step('Verify selection count matches filtered tools count');
+            mcpToolsModal
+              .findToolCountText()
+              .invoke('text')
+              .then((countText) => {
+                const countMatch = countText.match(/(\d+) out of \d+/);
+                const selected = parseInt(countMatch![1], 10);
+                expect(selected).to.equal(filteredCount);
+              });
+
+            cy.step('Select all tools');
+            mcpToolsModal.findSelectAllCheckbox().check();
+            mcpToolsModal
+              .find()
+              .should('contain.text', `${totalTools} out of ${totalTools} selected`);
+
+            cy.step('Deselect individual tool (first row)');
+            mcpToolsModal.findToolCheckbox(0).click();
+            mcpToolsModal
+              .findToolCountText()
+              .invoke('text')
+              .then((countText) => {
+                const countMatch = countText.match(/(\d+) out of \d+/);
+                const selected = parseInt(countMatch![1], 10);
+                expect(selected).to.equal(totalTools - 1);
+              });
+
+            cy.step('Select the tool again');
+            mcpToolsModal.findToolCheckbox(0).click();
+            mcpToolsModal
+              .find()
+              .should('contain.text', `${totalTools} out of ${totalTools} selected`);
+
+            cy.step('Save selection and close modal');
+            mcpToolsModal.findSaveButton().click();
+            mcpToolsModal.find().should('not.exist');
+
+            cy.step('Re-open to verify all tools remain selected');
+            serverRow.findToolsButton().click();
+            mcpToolsModal.find().should('be.visible');
+            mcpToolsModal
+              .find()
+              .should('contain.text', `${totalTools} out of ${totalTools} selected`);
+          });
+        });
+
+      cy.step('Test completed - All tool selection operations work correctly');
     },
   );
 });
