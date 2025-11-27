@@ -69,6 +69,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                     aria-label="View generated code (disabled)"
                     icon={<CodeIcon />}
                     isAriaDisabled={isViewCodeDisabled}
+                    data-testid="view-code-button"
                   >
                     View Code
                   </Button>
