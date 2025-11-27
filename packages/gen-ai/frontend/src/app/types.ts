@@ -84,6 +84,7 @@ export type MCPServerConfig = {
   server_label: string;
   server_url: string;
   headers: Record<string, string>;
+  allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
 export type CreateResponseRequest = {

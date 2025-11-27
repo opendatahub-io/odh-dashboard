@@ -77,6 +77,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         model,
         instructions: systemInstruction,
         stream: false,
+        // TODO: Add allowed_tools support once backend code-exporter endpoint is updated
         mcp_servers: mcpServersToUse.map((server) =>
           generateMCPServerConfig(server, mcpServerTokens),
         ),
