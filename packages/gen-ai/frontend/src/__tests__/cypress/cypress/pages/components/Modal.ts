@@ -57,7 +57,8 @@ export class MCPToolsModal extends Modal {
   }
 
   verifyFirstToolHasName(): void {
-    this.findToolRows().first().find('td').first().invoke('text').should('not.be.empty');
+    // First td is checkbox, second td is the tool name
+    this.findToolRows().first().find('td').eq(1).invoke('text').should('not.be.empty');
   }
 
   verifyTableHeaders(): void {
@@ -78,5 +79,29 @@ export class MCPServerSuccessModal extends Modal {
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('modal-submit-button');
+  }
+}
+
+export class NewChatModal extends Modal {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('new-chat-modal');
+  }
+
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Start a new chat?');
+  }
+
+  findWarningMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText(
+      /Starting a new chat clears your previous chat history permanently/i,
+    );
   }
 }

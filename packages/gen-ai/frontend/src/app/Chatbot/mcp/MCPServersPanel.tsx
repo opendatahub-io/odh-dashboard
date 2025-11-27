@@ -10,6 +10,8 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
@@ -49,6 +51,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   initialServerStatuses,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = React.useContext(GenAiContext);
+  const { getToolSelections } = useMCPToolSelections();
 
   const statusesLoading = React.useMemo(() => new Set<string>(), []);
 
@@ -111,6 +115,19 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     React.useCallback((server: MCPServer) => server.id, []),
   );
 
+  const getToolCounts = React.useCallback(
+    (serverUrl: string) => {
+      const namespaceName = namespace?.name;
+      const totalToolsCount = toolsManagement.serverToolsCount.get(serverUrl);
+      const savedTools = namespaceName ? getToolSelections(namespaceName, serverUrl) : undefined;
+      // If savedTools is undefined (never configured), all tools are selected by default
+      const selectedToolsCount = savedTools === undefined ? totalToolsCount : savedTools.length;
+
+      return { totalToolsCount, selectedToolsCount };
+    },
+    [namespace?.name, toolsManagement.serverToolsCount, getToolSelections],
+  );
+
   const handleConfigModalClose = React.useCallback(() => {
     configModal.closeModal();
     fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
@@ -152,6 +169,24 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     },
     [toolsModal],
   );
+
+  const successModalProps = React.useMemo(() => {
+    if (!successModal.selectedItem) {
+      return null;
+    }
+
+    const { totalToolsCount, selectedToolsCount } = getToolCounts(
+      successModal.selectedItem.connectionUrl,
+    );
+
+    return {
+      server: successModal.selectedItem,
+      selectedToolsCount,
+      totalToolsCount,
+      onEditTools: () => handleEditToolsFromSuccess(successModal.selectedItem!),
+      onDisconnect: () => handleDisconnect(successModal.selectedItem!.connectionUrl),
+    };
+  }, [successModal.selectedItem, getToolCounts, handleEditToolsFromSuccess, handleDisconnect]);
 
   if (!serversLoaded) {
     return <EmptyState titleText="Loading" headingLevel="h4" icon={Spinner} />;
@@ -203,8 +238,9 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
             const tokenInfo = tokenManagement.getToken(server.connectionUrl);
             const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
             const isChecking = validation.checkingServers.has(server.connectionUrl);
-            const toolsCount = toolsManagement.serverToolsCount.get(server.connectionUrl);
             const isFetchingTools = toolsManagement.fetchingToolsServers.has(server.connectionUrl);
+
+            const { selectedToolsCount: toolsCount } = getToolCounts(server.connectionUrl);
 
             return (
               <MCPServerPanelRow
@@ -265,14 +301,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
           mcpBearerToken={tokenManagement.getToken(toolsModal.selectedItem.connectionUrl)?.token}
         />
       )}
-      {successModal.selectedItem && (
+      {successModalProps && (
         <MCPServerSuccessModal
           isOpen={successModal.isOpen}
           onClose={handleSuccessModalClose}
-          server={successModal.selectedItem}
-          toolsCount={toolsManagement.serverToolsCount.get(successModal.selectedItem.connectionUrl)}
-          onEditTools={() => handleEditToolsFromSuccess(successModal.selectedItem!)}
-          onDisconnect={() => handleDisconnect(successModal.selectedItem!.connectionUrl)}
+          {...successModalProps}
         />
       )}
     </>
