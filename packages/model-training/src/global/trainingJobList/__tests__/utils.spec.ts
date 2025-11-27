@@ -17,15 +17,11 @@ import {
   ConditionStatus,
   JobSectionName,
 } from '../utils';
-import { getWorkloadForTrainJob } from '../../../api';
-import { resumeTrainJob } from '../../../api/scaling';
+import { getWorkloadForTrainJob, resumeTrainJob } from '../../../api';
 
 // Mock the API functions
 jest.mock('../../../api', () => ({
   getWorkloadForTrainJob: jest.fn(),
-}));
-
-jest.mock('../../../api/scaling', () => ({
   resumeTrainJob: jest.fn(),
 }));
 

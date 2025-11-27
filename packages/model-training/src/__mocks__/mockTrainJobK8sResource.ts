@@ -50,7 +50,7 @@ export const mockTrainJobK8sResource = ({
   numProcPerNode = 1,
   status = TrainingJobState.RUNNING,
   localQueueName = 'default-queue',
-  suspend = false,
+  suspend,
   gpuLimit = 1,
   cpuLimit = '2',
   memoryLimit = '4Gi',
@@ -183,7 +183,7 @@ export const mockTrainJobK8sResource = ({
       metadata,
       spec: {
         runtimeRef,
-        suspend,
+        ...(suspend !== undefined && { suspend }),
         trainer: {
           numNodes,
           numProcPerNode,

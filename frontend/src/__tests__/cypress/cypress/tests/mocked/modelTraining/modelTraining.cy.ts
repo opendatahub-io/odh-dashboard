@@ -18,6 +18,7 @@ import {
   trainingJobPodsTab,
   trainingJobLogsTab,
   trainingJobStatusModal,
+  scaleNodesModal,
 } from '#~/__tests__/cypress/cypress/pages/modelTraining';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/Pagination';
@@ -57,6 +58,15 @@ const mockTrainJobs = mockTrainJobK8sResourceList([
         suspended: 0,
       },
     ],
+  },
+  {
+    name: 'paused-training-job',
+    namespace: projectName,
+    status: TrainingJobState.PAUSED,
+    numNodes: 2,
+    localQueueName: 'paused-queue',
+    creationTimestamp: '2024-01-19T12:00:00Z',
+    suspend: true,
   },
   {
     name: 'nlp-model-training',
@@ -145,6 +155,10 @@ const mockTrainJobs = mockTrainJobK8sResourceList([
 const mockLocalQueues = [
   mockLocalQueueK8sResource({
     name: 'training-queue',
+    namespace: projectName,
+  }),
+  mockLocalQueueK8sResource({
+    name: 'paused-queue',
     namespace: projectName,
   }),
   mockLocalQueueK8sResource({
@@ -246,6 +260,7 @@ const mockClusterQueues = [
 // Map status from train job configs to workload status
 const trainJobStatusMap: Record<string, TrainingJobState> = {
   'image-classification-job': TrainingJobState.RUNNING,
+  'paused-training-job': TrainingJobState.PAUSED,
   'nlp-model-training': TrainingJobState.SUCCEEDED,
   'failed-training-job': TrainingJobState.FAILED,
   'z-last-job': TrainingJobState.SUCCEEDED,
@@ -258,6 +273,7 @@ const trainJobStatusMap: Record<string, TrainingJobState> = {
 const mockWorkloads = mockTrainJobs.map((job) => {
   const jobStatus = trainJobStatusMap[job.metadata.name] ?? TrainingJobState.RUNNING;
   let workloadStatus = WorkloadStatusType.Running;
+  let workloadSpec = { active: true };
 
   if (jobStatus === TrainingJobState.FAILED) {
     workloadStatus = WorkloadStatusType.Failed;
@@ -265,6 +281,9 @@ const mockWorkloads = mockTrainJobs.map((job) => {
     workloadStatus = WorkloadStatusType.Succeeded;
   } else if (jobStatus === TrainingJobState.PENDING) {
     workloadStatus = WorkloadStatusType.Pending;
+  } else if (jobStatus === TrainingJobState.PAUSED) {
+    workloadStatus = WorkloadStatusType.Running;
+    workloadSpec = { active: false };
   }
 
   const workload = mockWorkloadK8sResource({
@@ -278,8 +297,32 @@ const mockWorkloads = mockTrainJobs.map((job) => {
     throw new Error('Workload metadata is required');
   }
 
+  // For Paused status, ensure workload has Admitted condition but active=false
+  if (jobStatus === TrainingJobState.PAUSED && workload.status?.conditions) {
+    workload.status.conditions = [
+      {
+        lastTransitionTime: '2024-03-18T19:15:28Z',
+        message: 'The workload is admitted',
+        reason: 'Admitted',
+        status: 'True',
+        type: 'Admitted',
+      },
+      {
+        lastTransitionTime: '2024-03-18T19:15:28Z',
+        message: 'Quota reserved in ClusterQueue paused-cluster-queue',
+        reason: 'QuotaReserved',
+        status: 'True',
+        type: 'QuotaReserved',
+      },
+    ];
+  }
+
   return {
     ...workload,
+    spec: {
+      ...workload.spec,
+      ...workloadSpec,
+    },
     metadata: {
       ...workload.metadata,
       labels: {
@@ -567,7 +610,6 @@ describe('Model Training', () => {
       trainingJobResourcesTab.findNodesValue().should('contain', '4');
       trainingJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
       trainingJobResourcesTab.findNodesEditButton().should('exist');
-      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
     });
 
     it('should display correct resource values', () => {
@@ -1801,6 +1843,247 @@ describe('Model Training', () => {
         // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
+    });
+  });
+
+  describe('Node Scaling', () => {
+    beforeEach(() => {
+      initIntercepts();
+
+      mockTrainJobs.forEach((job) => {
+        const matchingWorkload = mockWorkloads.find(
+          (w) =>
+            w.metadata.labels['kueue.x-k8s.io/job-uid'] === job.metadata.uid ||
+            w.metadata.labels['kueue.x-k8s.io/job-name'] === job.metadata.name,
+        );
+
+        if (matchingWorkload && job.metadata.uid) {
+          cy.interceptK8sList(
+            {
+              model: WorkloadModel,
+              ns: projectName,
+              queryParams: {
+                labelSelector: `kueue.x-k8s.io/job-uid=${job.metadata.uid}`,
+              },
+            },
+            mockK8sResourceList([matchingWorkload]),
+          );
+        }
+
+        if (matchingWorkload) {
+          cy.interceptK8sList(
+            {
+              model: WorkloadModel,
+              ns: projectName,
+              queryParams: {
+                labelSelector: `kueue.x-k8s.io/job-name=${job.metadata.name}`,
+              },
+            },
+            mockK8sResourceList([matchingWorkload]),
+          );
+        }
+      });
+    });
+
+    it('should not show scale nodes option in kebab menu for running job', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+    });
+
+    it('should open scale nodes modal from inline edit button in Resources tab for paused job', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('paused-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is enabled for paused job
+      trainingJobResourcesTab.findNodesEditButton().should('not.be.disabled');
+      trainingJobResourcesTab.findNodesEditButton().click();
+
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '2');
+    });
+
+    it('should disable scaling for running, completed and failed jobs', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      // Test running job
+      const runningRow = trainingJobTable.getTableRow('image-classification-job');
+      runningRow.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is disabled for running job
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+
+      // Verify kebab menu option doesn't exist for running job
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+
+      trainingJobDetailsDrawer.close();
+
+      // Test completed job
+      const completedRow = trainingJobTable.getTableRow('nlp-model-training');
+      completedRow.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is disabled for completed job
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+
+      // Verify kebab menu option doesn't exist for completed job
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+
+      trainingJobDetailsDrawer.close();
+
+      // Test failed job
+      const failedRow = trainingJobTable.getTableRow('failed-training-job');
+      failedRow.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is disabled for failed job
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+
+      // Verify kebab menu option doesn't exist for failed job
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+    });
+
+    it('should successfully scale nodes up and down for paused job', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      // Test scaling up from 2 to 4
+      const pausedJobScaledUp = mockTrainJobK8sResourceList([
+        {
+          name: 'paused-training-job',
+          namespace: projectName,
+          status: TrainingJobState.PAUSED,
+          numNodes: 4,
+          localQueueName: 'paused-queue',
+          suspend: true,
+        },
+      ])[0];
+
+      cy.interceptK8s(
+        'PATCH',
+        {
+          model: TrainJobModel,
+          ns: projectName,
+          name: 'paused-training-job',
+        },
+        pausedJobScaledUp,
+      ).as('scaleNodesUp');
+
+      const row = trainingJobTable.getTableRow('paused-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '2');
+
+      // Scale up: change node count from 2 to 4
+      scaleNodesModal.findNodeCountInput().type('{selectall}4');
+      scaleNodesModal.findSaveButton().should('not.be.disabled');
+
+      scaleNodesModal.save();
+
+      // Verify the PATCH request for scaling up
+      cy.wait('@scaleNodesUp').then((interception) => {
+        expect(interception.request.body).to.deep.equal([
+          {
+            op: 'replace',
+            path: '/spec/trainer/numNodes',
+            value: 4,
+          },
+        ]);
+      });
+
+      scaleNodesModal.shouldBeOpen(false);
+
+      // Test scaling down from 2 to 1
+      const pausedJobScaledDown = mockTrainJobK8sResourceList([
+        {
+          name: 'paused-training-job',
+          namespace: projectName,
+          status: TrainingJobState.PAUSED,
+          numNodes: 1,
+          localQueueName: 'paused-queue',
+          suspend: true,
+        },
+      ])[0];
+
+      cy.interceptK8s(
+        'PATCH',
+        {
+          model: TrainJobModel,
+          ns: projectName,
+          name: 'paused-training-job',
+        },
+        pausedJobScaledDown,
+      ).as('scaleNodesDown');
+
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+
+      scaleNodesModal.shouldBeOpen();
+
+      // Scale down: change node count from 2 to 1
+      scaleNodesModal.findNodeCountInput().type('{selectall}1');
+      scaleNodesModal.findSaveButton().should('not.be.disabled');
+      scaleNodesModal.save();
+
+      // Verify the PATCH request for scaling down
+      cy.wait('@scaleNodesDown').then((interception) => {
+        expect(interception.request.body).to.deep.equal([
+          {
+            op: 'replace',
+            path: '/spec/trainer/numNodes',
+            value: 1,
+          },
+        ]);
+      });
+
+      scaleNodesModal.shouldBeOpen(false);
+    });
+
+    it('should reset modal state when reopened for paused job', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('paused-training-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      // Open modal first time
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.setNodeCount(8);
+      scaleNodesModal.cancel();
+      scaleNodesModal.shouldBeOpen(false);
+
+      // Open modal second time - should show original value
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '2');
     });
   });
 });
