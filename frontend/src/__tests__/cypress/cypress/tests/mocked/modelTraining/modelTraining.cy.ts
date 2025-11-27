@@ -18,6 +18,7 @@ import {
   trainingJobPodsTab,
   trainingJobLogsTab,
   trainingJobStatusModal,
+  scaleNodesModal,
 } from '#~/__tests__/cypress/cypress/pages/modelTraining';
 import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/Pagination';
@@ -567,7 +568,7 @@ describe('Model Training', () => {
       trainingJobResourcesTab.findNodesValue().should('contain', '4');
       trainingJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
       trainingJobResourcesTab.findNodesEditButton().should('exist');
-      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+      trainingJobResourcesTab.findNodesEditButton().should('not.be.disabled');
     });
 
     it('should display correct resource values', () => {
@@ -1801,6 +1802,197 @@ describe('Model Training', () => {
         // trainingJobStatusModal.findRetryButton().should('not.exist');
         trainingJobStatusModal.findDeleteButton().should('be.visible');
       });
+    });
+  });
+
+  describe('Node Scaling', () => {
+    beforeEach(() => {
+      initIntercepts();
+    });
+
+    it('should open scale nodes modal from kebab menu for running job', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('be.visible');
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '4');
+    });
+
+    it('should open scale nodes modal from inline edit button in Resources tab', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is enabled for running job
+      trainingJobResourcesTab.findNodesEditButton().should('not.be.disabled');
+      trainingJobResourcesTab.findNodesEditButton().click();
+
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '4');
+    });
+
+    it('should disable scaling for completed and failed jobs', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      // Test completed job
+      const completedRow = trainingJobTable.getTableRow('nlp-model-training');
+      completedRow.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is disabled for completed job
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+
+      // Verify kebab menu option doesn't exist for completed job
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+
+      trainingJobDetailsDrawer.close();
+
+      // Test failed job
+      const failedRow = trainingJobTable.getTableRow('failed-training-job');
+      failedRow.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Resources');
+
+      // Verify edit button is disabled for failed job
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
+
+      // Verify kebab menu option doesn't exist for failed job
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+    });
+
+    it('should successfully scale nodes up and down', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      // Test scaling up from 4 to 6
+      cy.interceptK8s(
+        'PATCH',
+        {
+          model: TrainJobModel,
+          ns: projectName,
+          name: 'image-classification-job',
+        },
+        {
+          ...mockTrainJobs[0],
+          spec: {
+            ...mockTrainJobs[0].spec,
+            trainer: {
+              ...mockTrainJobs[0].spec.trainer,
+              numNodes: 6,
+            },
+          },
+        },
+      ).as('scaleNodesUp');
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '4');
+
+      // Scale up: change node count from 4 to 6
+      scaleNodesModal.findNodeCountInput().type('{selectall}6');
+      scaleNodesModal.findSaveButton().should('not.be.disabled');
+
+      scaleNodesModal.save();
+
+      // Verify the PATCH request for scaling up
+      cy.wait('@scaleNodesUp').then((interception) => {
+        expect(interception.request.body).to.deep.equal([
+          {
+            op: 'replace',
+            path: '/spec/trainer/numNodes',
+            value: 6,
+          },
+        ]);
+      });
+
+      scaleNodesModal.shouldBeOpen(false);
+
+      // Test scaling down from 4 to 2
+      cy.interceptK8s(
+        'PATCH',
+        {
+          model: TrainJobModel,
+          ns: projectName,
+          name: 'image-classification-job',
+        },
+        {
+          ...mockTrainJobs[0],
+          spec: {
+            ...mockTrainJobs[0].spec,
+            trainer: {
+              ...mockTrainJobs[0].spec.trainer,
+              numNodes: 2,
+            },
+          },
+        },
+      ).as('scaleNodesDown');
+
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+
+      scaleNodesModal.shouldBeOpen();
+
+      // Scale down: change node count from 4 to 2
+      scaleNodesModal.findNodeCountInput().type('{selectall}2');
+      scaleNodesModal.findSaveButton().should('not.be.disabled');
+      scaleNodesModal.save();
+
+      // Verify the PATCH request for scaling down
+      cy.wait('@scaleNodesDown').then((interception) => {
+        expect(interception.request.body).to.deep.equal([
+          {
+            op: 'replace',
+            path: '/spec/trainer/numNodes',
+            value: 2,
+          },
+        ]);
+      });
+
+      scaleNodesModal.shouldBeOpen(false);
+    });
+
+    it('should reset modal state when reopened', () => {
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+
+      // Open modal first time
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.setNodeCount(8);
+      scaleNodesModal.cancel();
+      scaleNodesModal.shouldBeOpen(false);
+
+      // Open modal second time - should show original value
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').click();
+      scaleNodesModal.shouldBeOpen();
+      scaleNodesModal.findNodeCountInput().should('have.value', '4');
     });
   });
 });
