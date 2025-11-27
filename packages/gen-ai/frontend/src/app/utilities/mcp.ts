@@ -6,9 +6,23 @@ import {
   MCPServerConfig,
   OutputItem,
   MCPToolCallData,
+  TokenInfo,
 } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { generateMCPServerConfig } from './utils';
+
+type ToolSelectionsGetter = (ns: string, url: string) => string[] | undefined;
+
+/**
+ * Backend rules for allowed_tools field in MCPServerConfig:
+ * - undefined/absent: ALL tools allowed (no restrictions)
+ * - empty array: NO tools allowed (explicitly disabled)
+ * - array with names: ONLY those specific tools allowed
+ */
+export const MCP_TOOLS_POLICY = {
+  ALL_ALLOWED: undefined,
+  NONE_ALLOWED: [],
+} as const;
 
 /**
  * Transform MCP server data from API to table format
@@ -202,13 +216,17 @@ export const shouldTriggerAutoUnlock = (params: {
  * @param servers - Available MCP servers from API
  * @param serverStatuses - Map of server connection statuses
  * @param serverTokens - Map of server authentication tokens
+ * @param toolSelections - Optional hook for getting tool selections
+ * @param namespace - Optional namespace for tool selections
  * @returns Array of MCP server configurations ready for API calls
  */
 export const getSelectedServersForAPI = (
   selectedServerIds: string[],
   servers: MCPServerFromAPI[],
   serverStatuses: Map<string, ServerStatusInfo>,
-  serverTokens: Map<string, { token: string; authenticated: boolean; autoConnected: boolean }>,
+  serverTokens: Map<string, TokenInfo>,
+  toolSelections?: ToolSelectionsGetter,
+  namespace?: string,
 ): MCPServerConfig[] => {
   const validServers: MCPServerConfig[] = [];
   let excludedCount = 0;
@@ -224,7 +242,20 @@ export const getSelectedServersForAPI = (
     const isConnected = statusInfo?.status === 'connected' || tokenInfo?.authenticated;
 
     if (isConnected && isValidated) {
-      validServers.push(generateMCPServerConfig(server, serverTokens));
+      const config = generateMCPServerConfig(server, serverTokens);
+
+      // Add allowed_tools based on saved selections (see MCP_TOOLS_POLICY for backend rules)
+      if (namespace && toolSelections) {
+        const savedTools = toolSelections(namespace, server.url);
+        // Only add field if tools have been explicitly configured
+        // undefined = never configured = all tools allowed by default
+        if (savedTools !== undefined) {
+          // eslint-disable-next-line camelcase
+          config.allowed_tools = savedTools;
+        }
+      }
+
+      validServers.push(config);
     } else {
       excludedCount++;
     }
