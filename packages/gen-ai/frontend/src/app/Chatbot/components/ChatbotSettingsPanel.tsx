@@ -22,8 +22,9 @@ import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import MCPServersPanelWithContext from '~/app/Chatbot/mcp/MCPServersPanelWithContext';
+import { MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import MCPServersPanel from '~/app/Chatbot/mcp/MCPServersPanel';
 import UploadedFilesList from './UploadedFilesList';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 import SystemPromptFormGroup from './SystemInstructionFormGroup';
@@ -45,6 +46,17 @@ interface ChatbotSettingsPanelProps {
   onStreamingToggle: (enabled: boolean) => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
+  onMcpServersChange?: (serverIds: string[]) => void;
+  initialSelectedServerIds?: string[];
+  initialServerStatuses?: Map<string, ServerStatusInfo>;
+  selectedServersCount: number;
+  // MCP data props
+  mcpServers: MCPServerFromAPI[];
+  mcpServersLoaded: boolean;
+  mcpServersLoadError?: Error | null;
+  mcpServerTokens: Map<string, TokenInfo>;
+  onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
+  checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
@@ -59,9 +71,19 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onStreamingToggle,
   temperature,
   onTemperatureChange,
+  onMcpServersChange,
+  initialSelectedServerIds,
+  initialServerStatuses,
+  selectedServersCount,
+  // MCP data props
+  mcpServers,
+  mcpServersLoaded,
+  mcpServersLoadError,
+  mcpServerTokens,
+  onMcpServerTokensChange,
+  checkMcpServerStatus,
 }) => {
   const accordionState = useAccordionState();
-  const { selectedServersCount, saveSelectedServersToPlayground } = useMCPSelectionContext();
   const isDarkMode = useDarkMode();
 
   const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -297,7 +319,17 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 margin: '0',
               }}
             >
-              <MCPServersPanelWithContext onSelectionChange={saveSelectedServersToPlayground} />
+              <MCPServersPanel
+                servers={mcpServers}
+                serversLoaded={mcpServersLoaded}
+                serversLoadError={mcpServersLoadError}
+                serverTokens={mcpServerTokens}
+                onServerTokensChange={onMcpServerTokensChange}
+                checkServerStatus={checkMcpServerStatus}
+                onSelectionChange={onMcpServersChange}
+                initialSelectedServerIds={initialSelectedServerIds}
+                initialServerStatuses={initialServerStatuses}
+              />
             </AccordionContent>
           </AccordionItem>
         </Accordion>

@@ -9,9 +9,12 @@ import {
   mockMCPStatusInterceptor,
   mockMCPToolsInterceptor,
   mockMCPStatusError,
+  mockMCPStatusAutoConnect,
+  mockMCPToolsAutoConnect,
 } from '~/__tests__/cypress/cypress/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
+import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
+import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 
 // Declare custom Cypress command types for this helper file
 declare global {
@@ -33,7 +36,7 @@ export interface MCPTestConfig {
       name: string;
       url: string;
     };
-    filesystem: {
+    kubernetes: {
       name: string;
       url: string;
     };
@@ -152,11 +155,56 @@ export const initIntercepts = ({
   }
 };
 
-export const navigateToChatbot = (namespace: string): void => {
-  cy.step('Navigate to Chatbot (Playground)');
+export const navigateToPlayground = (namespace: string): void => {
+  cy.step('Navigate to Playground');
   appChrome.visit();
-  chatbotPage.visit(namespace);
-  chatbotPage.verifyOnChatbotPage(namespace);
-  chatbotPage.expandMCPPanelIfNeeded();
-  chatbotPage.verifyMCPPanelVisible();
+  playgroundPage.visit(namespace);
+  playgroundPage.verifyOnPlaygroundPage(namespace);
+  playgroundPage.mcpPanel.expandMCPPanelIfNeeded();
+  playgroundPage.mcpPanel.verifyMCPPanelVisible();
+};
+
+/**
+ * Initialize intercepts for auto-connectable MCP server (no token required)
+ * Used for testing auto-unlock feature from AI Assets navigation
+ */
+export const initAutoConnectIntercepts = ({
+  config,
+  namespace,
+  serverName,
+  serverUrl,
+}: {
+  config: MCPTestConfig;
+  namespace: string;
+  serverName: string;
+  serverUrl: string;
+}): void => {
+  setupBaseMCPServerMocks(config, { lsdStatus: 'Ready', includeLsdModel: true });
+
+  // Mock the MCP servers list to include the auto-connectable server
+  const mcpServers = [
+    mockMCPServer({
+      name: serverName,
+      status: 'Active',
+      url: serverUrl,
+    }),
+  ];
+
+  cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers(mcpServers));
+
+  // Mock auto-connect status and tools
+  mockMCPStatusAutoConnect(serverUrl);
+  mockMCPToolsAutoConnect(serverUrl);
+};
+
+/**
+ * Navigate from AI Assets MCP tab to Playground with server selection
+ */
+export const navigateFromAIAssetsToPlayground = (namespace: string): void => {
+  cy.step('Navigate to AI Assets page');
+  appChrome.visit();
+  aiAssetsPage.visit(namespace);
+
+  cy.step('Switch to MCP Servers tab');
+  aiAssetsPage.switchToMCPServersTab();
 };

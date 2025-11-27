@@ -7,50 +7,9 @@ class AppChrome {
     this.waitForPageLoad();
   }
 
-  visitWithoutFlags(): void {
-    cy.visit('/');
-    this.waitForPageLoad();
-  }
-
   waitForPageLoad(): void {
     cy.document().should('exist');
     cy.get('body', { timeout: 15000 }).should('be.visible');
-  }
-
-  findGenAiStudioNav(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('nav-gen-ai-v3', { timeout: 15000 });
-  }
-
-  verifyGenAiStudioVisible(): void {
-    this.findGenAiStudioNav().should('exist');
-  }
-
-  findNavItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get(`[data-id="${name}"]`);
-  }
-
-  navigateToNavItem(name: string): void {
-    this.findNavItem(name).click();
-  }
-
-  navigateToPath(path: string): void {
-    cy.visit(path);
-    this.waitForPageLoad();
-  }
-
-  verifyPathname(expectedPath: string | string[]): void {
-    const paths = Array.isArray(expectedPath) ? expectedPath : [expectedPath];
-    cy.location('pathname').should((pathname) => {
-      expect(paths).to.include(pathname);
-    });
-  }
-
-  verifyPathnameContains(pathPart: string): void {
-    cy.location('pathname').should('include', pathPart);
-  }
-
-  verifyPathnameExists(): void {
-    cy.location('pathname').should('exist');
   }
 }
 

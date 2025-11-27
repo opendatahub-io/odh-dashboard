@@ -1,3 +1,4 @@
+/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
 import { Timestamp, Flex, FlexItem, TimestampTooltipVariant, Button } from '@patternfly/react-core';
@@ -6,11 +7,11 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import TrainingJobProject from './TrainingJobProject';
-import { getTrainingJobStatusSync } from './utils';
+import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
-import StateActionToggle from './StateActionToggle';
+import TrainingJobStatusModal from './TrainingJobStatusModal';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { toggleTrainJobHibernation } from '../../api';
@@ -34,6 +35,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const notification = useNotification();
   const [hibernationModalOpen, setHibernationModalOpen] = React.useState(false);
   const [isToggling, setIsToggling] = React.useState(false);
+  const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const displayName = getDisplayNameFromK8sResource(job);
 
@@ -58,11 +60,9 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const isPaused = status === TrainingJobState.PAUSED;
-  const isPreempted = status === TrainingJobState.PREEMPTED;
-  const isQueued = status === TrainingJobState.QUEUED;
-  const isRunning = status === TrainingJobState.RUNNING;
-  const isPending = status === TrainingJobState.PENDING;
+  const { isPaused, isPreempted, isQueued, isRunning, isPending } = getStatusFlags(status);
+
+  // const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -176,10 +176,15 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status">
-          <TrainingJobStatus job={job} jobStatus={jobStatus} />
+          <TrainingJobStatus
+            job={job}
+            jobStatus={jobStatus}
+            onClick={() => setStatusModalOpen(true)}
+          />
         </Td>
-        <Td>
-          {(isRunning || isPaused) && (
+        {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend*/}
+        {/* <Td>
+          {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
               onPause={() => setHibernationModalOpen(true)}
@@ -187,7 +192,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
               isLoading={isToggling}
             />
           )}
-        </Td>
+        </Td> */}
         <Td isActionCell>
           <ActionsColumn items={actions} />
         </Td>
@@ -200,6 +205,21 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
         onClose={() => setHibernationModalOpen(false)}
         onConfirm={handleHibernationToggle}
       />
+      {statusModalOpen && (
+        <TrainingJobStatusModal
+          job={job}
+          jobStatus={jobStatus}
+          onClose={() => setStatusModalOpen(false)}
+          // onPause={() => {
+          //   setStatusModalOpen(false);
+          //   setHibernationModalOpen(true);
+          // }}
+          onDelete={() => {
+            setStatusModalOpen(false);
+            onDelete(job);
+          }}
+        />
+      )}
     </>
   );
 };
