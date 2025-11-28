@@ -22,6 +22,7 @@ const SystemInstructionFormGroup: React.FunctionComponent<SystemInstructionFormG
       onChange={(_event, value) => onSystemInstructionChange(value)}
       aria-label="System instructions input"
       rows={8}
+      data-testid="system-instructions-input"
     />
   </Stack>
 );

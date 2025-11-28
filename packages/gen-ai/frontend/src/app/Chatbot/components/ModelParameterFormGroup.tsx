@@ -79,6 +79,7 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
           min={min}
           max={max}
           step={step}
+          data-testid={`${fieldId}-input`}
         />
       </GridItem>
     </Grid>

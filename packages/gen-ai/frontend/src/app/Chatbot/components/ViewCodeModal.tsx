@@ -10,11 +10,8 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
-import { CodeExportRequest, FileModel } from '~/app/types';
-import { useMCPServers } from '~/app/hooks/useMCPServers';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
+import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { generateMCPServerConfig } from '~/app/utilities';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
@@ -25,7 +22,15 @@ interface ViewCodeModalProps {
   model: string;
   systemInstruction?: string;
   files: FileModel[];
+  selectedMcpServerIds?: string[];
+  mcpServers?: MCPServerFromAPI[];
+  mcpServerTokens?: Map<string, TokenInfo>;
 }
+
+// Stable default values to prevent unnecessary re-renders
+const EMPTY_ARRAY: string[] = [];
+const EMPTY_MCP_SERVERS: MCPServerFromAPI[] = [];
+const EMPTY_TOKEN_MAP = new Map<string, TokenInfo>();
 
 const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   isOpen,
@@ -34,18 +39,18 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   model,
   systemInstruction,
   files,
+  selectedMcpServerIds = EMPTY_ARRAY,
+  mcpServers = EMPTY_MCP_SERVERS,
+  mcpServerTokens = EMPTY_TOKEN_MAP,
 }) => {
   const [code, setCode] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>('');
-  const { servers: mcpServers } = useMCPServers();
-  const { serverTokens } = useMCPTokenContext();
-  const { playgroundSelectedServerIds } = useMCPSelectionContext();
   const [vectorStores, vectorStoresLoaded] = useFetchVectorStores();
   const { api, apiAvailable } = useGenAiAPI();
   const mcpServersToUse = React.useMemo(
-    () => mcpServers.filter((server) => playgroundSelectedServerIds.includes(server.url)),
-    [mcpServers, playgroundSelectedServerIds],
+    () => mcpServers.filter((server) => selectedMcpServerIds.includes(server.url)),
+    [mcpServers, selectedMcpServerIds],
   );
 
   const handleExportCode = React.useCallback(async () => {
@@ -72,7 +77,10 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         model,
         instructions: systemInstruction,
         stream: false,
-        mcp_servers: mcpServersToUse.map((server) => generateMCPServerConfig(server, serverTokens)),
+        // TODO: Add allowed_tools support once backend code-exporter endpoint is updated
+        mcp_servers: mcpServersToUse.map((server) =>
+          generateMCPServerConfig(server, mcpServerTokens),
+        ),
         vector_store: {
           name: vectorStores[0].name,
           // TODO: Get embedding model and dimension from vector store, it's optional
@@ -101,7 +109,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
     mcpServersToUse,
     files,
     api,
-    serverTokens,
+    mcpServerTokens,
   ]);
 
   React.useEffect(() => {
@@ -111,7 +119,12 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   }, [isOpen, handleExportCode]);
 
   return (
-    <Modal variant={ModalVariant.large} isOpen={isOpen} onClose={onToggle}>
+    <Modal
+      variant={ModalVariant.large}
+      isOpen={isOpen}
+      onClose={onToggle}
+      data-testid="view-code-modal"
+    >
       <ModalHeader title="Playground configuration" />
       <ModalBody>
         {error ? (

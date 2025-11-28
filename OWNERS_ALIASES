@@ -115,3 +115,23 @@ aliases:
     - d0w
     - Gkrumbach07
     - jrenee42
+
+  # Gen AI
+  gen-ai-approvers:
+    - agagancarczyk
+    - ikeola13
+    - pnaik1
+    - Lucifergene
+    - divyanshiGupta
+    - rohitkrai03
+    - danpierce1
+    - jharan1
+  gen-ai-reviewers:
+    - agagancarczyk
+    - ikeola13
+    - pnaik1
+    - Lucifergene
+    - divyanshiGupta
+    - rohitkrai03
+    - danpierce1
+    - jharan1

@@ -188,8 +188,8 @@ describe('ClusterStorage', () => {
     initInterceptors({ isEmpty: true });
     clusterStorage.visit('test-project');
     clusterStorage.findEmptyState().should('exist');
-    clusterStorage.findCreateButton().should('be.enabled');
-    clusterStorage.findCreateButton().click();
+    clusterStorage.findAddClusterStorageButton().should('be.enabled');
+    clusterStorage.findAddClusterStorageButton().click();
   });
 
   it('Add cluster storage', () => {
@@ -200,7 +200,7 @@ describe('ClusterStorage', () => {
     ]);
 
     clusterStorage.visit('test-project');
-    clusterStorage.findCreateButton().click();
+    clusterStorage.findAddClusterStorageButton().click();
     addClusterStorageModal.findNameInput().fill('test-storage');
 
     // default selected
@@ -367,7 +367,7 @@ describe('ClusterStorage', () => {
       'addClusterStorage',
     );
     clusterStorage.visit('test-project');
-    clusterStorage.findCreateButton().click();
+    clusterStorage.findAddClusterStorageButton().click();
     addClusterStorageModal.findNameInput().fill('test-storage');
     addClusterStorageModal.findModelStorageRadio().click();
     addClusterStorageModal.findModelNameInput().fill('name');

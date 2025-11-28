@@ -1,20 +1,14 @@
 import React from 'react';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { mlflowIframeUrl } from '#~/routes/pipelines/mlflowExperiments';
+import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
+import MlflowIframe from './MLflowIframe';
 
 const GlobalMLflowExperimentsPage: React.FC = () => {
   return (
     <ApplicationsPage loaded empty={false} title="MLflow Experiments">
-      <iframe
-        title="MLflow Experiments Interface"
-        // TODO: Replace with the actual MLflow URL when the fork deployment is ready
-        src={mlflowIframeUrl}
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-        }}
-      ></iframe>
+      <MLflowIframeCSSOverride>
+        {(iframeRef) => <MlflowIframe ref={iframeRef} />}
+      </MLflowIframeCSSOverride>
     </ApplicationsPage>
   );
 };
