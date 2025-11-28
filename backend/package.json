@@ -56,7 +56,7 @@
     "lodash": "^4.17.21",
     "pino": "^9.9.0",
     "prom-client": "^14.0.1",
-    "ws": "^8.17.1"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
