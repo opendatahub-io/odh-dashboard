@@ -365,8 +365,10 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.body.spec.template.containers).to.containSubset([
           {
             name: 'main',
-            args: ['--arg=value1'],
-            env: [{ name: 'MY_ENV', value: 'MY_VALUE' }],
+            env: [
+              { name: 'MY_ENV', value: 'MY_VALUE' },
+              { name: 'VLLM_ADDITIONAL_ARGS', value: '--arg=value1' },
+            ],
           },
         ]);
       });
@@ -504,7 +506,13 @@ describe('Model Serving LLMD', () => {
         });
         expect(interception.request.body.spec.replicas).to.equal(3);
         expect(interception.request.body.spec.template.containers).to.containSubset([
-          { name: 'main', args: ['--arg=value1'], env: [{ name: 'MY_ENV', value: 'MY_VALUE' }] },
+          {
+            name: 'main',
+            env: [
+              { name: 'MY_ENV', value: 'MY_VALUE' },
+              { name: 'VLLM_ADDITIONAL_ARGS', value: '--arg=value1' },
+            ],
+          },
         ]);
       });
 
