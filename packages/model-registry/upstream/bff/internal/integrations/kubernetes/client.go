@@ -9,6 +9,11 @@ import (
 const ComponentLabelValue = "model-registry"
 const ComponentLabelValueCatalog = "model-catalog"
 
+// TODO ppadti double check if the config map key is indeed sources.yaml
+const CatalogSourceKey = "sources.yaml"
+const CatalogSourceDefaultConfigMapName = "model-catalog-source-config"
+const CatalogSourceUserConfigMapName = "model-catalog-sources"
+
 type KubernetesClientInterface interface {
 	// Service discovery
 	GetServiceNames(ctx context.Context, namespace string) ([]string, error)
@@ -30,4 +35,8 @@ type KubernetesClientInterface interface {
 
 	// Model Registry Settings
 	GetGroups(ctx context.Context) ([]string, error)
+
+	//Model Catalog Settings
+	GetAllCatalogSourceConfigs(ctx context.Context, namespace string) (corev1.ConfigMap, corev1.ConfigMap, error)
+	//TODO ppadti add other methods here
 }

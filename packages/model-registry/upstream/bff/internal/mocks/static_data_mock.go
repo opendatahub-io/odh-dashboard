@@ -802,41 +802,59 @@ func GetCatalogModelListMock() models.CatalogModelList {
 
 func GetCatalogSourceMocks() []models.CatalogSource {
 	enabled := true
-	disabled := false
+	disabledBool := false
+
+	// Status examples (matching OpenAPI spec)
+	availableStatus := "available"
+	errorStatus := "error"
+	disabledStatus := "disabled"
+
+	invalidCredentialError := "The provided API key is invalid or has expired. Please update your credentials."
+	invalidOrgError := "The specified organization 'invalid-org' does not exist or you don't have access to it."
+
 	return []models.CatalogSource{
 		{
 			Id:      "sample-source",
 			Name:    "Sample mocked source",
 			Enabled: &enabled,
 			Labels:  []string{"Sample category 1", "Sample category 2", "Sample category"},
+			Status:  &availableStatus,
 		},
 		{
 			Id:     "huggingface",
 			Name:   "Hugging Face",
 			Labels: []string{"Sample category 2", "Sample category"},
+			// Status is nil - represents "Starting" state (no status yet)
+			Status: nil,
 		},
 		{
 			Id:      "adminModel1",
 			Name:    "Admin model 1",
 			Enabled: &enabled,
 			Labels:  []string{},
+			Status:  &errorStatus,
+			Error:   &invalidCredentialError,
 		},
 		{
 			Id:      "adminModel2",
 			Name:    "Admin model 2",
 			Enabled: &enabled,
 			Labels:  []string{"Sample category 1"},
+			Status:  &errorStatus,
+			Error:   &invalidOrgError,
 		},
 		{
 			Id:     "dora",
 			Name:   "Dora source",
 			Labels: []string{},
+			Status: &availableStatus,
 		},
 		{
 			Id:      "adminModel3",
 			Name:    "Admin model 3",
-			Enabled: &disabled,
+			Enabled: &disabledBool,
 			Labels:  []string{},
+			Status:  &disabledStatus,
 		},
 	}
 }
@@ -1333,14 +1351,17 @@ func CreateSampleCatalogSource(id string, name string, catalogType string) model
 	defaultCatalog := id == "catalog-1"
 
 	sourceConfig := models.CatalogSourceConfig{
-		Name:           name,
-		Id:             id,
-		Type:           catalogType,
-		Enabled:        BoolPtr(true),
-		Labels:         []string{"source-1"},
-		IsDefault:      &defaultCatalog,
-		IncludedModels: []string{"rhelai1/modelcar-granite-7b-starter"},
-		ExcludedModels: []string{"model-a:1.0", "model-b:*"},
+		Name:      name,
+		Id:        id,
+		Type:      catalogType,
+		Enabled:   BoolPtr(true),
+		Labels:    []string{"source-1"},
+		IsDefault: &defaultCatalog,
+	}
+
+	if !defaultCatalog {
+		sourceConfig.IncludedModels = []string{"rhelai1/modelcar-granite-7b-starter"}
+		sourceConfig.ExcludedModels = []string{"model-a:1.0", "model-b:*"}
 	}
 
 	switch catalogType {
