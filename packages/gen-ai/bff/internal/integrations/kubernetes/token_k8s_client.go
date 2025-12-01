@@ -510,7 +510,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			ModelName:      llmSvc.Name,
 			ModelID:        *llmSvc.Spec.Model.Name,
 			Description:    kc.extractDescriptionFromLLMInferenceService(&llmSvc),
-			ServingRuntime: "Distributed Inference Server with llm-d",
+			ServingRuntime: "Distributed inference with llm-d",
 			APIProtocol:    "REST",
 			Usecase:        kc.extractUseCaseFromLLMInferenceService(&llmSvc),
 			Endpoints:      kc.extractEndpointsFromLLMInferenceService(&llmSvc),
