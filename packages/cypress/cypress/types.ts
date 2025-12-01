@@ -407,3 +407,19 @@ export type FeatureStoreTestData = {
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
 };
+
+export type GenAiTestData = {
+  projectDescription: string;
+  connectionName: string;
+  connectionDescription: string;
+  connectionType: string;
+  connectionURI: string;
+  modelDeploymentName: string;
+  modelType: string;
+  servingRuntime: string;
+  testMessage: string;
+  cpuRequested: number;
+  cpuLimit: number;
+  memoryRequested: number;
+  memoryLimit: number;
+};

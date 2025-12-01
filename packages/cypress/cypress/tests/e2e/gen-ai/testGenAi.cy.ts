@@ -1,3 +1,4 @@
+import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   verifyOpenShiftProjectExists,
@@ -5,8 +6,14 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import { checkLlamaStackDistributionReady } from '#~/__tests__/cypress/cypress/utils/oc_commands/llamaStackDistribution';
+import { waitForResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import {
+  enableGenAiFeatures,
+  disableGenAiFeatures,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/genAi';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import type { GenAiTestData } from '#~/__tests__/cypress/cypress/types';
 import {
   projectDetails,
   projectListPage,
@@ -23,59 +30,35 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { genAiPlayground } from '#~/__tests__/cypress/cypress/pages/genAiPlayground';
 
-const waitForResource = (
-  resourceType: string,
-  resourceName: string,
-  namespace: string,
-  maxAttempts = 30,
-): Cypress.Chainable<Cypress.Exec> => {
-  let attempts = 0;
-
-  const check = (): Cypress.Chainable<Cypress.Exec> => {
-    attempts++;
-    return cy
-      .exec(`oc get ${resourceType} ${resourceName} -n ${namespace}`, { failOnNonZeroExit: false })
-      .then((result) => {
-        if (result.code === 0) {
-          cy.log(`✅ ${resourceType} ${resourceName} exists`);
-          return cy.wrap(result);
-        }
-
-        if (attempts >= maxAttempts) {
-          throw new Error(
-            `${resourceType} ${resourceName} not found after ${maxAttempts} attempts`,
-          );
-        }
-
-        cy.log(`⏳ Waiting for ${resourceType} ${resourceName} (attempt ${attempts})`);
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(2000).then(() => check());
-      });
-  };
-
-  return check();
-};
-
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
+  let testData: GenAiTestData;
   let projectName: string;
   const uuid = generateTestUUID();
 
-  retryableBefore(() => {
-    projectName = `gen-ai-test-${uuid}`;
+  retryableBefore(() =>
+    cy
+      .fixture('e2e/genAi/testGenAi.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as GenAiTestData;
+        projectName = `gen-ai-test-${uuid}`;
 
-    if (!projectName) {
-      throw new Error('Project name is undefined or empty');
-    }
+        if (!projectName) {
+          throw new Error('Project name is undefined or empty');
+        }
 
-    return verifyOpenShiftProjectExists(projectName).then((exists: boolean) => {
-      if (exists) {
-        return deleteOpenShiftProject(projectName);
-      }
-      return cy.wrap(null);
-    });
-  });
+        return verifyOpenShiftProjectExists(projectName);
+      })
+      .then((exists: boolean) => {
+        if (exists) {
+          return deleteOpenShiftProject(projectName);
+        }
+        return cy.wrap(null);
+      })
+      .then(() => enableGenAiFeatures()),
+  );
 
   after(() => {
+    disableGenAiFeatures();
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
@@ -111,22 +94,12 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       createProjectModal.k8sNameDescription.findDisplayNameInput().type(projectName);
       createProjectModal.k8sNameDescription
         .findDescriptionInput()
-        .type('Gen AI Test Project for model connections');
+        .type(testData.projectDescription);
       createProjectModal.findSubmitButton().click();
 
       cy.step(`Verify that the project ${projectName} has been created`);
       cy.url().should('include', `/projects/${projectName}`);
       projectDetails.verifyProjectName(projectName);
-
-      cy.step('Set LlamaStack to Managed');
-      cy.exec(
-        `oc patch datasciencecluster default-dsc --type=merge -p '{"spec":{"components": {"llamastackoperator":{"managementState":"Managed"}}}}'`,
-      );
-
-      cy.step('Enable Gen AI Studio and Model as Service');
-      cy.exec(
-        `oc patch odhdashboardconfig odh-dashboard-config -n redhat-ods-applications --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":true, "modelAsService":true}}}'`,
-      );
 
       cy.step('Navigate to Connections tab');
       projectDetails.findSectionTab('connections').click();
@@ -136,18 +109,14 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Create URI connection for Gen AI model');
       addConnectionModal.findConnectionTypeDropdown().click();
-      cy.findByText('URI - v1').click();
-      addConnectionModal.findConnectionNameInput().type('llama-3.2-1b-instruct');
-      addConnectionModal
-        .findConnectionDescriptionInput()
-        .type('URI connection for Llama 3.2 1B Instruct model');
-      cy.findByTestId('field URI').type(
-        'oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct',
-      );
+      cy.findByText(testData.connectionType).click();
+      addConnectionModal.findConnectionNameInput().type(testData.connectionName);
+      addConnectionModal.findConnectionDescriptionInput().type(testData.connectionDescription);
+      cy.findByTestId('field URI').type(testData.connectionURI);
       addConnectionModal.findCreateButton().click();
 
       cy.step('Verify connection was created successfully');
-      connectionsPage.getConnectionRow('llama-3.2-1b-instruct').find().should('exist');
+      connectionsPage.getConnectionRow(testData.connectionName).find().should('exist');
 
       cy.step('Navigate to Model Serving tab');
       projectDetails.findSectionTab('model-server').click();
@@ -163,13 +132,13 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard
         .findExistingConnectionValue()
         .should('be.visible')
-        .should('have.value', 'llama-3.2-1b-instruct');
+        .should('have.value', testData.connectionName);
       modelServingWizard.findModelTypeSelect().should('be.visible').should('not.be.disabled');
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findModelTypeSelectOption(testData.modelType).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Configure model deployment details');
-      modelServingWizard.findModelDeploymentNameInput().clear().type('llama-3.2-1b-instruct');
+      modelServingWizard.findModelDeploymentNameInput().clear().type(testData.modelDeploymentName);
 
       cy.step('Select hardware profile');
       cy.findByTestId('hardware-profile-select').click();
@@ -186,28 +155,34 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard.findMemoryRequestedInput().should('have.value', '4');
       modelServingWizard.findMemoryLimitInput().should('have.value', '4');
 
-      cy.step('Modify CPU requests from 2 to 1');
+      cy.step(`Modify CPU requests from 2 to ${testData.cpuRequested}`);
       modelServingWizard.findCPURequestedButton('Minus').click();
-      modelServingWizard.findCPURequestedInput().should('have.value', '1');
+      modelServingWizard
+        .findCPURequestedInput()
+        .should('have.value', testData.cpuRequested.toString());
 
-      cy.step('Modify CPU limits from 2 to 4');
+      cy.step(`Modify CPU limits from 2 to ${testData.cpuLimit}`);
       modelServingWizard.findCPULimitButton('Plus').click();
       modelServingWizard.findCPULimitButton('Plus').click();
-      modelServingWizard.findCPULimitInput().should('have.value', '4');
+      modelServingWizard.findCPULimitInput().should('have.value', testData.cpuLimit.toString());
 
-      cy.step('Modify Memory requests from 4 to 8');
+      cy.step(`Modify Memory requests from 4 to ${testData.memoryRequested}`);
       modelServingWizard.findMemoryRequestedButton('Plus').click();
       modelServingWizard.findMemoryRequestedButton('Plus').click();
       modelServingWizard.findMemoryRequestedButton('Plus').click();
       modelServingWizard.findMemoryRequestedButton('Plus').click();
-      modelServingWizard.findMemoryRequestedInput().should('have.value', '8');
+      modelServingWizard
+        .findMemoryRequestedInput()
+        .should('have.value', testData.memoryRequested.toString());
 
-      cy.step('Modify Memory limits from 4 to 8');
+      cy.step(`Modify Memory limits from 4 to ${testData.memoryLimit}`);
       modelServingWizard.findMemoryLimitButton('Plus').click();
       modelServingWizard.findMemoryLimitButton('Plus').click();
       modelServingWizard.findMemoryLimitButton('Plus').click();
       modelServingWizard.findMemoryLimitButton('Plus').click();
-      modelServingWizard.findMemoryLimitInput().should('have.value', '8');
+      modelServingWizard
+        .findMemoryLimitInput()
+        .should('have.value', testData.memoryLimit.toString());
 
       cy.step('Select serving runtime');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
@@ -238,7 +213,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Wait for redirect after model deployment submission');
       cy.url().should('include', `/projects/${projectName}`);
-      modelServingSection.findModelServerDeployedName('llama-3.2-1b-instruct');
+      modelServingSection.findModelServerDeployedName(testData.modelDeploymentName);
 
       cy.step('Verify model deployment was created and started');
       waitForResource('inferenceService', 'llama-32-1b-instruct', projectName);
@@ -259,7 +234,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.findByTestId('chatbot-configuration-table').should('exist');
       cy.findByTestId('chatbot-configuration-table')
         .find('tbody tr')
-        .contains('llama-3.2-1b-instruct')
+        .contains(testData.modelDeploymentName)
         .parents('tr')
         .within(() => {
           cy.get('input[type="checkbox"]').should('be.checked');
@@ -281,51 +256,43 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.visit(`/gen-ai-studio/playground/${projectName}`);
       cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
 
-      cy.step('Ensure llama-3.2-1b-instruct model is selected');
+      cy.step(`Ensure ${testData.modelDeploymentName} model is selected`);
       // Check if our model is in any visible button text (handles prefixes like vllm-inference-1/llama-3.2-1b-instruct)
       cy.get('body').then(($body) => {
-        const hasOurModel = $body.find('button:visible').text().includes('llama-3.2-1b-instruct');
+        const hasOurModel = $body
+          .find('button:visible')
+          .text()
+          .includes(testData.modelDeploymentName);
 
         if (!hasOurModel) {
           cy.log('Model not auto-selected, selecting manually');
           // Find the Model dropdown in the right panel (Model details section)
           cy.get('[data-ouia-component-type="PF6/MenuToggle"]').filter(':visible').first().click();
           // Select our model (cy.contains does substring match, so prefix doesn't matter)
-          cy.contains('llama-3.2-1b-instruct').should('be.visible').click();
+          cy.contains(testData.modelDeploymentName).should('be.visible').click();
         } else {
           cy.log('Model already selected (possibly with prefix like vllm-inference-1/)');
         }
       });
 
-      // Verify the model is now selected (regex handles any prefix)
+      // Verify the model is now selected
       cy.findByRole('button', {
-        name: /llama-3\.2-1b-instruct/i,
+        name: new RegExp(testData.modelDeploymentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
       }).should('be.visible');
 
       cy.step('Verify message input is ready and functional');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
 
       cy.step('Send a test message to verify chatbot interface is working');
-      const testQuestion = 'Hello, this is a test message.';
-      genAiPlayground.sendMessage(testQuestion);
+      genAiPlayground.sendMessage(testData.testMessage);
 
       cy.step('Verify user message appears in chat');
-      cy.get('.pf-chatbot__message--user').should('exist').and('contain', testQuestion);
+      cy.get('.pf-chatbot__message--user').should('exist').and('contain', testData.testMessage);
 
       cy.step(
         'Verify playground is functional (model inference not tested due to slow response time)',
       );
       cy.log('✅ Playground interface is functional and ready to receive messages');
-
-      cy.step('Set LlamaStack to Removed');
-      cy.exec(
-        `oc patch datasciencecluster default-dsc --type=merge -p '{"spec":{"components": {"llamastackoperator":{"managementState":"Removed"}}}}'`,
-      );
-
-      cy.step('Disable Gen AI Studio and Model as Service');
-      cy.exec(
-        `oc patch odhdashboardconfig odh-dashboard-config -n redhat-ods-applications --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":false, "modelAsService":false}}}'`,
-      );
     },
   );
 });

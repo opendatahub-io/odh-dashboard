@@ -1,0 +1,13 @@
+projectDescription: 'Gen AI Test Project for model connections'
+connectionName: 'llama-3.2-1b-instruct'
+connectionDescription: 'URI connection for Llama 3.2 1B Instruct model'
+connectionType: 'URI - v1'
+connectionURI: 'oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct'
+modelDeploymentName: 'llama-3.2-1b-instruct'
+modelType: 'Generative AI model (Example, LLM)'
+servingRuntime: 'vLLM CPU (amd64 - EXPERIMENTAL)'
+testMessage: 'Hello, this is a test message.'
+cpuRequested: 1
+cpuLimit: 4
+memoryRequested: 8
+memoryLimit: 8

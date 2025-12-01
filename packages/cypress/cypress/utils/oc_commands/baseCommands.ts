@@ -253,3 +253,58 @@ export const deleteNotebook = (
     }
   });
 };
+
+/**
+ * Wait for a specific OpenShift resource to exist by polling with `oc get`.
+ * Polls until the resource exists or max attempts is reached.
+ *
+ * @param resourceType The type of resource to check (e.g., 'inferenceService', 'configmap', 'pod').
+ * @param resourceName The name of the resource to wait for.
+ * @param namespace The namespace where the resource should exist.
+ * @param maxAttempts The maximum number of attempts to check for the resource (default: 30).
+ * @param pollIntervalMs The interval between polling attempts in milliseconds (default: 2000).
+ * @returns A Cypress chainable that resolves when the resource exists.
+ */
+export const waitForResource = (
+  resourceType: string,
+  resourceName: string,
+  namespace: string,
+  maxAttempts = 30,
+  pollIntervalMs = 2000,
+): Cypress.Chainable<Cypress.Exec> => {
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<Cypress.Exec> => {
+    return cy
+      .exec(`oc get ${resourceType} ${resourceName} -n ${namespace}`, { failOnNonZeroExit: false })
+      .then((result) => {
+        if (result.code === 0) {
+          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+          cy.log(`✅ ${resourceType} ${resourceName} exists (found after ${elapsedTime}s)`);
+          return cy.wrap(result);
+        }
+
+        if (attemptNumber >= maxAttempts) {
+          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+          throw new Error(
+            `${resourceType} ${resourceName} not found after ${maxAttempts} attempts (${elapsedTime}s)`,
+          );
+        }
+
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        cy.log(
+          `⏳ Waiting for ${resourceType} ${resourceName} (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+      });
+  };
+
+  cy.log(
+    `🔍 Polling for ${resourceType}/${resourceName} in namespace ${namespace} (max ${
+      totalTimeout / 1000
+    }s)`,
+  );
+  return check();
+};

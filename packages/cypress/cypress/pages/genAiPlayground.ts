@@ -36,11 +36,11 @@ class GenAiPlayground {
   }
 
   findWelcomePrompt() {
-    return cy.contains('Welcome to the model playground');
+    return cy.findByTestId('chatbot-welcome-prompt');
   }
 
   findMessageBar() {
-    return cy.get('[aria-label="Message bar"]');
+    return cy.findByTestId('chatbot-message-bar');
   }
 
   findMessageInput() {
@@ -48,8 +48,7 @@ class GenAiPlayground {
   }
 
   findSendButton() {
-    // The send button in PatternFly MessageBar
-    return cy.get('.pf-chatbot__message-bar').find('button[aria-label*="Send"]');
+    return cy.findByTestId('chatbot-send-button');
   }
 
   findChatbotMessages() {
