@@ -6,6 +6,7 @@ import {
   getStatusErrorMessage,
   processServerStatus,
   getSelectedServersForAPI,
+  shouldTriggerAutoUnlock,
 } from '~/app/utilities/mcp';
 
 describe('MCP Utilities', () => {
@@ -506,6 +507,273 @@ describe('MCP Utilities', () => {
       );
 
       expect(result).toHaveLength(0);
+    });
+
+    describe('with tool selections', () => {
+      it('returns servers without allowed_tools field when toolSelections is undefined', () => {
+        const result = getSelectedServersForAPI(
+          ['http://server1.com'],
+          mockServers,
+          mockServerStatuses,
+          mockServerTokens,
+          undefined,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).not.toHaveProperty('allowed_tools');
+      });
+
+      it('returns servers without allowed_tools field when namespace is undefined', () => {
+        const mockToolSelections = jest.fn().mockReturnValue(['tool1', 'tool2']);
+
+        const result = getSelectedServersForAPI(
+          ['http://server1.com'],
+          mockServers,
+          mockServerStatuses,
+          mockServerTokens,
+          mockToolSelections,
+          undefined,
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).not.toHaveProperty('allowed_tools');
+        expect(mockToolSelections).not.toHaveBeenCalled();
+      });
+
+      it('does not include allowed_tools when savedTools is undefined (never configured)', () => {
+        const mockToolSelections = jest.fn().mockReturnValue(undefined);
+
+        const result = getSelectedServersForAPI(
+          ['http://server1.com'],
+          mockServers,
+          mockServerStatuses,
+          mockServerTokens,
+          mockToolSelections,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).not.toHaveProperty('allowed_tools');
+        expect(mockToolSelections).toHaveBeenCalledWith('test-namespace', 'http://server1.com');
+      });
+
+      it('includes allowed_tools: [] when savedTools is empty array', () => {
+        const mockToolSelections = jest.fn().mockReturnValue([]);
+
+        const result = getSelectedServersForAPI(
+          ['http://server1.com'],
+          mockServers,
+          mockServerStatuses,
+          mockServerTokens,
+          mockToolSelections,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toHaveProperty('allowed_tools', []);
+      });
+
+      it('includes allowed_tools with specific tool names', () => {
+        const mockToolSelections = jest.fn().mockReturnValue(['tool1', 'tool2']);
+
+        const result = getSelectedServersForAPI(
+          ['http://server1.com'],
+          mockServers,
+          mockServerStatuses,
+          mockServerTokens,
+          mockToolSelections,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toHaveProperty('allowed_tools', ['tool1', 'tool2']);
+      });
+
+      it('handles multiple servers with different tool configurations', () => {
+        const mockServersMultiple = [
+          {
+            name: 'Server 1',
+            url: 'http://server1.com',
+            transport: 'sse' as const,
+            description: 'Test server 1',
+            logo: null,
+            status: 'healthy' as const,
+          },
+          {
+            name: 'Server 2',
+            url: 'http://server2.com',
+            transport: 'sse' as const,
+            description: 'Test server 2',
+            logo: null,
+            status: 'healthy' as const,
+          },
+        ];
+
+        const mockStatusesMultiple = new Map([
+          ['http://server1.com', { status: 'connected' as const, message: 'Connected' }],
+          ['http://server2.com', { status: 'connected' as const, message: 'Connected' }],
+        ]);
+
+        const mockTokensMultiple = new Map([
+          ['http://server1.com', { token: 'token1', authenticated: true, autoConnected: false }],
+          ['http://server2.com', { token: 'token2', authenticated: true, autoConnected: false }],
+        ]);
+
+        const mockToolSelections = jest.fn((namespace: string, serverUrl: string) => {
+          if (serverUrl === 'http://server1.com') {
+            return ['tool1', 'tool2'];
+          }
+          if (serverUrl === 'http://server2.com') {
+            return [];
+          }
+          return undefined;
+        });
+
+        const result = getSelectedServersForAPI(
+          ['http://server1.com', 'http://server2.com'],
+          mockServersMultiple,
+          mockStatusesMultiple,
+          mockTokensMultiple,
+          mockToolSelections,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toHaveProperty('allowed_tools', ['tool1', 'tool2']);
+        expect(result[1]).toHaveProperty('allowed_tools', []);
+      });
+
+      it('excludes disconnected servers regardless of tool selections', () => {
+        const mockToolSelections = jest.fn().mockReturnValue(['tool1']);
+
+        const result = getSelectedServersForAPI(
+          ['http://server2.com'], // This server is unreachable
+          mockServers,
+          mockServerStatuses,
+          mockServerTokens,
+          mockToolSelections,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(0);
+        expect(mockToolSelections).not.toHaveBeenCalled();
+      });
+
+      it('excludes unauthenticated servers regardless of tool selections', () => {
+        const mockUnauthTokens = new Map([
+          ['http://server1.com', { token: '', authenticated: false, autoConnected: false }],
+        ]);
+
+        const mockToolSelections = jest.fn().mockReturnValue(['tool1']);
+
+        const result = getSelectedServersForAPI(
+          ['http://server1.com'],
+          mockServers,
+          mockServerStatuses,
+          mockUnauthTokens,
+          mockToolSelections,
+          'test-namespace',
+        );
+
+        expect(result).toHaveLength(0);
+        expect(mockToolSelections).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('MCP_TOOLS_POLICY', () => {
+    it('has correct constant values', async () => {
+      const mcpModule = await import('~/app/utilities/mcp');
+
+      expect(mcpModule.MCP_TOOLS_POLICY.ALL_ALLOWED).toBeUndefined();
+      expect(mcpModule.MCP_TOOLS_POLICY.NONE_ALLOWED).toEqual([]);
+    });
+  });
+
+  describe('shouldTriggerAutoUnlock', () => {
+    it('should return true when all conditions are met', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: true,
+        wasSelected: false,
+        isAuthenticated: false,
+        isChecking: false,
+        isValidating: false,
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when initial load is not complete', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: false,
+        wasSelected: false,
+        isAuthenticated: false,
+        isChecking: false,
+        isValidating: false,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when server was already selected (deselecting)', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: true,
+        wasSelected: true,
+        isAuthenticated: false,
+        isChecking: false,
+        isValidating: false,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when server is already authenticated', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: true,
+        wasSelected: false,
+        isAuthenticated: true,
+        isChecking: false,
+        isValidating: false,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when server is currently being checked', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: true,
+        wasSelected: false,
+        isAuthenticated: false,
+        isChecking: true,
+        isValidating: false,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when server is currently being validated', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: true,
+        wasSelected: false,
+        isAuthenticated: false,
+        isChecking: false,
+        isValidating: true,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when multiple conditions are not met', () => {
+      const result = shouldTriggerAutoUnlock({
+        isInitialLoadComplete: false,
+        wasSelected: true,
+        isAuthenticated: true,
+        isChecking: true,
+        isValidating: true,
+      });
+
+      expect(result).toBe(false);
     });
   });
 });

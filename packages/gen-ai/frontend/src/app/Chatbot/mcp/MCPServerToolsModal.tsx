@@ -3,17 +3,20 @@ import {
   Modal,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   Title,
   Spinner,
   Alert,
-  Button,
-  Toolbar,
-  ToolbarContent,
+  SearchInput,
   ToolbarItem,
+  Content,
+  Flex,
+  Button,
 } from '@patternfly/react-core';
-import { SyncAltIcon } from '@patternfly/react-icons';
-import { Table } from 'mod-arch-shared';
+import { Table, useCheckboxTableBase } from 'mod-arch-shared';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
+import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPTool } from '~/app/types';
 import MCPToolsColumns from './MCPToolsColumns';
 import MCPToolsTableRow from './MCPToolsTableRow';
@@ -31,16 +34,20 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   server,
   mcpBearerToken,
 }) => {
+  const { namespace } = React.useContext(GenAiContext);
+  const { getToolSelections, saveToolSelections } = useMCPToolSelections();
+
   const {
     tools: apiTools,
     toolsLoaded,
     toolsLoadError,
     toolsStatus,
     isLoading,
-    refetch,
   } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
 
-  const tools = React.useMemo(
+  const [searchValue, setSearchValue] = React.useState('');
+
+  const tools: MCPTool[] = React.useMemo(
     () =>
       apiTools.map((apiTool, index) => ({
         id: `${server.id}-tool-${index}`,
@@ -52,9 +59,70 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     [apiTools, server.id],
   );
 
-  const handleRetry = React.useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const filteredTools = React.useMemo(
+    () => tools.filter((tool) => tool.name.toLowerCase().includes(searchValue.toLowerCase())),
+    [tools, searchValue],
+  );
+
+  const namespaceName = namespace?.name;
+
+  const initialSelectedTools = React.useMemo(() => {
+    if (!namespaceName || !toolsLoaded || tools.length === 0) {
+      return null;
+    }
+
+    const savedTools = getToolSelections(namespaceName, server.connectionUrl);
+
+    // If undefined (never saved), select all tools by default
+    if (savedTools === undefined) {
+      return tools;
+    }
+
+    const savedToolObjects = savedTools
+      .map((toolName) => tools.find((t) => t.name === toolName))
+      .filter((tool): tool is MCPTool => tool !== undefined);
+
+    return savedToolObjects;
+  }, [namespaceName, server.connectionUrl, toolsLoaded, getToolSelections, tools]);
+
+  const [selectedTools, setSelectedTools] = React.useState<MCPTool[]>([]);
+
+  const { selections, tableProps, isSelected, toggleSelection } = useCheckboxTableBase<MCPTool>(
+    filteredTools,
+    selectedTools,
+    setSelectedTools,
+    React.useCallback((tool: MCPTool) => tool.id, []),
+    { persistSelections: true },
+  );
+
+  const hasInitialized = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isOpen && toolsLoaded && initialSelectedTools !== null && !hasInitialized.current) {
+      setSelectedTools(initialSelectedTools);
+      hasInitialized.current = true;
+    } else if (!isOpen && hasInitialized.current) {
+      hasInitialized.current = false;
+    }
+  }, [isOpen, toolsLoaded, initialSelectedTools]);
+
+  const handleSave = React.useCallback(() => {
+    if (!namespaceName) {
+      onClose();
+      return;
+    }
+
+    const selectedToolNames = selections.map((tool) => tool.name);
+    const isAllToolsSelected = selectedToolNames.length === tools.length;
+
+    saveToolSelections(
+      namespaceName,
+      server.connectionUrl,
+      isAllToolsSelected ? undefined : selectedToolNames,
+    );
+
+    onClose();
+  }, [namespaceName, selections, tools.length, saveToolSelections, server.connectionUrl, onClose]);
 
   return (
     <Modal
@@ -66,14 +134,13 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     >
       <ModalHeader>
         <Title headingLevel="h2" size="xl" id="mcp-tools-modal-title">
-          {server.name} - Tools
+          {server.name}
         </Title>
       </ModalHeader>
-      <ModalBody>
+      <ModalBody className="pf-v6-u-pt-md">
         {isLoading && !toolsLoaded && (
           <div className="pf-v6-u-text-align-center pf-v6-u-p-xl" role="status" aria-live="polite">
             <Spinner size="lg" aria-label="Loading tools" />
-            <div className="pf-v6-u-mt-md">Loading tools from {server.name}...</div>
           </div>
         )}
 
@@ -81,16 +148,6 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
           <Alert
             variant="danger"
             title={`Failed to load tools from ${server.name}`}
-            actionLinks={
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="pf-v6-c-button pf-m-link"
-                aria-label={`Retry loading tools from ${server.name}`}
-              >
-                Try again
-              </button>
-            }
             className="pf-v6-u-mb-md"
           >
             {toolsLoadError.message}
@@ -111,33 +168,54 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
                   : 'Unable to retrieve tools - please check server configuration'}
               </div>
             ) : (
-              <>
-                <Table
-                  data={tools}
-                  columns={MCPToolsColumns}
-                  enablePagination="compact"
-                  rowRenderer={(tool: MCPTool) => <MCPToolsTableRow key={tool.id} tool={tool} />}
-                  toolbarContent={
-                    <Toolbar>
-                      <ToolbarContent>
-                        <ToolbarItem>
-                          <div className="pf-v6-u-align-self-center pf-v6-u-font-weight-bold">
-                            Available tools on the {server.name}
-                          </div>
-                          <Button variant="link" onClick={handleRetry} icon={<SyncAltIcon />}>
-                            Retry
-                          </Button>
-                        </ToolbarItem>
-                      </ToolbarContent>
-                    </Toolbar>
-                  }
-                  data-testid="mcp-tools-modal-table"
-                />
-              </>
+              <Table
+                {...tableProps}
+                variant="compact"
+                data={filteredTools}
+                columns={MCPToolsColumns}
+                enablePagination="compact"
+                rowRenderer={(tool: MCPTool) => (
+                  <MCPToolsTableRow
+                    key={tool.id}
+                    tool={tool}
+                    isChecked={isSelected(tool)}
+                    onToggleCheck={() => toggleSelection(tool)}
+                  />
+                )}
+                toolbarContent={
+                  <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                    <ToolbarItem style={{ minWidth: '463px' }}>
+                      <SearchInput
+                        aria-label="Find by name"
+                        placeholder="Find by name"
+                        value={searchValue}
+                        onChange={(_event, value) => setSearchValue(value)}
+                        onClear={() => setSearchValue('')}
+                      />
+                    </ToolbarItem>
+                    <ToolbarItem>
+                      <Content>
+                        {selections.length} out of {tools.length} selected
+                      </Content>
+                    </ToolbarItem>
+                  </Flex>
+                }
+                data-testid="mcp-tools-modal-table"
+              />
             )}
           </>
         )}
       </ModalBody>
+      {toolsLoaded && !isLoading && !toolsLoadError && tools.length > 0 && (
+        <ModalFooter>
+          <Button key="save" variant="primary" onClick={handleSave}>
+            Save
+          </Button>
+          <Button key="cancel" variant="link" onClick={onClose}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      )}
     </Modal>
   );
 };

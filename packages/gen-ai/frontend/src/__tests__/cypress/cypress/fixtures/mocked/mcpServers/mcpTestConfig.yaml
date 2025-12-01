@@ -4,9 +4,9 @@ servers:
   github:
     name: GitHub-MCP-Server
     url: https://api.githubcopilot.com/mcp
-  filesystem:
-    name: Filesystem-MCP-Server
-    url: https://filesystem-mcp-server.local/mcp
+  kubernetes:
+    name: Kubernetes-MCP-Server
+    url: https://kubernetes-mcp-server.local/mcp
 
 tokens:
   valid: ghp_validTestToken123456789

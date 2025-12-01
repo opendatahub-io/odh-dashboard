@@ -10,6 +10,12 @@ import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
+/**
+ * entire file is deprecated
+ * @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated)
+ *
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 const DEFAULT_MODEL_SIZES: ModelServingSize[] = [
   {
     name: 'Small',

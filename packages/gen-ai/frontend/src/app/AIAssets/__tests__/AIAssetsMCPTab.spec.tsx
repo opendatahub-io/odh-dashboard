@@ -2,16 +2,19 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { MCPServerFromAPI } from '~/app/types';
-import { useMCPServers } from '~/app/hooks/useMCPServers';
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import AIAssetsMCPTab from '~/app/AIAssets/AIAssetsMCPTab';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
-jest.mock('~/app/context/MCPContextProvider', () => ({
-  MCPDataProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+jest.mock('~/app/hooks/useFetchMCPServers', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/useMCPServers', () => ({
-  useMCPServers: jest.fn(),
+jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock('~/app/AIAssets/components/mcp/MCPServersTable', () => ({
@@ -27,7 +30,8 @@ jest.mock('~/app/AIAssets/components/mcp/MCPServersTable', () => ({
   ),
 }));
 
-const mockUseMCPServers = jest.mocked(useMCPServers);
+const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
+const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 
 describe('AIAssetsMCPTab', () => {
   beforeEach(() => {
@@ -35,16 +39,40 @@ describe('AIAssetsMCPTab', () => {
   });
 
   it('should render loading state', () => {
-    mockUseMCPServers.mockReturnValue({
-      servers: [],
-      serversLoaded: false,
-      serversLoadError: null,
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [],
+      loaded: false,
+      error: undefined,
+    });
+
+    mockUseMCPServerStatuses.mockReturnValue({
       serverStatuses: new Map(),
       statusesLoading: new Set(),
-      allStatusesChecked: false,
-      refresh: jest.fn(),
       checkServerStatus: jest.fn(),
-    } as ReturnType<typeof useMCPServers>);
+    });
+
+    const { container } = render(
+      <GenAiContext.Provider value={mockGenAiContextValue}>
+        <AIAssetsMCPTab />
+      </GenAiContext.Provider>,
+    );
+
+    // Check for spinner element (loading state)
+    expect(container.querySelector('.pf-v6-c-spinner')).toBeInTheDocument();
+  });
+
+  it('should render error state when fetch fails', () => {
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [],
+      loaded: true,
+      error: new Error('ConfigMap not found'),
+    });
+
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
 
     render(
       <GenAiContext.Provider value={mockGenAiContextValue}>
@@ -52,12 +80,44 @@ describe('AIAssetsMCPTab', () => {
       </GenAiContext.Provider>,
     );
 
-    expect(screen.getByText('Loading')).toBeInTheDocument();
+    expect(screen.getByText('No MCP configuration found')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'This playground does not have an MCP configuration. Contact your cluster administrator to add MCP servers.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('should render empty state when no servers are available', () => {
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [],
+      loaded: true,
+      error: undefined,
+    });
+
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(
+      <GenAiContext.Provider value={mockGenAiContextValue}>
+        <AIAssetsMCPTab />
+      </GenAiContext.Provider>,
+    );
+
+    expect(screen.getByText('No valid MCP servers available')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'An MCP configuration exists, but no valid servers were found. Contact your cluster administrator to update the configuration.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should render MCP servers table when servers exist', () => {
-    mockUseMCPServers.mockReturnValue({
-      servers: [
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [
         {
           name: 'server-1',
           url: 'http://example.com',
@@ -65,14 +125,15 @@ describe('AIAssetsMCPTab', () => {
           logo: '',
         },
       ] as MCPServerFromAPI[],
-      serversLoaded: true,
-      serversLoadError: null,
+      loaded: true,
+      error: undefined,
+    });
+
+    mockUseMCPServerStatuses.mockReturnValue({
       serverStatuses: new Map(),
       statusesLoading: new Set(),
-      allStatusesChecked: true,
-      refresh: jest.fn(),
       checkServerStatus: jest.fn(),
-    } as ReturnType<typeof useMCPServers>);
+    });
 
     render(
       <GenAiContext.Provider value={mockGenAiContextValue}>
@@ -83,5 +144,6 @@ describe('AIAssetsMCPTab', () => {
     expect(screen.getByTestId('mcp-servers-table')).toBeInTheDocument();
     expect(screen.getByTestId('server-server-1')).toBeInTheDocument();
     expect(screen.getByText('server-1')).toBeInTheDocument();
+    // Note: checkServerStatus is now called internally by useMCPServerStatuses hook
   });
 });
