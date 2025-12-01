@@ -111,7 +111,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
     selectedConnectionType,
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = React.useCallback(() => {
     setIsSaving(true);
     setSubmitError(undefined);
 
@@ -140,70 +140,112 @@ export const ManageConnectionModal: React.FC<Props> = ({
         setSubmitError(e);
         setIsSaving(false);
       });
-  };
+  }, [
+    connectionTypeName,
+    project.metadata.name,
+    nameDescData,
+    connectionValues,
+    protocolType,
+    onSubmit,
+    onClose,
+  ]);
 
-  const buttonActions: ButtonAction[] = [
-    {
-      label: 'Cancel',
-      onClick: onClose,
-      variant: 'link',
-      dataTestId: 'manage-connection-cancel',
-    },
-    {
-      label: isEdit ? 'Save' : 'Create',
-      onClick: handleSubmit,
-      variant: 'primary',
-      clickOnEnter: true,
-      dataTestId: 'manage-connection-submit',
-      isDisabled: !isFormValid || !isModified || isSaving,
-      isLoading: isSaving,
-    },
-  ];
+  const buttonActions: ButtonAction[] = React.useMemo(
+    () => [
+      {
+        label: isEdit ? 'Save' : 'Create',
+        onClick: handleSubmit,
+        variant: 'primary',
+        clickOnEnter: true,
+        dataTestId: 'manage-connection-submit',
+        isDisabled: !isFormValid || !isModified || isSaving,
+        isLoading: isSaving,
+      },
+      {
+        label: 'Cancel',
+        onClick: onClose,
+        variant: 'link',
+        dataTestId: 'manage-connection-cancel',
+      },
+    ],
+    [isEdit, handleSubmit, isFormValid, isModified, isSaving, onClose],
+  );
 
-  const contents = (
-    <>
-      {isEdit && (
-        <Alert
-          className="pf-v6-u-mb-lg"
-          variant="warning"
-          isInline
-          title="Dependent resources require further action"
-        >
-          Connection changes are not applied to dependent resources until those resources are
-          restarted, redeployed, or otherwise regenerated.
-        </Alert>
-      )}
-      <Form>
-        <ConnectionTypeForm
-          options={!isEdit ? enabledConnectionTypes : undefined}
-          connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
-          setConnectionType={(name: string) => {
-            const obj = connectionTypes.find((c) => c.metadata.name === name);
-            if (!isModified) {
-              setIsModified(true);
-            }
-            changeSelectionType(obj);
-          }}
-          connectionNameDesc={nameDescData}
-          setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
-            if (!isModified) {
-              setIsModified(true);
-            }
-            setNameDescData(key, value);
-          }}
-          connectionValues={connectionValues}
-          onChange={(field, value) => {
-            if (!isModified) {
-              setIsModified(true);
-            }
-            setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-          }}
-          onValidate={(field, error) =>
-            setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))
-          }
-        />
-      </Form>
-    </>
+  const handleConnectionTypeChange = React.useCallback(
+    (name: string) => {
+      const obj = connectionTypes.find((c) => c.metadata.name === name);
+      if (!isModified) {
+        setIsModified(true);
+      }
+      changeSelectionType(obj);
+    },
+    [connectionTypes, isModified, changeSelectionType],
+  );
+
+  const handleNameDescChange = React.useCallback(
+    (key: keyof K8sNameDescriptionFieldData, value: string) => {
+      if (!isModified) {
+        setIsModified(true);
+      }
+      setNameDescData(key, value);
+    },
+    [isModified, setNameDescData],
+  );
+
+  const handleValueChange = React.useCallback(
+    (field: { envVar: string }, value: ConnectionTypeValueType) => {
+      if (!isModified) {
+        setIsModified(true);
+      }
+      setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+    },
+    [isModified],
+  );
+
+  const handleValidate = React.useCallback((field: { envVar: string }, error: string | boolean) => {
+    setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }));
+  }, []);
+
+  const contents = React.useMemo(
+    () => (
+      <>
+        {isEdit && (
+          <Alert
+            className="pf-v6-u-mb-lg"
+            variant="warning"
+            isInline
+            title="Dependent resources require further action"
+          >
+            Connection changes are not applied to dependent resources until those resources are
+            restarted, redeployed, or otherwise regenerated.
+          </Alert>
+        )}
+        <Form>
+          <ConnectionTypeForm
+            options={!isEdit ? enabledConnectionTypes : undefined}
+            connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
+            setConnectionType={handleConnectionTypeChange}
+            connectionNameDesc={nameDescData}
+            setConnectionNameDesc={handleNameDescChange}
+            connectionValues={connectionValues}
+            onChange={handleValueChange}
+            onValidate={handleValidate}
+          />
+        </Form>
+      </>
+    ),
+    [
+      isEdit,
+      enabledConnectionTypes,
+      selectedConnectionType,
+      connectionTypeSource,
+      handleConnectionTypeChange,
+      nameDescData,
+      handleNameDescChange,
+      connectionValues,
+      handleValueChange,
+      handleValidate,
+    ],
   );
 
   return (
