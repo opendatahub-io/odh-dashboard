@@ -274,8 +274,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     enterButton: 'submit',
   });
 
-  console.log('made buttonActions:tt', buttonActions);
-
   return (
     <GenericModal
       onClose={onCancel}
