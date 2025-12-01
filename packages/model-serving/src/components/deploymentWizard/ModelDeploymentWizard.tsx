@@ -191,7 +191,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
         <WizardStep
@@ -205,7 +205,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               wizardState={wizardState}
             />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
         <WizardStep
@@ -219,7 +219,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               projectName={currentProjectName}
             />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
         <WizardStep
@@ -234,7 +234,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           {wizardState.loaded.summaryLoaded ? (
             <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
       </Wizard>

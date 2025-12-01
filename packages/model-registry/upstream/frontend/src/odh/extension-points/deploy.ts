@@ -12,7 +12,6 @@ export type ModelRegistryDeployModalExtension = Extension<
           loaded: boolean;
           error: Error | undefined;
         };
-        onSubmit: () => void;
         onClose: () => void;
       }>
     >;

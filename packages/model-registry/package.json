@@ -54,7 +54,8 @@
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
-    "./types/types": "./upstream/frontend/src/app/types.ts"
+    "./types/types": "./upstream/frontend/src/app/types.ts",
+    "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"
