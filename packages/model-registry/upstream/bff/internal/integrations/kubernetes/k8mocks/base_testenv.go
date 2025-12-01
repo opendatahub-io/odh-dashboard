@@ -173,6 +173,7 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return err
 	}
 
+	//TODO ppadti: Add more mock setup as needed for other namespaces
 	err = createModelCatalogDefaultSourcesConfigMap(mockK8sClient, ctx, "kubeflow")
 	if err != nil {
 		return err
