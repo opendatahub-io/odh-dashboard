@@ -4,7 +4,7 @@ import HardwareProfileTableColumn from '@odh-dashboard/internal/concepts/hardwar
 import { useHardwareProfileBindingState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
-import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { type Deployment } from '../../../../extension-points';
 
 type DeploymentHardwareProfileCellProps = {

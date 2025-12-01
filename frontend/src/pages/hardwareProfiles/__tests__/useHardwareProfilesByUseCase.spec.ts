@@ -4,7 +4,7 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 jest.mock('#~/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
   HardwareProfilesContext: {
@@ -12,7 +12,7 @@ jest.mock('#~/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
   },
 }));
 
-jest.mock('#~/pages/projects/ProjectDetailsContext.tsx', () => ({
+jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
   ProjectDetailsContext: {
     _currentValue: null,
   },

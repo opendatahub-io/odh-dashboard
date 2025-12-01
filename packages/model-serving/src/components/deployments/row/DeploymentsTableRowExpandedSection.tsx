@@ -15,7 +15,7 @@ import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import type { ContainerResources } from '@odh-dashboard/internal/types';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
-import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
@@ -23,8 +23,8 @@ import {
   isModelServingDeploymentFormDataExtension,
   type Deployment,
 } from '../../../../extension-points';
-import { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
-import { useModelServingHardwareProfile } from '../../deploymentWizard/useModelServingHardwareProfile.ts';
+import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
+import { useModelServingHardwareProfile } from '../../deploymentWizard/useModelServingHardwareProfile';
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;

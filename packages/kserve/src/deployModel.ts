@@ -17,7 +17,7 @@ import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/componen
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import * as _ from 'lodash-es';
-import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,

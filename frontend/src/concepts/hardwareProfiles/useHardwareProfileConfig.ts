@@ -10,7 +10,7 @@ import {
   filterProfilesByKueue,
   useKueueConfiguration,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';

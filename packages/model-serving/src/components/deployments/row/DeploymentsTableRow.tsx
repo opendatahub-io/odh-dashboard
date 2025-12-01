@@ -8,7 +8,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell.tsx';
+import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
