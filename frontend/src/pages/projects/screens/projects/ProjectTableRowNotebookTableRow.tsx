@@ -30,7 +30,6 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   enablePipelines,
 }) => {
   const { notebook, refresh } = notebookState;
-  const { projectHardwareProfiles } = React.useContext(ProjectDetailsContext);
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
@@ -39,7 +38,6 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
   const [hardwareProfileBindingState] = useHardwareProfileBindingState(
     notebook,
     WORKBENCH_VISIBILITY,
-    projectHardwareProfiles,
   );
 
   const onStart = React.useCallback(() => {

@@ -40,7 +40,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   const {
     globalProfiles: [hardwareProfiles, loaded, error],
     projectProfiles: projectScopedHardwareProfiles,
-  } = useHardwareProfilesByFeatureVisibility(visibleIn);
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, project);
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 

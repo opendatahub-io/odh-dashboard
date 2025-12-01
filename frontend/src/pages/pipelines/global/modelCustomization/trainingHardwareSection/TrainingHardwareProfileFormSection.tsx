@@ -35,7 +35,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
   const {
     globalProfiles: [hardwareProfiles, loaded, error],
     projectProfiles: projectScopedHardwareProfiles,
-  } = useHardwareProfilesByFeatureVisibility();
+  } = useHardwareProfilesByFeatureVisibility(undefined, projectName);
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
