@@ -21,6 +21,8 @@ export type CatalogSource = {
   name: string;
   labels: string[];
   enabled?: boolean;
+  status?: 'available' | 'error' | 'disabled';
+  error?: string;
 };
 
 export type CatalogSourceList = ModelCatalogListParams & { items: CatalogSource[] };
@@ -68,6 +70,11 @@ export enum CategoryName {
 
 export enum SourceLabel {
   other = 'null',
+}
+
+export enum CatalogSourceType {
+  YAML = 'yaml',
+  HUGGING_FACE = 'huggingface',
 }
 
 export type CatalogArtifactBase = {
@@ -243,12 +250,12 @@ export type CatalogSourceConfigCommon = {
 };
 
 export type YamlCatalogSourceConfig = CatalogSourceConfigCommon & {
-  type: 'yaml';
+  type: CatalogSourceType.YAML;
   yaml?: string;
 };
 
 export type HuggingFaceCatalogSourceConfig = CatalogSourceConfigCommon & {
-  type: 'huggingface';
+  type: CatalogSourceType.HUGGING_FACE;
   allowedOrganization?: string;
   apiKey?: string;
 };
