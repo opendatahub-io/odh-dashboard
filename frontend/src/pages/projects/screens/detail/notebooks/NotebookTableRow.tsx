@@ -47,7 +47,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   canEnablePipelines,
   showOutOfDateElyraInfo,
 }) => {
-  const { currentProject, projectHardwareProfiles } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const [isExpanded, setExpanded] = React.useState(false);
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
@@ -63,7 +63,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
-    useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY, projectHardwareProfiles);
+    useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
 
   const onStart = React.useCallback(() => {
     setInProgress(true);

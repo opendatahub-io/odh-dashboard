@@ -7,8 +7,6 @@ import {
   CrPathConfig,
 } from '#~/concepts/hardwareProfiles/types.ts';
 import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils.ts';
-import { HardwareProfileKind } from '#~/k8sTypes';
-import { CustomWatchK8sResult } from '#~/types.ts';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -33,23 +31,20 @@ export type UseAssignHardwareProfileResult<T extends K8sResourceCommon> = {
 export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
   cr: T | null | undefined,
   hardwareProfileOptions: HardwareProfileOptions,
-  projectHardwareProfiles?: CustomWatchK8sResult<HardwareProfileKind[]>,
 ): UseAssignHardwareProfileResult<T> => {
   const { visibleIn, paths } = hardwareProfileOptions;
   const { name: hwpName, namespace: hwpNamespace } = getExistingHardwareProfileData(cr);
   const existingResources = getExistingResources(cr, paths);
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
     existingResources;
-  const namespace = cr?.metadata?.namespace;
   const hardwareProfileConfig: UseHardwareProfileConfigResult = useHardwareProfileConfig(
     hwpName,
     existingContainerResources,
     existingTolerations,
     existingNodeSelector,
     visibleIn,
-    namespace,
+    cr?.metadata?.namespace,
     hwpNamespace,
-    projectHardwareProfiles,
   );
   const podSpecOptions = assemblePodSpecOptions(hardwareProfileConfig, existingResources);
 

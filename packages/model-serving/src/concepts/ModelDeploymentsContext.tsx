@@ -1,7 +1,6 @@
 import React from 'react';
-import type { HardwareProfileKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
 import {
   Deployment,
   isModelServingPlatformWatchDeployments,
@@ -13,9 +12,6 @@ type ModelDeploymentsContextType = {
   loaded: boolean;
   errors?: Error[];
   projects?: ProjectKind[];
-  projectHardwareProfiles?: HardwareProfileKind[];
-  projectHardwareProfilesLoaded: boolean;
-  projectHardwareProfilesError?: Error;
 };
 
 export const ModelDeploymentsContext = React.createContext<ModelDeploymentsContextType>({
@@ -23,9 +19,6 @@ export const ModelDeploymentsContext = React.createContext<ModelDeploymentsConte
   loaded: false,
   errors: undefined,
   projects: undefined,
-  projectHardwareProfiles: undefined,
-  projectHardwareProfilesLoaded: false,
-  projectHardwareProfilesError: undefined,
 });
 
 type PlatformDeploymentWatcherProps = {
@@ -61,26 +54,6 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
       unloadPlatformDeployments(platformId);
     };
   }, [platformId, deployments, loaded, error, onStateChange, unloadPlatformDeployments]);
-
-  return null;
-};
-
-const HardwareProfileWatcher: React.FC<{
-  namespace: string;
-  onStateChange: (
-    namespace: string,
-    state: { profiles?: HardwareProfileKind[]; loaded: boolean; error?: Error },
-  ) => void;
-  unloadProfiles: (namespace: string) => void;
-}> = ({ namespace, onStateChange, unloadProfiles }) => {
-  const [profiles, loaded, error] = useWatchHardwareProfiles(namespace);
-
-  React.useEffect(() => {
-    onStateChange(namespace, { profiles, loaded, error });
-    return () => {
-      unloadProfiles(namespace);
-    };
-  }, [namespace, profiles, loaded, error, onStateChange, unloadProfiles]);
 
   return null;
 };
@@ -127,30 +100,6 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     });
   }, []);
 
-  const [projectProfiles, setProjectProfiles] = React.useState<{
-    [namespace: string]:
-      | { profiles?: HardwareProfileKind[]; loaded: boolean; error?: Error }
-      | undefined;
-  }>({});
-
-  const updateProjectProfiles = React.useCallback(
-    (
-      namespace: string,
-      data: { profiles?: HardwareProfileKind[]; loaded: boolean; error?: Error },
-    ) => {
-      setProjectProfiles((oldProfiles) => ({ ...oldProfiles, [namespace]: data }));
-    },
-    [],
-  );
-
-  const unloadProjectProfiles = React.useCallback((namespace: string) => {
-    setProjectProfiles((oldProfiles) => {
-      // eslint-disable-next-line @typescript-eslint/naming-convention,@typescript-eslint/no-unused-vars
-      const { [namespace]: _, ...rest } = oldProfiles;
-      return rest;
-    });
-  }, []);
-
   const contextValue = React.useMemo<ModelDeploymentsContextType>(() => {
     const allDeployments: Deployment[] = [];
     const errors: Error[] = [];
@@ -178,45 +127,13 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
           );
         }));
 
-    const allProfiles: HardwareProfileKind[] = [];
-    let profilesError: Error | undefined;
-
-    for (const project in projectProfiles) {
-      const state = projectProfiles[project];
-      if (state) {
-        if (state.profiles) {
-          allProfiles.push(...state.profiles);
-        }
-        if (state.error) {
-          profilesError = profilesError || state.error;
-        }
-      }
-    }
-
-    const projectsWithNamespaces = projects.filter((project) => project.metadata.name);
-    const profilesLoaded =
-      projectsWithNamespaces.length > 0 &&
-      projectsWithNamespaces.every((project) => {
-        const namespace = project.metadata.name;
-        return projectProfiles[namespace]?.loaded === true;
-      });
-
     return {
       deployments: allLoaded ? allDeployments : undefined,
       loaded: allLoaded,
       errors,
       projects,
-      projectHardwareProfiles: profilesLoaded ? allProfiles : undefined,
-      projectHardwareProfilesLoaded: profilesLoaded,
-      projectHardwareProfilesError: profilesError,
     };
-  }, [
-    projects,
-    platformDeployments,
-    deploymentWatchersLoaded,
-    availablePlatforms,
-    projectProfiles,
-  ]);
+  }, [projects, platformDeployments, deploymentWatchersLoaded, availablePlatforms]);
 
   return (
     <ModelDeploymentsContext.Provider value={contextValue}>
@@ -239,20 +156,6 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
             filterFn={filterFn}
           />
         ));
-      })}
-      {projects.map((project) => {
-        const namespace = project.metadata.name;
-        if (!namespace) {
-          return null;
-        }
-        return (
-          <HardwareProfileWatcher
-            key={`hwp-${namespace}`}
-            namespace={namespace}
-            onStateChange={updateProjectProfiles}
-            unloadProfiles={unloadProjectProfiles}
-          />
-        );
       })}
       {children}
     </ModelDeploymentsContext.Provider>
