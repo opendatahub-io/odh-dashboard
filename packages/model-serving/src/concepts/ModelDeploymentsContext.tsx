@@ -116,15 +116,16 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
 
     const allLoaded =
       deploymentWatchersLoaded &&
-      availablePlatforms.every((platformId) => {
-        const platformKeys = Object.keys(platformDeployments).filter((key) =>
-          key.startsWith(`${platformId}-project-`),
-        );
-        return (
-          platformKeys.length > 0 &&
-          platformKeys.every((key) => platformDeployments[key].loaded === true)
-        );
-      });
+      (projects.length === 0 ||
+        availablePlatforms.every((platformId) => {
+          const platformKeys = Object.keys(platformDeployments).filter((key) =>
+            key.startsWith(`${platformId}-project-`),
+          );
+          return (
+            platformKeys.length > 0 &&
+            platformKeys.every((key) => platformDeployments[key].loaded === true)
+          );
+        }));
 
     return {
       deployments: allLoaded ? allDeployments : undefined,
