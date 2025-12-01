@@ -1,8 +1,9 @@
+/* eslint-disable no-console */
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { moduleFederationPlugins } = require('./moduleFederation');
+const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
@@ -12,20 +13,20 @@ const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
-const OUTPUT_ONLY = process.env._OUTPUT_ONLY;
-const { FAVICON } = process.env;
-const { PRODUCT_NAME } = process.env;
-const { COVERAGE } = process.env;
-const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/maas/' : PUBLIC_PATH;
+const {
+  _OUTPUT_ONLY: OUTPUT_ONLY,
+  FAVICON,
+  PRODUCT_NAME,
+  COVERAGE,
+  _DEPLOYMENT_MODE: DEPLOYMENT_MODE,
+} = process.env;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/mod-arch/' : PUBLIC_PATH;
 
 if (OUTPUT_ONLY !== 'true') {
-  // eslint-disable-next-line no-console
   console.info(
     `\nPrepping files...\n  SRC DIR: ${SRC_DIR}\n  OUTPUT DIR: ${DIST_DIR}\n  PUBLIC PATH: ${PUBLIC_PATH}\n  BASE_PATH: ${BASE_PATH}\n`,
   );
   if (COVERAGE === 'true') {
-    // eslint-disable-next-line no-console
     console.info('\nAdding code coverage instrumentation.\n');
   }
 }

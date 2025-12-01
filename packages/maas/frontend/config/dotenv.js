@@ -52,17 +52,17 @@ const getTsCompilerOptions = (directory) => {
 /**
  * Setup a webpack dotenv plugin config.
  *
- * @param {string} path
+ * @param {string} filePath
  * @returns {*}
  */
-const setupWebpackDotenvFile = (envPath) => {
+const setupWebpackDotenvFile = (filePath) => {
   const settings = {
     systemvars: true,
     silent: true,
   };
 
-  if (envPath) {
-    settings.path = envPath;
+  if (filePath) {
+    settings.path = filePath;
   }
 
   return new Dotenv(settings);
@@ -109,11 +109,11 @@ const setupWebpackDotenvFilesForEnv = ({ directory, env, isRoot = true }) => {
 /**
  * Setup, and access, a dotenv file and the related set of parameters.
  *
- * @param {string} path
+ * @param {string} filePath
  * @returns {*}
  */
-const setupDotenvFile = (envPath) => {
-  const dotenvInitial = dotenv.config({ path: envPath });
+const setupDotenvFile = (filePath) => {
+  const dotenvInitial = dotenv.config({ path: filePath });
   dotenvExpand(dotenvInitial);
 };
 

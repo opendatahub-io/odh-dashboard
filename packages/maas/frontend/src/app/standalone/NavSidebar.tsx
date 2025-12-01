@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable no-relative-import-paths/no-relative-import-paths */
+// @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
 import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -9,9 +12,9 @@ import {
   PageSidebar,
   PageSidebarBody,
 } from '@patternfly/react-core';
-// TODO: Replace this import with the proper one in the dashboard main package.
-import { images as sharedImages } from '~/shared/images';
 import { isNavDataGroup, NavDataHref, NavDataGroup, NavDataItem } from './types';
+// TODO: Replace this import with the proper one in the dashboard main package.
+import { images as sharedImages } from '../../shared/images';
 
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => (
   <NavItem key={item.label} data-id={item.label} itemId={item.label}>

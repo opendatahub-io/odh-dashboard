@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable no-relative-import-paths/no-relative-import-paths */
+// @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
 import React from 'react';
 import {
   Brand,
@@ -22,7 +25,7 @@ import { SimpleSelect } from '@patternfly/react-templates';
 import { BarsIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 // TODO: Replace this import with the proper one in the dashboard main package.
-import { images as sharedImages } from '~/shared/images';
+import { images as sharedImages } from '../../shared/images';
 
 interface NavBarProps {
   username?: string;

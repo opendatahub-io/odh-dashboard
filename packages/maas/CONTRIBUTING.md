@@ -4,6 +4,7 @@
 [BFF dev setup]: ./bff/README.md#development
 [issue]: https://github.com/opendatahub-io/mod-arch-library/issues/new/choose
 [contributing guidelines]: https://github.com/opendatahub-io/mod-arch-library/blob/main/CONTRIBUTING.md
+
 # Contributing
 
 Individual bug fixes are welcome. Please open an [issue] to track the fix you are planning to implement. If you are unsure how best to solve it, start by opening the issue and note your desire to contribute.
@@ -13,8 +14,8 @@ We have [contributing guidelines] available for you to follow.
 
 To review the requirements, please refer to:
 
-* [Frontend requirements]
-* [BFF requirements]
+- [Frontend requirements]
+- [BFF requirements]
 
 ## Set Up
 
@@ -22,9 +23,9 @@ To review the requirements, please refer to:
 
 To run the mocked development environment you can either:
 
-* Use the makefile command to install dependencies `make dev-install-dependencies`, and then start the dev environment with `make dev-start`.
+- Use the makefile command to install dependencies `make dev-install-dependencies`, and then start the dev environment with `make dev-start`.
 
-* Or follow the steps in the [frontend dev setup] and [BFF dev setup] guides.
+- Or follow the steps in the [frontend dev setup] and [BFF dev setup] guides.
 
 ### Kubernetes Deployment
 

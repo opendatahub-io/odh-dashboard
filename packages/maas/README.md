@@ -37,49 +37,49 @@ The following environment variables are used to configure the deployment and dev
 
 ### `CONTAINER_TOOL`
 
-* **Description**: Specifies the container tool to be used for building and running containers.
-* **Default Value**: `docker`
-* **Possible Values**: `docker`, `podman`, etc.
-* **Example**: `CONTAINER_TOOL=docker`
+- **Description**: Specifies the container tool to be used for building and running containers.
+- **Default Value**: `docker`
+- **Possible Values**: `docker`, `podman`, etc.
+- **Example**: `CONTAINER_TOOL=docker`
 
 ### `IMG_UI`
 
-* **Description**: Specifies the image name and tag for the UI (with BFF).
-* **Default Value**: `ghcr.io/kubeflow/mod-arch/ui:latest`
-* **Example**: `IMG_UI=ghcr.io/kubeflow/mod-arch/ui:latest`
+- **Description**: Specifies the image name and tag for the UI (with BFF).
+- **Default Value**: `ghcr.io/kubeflow/mod-arch/ui:latest`
+- **Example**: `IMG_UI=ghcr.io/kubeflow/mod-arch/ui:latest`
 
 ### `IMG_UI_STANDALONE`
 
-* **Description**: Specifies the image name and tag for the UI (with BFF) in **standalone mode**, used for local kind deployment.
-* **Default Value**: `ghcr.io/kubeflow/mod-arch/ui-standalone:latest`
-* **Example**: `IMG_UI_STANDALONE=ghcr.io/kubeflow/mod-arch/ui-standalone:latest`
+- **Description**: Specifies the image name and tag for the UI (with BFF) in **standalone mode**, used for local kind deployment.
+- **Default Value**: `ghcr.io/kubeflow/mod-arch/ui-standalone:latest`
+- **Example**: `IMG_UI_STANDALONE=ghcr.io/kubeflow/mod-arch/ui-standalone:latest`
 
 ### `IMG_UI_FEDERATED`
 
-* **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used for federated mode outside kubeflow.
-* **Default Value**: `ghcr.io/kubeflow/mod-arch/ui-federated:latest`
-* **Example**: `IMG_UI_FEDERATED=ghcr.io/kubeflow/mod-arch/ui-federated:latest`
+- **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used for federated mode outside kubeflow.
+- **Default Value**: `ghcr.io/kubeflow/mod-arch/ui-federated:latest`
+- **Example**: `IMG_UI_FEDERATED=ghcr.io/kubeflow/mod-arch/ui-federated:latest`
 
 ### `PLATFORM`
 
-* **Description**: Specifies the platform for a **docker buildx** build.
-* **Default Value**: `linux/amd64`
-* **Example**: `PLATFORM=linux/amd64`
+- **Description**: Specifies the platform for a **docker buildx** build.
+- **Default Value**: `linux/amd64`
+- **Example**: `PLATFORM=linux/amd64`
 
 ### `DEPLOYMENT_MODE`
 
-* **Description**: Specifies the deployment mode for the UI.
-* **Default Value**: `standalone`
-* **Note**: This variable is used to determine how the UI is built and deployed.
-* **Possible Values**: `standalone`, `kubeflow`, `federated`
-* **Example**: `DEPLOYMENT_MODE=standalone`
+- **Description**: Specifies the deployment mode for the UI.
+- **Default Value**: `standalone`
+- **Note**: This variable is used to determine how the UI is built and deployed.
+- **Possible Values**: `standalone`, `kubeflow`, `federated`
+- **Example**: `DEPLOYMENT_MODE=standalone`
 
 ### `STYLE_THEME`
 
-* **Description**: Specifies the theme/styling framework to be used for the UI.
-* **Default Value**: `mui-theme`
-* **Possible Values**: `mui-theme`, `patternfly-theme`
-* **Example**: `STYLE_THEME=mui-theme`
+- **Description**: Specifies the theme/styling framework to be used for the UI.
+- **Default Value**: `mui-theme`
+- **Possible Values**: `mui-theme`, `patternfly-theme`
+- **Example**: `STYLE_THEME=mui-theme`
 
 ### Example `.env.local` File
 
@@ -98,31 +98,31 @@ The following Makefile targets are used to build and push the Docker images the 
 
 ### Build Commands
 
-* **`docker-build`**: Builds the Docker image for the UI platform.
-  * Command: `make docker-build`
-  * This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+- **`docker-build`**: Builds the Docker image for the UI platform.
+  - Command: `make docker-build`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
-* **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
-  * Command: `make docker-buildx`
-  * This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+- **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
+  - Command: `make docker-buildx`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
-* **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
-  * Command: `make docker-build-standalone`
-  * This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+- **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
+  - Command: `make docker-build-standalone`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
-* **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
-  * Command: `make docker-buildx-standalone`
-  * This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+- **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
+  - Command: `make docker-buildx-standalone`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
 ### Push Commands
 
-* **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
-  * Command: `make docker-push`
-  * This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+- **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
+  - Command: `make docker-push`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
-* **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
-  * Command: `make docker-push-standalone`
-  * This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+- **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
+  - Command: `make docker-push-standalone`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
 ## Deployments
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const { execSync } = require('child_process');
 const path = require('path');
 const { merge } = require('webpack-merge');
@@ -24,7 +25,7 @@ const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/maas/' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/mod-arch/' : PUBLIC_PATH;
 
 const getProxyHeaders = () => {
   if (AUTH_METHOD === 'internal') {
@@ -42,14 +43,12 @@ const getProxyHeaders = () => {
       const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
         .toString()
         .trim();
-      // eslint-disable-next-line no-console
       console.info('Logged in as user:', username);
       return {
         Authorization: `Bearer ${token}`,
         'x-forwarded-access-token': token,
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to get Kubernetes token:', error.message);
       return {};
     }
@@ -85,7 +84,7 @@ module.exports = smp.wrap(
         open: false,
         proxy: [
           {
-            context: ['/api', '/maas/api'],
+            context: ['/api', '/mod-arch/api'],
             target: {
               host: PROXY_HOST,
               protocol: PROXY_PROTOCOL,
@@ -107,7 +106,6 @@ module.exports = smp.wrap(
         },
         onListening: (devServer) => {
           if (devServer) {
-            // eslint-disable-next-line no-console
             console.log(
               `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
             );

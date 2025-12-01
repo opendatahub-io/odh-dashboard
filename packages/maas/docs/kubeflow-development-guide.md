@@ -13,17 +13,18 @@
 
 1. Change the [webpack config](https://github.com/kubeflow/kubeflow/blob/master/components/centraldashboard/webpack.config.js#L186) proxies to allow Mod Arch:
 
-```javascript
-const config = {
-  // ... other config
-  proxy: {
-    // ... other proxy configs
-    '/mod-arch': {
-      target: 'http://localhost:9000',
-      pathRewrite: { '^/mod-arch': '' },
-      changeOrigin: true,
-      ws: true,
-      secure: false,
+```js
+// Add this to your webpack.config.js devServer options
+module.exports = {
+  devServer: {
+    proxy: {
+      '/mod-arch': {
+        target: 'http://localhost:9000',
+        pathRewrite: { '^/mod-arch': '' },
+        changeOrigin: true,
+        ws: true,
+        secure: false,
+      },
     },
   },
 };
@@ -55,6 +56,6 @@ kubectl port-forward service/mod-arch-service 8085:8080 -n <targeted-namespace-o
 kubectl port-forward svc/profiles-kfam 8081:8081 -n kubeflow
 ```
 
-After setting up port forwarding, you can access the UI by navigating to:
+After setting up port forwarding, you can access the UI by navigating to:  
 
 http://localhost:8080

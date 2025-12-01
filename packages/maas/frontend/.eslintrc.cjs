@@ -1,6 +1,7 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   root: true, // Required to prevent prettier plugin conflicts
+  ignorePatterns: ['**/*.yaml', '**/*.yml'],
   env: {
     browser: true,
     node: true,
@@ -18,11 +19,11 @@ module.exports = {
   plugins: [
     '@typescript-eslint',
     'react-hooks',
-    'eslint-plugin-react-hooks',
     'import',
     'no-only-tests',
     'no-relative-import-paths',
     'prettier',
+    'markdown',
   ],
   extends: [
     'eslint:recommended',
@@ -118,6 +119,7 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/no-var-requires': 'off',
+    '@typescript-eslint/no-require-imports': 'off',
     '@typescript-eslint/no-empty-function': 'error',
     '@typescript-eslint/no-inferrable-types': 'error',
     '@typescript-eslint/no-unused-vars': 'error',
@@ -185,7 +187,7 @@ module.exports = {
       },
     ],
     'no-relative-import-paths/no-relative-import-paths': [
-      'error',
+      'warn',
       {
         allowSameFolder: true,
         rootDir: 'src',
@@ -230,39 +232,6 @@ module.exports = {
     'func-names': 'warn',
   },
   overrides: [
-    {
-      // Workspace packages: disable import/no-extraneous-dependencies for @odh-dashboard packages
-      files: ['src/**/*.{ts,tsx}'],
-      rules: {
-        'import/no-extraneous-dependencies': 'off',
-      },
-    },
-    {
-      // Config files: disable TypeScript parser to avoid project conflicts
-      files: ['.eslintrc.js', 'config/**/*.js'],
-      parser: 'espree',
-      env: { node: true },
-      parserOptions: { ecmaVersion: 2020, sourceType: 'script' },
-      extends: ['eslint:recommended'],
-      rules: {
-        // Disable TypeScript rules that require type information
-        '@typescript-eslint/dot-notation': 'off',
-        '@typescript-eslint/naming-convention': 'off',
-        '@typescript-eslint/no-unused-expressions': 'off',
-        '@typescript-eslint/no-redeclare': 'off',
-        '@typescript-eslint/no-shadow': 'off',
-        '@typescript-eslint/return-await': 'off',
-        '@typescript-eslint/no-base-to-string': 'off',
-        '@typescript-eslint/no-unnecessary-condition': 'off',
-        '@typescript-eslint/default-param-last': 'off',
-        '@typescript-eslint/method-signature-style': 'off',
-        '@typescript-eslint/no-require-imports': 'off',
-        '@typescript-eslint/no-var-requires': 'off',
-        'import/no-extraneous-dependencies': 'off',
-        'prefer-destructuring': 'off',
-        'no-console': 'off',
-      },
-    },
     {
       files: ['./src/api/**'],
       rules: {
@@ -316,6 +285,29 @@ module.exports = {
             ],
           },
         ],
+      },
+    },
+    // Markdown file handling
+    {
+      files: ['**/*.md'],
+      processor: 'markdown/markdown',
+    },
+    {
+      // Code blocks inside markdown - apply relaxed rules
+      files: ['**/*.md/*.js', '**/*.md/*.jsx', '**/*.md/*.ts', '**/*.md/*.tsx'],
+      parserOptions: {
+        project: null,
+      },
+      rules: {
+        'no-undef': 'off',
+        'no-unused-vars': 'off',
+        'no-unused-expressions': 'off',
+        'no-console': 'off',
+        'import/no-unresolved': 'off',
+        'react/react-in-jsx-scope': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-unused-expressions': 'off',
+        'prettier/prettier': 'off',
       },
     },
   ],

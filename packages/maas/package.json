@@ -32,7 +32,7 @@
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9103"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "^0.0.0",
+    "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
