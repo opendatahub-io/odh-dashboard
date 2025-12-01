@@ -156,7 +156,7 @@ jobs:
           echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.test-tag }} (run_id: ${{ github.run_id }})"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For pull_request_target, explicitly checkout the PR head (from fork)
           # This is safe because we only run after test.yml passes
