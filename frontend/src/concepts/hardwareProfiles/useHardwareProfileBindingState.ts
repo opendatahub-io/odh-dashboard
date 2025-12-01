@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import React from 'react';
 import { HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';

@@ -43,11 +43,11 @@ import {
   useProfileIdentifiers,
   doesImageStreamSupportHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
-import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
-import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils.ts';
-import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const.ts';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,

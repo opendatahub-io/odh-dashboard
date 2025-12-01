@@ -10,8 +10,8 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import type {
   ModelServerOption,
   useModelServerSelectField,
@@ -32,7 +32,7 @@ import {
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
-import { ModelResourceType } from '../../../extension-points';
+import type { ModelResourceType } from '../../../extension-points';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',

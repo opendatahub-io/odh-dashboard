@@ -2,7 +2,7 @@ import React from 'react';
 import HardwareProfileFormSection from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
-import { ModelResourceType } from '../../../../extension-points';
+import type { ModelResourceType } from '../../../../extension-points';
 
 type ModelServingHardwareProfileSectionComponentProps = {
   hardwareProfileOptions?: UseAssignHardwareProfileResult<ModelResourceType>;

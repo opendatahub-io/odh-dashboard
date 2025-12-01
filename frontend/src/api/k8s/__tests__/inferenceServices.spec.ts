@@ -28,7 +28,7 @@ import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useMode
 import { DeploymentMode, InferenceServiceKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { TolerationEffect, TolerationOperator } from '#~/types';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile.ts';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

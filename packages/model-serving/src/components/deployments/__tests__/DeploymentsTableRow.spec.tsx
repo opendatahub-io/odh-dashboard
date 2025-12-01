@@ -57,7 +57,7 @@ jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwarePr
 }));
 
 // Mock the DeploymentHardwareProfileCell component
-jest.mock('../row/DeploymentHardwareProfileCell.tsx', () => ({
+jest.mock('../row/DeploymentHardwareProfileCell', () => ({
   DeploymentHardwareProfileCell: () => <td>Hardware Profile</td>,
 }));
 

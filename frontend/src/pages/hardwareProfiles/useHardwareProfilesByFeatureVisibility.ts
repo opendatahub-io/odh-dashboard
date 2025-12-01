@@ -2,7 +2,7 @@ import React from 'react';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
 
