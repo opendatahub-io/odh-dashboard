@@ -100,7 +100,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
           const logMessage = formatValidationMessage(result, urlToLocationsMap);
           const errorType = getErrorType(result.status, result.error);
 
-          cy.step(logMessage);
+          cy.log(logMessage);
           softTrue(
             isValid,
             `URL ${result.url} should return one of the valid status codes (${Array.from(
