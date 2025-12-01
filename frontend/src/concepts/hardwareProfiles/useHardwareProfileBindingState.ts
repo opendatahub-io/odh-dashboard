@@ -10,7 +10,6 @@ import { HardwareProfileBindingState } from './const';
 
 /**
  * Hook to get hardware profile binding state for a resource.
- * Automatically fetches the hardware profile if not available in context.
  *
  * @param resource - Notebook or Model resource
  * @param visibility - Feature visibility filter
@@ -28,7 +27,6 @@ export const useHardwareProfileBindingState = (
   const resourceVersion =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
 
-  // Get profiles - will fetch if not in context
   const {
     globalProfiles: [globalProfilesList, globalProfilesLoaded, globalProfilesError],
     projectProfiles: [projectProfilesList, projectProfilesLoaded, projectProfilesError],

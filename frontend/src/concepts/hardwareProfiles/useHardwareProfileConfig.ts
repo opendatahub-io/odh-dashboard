@@ -12,7 +12,6 @@ import {
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
-import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -117,7 +116,6 @@ export const useHardwareProfileConfig = (
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
-  // Get profiles from contexts (will fetch if needed for resourceNamespace)
   const {
     globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
     projectProfiles: [
@@ -127,17 +125,12 @@ export const useHardwareProfileConfig = (
     ],
   } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace);
 
-  const {
-    globalHardwareProfiles: [globalProfiles],
-  } = React.useContext(HardwareProfilesContext);
-
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
   });
 
-  // Determine which profiles to use and loading state
   let profiles = dashboardProfiles;
   let profilesLoaded = dashboardProfilesLoaded;
   let profilesLoadError = dashboardProfilesLoadError;
@@ -149,7 +142,6 @@ export const useHardwareProfileConfig = (
   }
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
-
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
   React.useEffect(() => {
@@ -164,15 +156,11 @@ export const useHardwareProfileConfig = (
       if (resources) {
         // try to match to existing profile
         if (existingHardwareProfileName && hardwareProfileNamespace) {
-          // 1. If hardwareProfileNamespace is dashboardNamespace, get from global context
           if (hardwareProfileNamespace === dashboardNamespace) {
-            selectedProfile = globalProfiles.find(
+            selectedProfile = dashboardProfiles.find(
               (profile) => profile.metadata.name === existingHardwareProfileName,
             );
-          }
-          // 2. If hardwareProfileNamespace is resourceNamespace, get from projectScopedProfiles
-          // (this includes both context profiles and fetched profiles)
-          else {
+          } else {
             selectedProfile = projectScopedProfiles.find(
               (profile) =>
                 profile.metadata.name === existingHardwareProfileName &&
@@ -219,7 +207,6 @@ export const useHardwareProfileConfig = (
     projectScopedProfiles,
     dashboardProfiles,
     dashboardNamespace,
-    globalProfiles,
     kueueFilteringState,
   ]);
 

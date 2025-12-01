@@ -1,12 +1,11 @@
 import React from 'react';
 import { Td } from '@patternfly/react-table';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { type Deployment } from '@odh-dashboard/model-serving/extension-points';
-import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
-import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
-import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { MODEL_SERVING_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
-import { CrPathConfig } from '#~/concepts/hardwareProfiles/types';
+import HardwareProfileTableColumn from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileTableColumn';
+import { useHardwareProfileBindingState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import { type Deployment } from '../../../../extension-points';
 
 type DeploymentHardwareProfileCellProps = {
   deployment: Deployment;

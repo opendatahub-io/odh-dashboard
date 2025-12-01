@@ -31,54 +31,31 @@ export const useHardwareProfilesByFeatureVisibility = (
 } => {
   const { dashboardNamespace } = useDashboardNamespace();
 
-  // 1. Always get global profiles from HardwareProfilesContext
+  // Always get global profiles from HardwareProfilesContext
   const {
     globalHardwareProfiles: [globalProfiles, globalProfilesLoaded, globalProfilesError],
   } = React.useContext(HardwareProfilesContext);
 
-  // 2. Try to get project profiles from ProjectDetailsContext
-  const {
-    currentProject,
-    projectHardwareProfiles: [
-      contextProjectProfiles,
-      contextProjectProfilesLoaded,
-      contextProjectProfilesError,
-    ],
-  } = React.useContext(ProjectDetailsContext);
+  // Try to get project profiles from ProjectDetailsContext
+  const { currentProject, projectHardwareProfiles: contextProjectProfiles } =
+    React.useContext(ProjectDetailsContext);
 
-  // 3. Determine if we should use context profiles or fetch
+  // Determine if we should use context project profiles or fetch them
   const shouldUseContextProfiles =
     !!currentProject.metadata.name && (!namespace || currentProject.metadata.name === namespace);
-
-  // 4. Fetch profiles if needed
   const shouldFetchProfiles =
     namespace && namespace !== dashboardNamespace && !shouldUseContextProfiles;
 
   // Only watch if we actually need to fetch (pass undefined to disable the watch)
   const namespaceToWatch = shouldFetchProfiles ? namespace : undefined;
-  const [fetchedProfiles, fetchedProfilesLoaded, fetchedProfilesError] =
-    useWatchHardwareProfiles(namespaceToWatch);
+  const fetchedProjectProfilesResult = useWatchHardwareProfiles(namespaceToWatch);
 
-  // 5. Determine which profiles to use
-  const projectProfiles = shouldUseContextProfiles
+  const [projectProfiles, projectProfilesLoaded, projectProfilesError] = shouldUseContextProfiles
     ? contextProjectProfiles
     : shouldFetchProfiles
-    ? fetchedProfiles
-    : [];
+    ? fetchedProjectProfilesResult
+    : [[], true, undefined];
 
-  const projectProfilesLoaded = shouldUseContextProfiles
-    ? contextProjectProfilesLoaded
-    : shouldFetchProfiles
-    ? fetchedProfilesLoaded
-    : true; // No profiles to load
-
-  const projectProfilesError = shouldUseContextProfiles
-    ? contextProjectProfilesError
-    : shouldFetchProfiles
-    ? fetchedProfilesError
-    : undefined;
-
-  // 7. Filter profiles by visibility
   const projectProfilesFiltered = React.useMemo(
     () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility),
     [projectProfiles, visibility],
@@ -87,7 +64,6 @@ export const useHardwareProfilesByFeatureVisibility = (
     () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility),
     [globalProfiles, visibility],
   );
-
   return {
     projectProfiles: [projectProfilesFiltered, projectProfilesLoaded, projectProfilesError],
     globalProfiles: [globalProfilesFiltered, globalProfilesLoaded, globalProfilesError],

@@ -15,7 +15,6 @@ import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
