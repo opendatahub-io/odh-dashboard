@@ -86,11 +86,8 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
 
   const isValid = isPropertiesValid && !!name && !!envVar;
 
-  const isModelServingVar = React.useMemo(
-    () => isModelServingEnvVar(field?.envVar || ''),
-    [field?.envVar],
-  );
-  const [showEnvVarError, setShowEnvVarError] = React.useState(false);
+  const showEnvVarError =
+    isModelServingEnvVar(field?.envVar || '') && field?.envVar !== data.envVar;
 
   // Cast from specific type to generic type
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
@@ -178,11 +175,6 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               id="envVar"
               value={envVar}
               onChange={(_ev, value) => {
-                if (isModelServingVar && value !== field?.envVar) {
-                  setShowEnvVarError(true);
-                } else {
-                  setShowEnvVarError(false);
-                }
                 if (autoGenerateEnvVar) {
                   setAutoGenerateEnvVar(false);
                 }
