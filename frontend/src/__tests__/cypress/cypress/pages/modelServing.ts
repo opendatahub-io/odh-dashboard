@@ -911,6 +911,10 @@ class ModelServingWizard extends Wizard {
     cy.visitWithLogin(`/ai-hub/deployments/deploy`);
   }
 
+  findSpinner() {
+    return cy.findByTestId('spinner');
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }

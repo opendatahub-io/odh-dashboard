@@ -79,6 +79,7 @@ export type InitialWizardFormData = {
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
+  transformData?: { metadata?: { labels?: Record<string, string> } };
   // Add more field handlers as needed
 };
 

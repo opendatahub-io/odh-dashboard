@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/model-registry": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
