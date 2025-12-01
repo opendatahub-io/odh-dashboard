@@ -1,7 +1,6 @@
 import React from 'react';
-import { Alert, Form } from '@patternfly/react-core';
-import GenericModal from '#~/components/modals/GenericModal';
-import { ButtonAction } from '#~/components/modals/GenericModalFooter';
+import { Alert, Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
 import {
   Connection,
@@ -111,104 +110,16 @@ export const ManageConnectionModal: React.FC<Props> = ({
     selectedConnectionType,
   });
 
-  const handleSubmit = React.useCallback(() => {
-    setIsSaving(true);
-    setSubmitError(undefined);
-
-    // this shouldn't ever happen, but type safety
-    if (!connectionTypeName) {
-      setSubmitError(new Error('No connection type selected'));
-      setIsSaving(false);
-      return;
-    }
-    const assembledConnection = assembleConnectionSecret(
-      project.metadata.name,
-      connectionTypeName,
-      nameDescData,
-      connectionValues,
-    );
-    assembledConnection.metadata.annotations = {
-      ...assembledConnection.metadata.annotations,
-      'opendatahub.io/connection-type-protocol': protocolType,
-    };
-
-    onSubmit(assembledConnection)
-      .then(() => {
-        onClose(true);
-      })
-      .catch((e) => {
-        setSubmitError(e);
-        setIsSaving(false);
-      });
-  }, [
-    connectionTypeName,
-    project.metadata.name,
-    nameDescData,
-    connectionValues,
-    protocolType,
-    onSubmit,
-    onClose,
-  ]);
-
-  const buttonActions: ButtonAction[] = React.useMemo(
-    () => [
-      {
-        label: isEdit ? 'Save' : 'Create',
-        onClick: handleSubmit,
-        variant: 'primary',
-        clickOnEnter: true,
-        dataTestId: 'manage-connection-submit',
-        isDisabled: !isFormValid || !isModified || isSaving,
-        isLoading: isSaving,
-      },
-      {
-        label: 'Cancel',
-        onClick: onClose,
-        variant: 'link',
-        dataTestId: 'manage-connection-cancel',
-      },
-    ],
-    [isEdit, handleSubmit, isFormValid, isModified, isSaving, onClose],
-  );
-
-  const handleConnectionTypeChange = React.useCallback(
-    (name: string) => {
-      const obj = connectionTypes.find((c) => c.metadata.name === name);
-      if (!isModified) {
-        setIsModified(true);
-      }
-      changeSelectionType(obj);
-    },
-    [connectionTypes, isModified, changeSelectionType],
-  );
-
-  const handleNameDescChange = React.useCallback(
-    (key: keyof K8sNameDescriptionFieldData, value: string) => {
-      if (!isModified) {
-        setIsModified(true);
-      }
-      setNameDescData(key, value);
-    },
-    [isModified, setNameDescData],
-  );
-
-  const handleValueChange = React.useCallback(
-    (field: { envVar: string }, value: ConnectionTypeValueType) => {
-      if (!isModified) {
-        setIsModified(true);
-      }
-      setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-    },
-    [isModified],
-  );
-
-  const handleValidate = React.useCallback((field: { envVar: string }, error: string | boolean) => {
-    setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }));
-  }, []);
-
-  const contents = React.useMemo(
-    () => (
-      <>
+  return (
+    <Modal
+      isOpen
+      onClose={() => {
+        onClose();
+      }}
+      variant="medium"
+    >
+      <ModalHeader title={isEdit ? 'Edit connection' : 'Create connection'} />
+      <ModalBody>
         {isEdit && (
           <Alert
             className="pf-v6-u-mb-lg"
@@ -224,40 +135,73 @@ export const ManageConnectionModal: React.FC<Props> = ({
           <ConnectionTypeForm
             options={!isEdit ? enabledConnectionTypes : undefined}
             connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
-            setConnectionType={handleConnectionTypeChange}
+            setConnectionType={(name: string) => {
+              const obj = connectionTypes.find((c) => c.metadata.name === name);
+              if (!isModified) {
+                setIsModified(true);
+              }
+              changeSelectionType(obj);
+            }}
             connectionNameDesc={nameDescData}
-            setConnectionNameDesc={handleNameDescChange}
+            setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
+              if (!isModified) {
+                setIsModified(true);
+              }
+              setNameDescData(key, value);
+            }}
             connectionValues={connectionValues}
-            onChange={handleValueChange}
-            onValidate={handleValidate}
+            onChange={(field, value) => {
+              if (!isModified) {
+                setIsModified(true);
+              }
+              setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+            }}
+            onValidate={(field, error) =>
+              setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))
+            }
           />
         </Form>
-      </>
-    ),
-    [
-      isEdit,
-      enabledConnectionTypes,
-      selectedConnectionType,
-      connectionTypeSource,
-      handleConnectionTypeChange,
-      nameDescData,
-      handleNameDescChange,
-      connectionValues,
-      handleValueChange,
-      handleValidate,
-    ],
-  );
+      </ModalBody>
+      <ModalFooter>
+        <DashboardModalFooter
+          submitLabel={isEdit ? 'Save' : 'Create'}
+          onCancel={onClose}
+          onSubmit={() => {
+            setIsSaving(true);
+            setSubmitError(undefined);
 
-  return (
-    <GenericModal
-      onClose={onClose}
-      title={isEdit ? 'Edit connection' : 'Create connection'}
-      contents={contents}
-      buttonActions={buttonActions}
-      error={submitError}
-      alertTitle=""
-      variant="medium"
-      dataTestId="manage-connection-modal"
-    />
+            // this shouldn't ever happen, but type safety
+            if (!connectionTypeName) {
+              setSubmitError(new Error('No connection type selected'));
+              setIsSaving(false);
+              return;
+            }
+            const assembledConnection = assembleConnectionSecret(
+              project.metadata.name,
+              connectionTypeName,
+              nameDescData,
+              connectionValues,
+            );
+            assembledConnection.metadata.annotations = {
+              ...assembledConnection.metadata.annotations,
+              'opendatahub.io/connection-type-protocol': protocolType,
+            };
+
+            onSubmit(assembledConnection)
+              .then(() => {
+                onClose(true);
+              })
+              .catch((e) => {
+                setSubmitError(e);
+                setIsSaving(false);
+              });
+          }}
+          error={submitError}
+          isSubmitDisabled={!isFormValid || !isModified || isSaving}
+          isSubmitLoading={isSaving}
+          alertTitle=""
+        />
+      </ModalFooter>
+    </Modal>
   );
 };
