@@ -87,7 +87,6 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
 
                   return {
                     ...result,
-                    originalUrl: result.originalUrl,
                     location,
                   };
                 },
