@@ -4,6 +4,7 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
 
 jest.mock('#~/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
   HardwareProfilesContext: {
@@ -11,21 +12,37 @@ jest.mock('#~/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
   },
 }));
 
-jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
+jest.mock('#~/pages/projects/ProjectDetailsContext.tsx', () => ({
   ProjectDetailsContext: {
     _currentValue: null,
   },
+}));
+
+jest.mock('#~/utilities/useWatchHardwareProfiles', () => ({
+  useWatchHardwareProfiles: jest.fn(() => [[], true, undefined]),
+}));
+
+jest.mock('#~/redux/selectors', () => ({
+  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 
 const mockContexts = (
   globalProfiles: HardwareProfileKind[],
   globalLoaded = true,
   globalError: Error | undefined = undefined,
+  projectOverrides?: Partial<React.ContextType<typeof ProjectDetailsContext>>,
 ) => {
   jest.spyOn(React, 'useContext').mockImplementation((context: React.Context<unknown>) => {
     if (context === HardwareProfilesContext) {
       return {
         globalHardwareProfiles: [globalProfiles, globalLoaded, globalError],
+      };
+    }
+    if (context === ProjectDetailsContext) {
+      return {
+        currentProject: { metadata: { name: 'test-project' } },
+        projectHardwareProfiles: [[], true, undefined],
+        ...projectOverrides,
       };
     }
     return {};
