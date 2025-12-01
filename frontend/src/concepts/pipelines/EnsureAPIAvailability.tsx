@@ -35,9 +35,13 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
   const pipelineServerName = getPipelineServerName(project);
   const defaultConnectingText = (
     <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>The {pipelineServerName} connection is being established.</FlexItem>
-      <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
-      <FlexItem>you will be able to create and import pipelines.</FlexItem>
+      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
+        The {pipelineServerName} connection is being established.
+      </FlexItem>
+      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
+        The process should take less than five minutes. When the server is ready, you will be able
+        to create and import pipelines.
+      </FlexItem>
     </Flex>
   );
 
@@ -48,14 +52,18 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
           Starting pipeline server
         </Title>
       </FlexItem>
-      <FlexItem>The {pipelineServerName} is being initialized.</FlexItem>
-      <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
+      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
+        The {pipelineServerName} is being initialized.
+      </FlexItem>
+      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
+        The process should take less than five minutes. When the server is ready, you will be able
+        to create and import pipelines.
+      </FlexItem>
       <Flex
         direction={{ default: 'column' }}
         spaceItems={{ default: 'spaceItemsMd' }}
         alignItems={{ default: 'alignItemsCenter' }}
       >
-        <FlexItem>you will be able to create and import pipelines.</FlexItem>
         <FlexItem>
           <Button
             data-testid="open-pipeline-status-link"
