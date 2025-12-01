@@ -3,11 +3,13 @@ import {
   setupDefaults,
   handleUpdateLogic,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
 import { getModelRegistryTransform } from './utils/deployUtils';
 import {
@@ -102,14 +104,6 @@ export const useExtractFormDataFromRegistry = (
     const initialData: InitialWizardFormData = {
       // Set model name from prefill (k8s name will be auto-generated)
       k8sNameDesc,
-
-      // Set model format if available
-      modelFormat: prefillInfo.modelFormat
-        ? {
-            name: prefillInfo.modelFormat,
-            version: prefillInfo.modelFormatVersion,
-          }
-        : undefined,
 
       // Set model registry info on transform data
       transformData: getModelRegistryTransform(prefillInfo.modelRegistryInfo),
