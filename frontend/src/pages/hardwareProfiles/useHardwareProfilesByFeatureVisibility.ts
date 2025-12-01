@@ -48,13 +48,32 @@ export const useHardwareProfilesByFeatureVisibility = (
 
   // Only watch if we actually need to fetch (pass undefined to disable the watch)
   const namespaceToWatch = shouldFetchProfiles ? namespace : undefined;
-  const fetchedProjectProfilesResult = useWatchHardwareProfiles(namespaceToWatch);
+  const [fetchedProfiles, fetchedProfilesLoaded, fetchedProfilesError] =
+    useWatchHardwareProfiles(namespaceToWatch);
 
-  const [projectProfiles, projectProfilesLoaded, projectProfilesError] = shouldUseContextProfiles
-    ? contextProjectProfiles
-    : shouldFetchProfiles
-    ? fetchedProjectProfilesResult
-    : [[], true, undefined];
+  // Determine which project profiles to use with stable references
+  // Destructure the tuple to get stable references to the individual elements
+  const projectProfilesResult = React.useMemo<
+    [HardwareProfileKind[], boolean, Error | undefined]
+  >(() => {
+    if (shouldUseContextProfiles) {
+      return contextProjectProfiles;
+    }
+    if (shouldFetchProfiles) {
+      return [fetchedProfiles, fetchedProfilesLoaded, fetchedProfilesError];
+    }
+    // Stable empty result
+    return [[], true, undefined];
+  }, [
+    shouldUseContextProfiles,
+    shouldFetchProfiles,
+    contextProjectProfiles,
+    fetchedProfiles,
+    fetchedProfilesLoaded,
+    fetchedProfilesError,
+  ]);
+
+  const [projectProfiles, projectProfilesLoaded, projectProfilesError] = projectProfilesResult;
 
   const projectProfilesFiltered = React.useMemo(
     () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility),
