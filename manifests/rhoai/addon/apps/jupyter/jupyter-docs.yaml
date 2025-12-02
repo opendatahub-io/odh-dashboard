@@ -10,7 +10,7 @@ spec:
   type: how-to
   description: |-
     Install additional python packages into your workbench.
-  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#installing-python-packages-on-your-notebook-server_connected-apps
+  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using-basic-workbenches_connected-apps#installing-python-packages-on-your-workbench_connected-apps
   durationMinutes: 15
 ---
 apiVersion: dashboard.opendatahub.io/v1
@@ -25,7 +25,7 @@ spec:
   appName: jupyter
   description: |-
     Update the settings or the notebook image on your workbench.
-  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-notebook-servers_notebook-mgmt
+  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-basic-workbenches_notebook-mgmt
   durationMinutes: 15
 ---
 apiVersion: dashboard.opendatahub.io/v1
@@ -55,5 +55,5 @@ spec:
   type: how-to
   description: |-
     See which packages are installed into your running workbench.
-  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#viewing-python-packages-installed-on-your-notebook-server_connected-apps
+  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using-basic-workbenches_connected-apps#viewing-python-packages-installed-on-your-workbench_connected-apps
   durationMinutes: 15
