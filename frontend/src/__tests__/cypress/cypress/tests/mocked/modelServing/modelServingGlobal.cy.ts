@@ -229,6 +229,20 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().should('be.enabled');
   });
 
+  it('Should not get stuck in loading state when no projects exist as user', () => {
+    // Use basic user
+    initIntercepts({
+      servingRuntimes: [],
+      inferenceServices: [],
+    });
+
+    // Mock empty projects list
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([]));
+    modelServingGlobal.visit();
+    modelServingGlobal.shouldShowNoProjectsPage();
+    modelServingGlobal.findCreateProjectButton().should('be.enabled');
+  });
+
   it('All projects loading and cancel', () => {
     asClusterAdminUser();
     initIntercepts({

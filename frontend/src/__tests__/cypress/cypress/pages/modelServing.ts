@@ -40,6 +40,11 @@ class ModelServingGlobal {
     return this;
   }
 
+  shouldShowNoProjectsPage() {
+    cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    return this;
+  }
+
   shouldWaitAndCancel() {
     cy.findAllByTestId('loading-empty-state');
     this.findCancelButton().click();
@@ -55,6 +60,10 @@ class ModelServingGlobal {
 
   findDeployModelButton() {
     return cy.findByTestId('deploy-button');
+  }
+
+  findCreateProjectButton() {
+    return cy.findByRole('button', { name: 'Create project' });
   }
 
   clickDeployModelButtonWithRetry() {
