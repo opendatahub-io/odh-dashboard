@@ -19,9 +19,6 @@ import {
   useNamespaceSelector,
   useSettings,
 } from 'mod-arch-core';
-import NavBar from '~/app/standalone/NavBar';
-import ToastNotifications from '~/app/standalone/ToastNotifications';
-import AppNavSidebar from '~/app/standalone/AppNavSidebar';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
 
@@ -35,7 +32,6 @@ const App: React.FC = () => {
 
   const { namespacesLoaded, namespacesLoadError, initializationError } = useNamespaceSelector();
 
-  const username = userSettings?.userId;
   const { config } = useModularArchContext();
   const { deploymentMode } = config;
   const isStandalone = deploymentMode === DeploymentMode.Standalone;
@@ -97,25 +93,8 @@ const App: React.FC = () => {
     </Bullseye>
   ) : (
     <AppContext.Provider value={contextValue}>
-      <Page
-        mainContainerId="primary-app-container"
-        masthead={
-          isStandalone ? (
-            <NavBar
-              username={username}
-              onLogout={() => {
-                logout().then(() => window.location.reload());
-              }}
-            />
-          ) : (
-            ''
-          )
-        }
-        isManagedSidebar={isStandalone}
-        sidebar={isStandalone ? <AppNavSidebar /> : sidebar}
-      >
+      <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
         <AppRoutes />
-        <ToastNotifications />
       </Page>
     </AppContext.Provider>
   );

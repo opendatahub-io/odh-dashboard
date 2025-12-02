@@ -1,7 +1,5 @@
 import path from 'path';
 
-const sharedAssetsDir = path.resolve(__dirname, '../../shared');
-
 const webpackConfig = {
   mode: 'development' as const,
   resolve: {
@@ -38,7 +36,6 @@ const webpackConfig = {
           ),
           path.resolve(__dirname, '../../../node_modules/@patternfly/patternfly/assets/fonts'),
           path.resolve(__dirname, '../../../node_modules/@patternfly/patternfly/assets/pficon'),
-          sharedAssetsDir,
         ],
         use: {
           loader: 'file-loader',
@@ -66,7 +63,6 @@ const webpackConfig = {
       {
         test: /\.svg$/,
         include: (input: string): boolean =>
-          (input.indexOf('src/shared') > -1 || input.indexOf('images') > -1) &&
           input.indexOf('fonts') === -1 &&
           input.indexOf('background-filter') === -1 &&
           input.indexOf('pficon') === -1,

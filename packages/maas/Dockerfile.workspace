@@ -3,7 +3,7 @@
 # Build from repository root: docker build --file ./packages/<module>/Dockerfile.workspace .
 
 # Source code arguments - can be overridden for different modules
-ARG MODULE_NAME=mod-arch
+ARG MODULE_NAME=maas
 ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
 ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
 

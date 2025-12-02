@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"

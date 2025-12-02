@@ -3,7 +3,7 @@ package k8mocks
 import (
 	"log/slog"
 
-	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
+	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"k8s.io/client-go/kubernetes"
 )
 

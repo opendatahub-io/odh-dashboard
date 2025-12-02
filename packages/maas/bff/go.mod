@@ -1,4 +1,4 @@
-module github.com/opendatahub-io/mod-arch-library/bff
+module github.com/opendatahub-io/maas-library/bff
 
 go 1.24.3
 

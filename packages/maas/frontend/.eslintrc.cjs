@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = {
   parser: '@typescript-eslint/parser',
   root: true, // Required to prevent prettier plugin conflicts
@@ -184,6 +186,8 @@ module.exports = {
       {
         devDependencies: true,
         optionalDependencies: true,
+        // Allow workspace dependencies from parent package
+        packageDir: [__dirname, path.resolve(__dirname, '..')],
       },
     ],
     'no-relative-import-paths/no-relative-import-paths': [

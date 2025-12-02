@@ -53,7 +53,6 @@ module.exports = merge(
             SRC_DIR,
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'src/shared'),
           ],
           use: [MiniCssExtractPlugin.loader, 'css-loader'],
         },

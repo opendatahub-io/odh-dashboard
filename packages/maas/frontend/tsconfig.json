@@ -25,6 +25,9 @@
     "paths": {
       "~/*": [
         "./*"
+      ],
+      "@odh-dashboard/internal/*": [
+        "../../../frontend/src/*"
       ]
     },
     "importHelpers": true,

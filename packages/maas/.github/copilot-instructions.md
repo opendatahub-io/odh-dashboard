@@ -1,4 +1,4 @@
-# Cursor Rules for mod-arch-starter
+# Cursor Rules for maas
 
 These rules travel with every project created through `npx mod-arch-installer`. Keep the feature flow aligned with the starter docs in `docs/`.
 
@@ -16,7 +16,7 @@ Never skip or reorder these stages. A PR that implements UI before the API contr
 - Use Go 1.24+ for the BFF and Node 18+ for the frontend. Keep tooling in sync with `package.json`/`go.mod`.
 - Stick to PatternFly components and utilities; Material UI appears only when the Kubeflow flavor explicitly requires it.
 - Run `npm run test` inside `frontend/` and `make lint && make test` inside `bff/` before pushing.
-- Keep docs updated (`mod-arch-starter/docs/*.md`) whenever you change workflows, env vars, or deployment steps.
+- Keep docs updated (`maas/docs/*.md`) whenever you change workflows, env vars, or deployment steps.
 
 ## API contract rules (api/)
 

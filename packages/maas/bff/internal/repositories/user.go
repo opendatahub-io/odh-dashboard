@@ -3,8 +3,8 @@ package repositories
 import (
 	"fmt"
 
-	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
 type UserRepository struct{}

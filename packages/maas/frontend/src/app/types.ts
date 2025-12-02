@@ -1,6 +1,3 @@
-// TODO: Replace this import with the proper one in the dashboard main package.
-import { K8sResourceCommon } from '~/shared/types';
-
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
   'openshift.io/display-name': string;
@@ -24,30 +21,6 @@ export type ListConfigSecretsResponse = {
 export type ConfigSecretItem = {
   name: string;
   keys: string[];
-};
-
-export type K8sDSGResource = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        'opendatahub.io/recommended-accelerators': string;
-      }>;
-    name: string;
-  };
-};
-
-export type ProjectKind = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations &
-      Partial<{
-        'openshift.io/requester': string;
-      }>;
-    labels?: Record<string, string>;
-    name: string;
-  };
-  status?: {
-    phase: 'Active' | 'Terminating';
-  };
 };
 
 export type NamespaceKind = {

@@ -15,7 +15,7 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION: 'v1',
 };
 
-const ModArchWrapper: React.FC = () => (
+const MaasWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
@@ -25,4 +25,4 @@ const ModArchWrapper: React.FC = () => (
   </ModularArchContextProvider>
 );
 
-export default ModArchWrapper;
+export default MaasWrapper;

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
+	"github.com/opendatahub-io/maas-library/bff/internal/config"
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 )
 
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {

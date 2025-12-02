@@ -1,6 +1,5 @@
+import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import React from 'react';
-// TODO: Replace this import with the proper one in the dashboard main package.
-import { ApplicationsPage } from '~/shared/components';
 
 const MainPage: React.FC = () => {
   const loadError = undefined;
@@ -8,8 +7,8 @@ const MainPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Main Page"
-      description={<p>Welcome to the Main Page</p>}
+      title="MaaS Settings"
+      description={<p>Welcome to the MaaS Settings page</p>}
       empty
       loadError={loadError}
       loaded={loaded}

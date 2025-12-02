@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	kubernetes2 "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
+	kubernetes2 "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,23 +106,23 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return err
 	}
 
-	err = createService(mockK8sClient, ctx, "mod-arch", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "mod-arch")
+	err = createService(mockK8sClient, ctx, "maas", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "maas")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "mod-arch-one", "kubeflow", "Mod Arch One", "Mod Arch One description", "10.0.0.11", "mod-arch")
+	err = createService(mockK8sClient, ctx, "maas-one", "kubeflow", "Mod Arch One", "Mod Arch One description", "10.0.0.11", "maas")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "mod-arch-dora", "dora-namespace", "Mod Arch Dora", "Mod Arch Dora description", "10.0.0.12", "mod-arch")
+	err = createService(mockK8sClient, ctx, "maas-dora", "dora-namespace", "Mod Arch Dora", "Mod Arch Dora description", "10.0.0.12", "maas")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "mod-arch-bella", "bella-namespace", "Mod Arch Bella", "Mod Arch Bella description", "10.0.0.13", "mod-arch")
+	err = createService(mockK8sClient, ctx, "maas-bella", "bella-namespace", "Mod Arch Bella", "Mod Arch Bella description", "10.0.0.13", "maas")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "non-mod-arch", "kubeflow", "Not a Mod Arch", "Not a Mod Arch Bella description", "10.0.0.14", "")
+	err = createService(mockK8sClient, ctx, "non-maas", "kubeflow", "Not a Mod Arch", "Not a Mod Arch Bella description", "10.0.0.14", "")
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
 	}
 
-	err = createGroupAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[1], "dora-namespace", "mod-arch-dora")
+	err = createGroupAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[1], "dora-namespace", "maas-dora")
 	if err != nil {
 		return fmt.Errorf("failed to create group-based RBAC: %w", err)
 	}
@@ -245,7 +245,7 @@ func createNamespaceRestrictedRBAC(k8sClient kubernetes.Interface, ctx context.C
 func createGroupAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, groupName, namespace, serviceName string) error {
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "group-mod-arch-access",
+			Name:      "group-maas-access",
 			Namespace: namespace,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -278,7 +278,7 @@ func createGroupAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, 
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "Role",
-			Name:     "group-mod-arch-access",
+			Name:     "group-maas-access",
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	}

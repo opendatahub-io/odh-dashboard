@@ -13,6 +13,8 @@ const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
+const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../../frontend/src');
+const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const {
   _OUTPUT_ONLY: OUTPUT_ONLY,
   FAVICON,
@@ -40,7 +42,7 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR],
+        include: [SRC_DIR, COMMON_DIR, INTERNAL_DIR],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
@@ -69,6 +71,12 @@ module.exports = (env) => ({
           ),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/fonts'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/pficon'),
+          // Root node_modules for @odh-dashboard/internal imports
+          path.resolve(ROOT_NODE_MODULES, 'patternfly/dist/fonts'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-core/dist/styles/assets/fonts'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-core/dist/styles/assets/pficon'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/patternfly/assets/fonts'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/patternfly/assets/pficon'),
         ],
         use: {
           loader: 'file-loader',
@@ -144,6 +152,11 @@ module.exports = (env) => ({
             RELATIVE_DIRNAME,
             'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
           ),
+          // Root node_modules for @odh-dashboard/internal imports
+          path.resolve(ROOT_NODE_MODULES, 'patternfly'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/patternfly/assets/images'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-styles/css/assets/images'),
+          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-core/dist/styles/assets/images'),
         ],
         use: [
           {
@@ -239,6 +252,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
     },
     symlinks: false,
     cacheWithContext: false,
