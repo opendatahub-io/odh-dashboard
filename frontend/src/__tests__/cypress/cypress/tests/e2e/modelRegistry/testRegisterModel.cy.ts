@@ -32,6 +32,7 @@ describe('Verify models can be registered in a model registry', () => {
   let objectStorageModelName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -47,11 +48,11 @@ describe('Verify models can be registered in a model registry', () => {
 
       // create and verify SQL database for the model registry
       cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase().should('be.true');
+      createAndVerifyDatabase(databaseName).should('be.true');
 
       // creates a model registry
       cy.step('Create a model registry using YAML');
-      createModelRegistryViaYAML(registryName);
+      createModelRegistryViaYAML(registryName, databaseName);
 
       cy.step('Verify model registry is created');
       checkModelRegistry(registryName).should('be.true');
@@ -120,7 +121,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
-      checkModelExistsInDatabase(objectStorageModelName).should('be.true');
+      checkModelExistsInDatabase(objectStorageModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to register another model using direct URL');
       registerModelPage.visitWithRegistry(registryName);
@@ -153,7 +154,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the URI model exists in the database');
-      checkModelExistsInDatabase(testData.uriModelName).should('be.true');
+      checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
       cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
@@ -217,7 +218,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the new version exists in the database');
-      checkModelVersionExistsInDatabase(testData.version2Name).should('be.true');
+      checkModelVersionExistsInDatabase(testData.version2Name, databaseName).should('be.true');
     },
   );
 
@@ -225,8 +226,14 @@ describe('Verify models can be registered in a model registry', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase([objectStorageModelName, testData.uriModelName]);
+    cleanupRegisteredModelsFromDatabase(
+      [objectStorageModelName, testData.uriModelName],
+      databaseName,
+    );
 
     cy.step('Delete the model registry');
     deleteModelRegistry(registryName);
@@ -235,6 +242,6 @@ describe('Verify models can be registered in a model registry', () => {
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase().should('be.true');
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 });

@@ -4,13 +4,13 @@ items:
   kind: Service
   metadata:
     labels:
-      app.kubernetes.io/name: model-registry-db
-      app.kubernetes.io/instance: model-registry-db
-      app.kubernetes.io/part-of: model-registry-db
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
       app.kubernetes.io/managed-by: kustomize
     annotations:
       template.openshift.io/expose-uri: mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\mysql\)].port}
-    name: model-registry-db
+    name: {{DATABASE_NAME}}
     namespace: {{NAMESPACE}}
   spec:
     ports:
@@ -21,18 +21,18 @@ items:
       appProtocol: tcp
       targetPort: 3306
     selector:
-      name: model-registry-db
+      name: {{DATABASE_NAME}}
     sessionAffinity: None
     type: ClusterIP
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
     labels:
-      app.kubernetes.io/name: model-registry-db
-      app.kubernetes.io/instance: model-registry-db
-      app.kubernetes.io/part-of: model-registry-db
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
       app.kubernetes.io/managed-by: kustomize
-    name: model-registry-db
+    name: {{DATABASE_NAME}}
     namespace: {{NAMESPACE}}
   spec:
     accessModes:
@@ -44,26 +44,26 @@ items:
   kind: Deployment
   metadata:
     labels:
-      app.kubernetes.io/name: model-registry-db
-      app.kubernetes.io/instance: model-registry-db
-      app.kubernetes.io/part-of: model-registry-db
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
       app.kubernetes.io/managed-by: kustomize
     annotations:
       template.alpha.openshift.io/wait-for-ready: "true"
-    name: model-registry-db
+    name: {{DATABASE_NAME}}
     namespace: {{NAMESPACE}}
   spec:
     replicas: 1
     revisionHistoryLimit: 0
     selector:
       matchLabels:
-        name: model-registry-db
+        name: {{DATABASE_NAME}}
     strategy:
       type: Recreate
     template:
       metadata:
         labels:
-          name: model-registry-db
+          name: {{DATABASE_NAME}}
           sidecar.istio.io/inject: "false"
       spec:
         containers:
@@ -72,22 +72,22 @@ items:
             valueFrom:
               secretKeyRef:
                 key: database-user
-                name: model-registry-db
+                name: {{DATABASE_NAME}}
           - name: MYSQL_PASSWORD
             valueFrom:
               secretKeyRef:
                 key: database-password
-                name: model-registry-db
+                name: {{DATABASE_NAME}}
           - name: MYSQL_ROOT_PASSWORD
             valueFrom:
               secretKeyRef:
                 key: database-password
-                name: model-registry-db
+                name: {{DATABASE_NAME}}
           - name: MYSQL_DATABASE
             valueFrom:
               secretKeyRef:
                 key: database-name
-                name: model-registry-db
+                name: {{DATABASE_NAME}}
           args:
             - --datadir
             - /var/lib/mysql/datadir
@@ -126,26 +126,26 @@ items:
           terminationMessagePath: /dev/termination-log
           volumeMounts:
           - mountPath: /var/lib/mysql
-            name: model-registry-db-data
+            name: {{DATABASE_NAME}}-data
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         volumes:
-        - name: model-registry-db-data
+        - name: {{DATABASE_NAME}}-data
           persistentVolumeClaim:
-            claimName: model-registry-db
+            claimName: {{DATABASE_NAME}}
 - apiVersion: v1
   kind: Secret
   metadata:
     labels:
-      app.kubernetes.io/name: model-registry-db
-      app.kubernetes.io/instance: model-registry-db
-      app.kubernetes.io/part-of: model-registry-db
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
       app.kubernetes.io/managed-by: kustomize
     annotations:
       template.openshift.io/expose-database_name: '{.data[''database-name'']}'
       template.openshift.io/expose-password: '{.data[''database-password'']}'
       template.openshift.io/expose-username: '{.data[''database-user'']}'
-    name: model-registry-db
+    name: {{DATABASE_NAME}}
     namespace: {{NAMESPACE}}
   stringData:
     database-name: "model_registry"

@@ -18,6 +18,7 @@ describe('Verify a model registry can be created and deleted', () => {
   let testData: ModelRegistryTestData;
   let deploymentName: string;
   let registryName: string;
+  const databaseName = `model-registry-db-create-${Date.now()}`;
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -32,7 +33,7 @@ describe('Verify a model registry can be created and deleted', () => {
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase().should('be.true');
+      createAndVerifyDatabase(databaseName).should('be.true');
     });
   });
 
@@ -54,7 +55,7 @@ describe('Verify a model registry can be created and deleted', () => {
       cy.step('Create a model registry');
       modelRegistrySettings.findCreateButton().click();
       modelRegistrySettings.findFormField(FormFieldSelector.NAME).type(registryName);
-      modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('model-registry-db');
+      modelRegistrySettings.findFormField(FormFieldSelector.HOST).type(databaseName);
       modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('3306');
       modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('mlmduser');
       modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('TheBlurstOfTimes');
@@ -89,6 +90,9 @@ describe('Verify a model registry can be created and deleted', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Delete the model registry');
     deleteModelRegistry(registryName);
 
@@ -96,6 +100,6 @@ describe('Verify a model registry can be created and deleted', () => {
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase().should('be.true');
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 });

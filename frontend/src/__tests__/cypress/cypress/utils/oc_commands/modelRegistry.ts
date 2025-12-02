@@ -83,32 +83,40 @@ export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chain
 
 /**
  * Create a SQL database for model registry using YAML fixtures
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<CommandLineResult>
  */
-export const createModelRegistryDatabaseViaYAML = (): Cypress.Chainable<CommandLineResult> => {
+export const createModelRegistryDatabaseViaYAML = (
+  databaseName = 'model-registry-db',
+): Cypress.Chainable<CommandLineResult> => {
   const targetNamespace = getModelRegistryNamespace();
 
   const databaseReplacements = {
     NAMESPACE: targetNamespace,
+    DATABASE_NAME: databaseName,
   };
 
-  cy.log(`Creating SQL database for model registry in namespace ${targetNamespace}`);
+  cy.log(
+    `Creating SQL database '${databaseName}' for model registry in namespace ${targetNamespace}`,
+  );
 
   // Check if database already exists and is ready
   return cy
     .exec(
-      `oc get deployment model-registry-db -n ${targetNamespace} -o jsonpath='{.status.readyReplicas}'`,
+      `oc get deployment ${databaseName} -n ${targetNamespace} -o jsonpath='{.status.readyReplicas}'`,
       { failOnNonZeroExit: false },
     )
     .then((checkResult: CommandLineResult) => {
       const readyReplicas = parseInt(checkResult.stdout.trim()) || 0;
       if (checkResult.code === 0 && readyReplicas > 0) {
-        cy.log('Model registry database already exists and is ready, skipping creation');
+        cy.log(
+          `Model registry database '${databaseName}' already exists and is ready, skipping creation`,
+        );
         return cy.wrap(checkResult);
       }
 
       // Database doesn't exist, create it
-      cy.log('Database does not exist, proceeding with creation');
+      cy.log(`Database '${databaseName}' does not exist, proceeding with creation`);
       return cy
         .fixture('resources/yaml/model_registry_database.yaml')
         .then((databaseYamlContent) => {
@@ -134,13 +142,16 @@ export const createModelRegistryDatabaseViaYAML = (): Cypress.Chainable<CommandL
 
 /**
  * Wait for the model registry database to be ready
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<boolean> that resolves to true if the database is ready
  */
-export const waitForModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
+export const waitForModelRegistryDatabase = (
+  databaseName = 'model-registry-db',
+): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const command = `oc wait --for=condition=Available deployment/model-registry-db -n ${targetNamespace} --timeout=600s`;
+  const command = `oc wait --for=condition=Available deployment/${databaseName} -n ${targetNamespace} --timeout=600s`;
 
-  cy.log('Waiting for model registry database to be ready...');
+  cy.log(`Waiting for model registry database '${databaseName}' to be ready...`);
   return cy
     .exec(command, { failOnNonZeroExit: false, timeout: 600000 })
     .then((result: CommandLineResult) => {
@@ -156,14 +167,17 @@ export const waitForModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
 
 /**
  * Create a SQL database for model registry and wait for it to be ready
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<boolean> that resolves to true if the database is created and ready
  */
-export const createAndVerifyDatabase = (): Cypress.Chainable<boolean> => {
-  cy.step('Create SQL database for model registry');
-  return createModelRegistryDatabaseViaYAML()
+export const createAndVerifyDatabase = (
+  databaseName = 'model-registry-db',
+): Cypress.Chainable<boolean> => {
+  cy.step(`Create SQL database '${databaseName}' for model registry`);
+  return createModelRegistryDatabaseViaYAML(databaseName)
     .then(() => {
-      cy.step('Wait for model registry database to be ready');
-      return waitForModelRegistryDatabase().should('be.true');
+      cy.step(`Wait for model registry database '${databaseName}' to be ready`);
+      return waitForModelRegistryDatabase(databaseName).should('be.true');
     })
     .then(() => {
       return cy.wrap(true);
@@ -172,28 +186,31 @@ export const createAndVerifyDatabase = (): Cypress.Chainable<boolean> => {
 
 /**
  * Delete the model registry database and wait until it's completely gone
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<boolean> that resolves to true when the database is gone
  */
-export const deleteModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
+export const deleteModelRegistryDatabase = (
+  databaseName = 'model-registry-db',
+): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const deleteCommand = `oc delete service,pvc,deployment,secret -l app.kubernetes.io/name=model-registry-db -n ${targetNamespace} --ignore-not-found=true`;
+  const deleteCommand = `oc delete service,pvc,deployment,secret -l app.kubernetes.io/name=${databaseName} -n ${targetNamespace} --ignore-not-found=true`;
   const maxAttempts = 48; // 8 minutes / 10 seconds = 48 attempts
   let attempts = 0;
 
-  cy.log(`Deleting model registry database from namespace ${targetNamespace}`);
+  cy.log(`Deleting model registry database '${databaseName}' from namespace ${targetNamespace}`);
 
   // check if the database exists
   return cy
-    .exec(`oc get deployment model-registry-db -n ${targetNamespace}`, {
+    .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
       failOnNonZeroExit: false,
     })
     .then((existsResult: CommandLineResult) => {
       if (existsResult.code !== 0) {
-        cy.log('Model registry database does not exist, nothing to delete');
+        cy.log(`Model registry database '${databaseName}' does not exist, nothing to delete`);
         return cy.wrap(true);
       }
 
-      cy.log('Database exists, proceeding with deletion...');
+      cy.log(`Database '${databaseName}' exists, proceeding with deletion...`);
 
       // Issue the delete command
       return cy
@@ -206,23 +223,27 @@ export const deleteModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
             attempts++;
 
             return cy
-              .exec(`oc get deployment model-registry-db -n ${targetNamespace}`, {
+              .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
                 failOnNonZeroExit: false,
               })
               .then((checkResult: CommandLineResult) => {
                 // Database is gone!
                 if (checkResult.code !== 0) {
-                  cy.log(`Model registry database successfully deleted after ${attempts} attempts`);
+                  cy.log(
+                    `Model registry database '${databaseName}' successfully deleted after ${attempts} attempts`,
+                  );
                   return cy.wrap(true);
                 }
 
                 // Check if we've exceeded max attempts
                 if (attempts >= maxAttempts) {
-                  cy.log(`ERROR: Database still exists after ${maxAttempts} attempts (8 minutes)`);
+                  cy.log(
+                    `ERROR: Database '${databaseName}' still exists after ${maxAttempts} attempts (8 minutes)`,
+                  );
                   // Log what's still there
                   return cy
                     .exec(
-                      `oc get deployment,pod,pvc -l app.kubernetes.io/name=model-registry-db -n ${targetNamespace} -o wide`,
+                      `oc get deployment,pod,pvc -l app.kubernetes.io/name=${databaseName} -n ${targetNamespace} -o wide`,
                       { failOnNonZeroExit: false },
                     )
                     .then((diagResult: CommandLineResult) => {
@@ -232,7 +253,9 @@ export const deleteModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
                 }
 
                 // Still exists, wait and check again
-                cy.log(`Attempt ${attempts}/${maxAttempts}: Database still exists, waiting 10s...`);
+                cy.log(
+                  `Attempt ${attempts}/${maxAttempts}: Database '${databaseName}' still exists, waiting 10s...`,
+                );
                 // eslint-disable-next-line cypress/no-unnecessary-waiting
                 return cy.wait(10000).then(() => checkDeletionComplete());
               });
@@ -293,20 +316,23 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
 /**
  * Create a model registry using YAML fixtures
  * @param registryName Name of the model registry to create
+ * @param databaseName Name of the database to connect to (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<CommandLineResult>
  */
 export const createModelRegistryViaYAML = (
   registryName: string,
+  databaseName = 'model-registry-db',
 ): Cypress.Chainable<CommandLineResult> => {
   const targetNamespace = getModelRegistryNamespace();
 
   const registryReplacements = {
     REGISTRY_NAME: registryName,
     NAMESPACE: targetNamespace,
+    DATABASE_NAME: databaseName,
   };
 
   cy.log(
-    `Creating model registry ${registryName} in namespace ${targetNamespace} using existing secret model-registry-db`,
+    `Creating model registry ${registryName} in namespace ${targetNamespace} using database '${databaseName}'`,
   );
 
   return cy
@@ -324,11 +350,15 @@ export const createModelRegistryViaYAML = (
 /**
  * Create a model registry and verify it's ready for use
  * @param registryName Name of the model registry to create
+ * @param databaseName Name of the database to connect to (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable that resolves when the registry is created and available
  */
-export const createAndVerifyModelRegistry = (registryName: string): Cypress.Chainable => {
-  cy.step('Create a model registry using YAML');
-  return createModelRegistryViaYAML(registryName)
+export const createAndVerifyModelRegistry = (
+  registryName: string,
+  databaseName = 'model-registry-db',
+): Cypress.Chainable => {
+  cy.step(`Create a model registry using YAML with database '${databaseName}'`);
+  return createModelRegistryViaYAML(registryName, databaseName)
     .then(() => {
       cy.step('Verify model registry is created');
       return checkModelRegistry(registryName).should('be.true');
@@ -343,14 +373,16 @@ export const createAndVerifyModelRegistry = (registryName: string): Cypress.Chai
  * Complete cleanup for model registry components
  * @param modelNames Array of model names to clean up from database
  * @param registryName Name of the model registry to delete
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable that resolves when cleanup is complete
  */
 export const cleanupModelRegistryComponents = (
   modelNames: string[],
   registryName: string,
+  databaseName = 'model-registry-db',
 ): Cypress.Chainable => {
   cy.step('Clean up registered models from database');
-  return cleanupRegisteredModelsFromDatabase(modelNames)
+  return cleanupRegisteredModelsFromDatabase(modelNames, databaseName)
     .then(() => {
       cy.step('Delete the model registry');
       return deleteModelRegistry(registryName);
@@ -378,19 +410,23 @@ export const deleteModelRegistry = (registryName: string): Cypress.Chainable<Com
 /**
  * Clean up registered models from the database
  * @param modelNames Array of model names to delete from the database
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable
  */
-export const cleanupRegisteredModelsFromDatabase = (modelNames: string[]): Cypress.Chainable => {
+export const cleanupRegisteredModelsFromDatabase = (
+  modelNames: string[],
+  databaseName = 'model-registry-db',
+): Cypress.Chainable => {
   const targetNamespace = getModelRegistryNamespace();
 
   // Find MySQL pod
-  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep model-registry-db | head -1 | cut -d'/' -f2`;
+  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep ${databaseName} | head -1 | cut -d'/' -f2`;
 
   return cy
     .exec(findPodCommand, { failOnNonZeroExit: false })
     .then((podResult: CommandLineResult) => {
       if (podResult.code !== 0 || !podResult.stdout.trim()) {
-        cy.log('No MySQL pod found, skipping database cleanup');
+        cy.log(`No MySQL pod found for database '${databaseName}', skipping database cleanup`);
         return;
       }
 
@@ -425,17 +461,21 @@ export const cleanupRegisteredModelsFromDatabase = (modelNames: string[]): Cypre
 /**
  * Check if a registered model exists in the database
  * @param modelName Name of the model to check
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<boolean> that resolves to true if the model exists
  */
-export const checkModelExistsInDatabase = (modelName: string): Cypress.Chainable<boolean> => {
+export const checkModelExistsInDatabase = (
+  modelName: string,
+  databaseName = 'model-registry-db',
+): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep model-registry-db | head -1 | cut -d'/' -f2`;
+  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep ${databaseName} | head -1 | cut -d'/' -f2`;
 
   return cy
     .exec(findPodCommand, { failOnNonZeroExit: false })
     .then((podResult: CommandLineResult) => {
       if (podResult.code !== 0 || !podResult.stdout.trim()) {
-        cy.log('No MySQL pod found, cannot verify model existence');
+        cy.log(`No MySQL pod found for database '${databaseName}', cannot verify model existence`);
         return cy.wrap(false);
       }
 
@@ -446,7 +486,7 @@ export const checkModelExistsInDatabase = (modelName: string): Cypress.Chainable
       )}';`;
       const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlQuery}" --skip-column-names`;
 
-      cy.log(`Checking if model '${modelName}' exists in database`);
+      cy.log(`Checking if model '${modelName}' exists in database '${databaseName}'`);
 
       return cy
         .exec(verifyCommand, { failOnNonZeroExit: false })
@@ -466,19 +506,23 @@ export const checkModelExistsInDatabase = (modelName: string): Cypress.Chainable
 /**
  * Check if a model version exists in the database
  * @param versionName Name of the version to check
+ * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
  * @returns Cypress.Chainable<boolean> that resolves to true if the version exists
  */
 export const checkModelVersionExistsInDatabase = (
   versionName: string,
+  databaseName = 'model-registry-db',
 ): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep model-registry-db | head -1 | cut -d'/' -f2`;
+  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep ${databaseName} | head -1 | cut -d'/' -f2`;
 
   return cy
     .exec(findPodCommand, { failOnNonZeroExit: false })
     .then((podResult: CommandLineResult) => {
       if (podResult.code !== 0 || !podResult.stdout.trim()) {
-        cy.log('No MySQL pod found, cannot verify version existence');
+        cy.log(
+          `No MySQL pod found for database '${databaseName}', cannot verify version existence`,
+        );
         return cy.wrap(false);
       }
 
@@ -489,7 +533,7 @@ export const checkModelVersionExistsInDatabase = (
       )}%';`;
       const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlQuery}" --skip-column-names`;
 
-      cy.log(`Checking if version '${versionName}' exists in database`);
+      cy.log(`Checking if version '${versionName}' exists in database '${databaseName}'`);
 
       return cy
         .exec(verifyCommand, { failOnNonZeroExit: false })

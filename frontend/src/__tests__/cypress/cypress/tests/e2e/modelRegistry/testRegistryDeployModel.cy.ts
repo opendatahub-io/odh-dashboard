@@ -31,6 +31,7 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
   let projectName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   retryableBefore(() => {
     cy.step('Load test data from fixture');
@@ -47,10 +48,10 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase().should('be.true');
+      createAndVerifyDatabase(databaseName).should('be.true');
 
       cy.step('Create a model registry and verify it is ready');
-      createAndVerifyModelRegistry(registryName);
+      createAndVerifyModelRegistry(registryName, databaseName);
 
       cy.step('Create a project for model deployment');
       createCleanProject(projectName);
@@ -61,14 +62,17 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Clean up model registry components');
-    cleanupModelRegistryComponents([modelName], registryName);
+    cleanupModelRegistryComponents([modelName], registryName, databaseName);
 
     cy.step('Delete the test project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase().should('be.true');
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 
   it(
@@ -135,7 +139,7 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');
-      checkModelExistsInDatabase(modelName).should('be.true');
+      checkModelExistsInDatabase(modelName, databaseName).should('be.true');
 
       cy.step('Navigate to model versions to deploy the model');
       cy.contains(modelName).click();
