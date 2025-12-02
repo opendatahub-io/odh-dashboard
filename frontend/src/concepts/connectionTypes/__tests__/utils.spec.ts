@@ -16,6 +16,7 @@ import {
   fieldTypeToString,
   getModelServingCompatibility,
   isModelServingCompatible,
+  isModelServingEnvVar,
   isValidEnvVar,
   ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
@@ -542,5 +543,22 @@ describe('useTrimInputHandlers', () => {
 
     trimInputOnPaste('', handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('foo');
+  });
+});
+describe('isModelServingEnvVar', () => {
+  it('should identify model serving env vars', () => {
+    expect(isModelServingEnvVar('AWS_ACCESS_KEY_ID')).toBe(true);
+    expect(isModelServingEnvVar('AWS_SECRET_ACCESS_KEY')).toBe(true);
+    expect(isModelServingEnvVar('AWS_S3_ENDPOINT')).toBe(true);
+    expect(isModelServingEnvVar('AWS_S3_BUCKET')).toBe(true);
+    expect(isModelServingEnvVar('URI')).toBe(true);
+    expect(isModelServingEnvVar('OCI_HOST')).toBe(true);
+    expect(isModelServingEnvVar('.dockerconfigjson')).toBe(true);
+    expect(isModelServingEnvVar('ACCESS_TYPE')).toBe(true);
+  });
+  it('should identify non-model serving env vars', () => {
+    expect(isModelServingEnvVar('NAME')).toBe(false);
+    expect(isModelServingEnvVar('UNDERSCORE_NAME')).toBe(false);
+    expect(isModelServingEnvVar('has_digits_1234')).toBe(false);
   });
 });
