@@ -211,6 +211,7 @@ export type DataScienceProjectData = {
   projectSingleModelResourceName: string;
   singleModelName: string;
   modelFilePath: string;
+  modelURI: string;
   projectSingleModelAdminDisplayName: string;
   projectSingleModelAdminResourceName: string;
   singleModelAdminName: string;
@@ -222,6 +223,7 @@ export type DataScienceProjectData = {
   pvStorageDescription: string;
   pvStorageNameEdited: string;
   invalidResourceNames: string[];
+  hardwareProfileName: string;
 };
 
 export type NotebookImageData = {
