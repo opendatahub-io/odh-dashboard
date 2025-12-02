@@ -396,12 +396,21 @@ export const parseConnectionSecretValues = (
   connectionType?: ConnectionTypeConfigMapObj,
 ): { [key: string]: ConnectionTypeValueType } => {
   const response: { [key: string]: ConnectionTypeValueType } = {};
+  const isOCI = connectionType
+    ? isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+    : false;
 
   for (const [key, value] of Object.entries(connection.data ?? {})) {
     const decodedString = window.atob(value);
     const matchingField = connectionType?.data?.fields?.find(
       (f) => isConnectionTypeDataField(f) && f.envVar === key,
     );
+
+    // For OCI connections, convert '{}' back to empty string for display in edit forms
+    if (isOCI && (key === '.dockerconfigjson' || key === 'OCI_HOST') && decodedString === '{}') {
+      response[key] = '';
+      continue;
+    }
 
     if (matchingField?.type === ConnectionTypeFieldType.Boolean) {
       response[key] = decodedString === 'true';

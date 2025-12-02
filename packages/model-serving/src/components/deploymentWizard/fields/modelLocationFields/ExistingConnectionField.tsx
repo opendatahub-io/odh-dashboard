@@ -14,6 +14,7 @@ import {
   getConnectionTypeRef,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
+  parseConnectionSecretValues,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import {
   Connection,
@@ -111,6 +112,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
 
               if (newConnectionType) {
                 const additionalFields: { modelPath?: string; modelUri?: string } = {};
+                const fieldValues = parseConnectionSecretValues(newConnection, newConnectionType);
 
                 if (
                   isModelServingCompatible(
@@ -133,7 +135,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
                   type: ModelLocationType.EXISTING,
                   connectionTypeObject: newConnectionType,
                   connection: getResourceNameFromK8sResource(newConnection),
-                  fieldValues: {},
+                  fieldValues,
                   additionalFields,
                 });
               }
@@ -180,7 +182,11 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
           selectedConnectionType?.metadata.name === ConnectionTypeRefs.OCI) && (
           <StackItem>
             <ConnectionOciPathField
-              ociHost={window.atob(selectedConnection?.data?.OCI_HOST ?? '')}
+              ociHost={
+                isExistingModelLocation(modelLocationData)
+                  ? String(modelLocationData.fieldValues.OCI_HOST ?? '')
+                  : window.atob(selectedConnection?.data?.OCI_HOST ?? '')
+              }
               modelUri={
                 isExistingModelLocation(modelLocationData)
                   ? modelLocationData.additionalFields.modelUri ?? ''
