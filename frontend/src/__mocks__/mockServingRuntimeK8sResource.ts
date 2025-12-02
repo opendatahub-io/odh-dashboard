@@ -17,10 +17,8 @@ type MockResourceConfigType = {
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   templateDisplayName?: string;
-  isProjectScoped?: boolean;
   scope?: string;
   hardwareProfileNamespace?: string;
-  acceleratorProfileNamespace?: string;
   isNonDashboardItem?: boolean;
   version?: string;
   templateName?: string;
@@ -109,7 +107,6 @@ export const mockServingRuntimeK8sResource = ({
   replicas = 0,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
-  acceleratorProfileNamespace = undefined,
   hardwareProfileName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
@@ -127,7 +124,6 @@ export const mockServingRuntimeK8sResource = ({
   disableResources = false,
   disableReplicas = false,
   templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
-  isProjectScoped = false,
   scope,
   hardwareProfileNamespace = undefined,
   isNonDashboardItem = false,
@@ -152,12 +148,9 @@ export const mockServingRuntimeK8sResource = ({
       ...(version && {
         'opendatahub.io/runtime-version': version,
       }),
-      ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
+      ...(scope && { 'opendatahub.io/serving-runtime-scope': scope }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
-      }),
-      ...(acceleratorProfileNamespace && {
-        'opendatahub.io/accelerator-profile-namespace': acceleratorProfileNamespace,
       }),
     },
     name,

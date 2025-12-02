@@ -11,19 +11,21 @@ import {
   MenuToggle,
   Tooltip,
 } from '@patternfly/react-core';
-import { CodeIcon, EllipsisVIcon } from '@patternfly/react-icons';
+import { CodeIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 
 type ChatbotHeaderActionsProps = {
   onViewCode: () => void;
   onConfigurePlayground: () => void;
   onDeletePlayground: () => void;
+  onNewChat: () => void;
 };
 
 const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onViewCode,
   onConfigurePlayground,
   onDeletePlayground,
+  onNewChat,
 }) => {
   const { lsdStatus, lastInput, selectedModel } = React.useContext(ChatbotContext);
   const isViewCodeDisabled = !lastInput || !selectedModel;
@@ -47,29 +49,44 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
     <ActionList>
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
-          <ActionListItem>
-            {isViewCodeDisabled ? (
-              <Tooltip content={getDisabledReason()}>
+          <>
+            <ActionListItem>
+              <Button
+                variant="link"
+                aria-label="Start new chat"
+                icon={<PlusIcon />}
+                onClick={onNewChat}
+                data-testid="new-chat-button"
+              >
+                New Chat
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              {isViewCodeDisabled ? (
+                <Tooltip content={getDisabledReason()}>
+                  <Button
+                    variant="secondary"
+                    aria-label="View generated code (disabled)"
+                    icon={<CodeIcon />}
+                    isAriaDisabled={isViewCodeDisabled}
+                    data-testid="view-code-button"
+                  >
+                    View Code
+                  </Button>
+                </Tooltip>
+              ) : (
                 <Button
                   variant="secondary"
-                  aria-label="View generated code (disabled)"
+                  aria-label="View generated code"
                   icon={<CodeIcon />}
-                  isAriaDisabled={isViewCodeDisabled}
+                  onClick={onViewCode}
+                  data-testid="view-code-button"
                 >
                   View Code
                 </Button>
-              </Tooltip>
-            ) : (
-              <Button
-                variant="secondary"
-                aria-label="View generated code"
-                icon={<CodeIcon />}
-                onClick={onViewCode}
-              >
-                View Code
-              </Button>
-            )}
-          </ActionListItem>
+              )}
+            </ActionListItem>
+          </>
         )}
         <ActionListItem>
           <Dropdown
@@ -82,6 +99,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 isExpanded={isDropdownOpen}
                 aria-label="Action list single group kebab"
                 icon={<EllipsisVIcon />}
+                data-testid="header-kebab-menu-toggle"
               />
             )}
             isOpen={isDropdownOpen}
@@ -93,6 +111,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 onClick={onConfigurePlayground}
                 key="update-configuration"
                 isDisabled={!lsdStatus}
+                data-testid="configure-playground-menu-item"
               >
                 Update configuration
               </DropdownItem>
@@ -101,6 +120,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 onClick={onDeletePlayground}
                 key="delete-playground"
                 isDisabled={!lsdStatus}
+                data-testid="delete-playground-menu-item"
               >
                 Delete playground
               </DropdownItem>

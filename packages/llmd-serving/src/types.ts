@@ -10,6 +10,8 @@ import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
+export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
+
 export type LLMInferenceServiceKind = K8sResourceCommon & {
   kind: 'LLMInferenceService';
   metadata: {

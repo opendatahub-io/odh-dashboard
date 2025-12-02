@@ -23,6 +23,7 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       deleteVectorStoreFile: jest.fn().mockResolvedValue({ data: null }),
       createVectorStore: jest.fn().mockResolvedValue({ data: null }),
       uploadSource: jest.fn().mockResolvedValue({ data: null }),
+      getBFFConfig: jest.fn().mockResolvedValue({ isCustomLSD: false }),
     },
   },
   refreshAPIState: jest.fn(),

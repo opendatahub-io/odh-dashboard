@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	catalogOpenapi "github.com/kubeflow/model-registry/catalog/pkg/openapi"
 	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
 	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/httpclient"
+	"github.com/kubeflow/model-registry/ui/bff/internal/models"
 )
 
-type CatalogSourceListEnvelope Envelope[*catalogOpenapi.CatalogSourceList, None]
-type CatalogModelEnvelope Envelope[*catalogOpenapi.CatalogModel, None]
-type catalogModelArtifactsListEnvelope Envelope[*catalogOpenapi.CatalogArtifactList, None]
+type CatalogSourceListEnvelope Envelope[*models.CatalogSourceList, None]
+type CatalogModelEnvelope Envelope[*models.CatalogModel, None]
+type catalogModelArtifactsListEnvelope Envelope[*models.CatalogModelArtifactList, None]
 
 func (app *App) GetAllCatalogSourcesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
@@ -69,7 +69,7 @@ func (app *App) GetCatalogSourceModelHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (app *App) GetCatalogSourceModelArtifactHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *App) GetCatalogSourceModelArtifactsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
 	if !ok {
 		app.serverErrorResponse(w, r, errors.New("catalog REST client not found"))
@@ -81,7 +81,7 @@ func (app *App) GetCatalogSourceModelArtifactHandler(w http.ResponseWriter, r *h
 
 	newModelName := url.PathEscape(modelName)
 
-	catalogModelArtifacts, err := app.repositories.ModelCatalogClient.GetCatalogModelArtifacts(client, ps.ByName(CatalogSourceId), newModelName)
+	catalogModelArtifacts, err := app.repositories.ModelCatalogClient.GetCatalogSourceModelArtifacts(client, ps.ByName(CatalogSourceId), newModelName)
 
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

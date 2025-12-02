@@ -1,5 +1,4 @@
 import React from 'react';
-import { z } from 'zod';
 import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
 import SimpleSelect, {
   type SimpleSelectOption,
@@ -10,23 +9,12 @@ import {
   getServingRuntimeFromTemplate,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { modelTypeSelectFieldSchema, type ModelTypeFieldData } from './ModelTypeSelectField';
+import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
 const getModelFormatLabel = (modelFormat: SupportedModelFormats): string => {
   return modelFormat.version ? `${modelFormat.name} - ${modelFormat.version}` : modelFormat.name;
 };
-
-// Schema
-
-export const modelFormatFieldSchema = z
-  .object({
-    type: modelTypeSelectFieldSchema,
-    format: z.custom<SupportedModelFormats>(),
-  })
-  .refine((data) => !(data.type === ServingRuntimeModelType.PREDICTIVE && !data.format), {
-    message: 'Model format is required for predictive models',
-  });
 
 // Hooks
 
@@ -138,7 +126,7 @@ export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({
   const { modelFormatOptions, modelFormat, setModelFormat, error, loaded } = modelFormatState;
 
   return (
-    <FormGroup label="Model framework (name - version)" fieldId="model-framework-select" isRequired>
+    <FormGroup label="Model framework (name - version)" fieldId="model-framework-select">
       <SimpleSelect
         dataTestId="model-framework-select"
         toggleProps={{ id: 'model-framework-select' }}

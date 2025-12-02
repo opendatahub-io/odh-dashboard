@@ -16,8 +16,7 @@ import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardware
 import { applyHardwareProfileConfig, applyReplicas } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
-  applyModelEnvVars,
-  applyModelArgs,
+  applyModelEnvVarsAndArgs,
   applyModelLocation,
   applyDisplayNameDesc,
   applyDashboardResourceLabel,
@@ -54,12 +53,14 @@ const createLLMInferenceServiceKind = async (
   assembledLLMdInferenceParams: CreateLLMdInferenceServiceParams,
   dryRun?: boolean,
   connectionSecretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): Promise<LLMInferenceServiceKind> => {
   const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
     assembledLLMdInferenceParams,
     undefined,
     dryRun,
     connectionSecretName,
+    transformData,
   );
   return k8sCreateResource<LLMInferenceServiceKind>(
     applyK8sAPIOptions(
@@ -90,12 +91,14 @@ const updateLLMInferenceServiceKind = async (
   existingDeployment: LLMInferenceServiceKind,
   dryRun?: boolean,
   connectionSecretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): Promise<LLMInferenceServiceKind> => {
   const assembledLLMdInferenceService = assembleLLMdInferenceServiceKind(
     assembledLLMdInferenceParams,
     existingDeployment,
     dryRun,
     connectionSecretName,
+    transformData,
   );
   // Automatically figure out what annotations need removing
   const annotationsToRemove = buildRemovalPatch(
@@ -186,6 +189,7 @@ const assembleLLMdInferenceServiceKind = (
   existingDeployment?: LLMInferenceServiceKind,
   dryRun?: boolean,
   connectionSecretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): LLMInferenceServiceKind => {
   const {
     projectName,
@@ -241,10 +245,15 @@ const assembleLLMdInferenceServiceKind = (
   );
   llmdInferenceService = applyHardwareProfileConfig(llmdInferenceService, hardwareProfile);
   llmdInferenceService = applyReplicas(llmdInferenceService, replicas);
-  llmdInferenceService = applyModelArgs(llmdInferenceService, runtimeArgs);
-  llmdInferenceService = applyModelEnvVars(llmdInferenceService, environmentVariables);
+  llmdInferenceService = applyModelEnvVarsAndArgs(
+    llmdInferenceService,
+    environmentVariables,
+    runtimeArgs,
+  );
   llmdInferenceService = applyModelAvailabilityData(llmdInferenceService, modelAvailability);
   llmdInferenceService = applyTokenAuthentication(llmdInferenceService, tokenAuthentication);
+
+  llmdInferenceService = _.merge(llmdInferenceService, transformData);
 
   return llmdInferenceService;
 };
@@ -281,12 +290,18 @@ export const deployLLMdDeployment = async (
     tokenAuthentication: wizardData.tokenAuthentication.data,
   };
   const llmdInferenceService = !existingDeployment
-    ? await createLLMInferenceServiceKind(llmdInferenceServiceData, dryRun, connectionSecretName)
+    ? await createLLMInferenceServiceKind(
+        llmdInferenceServiceData,
+        dryRun,
+        connectionSecretName,
+        initialWizardData?.transformData,
+      )
     : await updateLLMInferenceServiceKind(
         llmdInferenceServiceData,
         existingDeployment.model,
         dryRun,
         connectionSecretName,
+        initialWizardData?.transformData,
       );
 
   const createTokenAuth =

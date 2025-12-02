@@ -1,4 +1,5 @@
 import { TableRow } from './components/table';
+import { Modal } from './components/Modal';
 
 class ModelTrainingGlobal {
   visit(projectName?: string) {
@@ -54,7 +55,7 @@ class ModelTrainingGlobal {
 }
 
 class TrainingJobTable {
-  private findTable() {
+  findTable() {
     return cy.findByTestId('training-job-table');
   }
 
@@ -109,7 +110,9 @@ class TrainingJobTableRow extends TableRow {
   }
 
   findStatus() {
-    return this.find().find('[data-label="Status"]');
+    // Find the status label by testid (the clickable Label component)
+    // The entire Label is clickable, not just the icon
+    return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
   }
 
   findNameLink() {
@@ -260,7 +263,244 @@ class TrainingJobResourcesTab {
   }
 }
 
+class TrainingJobPodsTab {
+  findInitializersSection() {
+    return cy.findByRole('button', { name: /Initializers/ });
+  }
+
+  findTrainingPodsSection() {
+    return cy.findByText('Training pods');
+  }
+
+  findPodByName(podName: string) {
+    return cy.findByRole('button', { name: podName });
+  }
+
+  findPodList() {
+    return cy.findAllByRole('button').filter((_, el) => {
+      const text = Cypress.$(el).text();
+      return text.includes('-pod-') || text.includes('pod');
+    });
+  }
+
+  findNoPods() {
+    return cy.findByText('No pods found');
+  }
+
+  findNoInitializers() {
+    return cy.findByText('No initializers found');
+  }
+
+  expandInitializers() {
+    this.findInitializersSection().click();
+  }
+}
+class TrainingJobStatusModal extends Modal {
+  constructor() {
+    super('Training Job Status');
+  }
+
+  find() {
+    return cy.findByTestId('training-job-status-modal');
+  }
+
+  getModal() {
+    return this.find();
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findHeader() {
+    return cy.findByTestId('training-job-status-modal-header');
+  }
+
+  findTitle() {
+    return this.findHeader().contains('Training Job Status');
+  }
+
+  findStatusLabel() {
+    return this.findHeader().findByTestId('training-job-status');
+  }
+
+  getTrainingJobStatus(expectedStatus: string, timeout?: number) {
+    // Scope the search to within the modal to avoid finding status in table rows
+    // Use cy.get with scoped selector within the modal
+    return cy
+      .get(
+        '[data-testid="training-job-status-modal"] [data-testid="training-job-status"]',
+        // Only pass timeout if it's explicitly provided
+        timeout !== undefined ? { timeout } : {},
+      )
+      .should('contain.text', expectedStatus);
+  }
+
+  findProgressTab() {
+    return cy.findByTestId('expand-progress');
+  }
+
+  findEventsLogTab() {
+    return cy.findByTestId('expand-logs');
+  }
+
+  selectTab(tabName: 'Progress' | 'Events log') {
+    if (tabName === 'Progress') {
+      this.findProgressTab().click();
+    } else {
+      this.findEventsLogTab().click();
+    }
+    return this;
+  }
+
+  findInitializationSection() {
+    return cy.findByTestId('initialization-section');
+  }
+
+  findDataInitializerSection() {
+    return cy.findByTestId('data-initializer-section');
+  }
+
+  findModelInitializerSection() {
+    return cy.findByTestId('model-initializer-section');
+  }
+
+  findTrainingSection() {
+    return cy.findByTestId('training-section');
+  }
+
+  findEventLogs() {
+    return cy.findByTestId('event-logs');
+  }
+
+  findLogEntry(text: string) {
+    return this.findEventLogs().find('li span').contains(text);
+  }
+
+  findRetryButton() {
+    return cy.findByTestId('retry-job-button');
+  }
+
+  findPauseResumeButton() {
+    return cy.findByTestId('pause-resume-job-button');
+  }
+
+  findDeleteButton() {
+    return cy.findByTestId('delete-job-button');
+  }
+
+  findCloseButton() {
+    return cy.findByTestId('close-status-modal-button');
+  }
+
+  close() {
+    this.findCloseButton().click();
+    return this;
+  }
+}
+
+class TrainingJobLogsTab {
+  findPodSelector() {
+    // Find the pod selector dropdown - it may show "Select pod..." or a pod name
+    return cy.findByTestId('logs-pod-selector');
+  }
+
+  findPodDropdown() {
+    return cy.findByRole('menu');
+  }
+
+  selectPod(podName: string) {
+    this.findPodSelector().click();
+    cy.findByRole('menuitem', { name: podName }).click();
+    return this;
+  }
+
+  findDownloadButton() {
+    return cy.findByRole('button', { name: /Download/ });
+  }
+
+  findLogViewer() {
+    return cy.get('.pf-v6-c-log-viewer');
+  }
+
+  findLogContent() {
+    return cy.get('.pf-v6-c-log-viewer__text');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-state-title');
+  }
+
+  findErrorState() {
+    return cy.findByText(/Failed to load logs/);
+  }
+
+  findLoadingSpinner() {
+    return cy.get('.pf-v6-c-spinner');
+  }
+}
+
+class ScaleNodesModal extends Modal {
+  constructor() {
+    super('Edit node count');
+  }
+
+  find() {
+    return cy.findByTestId('scale-nodes-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findNodeCountInput() {
+    return cy.findByTestId('node-count-input');
+  }
+
+  setNodeCount(count: number) {
+    this.findNodeCountInput().clear();
+    this.findNodeCountInput().type(count.toString());
+    return this;
+  }
+
+  findSaveButton() {
+    return cy.findByRole('button', { name: 'Save' });
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  findErrorMessage() {
+    return cy.get('.pf-v6-c-helper-text__item-text');
+  }
+
+  save() {
+    this.findSaveButton().click();
+    return this;
+  }
+
+  cancel() {
+    this.findCancelButton().click();
+    return this;
+  }
+}
+
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
 export const trainingJobDetailsDrawer = new TrainingJobDetailsDrawer();
 export const trainingJobResourcesTab = new TrainingJobResourcesTab();
+export const trainingJobPodsTab = new TrainingJobPodsTab();
+export const trainingJobLogsTab = new TrainingJobLogsTab();
+export const trainingJobStatusModal = new TrainingJobStatusModal();
+export const scaleNodesModal = new ScaleNodesModal();

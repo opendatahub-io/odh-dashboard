@@ -17,6 +17,7 @@ import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/componen
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
+import * as _ from 'lodash-es';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -35,6 +36,7 @@ import {
   patchInferenceService,
   updateInferenceService,
 } from './api/inferenceService';
+import { applyModelRuntime } from './deployServer';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -60,6 +62,7 @@ const assembleInferenceService = (
   existingInferenceService?: InferenceServiceKind,
   dryRun?: boolean,
   secretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): InferenceServiceKind => {
   const {
     project,
@@ -89,22 +92,20 @@ const assembleInferenceService = (
           namespace: project,
         },
         spec: {
-          predictor: {
-            model: {
-              runtime: k8sName,
-            },
-          },
+          predictor: {},
         },
       };
 
   inferenceService = applyDisplayNameDesc(inferenceService, name, description);
   inferenceService = applyDashboardResourceLabel(inferenceService);
+
   inferenceService = applyModelType(
     inferenceService,
     modelType ?? ServingRuntimeModelType.GENERATIVE,
   );
 
   inferenceService = applyModelFormat(inferenceService, modelFormat);
+  inferenceService = applyModelRuntime(inferenceService, k8sName);
 
   inferenceService = applyConnectionData(
     inferenceService,
@@ -148,6 +149,8 @@ const assembleInferenceService = (
 
   inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
 
+  inferenceService = _.merge(inferenceService, transformData);
+
   return inferenceService;
 };
 
@@ -159,6 +162,7 @@ export const deployInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
   connectionSecretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
   opts?: {
     dryRun?: boolean;
     overwrite?: boolean;
@@ -169,6 +173,7 @@ export const deployInferenceService = (
     existingInferenceService,
     opts?.dryRun,
     connectionSecretName,
+    transformData,
   );
 
   if (!existingInferenceService) {

@@ -10,6 +10,7 @@ import type {
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import type {
   ModelServerOption,
   useModelServerSelectField,
@@ -29,6 +30,7 @@ import {
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
+import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -77,6 +79,7 @@ export type InitialWizardFormData = {
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
+  transformData?: { metadata?: { labels?: Record<string, string> } };
   // Add more field handlers as needed
 };
 
@@ -127,41 +130,27 @@ export type DeploymentWizardFieldId =
   | 'tokenAuth'
   | 'deploymentStrategy';
 
-export type DeploymentWizardFieldBase = {
-  id: DeploymentWizardFieldId;
+export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId> = {
+  id: ID;
   type: 'modifier' | 'replacement' | 'addition';
-  isActive: (data: Partial<WizardFormData['state']>) => boolean;
-};
-
-export type ModifierField<T extends (...args: Parameters<T>) => ReturnType<T>> =
-  DeploymentWizardFieldBase & {
-    type: 'modifier';
-    modifier: (stateInput: Parameters<T>, stateOutput: ReturnType<T>) => ReturnType<T>;
-  };
-export const isModifierField = <T extends (...args: Parameters<T>) => ReturnType<T>>(
-  field: DeploymentWizardFieldBase,
-): field is ModifierField<T> => {
-  return field.type === 'modifier';
+} & {
+  isActive: (wizardFormData: RecursivePartial<WizardFormData['state']>) => boolean;
 };
 
 // actual fields
 
-export type ModelServerTemplateField = ModifierField<typeof useModelServerSelectField> & {
-  id: 'modelServerTemplate';
+export type ModelServerTemplateField = DeploymentWizardFieldBase<'modelServerTemplate'> & {
+  extraOptions?: ModelServerOption[];
+  suggestion?: (clusterSettings?: ModelServingClusterSettings) => ModelServerOption | undefined;
 };
-export type ModelAvailabilityField = ModifierField<typeof useModelAvailabilityFields> & {
+export type ModelAvailabilityField = DeploymentWizardFieldBase<'modelAvailability'> & {
   id: 'modelAvailability';
+  showSaveAsMaaS?: boolean;
 };
-// todo should extend ModifierField
-export type ExternalRouteField = DeploymentWizardFieldBase & {
-  id: 'externalRoute';
-  type: 'modifier';
+export type ExternalRouteField = DeploymentWizardFieldBase<'externalRoute'> & {
   isVisible: boolean;
 };
-// todo should extend ModifierField
-export type TokenAuthField = DeploymentWizardFieldBase & {
-  id: 'tokenAuth';
-  type: 'modifier';
+export type TokenAuthField = DeploymentWizardFieldBase<'tokenAuth'> & {
   initialValue: boolean;
 };
 
@@ -191,7 +180,7 @@ export const isExternalRouteField = (field: DeploymentWizardField): field is Ext
 export const isTokenAuthField = (field: DeploymentWizardField): field is TokenAuthField => {
   return field.id === 'tokenAuth';
 };
-export type DeploymentStrategyField = DeploymentWizardFieldBase & {
+export type DeploymentStrategyField = DeploymentWizardFieldBase<'deploymentStrategy'> & {
   id: 'deploymentStrategy';
   type: 'modifier';
   isVisible: boolean;

@@ -253,6 +253,9 @@ func (app *App) Routes() http.Handler {
 	// Identity
 	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
 
+	// BFF Configuration endpoint
+	apiRouter.GET(constants.ConfigPath, app.RequireAccessToService(app.BFFConfigHandler))
+
 	// Llama Stack Distribution status endpoint
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))
 

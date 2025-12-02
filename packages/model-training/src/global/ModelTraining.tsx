@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   EmptyStateBody,
   EmptyStateVariant,
@@ -9,16 +9,20 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDetailsDrawer';
 import TrainingJobListView from './trainingJobList/TrainingJobListView';
+import DeleteTrainingJobModal from './trainingJobList/DeleteTrainingJobModal';
+import { useTrainingJobStatuses } from './trainingJobList/hooks/useTrainingJobStatuses';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 import { TrainJobKind } from '../k8sTypes';
+import { TrainingJobState } from '../types';
 
 const title = 'Training jobs';
 const description =
@@ -29,14 +33,48 @@ const ModelTraining = (): React.ReactElement => {
   const { trainJobs, project, preferredProject, projects } = React.useContext(ModelTrainingContext);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
+  const [deleteTrainingJob, setDeleteTrainingJob] = useState<TrainJobKind | undefined>(undefined);
   const drawerRef = useRef<HTMLDivElement>(undefined);
+
+  // Manage job statuses at this level so they can be shared with drawer and list
+  const { jobStatuses, updateJobStatus } = useTrainingJobStatuses(trainJobData);
 
   const handleSelectJob = React.useCallback((job: TrainJobKind) => {
     setSelectedJob((prev) => (prev?.metadata.uid === job.metadata.uid ? undefined : job));
   }, []);
 
+  const handleStatusUpdate = React.useCallback(
+    (jobId: string, newStatus: TrainingJobState) => {
+      updateJobStatus(jobId, newStatus);
+    },
+    [updateJobStatus],
+  );
+
+  const handleDelete = React.useCallback(
+    (job: TrainJobKind) => {
+      setDeleteTrainingJob(job);
+      // Close drawer if the deleted job is currently selected
+      if (selectedJob?.metadata.uid === job.metadata.uid) {
+        setSelectedJob(undefined);
+      }
+    },
+    [selectedJob],
+  );
+
+  // Sync selectedJob with the latest data from trainJobData when it updates
+  React.useEffect(() => {
+    if (selectedJob) {
+      const updatedJob = trainJobData.find((job) => job.metadata.uid === selectedJob.metadata.uid);
+      if (updatedJob && updatedJob !== selectedJob) {
+        setSelectedJob(updatedJob);
+      }
+    }
+  }, [trainJobData, selectedJob]);
+
   const isDrawerExpanded = !!selectedJob;
   const selectedJobDisplayName = selectedJob ? getDisplayNameFromK8sResource(selectedJob) : '';
+  const selectedJobId = selectedJob ? selectedJob.metadata.uid || selectedJob.metadata.name : '';
+  const selectedJobStatus = selectedJobId ? jobStatuses.get(selectedJobId) : undefined;
 
   const emptyState = (
     <EmptyState
@@ -56,7 +94,9 @@ const ModelTraining = (): React.ReactElement => {
     <TrainingJobDetailsDrawer
       job={selectedJob}
       displayName={selectedJobDisplayName}
+      jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
+      onDelete={handleDelete}
     />
   );
 
@@ -98,10 +138,22 @@ const ModelTraining = (): React.ReactElement => {
               )
             }
           >
-            <TrainingJobListView trainingJobs={trainJobData} onSelectJob={handleSelectJob} />
+            <TrainingJobListView
+              trainingJobs={trainJobData}
+              jobStatuses={jobStatuses}
+              onStatusUpdate={handleStatusUpdate}
+              onSelectJob={handleSelectJob}
+            />
           </ApplicationsPage>
         </DrawerContentBody>
       </DrawerContent>
+
+      {deleteTrainingJob && (
+        <DeleteTrainingJobModal
+          trainingJob={deleteTrainingJob}
+          onClose={() => setDeleteTrainingJob(undefined)}
+        />
+      )}
     </Drawer>
   );
 };

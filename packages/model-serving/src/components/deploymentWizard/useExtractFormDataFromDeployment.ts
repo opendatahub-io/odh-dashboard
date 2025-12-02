@@ -163,33 +163,13 @@ export const useExtractFormDataFromDeployment = (
           : undefined,
 
       // Determine model server configuration based on deployment type
-      modelServer: (() => {
-        // Handle special case for llmd-serving platform
-        if (deployment.modelServingPlatformId === 'llmd-serving') {
-          return {
-            name: 'llmd-serving',
-            label: 'Distributed Inference Server with llm-d',
-          };
-        }
-
-        // Handle standard serving runtime deployments
-        if (deployment.server) {
-          const templateName =
-            deployment.server.metadata.annotations?.['opendatahub.io/template-name'] || '';
-          const scope =
-            deployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] || '';
-
-          return {
-            name: templateName,
-            namespace:
-              scope === 'global' ? dashboardNamespace : deployment.server.metadata.namespace || '',
-            scope,
-          };
-        }
-
-        return undefined;
-      })(),
-
+      modelServer:
+        typeof formDataExtension?.properties.extractModelServerTemplate === 'function'
+          ? formDataExtension.properties.extractModelServerTemplate(
+              deployment,
+              dashboardNamespace,
+            ) ?? undefined
+          : undefined,
       // Always set to true for existing deployments
       isEditing: true,
     };

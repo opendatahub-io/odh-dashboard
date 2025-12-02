@@ -1,29 +1,14 @@
 /* eslint-disable camelcase */
-import { renderHook, act } from '@testing-library/react';
 import * as React from 'react';
+import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { ChatbotSourceSettings, CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import { useMCPServersContext } from '~/app/context/MCPServersContext';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
+import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
-}));
-
-jest.mock('~/app/context/MCPSelectionContext', () => ({
-  useMCPSelectionContext: jest.fn(),
-}));
-
-jest.mock('~/app/context/MCPServersContext', () => ({
-  useMCPServersContext: jest.fn(),
-}));
-
-jest.mock('~/app/context/MCPTokenContext', () => ({
-  useMCPTokenContext: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -37,13 +22,6 @@ jest.mock('react', () => ({
 }));
 
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
-const mockUseMCPSelectionContext = useMCPSelectionContext as jest.MockedFunction<
-  typeof useMCPSelectionContext
->;
-const mockUseMCPServersContext = useMCPServersContext as jest.MockedFunction<
-  typeof useMCPServersContext
->;
-const mockUseMCPTokenContext = useMCPTokenContext as jest.MockedFunction<typeof useMCPTokenContext>;
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -52,84 +30,86 @@ const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
   Promise<SimplifiedResponseData>,
-  [CreateResponseRequest, { onStreamData?: (chunk: string) => void }?]
+  [CreateResponseRequest, { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal }?]
 >();
 
+// Test constants
+const mockModelId = 'test-model-id';
+const mockSourceSettings: ChatbotSourceSettings = {
+  vectorStore: 'test-vector-db',
+  embeddingModel: 'test-embedding-model',
+  maxChunkLength: 500,
+  delimiter: '\n\n',
+  chunkOverlap: 50,
+};
+
+const mockSuccessResponse: SimplifiedResponseData = {
+  id: 'resp-123',
+  model: 'test-model-id',
+  status: 'completed',
+  created_at: 0,
+  content: 'This is a bot response',
+};
+
+const mockNamespace = { name: 'test-namespace' };
+
+// Provide default MCP data as props to the hook
+const defaultMcpProps = {
+  mcpServers: [],
+  mcpServerStatuses: new Map(),
+  mcpServerTokens: new Map(),
+};
+
+// Setup function to be called in beforeEach
+const setupMocks = (): void => {
+  jest.clearAllMocks();
+  // Ensure createResponse mock is properly reset
+  mockCreateResponse.mockReset();
+  // Mock useContext to return the namespace
+  mockUseContext.mockReturnValue({ namespace: mockNamespace });
+
+  // Mock useGenAiAPI to return the API object with mocked functions
+  mockUseGenAiAPI.mockReturnValue({
+    apiAvailable: true,
+    api: {
+      createResponse: mockCreateResponse,
+    },
+  });
+};
+
+// Helper to create default hook props
+const createDefaultHookProps = (overrides?: {
+  modelId?: string;
+  selectedSourceSettings?: ChatbotSourceSettings | null;
+  systemInstruction?: string;
+  isRawUploaded?: boolean;
+  isStreamingEnabled?: boolean;
+  temperature?: number;
+  currentVectorStoreId?: string | null;
+  selectedServerIds?: string[];
+}) => ({
+  ...defaultMcpProps,
+  modelId: mockModelId,
+  selectedSourceSettings: mockSourceSettings,
+  systemInstruction: '',
+  isRawUploaded: true,
+  isStreamingEnabled: false,
+  temperature: 0.7,
+  currentVectorStoreId: null,
+  selectedServerIds: [],
+  ...overrides,
+});
+
 describe('useChatbotMessages', () => {
-  const mockModelId = 'test-model-id';
-  const mockSourceSettings: ChatbotSourceSettings = {
-    vectorStore: 'test-vector-db',
-    embeddingModel: 'test-embedding-model',
-    maxChunkLength: 500,
-    delimiter: '\n\n',
-    chunkOverlap: 50,
-  };
-
-  const mockSuccessResponse: SimplifiedResponseData = {
-    id: 'resp-123',
-    model: 'test-model-id',
-    status: 'completed',
-    created_at: 0,
-    content: 'This is a bot response',
-  };
-
-  const mockNamespace = { name: 'test-namespace' };
-
   beforeEach(() => {
-    jest.clearAllMocks();
-    // Ensure createResponse mock is properly reset
-    mockCreateResponse.mockReset();
-    // Mock useContext to return the namespace
-    mockUseContext.mockReturnValue({ namespace: mockNamespace });
-
-    // Mock useGenAiAPI to return the API object with mocked functions
-    mockUseGenAiAPI.mockReturnValue({
-      apiAvailable: true,
-      api: {
-        createResponse: mockCreateResponse,
-      },
-    });
-
-    // Mock MCP contexts
-    mockUseMCPSelectionContext.mockReturnValue({
-      playgroundSelectedServerIds: [],
-      selectedServersCount: 0,
-      saveSelectedServersToPlayground: jest.fn(),
-      setSelectedServersCount: jest.fn(),
-    });
-
-    mockUseMCPServersContext.mockReturnValue({
-      servers: [],
-      serversLoaded: true,
-      serversLoadError: null,
-      serverStatuses: new Map(),
-      statusesLoading: new Set(),
-      allStatusesChecked: true,
-      refresh: jest.fn(),
-      checkServerStatus: jest.fn(),
-      getSelectedServersForAPI: jest.fn().mockReturnValue([]),
-    });
-
-    mockUseMCPTokenContext.mockReturnValue({
-      serverTokens: new Map(),
-      setServerTokens: jest.fn(),
-      isServerValidated: jest.fn().mockReturnValue(false),
-    });
+    setupMocks();
   });
 
   describe('initialization', () => {
     it('should initialize with correct default values', () => {
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0]).toMatchObject({
@@ -147,17 +127,7 @@ describe('useChatbotMessages', () => {
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Hello, bot!');
@@ -184,17 +154,7 @@ describe('useChatbotMessages', () => {
     it('should disable and re-enable send button during message sending', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       // Initially button should be enabled
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -210,52 +170,39 @@ describe('useChatbotMessages', () => {
     it('should call createResponse with correct parameters', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Test query');
       });
 
       // Check that createResponse was called with the correct request data
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test query',
-        model: 'test-model-id',
-        vector_store_ids: ['test-vector-db'],
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-        stream: false,
-        temperature: 0.7,
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test query',
+          model: 'test-model-id',
+          vector_store_ids: ['test-vector-db'],
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+        },
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
     });
   });
 
   describe('error handling', () => {
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: '',
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
+        useChatbotMessages(createDefaultHookProps({ modelId: '' })),
       );
 
       await act(async () => {
@@ -276,15 +223,12 @@ describe('useChatbotMessages', () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: null,
-          systemInstruction: '',
-          isRawUploaded: false,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
+        useChatbotMessages(
+          createDefaultHookProps({
+            selectedSourceSettings: null,
+            isRawUploaded: false,
+          }),
+        ),
       );
 
       await act(async () => {
@@ -298,35 +242,30 @@ describe('useChatbotMessages', () => {
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test message',
-        model: 'test-model-id',
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-        stream: false,
-        temperature: 0.7,
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test message',
+          model: 'test-model-id',
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+        },
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
     });
 
     it('should handle API errors', async () => {
       mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -344,17 +283,7 @@ describe('useChatbotMessages', () => {
     it('should re-enable send button even when errors occur', async () => {
       mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -372,17 +301,7 @@ describe('useChatbotMessages', () => {
         },
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -402,17 +321,7 @@ describe('useChatbotMessages', () => {
       const customErrorMessage = 'Custom streaming error message';
       mockCreateResponse.mockRejectedValueOnce(new Error(customErrorMessage));
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -442,15 +351,7 @@ describe('useChatbotMessages', () => {
       );
 
       const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: true,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
       );
 
       await act(async () => {
@@ -473,15 +374,12 @@ describe('useChatbotMessages', () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: null,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: 'vs_current_store_123',
-        }),
+        useChatbotMessages(
+          createDefaultHookProps({
+            selectedSourceSettings: null,
+            currentVectorStoreId: 'vs_current_store_123',
+          }),
+        ),
       );
 
       await act(async () => {
@@ -489,37 +387,36 @@ describe('useChatbotMessages', () => {
       });
 
       expect(result.current.messages).toHaveLength(3); // initial + user + bot response
-      expect(mockCreateResponse).toHaveBeenCalledWith({
-        input: 'Test message',
-        model: 'test-model-id',
-        vector_store_ids: ['vs_current_store_123'],
-        chat_context: [
-          {
-            role: 'assistant',
-            content: 'Send a message to test your configuration',
-          },
-        ],
-        instructions: '',
-        stream: false,
-        temperature: 0.7,
-      });
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        {
+          input: 'Test message',
+          model: 'test-model-id',
+          vector_store_ids: ['vs_current_store_123'],
+          chat_context: [
+            {
+              role: 'assistant',
+              content: 'Send a message to test your configuration',
+            },
+          ],
+          instructions: '',
+          stream: false,
+          temperature: 0.7,
+        },
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
     });
   });
 
-  describe('conversation context functionality', () => {
+  describe('conversation context', () => {
     it('should include conversation history in system prompt', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
       const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: 'You are a helpful assistant.',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
+        useChatbotMessages(
+          createDefaultHookProps({ systemInstruction: 'You are a helpful assistant.' }),
+        ),
       );
 
       // Send first message
@@ -562,17 +459,7 @@ describe('useChatbotMessages', () => {
     it('should handle empty system instruction correctly', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          modelId: mockModelId,
-          selectedSourceSettings: mockSourceSettings,
-          systemInstruction: '',
-          isRawUploaded: true,
-          isStreamingEnabled: false,
-          temperature: 0.7,
-          currentVectorStoreId: null,
-        }),
-      );
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -592,15 +479,12 @@ describe('useChatbotMessages', () => {
 
       const { result, rerender } = renderHook(
         ({ modelId }) =>
-          useChatbotMessages({
-            modelId,
-            selectedSourceSettings: mockSourceSettings,
-            systemInstruction: 'Be helpful.',
-            isRawUploaded: true,
-            isStreamingEnabled: false,
-            temperature: 0.7,
-            currentVectorStoreId: null,
-          }),
+          useChatbotMessages(
+            createDefaultHookProps({
+              modelId,
+              systemInstruction: 'Be helpful.',
+            }),
+          ),
         { initialProps: { modelId: 'model-1' } },
       );
 
@@ -640,15 +524,11 @@ describe('useChatbotMessages', () => {
 
       const { result, rerender } = renderHook(
         ({ systemInstruction }) =>
-          useChatbotMessages({
-            modelId: mockModelId,
-            selectedSourceSettings: mockSourceSettings,
-            systemInstruction,
-            isRawUploaded: true,
-            isStreamingEnabled: false,
-            temperature: 0.7,
-            currentVectorStoreId: null,
-          }),
+          useChatbotMessages(
+            createDefaultHookProps({
+              systemInstruction,
+            }),
+          ),
         { initialProps: { systemInstruction: 'Be concise.' } },
       );
 

@@ -19,9 +19,17 @@ import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
+  nodesCount: number;
+  canScaleNodes?: boolean;
+  onScaleNodes?: () => void;
 };
 
-const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }) => {
+const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
+  job,
+  nodesCount,
+  canScaleNodes = false,
+  onScaleNodes,
+}) => {
   const { clusterQueueName, loaded: clusterQueueLoaded } = useClusterQueueFromLocalQueue(
     job.metadata.labels?.['kueue.x-k8s.io/queue-name'],
     job.metadata.namespace,
@@ -49,10 +57,11 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
                 icon={<PencilAltIcon />}
                 iconPosition="end"
                 style={{ fontSize: 'inherit', padding: 0 }}
-                isDisabled // TODO: RHOAIENG-37576 Uncomment this when scaling is implemented
+                isDisabled={!canScaleNodes}
+                onClick={onScaleNodes}
                 data-testid="nodes-edit-button"
               >
-                {job.spec.trainer.numNodes}
+                {nodesCount || '-'}
               </Button>
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -61,7 +70,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Processes per node:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="processes-per-node-value">
-              {job.spec.trainer.numProcPerNode || '-'}
+              {job.spec.trainer?.numProcPerNode || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
@@ -76,13 +85,13 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               CPU requests:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="cpu-requests-value">
-              {job.spec.trainer.resourcesPerNode?.requests?.cpu || '-'}
+              {job.spec.trainer?.resourcesPerNode?.requests?.cpu || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>CPU limits:</DescriptionListTerm>
             <DescriptionListDescription data-testid="cpu-limits-value">
-              {job.spec.trainer.resourcesPerNode?.limits?.cpu || '-'}
+              {job.spec.trainer?.resourcesPerNode?.limits?.cpu || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
@@ -90,7 +99,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Memory requests:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="memory-requests-value">
-              {job.spec.trainer.resourcesPerNode?.requests?.memory || '-'}
+              {job.spec.trainer?.resourcesPerNode?.requests?.memory || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
@@ -98,7 +107,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job }
               Memory limits:
             </DescriptionListTerm>
             <DescriptionListDescription data-testid="memory-limits-value">
-              {job.spec.trainer.resourcesPerNode?.limits?.memory || '-'}
+              {job.spec.trainer?.resourcesPerNode?.limits?.memory || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>

@@ -46,7 +46,6 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   );
   const isModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
 
-  // todo: deal with the accelProfile below......
   const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;

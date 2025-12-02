@@ -1,6 +1,6 @@
 /* eslint-disable no-barrel-files/no-barrel-files */
 
-export { default as AcceleratorProfileIcon } from './AcceleratorProfileIcon';
+export { default as HardwareProfileIcon } from './HardwareProfileIcon.ts';
 export { default as ArtifactIcon } from './ArtifactIcon';
 export { default as BuildIcon } from './BuildIcon';
 export { default as ClusterSettingsIcon } from './ClusterSettingsIcon';

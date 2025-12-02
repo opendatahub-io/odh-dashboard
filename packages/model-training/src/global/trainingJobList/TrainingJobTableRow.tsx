@@ -1,19 +1,30 @@
+/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
-import { Timestamp, Flex, FlexItem, TimestampTooltipVariant, Button } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import {
+  Timestamp,
+  Flex,
+  FlexItem,
+  TimestampTooltipVariant,
+  Button,
+  Tooltip,
+  Icon,
+} from '@patternfly/react-core';
+import { CubesIcon, EditIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import TrainingJobProject from './TrainingJobProject';
-import { getTrainingJobStatusSync } from './utils';
+import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
+import ScaleNodesModal from './ScaleNodesModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
-import StateActionToggle from './StateActionToggle';
+import TrainingJobStatusModal from './TrainingJobStatusModal';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { toggleTrainJobHibernation } from '../../api';
+import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
 type TrainingJobTableRowProps = {
   job: TrainJobKind;
@@ -33,17 +44,26 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const notification = useNotification();
   const [hibernationModalOpen, setHibernationModalOpen] = React.useState(false);
   const [isToggling, setIsToggling] = React.useState(false);
+  const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const displayName = getDisplayNameFromK8sResource(job);
-  const nodesCount = job.spec.trainer.numNodes || 0;
+
+  // Use custom hook for node scaling functionality
+  const {
+    nodesCount,
+    canScaleNodes,
+    isScaling,
+    scaleNodesModalOpen,
+    setScaleNodesModalOpen,
+    handleScaleNodes,
+  } = useTrainingJobNodeScaling(job, jobStatus);
+
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const isPaused = status === TrainingJobState.PAUSED;
-  const isPreempted = status === TrainingJobState.PREEMPTED;
-  const isQueued = status === TrainingJobState.QUEUED;
-  const isRunning = status === TrainingJobState.RUNNING;
-  const isPending = status === TrainingJobState.PENDING;
+  const { isPaused } = getStatusFlags(status);
+
+  // const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -85,8 +105,16 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
       onClick: () => onDelete(job),
     });
 
+    // Add scale nodes action only when allowed
+    if (canScaleNodes) {
+      items.push({
+        title: 'Edit node count',
+        onClick: () => setScaleNodesModalOpen(true),
+      });
+    }
+
     return items;
-  }, [status, isPaused, isPreempted, isQueued, isRunning, isPending, job, onDelete]);
+  }, [canScaleNodes, job, onDelete, setScaleNodesModalOpen]);
 
   return (
     <>
@@ -115,9 +143,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                 <FlexItem>{nodesCount}</FlexItem>
               </Flex>
             </FlexItem>
-            {/* Show scaling hint when scaling is available */}
-            {/* TODO: RHOAIENG-37576 Uncomment this when scaling is implemented */}
-            {/* {(isNotPaused || canScaleNodes) && (
+            {canScaleNodes && (
               <FlexItem>
                 <Tooltip content="Click to scale nodes">
                   <Button
@@ -133,7 +159,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                   </Button>
                 </Tooltip>
               </FlexItem>
-            )} */}
+            )}
           </Flex>
         </Td>
         <Td dataLabel="Cluster queue">
@@ -157,10 +183,15 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status">
-          <TrainingJobStatus job={job} jobStatus={jobStatus} />
+          <TrainingJobStatus
+            job={job}
+            jobStatus={jobStatus}
+            onClick={() => setStatusModalOpen(true)}
+          />
         </Td>
-        <Td>
-          {(isRunning || isPaused) && (
+        {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend*/}
+        {/* <Td>
+          {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
               onPause={() => setHibernationModalOpen(true)}
@@ -168,7 +199,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
               isLoading={isToggling}
             />
           )}
-        </Td>
+        </Td> */}
         <Td isActionCell>
           <ActionsColumn items={actions} />
         </Td>
@@ -180,6 +211,29 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
         isToggling={isToggling}
         onClose={() => setHibernationModalOpen(false)}
         onConfirm={handleHibernationToggle}
+      />
+      {statusModalOpen && (
+        <TrainingJobStatusModal
+          job={job}
+          jobStatus={jobStatus}
+          onClose={() => setStatusModalOpen(false)}
+          // onPause={() => {
+          //   setStatusModalOpen(false);
+          //   setHibernationModalOpen(true);
+          // }}
+          onDelete={() => {
+            setStatusModalOpen(false);
+            onDelete(job);
+          }}
+        />
+      )}
+
+      <ScaleNodesModal
+        job={scaleNodesModalOpen ? job : undefined}
+        currentNodeCount={nodesCount}
+        isScaling={isScaling}
+        onClose={() => setScaleNodesModalOpen(false)}
+        onConfirm={handleScaleNodes}
       />
     </>
   );

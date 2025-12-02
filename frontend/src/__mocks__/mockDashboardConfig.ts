@@ -43,11 +43,14 @@ export type MockDashboardConfigType = {
   genAiStudio?: boolean;
   modelAsService?: boolean;
   trainingJobs?: boolean;
+  aiCatalogSettings?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
+  mlflow?: boolean;
 };
 
 export const mockDashboardConfig = ({
+  mlflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -82,6 +85,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   trainingJobs = false,
+  aiCatalogSettings = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -205,6 +209,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
+      mlflow,
       enablement: true,
       disableInfo,
       disableSupport,
@@ -243,6 +248,7 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       trainingJobs,
+      aiCatalogSettings,
     },
     notebookController: {
       enabled: !disableNotebookController,

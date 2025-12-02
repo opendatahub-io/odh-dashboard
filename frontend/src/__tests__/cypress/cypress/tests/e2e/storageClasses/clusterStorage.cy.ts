@@ -3,9 +3,11 @@ import {
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
 } from '#~/__tests__/cypress/cypress/utils/storageClass';
-import { addClusterStorageModal } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import {
+  addClusterStorageModal,
+  clusterStorage,
+} from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
-import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
 import { disableNonDefaultStorageClasses } from '#~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
@@ -38,7 +40,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
       // Disable all non-default storage classes
       disableNonDefaultStorageClasses().then(() => {
         // Open the Create cluster storage Modal
-        findAddClusterStorageButton().click();
+        clusterStorage.findAddClusterStorageButton().click();
 
         cy.step('Checking that Storage Classes Dropdown is disabled');
         // Check that the SC Dropdown is disabled

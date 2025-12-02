@@ -34,7 +34,7 @@ describe(
 
     it(
       'An admin User can Import and Run a Pipeline',
-      { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines', '@Bug'] },
+      { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines', '@ci-dashboard-set-1', '@Bug'] },
       () => {
         cy.step('Navigate to Pipelines ${projectName}');
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -43,8 +43,8 @@ describe(
         projectListPage.findProjectLink(projectName).click();
 
         cy.step('Import a pipeline by URL');
-        // Increasing the timeout to ~3mins so the DSPA can be loaded
-        projectDetails.findImportPipelineButton(180000).click();
+        // Increasing the timeout to ~5mins so the DSPA can be loaded
+        projectDetails.findImportPipelineButton(300000).click();
         // Fill the Import Pipeline modal
         pipelineImportModal.findPipelineNameInput().type(testPipelineName);
         pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');

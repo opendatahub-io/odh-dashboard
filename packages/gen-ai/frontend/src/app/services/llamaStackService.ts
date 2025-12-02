@@ -9,6 +9,7 @@ import {
 } from 'mod-arch-core';
 import {
   BackendResponseData,
+  BFFConfig,
   CodeExportRequest,
   CreateResponseRequest,
   FileUploadResult,
@@ -126,18 +127,22 @@ const postCreateResponse = (
   hostPath: string,
   baseQueryParams: Record<string, unknown>,
   request: CreateResponseRequest,
-  opts?: APIOptions,
-): Promise<SimplifiedResponseData> =>
-  modArchRestCREATE<BackendResponseData, Record<string, unknown>>('/lsd/responses')(
+  opts?: APIOptions & { abortSignal?: AbortSignal },
+): Promise<SimplifiedResponseData> => {
+  // Map abortSignal to signal for standard fetch API compatibility
+  const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
+  return modArchRestCREATE<BackendResponseData, Record<string, unknown>>('/lsd/responses')(
     hostPath,
     baseQueryParams,
-  )(toCreateResponseRecord(request), opts).then((data) => transformBackendResponse(data));
+  )(toCreateResponseRecord(request), fetchOpts).then((data) => transformBackendResponse(data));
+};
 
 // Streaming POST path via fetch (SSE text/event-stream)
 const streamCreateResponse = (
   url: string,
   request: CreateResponseRequest,
   onStreamData: (chunk: string) => void,
+  abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -147,6 +152,7 @@ const streamCreateResponse = (
         Accept: 'text/event-stream',
       },
       body: JSON.stringify(request),
+      signal: abortSignal,
     })
       .then(async (response) => {
         if (!response.ok) {
@@ -223,6 +229,11 @@ const streamCreateResponse = (
         });
       })
       .catch((error) => {
+        // Handle abort errors gracefully
+        if (error instanceof Error && error.name === 'AbortError') {
+          reject(new Error('Response stopped by user'));
+          return;
+        }
         const errorMessage =
           error instanceof Error ? error.message : 'Failed to generate streaming response';
         reject(new Error(errorMessage));
@@ -234,6 +245,7 @@ const streamCreateResponse = (
  * @param request - CreateResponseRequest payload for /gen-ai/api/v1/lsd/responses.
  * @param namespace - The namespace to generate responses in
  * @param onStreamData - Optional callback for streaming data chunks
+ * @param abortSignal - Optional AbortSignal to cancel the streaming request
  * @returns Promise<SimplifiedResponseData> - The generated response object.
  * @throws Error - When the API request fails or returns an error response.
  */
@@ -241,11 +253,11 @@ export const createResponse =
   (hostPath: string, baseQueryParams: Record<string, unknown> = {}) =>
   (
     data: CreateResponseRequest,
-    opts: APIOptions & { onStreamData?: (chunk: string) => void } = {},
+    opts: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal } = {},
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
@@ -315,6 +327,10 @@ const buildApiUrl = (
   const queryString = qs.toString();
   return `${base}${path}${queryString ? `?${queryString}` : ''}`;
 };
+
+/** General endpoints */
+// BFF Configuration
+export const getBFFConfig = modArchRestGET<BFFConfig>('/config');
 
 /** LSD endpoints */
 // Llama Stack Distribution
