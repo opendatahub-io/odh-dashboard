@@ -157,8 +157,8 @@ function executeNIMTestSteps(): void {
   nimCard.getNIMSubmit().click();
   cy.step('Wait for validation to complete and verify the validation message');
   nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
-  // Wait for validation to complete (up to 120 seconds for NVIDIA API call with network issues)
-  nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
+  // Wait for validation to complete (up to 180 seconds for NVIDIA API call with network issues)
+  nimCard.getProgressTitle({ timeout: 180000 }).should('not.exist');
   cy.step('Check for success notification');
   toastNotifications
     .findToastNotification(0)
