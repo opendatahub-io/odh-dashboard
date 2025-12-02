@@ -121,7 +121,7 @@ describe('A model can be stopped and started', () => {
       kServeRow.findConfirmStopModalCheckbox().click();
       kServeRow.findConfirmStopModalCheckbox().should('be.checked');
       kServeRow.findConfirmStopModalButton().click();
-
+      cy.reload();
       kServeRow
         .findStatusLabel()
         .invoke('text')
@@ -134,6 +134,7 @@ describe('A model can be stopped and started', () => {
         checkStopped: true,
         requireLoadedState: false,
       });
+      cy.reload();
       kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
@@ -144,6 +145,7 @@ describe('A model can be stopped and started', () => {
       //Verify the model is running again
       // Verify model deployment is ready
       checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
+      cy.reload();
       kServeRow
         .findStatusLabel()
         .invoke('text')

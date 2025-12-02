@@ -142,7 +142,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
       //Step 3: Advanced Options
       modelServingWizard.findNextButton().click();
       //Step 4: Review

@@ -987,7 +987,7 @@ class ModelServingWizard extends Wizard {
     this.findServingRuntimeAutoSelectRadio().then(($radio) => {
       if ($radio.is(':checked')) {
         // Auto-select the best runtime for my model based on model type, model format, and hardware profile
-        cy.findByText(name).should('exist').click();
+        cy.findByText(name).should('exist');
       } else {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
