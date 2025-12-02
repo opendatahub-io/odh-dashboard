@@ -109,6 +109,6 @@ describe('Verify that admin users can edit a model registry', () => {
     checkModelRegistry(originalRegistryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase().should('be.true');
   });
 });

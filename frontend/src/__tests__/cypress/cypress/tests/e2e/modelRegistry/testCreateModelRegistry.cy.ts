@@ -96,6 +96,6 @@ describe('Verify a model registry can be created and deleted', () => {
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase().should('be.true');
   });
 });

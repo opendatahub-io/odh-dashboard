@@ -302,6 +302,6 @@ describe('Verify model registry permissions can be managed', () => {
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase().should('be.true');
   });
 });

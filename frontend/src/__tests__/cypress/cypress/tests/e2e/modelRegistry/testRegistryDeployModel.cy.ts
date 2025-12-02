@@ -68,7 +68,7 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase().should('be.true');
   });
 
   it(

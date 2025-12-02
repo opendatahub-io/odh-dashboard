@@ -221,6 +221,6 @@ describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be a
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase().should('be.true');
   });
 });
