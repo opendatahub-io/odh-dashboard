@@ -101,6 +101,55 @@ class GenAiPlayground {
     this.findChatbot().should('be.visible');
     return this;
   }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-state');
+  }
+
+  findCreatePlaygroundButton() {
+    return cy.findByTestId('empty-state-action-button');
+  }
+
+  findConfigurePlaygroundDialog() {
+    return cy.get('[data-testid="configure-playground-modal"]');
+  }
+
+  findConfigurationTable() {
+    return cy.findByTestId('chatbot-configuration-table');
+  }
+
+  findCreateButtonInDialog() {
+    return cy.findByRole('button', { name: /Create/i });
+  }
+
+  findModelToggleButton() {
+    return cy.findByTestId('model-selector-toggle');
+  }
+
+  findModelOption(modelName: string) {
+    return cy.contains(modelName);
+  }
+
+  findSelectedModelButton(modelName: string) {
+    return cy.findByRole('button', {
+      name: new RegExp(modelName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+    });
+  }
+
+  selectModel(modelName: string) {
+    // Check if our model is already selected in any visible button
+    cy.get('body').then(($body) => {
+      const hasOurModel = $body.find('button:visible').text().includes(modelName);
+
+      if (!hasOurModel) {
+        cy.log('Model not auto-selected, selecting manually');
+        this.findModelToggleButton().click();
+        this.findModelOption(modelName).should('be.visible').click();
+      } else {
+        cy.log('Model already selected (possibly with prefix)');
+      }
+    });
+  }
 }
 
 export const genAiPlayground = new GenAiPlayground();

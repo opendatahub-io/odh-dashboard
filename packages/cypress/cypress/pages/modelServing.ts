@@ -1247,6 +1247,30 @@ class ModelServingWizard extends Wizard {
   findDeploymentStrategyRecreateOption() {
     return this.findDeploymentStrategySection().findByTestId('deployment-strategy-recreate');
   }
+
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  findHardwareProfileOption(name: string) {
+    return cy.findByRole('option', { name: new RegExp(name, 'i') });
+  }
+
+  findCustomizeResourcesButton() {
+    return cy.findByTestId('hardware-profile-customize').find('button').first();
+  }
+
+  findGlobalScopedServingRuntimes() {
+    return cy.findByTestId('global-scoped-serving-runtimes');
+  }
+
+  findServingRuntimeOption(runtimeName: string) {
+    return this.findGlobalScopedServingRuntimes().contains(new RegExp(runtimeName, 'i'));
+  }
+
+  findDeployButton() {
+    return this.findFooter().findByRole('button', { name: /Deploy model/i });
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

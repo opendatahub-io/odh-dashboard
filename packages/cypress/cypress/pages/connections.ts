@@ -108,6 +108,14 @@ class ConnectionModal extends Modal {
   findOciRegistryHost() {
     return this.find().findByTestId('field OCI_HOST');
   }
+
+  findConnectionTypeOption(typeName: string) {
+    return cy.findByText(typeName);
+  }
+
+  findUriField() {
+    return this.find().findByTestId('field URI');
+  }
 }
 
 export const connectionsPage = new ConnectionsPage();

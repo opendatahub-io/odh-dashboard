@@ -9,7 +9,7 @@ import { checkLlamaStackDistributionReady } from '#~/__tests__/cypress/cypress/u
 import { waitForResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import {
   enableGenAiFeatures,
-  disableGenAiFeatures,
+  // disableGenAiFeatures,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/genAi';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -58,7 +58,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   );
 
   after(() => {
-    disableGenAiFeatures();
+    // disableGenAiFeatures();
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
@@ -109,10 +109,10 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Create URI connection for Gen AI model');
       addConnectionModal.findConnectionTypeDropdown().click();
-      cy.findByText(testData.connectionType).click();
+      addConnectionModal.findConnectionTypeOption(testData.connectionType).click();
       addConnectionModal.findConnectionNameInput().type(testData.connectionName);
       addConnectionModal.findConnectionDescriptionInput().type(testData.connectionDescription);
-      cy.findByTestId('field URI').type(testData.connectionURI);
+      addConnectionModal.findUriField().type(testData.connectionURI);
       addConnectionModal.findCreateButton().click();
 
       cy.step('Verify connection was created successfully');
@@ -141,13 +141,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard.findModelDeploymentNameInput().clear().type(testData.modelDeploymentName);
 
       cy.step('Select hardware profile');
-      cy.findByTestId('hardware-profile-select').click();
-      cy.findByRole('option', {
-        name: (content) => content.includes('default-profile'),
-      }).click();
+      modelServingWizard.findHardwareProfileSelect().click();
+      modelServingWizard.findHardwareProfileOption('default-profile').click();
 
       cy.step('Expand "Customize resource requests and limits" section');
-      cy.findByRole('button', { name: /Customize resource requests and limits/i }).click();
+      modelServingWizard.findCustomizeResourcesButton().click();
 
       cy.step('Verify default resource values are displayed');
       modelServingWizard.findCPURequestedInput().should('have.value', '2');
@@ -188,11 +186,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
 
       cy.step('Wait for serving runtime options to load');
-      cy.findByTestId('global-scoped-serving-runtimes').should('exist');
+      modelServingWizard.findGlobalScopedServingRuntimes().should('exist');
 
       cy.step('Select vLLM CPU (amd64 - EXPERIMENTAL) serving runtime');
-      cy.findByTestId('global-scoped-serving-runtimes')
-        .contains(/vLLM CPU.*\(amd64 - EXPERIMENTAL\)/i)
+      modelServingWizard
+        .findServingRuntimeOption('vLLM CPU.*\\(amd64 - EXPERIMENTAL\\)')
         .should('exist')
         .click();
 
@@ -206,10 +204,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       modelServingWizard.findNextButton().click();
 
+      cy.step('Wait for Review step to load');
+      cy.get('form').contains('Model details').should('be.visible');
+
       cy.step('Deploy model');
-      cy.findByRole('button', { name: /Deploy model/i })
-        .should('be.enabled')
-        .click();
+      modelServingWizard.findDeployButton().should('be.enabled').click();
 
       cy.step('Wait for redirect after model deployment submission');
       cy.url().should('include', `/projects/${projectName}`);
@@ -224,15 +223,13 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
 
       cy.step('Click Create playground button');
-      cy.findByTestId('empty-state').should('exist');
-      cy.findByRole('button', { name: 'Create playground' }).should('be.visible').click();
-
-      cy.step('Wait for Configure playground modal to open');
-      cy.findByRole('dialog', { name: /Configure playground/i }).should('be.visible');
+      genAiPlayground.findEmptyState().should('exist');
+      genAiPlayground.findCreatePlaygroundButton().should('be.visible').click();
 
       cy.step('Verify model is selected in the configuration table');
-      cy.findByTestId('chatbot-configuration-table').should('exist');
-      cy.findByTestId('chatbot-configuration-table')
+      genAiPlayground.findConfigurationTable().should('be.visible');
+      genAiPlayground
+        .findConfigurationTable()
         .find('tbody tr')
         .contains(testData.modelDeploymentName)
         .parents('tr')
@@ -241,10 +238,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
         });
 
       cy.step('Click Create button in the modal');
-      cy.findByRole('dialog', { name: /Configure playground/i })
-        .findByRole('button', { name: /^Create$/i })
-        .should('be.enabled')
-        .click();
+      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Wait for llama-stack-config ConfigMap to be created');
       waitForResource('configmap', 'llama-stack-config', projectName);
@@ -256,29 +250,8 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.visit(`/gen-ai-studio/playground/${projectName}`);
       cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
 
-      cy.step(`Ensure ${testData.modelDeploymentName} model is selected`);
-      // Check if our model is in any visible button text (handles prefixes like vllm-inference-1/llama-3.2-1b-instruct)
-      cy.get('body').then(($body) => {
-        const hasOurModel = $body
-          .find('button:visible')
-          .text()
-          .includes(testData.modelDeploymentName);
-
-        if (!hasOurModel) {
-          cy.log('Model not auto-selected, selecting manually');
-          // Find the Model dropdown in the right panel (Model details section)
-          cy.get('[data-ouia-component-type="PF6/MenuToggle"]').filter(':visible').first().click();
-          // Select our model (cy.contains does substring match, so prefix doesn't matter)
-          cy.contains(testData.modelDeploymentName).should('be.visible').click();
-        } else {
-          cy.log('Model already selected (possibly with prefix like vllm-inference-1/)');
-        }
-      });
-
-      // Verify the model is now selected
-      cy.findByRole('button', {
-        name: new RegExp(testData.modelDeploymentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
-      }).should('be.visible');
+      cy.step(`Verify ${testData.modelDeploymentName} model is selected`);
+      cy.contains(testData.modelDeploymentName).should('be.visible');
 
       cy.step('Verify message input is ready and functional');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
@@ -287,7 +260,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       genAiPlayground.sendMessage(testData.testMessage);
 
       cy.step('Verify user message appears in chat');
-      cy.get('.pf-chatbot__message--user').should('exist').and('contain', testData.testMessage);
+      genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
 
       cy.step(
         'Verify playground is functional (model inference not tested due to slow response time)',

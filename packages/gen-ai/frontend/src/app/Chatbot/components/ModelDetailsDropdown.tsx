@@ -56,6 +56,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
           isFullWidth
           onClick={() => setIsOpen(!isOpen)}
           isExpanded={isOpen}
+          data-testid="model-selector-toggle"
         >
           {getLlamaModelDisplayName(selectedModel, aiModels) || placeholder}
         </MenuToggle>
