@@ -134,18 +134,17 @@ describe('A model can be stopped and started', () => {
         checkStopped: true,
         requireLoadedState: false,
       });
-      cy.reload();
       kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
       cy.step('Restart the model');
       kServeRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.reload();
       kServeRow.findStatusLabel('Starting').should('exist');
 
       //Verify the model is running again
       // Verify model deployment is ready
       checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-      cy.reload();
       kServeRow
         .findStatusLabel()
         .invoke('text')
