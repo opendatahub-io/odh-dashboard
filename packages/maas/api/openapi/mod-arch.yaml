@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: Mod Arch REST API
+  version: 1.0.0
+  description: REST API Mod Arch BFF
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+servers:
+  - url: "https://localhost:8080"
+  - url: "http://localhost:8080"
+paths:
+  /healthcheck:
+    summary: Path targeted for healthcheck purposes.
+    description: >-
+      The REST endpoint/path used to allow a healthcheck update.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          description: "Ok"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: healthcheck
+      summary: HealthCheck
+      description: HealthCheck endpoint.
+  /api/v1/namespaces:
+    summary: Path used to get available namespaces.
+    description: >-
+      The REST endpoint/path used to list available namespaces.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    type: object
+                    description: Metadata about the response
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: default-namespace
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getNamespaces
+      summary: Get Available Namespaces
+      description: Returns available namespaces in the cluster.
+  /api/v1/user:
+    summary: Path used to Retrieve a user based on the header.
+    description: >-
+      The REST endpoint/path used pass all the config information needed for the UI.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ConfigResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getConfig
+      summary: Get configuration info
+      description: Gets the configuration information needed for the UI [TBD]
+components:
+  schemas:
+    Config:
+      required:
+        - userId
+        - clusterAdmin
+      type: object
+      properties:
+        userId:
+          type: string
+          example: user@example.com
+        clusterAdmin:
+          type: boolean
+          example: true
+    BaseResource:
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceCreate"
+        - type: object
+          properties:
+            id:
+              format: int64
+              description: Output only. The unique server generated id of the resource.
+              type: string
+              readOnly: true
+            createTimeSinceEpoch:
+              format: int64
+              description: Output only. Create time of the resource in millisecond since epoch.
+              type: string
+              readOnly: true
+            lastUpdateTimeSinceEpoch:
+              format: int64
+              description: |-
+                Output only. Last update time of the resource since epoch in millisecond
+                since epoch.
+              type: string
+              readOnly: true
+    BaseResourceCreate:
+      allOf:
+        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - type: object
+          properties:
+            name:
+              description: |-
+                The client provided name of the artifact. This field is optional. If set,
+                it must be unique among all the artifacts of the same artifact type within
+                a database instance and cannot be changed once set.
+              type: string
+    BaseResourceUpdate:
+      type: object
+      properties:
+        customProperties:
+          description: User provided custom properties which are not defined by its type.
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/MetadataValue"
+        description:
+          description: |-
+            An optional description about the resource.
+          type: string
+        externalId:
+          description: |-
+            The external id that come from the clients' system. This field is optional.
+            If set, it must be unique among all resources within a database instance.
+          type: string
+
+    Error:
+      description: Error code and message.
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          description: Error code
+          type: string
+        message:
+          description: Error message
+          type: string
+    SortOrder:
+      description: Supported sort direction for ordering result entities.
+      enum:
+        - ASC
+        - DESC
+      type: string
+    OrderByField:
+      description: Supported fields for ordering result entities.
+      enum:
+        - CREATE_TIME
+        - LAST_UPDATE_TIME
+        - Id
+      type: string
+
+  responses:
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: The specified resource was not found
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Bad Request parameters
+    Unauthorized:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Unauthorized
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Unexpected internal server error
+    ConfigResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/Config"
+      description: A response containing a list of Config entities.
+    ConflictResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Conflict - Role Binding with the same name already exists
+
+  parameters:
+    kubeflowUserId:
+      in: header
+      name: kubeflow-userid
+      schema:
+        type: string
+      required: true
+    id:
+      name: id
+      description: The ID of resource.
+      schema:
+        type: string
+      in: path
+      required: true
+    name:
+      examples:
+        name:
+          value: entity-name
+      name: name
+      description: Name of entity to search.
+      schema:
+        type: string
+      in: query
+      required: false
+    externalId:
+      examples:
+        externalId:
+          value: "10"
+      name: externalId
+      description: External ID of entity to search.
+      schema:
+        type: string
+      in: query
+      required: false
+    parentResourceId:
+      examples:
+        parentResourceId:
+          value: "10"
+      name: parentResourceId
+      description: ID of the parent resource to use for search.
+      schema:
+        type: string
+      in: query
+      required: false
+    pageSize:
+      examples:
+        pageSize:
+          value: "100"
+      name: pageSize
+      description: Number of entities in each page.
+      schema:
+        type: string
+      in: query
+      required: false
+    nextPageToken:
+      name: nextPageToken
+      description: Token to use to retrieve next page of results.
+      schema:
+        type: string
+      in: query
+      required: false
+    orderBy:
+      style: form
+      explode: true
+      examples:
+        orderBy:
+          value: Id
+      name: orderBy
+      description: Specifies the order by criteria for listing entities.
+      schema:
+        $ref: "#/components/schemas/OrderByField"
+      in: query
+      required: false
+    sortOrder:
+      style: form
+      explode: true
+      examples:
+        sortOrder:
+          value: DESC
+      name: sortOrder
+      description: "Specifies the sort order for listing entities, defaults to ASC."
+      schema:
+        $ref: "#/components/schemas/SortOrder"
+      in: query
+      required: false
+    namespace:
+      name: namespace
+      description: The namespace to filter resources by.
+      schema:
+        type: string
+      in: query
+      required: false
+
+  securitySchemes:
+    Bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      description: Bearer JWT scheme
+security:
+  - Bearer: []
+tags:
+  - name: K8SOperation
+    description: Operation performed in Kubernetes
