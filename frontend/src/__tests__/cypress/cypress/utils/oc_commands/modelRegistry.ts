@@ -187,11 +187,11 @@ export const deleteModelRegistryDatabase = (): Cypress.Chainable<CommandLineResu
     }
 
     // Wait for the db to be deleted
-    const waitCommand = `oc wait --for=delete deployment/model-registry-db -n ${targetNamespace} --timeout=60s`;
+    const waitCommand = `oc wait --for=delete deployment/model-registry-db -n ${targetNamespace} --timeout=120s`;
     cy.log('Waiting for model registry database deployment to be deleted...');
 
     return cy
-      .exec(waitCommand, { failOnNonZeroExit: false, timeout: 60000 })
+      .exec(waitCommand, { failOnNonZeroExit: false, timeout: 120000 })
       .then((waitResult: CommandLineResult) => {
         if (waitResult.code === 0) {
           cy.log('Model registry database deletion confirmed - deployment successfully deleted');
