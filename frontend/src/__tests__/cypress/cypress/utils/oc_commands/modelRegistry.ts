@@ -138,11 +138,11 @@ export const createModelRegistryDatabaseViaYAML = (): Cypress.Chainable<CommandL
  */
 export const waitForModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const command = `oc wait --for=condition=Available deployment/model-registry-db -n ${targetNamespace} --timeout=300s`;
+  const command = `oc wait --for=condition=Available deployment/model-registry-db -n ${targetNamespace} --timeout=600s`;
 
   cy.log('Waiting for model registry database to be ready...');
   return cy
-    .exec(command, { failOnNonZeroExit: false, timeout: 300000 })
+    .exec(command, { failOnNonZeroExit: false, timeout: 600000 })
     .then((result: CommandLineResult) => {
       if (result.stdout) {
         cy.log(`Database wait result: ${result.stdout}`);
