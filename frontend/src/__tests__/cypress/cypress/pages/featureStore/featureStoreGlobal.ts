@@ -88,6 +88,17 @@ class FeatureStoreGlobal {
     this.waitForFeatureServiceDetails(featureService);
   }
 
+  navigateToOverview() {
+    appChrome
+      .findNavItem({
+        name: 'Overview',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
+    this.waitForOverview();
+  }
+
   navigateToFeatureViews() {
     appChrome
       .findNavItem({
@@ -119,6 +130,39 @@ class FeatureStoreGlobal {
       })
       .click();
     this.waitForFeatures();
+  }
+
+  navigateToDataSources() {
+    appChrome
+      .findNavItem({
+        name: 'Data sources',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
+    this.waitForDataSources();
+  }
+
+  navigateToDatasets() {
+    appChrome
+      .findNavItem({
+        name: 'Datasets',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
+    this.waitForDataSets();
+  }
+
+  navigateToFeatureServices() {
+    appChrome
+      .findNavItem({
+        name: 'Feature services',
+        rootSection: 'Develop & train',
+        subSection: 'Feature store',
+      })
+      .click();
+    this.waitForFeatureServices();
   }
 
   findHeading() {
@@ -251,6 +295,10 @@ class FeatureStoreGlobal {
   findGlobalSearchItem(type: string, title: string) {
     const testId = `global-search-item-${type}-${title.toLowerCase().replace(/\s+/g, '-')}`;
     return cy.findByTestId(testId);
+  }
+
+  findPaginationToggle() {
+    return cy.get('#table-pagination-top-toggle');
   }
 }
 
