@@ -75,6 +75,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
             <DropdownItem
               value={option.id}
               key={option.id}
+              data-testid={`model-option-${option.id}`}
               actions={
                 isDisabled ? (
                   <Tooltip content="This model is unavailable. Check the model's deployment status and resolve any issues. Update the playground's configuration to refresh the list.">

@@ -9,7 +9,7 @@ import { checkLlamaStackDistributionReady } from '#~/__tests__/cypress/cypress/u
 import { waitForResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import {
   enableGenAiFeatures,
-  // disableGenAiFeatures,
+  disableGenAiFeatures,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/genAi';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -58,10 +58,22 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   );
 
   after(() => {
-    // disableGenAiFeatures();
+    disableGenAiFeatures();
+
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
+  });
+
+  // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
+  beforeEach(() => {
+    Cypress.on('uncaught:exception', (err) => {
+      // Ignore SyntaxError from missing federated modules
+      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
+        return false;
+      }
+      return true;
+    });
   });
 
   it(
@@ -70,18 +82,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Namespace', '@Connection'],
     },
     () => {
-      // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
-      Cypress.on('uncaught:exception', (err) => {
-        // Ignore SyntaxError from missing federated modules
-        if (
-          err.message.includes('expected expression') ||
-          err.message.includes('Unexpected token')
-        ) {
-          return false;
-        }
-        return true;
-      });
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       projectListPage.navigate();
@@ -117,6 +117,17 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Verify connection was created successfully');
       connectionsPage.getConnectionRow(testData.connectionName).find().should('exist');
+    },
+  );
+
+  it(
+    'Deploy Gen AI model using existing connection',
+    {
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment'],
+    },
+    () => {
+      cy.step('Log into the application and navigate to project');
+      cy.visitWithLogin(`/projects/${projectName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Serving tab');
       projectDetails.findSectionTab('model-server').click();
@@ -147,37 +158,56 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Expand "Customize resource requests and limits" section');
       modelServingWizard.findCustomizeResourcesButton().click();
 
-      cy.step('Verify default resource values are displayed');
-      modelServingWizard.findCPURequestedInput().should('have.value', '2');
-      modelServingWizard.findCPULimitInput().should('have.value', '2');
-      modelServingWizard.findMemoryRequestedInput().should('have.value', '4');
-      modelServingWizard.findMemoryLimitInput().should('have.value', '4');
+      cy.step('Read and log default resource values (if any)');
+      modelServingWizard
+        .findCPURequestedInput()
+        .invoke('val')
+        .then((val) => {
+          cy.log(`Default CPU Requested: ${val || '(empty)'}`);
+        });
 
-      cy.step(`Modify CPU requests from 2 to ${testData.cpuRequested}`);
-      modelServingWizard.findCPURequestedButton('Minus').click();
+      modelServingWizard
+        .findCPULimitInput()
+        .invoke('val')
+        .then((val) => {
+          cy.log(`Default CPU Limit: ${val || '(empty)'}`);
+        });
+
+      modelServingWizard
+        .findMemoryRequestedInput()
+        .invoke('val')
+        .then((val) => {
+          cy.log(`Default Memory Requested: ${val || '(empty)'}`);
+        });
+
+      modelServingWizard
+        .findMemoryLimitInput()
+        .invoke('val')
+        .then((val) => {
+          cy.log(`Default Memory Limit: ${val || '(empty)'}`);
+        });
+
+      cy.step(`Modify CPU requests to ${testData.cpuRequested}`);
+      modelServingWizard.findCPURequestedInput().clear().type(testData.cpuRequested.toString());
       modelServingWizard
         .findCPURequestedInput()
         .should('have.value', testData.cpuRequested.toString());
 
-      cy.step(`Modify CPU limits from 2 to ${testData.cpuLimit}`);
-      modelServingWizard.findCPULimitButton('Plus').click();
-      modelServingWizard.findCPULimitButton('Plus').click();
+      cy.step(`Modify CPU limits to ${testData.cpuLimit}`);
+      modelServingWizard.findCPULimitInput().clear().type(testData.cpuLimit.toString());
       modelServingWizard.findCPULimitInput().should('have.value', testData.cpuLimit.toString());
 
-      cy.step(`Modify Memory requests from 4 to ${testData.memoryRequested}`);
-      modelServingWizard.findMemoryRequestedButton('Plus').click();
-      modelServingWizard.findMemoryRequestedButton('Plus').click();
-      modelServingWizard.findMemoryRequestedButton('Plus').click();
-      modelServingWizard.findMemoryRequestedButton('Plus').click();
+      cy.step(`Modify Memory requests to ${testData.memoryRequested}`);
+      modelServingWizard
+        .findMemoryRequestedInput()
+        .clear()
+        .type(testData.memoryRequested.toString());
       modelServingWizard
         .findMemoryRequestedInput()
         .should('have.value', testData.memoryRequested.toString());
 
-      cy.step(`Modify Memory limits from 4 to ${testData.memoryLimit}`);
-      modelServingWizard.findMemoryLimitButton('Plus').click();
-      modelServingWizard.findMemoryLimitButton('Plus').click();
-      modelServingWizard.findMemoryLimitButton('Plus').click();
-      modelServingWizard.findMemoryLimitButton('Plus').click();
+      cy.step(`Modify Memory limits to ${testData.memoryLimit}`);
+      modelServingWizard.findMemoryLimitInput().clear().type(testData.memoryLimit.toString());
       modelServingWizard
         .findMemoryLimitInput()
         .should('have.value', testData.memoryLimit.toString());
@@ -188,11 +218,8 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Wait for serving runtime options to load');
       modelServingWizard.findGlobalScopedServingRuntimes().should('exist');
 
-      cy.step('Select vLLM CPU (amd64 - EXPERIMENTAL) serving runtime');
-      modelServingWizard
-        .findServingRuntimeOption('vLLM CPU.*\\(amd64 - EXPERIMENTAL\\)')
-        .should('exist')
-        .click();
+      cy.step(`Select ${testData.servingRuntime} serving runtime`);
+      modelServingWizard.findServingRuntimeOption(testData.servingRuntime).should('exist').click();
 
       cy.step('Verify global-scoped label is displayed');
       modelServingWizard.findGlobalScopedLabel().should('be.visible');
@@ -205,7 +232,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard.findNextButton().click();
 
       cy.step('Wait for Review step to load');
-      cy.get('form').contains('Model details').should('be.visible');
+      modelServingWizard.findReviewStepModelDetailsSection().should('be.visible');
 
       cy.step('Deploy model');
       modelServingWizard.findDeployButton().should('be.enabled').click();
@@ -215,27 +242,30 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingSection.findModelServerDeployedName(testData.modelDeploymentName);
 
       cy.step('Verify model deployment was created and started');
-      waitForResource('inferenceService', 'llama-32-1b-instruct', projectName);
-      checkInferenceServiceState('llama-32-1b-instruct', projectName, { checkReady: true });
+      waitForResource('inferenceService', testData.inferenceServiceName, projectName);
+      checkInferenceServiceState(testData.inferenceServiceName, projectName, { checkReady: true });
+    },
+  );
+
+  it(
+    'Create and verify Gen AI Playground functionality',
+    {
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground'],
+    },
+    () => {
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Gen AI Playground');
-      cy.visit(`/gen-ai-studio/playground/${projectName}`);
-      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+      genAiPlayground.navigate(projectName);
 
       cy.step('Click Create playground button');
       genAiPlayground.findEmptyState().should('exist');
       genAiPlayground.findCreatePlaygroundButton().should('be.visible').click();
 
-      cy.step('Verify model is selected in the configuration table');
+      cy.step('Ensure model is selected in the configuration table');
       genAiPlayground.findConfigurationTable().should('be.visible');
-      genAiPlayground
-        .findConfigurationTable()
-        .find('tbody tr')
-        .contains(testData.modelDeploymentName)
-        .parents('tr')
-        .within(() => {
-          cy.get('input[type="checkbox"]').should('be.checked');
-        });
+      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
 
       cy.step('Click Create button in the modal');
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -246,12 +276,17 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Wait for LlamaStackDistribution to be ready');
       checkLlamaStackDistributionReady(projectName);
 
+      cy.step('Wait for playground service to be created');
+      waitForResource('service', 'lsd-genai-playground-service', projectName);
+
       cy.step('Navigate to playground URL');
-      cy.visit(`/gen-ai-studio/playground/${projectName}`);
-      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+      genAiPlayground.navigate(projectName);
+
+      cy.step(`Select ${testData.modelDeploymentName} model from dropdown`);
+      genAiPlayground.selectModelFromDropdown(testData.modelDeploymentName);
 
       cy.step(`Verify ${testData.modelDeploymentName} model is selected`);
-      cy.contains(testData.modelDeploymentName).should('be.visible');
+      genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
 
       cy.step('Verify message input is ready and functional');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');

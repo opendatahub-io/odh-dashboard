@@ -415,6 +415,7 @@ export type GenAiTestData = {
   connectionType: string;
   connectionURI: string;
   modelDeploymentName: string;
+  inferenceServiceName: string;
   modelType: string;
   servingRuntime: string;
   testMessage: string;

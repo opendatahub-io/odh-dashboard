@@ -9,7 +9,7 @@ const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
  * @param waitTimeMs Time to wait after patching DSC for reconciliation (default: 10000ms)
  * @returns A Cypress chainable that resolves when both patches are applied successfully.
  */
-export const enableGenAiFeatures = (waitTimeMs = 10000): Cypress.Chainable<CommandLineResult> => {
+export const enableGenAiFeatures = (waitTimeMs = 180000): Cypress.Chainable<CommandLineResult> => {
   cy.step('Set LlamaStack to Managed');
   return cy
     .exec(

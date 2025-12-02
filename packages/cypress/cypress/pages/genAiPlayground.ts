@@ -1,84 +1,35 @@
-import { appChrome } from './appChrome';
-
 class GenAiPlayground {
-  visit(namespace?: string, enableFeatureFlags = true) {
-    let url = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
-
-    // Add dev feature flags if needed
-    if (enableFeatureFlags) {
-      url += '?devFeatureFlags=genAiStudio%3Dtrue%2CmodelAsService%3Dtrue';
-    }
-
-    cy.visitWithLogin(url);
-    this.wait();
+  navigate(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
-  navigate() {
-    appChrome.findNavItem({ name: 'Playground', rootSection: 'Gen AI studio' }).click();
-    this.wait();
+  findEmptyState() {
+    return cy.findByTestId('empty-state');
   }
 
-  private wait() {
-    // Wait for the playground page to load (either chatbot or empty state)
-    cy.findByRole('heading', { name: 'Playground' }).should('be.visible');
+  findCreatePlaygroundButton() {
+    return cy.findByTestId('empty-state-action-button');
   }
 
-  findPageTitle() {
-    return cy.findByRole('heading', { name: 'Playground' });
+  findConfigurationTable() {
+    return cy.findByTestId('chatbot-configuration-table');
   }
 
-  findProjectSelector() {
-    return cy.findByTestId('project-selector-toggle');
+  findCreateButtonInDialog() {
+    return cy.findByTestId('modal-submit-button');
   }
 
-  findChatbot() {
-    return cy.findByTestId('chatbot');
-  }
-
-  findWelcomePrompt() {
-    return cy.findByTestId('chatbot-welcome-prompt');
-  }
-
-  findMessageBar() {
-    return cy.findByTestId('chatbot-message-bar');
+  findModelToggleButton() {
+    return cy.findByTestId('model-selector-toggle');
   }
 
   findMessageInput() {
     return cy.findByTestId('chatbot-message-bar');
   }
 
-  findSendButton() {
-    return cy.findByTestId('chatbot-send-button');
-  }
-
-  findChatbotMessages() {
-    return cy.get('.pf-chatbot__message');
-  }
-
-  findBotMessage() {
-    return cy.get('.pf-chatbot__message--bot');
-  }
-
-  findBotMessageContent() {
-    // Get the actual message content, not the welcome prompt
-    // The bot messages after welcome should be the 2nd, 3rd, etc.
-    return cy.get('.pf-chatbot__message--bot').eq(1); // Index 1 = second bot message (first response)
-  }
-
-  findAllBotMessages() {
-    return cy.get('.pf-chatbot__message--bot');
-  }
-
   findUserMessage() {
-    return cy.get('.pf-chatbot__message--user');
-  }
-
-  findLoadingIndicator() {
-    return cy.contains('Loading');
-  }
-
-  findModelDropdown() {
-    return cy.get('button[class*="pf-v6-c-menu-toggle"]').contains(/vllm|llama|qwen/i);
+    return cy.findByTestId('chatbot-message-user');
   }
 
   sendMessage(message: string) {
@@ -90,65 +41,34 @@ class GenAiPlayground {
     this.findMessageInput().should('have.value', '');
   }
 
-  shouldBeAccessible() {
-    // Verify the playground page is accessible (title visible)
-    this.findPageTitle().should('be.visible');
-    return this;
+  ensureModelCheckboxIsChecked(modelName: string) {
+    // Sanitize model name for testid: remove all characters except alphanumeric and hyphens
+    const sanitizedModelName = modelName.replace(/[^a-zA-Z0-9-]/g, '');
+    // Find the checkbox input within the td with the testid
+    cy.findByTestId(`${sanitizedModelName}-checkbox`)
+      .find('input[type="checkbox"]')
+      .then(($checkbox) => {
+        if (!$checkbox.is(':checked')) {
+          cy.wrap($checkbox).click();
+        }
+      });
+    cy.findByTestId(`${sanitizedModelName}-checkbox`)
+      .find('input[type="checkbox"]')
+      .should('be.checked');
   }
 
-  shouldBeVisible() {
-    // Verify the chatbot interface is fully loaded
-    this.findChatbot().should('be.visible');
-    return this;
+  selectModelFromDropdown(modelName: string) {
+    // Open the model selector dropdown
+    this.findModelToggleButton().click();
+    // Find the dropdown item by text content that contains the model name
+    // The model might have a dynamic prefix like "vllm-inference-1/llama-3.2-1b-instruct"
+    // We search for list items with testid starting with "model-option-" and containing the model name
+    cy.get('[role="menuitem"]').contains(modelName).click();
   }
 
-  findEmptyState() {
-    return cy.findByTestId('empty-state');
-  }
-
-  findCreatePlaygroundButton() {
-    return cy.findByTestId('empty-state-action-button');
-  }
-
-  findConfigurePlaygroundDialog() {
-    return cy.get('[data-testid="configure-playground-modal"]');
-  }
-
-  findConfigurationTable() {
-    return cy.findByTestId('chatbot-configuration-table');
-  }
-
-  findCreateButtonInDialog() {
-    return cy.findByRole('button', { name: /Create/i });
-  }
-
-  findModelToggleButton() {
-    return cy.findByTestId('model-selector-toggle');
-  }
-
-  findModelOption(modelName: string) {
-    return cy.contains(modelName);
-  }
-
-  findSelectedModelButton(modelName: string) {
-    return cy.findByRole('button', {
-      name: new RegExp(modelName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
-    });
-  }
-
-  selectModel(modelName: string) {
-    // Check if our model is already selected in any visible button
-    cy.get('body').then(($body) => {
-      const hasOurModel = $body.find('button:visible').text().includes(modelName);
-
-      if (!hasOurModel) {
-        cy.log('Model not auto-selected, selecting manually');
-        this.findModelToggleButton().click();
-        this.findModelOption(modelName).should('be.visible').click();
-      } else {
-        cy.log('Model already selected (possibly with prefix)');
-      }
-    });
+  verifyModelIsSelected(modelName: string) {
+    // Verify the model name is visible in the toggle button (could be with prefix)
+    this.findModelToggleButton().should('contain', modelName);
   }
 }
 

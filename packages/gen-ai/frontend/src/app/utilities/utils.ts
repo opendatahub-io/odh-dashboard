@@ -2,7 +2,23 @@
 import { K8sResourceCommon } from 'mod-arch-shared';
 import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig, MaaSModel } from '~/app/types';
 
-export const getId = (): `${string}-${string}-${string}-${string}-${string}` => crypto.randomUUID();
+/**
+ * Generates a UUID v4 string
+ * Uses crypto.randomUUID if available, otherwise falls back to a polyfill
+ */
+export const getId = (): string => {
+  // Use native crypto.randomUUID if available
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  // Fallback implementation for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export const convertAIModelToK8sResource = (model: AIModel): K8sResourceCommon => ({
   apiVersion: 'serving.kserve.io/v1beta1',

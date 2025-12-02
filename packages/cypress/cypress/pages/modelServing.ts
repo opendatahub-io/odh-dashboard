@@ -1257,7 +1257,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findCustomizeResourcesButton() {
-    return cy.findByTestId('hardware-profile-customize').find('button').first();
+    return cy.findByTestId('hardware-profile-customize').findByRole('button');
   }
 
   findGlobalScopedServingRuntimes() {
@@ -1265,11 +1265,20 @@ class ModelServingWizard extends Wizard {
   }
 
   findServingRuntimeOption(runtimeName: string) {
-    return this.findGlobalScopedServingRuntimes().contains(new RegExp(runtimeName, 'i'));
+    // Escape regex special characters to match literal text
+    const escapedName = runtimeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Search for the runtime by display name within menu items (more flexible than testid)
+    return this.findGlobalScopedServingRuntimes().findByRole('menuitem', {
+      name: new RegExp(escapedName, 'i'),
+    });
   }
 
   findDeployButton() {
     return this.findFooter().findByRole('button', { name: /Deploy model/i });
+  }
+
+  findReviewStepModelDetailsSection() {
+    return cy.findByTestId('review-step-model-details');
   }
 }
 
