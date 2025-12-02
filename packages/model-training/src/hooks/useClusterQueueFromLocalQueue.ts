@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { LocalQueueKind } from '@odh-dashboard/internal/k8sTypes';
-import { listLocalQueues } from '@odh-dashboard/internal/api/k8s/localQueues';
 import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetchState';
 import useFetch from '@odh-dashboard/internal/utilities/useFetch';
+import { getLocalQueue } from '../api/queue';
 
 type UseClusterQueueFromLocalQueueResult = {
   clusterQueueName: string | null;
@@ -21,34 +21,32 @@ const useClusterQueueFromLocalQueue = (
   namespace?: string,
 ): UseClusterQueueFromLocalQueueResult => {
   const {
-    data: localQueues,
-    loaded: localQueuesLoaded,
-    error: localQueuesError,
-  } = useFetch<LocalQueueKind[]>(
+    data: localQueue,
+    loaded: localQueueLoaded,
+    error: localQueueError,
+  } = useFetch<LocalQueueKind | null>(
     React.useCallback(() => {
       if (!namespace || !localQueueName) {
         return Promise.reject(new NotReadyError('Missing namespace or local queue name'));
       }
-      return listLocalQueues(namespace);
+      return getLocalQueue(localQueueName, namespace);
     }, [namespace, localQueueName]),
-    [],
+    null,
     { initialPromisePurity: true },
   );
 
   const clusterQueueName = React.useMemo(() => {
-    if (!localQueuesLoaded || !localQueueName) {
+    if (!localQueueLoaded || !localQueue) {
       return null;
     }
 
-    const matchingLocalQueue = localQueues.find((lq) => lq.metadata?.name === localQueueName);
-
-    return matchingLocalQueue?.spec.clusterQueue || null;
-  }, [localQueues, localQueuesLoaded, localQueueName]);
+    return localQueue.spec.clusterQueue;
+  }, [localQueue, localQueueLoaded]);
 
   return {
     clusterQueueName,
-    loaded: localQueuesLoaded,
-    error: localQueuesError,
+    loaded: localQueueLoaded,
+    error: localQueueError,
   };
 };
 

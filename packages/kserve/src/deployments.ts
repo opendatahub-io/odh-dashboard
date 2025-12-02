@@ -27,7 +27,7 @@ export const isKServeDeployment = (deployment: Deployment): deployment is KServe
   deployment.modelServingPlatformId === KSERVE_ID;
 
 export const useWatchDeployments = (
-  project?: ProjectKind,
+  project: ProjectKind,
   labelSelectors?: { [key: string]: string },
   filterFn?: (inferenceService: InferenceServiceKind) => boolean,
   opts?: K8sAPIOptions,
@@ -42,6 +42,16 @@ export const useWatchDeployments = (
     project,
     opts,
   );
+
+  const servingRuntimeEffectivelyLoaded =
+    servingRuntimeLoaded ||
+    (servingRuntimeError ? servingRuntimeError.message.includes('forbidden') : false);
+  const deploymentPodsEffectivelyLoaded =
+    deploymentPodsLoaded ||
+    (deploymentPodsError ? deploymentPodsError.message.includes('forbidden') : false);
+
+  const allLoaded =
+    inferenceServiceLoaded && servingRuntimeEffectivelyLoaded && deploymentPodsEffectivelyLoaded;
 
   const filteredInferenceServices = React.useMemo(() => {
     if (!filterFn) {
@@ -72,7 +82,7 @@ export const useWatchDeployments = (
 
   return [
     deployments,
-    inferenceServiceLoaded && servingRuntimeLoaded && deploymentPodsLoaded,
+    allLoaded,
     inferenceServiceError || servingRuntimeError || deploymentPodsError,
   ];
 };

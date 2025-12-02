@@ -66,6 +66,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
             variant: 'single',
             isChecked: isSelected,
             onChange: () => !disabled && onSelect(),
+            isHidden: true,
           },
         })}
       >

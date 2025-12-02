@@ -62,7 +62,7 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
   return (
     <ApplicationsPage
       {...renderStateProps}
-      title="Model training"
+      title="Training jobs"
       description="Select a project to view its PyTorch training jobs. Monitor training progress and manage distributed training workloads across your data science projects."
       loaded
       headerContent={<ModelTrainingProjectSelector getRedirectPath={getInvalidRedirectPath} />}

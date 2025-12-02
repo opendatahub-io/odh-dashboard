@@ -199,6 +199,9 @@ describe('Verify models can be registered in a model registry', () => {
       registerVersionPage
         .findFormField(VersionFormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion3_0);
+      registerVersionPage
+        .findFormField(VersionFormFieldSelector.LOCATION_PATH)
+        .type(testData.objectStoragePath);
 
       cy.step('Configure URI location for the new version');
       registerVersionPage.findFormField(VersionFormFieldSelector.LOCATION_TYPE_URI).click();

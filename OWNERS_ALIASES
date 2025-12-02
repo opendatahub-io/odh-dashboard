@@ -36,7 +36,6 @@ aliases:
     - Griffin-Sullivan
     - andrewballantyne
   connections-reviewers:
-    - andrewballantyne
     - ashley-o0o
     - emilys314
     - Griffin-Sullivan
@@ -71,7 +70,6 @@ aliases:
     - Griffin-Sullivan
     - andrewballantyne
   model-serving-metrics-reviewers:
-    - andrewballantyne
     - ashley-o0o
     - emilys314
     - Griffin-Sullivan
@@ -117,3 +115,23 @@ aliases:
     - d0w
     - Gkrumbach07
     - jrenee42
+
+  # Gen AI
+  gen-ai-approvers:
+    - agagancarczyk
+    - ikeola13
+    - pnaik1
+    - Lucifergene
+    - divyanshiGupta
+    - rohitkrai03
+    - danpierce1
+    - jharan1
+  gen-ai-reviewers:
+    - agagancarczyk
+    - ikeola13
+    - pnaik1
+    - Lucifergene
+    - divyanshiGupta
+    - rohitkrai03
+    - danpierce1
+    - jharan1

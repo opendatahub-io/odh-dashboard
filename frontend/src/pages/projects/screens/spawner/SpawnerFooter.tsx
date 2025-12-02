@@ -29,7 +29,6 @@ import {
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -69,11 +68,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState(false);
-  const isHardwareProfileValid = isHardwareProfileConfigValid({
-    selectedProfile: startNotebookData.podSpecOptions.selectedHardwareProfile,
-    useExistingSettings: false, // does not matter for validation
-    resources: startNotebookData.podSpecOptions.resources,
-  });
+  const isHardwareProfileValid =
+    startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
@@ -84,7 +80,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
-    const { image, podSpecOptions } = startNotebookData;
+    const {
+      image,
+      hardwareProfileOptions: {
+        podSpecOptionsState: { podSpecOptions },
+      },
+    } = startNotebookData;
     const tep: FormTrackingEventProperties = {
       containerResources: Object.entries(podSpecOptions.resources || {})
         .map(([key, value]) =>

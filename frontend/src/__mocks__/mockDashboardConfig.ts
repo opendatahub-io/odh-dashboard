@@ -33,21 +33,24 @@ export type MockDashboardConfigType = {
   disableAdminConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
-  notebookSizes?: NotebookSize[];
+  notebookSizes?: NotebookSize[]; // deprecated
   disableNIMModelServing?: boolean;
   disableFineTuning?: boolean;
-  modelServerSizes?: ModelServingSize[];
+  modelServerSizes?: ModelServingSize[]; // deprecated
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
-  modelTraining?: boolean;
+  trainingJobs?: boolean;
+  aiCatalogSettings?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
+  mlflow?: boolean;
 };
 
 export const mockDashboardConfig = ({
+  mlflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -81,7 +84,8 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
-  modelTraining = false,
+  trainingJobs = false,
+  aiCatalogSettings = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -205,6 +209,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
+      mlflow,
       enablement: true,
       disableInfo,
       disableSupport,
@@ -242,7 +247,8 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
-      modelTraining,
+      trainingJobs,
+      aiCatalogSettings,
     },
     notebookController: {
       enabled: !disableNotebookController,

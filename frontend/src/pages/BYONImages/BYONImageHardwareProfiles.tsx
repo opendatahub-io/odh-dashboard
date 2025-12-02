@@ -17,9 +17,11 @@ import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 
 type BYONImageHardwareProfilesProps = {
   image: BYONImage;
-  hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>;
+  hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
 };
 
+// the recommendAcceleratorIdentifiers are part of the hardware profiles; see the comment at the head of
+// ManageBYONImageModal
 const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
   image,
   hardwareProfiles,

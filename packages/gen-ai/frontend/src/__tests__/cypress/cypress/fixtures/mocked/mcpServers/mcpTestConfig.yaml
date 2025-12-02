@@ -1,0 +1,15 @@
+defaultNamespace: crimson-show
+
+servers:
+  github:
+    name: GitHub-MCP-Server
+    url: https://api.githubcopilot.com/mcp
+  kubernetes:
+    name: Kubernetes-MCP-Server
+    url: https://kubernetes-mcp-server.local/mcp
+
+tokens:
+  valid: ghp_validTestToken123456789
+  invalid: ghp_invalidToken
+  test: test_token_value
+

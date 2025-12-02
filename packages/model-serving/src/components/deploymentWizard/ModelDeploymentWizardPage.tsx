@@ -45,6 +45,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   const existingData = location.state?.initialData;
   const existingDeployment = location.state?.existingDeployment;
   const returnRoute = location.state?.returnRoute;
+  const cancelReturnRoute = location.state?.cancelReturnRoute ?? returnRoute;
   const projectName = location.state?.projectName;
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
@@ -81,7 +82,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : undefined}>
+    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : []}>
       <ModelDeploymentWizard
         project={currentProject}
         title={existingDeployment ? 'Edit model deployment' : 'Deploy a model'}
@@ -94,6 +95,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
         existingData={existingData}
         existingDeployment={existingDeployment}
         returnRoute={returnRoute}
+        cancelReturnRoute={cancelReturnRoute}
       />
     </ModelDeploymentsProvider>
   );

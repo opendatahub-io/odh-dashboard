@@ -21,6 +21,7 @@ import type {
   ModelLocationData,
   InitialWizardFormData,
 } from '../src/components/deploymentWizard/types';
+import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -124,7 +125,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
       platform: D['modelServingPlatformId'];
       watch: CodeRef<
         (
-          project?: ProjectKind,
+          project: ProjectKind,
           labelSelectors?: { [key: string]: string },
           filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,
@@ -156,6 +157,9 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
     extractDeploymentStrategy?: CodeRef<
       (deployment: D) => WizardFormData['state']['deploymentStrategy']['data'] | null
+    >;
+    extractModelServerTemplate: CodeRef<
+      (deployment: D, dashboardNamespace?: string) => ModelServerOption | null
     >;
   }
 >;
@@ -300,3 +304,15 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension: Extension,
 ): extension is DeploymentWizardFieldExtension<D> =>
   extension.type === 'model-serving.deployment/wizard-field';
+
+export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/transform',
+  {
+    platform: D['modelServingPlatformId'];
+    transform: CodeRef<(deployment: D, initialWizardData: InitialWizardFormData) => D>;
+  }
+>;
+export const isModelServingDeploymentTransformExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentTransformExtension<D> =>
+  extension.type === 'model-serving.deployment/transform';

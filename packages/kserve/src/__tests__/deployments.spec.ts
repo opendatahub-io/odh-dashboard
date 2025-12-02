@@ -39,19 +39,19 @@ describe('useWatchDeployments', () => {
         name: 'model-1',
         namespace: 'test-project',
         additionalLabels: { app: 'test' },
-        modelName: 'runtime-1',
+        runtimeName: 'runtime-1',
       }),
       mockInferenceServiceK8sResource({
         name: 'model-2',
         namespace: 'test-project',
         additionalLabels: { app: 'test' },
-        modelName: 'runtime-1',
+        runtimeName: 'runtime-1',
       }),
       mockInferenceServiceK8sResource({
         name: 'model-3',
         namespace: 'test-project',
         additionalLabels: { app: 'other' },
-        modelName: 'runtime-2',
+        runtimeName: 'runtime-2',
       }),
     ];
 
@@ -121,7 +121,7 @@ describe('useWatchDeployments', () => {
     const inferenceServiceWithoutRuntime = mockInferenceServiceK8sResource({
       name: 'model-no-runtime',
       namespace: 'test-project',
-      modelName: 'nonexistent-runtime',
+      runtimeName: 'nonexistent-runtime',
     });
 
     mockUseWatchInferenceServices.mockReturnValue([
@@ -222,7 +222,7 @@ describe('useWatchDeployments', () => {
       mockInferenceServiceK8sResource({
         name: 'model-4',
         namespace: 'test-project',
-        modelName: 'runtime-1',
+        runtimeName: 'runtime-1',
       }),
     ];
 
@@ -278,15 +278,6 @@ describe('useWatchDeployments', () => {
     expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(mockProject, undefined, opts);
     expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, opts);
     expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts);
-  });
-
-  it('should work without a project', () => {
-    const renderResult = testHook(useWatchDeployments)(undefined, undefined, undefined);
-
-    const [deployments] = renderResult.result.current as DeploymentHookResult;
-
-    expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(undefined, undefined, undefined);
-    expect(deployments).toHaveLength(3);
   });
 
   it('should handle complex filterFn logic', () => {

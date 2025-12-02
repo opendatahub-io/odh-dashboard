@@ -29,10 +29,14 @@
     "clean": "rimraf dist",
     "cypress:server:dev": "webpack serve --color --progress --config ./config/webpack.dev.js --port 8080 --no-open",
     "cypress:server": "cd ../bff && make run PORT=9001",
-    "cypress:open:mock": "cypress open --config-file src/__tests__/cypress/cypress.config.ts",
-    "cypress:run": "cypress run -b chrome --config-file src/__tests__/cypress/cypress.config.ts",
-    "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:run -- ",
-    "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 && npm run cypress:run:mock\" -- "
+    "cypress:server:bff-mock": "cd ../bff && MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MAAS_CLIENT=true make run PORT=9001",
+    "cypress:open": "cypress open --project src/__tests__/cypress",
+    "cypress:open:e2e": "BASE_URL=http://localhost:4010 npm run cypress:open",
+    "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 npm run cypress:open -- ",
+    "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
+    "cypress:run:e2e": "BASE_URL=http://localhost:4010 npm run cypress:run",
+    "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 npm run cypress:run -- ",
+    "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:bff-mock\" \"PROXY_HOST=localhost PROXY_PORT=9001 npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 http://localhost:9001 && npm run cypress:run:mock\" -- "
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.13.1",
@@ -102,6 +106,7 @@
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
+    "@cypress/code-coverage": "^3.14.1",
     "@cypress/webpack-preprocessor": "^6.0.4",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -110,6 +115,9 @@
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
     "cypress": "^14.5.1",
+    "cypress-high-resolution": "^1.0.0",
+    "cypress-mochawesome-reporter": "^3.8.2",
+    "cypress-multi-reporters": "^2.0.5",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-import-resolver-node": "^0.3.9",
@@ -122,6 +130,8 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
+    "junit-report-merger": "^7.0.1",
+    "serve": "^14.2.5",
     "ts-jest": "^29.2.5"
   },
   "packageManager": "npm@10.9.2"

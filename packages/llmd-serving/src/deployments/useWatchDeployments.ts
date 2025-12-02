@@ -12,7 +12,7 @@ import {
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
 export const useWatchDeployments = (
-  project?: ProjectKind,
+  project: ProjectKind,
   labelSelectors?: { [key: string]: string },
   filterFn?: (llmInferenceService: LLMInferenceServiceKind) => boolean,
   opts?: K8sAPIOptions,
@@ -22,12 +22,16 @@ export const useWatchDeployments = (
       {
         isList: true,
         groupVersionKind: groupVersionKind(LLMInferenceServiceModel),
-        namespace: project?.metadata.name,
+        namespace: project.metadata.name,
         ...(labelSelectors && { selector: labelSelectors }),
       },
       LLMInferenceServiceModel,
       opts,
     );
+
+  const effectivelyLoaded =
+    llmInferenceServiceLoaded ||
+    (llmInferenceServiceError ? llmInferenceServiceError.message.includes('forbidden') : false);
 
   const filteredLlmInferenceServices = React.useMemo(() => {
     if (!filterFn) {
@@ -48,5 +52,5 @@ export const useWatchDeployments = (
     [filteredLlmInferenceServices],
   );
 
-  return [deployments, llmInferenceServiceLoaded, llmInferenceServiceError];
+  return [deployments, effectivelyLoaded, llmInferenceServiceError];
 };

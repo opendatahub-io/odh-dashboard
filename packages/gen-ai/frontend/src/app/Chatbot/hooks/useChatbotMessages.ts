@@ -10,12 +10,12 @@ import {
   ChatMessageRole,
   CreateResponseRequest,
   MCPToolCallData,
+  MCPServerFromAPI,
+  TokenInfo,
 } from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
-import { useMCPSelectionContext } from '~/app/context/MCPSelectionContext';
-import { useMCPServersContext } from '~/app/context/MCPServersContext';
-import { useMCPTokenContext } from '~/app/context/MCPTokenContext';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import {
   ToolResponseCardTitle,
   ToolResponseCardBody,
@@ -28,6 +28,8 @@ export interface UseChatbotMessagesReturn {
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
   handleMessageSend: (message: string) => Promise<void>;
+  handleStopStreaming: () => void;
+  clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -40,6 +42,13 @@ interface UseChatbotMessagesProps {
   isStreamingEnabled: boolean;
   temperature: number;
   currentVectorStoreId: string | null;
+  selectedServerIds: string[];
+  // MCP data as props (instead of contexts)
+  mcpServers: MCPServerFromAPI[];
+  mcpServerStatuses: Map<string, ServerStatusInfo>;
+  mcpServerTokens: Map<string, TokenInfo>;
+  toolSelections?: (ns: string, url: string) => string[] | undefined;
+  namespace?: string;
 }
 
 const useChatbotMessages = ({
@@ -51,6 +60,12 @@ const useChatbotMessages = ({
   isStreamingEnabled,
   temperature,
   currentVectorStoreId,
+  selectedServerIds,
+  mcpServers,
+  mcpServerStatuses,
+  mcpServerTokens,
+  toolSelections,
+  namespace,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -58,32 +73,32 @@ const useChatbotMessages = ({
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { playgroundSelectedServerIds } = useMCPSelectionContext();
-  const serversContext = useMCPServersContext();
-  const tokenContext = useMCPTokenContext();
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const isStoppingStreamRef = React.useRef<boolean>(false);
+  const isClearingRef = React.useRef<boolean>(false);
   const { api, apiAvailable } = useGenAiAPI();
 
   const getSelectedServersForAPICallback = React.useCallback(
     () =>
       getSelectedServersForAPI(
-        playgroundSelectedServerIds,
-        serversContext.servers,
-        serversContext.serverStatuses,
-        tokenContext.serverTokens,
+        selectedServerIds,
+        mcpServers,
+        mcpServerStatuses,
+        mcpServerTokens,
+        toolSelections,
+        namespace,
       ),
-    [
-      playgroundSelectedServerIds,
-      serversContext.servers,
-      serversContext.serverStatuses,
-      tokenContext.serverTokens,
-    ],
+    [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens, toolSelections, namespace],
   );
 
-  // Cleanup timeout on unmount
+  // Cleanup timeout and abort controller on unmount
   React.useEffect(
     () => () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     },
     [],
@@ -112,6 +127,49 @@ const useChatbotMessages = ({
     [],
   );
 
+  const handleStopStreaming = React.useCallback(() => {
+    if (abortControllerRef.current) {
+      isStoppingStreamRef.current = true;
+      // Clear any pending streaming updates to prevent them from overwriting the stop message
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  const clearConversation = React.useCallback(() => {
+    // Mark that we're clearing (not just stopping)
+    isClearingRef.current = true;
+
+    // Clean up any pending timeouts first
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    // Abort any ongoing requests without showing stop message
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Reset everything to initial state
+    setMessages([initialBotMessage()]);
+    setIsMessageSendButtonDisabled(false);
+    setIsLoading(false);
+    setIsStreamingWithoutContent(false);
+    isStoppingStreamRef.current = false;
+
+    // Reset clearing flag after state updates complete
+    // Use setTimeout to ensure this runs after React finishes all state updates
+    setTimeout(() => {
+      isClearingRef.current = false;
+    }, 0);
+  }, []);
+
   const handleMessageSend = async (message: string) => {
     const userMessage: MessageProps = {
       id: getId(),
@@ -119,6 +177,7 @@ const useChatbotMessages = ({
       content: message,
       name: username || 'User',
       avatar: userAvatar,
+      timestamp: new Date().toLocaleString(),
     };
 
     setMessages((prevMessages) => [...prevMessages, userMessage]);
@@ -137,7 +196,7 @@ const useChatbotMessages = ({
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
 
-      const mcpServers = getSelectedServersForAPICallback();
+      const selectedMcpServers = getSelectedServersForAPICallback();
 
       // Determine vector store ID to use for RAG
       const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
@@ -159,18 +218,21 @@ const useChatbotMessages = ({
         instructions: systemInstruction,
         stream: isStreamingEnabled,
         temperature,
-        ...(mcpServers.length > 0 && { mcp_servers: mcpServers }),
+        ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
         isRag: isRawUploaded,
-        countofMCP: mcpServers.length,
+        countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
       });
 
       if (!apiAvailable) {
         throw new Error('API is not available');
       }
+
+      // Create abort controller for this request (works for both streaming and non-streaming)
+      abortControllerRef.current = new AbortController();
 
       if (isStreamingEnabled) {
         // Create initial bot message for streaming with loading state
@@ -182,6 +244,7 @@ const useChatbotMessages = ({
           name: 'Bot',
           avatar: botAvatar,
           isLoading: true, // Show loading dots until first content
+          timestamp: new Date().toLocaleString(),
         };
         setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
 
@@ -211,6 +274,7 @@ const useChatbotMessages = ({
         };
 
         const streamingResponse = await api.createResponse(responsesPayload, {
+          abortSignal: abortControllerRef.current.signal,
           onStreamData: (chunk: string) => {
             // Track if we have any content
             const hasAnyContent =
@@ -243,7 +307,10 @@ const useChatbotMessages = ({
               }
 
               // Update UI every 50ms for smooth streaming effect on partial lines
-              timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
+              // Only schedule update if not stopping
+              if (!isStoppingStreamRef.current) {
+                timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
+              }
             }
           },
         });
@@ -264,7 +331,9 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
-        const response = await api.createResponse(responsesPayload);
+        const response = await api.createResponse(responsesPayload, {
+          abortSignal: abortControllerRef.current.signal,
+        });
 
         const toolResponse = response.toolCallData
           ? createToolResponse(response.toolCallData)
@@ -276,34 +345,71 @@ const useChatbotMessages = ({
           content: response.content || 'No response received',
           name: 'Bot',
           avatar: botAvatar,
+          timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       }
     } catch (error) {
+      // Check if this is an abort error
+      const isAbortError =
+        error instanceof Error &&
+        (error.name === 'AbortError' ||
+          error.message.includes('aborted') ||
+          error.message === 'Response stopped by user');
+
+      // If we're clearing the conversation, silently ignore all errors
+      // Messages are already reset to initial state
+      if (isClearingRef.current) {
+        return;
+      }
+
       const errorMessage =
         error instanceof Error
           ? error.message
           : 'Sorry, I encountered an error while processing your request. Please try again.';
 
-      const botErrorMessage: MessageProps = {
-        id: isStreamingEnabled ? botMessageId : getId(),
-        role: 'bot',
-        content: errorMessage,
-        name: 'Bot',
-        avatar: botAvatar,
-      };
+      // Check if this was a user-initiated stop (stop button, not clear conversation)
+      const wasUserStopped =
+        isStoppingStreamRef.current &&
+        (isAbortError || errorMessage === 'Response stopped by user');
 
-      setMessages((prevMessages) => {
-        if (isStreamingEnabled) {
-          return prevMessages.map((msg) => (msg.id === botMessageId ? botErrorMessage : msg));
-        }
-        return [...prevMessages, botErrorMessage];
-      });
+      if (isStreamingEnabled && botMessageId) {
+        // For streaming, update existing bot message
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id === botMessageId) {
+              if (wasUserStopped) {
+                // Append "You stopped this message" to existing content
+                const stoppedContent = msg.content
+                  ? `${msg.content}\n\n*You stopped this message*`
+                  : '*You stopped this message*';
+                return { ...msg, content: stoppedContent, isLoading: false };
+              }
+              // For other errors, replace content with error message
+              return { ...msg, content: errorMessage, isLoading: false };
+            }
+            return msg;
+          }),
+        );
+      } else {
+        // For non-streaming, add error/stop message as new message
+        const botErrorMessage: MessageProps = {
+          id: getId(),
+          role: 'bot',
+          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
+          name: 'Bot',
+          avatar: botAvatar,
+          timestamp: new Date().toLocaleString(),
+        };
+        setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+      }
     } finally {
       setIsMessageSendButtonDisabled(false);
       setIsLoading(false);
       setIsStreamingWithoutContent(false);
+      isStoppingStreamRef.current = false;
+      abortControllerRef.current = null;
     }
   };
 
@@ -313,6 +419,8 @@ const useChatbotMessages = ({
     isLoading,
     isStreamingWithoutContent,
     handleMessageSend,
+    handleStopStreaming,
+    clearConversation,
     scrollToBottomRef,
   };
 };

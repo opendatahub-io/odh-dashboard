@@ -9,6 +9,7 @@ type MockResourceConfigType = {
   uid?: string;
   creationTimestamp?: string;
   numNodes?: number;
+  numProcPerNode?: number;
   status?: TrainingJobState;
   localQueueName?: string;
   suspend?: boolean;
@@ -46,9 +47,10 @@ export const mockTrainJobK8sResource = ({
   uid = genUID('train-job'),
   creationTimestamp = '2024-01-15T10:30:00Z',
   numNodes = 3,
+  numProcPerNode = 1,
   status = TrainingJobState.RUNNING,
   localQueueName = 'default-queue',
-  suspend = false,
+  suspend,
   gpuLimit = 1,
   cpuLimit = '2',
   memoryLimit = '4Gi',
@@ -59,28 +61,92 @@ export const mockTrainJobK8sResource = ({
     kind: 'PyTorchRuntime',
     name: 'pytorch-runtime',
   },
-  conditions = [
-    {
-      type: 'Created',
-      status: 'True',
-      lastTransitionTime: '2024-01-15T10:30:00Z',
-      reason: 'TrainJobCreated',
-      message: 'TrainJob test-train-job is created.',
-    },
-    {
-      type: 'Running',
-      status: 'True',
-      lastTransitionTime: '2024-01-15T10:32:00Z',
-      reason: 'TrainJobRunning',
-      message: 'TrainJob test-train-job is running.',
-    },
-  ],
+  conditions = (() => {
+    const baseTimestamp = creationTimestamp;
+    const laterTimestamp = new Date(new Date(baseTimestamp).getTime() + 120000).toISOString();
+
+    if (status === TrainingJobState.FAILED) {
+      return [
+        {
+          type: 'Created',
+          status: 'True',
+          lastTransitionTime: baseTimestamp,
+          reason: 'TrainJobCreated',
+          message: 'TrainJob test-train-job is created.',
+        },
+        {
+          type: 'Failed',
+          status: 'True',
+          lastTransitionTime: laterTimestamp,
+          reason: 'TrainJobFailed',
+          message: 'TrainJob test-train-job has failed.',
+        },
+      ];
+    }
+    if (status === TrainingJobState.SUCCEEDED) {
+      return [
+        {
+          type: 'Created',
+          status: 'True',
+          lastTransitionTime: baseTimestamp,
+          reason: 'TrainJobCreated',
+          message: 'TrainJob test-train-job is created.',
+        },
+        {
+          type: 'Succeeded',
+          status: 'True',
+          lastTransitionTime: laterTimestamp,
+          reason: 'TrainJobSucceeded',
+          message: 'TrainJob test-train-job has succeeded.',
+        },
+      ];
+    }
+    // For QUEUED, PENDING, PAUSED, and other non-terminal states, use Created condition
+    // (QUEUED/PENDING/PAUSED status is determined by workload conditions or spec.suspend, not TrainJob conditions)
+    if (
+      status === TrainingJobState.QUEUED ||
+      status === TrainingJobState.PENDING ||
+      status === TrainingJobState.PAUSED ||
+      status === TrainingJobState.INADMISSIBLE ||
+      status === TrainingJobState.PREEMPTED
+    ) {
+      return [
+        {
+          type: 'Created',
+          status: 'True',
+          lastTransitionTime: baseTimestamp,
+          reason: 'TrainJobCreated',
+          message: 'TrainJob test-train-job is created.',
+        },
+      ];
+    }
+    // Running or other states (default)
+    return [
+      {
+        type: 'Created',
+        status: 'True',
+        lastTransitionTime: baseTimestamp,
+        reason: 'TrainJobCreated',
+        message: 'TrainJob test-train-job is created.',
+      },
+      {
+        type: 'Running',
+        status: 'True',
+        lastTransitionTime: laterTimestamp,
+        reason: 'TrainJobRunning',
+        message: 'TrainJob test-train-job is running.',
+      },
+    ];
+  })(),
+
   jobsStatus = [
     {
-      name: 'pytorch-job',
+      name: 'node',
       active: status === TrainingJobState.RUNNING ? numNodes : 0,
       succeeded: status === TrainingJobState.SUCCEEDED ? numNodes : 0,
       failed: status === TrainingJobState.FAILED ? 1 : 0,
+      ready: status === TrainingJobState.RUNNING ? numNodes : 0,
+      suspended: 0,
     },
   ],
   additionalLabels = {},
@@ -92,27 +158,35 @@ export const mockTrainJobK8sResource = ({
     ...additionalLabels,
   };
 
+  const metadata: TrainJobKind['metadata'] = {
+    name,
+    namespace,
+    uid,
+    creationTimestamp,
+    labels: baseLabels,
+    resourceVersion: '12345',
+    generation: 1,
+    annotations: {
+      'opendatahub.io/display-name': name,
+    },
+  };
+
+  // Add deletionTimestamp for DELETING status
+  if (status === TrainingJobState.DELETING) {
+    metadata.deletionTimestamp = new Date().toISOString();
+  }
+
   return _.merge(
     {
       apiVersion: 'trainer.kubeflow.org/v1alpha1',
       kind: 'TrainJob',
-      metadata: {
-        name,
-        namespace,
-        uid,
-        creationTimestamp,
-        labels: baseLabels,
-        resourceVersion: '12345',
-        generation: 1,
-        annotations: {
-          'opendatahub.io/display-name': name,
-        },
-      },
+      metadata,
       spec: {
         runtimeRef,
-        suspend,
+        ...(suspend !== undefined && { suspend }),
         trainer: {
           numNodes,
+          numProcPerNode,
           resourcesPerNode: {
             limits: {
               'nvidia.com/gpu': gpuLimit,

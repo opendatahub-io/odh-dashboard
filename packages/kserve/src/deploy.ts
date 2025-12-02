@@ -39,7 +39,7 @@ export const deployKServeDeployment = async (
   };
 
   const servingRuntime =
-    serverResource && !existingDeployment
+    serverResource && !existingDeployment?.server
       ? await createServingRuntime(
           {
             project: projectName,
@@ -56,6 +56,7 @@ export const deployKServeDeployment = async (
     inferenceServiceData,
     existingDeployment?.model,
     secretName,
+    initialWizardData?.transformData,
     {
       dryRun,
       overwrite,

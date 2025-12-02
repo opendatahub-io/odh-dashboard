@@ -32,4 +32,12 @@ export class HomeProject extends Contextual<HTMLElement> {
   findGoToProjectLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('goto-projects-link');
   }
+
+  findProjectCard(projectName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`project-card-${projectName}`);
+  }
+
+  findAILabelInCard(projectName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findProjectCard(projectName).findByTestId('ai-project-label');
+  }
 }

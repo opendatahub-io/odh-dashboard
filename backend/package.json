@@ -23,8 +23,7 @@
     "start:dev": "npm run clean && NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon src/server.ts",
     "debug": "NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon --exec 'node --inspect --require ts-node/register' src/server.ts",
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:4000",
-    "build": "tsdown",
-    "build:watch": "tsdown --watch",
+    "build": "rimraf dist && tsc -p tsconfig.prod.json",
     "test": "run-s test:lint test:type-check test:jest",
     "test:unit-coverage": "npm run test:jest:coverage",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
@@ -57,7 +56,7 @@
     "lodash": "^4.17.21",
     "pino": "^9.9.0",
     "prom-client": "^14.0.1",
-    "ws": "^8.17.1"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
@@ -69,7 +68,6 @@
     "pino-pretty": "^9.4.0",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.15.6",
     "typescript": "^5.8.3"
   },
   "optionalDependencies": {

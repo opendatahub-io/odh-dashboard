@@ -18,7 +18,7 @@ paths:
   # =============================================================================
   # UTILITY ENDPOINTS
   # =============================================================================
-  
+
   /healthcheck:
     summary: BFF service health check
     description: >-
@@ -36,7 +36,6 @@ paths:
       summary: BFF Health Check
       description: Returns BFF service status and version information.
       security: []
-
 
   /gen-ai/api/v1/namespaces:
     summary: List Kubernetes cluster namespaces
@@ -80,17 +79,17 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         required: true
         description: Code generation configuration
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CodeExportRequest"
+              $ref: '#/components/schemas/CodeExportRequest'
             example:
-              clientName: "my-llamastack-client"
-              models: ["llama-3-2-3b-instruct", "granite-embedding-125m"]
+              clientName: 'my-llamastack-client'
+              models: ['llama-3-2-3b-instruct', 'granite-embedding-125m']
               includeExamples: true
       responses:
         '200':
@@ -125,6 +124,27 @@ paths:
       operationId: getCurrentUser
       summary: Get Current User
       description: Returns information about the currently authenticated user.
+
+  /gen-ai/api/v1/config:
+    summary: Get BFF configuration
+    description: >-
+      Retrieves BFF application-level configuration that applies globally across all namespaces.
+      Returns configuration flags that the UI needs to adapt behavior.
+    get:
+      tags:
+        - Configuration
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          $ref: '#/components/responses/BFFConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getBFFConfig
+      summary: Get BFF Configuration
+      description: Returns BFF application-level configuration settings.
 
   # =============================================================================
   # LLAMASTACK DISTRIBUTION (LSD) ENDPOINTS
@@ -213,23 +233,23 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
       requestBody:
         required: true
         description: Installation request with list of models to include
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LlamaStackDistributionInstallRequest"
+              $ref: '#/components/schemas/LlamaStackDistributionInstallRequest'
             example:
               models:
-                - model_name: "llama-3-2-3b-instruct"
+                - model_name: 'llama-3-2-3b-instruct'
                   is_maas_model: false
-                - model_name: "granite-embedding-125m"
+                - model_name: 'granite-embedding-125m'
                   is_maas_model: false
       responses:
         '200':
-          $ref: "#/components/responses/LlamaStackDistributionInstallResponse"
+          $ref: '#/components/responses/LlamaStackDistributionInstallResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -531,7 +551,7 @@ paths:
     summary: Delete vector store
     description: >-
       Deletes a vector store by ID. This operation will permanently remove the vector store
-      and all associated files and embeddings. Requires namespace parameter for proper 
+      and all associated files and embeddings. Requires namespace parameter for proper
       multi-tenant isolation.
     delete:
       tags:
@@ -545,14 +565,14 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
         - name: vector_store_id
           in: query
           description: ID of the vector store to delete
           required: true
           schema:
             type: string
-            example: "vs_abc123"
+            example: 'vs_abc123'
       responses:
         '200':
           $ref: '#/components/responses/DeleteResponse'
@@ -586,7 +606,7 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
         - name: limit
           in: query
           description: Number of files to return (1-10000, default 20)
@@ -686,14 +706,14 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
         - name: file_id
           in: query
           description: ID of the file to delete
           required: true
           schema:
             type: string
-            example: "file-abc123"
+            example: 'file-abc123'
       responses:
         '200':
           $ref: '#/components/responses/DeleteResponse'
@@ -726,14 +746,14 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
         - name: vector_store_id
           in: query
           description: ID of the vector store to list files from
           required: true
           schema:
             type: string
-            example: "vs_abc123"
+            example: 'vs_abc123'
         - name: limit
           in: query
           description: Number of files to return (1-100, default 20)
@@ -818,7 +838,7 @@ paths:
     summary: Remove file from vector store and delete file (temporary cascading delete)
     description: >-
       Removes a file from a specific vector store and also deletes the actual file from storage.
-      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion) 
+      TEMPORARY: This endpoint performs cascading delete (vectorstore removal + file deletion)
       until proper file lifecycle management and sharing is implemented.
       Requires namespace parameter for proper multi-tenant isolation.
     delete:
@@ -833,21 +853,21 @@ paths:
           required: true
           schema:
             type: string
-            example: "default"
+            example: 'default'
         - name: vector_store_id
           in: query
           description: ID of the vector store to remove file from
           required: true
           schema:
             type: string
-            example: "vs_abc123"
+            example: 'vs_abc123'
         - name: file_id
           in: query
           description: ID of the file to remove from vector store
           required: true
           schema:
             type: string
-            example: "file-abc123"
+            example: 'file-abc123'
       responses:
         '200':
           $ref: '#/components/responses/DeleteResponse'
@@ -911,7 +931,6 @@ paths:
         When stream=true: Returns Server-Sent Events (SSE) stream with real-time token deltas and completion events.
         The output array preserves LlamaStack's structure but filters out unnecessary metadata for optimal performance.
         MCP tools support multiple tools per request with individual authentication tokens provided in each tool's headers.
-
 
   # =============================================================================
   # MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS
@@ -1728,11 +1747,26 @@ components:
           example:
             Authorization: 'Bearer slack_token_123'
           description: Custom headers for MCP server authentication
+        allowed_tools:
+          type: array
+          items:
+            type: string
+          example: ['send_message', 'get_channel_history']
+          description: >-
+            List of specific tool names allowed from this MCP server.
+
+            Behavior:
+            - If not specified (undefined/null): ALL tools from this server are available (no restrictions)
+            - If empty array []: NO tools are allowed from this server (all tools blocked)
+            - If array with tool names: ONLY the specified tools are allowed
+
+            Use this to restrict which tools the model can use from this specific server.
       example:
         server_label: 'slack'
         server_url: 'http://127.0.0.1:13080/sse'
         headers:
           Authorization: 'Bearer slack_token_123'
+        allowed_tools: ['send_message', 'get_channel_history']
 
     # Response Creation Schema
     CreateResponseRequest:
@@ -1774,7 +1808,7 @@ components:
             Full conversation history for multi-turn conversations. Each message includes role (user/assistant)
             and content. The system will use this context to maintain conversation flow and provide
             contextually relevant responses. Messages should be ordered chronologically.
-            
+
             **Note**: Cannot be used together with `previous_response_id`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
 
@@ -1802,6 +1836,11 @@ components:
           default: false
           example: true
           description: Enable streaming response (SSE format) instead of complete JSON response
+        store:
+          type: boolean
+          default: true
+          example: true
+          description: Whether to store the response for later retrieval (default true)
         mcp_servers:
           type: array
           items:
@@ -1809,14 +1848,18 @@ components:
           example:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
+              allowed_tools: ['send_message', 'get_channel_history']
               headers:
                 Authorization: 'Bearer slack_token_123'
             - server_label: 'github'
               server_url: 'http://127.0.0.1:14080/sse'
+              allowed_tools: ['get_latest_release']
               headers:
                 Authorization: 'Bearer github_token_456'
                 X-API-Version: 'v1'
-          description: MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
+          description: >-
+            MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
+            Use the allowed_tools field within each MCP server config to restrict which tools can be used from that server.
         previous_response_id:
           type: string
           example: 'resp-abc123-def456'
@@ -1824,7 +1867,7 @@ components:
             Optional reference to a previous response ID for conversation continuity and thread tracking.
             When provided, the system validates that the response exists and links the new response to it.
             This enables conversation threading and context reconstruction from response chains.
-            
+
             **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
 
@@ -2263,6 +2306,16 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    BFFConfigModel:
+      type: object
+      required:
+        - isCustomLSD
+      properties:
+        isCustomLSD:
+          type: boolean
+          example: false
+          description: Indicates whether a custom LlamaStack URL is configured for the BFF
+
     LlamaStackDistributionInstallRequest:
       type: object
       required:
@@ -2289,7 +2342,7 @@ components:
         model_name:
           type: string
           description: |
-            Name of the model to install. For MaaS models, this must be the exact MaaS model ID 
+            Name of the model to install. For MaaS models, this must be the exact MaaS model ID
             (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
           example: 'llama-3-2-3b-instruct'
         is_maas_model:
@@ -3051,11 +3104,11 @@ components:
               data:
                 $ref: '#/components/schemas/CodeExportData'
           example:
-              data:
-                code: |
-                  # Llama Stack Quickstart Script
-                  # Generated Python code for Llama Stack integration
-                  # ... rest of the Python code
+            data:
+              code: |
+                # Llama Stack Quickstart Script
+                # Generated Python code for Llama Stack integration
+                # ... rest of the Python code
 
     NamespacesResponse:
       description: List of Kubernetes namespaces
@@ -3124,15 +3177,15 @@ components:
                 nullable: true
             example:
               data:
-                name: "lsd-genai-playground"
-                httpStatus: "200"
+                name: 'lsd-genai-playground'
+                httpStatus: '200'
           examples:
             installation_success:
               summary: Successful installation
               value:
                 data:
-                  name: "lsd-genai-playground"
-                  httpStatus: "200"
+                  name: 'lsd-genai-playground'
+                  httpStatus: '200'
             installation_error:
               summary: Installation failed
               value:
@@ -3457,6 +3510,21 @@ components:
             $ref: '#/components/schemas/UserModel'
           example:
             userId: 'user@example.com'
+
+    BFFConfigResponse:
+      description: BFF application-level configuration
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/BFFConfigModel'
+          example:
+            data:
+              isCustomLSD: false
 
 tags:
   # =============================================================================

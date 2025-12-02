@@ -14,6 +14,7 @@ import { isConnectionTypeDataField } from '#~/concepts/connectionTypes/utils';
 type Props = {
   fields?: ConnectionTypeField[];
   isPreview?: boolean;
+  isDisabled?: boolean;
   onChange?: (field: ConnectionTypeDataField, value: ConnectionTypeValueType) => void;
   connectionValues?: {
     [key: string]: ConnectionTypeValueType;
@@ -36,6 +37,7 @@ type FieldGroup = {
 const ConnectionTypeFormFields: React.FC<Props> = ({
   fields,
   isPreview,
+  isDisabled,
   onChange,
   connectionValues,
   onValidate,
@@ -81,6 +83,7 @@ const ConnectionTypeFormFields: React.FC<Props> = ({
             id={id}
             field={field}
             mode={isPreview ? 'preview' : 'instance'}
+            isDisabled={isDisabled}
             onChange={onChange ? (v) => onChange(field, v) : undefined}
             value={connectionValues?.[field.envVar]}
             onValidate={(error, value) => onValidate?.(field, error, value)}

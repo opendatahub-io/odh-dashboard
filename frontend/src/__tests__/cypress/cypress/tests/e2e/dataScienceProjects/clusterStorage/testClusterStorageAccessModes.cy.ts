@@ -1,7 +1,6 @@
-import { StorageProvisioner } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
-  provisionStorageClass,
+  provisionStorageClassesForAccessModeTests,
   tearDownStorageClassFeature,
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
@@ -13,61 +12,57 @@ import {
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import type { SCAccessMode } from '#~/__tests__/cypress/cypress/types';
+import type { ClusterStorageAccessModesTestData } from '#~/__tests__/cypress/cypress/types';
+import { loadClusterStorageAccessModesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 
-describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', () => {
+describe('Cluster Storage Access Modes Tests', () => {
   const createdStorageClasses: string[] = [];
 
-  const projectName = 'test-cluster-storage-access-modes-preset';
-  const scRWOName = 'sc-rwo-preset';
-  const scRWXName = 'sc-rwx-preset';
-  const scROXName = 'sc-rox-preset';
-  const scRWOPName = 'sc-rwop-preset';
-  const scMultiAccessName = 'sc-multi-access-preset';
+  // Project name
+  let projectName: string;
+
+  // Storage class names
+  let storageClassRWO: string;
+  let storageClassRWX: string;
+  let storageClassROX: string;
+  let storageClassRWOP: string;
+  let storageClassMultiAccess: string;
+
+  // Storage name and description
+  let storageName: string;
+  let storageDescription: string;
 
   retryableBefore(() => {
-    cy.step('Provisioning storage classes with different access modes');
+    // Load test data from fixtures
+    return loadClusterStorageAccessModesFixture(
+      'e2e/dataScienceProjects/testClusterStorageAccessModes.yaml',
+    )
+      .then((fixtureData: ClusterStorageAccessModesTestData) => {
+        cy.log('Loaded test data from fixtures');
 
-    const scRWO: SCAccessMode = {
-      ReadWriteOnce: true,
-      ReadWriteMany: false,
-    };
-    provisionStorageClass(scRWOName, StorageProvisioner.VSPHERE_VOLUME, scRWO);
-    createdStorageClasses.push(scRWOName);
+        projectName = fixtureData.projectName;
+        storageClassRWO = fixtureData.storageClassRWO;
+        storageClassRWX = fixtureData.storageClassRWX;
+        storageClassROX = fixtureData.storageClassROX;
+        storageClassRWOP = fixtureData.storageClassRWOP;
+        storageClassMultiAccess = fixtureData.storageClassMultiAccess;
+        storageName = fixtureData.storageName;
+        storageDescription = fixtureData.storageDescription;
+      })
+      .then(() => {
+        cy.step('Provisioning storage classes with different access modes');
+        const provisionedStorageClasses = provisionStorageClassesForAccessModeTests({
+          storageClassRWO,
+          storageClassRWX,
+          storageClassROX,
+          storageClassRWOP,
+          storageClassMultiAccess,
+        });
+        createdStorageClasses.push(...provisionedStorageClasses);
 
-    const scRWX: SCAccessMode = {
-      ReadWriteOnce: false,
-      ReadWriteMany: true,
-    };
-    provisionStorageClass(scRWXName, StorageProvisioner.BLOCK_CSI_IBM, scRWX);
-    createdStorageClasses.push(scRWXName);
-
-    const scROX: SCAccessMode = {
-      ReadWriteOnce: false,
-      ReadWriteMany: false,
-      ReadOnlyMany: true,
-    };
-    provisionStorageClass(scROXName, StorageProvisioner.QUOBYTE, scROX);
-    createdStorageClasses.push(scROXName);
-
-    const scRWOP: SCAccessMode = {
-      ReadOnlyMany: false,
-      ReadWriteOncePod: true,
-    };
-    provisionStorageClass(scRWOPName, StorageProvisioner.PD_CSI_GKE, scRWOP);
-    createdStorageClasses.push(scRWOPName);
-
-    const scMultiAccess: SCAccessMode = {
-      ReadWriteOnce: true,
-      ReadWriteMany: true,
-      ReadOnlyMany: true,
-      ReadWriteOncePod: false,
-    };
-    provisionStorageClass(scMultiAccessName, StorageProvisioner.AZURE_FILE, scMultiAccess);
-    createdStorageClasses.push(scMultiAccessName);
-
-    cy.step('Provisioning project');
-    provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+        cy.step('Provisioning project');
+        provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+      });
   });
 
   after(() => {
@@ -93,10 +88,10 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
 
   it(
     'Should display storage classes with different access modes in cluster storage dropdown',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
-      clusterStorage.findCreateButton().click();
+      clusterStorage.findAddClusterStorageButton().click();
 
       cy.step('Verify storage class dropdown is enabled and contains our storage classes');
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
@@ -106,43 +101,50 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
       storageClassSelect.find().click();
 
       cy.step('Verify storage classes with different access modes are available');
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWOName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWO, 'i'));
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWXName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWX, 'i'));
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scROXName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassROX, 'i'));
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWOPName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWOP, 'i'));
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scMultiAccessName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassMultiAccess, 'i'));
       addClusterStorageModal.findCloseButton().click({ force: true });
     },
   );
 
   it(
-    'Should show correct access modes when selecting storage classes with RWO access mode',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    'Should show correct access modes when selecting storage classes with single access mode',
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
-      clusterStorage.findCreateButton().click();
+      clusterStorage.findAddClusterStorageButton().click();
+      // Wait for modal to be fully visible
+      addClusterStorageModal.find().should('be.visible');
 
-      cy.step(`Select storage class with ReadWriteOnce access mode: ${scRWOName}`);
+      cy.step(`Select storage class with ReadWriteOnce access mode: ${storageClassRWO}`);
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
+      // Ensure dropdown button is ready before clicking
+      storageClassSelect.find().should('be.visible').should('be.enabled');
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWOName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWO, 'i'));
+      // Wait for dropdown to show the selected value (proves selection completed)
+      storageClassSelect.find().should('contain.text', storageClassRWO);
 
       cy.step('Verify ReadWriteOnce access mode is available and selected');
       addClusterStorageModal.findRWOAccessMode().should('exist').should('be.checked');
       cy.step('Verify other access modes are not available for RWO-only storage class');
-      addClusterStorageModal.findRWXAccessMode().should('exist').should('be.disabled');
-      cy.step('Verify other access modes are not available for RWX-only storage class');
+      addClusterStorageModal.findRWXAccessMode().should('not.exist');
       addClusterStorageModal.findROXAccessMode().should('not.exist');
       addClusterStorageModal.findRWOPAccessMode().should('not.exist');
 
       cy.step('Verify that correct access modes are shown and selected for other storage classes');
-      cy.step(`Select storage class with ReadWriteMany access mode: ${scRWOName}`);
+      cy.step(`Select storage class with ReadWriteMany access mode: ${storageClassRWX}`);
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWXName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWX, 'i'));
+      // Wait for dropdown to show the selected value (proves selection completed)
+      storageClassSelect.find().should('contain.text', storageClassRWX);
 
       cy.step('Verify ReadWriteMany access mode is available');
       addClusterStorageModal.findRWXAccessMode().should('exist').should('not.be.disabled');
@@ -159,24 +161,26 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
   );
 
   it(
-    'Should show multiple access modes when selecting storage class with multiple access modes',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    'Should show correct access modes when selecting storage class with multiple access modes',
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Open the Create cluster storage modal');
-      clusterStorage.findCreateButton().click();
+      clusterStorage.findAddClusterStorageButton().click();
 
-      cy.step(`Select storage class with multiple access modes: ${scMultiAccessName}`);
+      cy.step(`Select storage class with multiple access modes: ${storageClassMultiAccess}`);
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scMultiAccessName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassMultiAccess, 'i'));
+      // Wait for dropdown to show the selected value (proves selection completed)
+      storageClassSelect.find().should('contain.text', storageClassMultiAccess);
 
       cy.step('Verify multiple access modes are available and can be selected');
       addClusterStorageModal.findRWOAccessMode().should('exist').should('not.be.disabled');
       addClusterStorageModal.findRWXAccessMode().should('exist').should('not.be.disabled');
       addClusterStorageModal.findROXAccessMode().should('exist').should('not.be.disabled');
 
-      // RWOP should be disabled since it wasn't included in this storage class
-      addClusterStorageModal.findRWOPAccessMode().should('exist').should('be.disabled');
+      // RWOP should not exist since it wasn't included in this storage class
+      addClusterStorageModal.findRWOPAccessMode().should('not.exist');
 
       cy.step('Test switching between available access modes');
 
@@ -198,20 +202,19 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
 
   it(
     'Should successfully create cluster storage with different access modes, and not be allowed to change access modes on edit',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       cy.step('Fill in the create cluster storage with ReadWriteMany access mode');
-      clusterStorage.findCreateButton().click();
+      clusterStorage.findAddClusterStorageButton().click();
 
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
       storageClassSelect.find().click();
-      storageClassSelect.selectStorageClassSelectOption(new RegExp(scRWXName, 'i'));
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWX, 'i'));
+      // Wait for dropdown to show the selected value (proves selection completed)
+      storageClassSelect.find().should('contain.text', storageClassRWX);
       addClusterStorageModal.findRWXAccessMode().click();
-      const storageName = 'test-rwx-storage-preset';
       addClusterStorageModal.findNameInput().type(storageName);
-      addClusterStorageModal
-        .findDescriptionInput()
-        .type('Test storage with ReadWriteMany access mode');
+      addClusterStorageModal.findDescriptionInput().type(storageDescription);
 
       cy.step('Submit the form');
       addClusterStorageModal.findSubmitButton().should('not.be.disabled').click();
@@ -220,7 +223,7 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
       clusterStorage.getClusterStorageRow(storageName).find().should('exist');
 
       const storageRow = clusterStorage.getClusterStorageRow(storageName);
-      storageRow.findStorageClassColumn().should('contain.text', scRWXName);
+      storageRow.findStorageClassColumn().should('contain.text', storageClassRWX);
 
       cy.step('Attempt to edit the cluster storage');
       clusterStorage.getClusterStorageRow(storageName).findKebabAction('Edit storage').click();
@@ -239,6 +242,37 @@ describe('[Automation Bug: RHOAIENG-33410] Cluster Storage Access Modes Tests', 
       updateClusterStorageModal.findROXAccessMode().should('not.exist');
       updateClusterStorageModal.findRWOPAccessMode().should('not.exist');
       updateClusterStorageModal.findCloseButton().click({ force: true });
+    },
+  );
+
+  it(
+    'Should reset access mode appropriately when switching between storage classes',
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    () => {
+      cy.step('Open create modal');
+      clusterStorage.findAddClusterStorageButton().click();
+
+      const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
+
+      cy.step('Select multi-access storage class and choose RWX');
+      storageClassSelect.find().click();
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassMultiAccess, 'i'));
+      // Wait for dropdown to show the selected value (proves selection completed)
+      storageClassSelect.find().should('contain.text', storageClassMultiAccess);
+      addClusterStorageModal.findRWXAccessMode().click();
+      addClusterStorageModal.findRWXAccessMode().should('be.checked');
+
+      cy.step('Switch to RWO-only storage class');
+      storageClassSelect.find().click();
+      storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWO, 'i'));
+      // Wait for dropdown to show the selected value (proves selection completed)
+      storageClassSelect.find().should('contain.text', storageClassRWO);
+
+      cy.step('Verify access mode defaults to RWO (the only available option)');
+      addClusterStorageModal.findRWOAccessMode().should('exist').should('be.checked');
+      addClusterStorageModal.findRWXAccessMode().should('not.exist');
+
+      addClusterStorageModal.findCloseButton().click({ force: true });
     },
   );
 });

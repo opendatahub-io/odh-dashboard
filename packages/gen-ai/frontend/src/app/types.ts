@@ -84,6 +84,7 @@ export type MCPServerConfig = {
   server_label: string;
   server_url: string;
   headers: Record<string, string>;
+  allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
 export type CreateResponseRequest = {
@@ -265,6 +266,10 @@ export type LlamaStackDistributionModel = {
   };
 };
 
+export type BFFConfig = {
+  isCustomLSD: boolean;
+};
+
 export interface AAModelResponse {
   model_name: string;
   model_id: string;
@@ -362,6 +367,7 @@ export type GenAiAPIs = {
   getMCPServerTools: GetMCPServerTools;
   getMCPServers: GetMCPServers;
   getMCPServerStatus: GetMCPServerStatus;
+  getBFFConfig: GetBFFConfig;
 };
 
 export type ModArchRestGET<T> = (
@@ -385,7 +391,7 @@ type GetLSDModels = ModArchRestGET<LlamaModel[]>;
 type UploadSource = ModArchRestCREATE<FileUploadResult, FormData>;
 type CreateResponse = (
   data: CreateResponseRequest,
-  opts?: APIOptions & { onStreamData?: (chunk: string) => void },
+  opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
 type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
@@ -397,3 +403,4 @@ type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
 type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
+type GetBFFConfig = ModArchRestGET<BFFConfig>;

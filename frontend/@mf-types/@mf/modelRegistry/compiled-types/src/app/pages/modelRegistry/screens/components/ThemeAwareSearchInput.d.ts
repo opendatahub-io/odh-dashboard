@@ -5,6 +5,7 @@ type ThemeAwareSearchInputProps = Omit<SearchInputProps, 'onChange' | 'onClear'>
     onClear?: () => void;
     fieldLabel?: string;
     'data-testid'?: string;
+    onClick?: () => void;
 };
 declare const ThemeAwareSearchInput: React.FC<ThemeAwareSearchInputProps>;
 export default ThemeAwareSearchInput;

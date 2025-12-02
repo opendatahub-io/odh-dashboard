@@ -7,12 +7,13 @@ import type {
   WBControlSuiteTestData,
   WBVariablesTestData,
   WBStatusTestData,
+  WBStorageClassesTestData,
+  ClusterStorageAccessModesTestData,
   OOTBConnectionTypesData,
   WBTolerationsTestData,
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
-  AcceleratorProfilesModelTolerationsTestData,
   ManageRegistryPermissionsTestData,
   ModelRegistryTestData,
 } from '#~/__tests__/cypress/cypress/types';
@@ -67,6 +68,24 @@ export const loadWBStatusFixture = (fixturePath: string): Cypress.Chainable<WBSt
     return data;
   });
 
+export const loadWBStorageClassesFixture = (
+  fixturePath: string,
+): Cypress.Chainable<WBStorageClassesTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WBStorageClassesTestData;
+
+    return data;
+  });
+
+export const loadClusterStorageAccessModesFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ClusterStorageAccessModesTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ClusterStorageAccessModesTestData;
+
+    return data;
+  });
+
 export const loadOOTBConnectionTypesFixture = (
   fixturePath: string,
 ): Cypress.Chainable<OOTBConnectionTypesData> =>
@@ -107,14 +126,6 @@ export const loadModelTolerationsFixture = (
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelTolerationsTestData;
 
-    return data;
-  });
-
-export const loadAcceleratorProfileModelTolerationsFixture = (
-  fixturePath: string,
-): Cypress.Chainable<AcceleratorProfilesModelTolerationsTestData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
-    const data = yaml.load(yamlContent) as AcceleratorProfilesModelTolerationsTestData;
     return data;
   });
 

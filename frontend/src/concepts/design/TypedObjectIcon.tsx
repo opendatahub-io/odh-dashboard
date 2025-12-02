@@ -24,7 +24,7 @@ import {
   CheckmarkIcon,
   ArtifactIcon,
   DistributedWorkloadIcon,
-  AcceleratorProfileIcon,
+  HardwareProfileIcon,
   ModelIcon,
   SingleModelIcon,
   MultiModelIcon,
@@ -131,8 +131,8 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.clusterSettings:
       Icon = ClusterSettingsIcon;
       break;
-    case ProjectObjectType.acceleratorProfile:
-      Icon = AcceleratorProfileIcon;
+    case ProjectObjectType.hardwareProfile:
+      Icon = HardwareProfileIcon;
       break;
     case ProjectObjectType.permissions:
       Icon = PermissionsIcon;

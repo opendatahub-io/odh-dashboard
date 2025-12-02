@@ -341,3 +341,71 @@ func TestGetCurrentUserHandler(t *testing.T) {
 		})
 	}
 }
+
+// TestBFFConfigEndpointIntegration tests the BFF config endpoint is properly registered
+func TestBFFConfigEndpointIntegration(t *testing.T) {
+	// Create a test app
+	cfg := config.EnvConfig{
+		LlamaStackURL: "https://custom-llamastack.example.com",
+	}
+	app := &App{
+		config:       cfg,
+		logger:       slog.Default(),
+		repositories: repositories.NewRepositories(),
+	}
+
+	tests := []struct {
+		name         string
+		path         string
+		expectedCode int
+		checkConfig  bool
+	}{
+		{
+			name:         "config endpoint exact path",
+			path:         constants.ConfigPath,
+			expectedCode: http.StatusOK,
+			checkConfig:  true,
+		},
+		{
+			name:         "config endpoint with query params",
+			path:         constants.ConfigPath + "?test=value",
+			expectedCode: http.StatusOK,
+			checkConfig:  true,
+		},
+		{
+			name:         "config endpoint is API route",
+			path:         constants.ConfigPath,
+			expectedCode: http.StatusOK,
+			checkConfig:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, tt.path, nil)
+			assert.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			app.BFFConfigHandler(rr, req, nil)
+
+			assert.Equal(t, tt.expectedCode, rr.Code)
+
+			if tt.checkConfig {
+				body, err := io.ReadAll(rr.Result().Body)
+				assert.NoError(t, err)
+				defer rr.Result().Body.Close()
+
+				var response struct {
+					Data *models.BFFConfigModel `json:"data"`
+				}
+				err = json.Unmarshal(body, &response)
+				assert.NoError(t, err)
+				assert.NotNil(t, response.Data)
+				assert.True(t, response.Data.IsCustomLSD)
+			}
+
+			// Verify it's recognized as an API route
+			assert.True(t, app.isAPIRoute(constants.ConfigPath))
+		})
+	}
+}

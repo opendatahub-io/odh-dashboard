@@ -9,6 +9,13 @@ import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
 import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
 
+/**
+ * most of this file (everything that uses and descends from PodSpecOptions) is deprecated
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ *
+ * when modelmesh is removed; remove everything that uses and descends from PodSpecOptions
+ * (do this last; it should be the last thing removed and be obvious afterwards)
+ */
 export type ModelServingPodSpecOptions = PodSpecOptions & {
   selectedModelSize?: ModelServingSize;
 };

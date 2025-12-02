@@ -5,6 +5,7 @@ import type {
   ModelServingDeploymentFormDataExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
+  ModelServingDeploymentTransformExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '../src/types';
 
@@ -17,6 +18,7 @@ const extensions: (
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
   | DeploymentWizardFieldExtension<LLMdDeployment>
+  | ModelServingDeploymentTransformExtension<LLMdDeployment>
 )[] = [
   {
     type: 'model-serving.platform/watch-deployments',
@@ -50,6 +52,8 @@ const extensions: (
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('../src/deployments/model').then((m) => m.extractModelLocationData),
+      extractModelServerTemplate: () =>
+        import('../src/deployments/server').then((m) => m.extractModelServerTemplate),
     },
   },
   {

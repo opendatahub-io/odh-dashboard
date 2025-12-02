@@ -45,7 +45,7 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '#~/concepts/k8s/utils';
-import { getSecret, updatePvc, useAccessReview } from '#~/api';
+import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
@@ -162,6 +162,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const [pvcMode, setPvcMode] = React.useState<PVCMode>('create-new');
   const [existingPvcName, setExistingPvcName] = React.useState<string>('');
   const [modelPath, setModelPath] = React.useState<string>(DEFAULT_MODEL_PATH);
+  const [pvcSubPath, setPvcSubPath] = React.useState<string>('');
   const [selectedModelName, setSelectedModelName] = React.useState<string>('');
 
   // Add useEffect to track selected model from inference service data
@@ -249,6 +250,24 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [templateName, dashboardNamespace, editInfo]);
 
+  // Extract and initialize pvcSubPath from existing serving runtime in edit mode
+  React.useEffect(() => {
+    const { servingRuntime } = editInfo?.servingRuntimeEditInfo || {};
+    if (servingRuntime) {
+      // Find the volumeMount with mountPath '/mnt/models/cache' and extract its subPath
+      const { containers } = servingRuntime.spec;
+      for (const container of containers) {
+        const volumeMounts = container.volumeMounts || [];
+        for (const volumeMount of volumeMounts) {
+          if (volumeMount.mountPath === '/mnt/models/cache' && volumeMount.subPath) {
+            setPvcSubPath(volumeMount.subPath);
+            return; // Found it, exit early
+          }
+        }
+      }
+    }
+  }, [editInfo]);
+
   const isSecretNeeded = async (ns: string, secretName: string): Promise<boolean> => {
     try {
       await getSecret(ns, secretName);
@@ -269,6 +288,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setPvcMode('create-new');
     setExistingPvcName('');
     setModelPath(DEFAULT_MODEL_PATH);
+    setPvcSubPath('');
   };
 
   const setErrorModal = (e: Error) => {
@@ -293,7 +313,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
     const finalServingRuntime =
       !editInfo && servingRuntimeSelected
-        ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
+        ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName, pvcSubPath || undefined)
         : servingRuntimeSelected;
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
@@ -368,6 +388,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         }
         return Promise.all(promises);
       })
+      .then(async () => {
+        if (editInfo?.inferenceServiceEditInfo) {
+          await patchInferenceServiceStoppedStatus(editInfo.inferenceServiceEditInfo, 'false');
+        }
+      })
       .then(() => {
         onSuccess();
         watchDeployment();
@@ -441,9 +466,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 setExistingPvcName={setExistingPvcName}
                 modelPath={modelPath}
                 setModelPath={setModelPath}
+                pvcSubPath={pvcSubPath}
+                setPvcSubPath={setPvcSubPath}
                 isEditing={!!editInfo}
-                selectedModel={selectedModelName} // Add this prop
-                namespace={namespace} // Add this prop
+                selectedModel={selectedModelName}
+                namespace={namespace}
               />
             </StackItem>
             <StackItem>

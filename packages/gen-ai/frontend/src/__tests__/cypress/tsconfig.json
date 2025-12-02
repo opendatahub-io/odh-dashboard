@@ -1,8 +1,16 @@
 {
   "extends": "../../../tsconfig.json",
-  "include": ["../../**/*.ts", "cypress.config.js"],
-  "exclude": ["node_modules", "dist"],
+  "include": ["cypress/**/*.ts", "cypress.config.ts", "webpack.config.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../unit/**/*",
+    "**/*.md",
+    "**/*.yaml",
+    "**/*.yml",
+    "**/*.json"
+  ],
   "compilerOptions": {
-    "types": ["node", "cypress"]
+    "types": ["node", "cypress", "@testing-library/cypress"]
   }
 }
