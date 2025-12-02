@@ -24,7 +24,7 @@ let modelName: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-38674] A model can be stopped and started', () => {
+describe('A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -64,7 +64,6 @@ describe('[Product Bug: RHOAIENG-38674] A model can be stopped and started', () 
         '@ModelServing',
         '@NonConcurrent',
         '@ci-dashboard-set-2',
-        '@Bug',
       ],
     },
     () => {
@@ -96,17 +95,7 @@ describe('[Product Bug: RHOAIENG-38674] A model can be stopped and started', () 
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       modelServingWizard.findNextButton().click();
       //Step 3: Advanced Options
       modelServingWizard.findNextButton().click();
@@ -119,7 +108,7 @@ describe('[Product Bug: RHOAIENG-38674] A model can be stopped and started', () 
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
       checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-
+      cy.reload();
       //Stop the model with the modal
       cy.step('Stop the model');
       //Ensure the modal is shown
