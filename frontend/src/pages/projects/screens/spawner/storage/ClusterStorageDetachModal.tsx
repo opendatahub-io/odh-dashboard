@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import ContentModal from '#~/components/modals/ContentModal.tsx';
 
 interface ClusterStorageDetachModalProps {
   storageName: string;
@@ -11,19 +11,36 @@ export const ClusterStorageDetachModal: React.FC<ClusterStorageDetachModalProps>
   storageName,
   onConfirm,
   onClose,
-}) => (
-  <Modal isOpen variant="small" onClose={onClose}>
-    <ModalHeader title="Detach storage?" />
-    <ModalBody>
+}) => {
+  const buttonActions = [
+    {
+      label: 'Detach',
+      onClick: onConfirm,
+      variant: 'primary' as const,
+      dataTestId: 'detach-storage-modal-button',
+    },
+    {
+      label: 'Cancel',
+      onClick: onClose,
+      variant: 'link' as const,
+      dataTestId: 'cancel-storage-modal-button',
+      clickOnEnter: true,
+    },
+  ];
+
+  const contents = (
+    <div>
       The <b>{storageName}</b> storage and all of its resources will be detached from the workbench.
-    </ModalBody>
-    <ModalFooter>
-      <Button key="confirm" variant="primary" onClick={onConfirm}>
-        Detach
-      </Button>
-      <Button key="cancel" variant="link" onClick={onClose}>
-        Cancel
-      </Button>
-    </ModalFooter>
-  </Modal>
-);
+    </div>
+  );
+  return (
+    <ContentModal
+      onClose={onClose}
+      title="Detach storage?"
+      contents={contents}
+      buttonActions={buttonActions}
+      dataTestId="detach-storage-modal"
+      variant="small"
+    />
+  );
+};
