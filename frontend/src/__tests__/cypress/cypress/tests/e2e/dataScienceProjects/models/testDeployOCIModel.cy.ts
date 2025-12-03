@@ -109,22 +109,26 @@ describe(
         // So we don't need to click the button.
         modelServingGlobal.selectSingleServingModelButtonIfExists();
         modelServingGlobal.findDeployModelButton().click();
-        // Step 1: Model Source
+
+        cy.step('Step 1: Model details');
         modelServingWizard.findModelLocationSelectOption('Existing connection').click();
         modelServingWizard.findOCIModelURI().clear().type(modelDeploymentURI);
         modelServingWizard.findModelTypeSelectOption('Predictive model').click();
         modelServingWizard.findNextButton().click();
-        // Step 2: Model Deployment
+
+        cy.step('Step 2: Model deployment');
         modelServingWizard.findModelDeploymentNameInput().clear().type(modelDeploymentName);
         modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
         modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
         modelServingWizard.findNextButton().click();
-        // Step 3: Advanced Options
+
+        cy.step('Step 3: Advanced settings');
         modelServingWizard.findNextButton().click();
-        // Step 4: Review
+
+        cy.step('Step 4: Review');
         modelServingWizard.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
-        //Verify the model created and is running
+
         cy.step('Verify that the Model is running');
         // Verify model deployment is ready
         checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });

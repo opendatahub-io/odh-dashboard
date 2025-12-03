@@ -40,7 +40,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('Verify a model can be deployed from a PVC', () => {
+describe('[Product Bug: RHOAIENG-41299] Verify a model can be deployed from a PVC', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -70,7 +70,7 @@ describe('Verify a model can be deployed from a PVC', () => {
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
     () => {
       cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -132,20 +132,24 @@ describe('Verify a model can be deployed from a PVC', () => {
       // So we don't need to click the button.
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
-      // Step 1: Model Source
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+
+      cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
       modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
+
+      cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-      //Step 3: Advanced Options
       modelServingWizard.findNextButton().click();
-      //Step 4: Review
+
+      cy.step('Step 3: Advanced settings');
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running

@@ -83,21 +83,22 @@ describe('Verify Model Creation and Validation using the UI', () => {
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
-      // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using OpenVINO Model Server');
-      // Step 1: Model Source
+      cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
+
+      cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       modelServingWizard.findNextButton().click();
-      //Step 3: Advanced Options
+
+      cy.step('Step 3: Advanced settings');
       modelServingWizard.findNextButton().click();
-      //Step 4: Review
+
+      cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
