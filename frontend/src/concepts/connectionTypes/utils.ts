@@ -333,28 +333,9 @@ export const assembleConnectionSecret = (
     [key: string]: ConnectionTypeValueType;
   },
 ): Connection => {
-  const isOCI =
-    connectionTypeName ===
-    modelServingCompatibleTypesMetadata[ModelServingCompatibleTypes.OCI].resource;
-  const valuesWithDefaults = isOCI
-    ? {
-        ...values,
-        '.dockerconfigjson': values['.dockerconfigjson'] ?? '',
-        OCI_HOST: values.OCI_HOST ?? '',
-      }
-    : values;
-
   const connectionValuesAsStrings = Object.fromEntries(
-    Object.entries(valuesWithDefaults)
+    Object.entries(values)
       .map(([key, value]) => {
-        // For OCI connections, convert empty .dockerconfigjson and OCI_HOST to '{}'
-        if (
-          isOCI &&
-          (key === '.dockerconfigjson' || key === 'OCI_HOST') &&
-          (!value || value === '')
-        ) {
-          return [key, '{}'];
-        }
         if (Array.isArray(value)) {
           return [key, JSON.stringify(value)]; // multi select
         }
@@ -396,21 +377,12 @@ export const parseConnectionSecretValues = (
   connectionType?: ConnectionTypeConfigMapObj,
 ): { [key: string]: ConnectionTypeValueType } => {
   const response: { [key: string]: ConnectionTypeValueType } = {};
-  const isOCI = connectionType
-    ? isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
-    : false;
 
   for (const [key, value] of Object.entries(connection.data ?? {})) {
     const decodedString = window.atob(value);
     const matchingField = connectionType?.data?.fields?.find(
       (f) => isConnectionTypeDataField(f) && f.envVar === key,
     );
-
-    // For OCI connections, convert '{}' back to empty string for display in edit forms
-    if (isOCI && (key === '.dockerconfigjson' || key === 'OCI_HOST') && decodedString === '{}') {
-      response[key] = '';
-      continue;
-    }
 
     if (matchingField?.type === ConnectionTypeFieldType.Boolean) {
       response[key] = decodedString === 'true';
