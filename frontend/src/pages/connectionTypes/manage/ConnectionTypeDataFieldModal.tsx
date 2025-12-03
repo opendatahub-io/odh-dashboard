@@ -13,8 +13,9 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  Alert,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon, WarningTriangleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   ConnectionTypeDataField,
@@ -26,6 +27,7 @@ import {
   fieldNameToEnvVar,
   fieldTypeToString,
   isConnectionTypeDataField,
+  isModelServingEnvVar,
   isValidEnvVar,
 } from '#~/concepts/connectionTypes/utils';
 import { isEnumMember } from '#~/utilities/utils';
@@ -83,6 +85,9 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   const isEnvVarValid = !envVar || isValidEnvVar(envVar);
 
   const isValid = isPropertiesValid && !!name && !!envVar;
+
+  const showEnvVarError =
+    isModelServingEnvVar(field?.envVar || '') && field?.envVar !== data.envVar;
 
   // Cast from specific type to generic type
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-explicit-any
@@ -180,20 +185,32 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem
-                  variant={isEnvVarValid ? 'default' : 'warning'}
-                  icon={isEnvVarValid ? undefined : <WarningTriangleIcon />}
-                >
+                <HelperTextItem variant="default" icon={undefined}>
                   For highest compatibility, field must consist of alphanumeric characters, ( - ), (
                   _ ), or ( . )
                 </HelperTextItem>
+                {!isEnvVarValid && (
+                  <Alert variant={'warning'} title="Invalid character" isPlain isInline></Alert>
+                )}
               </HelperText>
               {isEnvVarConflict ? (
-                <HelperText data-testid="envvar-conflict-warning">
-                  <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
-                    {envVar} already exists within this connection type. Try a different name.
-                  </HelperTextItem>
-                </HelperText>
+                <Alert
+                  data-testid="envvar-conflict-warning"
+                  variant="warning"
+                  isInline
+                  isPlain
+                  title={`${envVar} already exists within this connection type. Use a unique environment
+                    variable name.`}
+                ></Alert>
+              ) : showEnvVarError && isEnvVarValid ? (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title=" Changing this environment variable will result in the loss of model serving
+                    compatibility. The connection type will no longer appear as an option for model
+                    serving."
+                  data-testid="envvar-compatibility-warning"
+                ></Alert>
               ) : undefined}
             </FormHelperText>
           </FormGroup>
