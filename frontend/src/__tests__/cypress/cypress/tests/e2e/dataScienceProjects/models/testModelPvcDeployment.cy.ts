@@ -133,10 +133,10 @@ describe('Verify a model can be deployed from a PVC', () => {
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
       // Step 1: Model Source
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      modelServingWizard.findPVCSelectValue().should('have.value', pvStorageName);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findNextButton().click();
       // Step 2: Model Deployment
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
