@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-38674] Verify Model Creation and Validation using the UI', () => {
+describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
@@ -58,15 +58,7 @@ describe('[Product Bug: RHOAIENG-38674] Verify Model Creation and Validation usi
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2552',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -88,31 +80,22 @@ describe('[Product Bug: RHOAIENG-38674] Verify Model Creation and Validation usi
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
-      // Launch a Single Serving Model and select the required entries
-      cy.step('Launch a Single Serving Model using OpenVINO Model Server');
-      // Step 1: Model Source
+      cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
+
+      cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       modelServingWizard.findNextButton().click();
-      //Step 3: Advanced Options
+
+      cy.step('Step 3: Advanced settings');
       modelServingWizard.findNextButton().click();
-      //Step 4: Review
+
+      cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 

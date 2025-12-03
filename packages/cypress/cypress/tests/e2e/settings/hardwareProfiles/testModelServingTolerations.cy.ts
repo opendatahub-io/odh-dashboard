@@ -34,7 +34,7 @@ const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-38674] ModelServing - tolerations tests', () => {
+describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -104,7 +104,6 @@ describe('[Product Bug: RHOAIENG-38674] ModelServing - tolerations tests', () =>
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
-        '@Bug',
       ],
     },
     () => {
@@ -131,42 +130,35 @@ describe('[Product Bug: RHOAIENG-38674] ModelServing - tolerations tests', () =>
       cy.step(
         'Launch a Single Serving Model using OpenVINO Model Server and by selecting the Hardware Profile',
       );
-      // Step 1: Model Source
+      cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
+
+      cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
       );
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       modelServingWizard.findNextButton().click();
-      // Step 3: Advanced Options
+
+      cy.step('Step 3: Advanced settings');
       modelServingWizard.findNextButton().click();
-      // Step 4: Review
+
+      cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(modelName, projectName);
-      modelServingSection.findModelMetricsLink(modelName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
+      modelServingSection.findModelMetricsLink(modelName);
       attemptToClickTooltip();
 
       // Validate that the toleration applied earlier displays in the newly created pod

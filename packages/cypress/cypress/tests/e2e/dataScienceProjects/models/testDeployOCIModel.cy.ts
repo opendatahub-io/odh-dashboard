@@ -41,7 +41,7 @@ const updateSecretDetailsFile = (
 };
 
 describe(
-  '[Product Bug: RHOAIENG-38674] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -77,7 +77,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -106,35 +106,30 @@ describe(
         // So we don't need to click the button.
         modelServingGlobal.selectSingleServingModelButtonIfExists();
         modelServingGlobal.findDeployModelButton().click();
-        // Step 1: Model Source
+
+        cy.step('Step 1: Model details');
         modelServingWizard.findModelLocationSelectOption('Existing connection').click();
         modelServingWizard.findOCIModelURI().clear().type(modelDeploymentURI);
         modelServingWizard.findModelTypeSelectOption('Predictive model').click();
         modelServingWizard.findNextButton().click();
-        // Step 2: Model Deployment
+
+        cy.step('Step 2: Model deployment');
         modelServingWizard.findModelDeploymentNameInput().clear().type(modelDeploymentName);
         modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-        // Only interact with serving runtime template selector if it's not disabled
-        // (it may be disabled when only one option is available)
-        modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-          if (!$selector.is(':disabled')) {
-            cy.wrap($selector).click();
-            modelServingWizard
-              .findGlobalScopedTemplateOption('OpenVINO Model Server')
-              .should('exist')
-              .click();
-          }
-        });
+        modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
         modelServingWizard.findNextButton().click();
-        // Step 3: Advanced Options
+
+        cy.step('Step 3: Advanced settings');
         modelServingWizard.findNextButton().click();
-        // Step 4: Review
+
+        cy.step('Step 4: Review');
         modelServingWizard.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
-        //Verify the model created and is running
+
         cy.step('Verify that the Model is running');
         // Verify model deployment is ready
         checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });
+        cy.reload();
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );
