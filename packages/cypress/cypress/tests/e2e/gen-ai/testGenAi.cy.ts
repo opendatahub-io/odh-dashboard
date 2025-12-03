@@ -11,6 +11,7 @@ import {
   enableGenAiFeatures,
   disableGenAiFeatures,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/genAi';
+import { getCustomResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/customResources';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import type { GenAiTestData } from '#~/__tests__/cypress/cypress/types';
@@ -33,31 +34,53 @@ import { genAiPlayground } from '#~/__tests__/cypress/cypress/pages/genAiPlaygro
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
+  let skipTest = false;
   const uuid = generateTestUUID();
 
-  retryableBefore(() =>
-    cy
-      .fixture('e2e/genAi/testGenAi.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as GenAiTestData;
-        projectName = `gen-ai-test-${uuid}`;
+  retryableBefore(() => {
+    // Check if the operator is RHOAI, if it's not (ODH), skip the test
+    cy.step('Check if the operator is RHOAI');
+    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
+      if (!result.stdout.includes('rhods-operator')) {
+        cy.log('RHOAI operator not found, skipping the test (Gen AI is RHOAI-specific).');
+        skipTest = true;
+      } else {
+        cy.log('RHOAI operator confirmed:', result.stdout);
+      }
+    });
 
-        if (!projectName) {
-          throw new Error('Project name is undefined or empty');
-        }
+    // If not skipping, proceed with test setup
+    cy.then(() => {
+      if (skipTest) {
+        return;
+      }
 
-        return verifyOpenShiftProjectExists(projectName);
-      })
-      .then((exists: boolean) => {
-        if (exists) {
-          return deleteOpenShiftProject(projectName);
-        }
-        return cy.wrap(null);
-      })
-      .then(() => enableGenAiFeatures()),
-  );
+      cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
+        .then((yamlContent: string) => {
+          testData = yaml.load(yamlContent) as GenAiTestData;
+          projectName = `gen-ai-test-${uuid}`;
+
+          if (!projectName) {
+            throw new Error('Project name is undefined or empty');
+          }
+
+          return verifyOpenShiftProjectExists(projectName);
+        })
+        .then((exists: boolean) => {
+          if (exists) {
+            return deleteOpenShiftProject(projectName);
+          }
+          return cy.wrap(null);
+        })
+        .then(() => enableGenAiFeatures());
+    });
+  });
 
   after(() => {
+    if (skipTest) {
+      return;
+    }
+
     disableGenAiFeatures();
 
     if (projectName) {
@@ -82,6 +105,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Namespace', '@Connection'],
     },
     () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
+      }
+
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       projectListPage.navigate();
@@ -126,6 +154,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment'],
     },
     () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
+      }
+
       cy.step('Log into the application and navigate to project');
       cy.visitWithLogin(`/projects/${projectName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -253,6 +286,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground'],
     },
     () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
+      }
+
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
