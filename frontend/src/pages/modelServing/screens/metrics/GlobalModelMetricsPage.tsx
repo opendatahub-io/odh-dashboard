@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import MetricsPage from './MetricsPage';
 import { GlobalModelMetricsOutletContextProps } from './GlobalModelMetricsWrapper';
@@ -19,7 +18,6 @@ const GlobalModelMetricsPage: React.FC = () => {
         },
       ]}
       model={model}
-      type={PerformanceMetricType.MODEL}
     />
   );
 };

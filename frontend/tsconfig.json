@@ -12,7 +12,6 @@
     "@mf-types",
     "public",
     "public-cypress",
-    "src/__tests__/cypress",
     "**/packages/gen-ai",
     "**/upstream"
   ]

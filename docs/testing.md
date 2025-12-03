@@ -208,7 +208,7 @@ npm run cypress:open:mock -- --config numTestsKeptInMemory=0
 ### Structure
 
 ```
-/frontend/src/__tests__/cypress
+/packages/cypress/cypress
   /tests         - Tests
     /e2e         - Live cluster tests
     /mocked      - Mocked tests

@@ -6,9 +6,7 @@ import { BreadcrumbItemType } from '#~/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import MetricsPageTabs from '#~/pages/modelServing/screens/metrics/MetricsPageTabs';
 import { MetricsTabKeys } from '#~/pages/modelServing/screens/metrics/types';
-import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
-import ServerMetricsPage from '#~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import { getBreadcrumbItemComponents } from './utils';
@@ -16,11 +14,10 @@ import { getBreadcrumbItemComponents } from './utils';
 type MetricsPageProps = {
   title: string;
   breadcrumbItems: BreadcrumbItemType[];
-  type: PerformanceMetricType;
   model?: InferenceServiceKind;
 };
 
-const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type, model }) => {
+const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, model }) => {
   const { tab } = useParams();
   const navigate = useNavigate();
 
@@ -46,11 +43,7 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type,
         )
       }
     >
-      {type === PerformanceMetricType.SERVER ? (
-        <ServerMetricsPage />
-      ) : model ? (
-        <MetricsPageTabs model={model} />
-      ) : null}
+      {model ? <MetricsPageTabs model={model} /> : null}
     </ApplicationsPage>
   );
 };

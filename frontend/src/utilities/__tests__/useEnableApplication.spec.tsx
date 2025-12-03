@@ -34,7 +34,6 @@ describe('useEnableApplication', () => {
     (useServingPlatformStatuses as jest.Mock).mockReturnValue({
       kServe: { enabled: true, installed: true },
       kServeNIM: { enabled: true, installed: true },
-      modelMesh: { enabled: false, installed: true },
       platformEnabledCount: 2,
       refreshNIMAvailability: jest.fn().mockResolvedValue(true),
     });

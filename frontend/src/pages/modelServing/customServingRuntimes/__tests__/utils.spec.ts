@@ -47,30 +47,12 @@ describe('getDisplayNameFromServingRuntimeTemplate', () => {
 });
 
 describe('getTemplateEnabledForPlatform', () => {
-  it('should be true if template supports both', () => {
-    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
-      platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-    });
-    expect(
-      getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
-    ).toBeTruthy();
-  });
-
-  it('should be false if template supports MULTI but we pass SINGLE as check', () => {
-    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
-      platforms: [ServingRuntimePlatform.MULTI],
-    });
-    expect(
-      getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
-    ).toBeFalsy();
-  });
-
-  it('should be true if template supports SINGLE but we pass SINGLE as check', () => {
-    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+  it('should be true if template supports SINGLE', () => {
+    const templateSinglePlatform = mockServingRuntimeTemplateK8sResource({
       platforms: [ServingRuntimePlatform.SINGLE],
     });
     expect(
-      getTemplateEnabledForPlatform(teamplateAllPlatforms, ServingRuntimePlatform.SINGLE),
+      getTemplateEnabledForPlatform(templateSinglePlatform, ServingRuntimePlatform.SINGLE),
     ).toBeTruthy();
   });
 });
@@ -103,16 +85,6 @@ describe('getEnabledPlatformsFromTemplate', () => {
     });
     expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
       ServingRuntimePlatform.SINGLE,
-    ]);
-  });
-
-  it('should return both platforms', () => {
-    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
-      platforms: [ServingRuntimePlatform.SINGLE, ServingRuntimePlatform.MULTI],
-    });
-    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
-      ServingRuntimePlatform.SINGLE,
-      ServingRuntimePlatform.MULTI,
     ]);
   });
 });

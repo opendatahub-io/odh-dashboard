@@ -22,12 +22,11 @@ type ModelDeploymentNotification = {
 export const useModelDeploymentNotification = (
   namespace: string,
   modelName: string,
-  isKserve: boolean,
 ): ModelDeploymentNotification => {
   const navigate = useNavigate();
   const notification = useNotification();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
-  const [modelStatus] = useModelStatus(namespace, modelName, isKserve);
+  const [modelStatus] = useModelStatus(namespace, modelName);
   const lastSeenState = React.useRef<ModelDeploymentState | null>(null);
 
   const watchDeployment = React.useCallback(() => {

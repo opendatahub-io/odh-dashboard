@@ -36,7 +36,6 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKServeAuth: boolean;
       disableKServeMetrics: boolean;
       disableKServeRaw: boolean;
-      disableModelMesh: boolean;
       disableDistributedWorkloads: boolean;
       disableModelCatalog: boolean;
       disableModelRegistry: boolean;
@@ -102,7 +101,6 @@ export type ClusterSettings = {
   userTrackingEnabled: boolean;
   modelServingPlatformEnabled: {
     kServe: boolean;
-    modelMesh: boolean;
   };
 };
 
@@ -941,7 +939,6 @@ export type HardwareProfileKind = K8sResourceCommon & {
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
-  MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
