@@ -28,7 +28,7 @@ import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 describe('NIM Model Serving', () => {
   describe('Deploying a model from an existing Project', () => {
     it('should be disabled if the modal is empty (NIM already selected for project)', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       projectDetails.visitSection('test-project', 'model-server');
       cy.findByTestId('deploy-button').click();
@@ -39,7 +39,7 @@ describe('NIM Model Serving', () => {
     });
 
     it('should be enabled if the modal has the minimal info', () => {
-      initInterceptsToEnableNim({});
+      initInterceptsToEnableNim();
       const nimInferenceService = mockNimInferenceService({
         resources: {
           limits: {
@@ -137,7 +137,7 @@ describe('NIM Model Serving', () => {
     });
 
     it('should list the deployed model in Models tab', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
       // cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
       cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
@@ -192,7 +192,7 @@ describe('NIM Model Serving', () => {
     });
 
     it('should list the deployed model in Overview tab', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
       cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
       cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
 
@@ -205,7 +205,7 @@ describe('NIM Model Serving', () => {
     });
 
     it('should be blocked if failed to fetch NIM model list', () => {
-      initInterceptsToEnableNim({});
+      initInterceptsToEnableNim();
       projectDetailsOverviewTab.visit('test-project');
       cy.findByTestId('model-serving-platform-button').click();
       nimDeployModal.shouldDisplayError(
@@ -218,7 +218,7 @@ describe('NIM Model Serving', () => {
   describe('Enabling NIM', () => {
     describe('When NIM feature is enabled', () => {
       it("should allow deploying NIM from a Project's Overview tab when the only platform", () => {
-        initInterceptsToEnableNim({});
+        initInterceptsToEnableNim();
         projectDetailsOverviewTab.visit('test-project');
         cy.findByTestId('model-serving-platform-button').click();
         nimDeployModal.shouldBeOpen();
@@ -234,14 +234,14 @@ describe('NIM Model Serving', () => {
       });
 
       it("should allow deploying NIM from a Project's Overview tab when NIM is selected", () => {
-        initInterceptsToEnableNim({ hasAllModels: false });
+        initInterceptsToEnableNim();
         projectDetailsOverviewTab.visit('test-project');
         cy.findByTestId('model-serving-platform-button').click();
         nimDeployModal.shouldBeOpen();
       });
 
       it("should allow deploying NIM from a Project's Models tab when the only platform", () => {
-        initInterceptsToEnableNim({});
+        initInterceptsToEnableNim();
         projectDetails.visitSection('test-project', 'model-server');
         cy.get('button[data-testid=deploy-button]').click();
         nimDeployModal.shouldBeOpen();
@@ -257,7 +257,7 @@ describe('NIM Model Serving', () => {
       });
 
       it("should allow deploying NIM from a Project's Models tab when NIM is selected", () => {
-        initInterceptsToEnableNim({ hasAllModels: false });
+        initInterceptsToEnableNim();
         projectDetails.visitSection('test-project', 'model-server');
         cy.get('button[data-testid=deploy-button]').click();
         nimDeployModal.shouldBeOpen();
@@ -359,7 +359,7 @@ describe('NIM Model Serving', () => {
 
   describe('Deleting an existing model', () => {
     it("should be the only option available from the Project's Models tab", () => {
-      initInterceptsToEnableNim({});
+      initInterceptsToEnableNim();
       initInterceptsForDeleteModel();
 
       // go the Models tab in the created project
@@ -371,7 +371,7 @@ describe('NIM Model Serving', () => {
     });
 
     it('should delete the underlying InferenceService and ServingRuntime', () => {
-      initInterceptsToEnableNim({});
+      initInterceptsToEnableNim();
       initInterceptsForDeleteModel();
 
       // go the Models tab in the created project
@@ -393,7 +393,7 @@ describe('NIM Model Serving', () => {
 
   describe('Checking AuthServingRuntimeSection - Model Route and Token Authentication', () => {
     it('should show or hide the alert based on route and token settings', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
       projectDetailsOverviewTab.visit('test-project');
       cy.findByTestId('model-serving-platform-button').click();
       nimDeployModal.shouldBeOpen();
@@ -442,7 +442,7 @@ describe('NIM Model Serving', () => {
 describe('PVC Storage Management', () => {
   describe('Storage Option Selection', () => {
     it('should default to "Create new storage" when no existing compatible PVCs are found', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       // Mock NIM models data
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
@@ -474,7 +474,7 @@ describe('PVC Storage Management', () => {
     });
 
     it('should allow switching between "Create new" and "Use existing" storage options', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       // Mock NIM models data
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
@@ -524,7 +524,7 @@ describe('PVC Storage Management', () => {
 
   describe('Compatible PVC Detection', () => {
     it('should show compatible PVCs that contain the selected model', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
 
@@ -574,7 +574,7 @@ describe('PVC Storage Management', () => {
     });
 
     it('should show "no compatible storage" when no PVCs match the selected model', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
 
@@ -603,7 +603,7 @@ describe('PVC Storage Management', () => {
     });
 
     it('should handle PVC loading states', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
 
@@ -644,7 +644,7 @@ describe('PVC Storage Management', () => {
     });
 
     it('should allow selecting an existing PVC and auto-set model path', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
 
@@ -684,7 +684,7 @@ describe('PVC Storage Management', () => {
     });
 
     it('should enable submit button when all required fields are filled with existing PVC', () => {
-      initInterceptsToEnableNim({ hasAllModels: false });
+      initInterceptsToEnableNim();
 
       cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
 

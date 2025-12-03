@@ -133,7 +133,7 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ enableModelMesh: false })]),
+    mockK8sResourceList([mockProjectK8sResource({ enableKServe: true })]),
   );
   cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList(llmInferenceServices));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));

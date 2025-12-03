@@ -134,18 +134,6 @@ class ModelMetricsBias extends ModelMetricsGlobal {
   }
 }
 
-class ServerMetrics extends ModelMetricsGlobal {
-  visit(project: string, server: string) {
-    cy.visitWithLogin(`/projects/${project}/metrics/server/${server}`);
-    this.wait();
-  }
-
-  private wait() {
-    cy.findByTestId('server-metrics-loaded');
-    cy.testA11y();
-  }
-}
-
 class ModelMetricsConfigureSection {
   visit(project: string, model: string) {
     cy.visitWithLogin(`/ai-hub/deployments/${project}/metrics/${model}/configure`);
@@ -230,7 +218,6 @@ class ConfigureBiasMetricModal extends Modal {
 export const modelMetricsPerformance = new ModelMetricsPerformance();
 export const modelMetricsNim = new ModelMetricsNim();
 export const modelMetricsBias = new ModelMetricsBias();
-export const serverMetrics = new ServerMetrics();
 export const modelMetricsConfigureSection = new ModelMetricsConfigureSection();
 export const configureBiasMetricModal = new ConfigureBiasMetricModal();
 export const modelMetricsKserve = new ModelMetricsKserve();
