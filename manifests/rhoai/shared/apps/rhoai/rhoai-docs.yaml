@@ -26,7 +26,7 @@ spec:
   description: |-
     OpenShift AI provides an environment to develop, train, serve, test, and
     monitor AI/ML models on-premises or in the cloud.
-  url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai'
+  url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service'
   img: >-
     <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0
     38 38"><g id="uuid-fb69441b-b57f-4918-99bb-aad41e7175f0"><rect x="1" y="1"

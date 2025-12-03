@@ -45,7 +45,7 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
         <StackItem>
           <Switch
             id="use-distributed-llm-switch"
-            label="Use distributed inference server with llm-d by default when deploying generative models"
+            label="Use distributed inference with llm-d by default when deploying generative models"
             isChecked={useDistributedInferencing}
             onChange={(_event, checked) => setUseDistributedInferencing(checked)}
             data-testid="use-distributed-llm-switch"

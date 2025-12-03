@@ -24,13 +24,14 @@ import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectCh
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 
-describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model registry', () => {
+describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify models can be deployed from model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let modelName: string;
   let projectName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   retryableBefore(() => {
     cy.step('Load test data from fixture');
@@ -47,10 +48,10 @@ describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase().should('be.true');
+      createAndVerifyDatabase(databaseName).should('be.true');
 
       cy.step('Create a model registry and verify it is ready');
-      createAndVerifyModelRegistry(registryName);
+      createAndVerifyModelRegistry(registryName, databaseName);
 
       cy.step('Create a project for model deployment');
       createCleanProject(projectName);
@@ -61,19 +62,32 @@ describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Clean up model registry components');
-    cleanupModelRegistryComponents([modelName], registryName);
+    cleanupModelRegistryComponents([modelName], registryName, databaseName);
 
     cy.step('Delete the test project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 
   it(
     'Registers a model and deploys it via model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@NonConcurrent',
+        '@Sanity',
+        '@SanitySet4',
+        '@Bug',
+        '@Maintain',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -125,7 +139,7 @@ describe('[Product Bug: RHOAIENG-37856] Verify models can be deployed from model
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');
-      checkModelExistsInDatabase(modelName).should('be.true');
+      checkModelExistsInDatabase(modelName, databaseName).should('be.true');
 
       cy.step('Navigate to model versions to deploy the model');
       cy.contains(modelName).click();
