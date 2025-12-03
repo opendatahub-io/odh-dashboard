@@ -2,12 +2,7 @@ import React from 'react';
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
-import {
-  ImageStreamKind,
-  AcceleratorProfileKind,
-  HardwareProfileKind,
-  NotebookKind,
-} from '#~/k8sTypes';
+import { ImageStreamKind, HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
   Toleration,
@@ -67,10 +62,7 @@ export const formatResource = (identifier: string, request: string, limit: strin
  * when modelmesh is removed; then remove the second argument and remove all unreachable/deprecated code.
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
  */
-export const useProfileIdentifiers = (
-  hardwareProfile?: HardwareProfileKind,
-  acceleratorProfile?: AcceleratorProfileKind,
-): string[] => {
+export const useProfileIdentifiers = (hardwareProfile?: HardwareProfileKind): string[] => {
   const [identifiers, setIdentifiers] = React.useState<string[]>([]);
 
   React.useEffect(() => {
@@ -78,12 +70,10 @@ export const useProfileIdentifiers = (
       const profileIdentifiers =
         hardwareProfile.spec.identifiers?.map((identifier) => identifier.identifier) ?? [];
       setIdentifiers(profileIdentifiers);
-    } else if (acceleratorProfile) {
-      setIdentifiers([acceleratorProfile.spec.identifier]);
     } else {
       setIdentifiers([]);
     }
-  }, [acceleratorProfile, hardwareProfile]);
+  }, [hardwareProfile]);
 
   return identifiers;
 };
@@ -218,17 +208,32 @@ export const getDeletedHardwareProfilePatches = <T extends K8sResourceCommon>(
 
 export const getExistingResources = <T extends K8sResourceCommon>(
   cr: T | null | undefined,
-  paths: CrPathConfig,
+  paths?: CrPathConfig,
 ): {
   existingContainerResources?: ContainerResources;
   existingTolerations?: Toleration[];
   existingNodeSelector?: NodeSelector;
 } => {
-  const existingResources: ContainerResources | undefined = get(cr, paths.containerResourcesPath);
-  const existingTolerations: Toleration[] | undefined = get(cr, paths.tolerationsPath);
-  const existingNodeSelector: NodeSelector | undefined = get(cr, paths.nodeSelectorPath);
+  if (!cr || !paths) {
+    return {
+      existingContainerResources: undefined,
+      existingTolerations: undefined,
+      existingNodeSelector: undefined,
+    };
+  }
+
+  const existingContainerResources: ContainerResources | undefined = paths.containerResourcesPath
+    ? get(cr, paths.containerResourcesPath)
+    : undefined;
+  const existingTolerations: Toleration[] | undefined = paths.tolerationsPath
+    ? get(cr, paths.tolerationsPath)
+    : undefined;
+  const existingNodeSelector: NodeSelector | undefined = paths.nodeSelectorPath
+    ? get(cr, paths.nodeSelectorPath)
+    : undefined;
+
   return {
-    existingContainerResources: existingResources,
+    existingContainerResources,
     existingTolerations,
     existingNodeSelector,
   };
@@ -287,7 +292,7 @@ export const assemblePodSpecOptions = (
 export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   cr: T,
   config: HardwareProfileConfig,
-  paths: CrPathConfig,
+  paths?: CrPathConfig,
 ): T => {
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
@@ -308,8 +313,8 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     delete result.metadata.annotations['opendatahub.io/hardware-profile-resource-version'];
   }
 
-  if (!useExistingSettings && selectedProfile) {
-    if (resources) {
+  if (!useExistingSettings && selectedProfile && paths) {
+    if (resources && paths.containerResourcesPath) {
       set(result, paths.containerResourcesPath, resources);
     }
   }

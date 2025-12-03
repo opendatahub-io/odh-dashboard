@@ -14,36 +14,32 @@ import {
 import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas/index';
-import useHardwareProfile from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfile';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import type { ModelResourceType } from 'extension-points';
 
 const HardwareProfileNameValue = ({
   project,
-  hardwareProfileConfig,
+  hardwareProfile: hardwareProfileResult,
 }: {
   project: string;
-  hardwareProfileConfig: Parameters<typeof useHardwareProfileConfig>;
+  hardwareProfile: UseAssignHardwareProfileResult<ModelResourceType>;
 }): React.ReactNode => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
-  const { dashboardNamespace } = useDashboardNamespace();
-  const hardwareProfileName = hardwareProfileConfig[0];
-  const hardwareProfileNamespace = hardwareProfileConfig[6];
-  const [hardwareProfile, profileLoaded, profileLoadError] = useHardwareProfile(
-    hardwareProfileNamespace || dashboardNamespace,
-    hardwareProfileName,
-  );
+  const hardwareProfile =
+    hardwareProfileResult.podSpecOptionsState.hardwareProfile.formData.selectedProfile;
+  const { profilesLoaded, profilesLoadError } =
+    hardwareProfileResult.podSpecOptionsState.hardwareProfile;
 
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
       <DescriptionListGroup>
         <DescriptionListTerm>Hardware profile</DescriptionListTerm>
         <DescriptionListDescription data-testid="hardware-section">
-          {!hardwareProfileName || profileLoadError ? (
+          {!hardwareProfile || profilesLoadError ? (
             'Unknown'
-          ) : !profileLoaded ? (
+          ) : !profilesLoaded ? (
             'Loading...'
-          ) : hardwareProfile ? (
+          ) : (
             <Flex gap={{ default: 'gapSm' }}>
               <FlexItem>{getHardwareProfileDisplayName(hardwareProfile)}</FlexItem>
               <FlexItem>
@@ -55,8 +51,6 @@ const HardwareProfileNameValue = ({
               </FlexItem>
               <Flex>{!isHardwareProfileEnabled(hardwareProfile) ? '(disabled)' : ''}</Flex>
             </Flex>
-          ) : (
-            'No hardware profile selected'
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>

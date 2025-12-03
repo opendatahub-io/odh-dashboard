@@ -25,7 +25,7 @@ import {
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils.ts';
 import { ServingRuntimePlatform } from '#~/types.ts';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses.ts';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type ServingRuntimeDetailsProps = {
   project?: string;

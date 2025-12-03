@@ -3,16 +3,13 @@ import { BYONImage } from '#~/types';
 import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
 import BYONImagesTableRow from './BYONImagesTableRow';
 import BYONImagesToolbar from './BYONImagesToolbar';
-import {
-  initialBYONImagesFilterData,
-  BYONImagesFilterDataType,
-  WORKBENCH_VISIBILITY,
-} from './const';
+import { initialBYONImagesFilterData, BYONImagesFilterDataType } from './const';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];

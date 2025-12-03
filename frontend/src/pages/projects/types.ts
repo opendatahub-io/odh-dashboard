@@ -3,7 +3,7 @@ import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
-import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(

@@ -7,7 +7,8 @@ import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
-import { DeploymentHardwareProfileCell } from '@odh-dashboard/internal/concepts/hardwareProfiles/DeploymentHardwareProfileCell';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
@@ -18,6 +19,7 @@ import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
+  isModelServingDeploymentFormDataExtension,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
 } from '../../../../extension-points';
@@ -46,6 +48,19 @@ export const DeploymentRow: React.FC<{
 
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
 
+  const [formDataExtensions, formDataResolved] = useResolvedExtensions(
+    isModelServingDeploymentFormDataExtension,
+  );
+  const formDataExtension = React.useMemo(
+    () =>
+      formDataExtensions.find(
+        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+      ) ?? null,
+    [formDataExtensions, deployment.modelServingPlatformId],
+  );
+  const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
+  const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
+
   const onStart = React.useCallback(() => {
     if (!startStopActionExtension) return;
     startStopActionExtension.properties
@@ -70,7 +85,7 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedToggle && (
+        {showExpandedToggle && pathsLoaded && (
           <Td
             {...{
               'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
@@ -111,7 +126,10 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        <DeploymentHardwareProfileCell deployment={deployment} />
+        <DeploymentHardwareProfileCell
+          deployment={deployment}
+          hardwareProfilePaths={hardwareProfilePaths}
+        />
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>
@@ -162,8 +180,12 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
       </ResourceTr>
-      {showExpandedToggle && (
-        <DeploymentRowExpandedSection deployment={deployment} isVisible={isExpanded} />
+      {showExpandedToggle && pathsLoaded && (
+        <DeploymentRowExpandedSection
+          deployment={deployment}
+          isVisible={isExpanded}
+          hardwareProfilePaths={hardwareProfilePaths}
+        />
       )}
       {isOpenConfirm && startStopActionExtension && (
         <ModelServingStopModal

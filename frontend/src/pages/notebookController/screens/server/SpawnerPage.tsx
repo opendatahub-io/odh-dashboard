@@ -46,12 +46,12 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils.ts';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -349,7 +349,7 @@ const SpawnerPage: React.FC = () => {
             <HardwareProfileFormSection
               podSpecOptionsState={podSpecOptionsState}
               isEditing={!!currentUserNotebook}
-              visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
+              visibleIn={WORKBENCH_VISIBILITY}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

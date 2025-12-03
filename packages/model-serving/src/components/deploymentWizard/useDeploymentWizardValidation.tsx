@@ -1,8 +1,6 @@
 import React from 'react';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
-import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
 import type { WizardFormData } from './types';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { externalRouteFieldSchema, type ExternalRouteFieldData } from './fields/ExternalRouteField';
@@ -26,7 +24,6 @@ import { isValidProjectName } from './fields/ProjectSection';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
-  hardwareProfile: ReturnType<typeof useValidation>;
   externalRoute: ReturnType<typeof useZodFormValidation<ExternalRouteFieldData>>;
   tokenAuthentication: ReturnType<typeof useZodFormValidation<TokenAuthenticationFieldData>>;
   numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
@@ -58,10 +55,7 @@ export const useModelDeploymentWizardValidation = (
   );
 
   // Step 2: Model Deployment
-  const hardwareProfileValidation = useValidation(
-    state.hardwareProfileConfig.formData,
-    hardwareProfileValidationSchema,
-  );
+  const hardwareProfileValidated = state.hardwareProfileOptions.validateHardwareProfileForm();
 
   const modelServerValidation = useZodFormValidation(
     state.modelServer.data,
@@ -107,7 +101,7 @@ export const useModelDeploymentWizardValidation = (
       state.project.initialProjectName ?? state.project.projectName ?? undefined,
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
-    Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
+    hardwareProfileValidated &&
     numReplicasValidation.getFieldValidation(undefined, true).length === 0 &&
     modelServerValidation.getFieldValidation(undefined, true).length === 0 &&
     (!state.modelFormatState.isVisible ||
@@ -118,7 +112,6 @@ export const useModelDeploymentWizardValidation = (
     !hasInvalidEnvironmentVariableNames(state.environmentVariables.data);
   return {
     modelSource: modelSourceStepValidation,
-    hardwareProfile: hardwareProfileValidation,
     externalRoute: externalRouteValidation,
     modelServer: modelServerValidation,
     modelFormat: modelFormatValidation,

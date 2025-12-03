@@ -1,9 +1,10 @@
-import { HardwareProfileFeatureVisibility, InferenceServiceKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
+import { MODEL_SERVING_VISIBILITY } from './const';
 
 export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
@@ -21,7 +22,7 @@ export const extractHardwareProfileConfigFromInferenceService = (
     resources,
     tolerations,
     nodeSelector,
-    [HardwareProfileFeatureVisibility.MODEL_SERVING],
+    MODEL_SERVING_VISIBILITY,
     namespace,
     hardwareProfileNamespace,
   ];

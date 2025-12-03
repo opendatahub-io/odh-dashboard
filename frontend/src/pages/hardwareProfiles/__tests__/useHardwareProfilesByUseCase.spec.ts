@@ -18,14 +18,19 @@ jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
   },
 }));
 
+jest.mock('#~/utilities/useWatchHardwareProfiles', () => ({
+  useWatchHardwareProfiles: jest.fn(() => [[], true, undefined]),
+}));
+
+jest.mock('#~/redux/selectors', () => ({
+  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
+}));
+
 const mockContexts = (
   globalProfiles: HardwareProfileKind[],
   globalLoaded = true,
   globalError: Error | undefined = undefined,
-  projectProfiles: HardwareProfileKind[] = [],
-  projectLoaded = true,
-  projectError: Error | undefined = undefined,
-  inProject = false,
+  projectOverrides?: Partial<React.ContextType<typeof ProjectDetailsContext>>,
 ) => {
   jest.spyOn(React, 'useContext').mockImplementation((context: React.Context<unknown>) => {
     if (context === HardwareProfilesContext) {
@@ -35,8 +40,9 @@ const mockContexts = (
     }
     if (context === ProjectDetailsContext) {
       return {
-        currentProject: { metadata: { name: inProject ? 'test-project' : '' } },
-        projectHardwareProfiles: [projectProfiles, projectLoaded, projectError],
+        currentProject: { metadata: { name: 'test-project' } },
+        projectHardwareProfiles: [[], true, undefined],
+        ...projectOverrides,
       };
     }
     return {};

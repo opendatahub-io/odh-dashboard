@@ -6,7 +6,7 @@ import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { FeatureFlag } from '#~/concepts/areas/types';
-import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types.ts';
+import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { FetchStateObject } from './utilities/useFetch';
