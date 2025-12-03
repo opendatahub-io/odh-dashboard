@@ -31,7 +31,7 @@ temperature = {{.Temperature}}
 stream_enabled = True
 {{- end }}
 {{- if .Instructions }}
-system_instructions = "{{.Instructions}}"
+system_instructions = """{{.Instructions}}"""
 {{- end }}
 {{- if .Files }}
 files_to_upload = [
@@ -81,7 +81,12 @@ tools = [
         {{- range $key, $value := .Headers }}
         "{{$key}}": "{{$value}}",
         {{- end }}
-      }{{- end }}
+      }{{- end }}{{- if .AllowedTools }},
+      "allowed_tools": [
+        {{- range $i, $tool := .AllowedTools }}
+        {{- if $i }},{{ end }}
+        "{{$tool}}"{{- end }}
+      ]{{- end }}
     },
   {{- end }}
   {{- end }}
@@ -94,7 +99,7 @@ for file_info in files_to_upload:
     with open(os.path.join(FILES_BASE_PATH, file_info["file"]), 'rb') as file:
         uploaded_file = client.files.create(file=file, purpose=file_info["purpose"])
         client.vector_stores.files.create(
-            vector_store_id=vector_store.id, 
+            vector_store_id=vector_store.id,
             file_id=uploaded_file.id
         )
 {{- end }}

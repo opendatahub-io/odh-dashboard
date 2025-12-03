@@ -23,6 +23,7 @@ describe('Verify that admin users can edit a model registry', () => {
   let originalRegistryName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -38,10 +39,10 @@ describe('Verify that admin users can edit a model registry', () => {
 
       // Create and verify SQL database
       cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase().should('be.true');
+      createAndVerifyDatabase(databaseName).should('be.true');
 
       cy.step('Create a model registry and verify it is ready');
-      createAndVerifyModelRegistry(registryName);
+      createAndVerifyModelRegistry(registryName, databaseName);
 
       cy.step('Wait for model registry to be in Available state');
       checkModelRegistryAvailable(registryName).should('be.true');
@@ -102,6 +103,9 @@ describe('Verify that admin users can edit a model registry', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Delete the model registry');
     deleteModelRegistry(originalRegistryName);
 
@@ -109,6 +113,6 @@ describe('Verify that admin users can edit a model registry', () => {
     checkModelRegistry(originalRegistryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 });

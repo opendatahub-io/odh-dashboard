@@ -35,6 +35,7 @@ describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be a
   let registryName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -50,11 +51,11 @@ describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be a
 
         // Create and verify SQL database
         cy.step('Create and verify SQL database for model registry');
-        createAndVerifyDatabase().should('be.true');
+        createAndVerifyDatabase(databaseName).should('be.true');
 
         // creates a model registry
         cy.step('Create a model registry using YAML');
-        createModelRegistryViaYAML(registryName);
+        createModelRegistryViaYAML(registryName, databaseName);
 
         cy.step('Verify model registry is created');
         checkModelRegistry(registryName).should('be.true');
@@ -211,8 +212,11 @@ describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be a
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase([testData.objectStorageModelName]);
+    cleanupRegisteredModelsFromDatabase([testData.objectStorageModelName], databaseName);
 
     cy.step('Delete the model registry');
     deleteModelRegistry(registryName);
@@ -221,6 +225,6 @@ describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be a
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 });

@@ -28,6 +28,7 @@ describe('Verify model registry permissions can be managed', () => {
   let testProjectName: string;
   let deploymentName: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -44,11 +45,11 @@ describe('Verify model registry permissions can be managed', () => {
 
         // Create and verify SQL database
         cy.step('Create and verify SQL database for model registry');
-        createAndVerifyDatabase().should('be.true');
+        createAndVerifyDatabase(databaseName).should('be.true');
 
         // creates a model registry
         cy.step('Create a model registry using YAML');
-        createModelRegistryViaYAML(registryName);
+        createModelRegistryViaYAML(registryName, databaseName);
 
         cy.step('Verify model registry is created');
         checkModelRegistry(registryName).should('be.true');
@@ -292,6 +293,9 @@ describe('Verify model registry permissions can be managed', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
     cy.step('Delete the test project');
     deleteOpenShiftProject(testProjectName, { wait: false, ignoreNotFound: true });
 
@@ -302,6 +306,6 @@ describe('Verify model registry permissions can be managed', () => {
     checkModelRegistry(registryName).should('be.false');
 
     cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase();
+    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 });
