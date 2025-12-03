@@ -119,7 +119,7 @@ const AppLauncher: React.FC = () => {
     }, getODHApplications());
 
     return sections.toSorted((a, b) => sectionSortValue(a) - sectionSortValue(b));
-  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL]);
+  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL, isMLflowEnabled]);
 
   const onSelect = () => {
     setIsOpen(false);
