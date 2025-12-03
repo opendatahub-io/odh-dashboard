@@ -29,6 +29,7 @@ type ContentModalProps = {
   dataTestId?: string;
   bodyClassName?: string;
   variant?: ModalProps['variant'];
+  bodyLabel?: string;
 };
 
 type FocusableDivProps = {
@@ -103,6 +104,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
   dataTestId = 'pipeline-server-starting-modal',
   bodyClassName = 'odh-modal__content-height',
   variant = 'medium',
+  bodyLabel,
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
@@ -156,7 +158,9 @@ const ContentModal: React.FC<ContentModalProps> = ({
           </>
         ) : null}
       </ModalHeader>
-      <ModalBody className={bodyClassName}>{modalContents}</ModalBody>
+      <ModalBody className={bodyClassName} aria-label={bodyLabel}>
+        {modalContents}
+      </ModalBody>
       <ModalFooter>
         {buttonActions?.map((action, index) => (
           <Button
