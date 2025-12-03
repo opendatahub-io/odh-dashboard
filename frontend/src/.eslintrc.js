@@ -1,6 +1,6 @@
 module.exports = require('@odh-dashboard/eslint-config')
   .extend({
-    ignorePatterns: ['third_party/mlmd', 'packages', '__tests__/cypress'],
+    ignorePatterns: ['third_party/mlmd'],
     rules: {
       'no-relative-import-paths/no-relative-import-paths': [
         'warn',

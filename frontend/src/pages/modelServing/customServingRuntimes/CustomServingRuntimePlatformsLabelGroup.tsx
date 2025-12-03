@@ -10,7 +10,6 @@ type CustomServingRuntimePlatformsLabelGroupProps = {
 
 const ServingRuntimePlatformLabels = {
   [ServingRuntimePlatform.SINGLE]: 'Single-model',
-  [ServingRuntimePlatform.MULTI]: 'Multi-model',
 };
 
 const CustomServingRuntimePlatformsLabelGroup: React.FC<

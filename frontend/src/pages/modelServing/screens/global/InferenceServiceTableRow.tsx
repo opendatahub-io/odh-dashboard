@@ -55,7 +55,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
-  // Always KServe (no ModelMesh)
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
@@ -66,7 +65,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { watchDeployment } = useModelDeploymentNotification(
     inferenceService.metadata.namespace,
     inferenceService.metadata.name,
-    true, // Always KServe (no ModelMesh)
   );
 
   const onStart = React.useCallback(() => {
@@ -155,7 +153,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       <Td dataLabel="Status">
         <InferenceServiceStatus
           inferenceService={inferenceService}
-          isKserve={true} // Always KServe
           stoppedStates={{
             isStarting,
             isStopping,

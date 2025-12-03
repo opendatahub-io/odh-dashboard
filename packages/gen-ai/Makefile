@@ -35,6 +35,9 @@ dev-bff-mock: ## Run only the bff in development mode
 dev-bff:
 	cd bff && MAAS_URL=${MAAS_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make run STATIC_ASSETS_DIR=../frontend/dist
 
+.PHONY: dev-bff-debug
+dev-bff-debug: ## Run BFF with Delve debugger (VSCode can attach - requires Delve installation, see readme)
+	cd bff && MAAS_URL=${MAAS_URL} DISTRIBUTION_NAME=${DISTRIBUTION_NAME} LLAMA_STACK_URL=${LLAMA_STACK_URL} AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " make debug STATIC_ASSETS_DIR=../frontend/dist
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
@@ -57,6 +60,16 @@ dev-portforward: ## Start port-forwarding in separate terminals
 dev-start: dev-portforward ## Start frontend, bff, and port-forwarding
 	@sleep 2
 	make -j 2 dev-bff dev-frontend
+
+.PHONY: dev-start-debug
+dev-start-debug: dev-portforward ## Start frontend, bff with debugger, and port-forwarding (VSCode can attach on port 2345)
+	@sleep 2
+	@echo ""
+	@echo "🐛 Starting in DEBUG mode..."
+	@echo "📍 Delve debugger will listen on port 2345"
+	@echo "📍 In VSCode: Press F5 and select 'Attach to Delve (make dev-start-debug)'"
+	@echo ""
+	make -j 2 dev-bff-debug dev-frontend
 
 .PHONY: dev-start-no-portforward
 dev-start-no-portforward: ## Start frontend and bff without port-forwarding

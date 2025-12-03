@@ -124,6 +124,46 @@ make dev-start-no-portforward
 
 These commands will run both services in parallel, making it easier to start your development environment with a single command.
 
+## Debugging the bff
+
+If you want to be able to set breakpoints in vscode, you must first ensure the following debug config is added to your .vscode/launch.json file.
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Delve (make dev-start-debug)",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "remotePath": "${workspaceFolder}/packages/gen-ai/bff",
+      "port": 2345,
+      "host": "localhost",
+      "showLog": true,
+      "trace": "verbose"
+    },
+  ]
+}
+```
+
+The debug approach will use the 'debug' command defined in packages/gen-ai/bff/Makefile, which uses 'dlv' (short for Delve, a debugger for the Go programming language, more at [github repo](https://github.com/go-delve/delve/tree/master)), which will need to be installed locally first.
+
+You can install the latest version with:
+
+```bash
+  go install github.com/go-delve/delve/cmd/dlv@latest
+```
+
+Then run the below, which will start the gen-ai frontend, bff with debugger, and port-forwarding (VSCode can attach on port 2345).
+
+```bash
+cd packages/gen-ai
+make dev-start-debug
+```
+
+Once everything is running and ready, you can click on the 'Run and Debug' tab in left navbar, and in the top dropdown, select and run 'Attach to Delve (make dev-start-debug)'. Now you should be able to set breakpoints in order to debug code inside packages/gen-ai/bff.
+
 ## Building and Running with Docker
 
 The project includes a multi-stage Dockerfile that builds both the frontend and backend components and creates a minimal production image.

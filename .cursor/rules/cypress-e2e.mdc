@@ -49,7 +49,7 @@ alwaysApply: false
 
 ### Folder Structure
 ```
-frontend/src/__tests__/cypress/cypress/
+packages/cypress/cypress/
 ├── fixtures/e2e/           # Test data files (YAML only)
 ├── pages/                  # Page Object Model files
 ├── tests/e2e/             # Test files organized by feature area
@@ -183,11 +183,10 @@ pageObject.findStatusText().should('contain', 'Running');
 
 **MANDATORY: Always lint before claiming test is complete**:
 
-> **Linting/fixing commands (frontend only):**
-> - From the frontend directory, run:
+> **Linting/fixing commands (cypress only):**
+> - From the packages/cypress directory, run:
 >   ```bash
->   npm run test:lint
->   npm run test:fix
+>   npm run lint -- --fix
 >   ```
 
 **All linting errors must be fixed**:
@@ -367,14 +366,13 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
    ```bash
    # Check for any remaining quarantine markers
    grep -r "@Bug\|@Maintain\|\[Product Bug\|\[Automation Bug" \
-     frontend/src/__tests__/cypress/cypress/tests/e2e/
+     packages/cypress/cypress/tests/e2e/
    ```
 
 5. **Run linting**:
    ```bash
-   cd frontend
-   npm run test:lint
-   npm run test:fix
+   cd packages/cypress
+   npm run lint -- --fix
    ```
 
 6. **Stage changes and review**:
@@ -487,7 +485,7 @@ During implementation:
 - [ ] Never include tags in fixture files
 
 After implementation:
-- [ ] Run linting: `npm run test:lint && npm run test:fix` (from the frontend directory)
+- [ ] Run linting: `npm run lint -- --fix` (from the packages/cypress directory)
 - [ ] Fix ALL linting errors before claiming test is complete
 - [ ] Verify test independence and cleanup
 - [ ] Test on clean environment
