@@ -22,7 +22,7 @@ jobs:
   apply-expiry-label:
     runs-on: ubuntu-latest
     # TODO: Remove this condition after testing - only run for test branch during validation
-    if: github.event.pull_request.head.ref == 'test/pr-image-expiry-RHOAIENG-13878'
+    if: github.event.pull_request.head.ref == 'test/pr-image-expiry-RHOAIENG-13878-v2'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,9 +31,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          CRANE_TGZ="crane_Linux_x86_64.tar.gz"
-          curl -fsSL -o "$CRANE_TGZ" https://github.com/google/go-containerregistry/releases/latest/download/$CRANE_TGZ
-          sudo tar -xzf "$CRANE_TGZ" -C /usr/local/bin crane
+          # Get the latest release version
+          LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/google/go-containerregistry/releases/latest | jq -r '.tag_name')
+          echo "Installing crane version: $LATEST_VERSION"
+
+          # Download and install crane (tarball name changed from crane_* to go-containerregistry_*)
+          TARBALL="go-containerregistry_Linux_x86_64.tar.gz"
+          curl -fsSL -o "$TARBALL" "https://github.com/google/go-containerregistry/releases/download/${LATEST_VERSION}/${TARBALL}"
+          sudo tar -xzf "$TARBALL" -C /usr/local/bin crane
+          rm -f "$TARBALL"
           crane version
 
       - name: Login to Quay
