@@ -34,11 +34,13 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
   const pipelineServerName = getPipelineServerName(project);
   const defaultConnectingText = (
-    <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
-        The {pipelineServerName} connection is being established.
-      </FlexItem>
-      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
+    <Flex
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+      style={{ textAlign: 'center', maxWidth: '600px' }}
+    >
+      <FlexItem>The {pipelineServerName} connection is being established.</FlexItem>
+      <FlexItem>
         The process should take less than five minutes. When the server is ready, you will be able
         to create and import pipelines.
       </FlexItem>
@@ -46,16 +48,18 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
   );
 
   const inProgressButtons = (
-    <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <Flex
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+      style={{ textAlign: 'center', maxWidth: '600px' }}
+    >
       <FlexItem>
         <Title headingLevel="h2" size="lg">
           Starting pipeline server
         </Title>
       </FlexItem>
-      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
-        The {pipelineServerName} is being initialized.
-      </FlexItem>
-      <FlexItem style={{ textAlign: 'center', maxWidth: '600px' }}>
+      <FlexItem>The {pipelineServerName} is being initialized.</FlexItem>
+      <FlexItem>
         The process should take less than five minutes. When the server is ready, you will be able
         to create and import pipelines.
       </FlexItem>
