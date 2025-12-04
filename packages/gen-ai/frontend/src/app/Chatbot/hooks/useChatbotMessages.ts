@@ -117,6 +117,7 @@ const useChatbotMessages = ({
       const { serverLabel, toolName, toolArguments, toolOutput } = toolCallData;
 
       return {
+        isDefaultExpanded: false,
         toggleContent: `Tool response: ${toolName}`,
         subheading: `${serverLabel}`,
         body: `Here's the summary for your ${toolName} response:`,
