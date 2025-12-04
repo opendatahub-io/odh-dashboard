@@ -7,7 +7,11 @@ import {
 import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
-import { enableGenAiFeatures, disableGenAiFeatures } from '../../../utils/oc_commands/genAi';
+import {
+  enableGenAiFeatures,
+  disableGenAiFeatures,
+  cleanupServingRuntimeTemplate,
+} from '../../../utils/oc_commands/genAi';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -22,7 +26,6 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 import { servingRuntimes } from '../../../pages/servingRuntimes';
 import { getVllmCpuAmd64RuntimePath } from '../../../utils/fileImportUtils';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
-import { cleanupTemplates } from '../../../utils/oc_commands/templates';
 
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
@@ -76,7 +79,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
           servingRuntimeDisplayName = info.displayName;
           cy.log(`Loaded Serving Runtime Name: ${servingRuntimeName}`);
           cy.log(`Loaded Serving Runtime Display Name: ${servingRuntimeDisplayName}`);
-          return cleanupTemplates(servingRuntimeDisplayName);
+          return cleanupServingRuntimeTemplate(servingRuntimeName);
         });
     });
   });
@@ -93,8 +96,8 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     }
 
     // Cleanup serving runtime template
-    if (servingRuntimeDisplayName) {
-      cleanupTemplates(servingRuntimeDisplayName);
+    if (servingRuntimeName) {
+      cleanupServingRuntimeTemplate(servingRuntimeName);
     }
   });
 
