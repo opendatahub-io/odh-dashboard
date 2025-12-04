@@ -6,11 +6,16 @@ import { errorHandler } from '../utils';
 export default async (fastify: FastifyInstance): Promise<void> => {
   let mfRemotesJson: string;
   try {
-    const remotes = getModuleFederationConfigs(DEV_MODE).map((c) => ({
-      name: c.name,
-      remoteEntry: c.remoteEntry,
-    }));
-    mfRemotesJson = remotes ? JSON.stringify(remotes) : undefined;
+    const mfConfigs = getModuleFederationConfigs(DEV_MODE);
+    const remotes = [
+      ...mfConfigs
+        .filter((c) => c.backend)
+        .map((c) => ({
+          name: c.name,
+          remoteEntry: c.backend.remoteEntry,
+        })),
+    ];
+    mfRemotesJson = remotes.length > 0 ? JSON.stringify(remotes) : undefined;
   } catch (e) {
     fastify.log.error(e, errorHandler(e));
   }

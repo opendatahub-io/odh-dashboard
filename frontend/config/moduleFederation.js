@@ -5,6 +5,64 @@ const deps = require('../package.json').dependencies;
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 
 /**
+ * Check if a config is the old format by checking for `remoteEntry` at the top level.
+ * @param {Object} config
+ * @returns {boolean}
+ */
+const isOldConfig = (config) => 'remoteEntry' in config;
+
+/**
+ * Converts a deprecated old config to the newer format.
+ * @param {Object} oldConfig
+ * @returns {Object}
+ */
+const convertModuleFederationConfig = (oldConfig) => {
+  const { name, remoteEntry, authorize, local, service, proxy, tls } = oldConfig;
+
+  const normalizedService = {
+    name: service.name,
+    namespace: service.namespace ?? process.env.OC_PROJECT ?? '',
+    port: service.port,
+  };
+
+  return {
+    name,
+    backend: {
+      remoteEntry,
+      service: normalizedService,
+      ...(authorize !== undefined && { authorize }),
+      ...(tls !== undefined && { tls }),
+      ...(local && {
+        localService: {
+          host: local.host,
+          port: local.port,
+        },
+      }),
+    },
+    proxyService: (proxy ?? []).map((p) => ({
+      path: p.path,
+      ...(p.pathRewrite && { pathRewrite: p.pathRewrite }),
+      service: normalizedService,
+      ...(authorize !== undefined && { authorize }),
+      ...(local && {
+        localService: {
+          host: local.host,
+          port: local.port,
+        },
+      }),
+    })),
+  };
+};
+
+/**
+ * Normalizes a config to the new format, converting from old format if necessary.
+ * @param {Object} config
+ * @returns {Object}
+ */
+const normalizeConfig = (config) =>
+  isOldConfig(config) ? convertModuleFederationConfig(config) : config;
+
+/**
  * Get all workspace packages using npm query
  * @returns {Array} Array of workspace package objects
  */
@@ -30,7 +88,7 @@ const readModuleFederationConfigFromPackages = () => {
     for (const pkg of workspacePackages) {
       const federatedConfigProperty = pkg['module-federation'];
       if (federatedConfigProperty) {
-        configs.push(federatedConfigProperty);
+        configs.push(normalizeConfig(federatedConfigProperty));
       }
     }
   } catch (e) {
@@ -43,7 +101,8 @@ const readModuleFederationConfigFromPackages = () => {
 const getModuleFederationConfig = () => {
   if (process.env.MODULE_FEDERATION_CONFIG) {
     try {
-      return JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
+      const configs = JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
+      return configs.map(normalizeConfig);
     } catch (e) {
       console.error('Failed to parse module federation config from ENV', e);
     }
@@ -72,15 +131,13 @@ module.exports = {
             filename: 'remoteEntry.js',
             remotes: updateTypes
               ? mfConfig.reduce((acc, config) => {
-                  const getEnvVar = (prop) =>
-                    process.env[
-                      `MF_${config.name.toLocaleUpperCase()}_${prop.toLocaleUpperCase()}`
-                    ];
-                  const host = getEnvVar('LOCAL_HOST') ?? config.local.host ?? 'localhost';
-                  const port = getEnvVar('LOCAL_PORT') ?? config.local.port;
-                  acc[
-                    `@mf/${config.name}`
-                  ] = `${config.name}@http://${host}:${port}${config.remoteEntry}`;
+                  if (!config.backend) {
+                    return acc;
+                  }
+                  const { localService, remoteEntry, service } = config.backend;
+                  const host = localService?.host ?? 'localhost';
+                  const port = localService?.port ?? service.port;
+                  acc[`@mf/${config.name}`] = `${config.name}@http://${host}:${port}${remoteEntry}`;
                   return acc;
                 }, {})
               : undefined,
