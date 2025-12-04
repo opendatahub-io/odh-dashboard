@@ -308,3 +308,50 @@ export const waitForResource = (
   );
   return check();
 };
+
+/**
+ * Wait for a namespace to exist in the cluster by polling with `oc get namespace`.
+ * Polls until the namespace exists or max attempts is reached.
+ *
+ * @param namespaceName The name of the namespace to wait for.
+ * @param maxAttempts The maximum number of attempts to check for the namespace (default: 60).
+ * @param pollIntervalMs The interval between polling attempts in milliseconds (default: 2000).
+ * @returns A Cypress chainable that resolves when the namespace exists.
+ */
+export const waitForNamespace = (
+  namespaceName: string,
+  maxAttempts = 60,
+  pollIntervalMs = 2000,
+): Cypress.Chainable<Cypress.Exec> => {
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<Cypress.Exec> => {
+    return cy
+      .exec(`oc get namespace ${namespaceName}`, { failOnNonZeroExit: false })
+      .then((result) => {
+        if (result.code === 0) {
+          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+          cy.log(`✅ Namespace ${namespaceName} exists (found after ${elapsedTime}s)`);
+          return cy.wrap(result);
+        }
+
+        if (attemptNumber >= maxAttempts) {
+          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+          throw new Error(
+            `Namespace ${namespaceName} not found after ${maxAttempts} attempts (${elapsedTime}s)`,
+          );
+        }
+
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        cy.log(
+          `⏳ Waiting for namespace ${namespaceName} (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+      });
+  };
+
+  cy.step(`Polling for namespace ${namespaceName} (max ${totalTimeout / 1000}s)`);
+  return check();
+};

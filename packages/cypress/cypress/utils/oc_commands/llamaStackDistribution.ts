@@ -1,5 +1,60 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 
+import type { CommandLineResult } from '../../types';
+
+/**
+ * Wait for the LlamaStack operator to be ready by polling the DataScienceCluster status.
+ * Checks for the LlamaStackOperatorReady condition to be True.
+ *
+ * @param maxAttempts The maximum number of attempts to check (default: 60).
+ * @param pollIntervalMs The interval between polling attempts in milliseconds (default: 5000).
+ * @returns A Cypress chainable that resolves when the operator is ready.
+ */
+export const waitForLlamaStackOperatorReady = (
+  maxAttempts = 60,
+  pollIntervalMs = 5000,
+): Cypress.Chainable<CommandLineResult> => {
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
+    return cy
+      .exec(
+        `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="LlamaStackOperatorReady")].status}'`,
+        { failOnNonZeroExit: false },
+      )
+      .then((result: CommandLineResult) => {
+        const status = result.stdout.trim();
+
+        if (status === 'True') {
+          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+          cy.log(`✅ LlamaStackOperatorReady condition is True (after ${elapsedTime}s)`);
+          return cy.wrap(result);
+        }
+
+        if (attemptNumber >= maxAttempts) {
+          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+          throw new Error(
+            `LlamaStackOperatorReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
+              status || 'not found'
+            }`,
+          );
+        }
+
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        cy.log(
+          `⏳ Waiting for LlamaStackOperatorReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
+            status || 'not found'
+          }, elapsed: ${elapsedTime}s)`,
+        );
+        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+      });
+  };
+
+  cy.step(`Polling for LlamaStackOperatorReady condition (max ${totalTimeout / 1000}s)`);
+  return check();
+};
+
 /**
  * Type for LlamaStackDistribution State
  */

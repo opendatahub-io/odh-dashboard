@@ -1,28 +1,39 @@
+import { waitForNamespace } from './baseCommands';
+import { waitForLlamaStackOperatorReady } from './llamaStackDistribution';
 import type { CommandLineResult } from '../../types';
 
 /**
  * Enable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
- * Sets LlamaStack operator to Managed and enables Gen AI Studio and Model as Service.
+ * Sets LlamaStack operator to Managed, waits for the operator to be ready,
+ * waits for the namespace, and enables Gen AI Studio.
  *
- * @param waitTimeMs Time to wait after patching DSC for reconciliation (default: 10000ms)
- * @returns A Cypress chainable that resolves when both patches are applied successfully.
+ * @returns A Cypress chainable that resolves when all setup is complete.
  */
-export const enableGenAiFeatures = (waitTimeMs = 1000): Cypress.Chainable<CommandLineResult> => {
+export const enableGenAiFeatures = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  if (!namespace) {
+    throw new Error(
+      'APPLICATIONS_NAMESPACE is not configured. Set CY_TEST_CONFIG to point to your test-variables.yml file.',
+    );
+  }
+
   cy.step('Set LlamaStack to Managed');
   return cy
     .exec(
       `oc patch datasciencecluster default-dsc --type=merge -p '{"spec":{"components": {"llamastackoperator":{"managementState":"Managed"}}}}'`,
     )
     .then(() => {
-      cy.step(`Wait ${waitTimeMs}ms for DSC to reconcile`);
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      return cy.wait(waitTimeMs);
+      cy.step('Wait for LlamaStack operator to be ready');
+      return waitForLlamaStackOperatorReady();
     })
     .then(() => {
-      cy.step('Enable Gen AI Studio and Model as Service');
+      cy.step(`Wait for namespace ${namespace} to be created`);
+      return waitForNamespace(namespace);
+    })
+    .then(() => {
+      cy.step('Enable Gen AI Studio');
       return cy.exec(
-        `oc patch odhdashboardconfig odh-dashboard-config -n ${namespace} --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":true, "modelAsService":true}}}'`,
+        `oc patch odhdashboardconfig odh-dashboard-config -n ${namespace} --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":true}}}'`,
       );
     });
 };
@@ -35,6 +46,12 @@ export const enableGenAiFeatures = (waitTimeMs = 1000): Cypress.Chainable<Comman
  */
 export const disableGenAiFeatures = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  if (!namespace) {
+    throw new Error(
+      'APPLICATIONS_NAMESPACE is not configured. Set CY_TEST_CONFIG to point to your test-variables.yml file.',
+    );
+  }
+
   cy.step('Set LlamaStack to Removed');
   return cy
     .exec(
@@ -43,7 +60,7 @@ export const disableGenAiFeatures = (): Cypress.Chainable<CommandLineResult> => 
     .then(() => {
       cy.step('Disable Gen AI Studio and Model as Service');
       return cy.exec(
-        `oc patch odhdashboardconfig odh-dashboard-config -n ${namespace} --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":false, "modelAsService":false}}}'`,
+        `oc patch odhdashboardconfig odh-dashboard-config -n ${namespace} --type merge -p '{"spec":{"dashboardConfig":{"genAiStudio":false}}}'`,
       );
     });
 };
