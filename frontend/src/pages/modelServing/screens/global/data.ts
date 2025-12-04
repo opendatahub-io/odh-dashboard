@@ -78,7 +78,7 @@ const COL_LAST_DEPLOYED: SortableData<InferenceServiceKind> = {
   label: 'Last deployed',
   width: 15,
   sortable: (a, b) => {
-    // Only check if service is stopped (no ModelMesh)
+    // Only check if service is stopped
     const aInactive = getInferenceServiceStoppedStatus(a).isStopped;
     const bInactive = getInferenceServiceStoppedStatus(b).isStopped;
 

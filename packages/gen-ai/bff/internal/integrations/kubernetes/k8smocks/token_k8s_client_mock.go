@@ -82,7 +82,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-codestral-22b",
 				ModelID:        "llm-d-codestral-22b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Mistral Codestral 22B model optimized for code generation with llm-d prefill/decode separation",
@@ -97,7 +97,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-deepseek-coder-33b",
 				ModelID:        "llm-d-deepseek-coder-33b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "DeepSeek Coder 33B model with llm-d architecture for high-performance code completion",
@@ -192,7 +192,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-llama-3.1-70b",
 				ModelID:        "llm-d-llama-3.1-70b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Meta Llama 3.1 70B model served with llm-d disaggregated architecture for high throughput",
@@ -207,7 +207,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-mixtral-8x7b",
 				ModelID:        "llm-d-mixtral-8x7b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Mistral Mixtral 8x7B MoE model with llm-d prefill/decode separation for optimal performance",
@@ -222,7 +222,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-qwen2.5-72b",
 				ModelID:        "llm-d-qwen2.5-72b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Alibaba Qwen 2.5 72B model optimized with llm-d architecture for enterprise workloads",

@@ -1,0 +1,40 @@
+apiVersion: modelregistry.opendatahub.io/v1beta1
+kind: ModelRegistry
+metadata:
+  name: {{REGISTRY_NAME}}
+  namespace: {{NAMESPACE}}
+  annotations:
+    openshift.io/display-name: {{REGISTRY_NAME}}
+    openshift.io/description: E2E test model registry
+spec:
+  grpc: {}
+  rest: {}
+  kubeRBACProxy: {}
+  mysql:
+    host: {{DATABASE_NAME}}
+    port: 3306
+    database: model_registry
+    username: mlmduser
+    skipDBCreation: false
+    passwordSecret:
+      name: {{DATABASE_NAME}}
+      key: database-password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{DATABASE_NAME}}
+  namespace: {{NAMESPACE}}
+  labels:
+    app.kubernetes.io/name: {{DATABASE_NAME}}
+    app.kubernetes.io/instance: {{DATABASE_NAME}}
+    app.kubernetes.io/part-of: {{DATABASE_NAME}}
+    app.kubernetes.io/managed-by: kustomize
+  annotations:
+    template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+    template.openshift.io/expose-password: '{.data[''database-password'']}'
+    template.openshift.io/expose-username: '{.data[''database-user'']}'
+stringData:
+  database-name: "model_registry"
+  database-password: "TheBlurstOfTimes"
+  database-user: "mlmduser"

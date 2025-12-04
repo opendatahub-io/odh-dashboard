@@ -130,6 +130,13 @@ const useChatbotMessages = ({
   const handleStopStreaming = React.useCallback(() => {
     if (abortControllerRef.current) {
       isStoppingStreamRef.current = true;
+
+      // Track stop button click
+      fireMiscTrackingEvent('Playground Query Stopped', {
+        isStreaming: isStreamingEnabled,
+        isRag: isRawUploaded,
+      });
+
       // Clear any pending streaming updates to prevent them from overwriting the stop message
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -138,7 +145,7 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, []);
+  }, [isStreamingEnabled, isRawUploaded]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)

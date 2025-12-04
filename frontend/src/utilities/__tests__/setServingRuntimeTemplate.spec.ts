@@ -12,7 +12,7 @@ describe('setServingRuntimeTemplate', () => {
       name: 'example-template',
       namespace: 'default',
       annotations: {
-        'opendatahub.io/modelServingSupport': '["MULTI"]',
+        'opendatahub.io/modelServingSupport': '["SINGLE"]',
       },
       labels: {
         'opendatahub.io/dashboard': 'true',

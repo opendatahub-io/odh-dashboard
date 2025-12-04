@@ -1,0 +1,22 @@
+import { Modal } from '../components/Modal';
+
+class ModelCatalogDeployModal extends Modal {
+  constructor() {
+    super('Deploy model');
+  }
+
+  private findProjectSelector() {
+    return this.find().findByTestId('deploy-model-project-selector-toggle');
+  }
+
+  selectProjectByName(name: string) {
+    this.findProjectSelector().click();
+    cy.findByTestId('deploy-model-project-selector-search').fill(name);
+    cy.findByTestId('deploy-model-project-selector-menuList')
+      .contains('button', name)
+      .should('be.visible')
+      .click();
+  }
+}
+
+export const modelCatalogDeployModal = new ModelCatalogDeployModal();
