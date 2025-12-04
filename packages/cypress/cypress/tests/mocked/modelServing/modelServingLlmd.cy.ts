@@ -442,9 +442,6 @@ describe('Model Serving LLMD', () => {
       }).as('deleteDefaultTokenSecret');
       cy.intercept('PUT', '**/llminferenceservices/test-llmd-model*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
-      }).as('updateLLMInferenceServiceDryRun');
-      cy.intercept('PATCH', '**/llminferenceservices/test-llmd-model*', (req) => {
-        req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceService');
 
       // Visit the model serving page
@@ -498,7 +495,7 @@ describe('Model Serving LLMD', () => {
       // Step 4: Summary
       modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
 
-      cy.wait('@updateLLMInferenceServiceDryRun').then((interception) => {
+      cy.wait('@updateLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.metadata.annotations).to.containSubset({
           'openshift.io/display-name': 'test-llmd-model-2',
@@ -520,12 +517,8 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
       });
 
-      cy.get('@updateLLMInferenceServiceDryRun.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 dry-run request
-      });
-
       cy.get('@updateLLMInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(1); // 1 actual request
+        expect(interceptions).to.have.length(2);
       });
     });
   });
