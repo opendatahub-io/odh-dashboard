@@ -1,6 +1,4 @@
-import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
-
-const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+import type { CommandLineResult } from '../../types';
 
 /**
  * Enable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
@@ -10,6 +8,7 @@ const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
  * @returns A Cypress chainable that resolves when both patches are applied successfully.
  */
 export const enableGenAiFeatures = (waitTimeMs = 1000): Cypress.Chainable<CommandLineResult> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   cy.step('Set LlamaStack to Managed');
   return cy
     .exec(
@@ -35,6 +34,7 @@ export const enableGenAiFeatures = (waitTimeMs = 1000): Cypress.Chainable<Comman
  * @returns A Cypress chainable that resolves when both patches are applied successfully.
  */
 export const disableGenAiFeatures = (): Cypress.Chainable<CommandLineResult> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   cy.step('Set LlamaStack to Removed');
   return cy
     .exec(

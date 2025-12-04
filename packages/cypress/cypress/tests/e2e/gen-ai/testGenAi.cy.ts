@@ -1,39 +1,29 @@
 import * as yaml from 'js-yaml';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   verifyOpenShiftProjectExists,
   deleteOpenShiftProject,
-} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import { checkLlamaStackDistributionReady } from '#~/__tests__/cypress/cypress/utils/oc_commands/llamaStackDistribution';
-import { waitForResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-import {
-  enableGenAiFeatures,
-  disableGenAiFeatures,
-} from '#~/__tests__/cypress/cypress/utils/oc_commands/genAi';
-import { getCustomResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/customResources';
-import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { GenAiTestData } from '#~/__tests__/cypress/cypress/types';
-import {
-  projectDetails,
-  projectListPage,
-  createProjectModal,
-} from '#~/__tests__/cypress/cypress/pages/projects';
-import {
-  connectionsPage,
-  addConnectionModal,
-} from '#~/__tests__/cypress/cypress/pages/connections';
+} from '../../../utils/oc_commands/project';
+import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
+import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
+import { waitForResource } from '../../../utils/oc_commands/baseCommands';
+import { enableGenAiFeatures, disableGenAiFeatures } from '../../../utils/oc_commands/genAi';
+import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { retryableBefore } from '../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../utils/uuidGenerator';
+import type { GenAiTestData } from '../../../types';
+import { projectDetails, projectListPage, createProjectModal } from '../../../pages/projects';
+import { connectionsPage, addConnectionModal } from '../../../pages/connections';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
-} from '#~/__tests__/cypress/cypress/pages/modelServing';
-import { genAiPlayground } from '#~/__tests__/cypress/cypress/pages/genAiPlayground';
-import { servingRuntimes } from '#~/__tests__/cypress/cypress/pages/servingRuntimes';
-import { getVllmCpuAmd64RuntimePath } from '#~/__tests__/cypress/cypress/utils/fileImportUtils';
-import { getVllmCpuAmd64RuntimeInfo } from '#~/__tests__/cypress/cypress/utils/fileParserUtil';
-import { cleanupTemplates } from '#~/__tests__/cypress/cypress/utils/oc_commands/templates';
+} from '../../../pages/modelServing';
+import { genAiPlayground } from '../../../pages/genAiPlayground';
+import { servingRuntimes } from '../../../pages/servingRuntimes';
+import { getVllmCpuAmd64RuntimePath } from '../../../utils/fileImportUtils';
+import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
+import { cleanupTemplates } from '../../../utils/oc_commands/templates';
 
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
