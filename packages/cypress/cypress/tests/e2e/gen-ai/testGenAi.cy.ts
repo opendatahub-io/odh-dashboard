@@ -30,12 +30,20 @@ import {
   modelServingWizard,
 } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { genAiPlayground } from '#~/__tests__/cypress/cypress/pages/genAiPlayground';
+import { servingRuntimes } from '#~/__tests__/cypress/cypress/pages/servingRuntimes';
+import { getVllmCpuAmd64RuntimePath } from '#~/__tests__/cypress/cypress/utils/fileImportUtils';
+import { getVllmCpuAmd64RuntimeInfo } from '#~/__tests__/cypress/cypress/utils/fileParserUtil';
+import { cleanupTemplates } from '#~/__tests__/cypress/cypress/utils/oc_commands/templates';
 
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
   const uuid = generateTestUUID();
+
+  // Serving runtime variables
+  let servingRuntimeName: string;
+  let servingRuntimeDisplayName: string;
 
   retryableBefore(() => {
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
@@ -72,7 +80,15 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
           }
           return cy.wrap(null);
         })
-        .then(() => enableGenAiFeatures());
+        .then(() => enableGenAiFeatures())
+        .then(() => getVllmCpuAmd64RuntimeInfo())
+        .then((info) => {
+          servingRuntimeName = info.singleModelServingName;
+          servingRuntimeDisplayName = info.displayName;
+          cy.log(`Loaded Serving Runtime Name: ${servingRuntimeName}`);
+          cy.log(`Loaded Serving Runtime Display Name: ${servingRuntimeDisplayName}`);
+          return cleanupTemplates(servingRuntimeDisplayName);
+        });
     });
   });
 
@@ -86,6 +102,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
+
+    // Cleanup serving runtime template
+    if (servingRuntimeDisplayName) {
+      cleanupTemplates(servingRuntimeDisplayName);
+    }
   });
 
   // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
@@ -98,6 +119,55 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       return true;
     });
   });
+
+  it(
+    'Create custom serving runtime for Gen AI',
+    {
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime'],
+    },
+    () => {
+      if (skipTest) {
+        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+        return;
+      }
+
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to Serving Runtimes settings');
+      cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
+
+      cy.step('Click Add serving runtime button');
+      servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+
+      cy.step('Select API Protocol');
+      servingRuntimes.findSelectAPIProtocolButton().click();
+      servingRuntimes.selectAPIProtocol('REST');
+
+      cy.step('Select Generative AI Model Type');
+      servingRuntimes.findSelectModelTypes().click();
+      servingRuntimes.findGenerativeAIModelOption().click();
+
+      cy.step('Upload serving runtime YAML file');
+      const servingRuntimeYaml = getVllmCpuAmd64RuntimePath();
+      servingRuntimes.uploadYaml(servingRuntimeYaml);
+
+      cy.step('Submit and verify serving runtime creation');
+      servingRuntimes
+        .findSubmitButton()
+        .should('be.enabled')
+        .click()
+        .then(() => {
+          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
+            timeout: 30000,
+          });
+        });
+
+      cy.step(`Verify serving runtime ${servingRuntimeName} was created`);
+      cy.contains(servingRuntimeDisplayName).should('be.visible');
+      servingRuntimes.getRowById(servingRuntimeName).find().should('exist');
+    },
+  );
 
   it(
     'Create namespace and add URI connection for Gen AI model',
@@ -185,8 +255,20 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard.findModelDeploymentNameInput().clear().type(testData.modelDeploymentName);
 
       cy.step('Select hardware profile');
-      modelServingWizard.findHardwareProfileSelect().click();
-      modelServingWizard.findHardwareProfileOption('default-profile').click();
+      // Handle the case where 'default-profile' is auto-selected and greyed out
+      modelServingWizard.findHardwareProfileSelect().then(($dropdown) => {
+        if ($dropdown.prop('disabled') || $dropdown.attr('aria-disabled') === 'true') {
+          // If disabled, verify the default profile is already selected
+          cy.wrap($dropdown).should('contain.text', 'default-profile');
+          cy.log(
+            'Hardware profile is auto-selected and disabled - default-profile already selected',
+          );
+        } else {
+          // If enabled, proceed with selection
+          cy.wrap($dropdown).click();
+          modelServingWizard.findHardwareProfileOption('default-profile').click();
+        }
+      });
 
       cy.step('Expand "Customize resource requests and limits" section');
       modelServingWizard.findCustomizeResourcesButton().click();
