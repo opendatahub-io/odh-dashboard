@@ -563,4 +563,65 @@ describe('useChatbotMessages', () => {
       });
     });
   });
+
+  describe('tool response handling', () => {
+    it('should create tool response with isDefaultExpanded set to false', async () => {
+      const mockResponseWithToolData: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        toolCallData: {
+          serverLabel: 'MCP Server',
+          toolName: 'calculator_tool',
+          toolArguments: '{"operation": "add"}',
+          toolOutput: '{"result": 8}',
+        },
+      };
+
+      mockCreateResponse.mockResolvedValueOnce(mockResponseWithToolData);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Calculate');
+      });
+
+      const botMessage = result.current.messages[2];
+
+      // Verify isDefaultExpanded is set to false (key change)
+      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+    });
+
+    it('should create tool response with isDefaultExpanded false in streaming mode', async () => {
+      const mockStreamingResponseWithToolData: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        toolCallData: {
+          serverLabel: 'Streaming Server',
+          toolName: 'stream_tool',
+          toolArguments: '{"param": "test"}',
+          toolOutput: '{"status": "completed"}',
+        },
+      };
+
+      mockCreateResponse.mockImplementation(
+        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('Streaming content');
+          }
+          return Promise.resolve(mockStreamingResponseWithToolData);
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test streaming');
+      });
+
+      const botMessage = result.current.messages[2];
+
+      // Verify isDefaultExpanded is false in streaming mode too
+      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+    });
+  });
 });
