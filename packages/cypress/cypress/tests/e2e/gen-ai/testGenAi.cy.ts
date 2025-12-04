@@ -13,7 +13,6 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
 import { projectDetails, projectListPage, createProjectModal } from '../../../pages/projects';
-import { connectionsPage, addConnectionModal } from '../../../pages/connections';
 import {
   modelServingGlobal,
   modelServingSection,
@@ -160,7 +159,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   );
 
   it(
-    'Create namespace and add URI connection for Gen AI model',
+    'Create namespace for test',
     {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Namespace', '@Connection'],
     },
@@ -188,28 +187,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step(`Verify that the project ${projectName} has been created`);
       cy.url().should('include', `/projects/${projectName}`);
       projectDetails.verifyProjectName(projectName);
-
-      cy.step('Navigate to Connections tab');
-      projectDetails.findSectionTab('connections').click();
-
-      cy.step('Click Create Connection button');
-      connectionsPage.findCreateConnectionButton().click();
-
-      cy.step('Create URI connection for Gen AI model');
-      addConnectionModal.findConnectionTypeDropdown().click();
-      addConnectionModal.findConnectionTypeOption(testData.connectionType).click();
-      addConnectionModal.findConnectionNameInput().type(testData.connectionName);
-      addConnectionModal.findConnectionDescriptionInput().type(testData.connectionDescription);
-      addConnectionModal.findUriField().type(testData.connectionURI);
-      addConnectionModal.findCreateButton().click();
-
-      cy.step('Verify connection was created successfully');
-      connectionsPage.getConnectionRow(testData.connectionName).find().should('exist');
     },
   );
 
   it(
-    'Deploy Gen AI model using existing connection',
+    'Deploy Gen AI model using URI',
     {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment'],
     },
@@ -219,24 +201,25 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
         return;
       }
 
-      cy.step('Log into the application and navigate to project');
-      cy.visitWithLogin(`/projects/${projectName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to Model Serving tab');
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      cy.step('Navigate to Model Serving tab and click Deploy Model');
       projectDetails.findSectionTab('model-server').click();
-
-      cy.step('Click Deploy Model button');
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
-      cy.step('Configure model source with existing connection');
-      modelServingWizard.findModelLocationSelect().should('be.visible').should('not.be.disabled');
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
-      modelServingWizard.findExistingConnectionSelect().should('be.visible');
-      modelServingWizard
-        .findExistingConnectionValue()
-        .should('be.visible')
-        .should('have.value', testData.connectionName);
+      cy.step('Step 1: Model details - Configure model location');
+      // Select URI as model location and enter the model URI
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
+      // Uncheck "Create a connection to this location" since connection was already created in previous test
+      modelServingWizard.findSaveConnectionCheckbox().uncheck();
       modelServingWizard.findModelTypeSelect().should('be.visible').should('not.be.disabled');
       modelServingWizard.findModelTypeSelectOption(testData.modelType).click();
       modelServingWizard.findNextButton().click();
