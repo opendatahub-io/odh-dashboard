@@ -257,3 +257,18 @@ export const applyDashboardResourceLabel = (
   };
   return result;
 };
+
+export const applyTokenAuthentication = (
+  llmdInferenceService: LLMInferenceServiceKind,
+  tokenAuthentication?: { displayName: string; uuid: string; error?: string }[],
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmdInferenceService);
+  const annotations = { ...result.metadata.annotations };
+  if (!tokenAuthentication || tokenAuthentication.length === 0) {
+    annotations['security.opendatahub.io/enable-auth'] = 'false';
+  } else {
+    delete annotations['security.opendatahub.io/enable-auth'];
+  }
+  result.metadata.annotations = annotations;
+  return result;
+};
