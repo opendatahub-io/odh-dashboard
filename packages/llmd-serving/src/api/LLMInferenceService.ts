@@ -5,7 +5,7 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { createPatchesFromDiff, k8sMergePatchResource } from '@odh-dashboard/internal/api/k8sUtils';
+import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
 import { LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
 export const createLLMInferenceService = (
@@ -73,14 +73,5 @@ export const patchLLMInferenceService = (
       },
       opts,
     ),
-  );
-};
-
-export const mergePatchLLMInferenceService = (
-  llmInferenceService: LLMInferenceServiceKind,
-  opts?: K8sAPIOptions,
-): Promise<LLMInferenceServiceKind> => {
-  return k8sMergePatchResource<LLMInferenceServiceKind>(
-    applyK8sAPIOptions({ model: LLMInferenceServiceModel, resource: llmInferenceService }, opts),
   );
 };
