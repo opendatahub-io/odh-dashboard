@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Content, Popover, Button } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
+import { FormGroup, HelperText, HelperTextItem, TextInput } from '@patternfly/react-core';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 
@@ -37,9 +36,13 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
   projectName,
   setProjectName,
 }) => {
+  const projectLabel = 'This is the OpenShift AI project where the model will be deployed.';
   if (!initialProjectName) {
     return (
       <FormGroup label="Project" isRequired>
+        <HelperText>
+          <HelperTextItem>{projectLabel}</HelperTextItem>
+        </HelperText>
         <ProjectSelector
           namespace={projectName ?? ''}
           onSelection={(newProjectName: string) => setProjectName(newProjectName)}
@@ -51,26 +54,11 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
   }
 
   return (
-    <FormGroup
-      label={
-        <>
-          Project
-          <Popover
-            bodyContent="The OpenShift project where the model will be deployed. The inference service and serving runtime objects will be created in this project."
-            position="right"
-          >
-            <Button
-              variant="plain"
-              aria-label="More info for project field"
-              className="pf-v5-u-ml-xs"
-            >
-              <HelpIcon />
-            </Button>
-          </Popover>
-        </>
-      }
-    >
-      <Content component="p">{projectName}</Content>
+    <FormGroup label={<>Project</>}>
+      <HelperText>
+        <HelperTextItem>{projectLabel}</HelperTextItem>
+      </HelperText>
+      <TextInput value={projectName} isDisabled data-testid="project-name" />
     </FormGroup>
   );
 };
