@@ -8,6 +8,7 @@ export type DeployPrefillData = {
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
   modelType?: ServingRuntimeModelType;
+  prefillAlertText?: string;
 }
 
 export type NavigateToDeploymentWizardWithDataExtension = Extension<

@@ -49,6 +49,7 @@ export type ModelLocationData = {
   connectionTypeObject?: ConnectionTypeConfigMapObj;
   connection?: string;
   disableInputFields?: boolean;
+  prefillAlertText?: string;
   fieldValues: Record<string, ConnectionTypeValueType>;
   additionalFields: {
     // For S3 and OCI additional fields

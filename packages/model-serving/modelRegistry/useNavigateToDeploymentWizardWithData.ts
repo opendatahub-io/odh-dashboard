@@ -35,6 +35,7 @@ export const useNavigateToDeploymentWizardWithData = (
       wizardStartIndex: deployPrefillData.wizardStartIndex ?? 1,
       modelLocationData: {
         type: ModelLocationType.NEW,
+        prefillAlertText: deployPrefillData.prefillAlertText,
         fieldValues: {
           URI: deployPrefillData.modelUri,
         },
