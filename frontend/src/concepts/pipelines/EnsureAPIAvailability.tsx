@@ -17,6 +17,7 @@ type CenteredColumnContainerProps = {
   children: React.ReactNode;
 };
 
+// using inline styles since the Flex component does not support text alignment or max width
 const CenteredColumnContainer: React.FC<CenteredColumnContainerProps> = ({ children }) => (
   <Flex
     direction={{ default: 'column' }}
