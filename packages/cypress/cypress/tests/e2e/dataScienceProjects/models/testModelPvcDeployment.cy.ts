@@ -34,7 +34,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-38674] Verify a model can be deployed from a PVC', () => {
+describe('[Product Bug: RHOAIENG-41299] Verify a model can be deployed from a PVC', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -126,36 +126,31 @@ describe('[Product Bug: RHOAIENG-38674] Verify a model can be deployed from a PV
       // So we don't need to click the button.
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
-      // Step 1: Model Source
+
+      cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
-      modelServingWizard.findPVCSelectValue().should('have.value', pvStorageName);
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
+
+      cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       modelServingWizard.findNextButton().click();
-      //Step 3: Advanced Options
+
+      cy.step('Step 3: Advanced settings');
       modelServingWizard.findNextButton().click();
-      //Step 4: Review
+
+      cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
       checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
+      cy.reload();
     },
   );
 });

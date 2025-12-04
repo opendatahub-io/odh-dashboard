@@ -964,6 +964,12 @@ class ModelServingWizard extends Wizard {
     return this.findModelFormatSelect().findSelectOption(name);
   }
 
+  findServingRuntimeAutoSelectRadio() {
+    return cy.findByLabelText(
+      'Auto-select the best runtime for my model based on model type, model format, and hardware profile',
+    );
+  }
+
   findServingRuntimeTemplateSearchSelector() {
     return cy.findByTestId('serving-runtime-template-selection-toggle');
   }
@@ -980,6 +986,19 @@ class ModelServingWizard extends Wizard {
       .findByTestId('global-scoped-serving-runtimes')
       .find('[data-testid^="servingRuntime"]')
       .first();
+  }
+
+  selectServingRuntimeOption(name: string) {
+    this.findServingRuntimeAutoSelectRadio().then(($radio) => {
+      if ($radio.is(':checked')) {
+        // Auto-select the best runtime for my model based on model type, model format, and hardware profile
+        cy.findByText(name).should('exist');
+      } else {
+        // Select from a list of serving runtimes, including custom ones
+        this.findServingRuntimeTemplateSearchSelector().click();
+        this.findGlobalScopedTemplateOption(name).should('exist').click();
+      }
+    });
   }
 
   findServingRuntimeTemplateSearchInput() {

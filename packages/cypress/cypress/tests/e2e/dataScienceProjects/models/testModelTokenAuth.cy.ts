@@ -76,29 +76,19 @@ describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth'
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
-      // Launch a model
-      cy.step('Launch a Single Serving Model using Openvino');
-      // Step 1: Model Source
+      cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
-      // Step 2: Model Deployment
+
+      cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('OpenVINO Model Server')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       modelServingWizard.findNextButton().click();
-      //Step 3: Advanced Options
+
+      cy.step('Step 3: Advanced settings');
       // Enable Model access through an external route
       cy.step('Enable Model access through an external route');
       modelServingWizard.findExternalRouteCheckbox().click();
@@ -107,7 +97,8 @@ describe('[Product Bug: RHOAIENG-37899] A model can be deployed with token auth'
       modelServingWizard.findAddServiceAccountButton().click();
       modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
       modelServingWizard.findNextButton().click();
-      //Step 4: Review
+
+      cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
