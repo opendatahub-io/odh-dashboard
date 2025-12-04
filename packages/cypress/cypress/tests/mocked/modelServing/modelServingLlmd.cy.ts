@@ -9,7 +9,10 @@ import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockPr
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  mockServingRuntimeTemplateK8sResource,
+  mockStandardModelServingTemplateK8sResources,
+} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockConnectionTypeConfigMap,
@@ -99,36 +102,9 @@ const initIntercepts = ({
   ]).as('getConnectionTypes');
   cy.interceptK8sList(
     TemplateModel,
-    mockK8sResourceList(
-      [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
-          displayName: 'OpenVINO',
-          modelTypes: [ServingRuntimeModelType.PREDICTIVE],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-5',
-          displayName: 'vLLM NVIDIA',
-          modelTypes: [ServingRuntimeModelType.GENERATIVE],
-          supportedModelFormats: [
-            {
-              name: 'vLLM',
-            },
-          ],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-6',
-          displayName: 'vLLM CPU',
-          modelTypes: [ServingRuntimeModelType.GENERATIVE],
-          supportedModelFormats: [
-            {
-              name: 'vLLM',
-            },
-          ],
-        }),
-      ],
-      { namespace: 'opendatahub' },
-    ),
+    mockK8sResourceList(mockStandardModelServingTemplateK8sResources(), {
+      namespace: 'opendatahub',
+    }),
   );
 
   cy.interceptK8sList(
