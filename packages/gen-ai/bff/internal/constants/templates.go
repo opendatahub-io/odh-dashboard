@@ -52,8 +52,7 @@ client = LlamaStackClient(base_url=LLAMA_STACK_URL)
 vector_store = client.vector_stores.create(
     name=vector_store_name{{- if .VectorStore.EmbeddingModel }},
     embedding_model="{{.VectorStore.EmbeddingModel}}"{{- end }}{{- if .VectorStore.EmbeddingDimension }},
-    embedding_dimension={{.VectorStore.EmbeddingDimension}}{{- end }}{{- if .VectorStore.ProviderID }},
-    provider_id="{{.VectorStore.ProviderID}}"{{- end }}
+    embedding_dimension={{.VectorStore.EmbeddingDimension}}{{- end }}
 )
 {{- end }}{{- if or .Tools .MCPServers }}
 tools = [
