@@ -16,6 +16,7 @@ import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import type { InitialWizardFormData } from './types';
 import { ExitDeploymentModal } from './CancelDeploymentModal';
+import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -40,6 +41,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   cancelReturnRoute,
 }) => {
   const navigate = useNavigate();
+  const onRefresh = useRefreshWizardPage(existingDeployment);
 
   const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
 
@@ -168,9 +170,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         submitButtonText={primaryButtonText}
         overwriteSupported={deployMethod?.properties.supportsOverwrite}
         onSave={onSave}
+        onRefresh={onRefresh}
       />
     ),
-    [submitError, isLoading, primaryButtonText, deployMethod?.properties.supportsOverwrite, onSave],
+    [
+      submitError,
+      isLoading,
+      primaryButtonText,
+      deployMethod?.properties.supportsOverwrite,
+      onSave,
+      onRefresh,
+    ],
   );
 
   return (
@@ -191,7 +201,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           {wizardState.loaded.modelSourceLoaded ? (
             <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
         <WizardStep
@@ -205,7 +215,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               wizardState={wizardState}
             />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
         <WizardStep
@@ -219,7 +229,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               projectName={currentProjectName}
             />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
         <WizardStep
@@ -234,7 +244,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           {wizardState.loaded.summaryLoaded ? (
             <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
           ) : (
-            <Spinner />
+            <Spinner data-testid="spinner" />
           )}
         </WizardStep>
       </Wizard>

@@ -32,9 +32,7 @@ const extensions: (
       useAvailablePlatformIds: () =>
         import('../modelRegistry/useAvailablePlatformIds').then((m) => m.default),
       modalComponent: () =>
-        import('../modelRegistry/DeployRegisteredVersionModal').then(
-          (m) => m.DeployRegisteredVersionModal,
-        ),
+        import('../modelRegistry/PreWizardDeployModal').then((m) => m.PreWizardDeployModal),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],

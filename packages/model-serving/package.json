@@ -19,11 +19,13 @@
       "./src/components/*.d.ts",
       "./src/components/*.tsx"
     ],
-    "./types/form-data": "./src/components/deploymentWizard/types.ts"
+    "./types/form-data": "./src/components/deploymentWizard/types.ts",
+    "./concepts/auth": "./src/concepts/auth.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/model-registry": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

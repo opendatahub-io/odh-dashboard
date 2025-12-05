@@ -125,7 +125,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
       platform: D['modelServingPlatformId'];
       watch: CodeRef<
         (
-          project?: ProjectKind,
+          project: ProjectKind,
           labelSelectors?: { [key: string]: string },
           filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,
@@ -304,3 +304,15 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension: Extension,
 ): extension is DeploymentWizardFieldExtension<D> =>
   extension.type === 'model-serving.deployment/wizard-field';
+
+export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/transform',
+  {
+    platform: D['modelServingPlatformId'];
+    transform: CodeRef<(deployment: D, initialWizardData: InitialWizardFormData) => D>;
+  }
+>;
+export const isModelServingDeploymentTransformExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentTransformExtension<D> =>
+  extension.type === 'model-serving.deployment/transform';

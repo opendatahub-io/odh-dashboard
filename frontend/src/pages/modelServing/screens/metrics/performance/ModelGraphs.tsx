@@ -6,7 +6,7 @@ type ModelGraphProps = {
   model: InferenceServiceKind;
 };
 
-// Always KServe (no ModelMesh)
+// Always KServe
 const ModelGraphs: React.FC<ModelGraphProps> = ({ model }) => (
   <KserveMetrics modelName={model.metadata.name} />
 );

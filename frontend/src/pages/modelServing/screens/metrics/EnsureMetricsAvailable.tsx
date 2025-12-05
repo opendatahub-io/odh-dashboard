@@ -6,14 +6,13 @@ import UnknownError from '#~/pages/UnknownError';
 import {
   ModelMetricType,
   ModelServingMetricsContext,
-  ServerMetricType,
 } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 
 const DEFAULT_ACCESS_DOMAIN = 'metrics';
 
 type EnsureMetricsAvailableProps = {
   children: React.ReactElement;
-  metrics: ModelMetricType[] | ServerMetricType[];
+  metrics: ModelMetricType[];
   accessDomain?: React.ReactNode;
 };
 

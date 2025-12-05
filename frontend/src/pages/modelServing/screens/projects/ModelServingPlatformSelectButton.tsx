@@ -8,7 +8,6 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 type ModelServingPlatformSelectButtonProps = ButtonProps & {
   namespace: string;
   servingPlatform:
-    | NamespaceApplicationCase.MODEL_MESH_PROMOTION
     | NamespaceApplicationCase.KSERVE_PROMOTION
     | NamespaceApplicationCase.KSERVE_NIM_PROMOTION
     | NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM;
@@ -16,7 +15,6 @@ type ModelServingPlatformSelectButtonProps = ButtonProps & {
 };
 
 const buttonLabels = {
-  [NamespaceApplicationCase.MODEL_MESH_PROMOTION]: 'Select multi-model',
   [NamespaceApplicationCase.KSERVE_PROMOTION]: 'Select single-model',
   [NamespaceApplicationCase.KSERVE_NIM_PROMOTION]: 'Select NVIDIA NIM',
   [NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM]: 'Change',

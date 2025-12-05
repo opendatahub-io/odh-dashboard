@@ -231,7 +231,7 @@ describe('getModelServingProjects', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(result).toStrictEqual([projectMock]);
@@ -245,7 +245,7 @@ describe('getModelServingProjects', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
   });
@@ -262,7 +262,7 @@ describe('addSupportServingPlatformProject', () => {
     mockedAxios.mockResolvedValue(axiosResponse(true));
     const result = await addSupportServingPlatformProject(
       name,
-      NamespaceApplicationCase.MODEL_MESH_PROMOTION,
+      NamespaceApplicationCase.KSERVE_PROMOTION,
     );
     expect(result).toStrictEqual(name);
     expect(mockedAxios).toHaveBeenCalledTimes(1);
@@ -272,7 +272,7 @@ describe('addSupportServingPlatformProject', () => {
   it('should handle error when failed to enable model serving platform', async () => {
     mockedAxios.mockResolvedValue(axiosResponse(false));
     await expect(
-      addSupportServingPlatformProject(name, NamespaceApplicationCase.MODEL_MESH_PROMOTION),
+      addSupportServingPlatformProject(name, NamespaceApplicationCase.KSERVE_PROMOTION),
     ).rejects.toThrow(
       `Unable to select a model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
@@ -283,7 +283,7 @@ describe('addSupportServingPlatformProject', () => {
   it('should handle error when axios response data is undefined', async () => {
     mockedAxios.mockResolvedValue({});
     await expect(
-      addSupportServingPlatformProject(name, NamespaceApplicationCase.MODEL_MESH_PROMOTION),
+      addSupportServingPlatformProject(name, NamespaceApplicationCase.KSERVE_PROMOTION),
     ).rejects.toThrow(
       `Unable to select a model serving platform in your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
@@ -295,7 +295,7 @@ describe('addSupportServingPlatformProject', () => {
     const axiosError = mockAxiosError({ message: 'error-message' });
     mockedAxios.mockRejectedValue(axiosError);
     await expect(
-      addSupportServingPlatformProject(name, NamespaceApplicationCase.MODEL_MESH_PROMOTION),
+      addSupportServingPlatformProject(name, NamespaceApplicationCase.KSERVE_PROMOTION),
     ).rejects.toThrow(`error-message`);
     expect(mockedAxios).toHaveBeenCalledTimes(1);
     expect(mockedAxios).toHaveBeenCalledWith('/api/namespaces/test/1', { params: {} });

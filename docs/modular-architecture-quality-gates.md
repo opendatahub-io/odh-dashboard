@@ -49,7 +49,7 @@ Currently enabled checks:
 
 2. **E2E Tests**
    - Checks for Cypress E2E tests in the global E2E structure
-   - Tests must be in `frontend/src/__tests__/cypress/cypress/tests/e2e/`
+   - Tests must be in `packages/cypress/cypress/tests/e2e/`
    - Module-specific tests should be in a directory matching the module name
 
 ### Disabled Checks (Coming Soon)

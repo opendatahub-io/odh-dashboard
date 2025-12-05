@@ -802,41 +802,59 @@ func GetCatalogModelListMock() models.CatalogModelList {
 
 func GetCatalogSourceMocks() []models.CatalogSource {
 	enabled := true
-	disabled := false
+	disabledBool := false
+
+	// Status examples (matching OpenAPI spec)
+	availableStatus := "available"
+	errorStatus := "error"
+	disabledStatus := "disabled"
+
+	invalidCredentialError := "The provided API key is invalid or has expired. Please update your credentials."
+	invalidOrgError := "The specified organization 'invalid-org' does not exist or you don't have access to it. Please verify the organization name and ensure you have the necessary permissions to access models from this organization."
+
 	return []models.CatalogSource{
 		{
 			Id:      "sample-source",
 			Name:    "Sample mocked source",
 			Enabled: &enabled,
 			Labels:  []string{"Sample category 1", "Sample category 2", "Sample category"},
+			Status:  &availableStatus,
 		},
 		{
 			Id:     "huggingface",
 			Name:   "Hugging Face",
 			Labels: []string{"Sample category 2", "Sample category"},
+			// Status is nil - represents "Starting" state (no status yet)
+			Status: nil,
 		},
 		{
 			Id:      "adminModel1",
 			Name:    "Admin model 1",
 			Enabled: &enabled,
 			Labels:  []string{},
+			Status:  &errorStatus,
+			Error:   &invalidCredentialError,
 		},
 		{
 			Id:      "adminModel2",
 			Name:    "Admin model 2",
 			Enabled: &enabled,
 			Labels:  []string{"Sample category 1"},
+			Status:  &errorStatus,
+			Error:   &invalidOrgError,
 		},
 		{
 			Id:     "dora",
 			Name:   "Dora source",
 			Labels: []string{},
+			Status: &availableStatus,
 		},
 		{
 			Id:      "adminModel3",
 			Name:    "Admin model 3",
-			Enabled: &disabled,
+			Enabled: &disabledBool,
 			Labels:  []string{},
+			Status:  &disabledStatus,
 		},
 	}
 }
@@ -1156,6 +1174,44 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 				},
 			}),
 		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties: performanceMetricsCustomProperties(map[string]openapi.MetadataValue{
+				"hardware_type": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "A100",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"hardware_count": {
+					MetadataIntValue: &openapi.MetadataIntValue{
+						IntValue:     "8",
+						MetadataType: "MetadataIntValue",
+					},
+				},
+				"requests_per_second": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  25,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"ttft_mean": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  28.5,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"use_case": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "long_rag",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+			}),
+		},
 	}
 	artifacts = artifacts[:itemCount]
 	return artifacts
@@ -1256,6 +1312,14 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
+	// String type filter for use cases
+	filterOptions["use_case"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"chatbot", "code_fixing", "long_rag", "rag",
+		},
+	}
+
 	filterOptions["ttft_mean"] = models.FilterOption{
 		Type: FilterOptionTypeNumber,
 		Range: &models.FilterRange{
@@ -1272,5 +1336,103 @@ func GetFilterOptionsListMock() models.FilterOptionsList {
 
 	return models.FilterOptionsList{
 		Filters: &filterOptions,
+	}
+}
+
+func CreateSampleCatalogSource(id string, name string, catalogType string) models.CatalogSourceConfig {
+	defaultCatalog := id == "sample-source"
+
+	sourceConfig := models.CatalogSourceConfig{
+		Name:      name,
+		Id:        id,
+		Type:      catalogType,
+		Enabled:   BoolPtr(true),
+		Labels:    []string{"source-1"},
+		IsDefault: &defaultCatalog,
+	}
+
+	if !defaultCatalog {
+		sourceConfig.IncludedModels = []string{"rhelai1/modelcar-granite-7b-starter"}
+		sourceConfig.ExcludedModels = []string{"model-a:1.0", "model-b:*"}
+	}
+
+	switch catalogType {
+	case "yaml":
+		sourceConfig.Yaml = stringToPointer("models:\n  - name: model1")
+	case "huggingface":
+		// Use different organizations for the failed sources
+		if id == "adminModel2" {
+			sourceConfig.AllowedOrganization = stringToPointer("invalid-org")
+		} else {
+			sourceConfig.AllowedOrganization = stringToPointer("org1")
+		}
+		sourceConfig.ApiKey = stringToPointer("apikey")
+	}
+
+	return sourceConfig
+}
+
+func BoolPtr(b bool) *bool {
+	return &b
+}
+
+func GetCatalogSourceConfigsMocks() []models.CatalogSourceConfig {
+	// Match IDs with catalog sources to show proper statuses
+	return []models.CatalogSourceConfig{
+		CreateSampleCatalogSource("sample-source", "Sample mocked source", "yaml"),
+		CreateSampleCatalogSource("huggingface", "Hugging Face", "huggingface"),
+		CreateSampleCatalogSource("adminModel1", "Admin model 1", "huggingface"),
+		CreateSampleCatalogSource("adminModel2", "Admin model 2", "huggingface"),
+		CreateSampleCatalogSource("dora", "Dora source", "yaml"),
+	}
+}
+
+func GetCatalogSourceConfigListMock() models.CatalogSourceConfigList {
+	allCatalogSourceConfigs := GetCatalogSourceConfigsMocks()
+
+	return models.CatalogSourceConfigList{
+		Catalogs: allCatalogSourceConfigs,
+	}
+}
+
+func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {
+	return []models.CatalogSourcePreviewModel{
+		{
+			Name:     "sample-source/granite",
+			Included: true,
+		},
+		{
+			Name:     "sample-source/model-1",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-2",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-3",
+			Included: false,
+		},
+	}
+}
+
+func GetCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalModels:    1500,
+		IncludedModels: 850,
+		ExcludedModels: 650,
+	}
+}
+
+func CreateCatalogSourcePreviewMock() models.CatalogSourcePreviewResult {
+	catalogModelPreview := GetModelsWithInclusionStatusListMocks()
+	catalogSourcePreviewSummary := GetCatalogSourcePreviewSummaryMock()
+
+	return models.CatalogSourcePreviewResult{
+		Items:         catalogModelPreview,
+		Summary:       catalogSourcePreviewSummary,
+		NextPageToken: "",
+		PageSize:      int32(10),
+		Size:          int32(len(catalogModelPreview)),
 	}
 }

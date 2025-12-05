@@ -134,7 +134,7 @@ export type DashboardLabels = {
 };
 
 export type ModelServingProjectLabels = {
-  [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
+  [KnownLabels.MODEL_SERVING_PROJECT]: 'false';
 };
 
 export type K8sCondition = {
@@ -168,7 +168,6 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
-  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -1281,7 +1280,6 @@ export type DashboardCommonConfig = {
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
-  disableModelMesh: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;
@@ -1328,7 +1326,13 @@ export type DashboardConfigKind = K8sResourceCommon & {
     };
   };
 };
-
+/**
+ * @deprecated -- accelerator profiles are going away; only in deprecation paths
+ * used by *both* modelmesh and finetuning
+ *
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;

@@ -24,7 +24,7 @@ export const ModelDeploymentsContext = React.createContext<ModelDeploymentsConte
 type PlatformDeploymentWatcherProps = {
   platformId: string;
   watcher: ModelServingPlatformWatchDeployments;
-  projects?: ProjectKind[];
+  project: ProjectKind;
   onStateChange: (
     platformId: string,
     state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
@@ -37,7 +37,7 @@ type PlatformDeploymentWatcherProps = {
 const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   platformId,
   watcher,
-  projects,
+  project,
   labelSelectors,
   onStateChange,
   unloadPlatformDeployments,
@@ -45,40 +45,21 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
 }) => {
   const useWatchDeployments = watcher.properties.watch;
 
-  // If there's only 1 project, scope the call to that project, otherwise call without project scoping
-  const projectToScope = projects?.length === 1 ? projects[0] : undefined;
-  const [allDeployments, loaded, error] = useWatchDeployments(
-    projectToScope,
-    labelSelectors,
-    filterFn,
-  );
-
-  // Filter deployments to only include those from the specified projects
-  const filteredDeployments = React.useMemo(() => {
-    if (!allDeployments || !projects || projects.length <= 1) {
-      return allDeployments;
-    }
-
-    const projectNames = new Set(projects.map((p) => p.metadata.name));
-    return allDeployments.filter((deployment) => {
-      // Check if deployment belongs to one of our projects
-      const deploymentNamespace = deployment.model.metadata.namespace;
-      return deploymentNamespace && projectNames.has(deploymentNamespace);
-    });
-  }, [allDeployments, projects, labelSelectors]);
+  // Scope the call to the single project
+  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors, filterFn);
 
   React.useEffect(() => {
-    onStateChange(platformId, { deployments: filteredDeployments, loaded, error });
+    onStateChange(platformId, { deployments, loaded, error });
     return () => {
       unloadPlatformDeployments(platformId);
     };
-  }, [platformId, loaded, error, onStateChange, unloadPlatformDeployments]);
+  }, [platformId, deployments, loaded, error, onStateChange, unloadPlatformDeployments]);
 
   return null;
 };
 
 type ModelDeploymentsProviderProps = {
-  projects?: ProjectKind[];
+  projects: ProjectKind[];
   labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
   filterFn?: (model: Deployment['model']) => boolean;
@@ -123,23 +104,28 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     const allDeployments: Deployment[] = [];
     const errors: Error[] = [];
 
-    for (const platformId of availablePlatforms) {
-      if (platformId in platformDeployments) {
-        const state = platformDeployments[platformId];
-        if (state.deployments) {
-          allDeployments.push(...state.deployments);
-        }
-        if (state.error) {
-          errors.push(state.error);
-        }
+    for (const key in platformDeployments) {
+      const state = platformDeployments[key];
+      if (state.deployments) {
+        allDeployments.push(...state.deployments);
+      }
+      if (state.error) {
+        errors.push(state.error);
       }
     }
 
     const allLoaded =
       deploymentWatchersLoaded &&
-      availablePlatforms.every(
-        (id) => id in platformDeployments && platformDeployments[id].loaded === true,
-      );
+      (projects.length === 0 ||
+        availablePlatforms.every((platformId) => {
+          const platformKeys = Object.keys(platformDeployments).filter((key) =>
+            key.startsWith(`${platformId}-project-`),
+          );
+          return (
+            platformKeys.length > 0 &&
+            platformKeys.every((key) => platformDeployments[key].loaded === true)
+          );
+        }));
 
     return {
       deployments: allLoaded ? allDeployments : undefined,
@@ -158,18 +144,18 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
           return null;
         }
 
-        return (
+        return projects.map((project, index) => (
           <PlatformDeploymentWatcher
-            key={platformId}
-            platformId={platformId}
+            key={`${platformId}-${project.metadata.name}`}
+            platformId={`${platformId}-project-${index}`}
             watcher={watcher}
-            projects={projects}
+            project={project}
             labelSelectors={labelSelectors}
             onStateChange={updatePlatformDeployments}
             unloadPlatformDeployments={unloadPlatformDeployments}
             filterFn={filterFn}
           />
-        );
+        ));
       })}
       {children}
     </ModelDeploymentsContext.Provider>

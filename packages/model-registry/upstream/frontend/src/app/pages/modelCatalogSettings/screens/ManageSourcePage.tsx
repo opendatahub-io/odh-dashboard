@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import { ApplicationsPage, TitleWithIcon, ProjectObjectType } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import {
   CATALOG_SETTINGS_PAGE_TITLE,
   ADD_SOURCE_TITLE,
@@ -10,6 +10,9 @@ import {
   MANAGE_SOURCE_DESCRIPTION,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import ManageSourceForm from '~/app/pages/modelCatalogSettings/components/ManageSourceForm';
+import { ModelCatalogSettingsContext } from '~/app/context/modelCatalogSettings/ModelCatalogSettingsContext';
+import { catalogSourceConfigToFormData } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 
 const ManageSourcePage: React.FC = () => {
   const { catalogSourceId } = useParams<{ catalogSourceId?: string }>();
@@ -17,6 +20,16 @@ const ManageSourcePage: React.FC = () => {
   const pageTitle = isAddMode ? ADD_SOURCE_TITLE : MANAGE_SOURCE_TITLE;
   const breadcrumbLabel = isAddMode ? ADD_SOURCE_TITLE : MANAGE_SOURCE_TITLE;
   const description = isAddMode ? ADD_SOURCE_DESCRIPTION : MANAGE_SOURCE_DESCRIPTION;
+
+  const { catalogSourceConfigs, catalogSourceConfigsLoaded, catalogSourceConfigsLoadError } =
+    React.useContext(ModelCatalogSettingsContext);
+
+  const existingSourceConfig = catalogSourceConfigs?.catalogs.find(
+    (sourceConfig) => sourceConfig.id === catalogSourceId,
+  );
+  const existingData = existingSourceConfig
+    ? catalogSourceConfigToFormData(existingSourceConfig)
+    : existingSourceConfig;
 
   return (
     <ApplicationsPage
@@ -30,12 +43,15 @@ const ManageSourcePage: React.FC = () => {
           </BreadcrumbItem>
         </Breadcrumb>
       }
-      title={<TitleWithIcon title={pageTitle} objectType={ProjectObjectType.modelCatalog} />}
+      title={pageTitle}
       description={description}
-      empty={false}
-      loaded
+      errorMessage={catalogSourceConfigsLoadError?.message}
+      empty={catalogSourceConfigs?.catalogs.length === 0}
+      loaded={catalogSourceConfigsLoaded}
       provideChildrenPadding
-    />
+    >
+      <ManageSourceForm existingData={existingData} isEditMode={!isAddMode} />
+    </ApplicationsPage>
   );
 };
 

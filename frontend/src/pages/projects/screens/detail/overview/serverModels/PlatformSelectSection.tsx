@@ -5,17 +5,15 @@ import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platf
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
-import SelectMultiModelCard from './SelectMultiModelCard';
 
 const PlatformSelectSection: React.FC = () => {
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
   const servingPlatformStatuses = useServingPlatformStatuses();
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
-  const modelMeshEnabled = servingPlatformStatuses.modelMesh.enabled;
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
 
-  const threeEnabled = [kServeEnabled, modelMeshEnabled, isNIMAvailable].every((v) => v);
-  const galleryWidths = threeEnabled
+  const bothEnabled = kServeEnabled && isNIMAvailable;
+  const galleryWidths = bothEnabled
     ? {
         minWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
         maxWidths: { default: '100%', lg: 'calc(33.33% - 1rem / 3 * 2)' },
@@ -42,9 +40,6 @@ const PlatformSelectSection: React.FC = () => {
           <Gallery hasGutter {...galleryWidths}>
             {kServeEnabled && (
               <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-            )}
-            {modelMeshEnabled && (
-              <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
             )}
             {isNIMAvailable && (
               <SelectNIMCard setErrorSelectingPlatform={setErrorSelectingPlatform} />

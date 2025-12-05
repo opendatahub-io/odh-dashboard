@@ -1,6 +1,4 @@
 import React from 'react';
-import { ContainerResources } from '#~/types';
-import { assemblePodSpecOptions } from '#~/utilities/podSpec';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { useAppContext } from '#~/app/AppContext';
@@ -27,11 +25,14 @@ export type ModelServingPodSpecOptionsState =
 // it will be marked as deprecated and with the label: accel-modelMesh-deprecated
 // everything with this label can all be removed when the modelmesh classes are removed
 
-/** @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated) */
+/**
+ * @deprecated -- accelerator profiles are removed as of 3.0; and only modelmesh uses this (which is itself deprecated)
+ *
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 export const useModelServingPodSpecOptionsState = (
   servingRuntime?: ServingRuntimeKind,
   inferenceService?: InferenceServiceKind,
-  isModelMesh?: boolean,
 ): ModelServingPodSpecOptionsState => {
   const { dashboardConfig } = useAppContext();
   const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
@@ -77,51 +78,22 @@ export const useModelServingPodSpecOptionsState = (
   const existingNodeSelector =
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
 
-  if (!isModelMesh) {
-    const annotationData = {
-      selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
-    };
-    if (hardwareProfile.formData.useExistingSettings) {
-      podSpecOptions = {
-        resources: existingResources,
-        tolerations: existingTolerations,
-        nodeSelector: existingNodeSelector,
-        ...annotationData,
-      };
-    } else {
-      podSpecOptions = {
-        resources: hardwareProfile.formData.resources,
-        tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
-        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
-        ...annotationData,
-      };
-    }
-  } else {
-    const resourceSettings: ContainerResources = {
-      requests: {
-        cpu: modelSize.resources.requests?.cpu,
-        memory: modelSize.resources.requests?.memory,
-      },
-      limits: {
-        cpu: modelSize.resources.limits?.cpu,
-        memory: modelSize.resources.limits?.memory,
-      },
-    };
-
-    const { tolerations: newTolerations, resources: newResources } = assemblePodSpecOptions(
-      resourceSettings,
-      acceleratorProfile.initialState,
-      acceleratorProfile.formData,
-      existingTolerations,
-      undefined,
-      existingResources,
-    );
-
+  const annotationData = {
+    selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
+  };
+  if (hardwareProfile.formData.useExistingSettings) {
     podSpecOptions = {
-      resources: newResources,
-      tolerations: newTolerations,
+      resources: existingResources,
+      tolerations: existingTolerations,
       nodeSelector: existingNodeSelector,
-      selectedAcceleratorProfile: acceleratorProfile.formData.profile,
+      ...annotationData,
+    };
+  } else {
+    podSpecOptions = {
+      resources: hardwareProfile.formData.resources,
+      tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+      nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
+      ...annotationData,
     };
   }
 

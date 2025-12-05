@@ -21,7 +21,6 @@ export type MockDashboardConfigType = {
   disableKServeAuth?: boolean;
   disableKServeMetrics?: boolean;
   disableKServeRaw?: boolean;
-  disableModelMesh?: boolean;
   disablePerformanceMetrics?: boolean;
   disableTrustyBiasMetrics?: boolean;
   disableDistributedWorkloads?: boolean;
@@ -46,9 +45,11 @@ export type MockDashboardConfigType = {
   aiCatalogSettings?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
+  mlflow?: boolean;
 };
 
 export const mockDashboardConfig = ({
+  mlflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -207,6 +208,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
+      mlflow,
       enablement: true,
       disableInfo,
       disableSupport,
@@ -231,7 +233,6 @@ export const mockDashboardConfig = ({
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
-      disableModelMesh: true,
       disableDistributedWorkloads,
       disableModelCatalog,
       disableModelRegistry,

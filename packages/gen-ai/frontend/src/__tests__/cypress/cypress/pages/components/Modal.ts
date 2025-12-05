@@ -1,51 +1,41 @@
-import type { ByRoleOptions } from '@testing-library/react';
-
 export class Modal {
-  constructor(private title?: ByRoleOptions['name']) {}
+  constructor(private testId?: string) {}
 
   shouldBeOpen(open = true): void {
     if (open) {
-      this.find();
+      this.find().should('exist').and('be.visible');
     } else {
       this.find().should('not.exist');
     }
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    if (this.title) {
-      return cy.findByRole('dialog', { name: this.title });
+    if (this.testId) {
+      return cy.findByTestId(this.testId, { timeout: 15000 });
     }
-    return cy.findByRole('dialog');
+    return cy.findByRole('dialog', { timeout: 15000 });
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByRole('button', { name: 'Close' });
   }
-
-  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: 'Cancel' });
-  }
-
-  findFooter(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('footer');
-  }
 }
 
 export class TokenAuthModal extends Modal {
+  constructor() {
+    super('mcp-token-auth-modal');
+  }
+
   findTokenInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('mcp-server-token-input');
+    return this.find().findByTestId('mcp-token-input');
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('mcp-server-token-submit-button');
+    return this.find().findByTestId('mcp-token-authorize-button');
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('mcp-server-token-cancel-button');
-  }
-
-  findClearButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /Clear/i });
+    return this.find().findByTestId('mcp-token-cancel-button');
   }
 }
 
@@ -67,22 +57,51 @@ export class MCPToolsModal extends Modal {
   }
 
   verifyFirstToolHasName(): void {
-    this.findToolRows().first().find('td').first().invoke('text').should('not.be.empty');
+    // First td is checkbox, second td is the tool name
+    this.findToolRows().first().find('td').eq(1).invoke('text').should('not.be.empty');
   }
 
   verifyTableHeaders(): void {
     this.find()
-      .contains(/name|tool|function|description/i)
+      .contains(/Name and Permissions|Description/i)
       .should('be.visible');
   }
 }
 
-export class ConfigurePlaygroundModal extends Modal {
-  findConfigureButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /^Configure$/i });
+export class MCPServerSuccessModal extends Modal {
+  constructor() {
+    super('mcp-server-success-modal');
   }
 
-  findGoToPlaygroundLink(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('go-to-playground-link');
+  findHeading(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('heading', { name: /Connection successful/i });
+  }
+
+  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('modal-submit-button');
+  }
+}
+
+export class NewChatModal extends Modal {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('new-chat-modal');
+  }
+
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Start a new chat?');
+  }
+
+  findWarningMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText(
+      /Starting a new chat clears your previous chat history permanently/i,
+    );
   }
 }

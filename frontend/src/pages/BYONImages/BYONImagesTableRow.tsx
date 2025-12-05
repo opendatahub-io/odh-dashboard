@@ -24,7 +24,6 @@ type BYONImagesTableRowProps = {
   onDeleteImage: (obj: BYONImage) => void;
 };
 
-// todo: remove AccelProfiles from here TODO
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
   rowIndex,

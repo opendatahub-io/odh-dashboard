@@ -47,6 +47,8 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   const returnRoute = location.state?.returnRoute;
   const cancelReturnRoute = location.state?.cancelReturnRoute ?? returnRoute;
   const projectName = location.state?.projectName;
+  // refreshKey is used to force the wizard to re-mount when refreshing with updated deployment data
+  const refreshKey: number | undefined = location.state?.refreshKey;
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = React.useMemo(() => {
@@ -82,8 +84,9 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : undefined}>
+    <ModelDeploymentsProvider projects={currentProject ? [currentProject] : []}>
       <ModelDeploymentWizard
+        key={refreshKey}
         project={currentProject}
         title={existingDeployment ? 'Edit model deployment' : 'Deploy a model'}
         primaryButtonText={existingDeployment ? 'Update deployment' : 'Deploy model'}
