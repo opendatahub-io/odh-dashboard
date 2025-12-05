@@ -14,6 +14,7 @@ export type DeployPrefillData = {
 export type NavigateToDeploymentWizardWithDataExtension = Extension<
   'model-catalog.deployment/navigate-wizard',
   {
+    useAvailablePlatformIds: CodeRef<() => string[]>;
     useNavigateToDeploymentWizardWithData: CodeRef<
       (deployPrefillData: DeployPrefillData) => (projectName?: string) => void
     >;

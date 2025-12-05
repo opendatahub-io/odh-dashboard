@@ -217,7 +217,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       <FormSection title="Model details">
         <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
         {modelLocationData?.prefillAlertText && (
-          <Alert variant="info" isInline isPlain title={modelLocationData.prefillAlertText} />
+          <Alert
+            variant="info"
+            isInline
+            isPlain
+            title={modelLocationData.prefillAlertText}
+            data-testid="prefill-alert"
+          />
         )}
         <FormGroup fieldId="model-location-select" label="Model location" isRequired>
           <FormHelperText>

@@ -601,13 +601,9 @@ describe('Serving Runtime List', () => {
       // Check for resource marked for deletion
       modelServingSection.getKServeRow('Another Inference Service').shouldBeMarkedForDeletion();
 
-      modelServingSection
-        .findKServeTableHeaderButton('Model deployment name')
-        .should(be.sortAscending);
-      modelServingSection.findKServeTableHeaderButton('Model deployment name').click();
-      modelServingSection
-        .findKServeTableHeaderButton('Model deployment name')
-        .should(be.sortDescending);
+      modelServingSection.findKServeTableHeaderButton('Last deployed').should(be.sortAscending);
+      modelServingSection.findKServeTableHeaderButton('Last deployed').click();
+      modelServingSection.findKServeTableHeaderButton('Last deployed').should(be.sortDescending);
     });
 
     it('Stop and start model', () => {

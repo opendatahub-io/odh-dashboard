@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FormGroup, HelperText, HelperTextItem, TextInput } from '@patternfly/react-core';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
 
 type ProjectSectionType = {
   initialProjectName?: string;
@@ -36,7 +37,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
   projectName,
   setProjectName,
 }) => {
-  const projectLabel = 'This is the OpenShift AI project where the model will be deployed.';
+  const projectLabel = `This is the ${ODH_PRODUCT_NAME} project where the model will be deployed.`;
   if (!initialProjectName) {
     return (
       <FormGroup label="Project" isRequired>
