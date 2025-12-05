@@ -12,6 +12,7 @@ import {
   decodeParams,
   getModelArtifactUri,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getDeployButtonState } from '../utils';
 
 type ModelCatalogDeployWrapperProps = {
   model: CatalogModel;
@@ -28,6 +29,11 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
   const [artifacts, artifactsLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
+  );
+  const [availablePlatformIds, setAvailablePlatformIds] = React.useState<string[]>([]);
+  const platformIdButtonState = React.useMemo(
+    () => getDeployButtonState(availablePlatformIds, true),
+    [availablePlatformIds],
   );
   const uri = artifacts.items.length > 0 ? getModelArtifactUri(artifacts.items) : '';
   const cancelReturnRoute = getCatalogModelDetailsRoute({
@@ -69,12 +75,26 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     !!uri;
 
   const buttonState =
-    canInitializeWizardNavigation && navigateToWizard !== null
+    platformIdButtonState.enabled && canInitializeWizardNavigation && navigateToWizard !== null
       ? { enabled: true }
-      : { enabled: false, tooltip: 'Deployment wizard is not available' };
+      : {
+          enabled: false,
+          tooltip: platformIdButtonState.tooltip || 'Deployment wizard is not available',
+        };
 
   return (
     <>
+      {navigateExtensions.map((extension) => {
+        return (
+          extension.properties.useAvailablePlatformIds && (
+            <HookNotify
+              key={extension.uid}
+              useHook={extension.properties.useAvailablePlatformIds}
+              onNotify={(value) => setAvailablePlatformIds(value ?? [])}
+            />
+          )
+        );
+      })}
       {/* Get navigation function only when we have all the prefill data */}
       {canInitializeWizardNavigation &&
         navigateExtensions.map((extension) => {
