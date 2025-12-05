@@ -1,6 +1,11 @@
+import { appChrome } from '../appChrome';
+
 class MLflowExperimentsPage {
-  visit() {
-    cy.visitWithLogin('/develop-train/experiments-mlflow');
+  visit(pathParam?: string) {
+    const url = pathParam
+      ? `/develop-train/experiments-mlflow?path=${encodeURIComponent(pathParam)}`
+      : '/develop-train/experiments-mlflow';
+    cy.visitWithLogin(url);
     this.wait();
   }
 
@@ -11,6 +16,27 @@ class MLflowExperimentsPage {
 
   findMlflowIframe() {
     return cy.findByTestId('mlflow-iframe');
+  }
+
+  getPathParam() {
+    return cy.url().then((url) => {
+      const urlObj = new URL(url);
+      return urlObj.searchParams.get('path');
+    });
+  }
+
+  getEncodedPathParam() {
+    return cy.url().then((url) => {
+      const match = url.match(/[?&]path=([^&]*)/);
+      return match ? match[1] : null;
+    });
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem({
+      name: 'Experiments (MLflow)',
+      rootSection: 'Develop & train',
+    });
   }
 }
 
