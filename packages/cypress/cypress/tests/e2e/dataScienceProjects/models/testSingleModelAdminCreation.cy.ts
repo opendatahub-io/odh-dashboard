@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-37899] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -56,15 +56,7 @@ describe('[Product Bug: RHOAIENG-37899] Verify Admin Single Model Creation and V
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2626',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -102,10 +94,8 @@ describe('[Product Bug: RHOAIENG-37899] Verify Admin Single Model Creation and V
       // Enable Model access through an external route
       cy.step('Allow Model to be accessed from an External route without Authentication');
       modelServingWizard.findExternalRouteCheckbox().click();
-      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findServiceAccountByIndex(0).clear().type('secret');
-      modelServingWizard.findAddServiceAccountButton().click();
-      modelServingWizard.findServiceAccountByIndex(1).clear().type('secret2');
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findTokenAuthenticationCheckbox().should('not.be.checked');
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 4: Review');
