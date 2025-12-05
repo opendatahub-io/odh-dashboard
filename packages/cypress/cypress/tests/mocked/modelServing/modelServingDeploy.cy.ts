@@ -5,12 +5,12 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { IdentifierResourceType, ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
-  mockInvalidTemplateK8sResource,
-  mockServingRuntimeTemplateK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+  mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
+} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
@@ -100,7 +100,40 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    mockK8sResourceList([
+      mockGlobalScopedHardwareProfiles[0], // Small Profile
+      mockGlobalScopedHardwareProfiles[1], // Large Profile
+      mockHardwareProfile({
+        name: 'nvidia-profile',
+        displayName: 'NVIDIA GPU Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '4',
+            maxCount: '8',
+            defaultCount: '4',
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '8Gi',
+            maxCount: '16Gi',
+            defaultCount: '8Gi',
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+          {
+            displayName: 'GPU',
+            identifier: 'nvidia.com/gpu',
+            minCount: 1,
+            maxCount: 4,
+            defaultCount: 1,
+            resourceType: IdentifierResourceType.ACCELERATOR,
+          },
+        ],
+      }),
+    ]),
   );
 
   cy.interceptK8sList(
@@ -117,48 +150,9 @@ const initIntercepts = ({
 
   cy.interceptK8sList(
     TemplateModel,
-    mockK8sResourceList(
-      [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'ovms',
-          displayName: 'OpenVINO',
-          modelTypes: [ServingRuntimeModelType.PREDICTIVE],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-3',
-          displayName: 'Caikit',
-          modelTypes: [ServingRuntimeModelType.PREDICTIVE],
-          supportedModelFormats: [
-            {
-              name: 'openvino_ir',
-              version: 'opset1',
-            },
-          ],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-4',
-          displayName: 'vLLM AMD',
-          modelTypes: [ServingRuntimeModelType.GENERATIVE],
-          supportedModelFormats: [
-            {
-              name: 'vLLM',
-            },
-          ],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-5',
-          displayName: 'vLLM NVIDIA',
-          modelTypes: [ServingRuntimeModelType.GENERATIVE],
-          supportedModelFormats: [
-            {
-              name: 'vLLM',
-            },
-          ],
-        }),
-        mockInvalidTemplateK8sResource({}),
-      ],
-      { namespace: 'opendatahub' },
-    ),
+    mockK8sResourceList(mockStandardModelServingTemplateK8sResources(), {
+      namespace: 'opendatahub',
+    }),
   );
 
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -672,12 +666,13 @@ describe('Model Serving Deploy Wizard', () => {
     hardwareProfileSection.selectProfileContaining('Large Profile');
 
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelFormatSelect().should('exist');
-    modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
-    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    // select runtime first to ignore any autoselect logic
     modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelect().should('exist');
+    modelServingWizard.findModelFormatSelectOption('vLLM').should('not.exist');
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced Options
@@ -834,9 +829,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    // select runtime first to ignore any autoselect logic
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -893,9 +889,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
     // Step 2: Model Deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     // Step 3: Advanced Options
     // check external route, token should be checked and no alert
@@ -1003,9 +999,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Verify submit is enabled before testing env vars
@@ -1091,9 +1087,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 2: Model Deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 3: Advanced Options
     modelServingWizard.findNextButton().should('be.enabled').click();
@@ -1232,9 +1228,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 2: Model Deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 3: Advanced Options
     modelServingWizard.findNextButton().should('be.enabled').click();
@@ -1678,6 +1674,95 @@ describe('Model Serving Deploy Wizard', () => {
       cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
       cy.url().should('include', '/ai-hub/deployments/deploy');
+    });
+  });
+
+  describe('Serving runtime autoselect logic', () => {
+    beforeEach(() => {
+      initIntercepts({});
+
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
+    });
+
+    it('autoselect logic with manual override and model type changes', () => {
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Select Predictive model type
+      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+      modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+      modelServingWizard.findUrilocationInput().type('https://test');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
+
+      // Select openvino_ir - opset1 format - should autoselect OpenVINO (only 1 match)
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').click();
+      // Verify autoselect is checked and OpenVINO is selected
+      modelServingWizard.findServingRuntimeAutoSelectRadio().should('be.checked');
+      cy.findByText('OpenVINO').should('exist');
+
+      // Step 3: Override autoselect - manually select Caikit
+      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedTemplateOption('Caikit').click();
+      // Verify manual selection is active
+      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+
+      // Step 4: Change model format to openvino_ir - opset13 - manual selection should persist
+      modelServingWizard.findModelFormatSelect().click();
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      // Verify Caikit is still selected (manual override persists)
+      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'Caikit');
+
+      // Step 5: Go back to step 1 and select Generative
+      modelServingWizard.findBackButton().click();
+      modelServingWizard.findModelTypeSelect().click();
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findNextButton().click();
+
+      // Step 6: Verify selection is cleared when model type changes
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'Select one');
+
+      // Step 7: Select NVIDIA GPU hardware profile - vLLM NVIDIA should be autoselected
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('NVIDIA GPU Profile');
+      // Verify autoselect is checked and vLLM NVIDIA is selected (only nvidia-compatible runtime)
+      modelServingWizard.findServingRuntimeAutoSelectRadio().should('be.checked');
+      cy.findByText('vLLM NVIDIA').should('exist');
+
+      // Step 8: Manual override to vLLM AMD
+      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedTemplateOption('vLLM AMD').click();
+      // Verify manual selection is active
+      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'vLLM AMD');
+
+      // Step 9: Change hardware profile - manual selection should NOT be reset
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('Small Profile');
+      // Verify vLLM AMD is still selected (manual override persists)
+      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'vLLM AMD');
     });
   });
 });

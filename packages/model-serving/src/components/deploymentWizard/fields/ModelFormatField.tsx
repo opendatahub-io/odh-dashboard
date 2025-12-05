@@ -46,10 +46,6 @@ export const useModelFormatField = (
   initialModelFormat?: SupportedModelFormats,
   modelType?: ModelTypeFieldData,
   projectName?: string,
-  onModelFormatChange?: (
-    newFormat: SupportedModelFormats | undefined,
-    prevFormat: SupportedModelFormats | undefined,
-  ) => void,
 ): ModelFormatState => {
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =
     useServingRuntimeTemplates();
@@ -108,11 +104,9 @@ export const useModelFormatField = (
 
   const handleSetModelFormat = React.useCallback(
     (newFormat: SupportedModelFormats) => {
-      const prevFormat = tmpModelFormat;
       setTmpModelFormat(newFormat);
-      onModelFormatChange?.(newFormat, prevFormat);
     },
-    [tmpModelFormat, onModelFormatChange],
+    [tmpModelFormat],
   );
 
   return {

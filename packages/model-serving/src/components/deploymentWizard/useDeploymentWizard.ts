@@ -2,8 +2,6 @@ import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -64,23 +62,6 @@ export const useModelDeploymentWizard = (
     initialData?.modelFormat,
     modelType.data,
     project.projectName,
-    React.useCallback(
-      (
-        newFormat: SupportedModelFormats | undefined,
-        prevFormat: SupportedModelFormats | undefined,
-      ) => {
-        // Only reset if the format actually changed and we're dealing with predictive models
-        if (
-          modelType.data === ServingRuntimeModelType.PREDICTIVE &&
-          newFormat !== prevFormat &&
-          prevFormat !== undefined
-        ) {
-          modelServer.setData(null);
-          modelServer.setIsAutoSelectChecked(undefined);
-        }
-      },
-      [modelType.data],
-    ),
   );
 
   const modelServer = useModelServerSelectField(

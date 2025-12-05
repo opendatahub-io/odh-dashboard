@@ -176,9 +176,8 @@ export const useModelServerSelectField = (
     return result;
   }, [modelServerSelectExtension?.extraOptions, modelServerTemplates, dashboardNamespace]);
 
-  const isDirty = !!existingData || isAutoSelectChecked !== undefined;
+  const isDirty = existingData || modelServer || isAutoSelectChecked !== undefined;
   const autoSelect = (suggestion && !isDirty) || isAutoSelectChecked;
-
   return {
     data: autoSelect ? suggestion : modelServer,
     setData: setModelServer,

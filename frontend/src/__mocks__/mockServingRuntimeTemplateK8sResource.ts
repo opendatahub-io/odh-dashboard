@@ -196,3 +196,65 @@ export const mockInvalidTemplateK8sResource = ({
   ],
   parameters: [],
 });
+
+export const mockStandardModelServingTemplateK8sResources = (): TemplateKind[] => [
+  // OpenVINO - predictive, unique for openvino_ir - opset1
+  mockServingRuntimeTemplateK8sResource({
+    name: 'ovms',
+    displayName: 'OpenVINO',
+    modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+    supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+  }),
+  // Caikit - predictive, supports openvino_ir - opset13
+  mockServingRuntimeTemplateK8sResource({
+    name: 'template-3',
+    displayName: 'Caikit',
+    modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+    supportedModelFormats: [{ name: 'openvino_ir', version: 'opset13' }],
+  }),
+  // vLLM AMD - generative, no nvidia compatibility
+  mockServingRuntimeTemplateK8sResource({
+    name: 'template-4',
+    displayName: 'vLLM AMD',
+    modelTypes: [ServingRuntimeModelType.GENERATIVE],
+    supportedModelFormats: [{ name: 'vLLM' }],
+  }),
+  // vLLM NVIDIA - generative, with nvidia accelerator compatibility
+  {
+    ...mockServingRuntimeTemplateK8sResource({
+      name: 'template-5',
+      displayName: 'vLLM NVIDIA',
+      modelTypes: [ServingRuntimeModelType.GENERATIVE],
+      supportedModelFormats: [{ name: 'vLLM' }],
+    }),
+    objects: [
+      {
+        apiVersion: 'serving.kserve.io/v1alpha1',
+        kind: 'ServingRuntime',
+        metadata: {
+          name: 'template-5',
+          annotations: {
+            'openshift.io/display-name': 'vLLM NVIDIA',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/recommended-accelerators': '["nvidia.com/gpu"]',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        spec: {
+          containers: [
+            {
+              name: 'vllm',
+              image: 'quay.io/modh/vllm:latest',
+              resources: {
+                limits: { cpu: '0', memory: '0Gi' },
+                requests: { cpu: '0', memory: '0Gi' },
+              },
+            },
+          ],
+          supportedModelFormats: [{ name: 'vLLM' }],
+        },
+      },
+    ],
+  },
+  mockInvalidTemplateK8sResource({}),
+];
