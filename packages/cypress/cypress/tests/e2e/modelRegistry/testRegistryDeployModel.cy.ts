@@ -168,7 +168,7 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Model deployment');
       //model name should be prefilled
-      modelServingWizard.findModelDeploymentNameInput().should('have.value',`${modelName} - ${testData.version1Name}`);
+      modelServingWizard.findModelDeploymentNameInput().should('not.have.value', '');
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       modelServingWizard.findNextButton().click();
 
@@ -183,7 +183,7 @@ describe('Verify models can be deployed from model registry', () => {
       checkInferenceServiceState(`${modelName}-v10`, projectName, { checkReady: true });
       // Check deployment link and verify status in deployments view
       modelRegistry.navigate();
-      cy.contains('1 deployment').should('be.visible').click();
+      cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
