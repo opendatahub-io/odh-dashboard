@@ -89,7 +89,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@patternfly/chatbot": "^6.4.0-prerelease.25",
+    "@patternfly/chatbot": "^6.5.0-prerelease.22",
     "@patternfly/react-code-editor": "^6.3.1",
     "@patternfly/react-core": "^6.3.1",
     "@patternfly/react-icons": "^6.3.1",

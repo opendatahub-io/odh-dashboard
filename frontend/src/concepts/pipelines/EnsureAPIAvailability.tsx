@@ -13,6 +13,21 @@ type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
 };
 
+type CenteredColumnContainerProps = {
+  children: React.ReactNode;
+};
+
+// using inline styles since the Flex component does not support text alignment or max width
+const CenteredColumnContainer: React.FC<CenteredColumnContainerProps> = ({ children }) => (
+  <Flex
+    direction={{ default: 'column' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    style={{ textAlign: 'center', maxWidth: '600px' }}
+  >
+    {children}
+  </Flex>
+);
+
 // if isInitialized but not ready, show spinner; if isNot initialized then show new status
 const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
   inTab = false,
@@ -34,28 +49,32 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
   const pipelineServerName = getPipelineServerName(project);
   const defaultConnectingText = (
-    <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <CenteredColumnContainer>
       <FlexItem>The {pipelineServerName} connection is being established.</FlexItem>
-      <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
-      <FlexItem>you will be able to create and import pipelines.</FlexItem>
-    </Flex>
+      <FlexItem>
+        The process should take less than five minutes. When the server is ready, you will be able
+        to create and import pipelines.
+      </FlexItem>
+    </CenteredColumnContainer>
   );
 
   const inProgressButtons = (
-    <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <CenteredColumnContainer>
       <FlexItem>
         <Title headingLevel="h2" size="lg">
           Starting pipeline server
         </Title>
       </FlexItem>
       <FlexItem>The {pipelineServerName} is being initialized.</FlexItem>
-      <FlexItem>The process should take less than five minutes. When the server is ready,</FlexItem>
+      <FlexItem>
+        The process should take less than five minutes. When the server is ready, you will be able
+        to create and import pipelines.
+      </FlexItem>
       <Flex
         direction={{ default: 'column' }}
         spaceItems={{ default: 'spaceItemsMd' }}
         alignItems={{ default: 'alignItemsCenter' }}
       >
-        <FlexItem>you will be able to create and import pipelines.</FlexItem>
         <FlexItem>
           <Button
             data-testid="open-pipeline-status-link"
@@ -80,7 +99,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
           </Button>
         </FlexItem>
       </Flex>
-    </Flex>
+    </CenteredColumnContainer>
   );
 
   const makePipelineSpinner = (isStarting: boolean) => {

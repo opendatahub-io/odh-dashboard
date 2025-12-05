@@ -1585,6 +1585,90 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
+  it('Handle 409 conflict error and show Force update and Refresh buttons', () => {
+    const originalDescription = 'original-description';
+
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+
+    // Initial deployment with original description
+    const originalDeployment = mockInferenceServiceK8sResource({
+      modelType: ServingRuntimeModelType.PREDICTIVE,
+      hasExternalRoute: true,
+      secretName: 'test-uri-secret',
+      hardwareProfileName: 'large-profile',
+      hardwareProfileNamespace: 'opendatahub',
+      description: originalDescription,
+      resources: {
+        requests: { cpu: '4', memory: '8Gi' },
+        limits: { cpu: '8', memory: '16Gi' },
+      },
+    });
+
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([originalDeployment]),
+    ).as('getInferenceServices');
+
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({ scope: 'global' })]),
+    );
+
+    // Mock PUT to return 409 conflict error for InferenceService update
+    // The wizard uses PUT (k8sUpdateResource) for normal updates, not PATCH
+    cy.interceptK8s(
+      'PUT',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-inference-service' },
+      {
+        statusCode: 409,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'the object has been modified; please apply your changes to the latest version',
+          reason: 'Conflict',
+          // details: { kind: 'inferenceservices' },
+          code: 409,
+        },
+      },
+    ).as('updateInferenceService409');
+
+    // Visit and open edit wizard
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    // Step 1: Model source - verify original description on step 2
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment - verify original description
+    modelServingWizardEdit
+      .findModelDeploymentDescriptionInput()
+      .should('contain.text', originalDescription);
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 4: Summary - try to submit, which will trigger 409 error
+    modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
+
+    // Wait for the 409 error response
+    cy.wait('@updateInferenceService409');
+
+    // Verify error alert appears with Force update and Refresh buttons
+    modelServingWizard.findErrorMessageAlert().should('be.visible');
+    modelServingWizard.findErrorMessageAlert().should('contain.text', 'has been modified');
+    cy.findByRole('button', { name: 'Force update' }).should('be.visible');
+    cy.findByRole('button', { name: 'Refresh' }).should('be.visible');
+
+    // Click Refresh button - this triggers a re-navigation to reload the wizard
+    cy.findByRole('button', { name: 'Refresh' }).click();
+
+    // Verify wizard reloads - the error should be cleared and we should be back on step 1
+    modelServingWizard.findErrorMessageAlert().should('not.exist');
+    modelServingWizardEdit.findModelSourceStep().should('be.enabled');
+  });
+
   describe('redirect from v2 to v3 route', () => {
     beforeEach(() => {
       initIntercepts({});
