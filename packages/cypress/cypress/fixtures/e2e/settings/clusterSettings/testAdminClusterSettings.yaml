@@ -1,0 +1,3 @@
+# testAdminClusterSettings.cy.ts Test Data #
+clusterRoleBindingNamePrefix: "cypress-test"
+
