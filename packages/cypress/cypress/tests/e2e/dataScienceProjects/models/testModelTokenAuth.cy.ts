@@ -168,7 +168,7 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizardEdit.findSubmitButton().click();
 
       // Verify the model is accessible without a token
-      cy.step('Verify the model is accessible without a token');
+      cy.step('Verify the model is accessible without a token.');
       verifyModelExternalToken(modelName, projectName).then(({ response }) => {
         expect(response.status).to.equal(200);
       });
