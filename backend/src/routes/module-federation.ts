@@ -16,66 +16,50 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     fastify.log.info(
       `Module federation configured for: ${mfConfig.map((mf) => mf.name).join(', ')}`,
     );
-    mfConfig.forEach(({ name, proxy, local, service, tls: mfTls, authorize }) => {
-      const getEnvVar = (prop: string): string | undefined =>
-        process.env[`MF_${name.toLocaleUpperCase()}_${prop.toLocaleUpperCase()}`];
+    mfConfig.forEach(({ name, backend, proxyService }) => {
+      if (backend) {
+        registerProxy(fastify, {
+          prefix: `/_mf/${name}`,
+          rewritePrefix: ``,
+          authorize: backend.authorize,
+          tls: backend.tls,
+          service: {
+            ...backend.service,
+            namespace: backend.service.namespace ?? process.env.OC_PROJECT,
+          },
+          local: backend.localService,
+          onError: (reply, error) => {
+            if (
+              'code' in error.error &&
+              error.error.code === 'FST_REPLY_FROM_INTERNAL_SERVER_ERROR' &&
+              'statusCode' in error.error &&
+              error.error.statusCode === 500
+            ) {
+              fastify.log.error(`Module federation service '${name}' is unavailable`);
+              // Respond with 503 Service Unavailable instead of 500
+              reply.code(503).send({
+                error: 'Service Unavailable',
+                message: `Module federation service '${name}' is currently unavailable`,
+                statusCode: 503,
+              });
+            } else {
+              reply.send(error);
+            }
+          },
+        });
+      }
 
-      const serviceName = getEnvVar('SERVICE_NAME') ?? service.name;
-      const serviceNamespace =
-        getEnvVar('SERVICE_NAMESPACE') ?? service.namespace ?? process.env.OC_PROJECT;
-      const servicePort = getEnvVar('SERVICE_PORT') ?? service.port;
-      const host = getEnvVar('LOCAL_HOST') ?? local?.host ?? 'localhost';
-      const port = getEnvVar('LOCAL_PORT') ?? local?.port;
-      const tls = getEnvVar('TLS') ? getEnvVar('TLS') === 'true' : mfTls ?? true;
-
-      registerProxy(fastify, {
-        prefix: `/_mf/${name}`,
-        rewritePrefix: ``,
-        tls,
-        authorize,
-        service: {
-          name: serviceName,
-          namespace: serviceNamespace,
-          port: servicePort,
-        },
-        local: {
-          host,
-          port,
-        },
-        onError: (reply, error) => {
-          if (
-            'code' in error.error &&
-            error.error.code === 'FST_REPLY_FROM_INTERNAL_SERVER_ERROR' &&
-            'statusCode' in error.error &&
-            error.error.statusCode === 500
-          ) {
-            fastify.log.error(`Module federation service '${name}' is unavailable`);
-            // Respond with 503 Service Unavailable instead of 500
-            reply.code(503).send({
-              error: 'Service Unavailable',
-              message: `Module federation service '${name}' is currently unavailable`,
-              statusCode: 503,
-            });
-          } else {
-            reply.send(error);
-          }
-        },
-      });
-      proxy.forEach((proxy) => {
+      proxyService?.forEach((proxy) => {
         registerProxy(fastify, {
           prefix: proxy.path,
-          rewritePrefix: proxy.pathRewrite ?? proxy.path,
-          tls,
-          authorize,
+          rewritePrefix: proxy.pathRewrite,
+          authorize: proxy.authorize,
+          tls: proxy.tls,
           service: {
-            name: serviceName,
-            namespace: serviceNamespace,
-            port: servicePort,
+            ...proxy.service,
+            namespace: proxy.service.namespace ?? process.env.OC_PROJECT,
           },
-          local: {
-            host,
-            port,
-          },
+          local: proxy.localService,
         });
       });
     });
