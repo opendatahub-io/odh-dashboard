@@ -242,6 +242,10 @@ class NotebookRow extends TableRow {
     this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
   }
 
+  expectStatusLabelToNotBe(statusValue: string, timeout?: number) {
+    this.findHaveNotebookStatusText(timeout).should('not.contain', statusValue);
+  }
+
   findNotebookStopToggle() {
     return this.find().findByTestId('state-action-toggle');
   }

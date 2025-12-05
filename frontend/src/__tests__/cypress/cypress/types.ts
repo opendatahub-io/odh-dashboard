@@ -260,6 +260,12 @@ export type HardwareProfilesData = {
   hardwareProfileName: string;
   hardwareProfileDescription: string;
   hardwareProfileEditedDescription: string;
+  exhaustiveHWPNames: string[];
+  projectNamespace: string;
+  projectDescription: string;
+  workbenchName: string;
+  hardwareProfileDeploymentSize: string;
+  updatedHardwareProfileName: string;
 };
 
 export type NamespaceConfig = {

@@ -1,4 +1,38 @@
 # testHardwareProfiles.cy.ts Test Data #
-hardwareProfileName: "cypress-test-hardware-profile"
-hardwareProfileDescription: "Cypress Test Hardware Profile description."
-hardwareProfileEditedDescription: "This is an updated Hardware Profile text description."
+hardwareProfileName: 'cypress-test-hardware-profile'
+hardwareProfileDescription: 'Cypress Test Hardware Profile description.'
+hardwareProfileEditedDescription: 'This is an updated Hardware Profile text description.'
+exhaustiveHWPNames:
+  - 'a'
+  - 'short'
+  - 'hardware-profile-name-that-is-very-very-very-very-very-very-very-very-long'
+  - 'name-with-1234567890-numbers'
+  - 'name-with-[square-brackets]'
+  - 'name-with-(parentheses)'
+  - 'name-with-}curly-braces{'
+  # - 'name-with-<less-than-greater-than>'
+  # - 'name-with-"double-quotes"'
+  # - "name-with-'single-quotes'"
+  # - 'name,with,commas'
+  # - 'name.with.periods'
+  # - 'name?with?question?marks'
+  # - 'name:with:colons'
+  # - 'name;with;semi;colons'
+  # - 'name/with/back/slash'
+  # - "name\\with\\escaped\\forward\\slashes"
+  # - 'name!with!exclamations'
+  # - 'name@with@at'
+  # - 'name#with#pound'
+  # - 'name$with$dollar'
+  # - 'name%with%percent'
+  # - 'name^with^caret'
+  # - 'name&with&ampersand'
+  # - 'name*with*asterisks'
+  # - 'name+with-plus=minus=equals'
+  # - 'name_with_underscores'
+  # - 'name|with|pipes'
+projectNamespace: 'cypress-test-hardware-profile-project'
+projectDescription: 'Cypress Test Project description.'
+workbenchName: 'hardware-profile-deletion-test-workbench'
+hardwareProfileDeploymentSize: 'CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB'
+updatedHardwareProfileName: 'cypress-test-updated-hardware-profile'
