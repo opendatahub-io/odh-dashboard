@@ -20,7 +20,8 @@
       "./src/components/*.tsx"
     ],
     "./types/form-data": "./src/components/deploymentWizard/types.ts",
-    "./concepts/auth": "./src/concepts/auth.ts"
+    "./concepts/auth": "./src/concepts/auth.ts",
+    "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
