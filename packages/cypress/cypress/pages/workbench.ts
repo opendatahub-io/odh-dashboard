@@ -10,7 +10,9 @@ class SelectStorageClass {
   }
 
   selectStorageClassSelectOption(name: string | RegExp) {
-    cy.findByRole('option', { name, hidden: true }).click();
+    // Match the exact storage class name string from RegExp
+    const matcher = name instanceof RegExp ? new RegExp(`^${name.source}\\b`, name.flags) : name;
+    cy.findByRole('option', { name: matcher, hidden: true }).click();
   }
 
   findSelectStorageClassLabel(name: string | RegExp, accessMode: AccessMode) {
