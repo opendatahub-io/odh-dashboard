@@ -351,7 +351,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
 
             return (
               <StackItem key={section.title}>
-                <FormSection title={section.title}>
+                <FormSection
+                  title={section.title}
+                  data-testid={`review-step-${section.title.toLowerCase().replace(/\s+/g, '-')}`}
+                >
                   <DescriptionList
                     isHorizontal
                     isCompact

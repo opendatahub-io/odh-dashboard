@@ -281,6 +281,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
                     description="Welcome to the model playground."
+                    data-testid="chatbot-welcome-prompt"
                   />
                   <ChatbotMessages
                     messageList={chatbotMessages.messages}
@@ -365,6 +366,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                       attach: {
                         tooltipContent: `Upload files (${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}, max ${FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)`,
                         inputTestId: 'chatbot-attach-input',
+                      },
+                      send: {
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        props: {
+                          'data-testid': 'chatbot-send-button',
+                        } as React.ComponentProps<'button'>,
                       },
                     }}
                   />

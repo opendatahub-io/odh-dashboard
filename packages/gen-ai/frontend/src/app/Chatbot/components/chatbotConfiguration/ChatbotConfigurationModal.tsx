@@ -181,7 +181,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   };
 
   return (
-    <Modal isOpen onClose={onBeforeClose} variant={ModalVariant.large}>
+    <Modal
+      isOpen
+      onClose={onBeforeClose}
+      variant={ModalVariant.large}
+      data-testid="configure-playground-modal"
+    >
       {!configuringPlayground && (
         <ModalHeader
           title="Configure playground"

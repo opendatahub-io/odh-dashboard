@@ -19,7 +19,8 @@ const useFetchLlamaModels = (lsdNotReady?: boolean): FetchStateObject<LlamaModel
       return Promise.reject(new Error('LSD is not ready'));
     }
     const models = await api.getLSDModels();
-    return models.map((model) => ({
+    const safeModels = Array.isArray(models) ? models : [];
+    return safeModels.map((model) => ({
       ...model,
       modelId: splitLlamaModelId(model.id).id,
     }));

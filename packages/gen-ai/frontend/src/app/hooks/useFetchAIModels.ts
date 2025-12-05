@@ -18,8 +18,9 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
       }
 
       const rawData = await api.getAAModels(opts);
+      const models = Array.isArray(rawData) ? rawData : [];
 
-      return rawData.map((item: AAModelResponse) => {
+      return models.map((item: AAModelResponse) => {
         // Parse endpoints into usable format
         const internalEndpoint = item.endpoints
           .find((endpoint) => endpoint.startsWith('internal:'))

@@ -16,49 +16,55 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
   model,
   isChecked,
   onToggleCheck,
-}) => (
-  <Tr>
-    <CheckboxTd
-      id={model.model_name}
-      isChecked={isChecked}
-      isDisabled={model.status !== 'Running'}
-      onToggle={onToggleCheck}
-    />
-    <Td dataLabel="Model deployment name">
-      <TableRowTitleDescription
-        title={
-          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>
-              {model.isMaaSModel ? (
-                model.display_name
-              ) : (
-                <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
-                  {model.display_name}
-                </ResourceNameTooltip>
-              )}
-            </FlexItem>
-            {model.isMaaSModel && (
-              <FlexItem>
-                <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
-                  <Label color="orange" aria-label="Model as a Service">
-                    MaaS
-                  </Label>
-                </Popover>
-              </FlexItem>
-            )}
-          </Flex>
-        }
-        description={model.description}
-        descriptionAsMarkdown
+}) => {
+  // Sanitize model name for testid: remove all characters except alphanumeric and hyphens
+  const sanitizedModelName = model.model_name.replace(/[^a-zA-Z0-9-]/g, '');
+
+  return (
+    <Tr>
+      <CheckboxTd
+        id={model.model_name}
+        isChecked={isChecked}
+        isDisabled={model.status !== 'Running'}
+        onToggle={onToggleCheck}
+        data-testid={`${sanitizedModelName}-checkbox`}
       />
-    </Td>
-    <Td dataLabel="Status">
-      <Icon status={model.status === 'Running' ? 'success' : 'danger'} size="md">
-        {model.status === 'Running' ? <CheckCircleIcon /> : <ExclamationCircleIcon />}
-      </Icon>
-    </Td>
-    <Td dataLabel="Use case">{model.usecase}</Td>
-  </Tr>
-);
+      <Td dataLabel="Model deployment name">
+        <TableRowTitleDescription
+          title={
+            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>
+                {model.isMaaSModel ? (
+                  model.display_name
+                ) : (
+                  <ResourceNameTooltip resource={convertAIModelToK8sResource(model)}>
+                    {model.display_name}
+                  </ResourceNameTooltip>
+                )}
+              </FlexItem>
+              {model.isMaaSModel && (
+                <FlexItem>
+                  <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
+                    <Label color="orange" aria-label="Model as a Service">
+                      MaaS
+                    </Label>
+                  </Popover>
+                </FlexItem>
+              )}
+            </Flex>
+          }
+          description={model.description}
+          descriptionAsMarkdown
+        />
+      </Td>
+      <Td dataLabel="Status">
+        <Icon status={model.status === 'Running' ? 'success' : 'danger'} size="md">
+          {model.status === 'Running' ? <CheckCircleIcon /> : <ExclamationCircleIcon />}
+        </Icon>
+      </Td>
+      <Td dataLabel="Use case">{model.usecase}</Td>
+    </Tr>
+  );
+};
 
 export default ChatbotConfigurationTableRow;

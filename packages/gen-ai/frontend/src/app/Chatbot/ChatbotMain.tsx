@@ -27,7 +27,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     aiModelsError,
     maasModels,
     maasModelsLoaded,
-    maasModelsError,
     models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
@@ -96,7 +95,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || (aiModelsError && maasModelsError)}
+        loadError={lsdStatusError || aiModelsError}
         headerAction={
           <ChatbotHeaderActions
             onViewCode={() => {

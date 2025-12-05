@@ -23,12 +23,20 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
     <>
       {messageList.map((message, index) => (
         <React.Fragment key={message.id}>
-          <Message {...message} />
+          <Message {...message} data-testid={`chatbot-message-${message.role}`} />
           {index === messageList.length - 1 && <div ref={scrollRef} />}
         </React.Fragment>
       ))}
-      {/* eslint-disable-next-line jsx-a11y/aria-role */}
-      {showLoadingDots && <Message name="Bot" role="bot" avatar={botAvatar} isLoading />}
+      {showLoadingDots && (
+        <Message
+          name="Bot"
+          // eslint-disable-next-line jsx-a11y/aria-role
+          role="bot"
+          avatar={botAvatar}
+          isLoading
+          data-testid="chatbot-message-bot"
+        />
+      )}
     </>
   );
 };
