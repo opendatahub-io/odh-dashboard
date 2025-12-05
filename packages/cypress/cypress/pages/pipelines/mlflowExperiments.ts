@@ -12,6 +12,10 @@ class MLflowExperimentsPage {
   findMlflowIframe() {
     return cy.findByTestId('mlflow-iframe');
   }
+
+  findMlflowJumpLink() {
+    return cy.findByTestId('mlflow-embedded-jump-link');
+  }
 }
 
 export const mlflowExperimentsPage = new MLflowExperimentsPage();

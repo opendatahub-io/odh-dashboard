@@ -207,7 +207,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW, SupportedArea.EMBED_MLFLOW],
     },
     properties: {
       path: '/develop-train/experiments-mlflow/*',
