@@ -5,11 +5,6 @@ import {
   Content,
   Flex,
   FlexItem,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  ModalVariant,
   Panel,
   PanelMain,
   ProgressStep,
@@ -36,6 +31,8 @@ import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress } from '#~/utilities/notebookControllerUtils';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
+import GenericModal from '#~/components/modals/GenericModal';
+import { ButtonAction } from '#~/components/modals/GenericModalFooter';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
 
@@ -58,8 +55,8 @@ type StartNotebookModalProps = {
   isStopping: boolean;
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
-  onClose?: () => void;
-  buttons: React.ReactNode;
+  onClose: () => void;
+  buttonActions?: ButtonAction[];
 };
 
 type SpawnStatus = {
@@ -76,7 +73,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   isRunning,
   isStopping,
   onClose,
-  buttons,
+  buttonActions,
 }) => {
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
@@ -235,61 +232,64 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     </Flex>
   );
 
+  const modalTitle = (
+    <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <FlexItem>Workbench status</FlexItem>
+      <FlexItem>
+        <NotebookStatusLabel
+          isStarting={isStarting && !isRunning}
+          isStopping={isStopping}
+          isRunning={isRunning}
+          notebookStatus={notebookStatus}
+        />
+      </FlexItem>
+    </Flex>
+  );
+
+  console.log('onclose????', onClose);
+
+  const contents = (
+    <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div> somedays just suck</div>
+      {renderLastUpdate()}
+      {renderStatus()}
+      <StackItem>
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(_ev, tabIndex) => setActiveTab(`${tabIndex}`)}
+          aria-label="status details"
+        >
+          <Tab
+            eventKey={PROGRESS_TAB}
+            aria-label={PROGRESS_TAB}
+            title={<TabTitleText>{PROGRESS_TAB}</TabTitleText>}
+            data-testid="expand-progress"
+          />
+          <Tab
+            eventKey={EVENT_LOG_TAB}
+            aria-label={EVENT_LOG_TAB}
+            title={<TabTitleText>{EVENT_LOG_TAB}</TabTitleText>}
+            data-testid="expand-logs"
+          />
+        </Tabs>
+      </StackItem>
+      <StackItem isFilled className="start-notebook-modal__filled-stack-item">
+        {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
+      </StackItem>
+    </Stack>
+  );
+
   return (
-    <Modal
-      appendTo={document.body}
-      variant={ModalVariant.small}
-      isOpen
+    <GenericModal
       onClose={onClose}
-      data-testid="notebook-status-modal"
-    >
-      <ModalHeader
-        data-testid="notebook-status-modal-header"
-        title={
-          <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>Workbench status</FlexItem>
-            <FlexItem>
-              <NotebookStatusLabel
-                isStarting={isStarting && !isRunning}
-                isStopping={isStopping}
-                isRunning={isRunning}
-                notebookStatus={notebookStatus}
-              />
-            </FlexItem>
-          </Flex>
-        }
-      />
-      <ModalBody className="start-notebook-modal__content-height">
-        <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {renderLastUpdate()}
-          {renderStatus()}
-          <StackItem>
-            <Tabs
-              activeKey={activeTab}
-              onSelect={(_ev, tabIndex) => setActiveTab(`${tabIndex}`)}
-              aria-label="status details"
-            >
-              <Tab
-                eventKey={PROGRESS_TAB}
-                aria-label={PROGRESS_TAB}
-                title={<TabTitleText>{PROGRESS_TAB}</TabTitleText>}
-                data-testid="expand-progress"
-              />
-              <Tab
-                eventKey={EVENT_LOG_TAB}
-                aria-label={EVENT_LOG_TAB}
-                title={<TabTitleText>{EVENT_LOG_TAB}</TabTitleText>}
-                data-testid="expand-logs"
-              />
-            </Tabs>
-          </StackItem>
-          <StackItem isFilled className="start-notebook-modal__filled-stack-item">
-            {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
-          </StackItem>
-        </Stack>
-      </ModalBody>
-      <ModalFooter>{buttons}</ModalFooter>
-    </Modal>
+      title={modalTitle}
+      contents={contents}
+      buttonActions={buttonActions}
+      dataTestId="notebook-status-modal"
+      bodyClassName="start-notebook-modal__content-height"
+      variant="small"
+      appendTo={document.body}
+    />
   );
 };
 

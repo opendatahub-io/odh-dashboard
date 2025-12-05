@@ -3,7 +3,8 @@
 .odh-modal {
   
   &__content-height {
-    overflow-y: hidden;
+    overflow-y: auto;
+    max-height: 60vh; // Ensures modal body scrolls when content is too long
   }
 
   &__filled-stack-item {

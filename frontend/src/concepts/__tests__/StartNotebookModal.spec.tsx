@@ -9,6 +9,8 @@ import {
   mockInProgressStates,
 } from '#~/concepts/__tests__/mockNotebookStates';
 
+const noop = () => jest.fn();
+
 describe('Start Notebook modal', () => {
   it('should show initial notebook startup status', async () => {
     const mockData = mockInitialStates;
@@ -19,12 +21,13 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        buttons={null}
+        buttonActions={undefined}
+        onClose={noop}
       />,
     );
 
     // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
+    const header = screen.getByTestId('generic-modal-header');
     expect(header).toHaveTextContent('Workbench statusStarting');
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
@@ -59,12 +62,13 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        buttons={null}
+        buttonActions={undefined}
+        onClose={noop}
       />,
     );
 
     // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
+    const header = screen.getByTestId('generic-modal-header');
     expect(header).toHaveTextContent('Workbench statusFailed');
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
@@ -88,12 +92,13 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        buttons={null}
+        buttonActions={undefined}
+        onClose={noop}
       />,
     );
 
     // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
+    const header = screen.getByTestId('generic-modal-header');
     expect(header).toHaveTextContent('Workbench statusStarting');
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
@@ -116,12 +121,13 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        buttons={null}
+        buttonActions={undefined}
+        onClose={noop}
       />,
     );
 
     // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
+    const header = screen.getByTestId('generic-modal-header');
     expect(header).toHaveTextContent('Workbench statusRunning');
 
     // Validate the steps
@@ -141,12 +147,13 @@ describe('Start Notebook modal', () => {
         isStopping={mockData.notebookState.isStopping}
         isRunning={mockData.notebookState.isRunning}
         events={mockData.events}
-        buttons={null}
+        buttonActions={undefined}
+        onClose={noop}
       />,
     );
 
     // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
+    const header = screen.getByTestId('generic-modal-header');
     expect(header).toHaveTextContent('Workbench statusRunning');
 
     // Validate the steps
@@ -165,12 +172,13 @@ describe('Start Notebook modal', () => {
         isStopping
         isRunning={false}
         events={[]}
-        buttons={null}
+        buttonActions={undefined}
+        onClose={noop}
       />,
     );
 
     // Validate the header contents
-    const header = screen.getByTestId('notebook-status-modal-header');
+    const header = screen.getByTestId('generic-modal-header');
     expect(header).toHaveTextContent('Workbench statusStopping');
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
