@@ -18,13 +18,13 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelRegistryTestData } from '../../../types';
 import { modelVersionDeployModal } from '../../../pages/modelRegistry/modelVersionDeployModal';
 import { clickRegisterModelButton } from '../../../utils/modelRegistryUtils';
-import { kserveModal } from '../../../pages/modelServing';
+import { modelServingWizard } from '../../../pages/modelServing';
 import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
-describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify models can be deployed from model registry', () => {
+describe('Verify models can be deployed from model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let modelName: string;
@@ -83,9 +83,7 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
         '@ModelRegistry',
         '@NonConcurrent',
         '@Sanity',
-        '@SanitySet4',
-        '@Bug',
-        '@Maintain',
+        '@SanitySet4'
       ],
     },
     () => {
@@ -151,36 +149,44 @@ describe('Automation Bug: [RHOAIENG-37516][Product Bug: RHOAIENG-37856] Verify m
 
       cy.step('Select the project for deployment');
       modelVersionDeployModal.selectProjectByName(projectName);
+      modelVersionDeployModal.findDeployButton().click();
 
       cy.step('Configure the deployment');
-      // Model name should be prefilled
-      kserveModal.findModelNameInput().should('not.be.empty');
-      kserveModal.findServingRuntimeTemplateSearchSelector().click();
-      kserveModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
-      kserveModal.findModelFrameworkSelect().click();
-      kserveModal.findOpenVinoOnnx().click();
+      cy.step('Model details');
+      // connection data should be prefilled
+      modelServingWizard.findModelLocationSelect().should('not.be.empty');
+      modelServingWizard.findLocationAccessKeyInput().clear().type(AWS_BUCKETS.AWS_ACCESS_KEY_ID);
+      modelServingWizard.findLocationSecretKeyInput().clear().type(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY);
+      modelServingWizard.findLocationEndpointInput().should('have.value', AWS_BUCKETS.BUCKET_1.ENDPOINT);
+      modelServingWizard.findLocationBucketInput().should('have.value',AWS_BUCKETS.BUCKET_1.NAME);
+      modelServingWizard.findLocationRegionInput().should('have.value',AWS_BUCKETS.BUCKET_1.REGION);
+      modelServingWizard.findLocationPathInput().should('have.value',testData.modelOpenVinoPath);
+      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizard.findSaveConnectionInput().clear().type(`${projectName}-connection`);
+      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findNextButton().click();
 
-      // Create a data connection for the project
-      cy.step('Create a data connection for the project');
-      kserveModal.findConnectionNameInput().clear().type(`${projectName}-connection`);
-      kserveModal.findLocationAccessKeyInput().clear().type(AWS_BUCKETS.AWS_ACCESS_KEY_ID);
-      kserveModal.findLocationSecretKeyInput().clear().type(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY);
-      kserveModal.findLocationEndpointInput().clear().type(AWS_BUCKETS.BUCKET_1.ENDPOINT);
-      kserveModal.findLocationBucketInput().clear().type(AWS_BUCKETS.BUCKET_1.NAME);
-      kserveModal.findLocationRegionInput().clear().type(AWS_BUCKETS.BUCKET_1.REGION);
+      cy.step('Model deployment');
+      //model name should be prefilled
+      modelServingWizard.findModelDeploymentNameInput().should('have.value',`${modelName} - ${testData.version1Name}`);
+      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      modelServingWizard.findNextButton().click();
 
-      cy.step('Submit the deployment');
-      kserveModal.findSubmitButton().click();
+      cy.step('Advanced settings');
+      modelServingWizard.findNextButton().click();
 
+      cy.step('Review');
+      modelServingWizard.findSubmitButton().click();
+
+      // Verify model deployment is ready
+      cy.step('Verify the model is deployed and started in backend');
+      checkInferenceServiceState(`${modelName}-v10`, projectName, { checkReady: true });
       // Check deployment link and verify status in deployments view
       modelRegistry.navigate();
       cy.contains('1 deployment').should('be.visible').click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
-      cy.step('Verify the model is deployed and started in backend');
-      // Verify model deployment is ready
-      checkInferenceServiceState(`${modelName}-v10`, projectName, { checkReady: true });
     },
   );
 });
