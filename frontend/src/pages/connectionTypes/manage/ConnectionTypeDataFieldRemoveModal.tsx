@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ContentModal from '#~/components/modals/ContentModal';
 import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
 
 type Props = {
@@ -9,19 +8,30 @@ type Props = {
 };
 
 const ConnectionTypeDataFieldRemoveModal: React.FC<Props> = ({ field, onClose }) => (
-  <Modal isOpen onClose={() => onClose(false)} variant="small">
-    <ModalHeader title="Remove field?" />
-    <ModalBody>
-      The <b>{field.name}</b> field will be removed.
-    </ModalBody>
-    <ModalFooter>
-      <DashboardModalFooter
-        submitLabel="Remove"
-        onCancel={() => onClose(false)}
-        onSubmit={() => onClose(true)}
-      />
-    </ModalFooter>
-  </Modal>
+  <ContentModal
+    title="Remove field?"
+    onClose={() => onClose(false)}
+    variant="small"
+    dataTestId="connection-type-data-field-remove-modal"
+    buttonActions={[
+      {
+        label: 'Remove',
+        onClick: () => onClose(true),
+        variant: 'primary',
+      },
+      {
+        label: 'Cancel',
+        onClick: () => onClose(false),
+        variant: 'link',
+        clickOnEnter: true,
+      },
+    ]}
+    contents={
+      <>
+        The <b>{field.name}</b> field will be removed.
+      </>
+    }
+  />
 );
 
 export default ConnectionTypeDataFieldRemoveModal;
