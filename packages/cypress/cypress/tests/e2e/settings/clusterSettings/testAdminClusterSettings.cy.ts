@@ -236,8 +236,8 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   );
 
   it(
-    'Cluster Admin user (not in RHODS groups) can access all Settings pages',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-XXXX', '@Dashboard'] },
+    'Cluster Admin user can access all Settings pages',
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1688', '@Dashboard'] },
     () => {
       cy.step(`Log into the application as ${testUserName}`);
       cy.visitWithLogin('/', LDAP_USER_10);
