@@ -465,9 +465,9 @@ describe('Model Serving Global', () => {
       modelServingGlobal.getModelRow('Test Inference Service').should('exist');
       // Verify sort button works
       modelServingGlobal.findSortButton('Model deployment name').click();
-      modelServingGlobal.findSortButton('Model deployment name').should(be.sortDescending);
-      modelServingGlobal.findSortButton('Model deployment name').click();
       modelServingGlobal.findSortButton('Model deployment name').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Model deployment name').click();
+      modelServingGlobal.findSortButton('Model deployment name').should(be.sortDescending);
 
       // Search for non-existent run name
       modelServingGlobalToolbar.findSearchInput().clear().type('Test Service');
@@ -528,9 +528,9 @@ describe('Model Serving Global', () => {
       modelServingGlobal.visit('test-project');
 
       modelServingGlobal.findSortButton('Last deployed').click();
-      modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
-      modelServingGlobal.findSortButton('Last deployed').click();
       modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
 
       const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
       oldModelRow.findLastDeployedTimestamp().trigger('mouseenter');

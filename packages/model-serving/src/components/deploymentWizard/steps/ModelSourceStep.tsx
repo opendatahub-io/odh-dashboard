@@ -58,7 +58,6 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
         modelLocationData={wizardState.state.modelLocationData.data}
       />
       <ModelTypeSelectField
-        isDisabled={wizardState.state.modelLocationData.data?.disableInputFields}
         modelType={wizardState.state.modelType.data}
         setModelType={wizardState.state.modelType.setData}
         validationProps={validation.getFieldValidationProps(['modelType'])}

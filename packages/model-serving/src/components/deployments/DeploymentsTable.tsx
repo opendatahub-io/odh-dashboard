@@ -84,13 +84,16 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
     ],
     [platformColumns, showExpandedToggleColumn],
   );
+  const lastDeployedColumnIndex = React.useMemo(() => {
+    return allColumns.findIndex((column) => column.field === 'lastDeployed');
+  }, [allColumns]);
 
   return (
     <>
       <Table
         data-testid="inference-service-table" // legacy testid
         columns={allColumns}
-        defaultSortColumn={showExpandedToggleColumn ? 1 : 0}
+        defaultSortColumn={lastDeployedColumnIndex}
         data={deployments}
         disableRowRenderSupport={showExpandedToggleColumn}
         rowRenderer={(row: Deployment, rowIndex: number) => (

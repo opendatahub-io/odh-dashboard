@@ -8,11 +8,13 @@ export type DeployPrefillData = {
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
   modelType?: ServingRuntimeModelType;
+  prefillAlertText?: string;
 }
 
 export type NavigateToDeploymentWizardWithDataExtension = Extension<
   'model-catalog.deployment/navigate-wizard',
   {
+    useAvailablePlatformIds: CodeRef<() => string[]>;
     useNavigateToDeploymentWizardWithData: CodeRef<
       (deployPrefillData: DeployPrefillData) => (projectName?: string) => void
     >;
