@@ -1084,6 +1084,7 @@ class ModelServingWizard extends Wizard {
   findLocationRegionInput() {
     return cy.findByTestId('field AWS_DEFAULT_REGION');
   }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }

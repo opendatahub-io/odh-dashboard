@@ -148,7 +148,7 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Configure the deployment');
       cy.step('Model details');
       // connection data should be prefilled
-      modelServingWizard.findModelLocationSelect().should('not.be.empty');
+      modelServingWizard.findModelLocationSelect().should('contain.text', 'S3 object storage');
       modelServingWizard.findLocationAccessKeyInput().clear().type(AWS_BUCKETS.AWS_ACCESS_KEY_ID);
       modelServingWizard
         .findLocationSecretKeyInput()
@@ -169,7 +169,9 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Model deployment');
       //model name should be prefilled
-      modelServingWizard.findModelDeploymentNameInput().should('not.have.value', '');
+      modelServingWizard
+        .findModelDeploymentNameInput()
+        .should('have.value', `${modelName} - ${testData.version1Name}`);
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       modelServingWizard.findNextButton().click();
 
