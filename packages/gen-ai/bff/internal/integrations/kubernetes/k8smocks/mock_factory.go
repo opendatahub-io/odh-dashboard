@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -137,4 +138,110 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
+}
+
+// ─── MOCK FACTORIES FOR TESTING ───────────────────────────────────────────────
+
+// NewMockTokenClientFactory creates a basic mock factory for simple tests
+func NewMockTokenClientFactory() k8s.KubernetesClientFactory {
+	return &ConfigurableMockTokenClientFactory{
+		CanListLSDAllowed: true, // Default to allowed
+	}
+}
+
+// FailingMockTokenClientFactory simulates GetClient failures
+type FailingMockTokenClientFactory struct {
+	GetClientError error
+}
+
+func (f *FailingMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return nil, f.GetClientError
+}
+
+func (f *FailingMockTokenClientFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "valid-token"}, nil
+}
+
+func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
+// ConfigurableMockTokenClientFactory allows configuring CanListLlamaStackDistributions behavior
+type ConfigurableMockTokenClientFactory struct {
+	CanListLSDAllowed bool
+	CanListLSDError   error
+}
+
+func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return &ConfigurableMockKubernetesClient{
+		CanListLSDAllowed: f.CanListLSDAllowed,
+		CanListLSDError:   f.CanListLSDError,
+	}, nil
+}
+
+func (f *ConfigurableMockTokenClientFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "valid-token"}, nil
+}
+
+func (f *ConfigurableMockTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
+// ConfigurableMockKubernetesClient allows configuring authorization check behavior
+type ConfigurableMockKubernetesClient struct {
+	k8s.KubernetesClientInterface
+	CanListLSDAllowed bool
+	CanListLSDError   error
+}
+
+func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	if c.CanListLSDError != nil {
+		return false, c.CanListLSDError
+	}
+	return c.CanListLSDAllowed, nil
+}
+
+// Helper functions to create k8s error types for testing
+
+func NewUnauthorizedError() error {
+	return &k8sStatusError{
+		statusCode: http.StatusUnauthorized,
+		message:    "unauthorized",
+		reason:     "Unauthorized",
+	}
+}
+
+func NewForbiddenError() error {
+	return &k8sStatusError{
+		statusCode: http.StatusForbidden,
+		message:    "forbidden",
+		reason:     "Forbidden",
+	}
+}
+
+// k8sStatusError implements the k8s APIStatus error interface for testing
+type k8sStatusError struct {
+	statusCode int
+	message    string
+	reason     string
+}
+
+func (e *k8sStatusError) Error() string {
+	return e.message
+}
+
+// Status implements the APIStatus interface required by k8serrors.IsUnauthorized/IsForbidden
+func (e *k8sStatusError) Status() metav1.Status {
+	return metav1.Status{
+		Status:  metav1.StatusFailure,
+		Code:    int32(e.statusCode),
+		Reason:  metav1.StatusReason(e.reason),
+		Message: e.message,
+	}
 }

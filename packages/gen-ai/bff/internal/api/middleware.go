@@ -19,6 +19,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/rs/cors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -136,7 +137,19 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			// This ensures users have proper permissions to access any service in the namespace
 			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
 			if err != nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to check LlamaStackDistribution permissions: %w", err))
+				// Check if this is an unauthorized (401) or forbidden (403) error from K8s API
+				if k8serrors.IsUnauthorized(err) {
+					// 401 means the user's authentication token is invalid/expired
+					app.unauthorizedResponse(w, r, fmt.Errorf("authentication failed: invalid or expired token"))
+					return
+				}
+				if k8serrors.IsForbidden(err) {
+					// 403 during authorization check - treat as insufficient permissions
+					app.forbiddenResponse(w, r, "insufficient permissions to access services in this namespace")
+					return
+				}
+				// For other errors, keep as server error
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to verify user permissions: %w", err))
 				return
 			}
 
