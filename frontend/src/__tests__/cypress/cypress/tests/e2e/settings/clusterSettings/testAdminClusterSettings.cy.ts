@@ -6,6 +6,12 @@ import { DEFAULT_PVC_SIZE } from '#~/pages/clusterSettings/const';
 import { clusterSettings } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
 import { userManagement } from '#~/__tests__/cypress/cypress/pages/userManagement';
 import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
+import { storageClassesPage } from '#~/__tests__/cypress/cypress/pages/storageClasses';
+import { notebookImageSettings } from '#~/__tests__/cypress/cypress/pages/notebookImageSettings';
+import { hardwareProfile } from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { connectionTypesPage } from '#~/__tests__/cypress/cypress/pages/connectionTypes';
+import { servingRuntimes } from '#~/__tests__/cypress/cypress/pages/servingRuntimes';
+import { modelRegistrySettings } from '#~/__tests__/cypress/cypress/pages/modelRegistrySettings';
 import type {
   CommandLineResult,
   DashboardConfig,
@@ -87,7 +93,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         // We are going to use a provisioned user for this test. We are going to set it as a cluster-admin,
         // and after the tests are done, we are going to remove the cluster-admin role.
         // The idea is to check that a cluster-admin user works as a RHOAI Admin user.
-        // Step 1: Check if user is already in allowedGroups or adminGroups
+        // Check if user is already in allowedGroups or adminGroups
         cy.step('Check if user is in RHODS user groups');
         cy.exec(`oc get OdhDashboardConfig -A -o json | jq -r '.items[].spec.groupsConfig'`).then(
           (result: CommandLineResult) => {
@@ -131,7 +137,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
           },
         );
 
-        // Step 2: Get existing ClusterRoleBinding if it exists (for teardown)
+        // Get existing ClusterRoleBinding if it exists (for teardown)
         cy.step('Check for existing ClusterRoleBinding');
         cy.exec(`oc get clusterrolebinding ${clusterRoleBindingName} -o json --ignore-not-found`, {
           failOnNonZeroExit: false,
@@ -142,7 +148,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
           }
         });
 
-        // Step 3: Create ClusterRoleBinding to make user cluster-admin
+        // Create ClusterRoleBinding to make user cluster-admin
         cy.step('Create ClusterRoleBinding for cluster-admin');
         cy.fixture('resources/yaml/cluster_role_binding.yaml').then((yamlContent) => {
           const replacements = {
@@ -231,20 +237,41 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     'Cluster Admin user (not in RHODS groups) can access all Settings pages',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-XXXX', '@Dashboard'] },
     () => {
-      // Step 3: Log in to RHODS Dashboard
       cy.step(`Log into the application as ${testUserName}`);
       cy.visitWithLogin('/', LDAP_USER_10);
 
-      // Step 4: Verify Cluster Settings is visible in left menu
       cy.step('Verify Cluster Settings is visible in navigation');
       clusterSettings.findNavItem().should('exist').and('be.visible');
 
-      // Step 5: Access all three Settings pages
-      cy.step('Access Cluster Settings page');
+      cy.step('Access Settings -> Cluster Settings -> General settings');
       clusterSettings.visit();
       clusterSettings.findSubmitButton().should('exist');
 
-      cy.step('Access User Management page');
+      cy.step('Access Settings -> Cluster Settings -> Storage classes');
+      storageClassesPage.visit();
+      cy.findByTestId('app-page-title').should('contain', 'Storage classes');
+
+      cy.step('Access Settings -> Environment setup -> Workbench images');
+      notebookImageSettings.visit();
+      notebookImageSettings.findImportImageButton().should('exist');
+
+      cy.step('Access Settings -> Environment setup -> Hardware profiles');
+      hardwareProfile.visit();
+      cy.findByTestId('app-page-title').should('exist');
+
+      cy.step('Access Settings -> Environment setup -> Connection types');
+      connectionTypesPage.visit();
+      cy.findByTestId('app-page-title').should('exist');
+
+      cy.step('Access Settings -> Model resources and operations -> Serving runtimes');
+      servingRuntimes.visit();
+      servingRuntimes.findAppTitle().should('exist');
+
+      cy.step('Access Settings -> Model resources and operations -> AI registry settings');
+      modelRegistrySettings.visit();
+      cy.findByTestId('app-page-title').should('contain', 'AI registry settings');
+
+      cy.step('Access Settings -> User management');
       userManagement.visit();
       userManagement.findSubmitButton().should('exist');
     },
