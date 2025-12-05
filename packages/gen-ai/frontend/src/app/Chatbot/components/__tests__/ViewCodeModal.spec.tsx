@@ -210,6 +210,134 @@ describe('ViewCodeModal', () => {
     });
   });
 
+  it('includes allowed_tools in MCP server config when toolSelections returns tools', async () => {
+    const mockServer = {
+      url: 'http://test-server',
+      name: 'Test Server',
+      transport: 'sse' as const,
+      description: 'Test Server Description',
+      logo: null,
+      status: 'healthy' as const,
+    };
+
+    const mockToolSelections = jest.fn((ns: string, url: string) => {
+      if (ns === 'test-namespace' && url === 'http://test-server') {
+        return ['tool1', 'tool2'];
+      }
+      return undefined;
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal
+          {...defaultProps}
+          selectedMcpServerIds={['http://test-server']}
+          mcpServers={[mockServer]}
+          mcpServerTokens={new Map()}
+          toolSelections={mockToolSelections}
+          namespace="test-namespace"
+        />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcp_servers: expect.arrayContaining([
+            expect.objectContaining({
+              server_url: 'http://test-server',
+              server_label: 'Test Server',
+              allowed_tools: ['tool1', 'tool2'],
+            }),
+          ]),
+        }),
+      );
+    });
+  });
+
+  it('does not include allowed_tools when toolSelections returns undefined', async () => {
+    const mockServer = {
+      url: 'http://test-server',
+      name: 'Test Server',
+      transport: 'sse' as const,
+      description: 'Test Server Description',
+      logo: null,
+      status: 'healthy' as const,
+    };
+
+    const mockToolSelections = jest.fn(() => undefined);
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal
+          {...defaultProps}
+          selectedMcpServerIds={['http://test-server']}
+          mcpServers={[mockServer]}
+          mcpServerTokens={new Map()}
+          toolSelections={mockToolSelections}
+          namespace="test-namespace"
+        />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcp_servers: expect.arrayContaining([
+            expect.objectContaining({
+              server_url: 'http://test-server',
+              server_label: 'Test Server',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    // Verify allowed_tools is NOT in the request
+    const callArgs = mockExportCode.mock.calls[0][0];
+    expect(callArgs.mcp_servers[0]).not.toHaveProperty('allowed_tools');
+  });
+
+  it('includes empty allowed_tools array when toolSelections returns empty array', async () => {
+    const mockServer = {
+      url: 'http://test-server',
+      name: 'Test Server',
+      transport: 'sse' as const,
+      description: 'Test Server Description',
+      logo: null,
+      status: 'healthy' as const,
+    };
+
+    const mockToolSelections = jest.fn(() => []);
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal
+          {...defaultProps}
+          selectedMcpServerIds={['http://test-server']}
+          mcpServers={[mockServer]}
+          mcpServerTokens={new Map()}
+          toolSelections={mockToolSelections}
+          namespace="test-namespace"
+        />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcp_servers: expect.arrayContaining([
+            expect.objectContaining({
+              server_url: 'http://test-server',
+              server_label: 'Test Server',
+              allowed_tools: [],
+            }),
+          ]),
+        }),
+      );
+    });
+  });
+
   it('re-fetches code when modal is reopened', async () => {
     const { rerender } = render(
       <TestWrapper>
