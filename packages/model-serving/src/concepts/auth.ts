@@ -1,6 +1,5 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/internal/k8sTypes';
-import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
 import useFetch, {
   NotReadyError,
   type FetchOptions,
@@ -9,6 +8,28 @@ import useFetch, {
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/internal/const';
 import { getSecretsByLabel } from '@odh-dashboard/internal/api/index';
 import type { Deployment } from '../../extension-points';
+
+const getModelServingRuntimeName = (namespace: string): string => `model-server-${namespace}`;
+const getModelServiceAccountName = (name: string): string => `${name}-sa`;
+const getModelRole = (name: string): string => `${name}-view-role`;
+const getModelRoleBinding = (name: string): string => `${name}-view`;
+
+export const getTokenNames = (
+  resourceName: string,
+  namespace: string,
+): {
+  serviceAccountName: string;
+  roleName: string;
+  roleBindingName: string;
+} => {
+  const name = resourceName !== '' ? resourceName : getModelServingRuntimeName(namespace);
+
+  const serviceAccountName = getModelServiceAccountName(name);
+  const roleName = getModelRole(name);
+  const roleBindingName = getModelRoleBinding(name);
+
+  return { serviceAccountName, roleName, roleBindingName };
+};
 
 export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
   const annotation = deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
