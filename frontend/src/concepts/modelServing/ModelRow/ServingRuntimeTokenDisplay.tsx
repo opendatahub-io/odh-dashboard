@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Button,
   ClipboardCopy,
+  ClipboardCopyAction,
   ClipboardCopyVariant,
   HelperText,
   HelperTextItem,
@@ -9,7 +10,6 @@ import {
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import { SecretKind } from '#~/k8sTypes';
-import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 
 type ServingRuntimeTokenDisplayProps = {
   token: SecretKind;
@@ -39,37 +39,33 @@ const ServingRuntimeTokenDisplay: React.FC<ServingRuntimeTokenDisplayProps> = ({
   const visibleToken = atob(token.data.token);
   const hiddenToken = '•'.repeat(Math.min(visibleToken.length, 40));
 
-  return (
-    <>
+  const toggleAction = (
+    <ClipboardCopyAction>
       <Button
         variant="plain"
+        hasNoPadding
         aria-label={isTokenVisible ? 'Hide token' : 'Show token'}
+        icon={isTokenVisible ? <EyeSlashIcon /> : <EyeIcon />}
         onClick={() => setIsTokenVisible(!isTokenVisible)}
-        style={{ padding: 0, marginLeft: -40 }}
-      >
-        {isTokenVisible ? <EyeSlashIcon /> : <EyeIcon />}
-      </Button>
-      {isTokenVisible ? (
-        <InlineTruncatedClipboardCopy
-          testId="token-secret"
-          textToCopy={visibleToken}
-          truncatePosition="middle"
-          maxWidth={500}
-        />
-      ) : (
-        <ClipboardCopy
-          variant={ClipboardCopyVariant.inlineCompact}
-          hoverTip="Copy"
-          clickTip="Copied"
-          data-testid="token-secret"
-          onCopy={() => {
-            navigator.clipboard.writeText(visibleToken);
-          }}
-        >
-          {hiddenToken}
-        </ClipboardCopy>
-      )}
-    </>
+      />
+    </ClipboardCopyAction>
+  );
+
+  return (
+    <ClipboardCopy
+      variant={ClipboardCopyVariant.inlineCompact}
+      style={isTokenVisible ? { maxWidth: '500px' } : undefined}
+      hoverTip="Copy"
+      clickTip="Copied"
+      data-testid="token-secret"
+      additionalActions={toggleAction}
+      truncation={isTokenVisible ? { position: 'middle' } : undefined}
+      onCopy={() => {
+        navigator.clipboard.writeText(visibleToken);
+      }}
+    >
+      {isTokenVisible ? visibleToken : hiddenToken}
+    </ClipboardCopy>
   );
 };
 
