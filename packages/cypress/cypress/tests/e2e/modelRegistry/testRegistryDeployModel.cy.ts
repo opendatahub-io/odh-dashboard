@@ -78,13 +78,7 @@ describe('Verify models can be deployed from model registry', () => {
   it(
     'Registers a model and deploys it via model registry',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelRegistry',
-        '@NonConcurrent',
-        '@Sanity',
-        '@SanitySet4'
-      ],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
     },
     () => {
       cy.step('Log into the application');
@@ -156,11 +150,18 @@ describe('Verify models can be deployed from model registry', () => {
       // connection data should be prefilled
       modelServingWizard.findModelLocationSelect().should('not.be.empty');
       modelServingWizard.findLocationAccessKeyInput().clear().type(AWS_BUCKETS.AWS_ACCESS_KEY_ID);
-      modelServingWizard.findLocationSecretKeyInput().clear().type(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY);
-      modelServingWizard.findLocationEndpointInput().should('have.value', AWS_BUCKETS.BUCKET_1.ENDPOINT);
-      modelServingWizard.findLocationBucketInput().should('have.value',AWS_BUCKETS.BUCKET_1.NAME);
-      modelServingWizard.findLocationRegionInput().should('have.value',AWS_BUCKETS.BUCKET_1.REGION);
-      modelServingWizard.findLocationPathInput().should('have.value',testData.modelOpenVinoPath);
+      modelServingWizard
+        .findLocationSecretKeyInput()
+        .clear()
+        .type(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY);
+      modelServingWizard
+        .findLocationEndpointInput()
+        .should('have.value', AWS_BUCKETS.BUCKET_1.ENDPOINT);
+      modelServingWizard.findLocationBucketInput().should('have.value', AWS_BUCKETS.BUCKET_1.NAME);
+      modelServingWizard
+        .findLocationRegionInput()
+        .should('have.value', AWS_BUCKETS.BUCKET_1.REGION);
+      modelServingWizard.findLocationPathInput().should('have.value', testData.modelOpenVinoPath);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard.findSaveConnectionInput().clear().type(`${projectName}-connection`);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
@@ -186,7 +187,6 @@ describe('Verify models can be deployed from model registry', () => {
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
-
     },
   );
 });
