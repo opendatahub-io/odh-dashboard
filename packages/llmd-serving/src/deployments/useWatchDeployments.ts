@@ -3,7 +3,7 @@ import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sType
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { getLLMdDeploymentEndpoints } from './endpoints';
-import { getLLMdDeploymentStatus, useLLMdInferenceServicePods } from './status';
+import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import {
   LLMInferenceServiceModel,
   type LLMdDeployment,
@@ -34,7 +34,7 @@ export const useWatchDeployments = (
     [llmInferenceServices, filterFn],
   );
 
-  const [deploymentPods, deploymentPodsLoaded] = useLLMdInferenceServicePods(
+  const [deploymentPods, deploymentPodsLoaded] = useLLMInferenceServicePods(
     project.metadata.name,
     opts,
   );

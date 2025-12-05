@@ -10,10 +10,10 @@ import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import { ModelAnnotation } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/types';
+import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
-export const useLLMdInferenceServicePods = (
+export const useLLMInferenceServicePods = (
   namespace: string,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<PodKind[]> =>
@@ -44,25 +44,11 @@ export const getLLMdDeploymentStatus = (
   const state = getLLMInferenceServiceModelState(inferenceService, modelPodStatus, lastActivity);
   const message = getLLMInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
-  const isStopped =
-    inferenceService.metadata.annotations?.[ModelAnnotation.STOPPED_ANNOTATION] === 'true';
-
-  const stoppedStates = {
-    isRunning:
-      (state === ModelDeploymentState.LOADED || state === ModelDeploymentState.FAILED_TO_LOAD) &&
-      !isStopped,
-    // LLMISVC has stop annotation and there are no pods
-    isStopped: isStopped && !deploymentPod,
-    // LLMISVC doesn't have stop annotation and state is PENDING, LOADING, STANDBY or UNKNOWN
-    isStarting:
-      (state === ModelDeploymentState.PENDING ||
-        state === ModelDeploymentState.LOADING ||
-        state === ModelDeploymentState.STANDBY ||
-        state === ModelDeploymentState.UNKNOWN) &&
-      !isStopped,
-    // LLMISVC has stop annotation and there are pods
-    isStopping: isStopped && !!deploymentPod,
-  };
+  const stoppedStates = getModelDeploymentStoppedStates(
+    state,
+    inferenceService.metadata.annotations,
+    deploymentPod,
+  );
 
   return { state, message, stoppedStates };
 };
