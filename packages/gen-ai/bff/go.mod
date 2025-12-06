@@ -134,7 +134,7 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
-	knative.dev/networking v0.0.0-20250117155906-67d1c274ba6a // indirect
+	knative.dev/networking 5082b02af8c1 // indirect
 	knative.dev/serving v0.44.0 // indirect
 	sigs.k8s.io/gateway-api v1.2.1 // indirect
 	sigs.k8s.io/gateway-api-inference-extension v0.3.0 // indirect
