@@ -16,7 +16,7 @@
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.5.3",
     "eslint-plugin-no-barrel-files": "^1.2.1",
-    "eslint-plugin-cypress": "^3.3.0",
+    "eslint-plugin-cypress": "^5.0.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-markdown": "^5.1.0",
