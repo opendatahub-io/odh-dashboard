@@ -128,7 +128,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "junit-report-merger": "^7.0.1",
+    "junit-report-merger": "^9.0.0",
     "serve": "^14.2.5",
     "ts-jest": "^29.2.5"
   },
