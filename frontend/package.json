@@ -120,7 +120,7 @@
     "@odh-dashboard/tsconfig": "*",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.13.3",
-    "@types/dompurify": "^2.2.6",
+    "@types/dompurify": "^3.0.0",
     "@types/google-protobuf": "^3.7.2",
     "@types/js-yaml": "^4.0.6",
     "@types/lodash-es": "^4.17.8",
