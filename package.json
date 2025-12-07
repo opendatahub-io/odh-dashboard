@@ -72,7 +72,7 @@
     "start:dev:ext": "turbo run start:dev:ext"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^0.12.2",
+    "@kubernetes/client-node": "^0.22.0",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.3.0",
