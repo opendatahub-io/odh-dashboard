@@ -1,62 +1,15 @@
-/* eslint-disable cypress/no-unnecessary-waiting */
-
 import type { CommandLineResult } from '../../types';
 
 /**
- * Wait for the LlamaStack operator to be ready by polling the DataScienceCluster status.
- * Checks for the LlamaStackOperatorReady condition to be True.
- *
- * @param maxAttempts The maximum number of attempts to check (default: 60).
- * @param pollIntervalMs The interval between polling attempts in milliseconds (default: 5000).
- * @returns A Cypress chainable that resolves when the operator is ready.
+ * Polling configuration options
  */
-export const waitForLlamaStackOperatorReady = (
-  maxAttempts = 60,
-  pollIntervalMs = 5000,
-): Cypress.Chainable<CommandLineResult> => {
-  const startTime = Date.now();
-  const totalTimeout = maxAttempts * pollIntervalMs;
-
-  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
-    return cy
-      .exec(
-        `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="LlamaStackOperatorReady")].status}'`,
-        { failOnNonZeroExit: false },
-      )
-      .then((result: CommandLineResult) => {
-        const status = result.stdout.trim();
-
-        if (status === 'True') {
-          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-          cy.log(`✅ LlamaStackOperatorReady condition is True (after ${elapsedTime}s)`);
-          return cy.wrap(result);
-        }
-
-        if (attemptNumber >= maxAttempts) {
-          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-          throw new Error(
-            `LlamaStackOperatorReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
-              status || 'not found'
-            }`,
-          );
-        }
-
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        cy.log(
-          `⏳ Waiting for LlamaStackOperatorReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
-            status || 'not found'
-          }, elapsed: ${elapsedTime}s)`,
-        );
-        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-      });
-  };
-
-  cy.step(`Polling for LlamaStackOperatorReady condition (max ${totalTimeout / 1000}s)`);
-  return check();
+type PollOptions = {
+  maxAttempts?: number;
+  pollIntervalMs?: number;
 };
 
 /**
- * Type for LlamaStackDistribution State
+ * Type for LlamaStackDistribution status response
  */
 type LlamaStackDistributionState = {
   status?: {
@@ -74,119 +27,173 @@ type LlamaStackDistributionState = {
 };
 
 /**
- * Check LlamaStackDistribution status and wait for it to be Ready
- *
- * @param namespace The namespace where the LlamaStackDistribution is deployed
- * @returns Result Object of the operation
+ * Default polling configuration
  */
-export const checkLlamaStackDistributionReady = (
+const DEFAULT_POLL_OPTIONS: Required<PollOptions> = {
+  maxAttempts: 60,
+  pollIntervalMs: 5000,
+};
+
+/**
+ * Wait for the LlamaStack operator to be ready by polling the DataScienceCluster status.
+ * Checks for the LlamaStackOperatorReady condition to be True.
+ *
+ * @param options Polling options (maxAttempts, pollIntervalMs).
+ * @returns A Cypress chainable that resolves when the operator is ready.
+ */
+export const waitForLlamaStackOperatorReady = (
+  options: PollOptions = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { maxAttempts, pollIntervalMs } = { ...DEFAULT_POLL_OPTIONS, ...options };
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
+    const command = `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="LlamaStackOperatorReady")].status}'`;
+
+    return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+      const status = result.stdout.trim();
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      if (status === 'True') {
+        cy.log(`✅ LlamaStackOperatorReady condition is True (after ${elapsedTime}s)`);
+        return cy.wrap(result);
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `LlamaStackOperatorReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
+            status || 'not found'
+          }`,
+        );
+      }
+
+      cy.log(
+        `⏳ Waiting for LlamaStackOperatorReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
+          status || 'not found'
+        }, elapsed: ${elapsedTime}s)`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.step(`Polling for LlamaStackOperatorReady condition (max ${totalTimeout / 1000}s)`);
+  return check();
+};
+
+/**
+ * Wait for a LlamaStackDistribution to be Ready in the specified namespace.
+ * Polls until the phase is "Ready" or max attempts is reached.
+ *
+ * @param namespace The namespace where the LlamaStackDistribution is deployed.
+ * @param options Polling options (maxAttempts, pollIntervalMs).
+ * @returns A Cypress chainable that resolves when the distribution is ready.
+ */
+export const waitForLlamaStackDistributionReady = (
   namespace: string,
-): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get llamastackdistributions -n ${namespace} -o json`;
-  const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
-  let attempts = 0;
+  options: PollOptions = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { maxAttempts, pollIntervalMs } = { ...DEFAULT_POLL_OPTIONS, ...options };
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
 
-  const checkState = (): Cypress.Chainable<Cypress.Exec> =>
-    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-      attempts++;
+  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
+    const command = `oc get llamastackdistributions -n ${namespace} -o json`;
 
-      // Log raw command output for debugging
-      cy.log(`Raw command output (attempt ${attempts}):
-        Exit code: ${result.code}
-        Stdout length: ${result.stdout.length}
-        Stderr: ${result.stderr || 'none'}`);
+    return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-      // Check if the command failed
+      // Handle command failure
       if (result.code !== 0) {
-        const errorMsg = `Command failed with exit code ${result.code}: ${result.stderr}`;
-        cy.log(`❌ ${errorMsg}`);
-        throw new Error(errorMsg);
+        throw new Error(`Command failed with exit code ${result.code}: ${result.stderr}`);
       }
 
-      // Check if stdout is empty
+      // Handle empty output
       if (!result.stdout.trim()) {
-        const errorMsg = 'Command succeeded but returned empty output';
-        cy.log(`❌ ${errorMsg}`);
-        throw new Error(errorMsg);
+        throw new Error('Command succeeded but returned empty output');
       }
 
+      // Parse JSON response
       let lsdList: { items: LlamaStackDistributionState[] };
       try {
         lsdList = JSON.parse(result.stdout) as { items: LlamaStackDistributionState[] };
       } catch (error) {
-        const errorMsg = `Failed to parse LlamaStackDistribution JSON: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`;
-        cy.log(`❌ ${errorMsg}`);
-        cy.log(`Raw stdout: ${result.stdout}`);
-        throw new Error(errorMsg);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown parsing error';
+        throw new Error(`Failed to parse LlamaStackDistribution JSON: ${errorMsg}`);
       }
 
-      // Check if any LlamaStackDistribution exists
+      // Handle no resources found
       if (lsdList.items.length === 0) {
-        if (attempts >= maxAttempts) {
-          const errorMsg = `No LlamaStackDistribution found in namespace ${namespace} after ${attempts} attempts`;
-          cy.log(`❌ ${errorMsg}`);
-          throw new Error(errorMsg);
+        if (attemptNumber >= maxAttempts) {
+          throw new Error(
+            `No LlamaStackDistribution found in namespace ${namespace} after ${attemptNumber} attempts`,
+          );
         }
-        cy.log(`⏳ No LlamaStackDistribution found yet, retrying...`);
-        return cy.wait(5000).then(() => checkState());
+        cy.log(`⏳ No LlamaStackDistribution found yet (attempt ${attemptNumber}/${maxAttempts})`);
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
       }
 
-      // Get the first LlamaStackDistribution (assuming one per namespace)
+      // Check first LlamaStackDistribution (assuming one per namespace)
       const lsd = lsdList.items[0];
-      const phase = lsd.status?.phase || 'EMPTY';
-      const name = lsd.metadata?.name || 'unknown';
+      const phase = lsd.status?.phase ?? 'Unknown';
+      const name = lsd.metadata?.name ?? 'unknown';
 
-      cy.log(`🧐 Attempt ${attempts}: Checking LlamaStackDistribution state
-        Name: ${name}
-        Phase: ${phase}
-        Namespace: ${namespace}`);
-
-      // Check if the LlamaStackDistribution is Ready
+      // Success case
       if (phase === 'Ready') {
         cy.log(
-          `✅ LlamaStackDistribution ${name} is Ready in namespace ${namespace} after ${attempts} attempts`,
+          `✅ LlamaStackDistribution ${name} is Ready in namespace ${namespace} (after ${elapsedTime}s)`,
         );
         return cy.wrap(result);
       }
 
-      // Check if the LlamaStackDistribution has failed
+      // Failure case
       if (phase === 'Failed') {
-        // Log the full status for debugging
-        cy.log('LlamaStackDistribution Status:', JSON.stringify(lsd.status, null, 2));
-
-        // Extract error details if available
-        const conditions = lsd.status?.conditions || [];
+        const conditions = lsd.status?.conditions ?? [];
         const errorDetails = conditions
           .map(
-            (c: { type: string; status: string; message?: string; reason?: string }) =>
+            (c) =>
               `${c.type}: ${c.status}${c.message ? ` - ${c.message}` : ''}${
                 c.reason ? ` (${c.reason})` : ''
               }`,
           )
           .join('\n');
 
-        const errorMsg = `❌ LlamaStackDistribution ${name} failed in namespace ${namespace}
-          Phase: Failed
-          ${errorDetails ? `Conditions:\n${errorDetails}` : 'No condition details available'}`;
-
-        cy.log(errorMsg);
-        throw new Error(errorMsg);
+        throw new Error(
+          `LlamaStackDistribution ${name} failed in namespace ${namespace}\nPhase: Failed\n${
+            errorDetails || 'No condition details available'
+          }`,
+        );
       }
 
-      if (attempts >= maxAttempts) {
-        const errorMessage = `❌ LlamaStackDistribution ${name} did not become Ready within 8 minutes
-          Current Phase: ${phase}
-          Namespace: ${namespace}`;
-
-        cy.log(errorMessage);
-        throw new Error(errorMessage);
+      // Timeout case
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `LlamaStackDistribution ${name} did not become Ready within ${
+            totalTimeout / 1000
+          }s. Current phase: ${phase}`,
+        );
       }
 
-      cy.log(`⏳ Phase is "${phase}", waiting 5 seconds before next check...`);
-      return cy.wait(5000).then(() => checkState());
+      // Continue polling
+      cy.log(
+        `⏳ LlamaStackDistribution ${name} phase: "${phase}" (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
     });
+  };
 
-  return checkState();
+  cy.step(
+    `Polling for LlamaStackDistribution Ready in namespace ${namespace} (max ${
+      totalTimeout / 1000
+    }s)`,
+  );
+  return check();
 };
+
+/**
+ * @deprecated Use waitForLlamaStackDistributionReady instead
+ */
+export const checkLlamaStackDistributionReady = waitForLlamaStackDistributionReady;

@@ -254,6 +254,53 @@ export const deleteNotebook = (
   });
 };
 
+type PollOptions = {
+  maxAttempts?: number;
+  pollIntervalMs?: number;
+};
+
+/**
+ * Generic polling utility that retries a command until it succeeds.
+ * Polls until the command returns exit code 0 or max attempts is reached.
+ *
+ * @param command The shell command to execute.
+ * @param description A human-readable description of what we're waiting for.
+ * @param options Polling options (maxAttempts, pollIntervalMs).
+ * @returns A Cypress chainable that resolves when the command succeeds.
+ */
+export const pollUntilSuccess = (
+  command: string,
+  description: string,
+  { maxAttempts = 30, pollIntervalMs = 2000 }: PollOptions = {},
+): Cypress.Chainable<Cypress.Exec> => {
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<Cypress.Exec> => {
+    return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      if (result.code === 0) {
+        cy.log(`✅ ${description} (found after ${elapsedTime}s)`);
+        return cy.wrap(result);
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(`${description} not found after ${maxAttempts} attempts (${elapsedTime}s)`);
+      }
+
+      cy.log(
+        `⏳ Waiting for ${description} (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.log(`🔍 Polling for ${description} (max ${totalTimeout / 1000}s)`);
+  return check();
+};
+
 /**
  * Wait for a specific OpenShift resource to exist by polling with `oc get`.
  * Polls until the resource exists or max attempts is reached.
@@ -271,43 +318,12 @@ export const waitForResource = (
   namespace: string,
   maxAttempts = 30,
   pollIntervalMs = 2000,
-): Cypress.Chainable<Cypress.Exec> => {
-  const startTime = Date.now();
-  const totalTimeout = maxAttempts * pollIntervalMs;
-
-  const check = (attemptNumber = 1): Cypress.Chainable<Cypress.Exec> => {
-    return cy
-      .exec(`oc get ${resourceType} ${resourceName} -n ${namespace}`, { failOnNonZeroExit: false })
-      .then((result) => {
-        if (result.code === 0) {
-          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-          cy.log(`✅ ${resourceType} ${resourceName} exists (found after ${elapsedTime}s)`);
-          return cy.wrap(result);
-        }
-
-        if (attemptNumber >= maxAttempts) {
-          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-          throw new Error(
-            `${resourceType} ${resourceName} not found after ${maxAttempts} attempts (${elapsedTime}s)`,
-          );
-        }
-
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        cy.log(
-          `⏳ Waiting for ${resourceType} ${resourceName} (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
-        );
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-      });
-  };
-
-  cy.log(
-    `🔍 Polling for ${resourceType}/${resourceName} in namespace ${namespace} (max ${
-      totalTimeout / 1000
-    }s)`,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get ${resourceType} ${resourceName} -n ${namespace}`,
+    `${resourceType}/${resourceName} in namespace ${namespace}`,
+    { maxAttempts, pollIntervalMs },
   );
-  return check();
-};
 
 /**
  * Wait for a namespace to exist in the cluster by polling with `oc get namespace`.
@@ -322,36 +338,8 @@ export const waitForNamespace = (
   namespaceName: string,
   maxAttempts = 60,
   pollIntervalMs = 2000,
-): Cypress.Chainable<Cypress.Exec> => {
-  const startTime = Date.now();
-  const totalTimeout = maxAttempts * pollIntervalMs;
-
-  const check = (attemptNumber = 1): Cypress.Chainable<Cypress.Exec> => {
-    return cy
-      .exec(`oc get namespace ${namespaceName}`, { failOnNonZeroExit: false })
-      .then((result) => {
-        if (result.code === 0) {
-          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-          cy.log(`✅ Namespace ${namespaceName} exists (found after ${elapsedTime}s)`);
-          return cy.wrap(result);
-        }
-
-        if (attemptNumber >= maxAttempts) {
-          const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-          throw new Error(
-            `Namespace ${namespaceName} not found after ${maxAttempts} attempts (${elapsedTime}s)`,
-          );
-        }
-
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        cy.log(
-          `⏳ Waiting for namespace ${namespaceName} (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
-        );
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-      });
-  };
-
-  cy.step(`Polling for namespace ${namespaceName} (max ${totalTimeout / 1000}s)`);
-  return check();
-};
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(`oc get namespace ${namespaceName}`, `namespace ${namespaceName}`, {
+    maxAttempts,
+    pollIntervalMs,
+  });

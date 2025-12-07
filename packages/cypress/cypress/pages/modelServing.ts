@@ -1253,7 +1253,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findHardwareProfileOption(name: string) {
-    return cy.findByRole('option', { name: new RegExp(name, 'i') });
+    return cy.findByTestId(name);
   }
 
   findCustomizeResourcesButton() {
@@ -1274,7 +1274,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findDeployButton() {
-    return this.findFooter().findByRole('button', { name: /Deploy model/i });
+    return this.findFooter().findByTestId('wizard-submit-button');
   }
 
   findReviewStepModelDetailsSection() {
