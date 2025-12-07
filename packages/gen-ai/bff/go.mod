@@ -18,11 +18,12 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.10.0
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.4
 	k8s.io/apiextensions-apiserver v0.33.1
 	k8s.io/apimachinery v0.33.4
 	k8s.io/client-go v0.33.4
+	k8s.io/klog/v2 v2.130.1
 	knative.dev/pkg v0.0.0-20250117084104-c43477f0052b
 	sigs.k8s.io/controller-runtime v0.21.0
 )
@@ -64,7 +65,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/gnostic-models v0.6.9 // indirect
+	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.16.1 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
@@ -111,6 +112,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
@@ -130,8 +132,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/klog/v2 v2.130.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
 	knative.dev/networking v0.0.0-20250117155906-67d1c274ba6a // indirect
