@@ -114,7 +114,7 @@
     "@typescript-eslint/parser": "^8.17.0",
     "cypress": "^14.5.1",
     "cypress-high-resolution": "^1.0.0",
-    "cypress-mochawesome-reporter": "^3.8.2",
+    "cypress-mochawesome-reporter": "^4.0.0",
     "cypress-multi-reporters": "^2.0.5",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.5",
