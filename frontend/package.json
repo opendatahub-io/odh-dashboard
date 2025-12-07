@@ -62,7 +62,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@module-federation/runtime": "^0.15.0",
+    "@module-federation/runtime": "^0.21.0",
     "@monaco-editor/react": "^4.6.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
