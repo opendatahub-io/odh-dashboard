@@ -14,7 +14,7 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.6.0",
     "eslint-import-resolver-node": "^0.3.7",
-    "eslint-import-resolver-typescript": "^3.5.3",
+    "eslint-import-resolver-typescript": "^4.0.0",
     "eslint-plugin-no-barrel-files": "^1.2.1",
     "eslint-plugin-cypress": "^3.3.0",
     "eslint-plugin-import": "^2.27.5",
