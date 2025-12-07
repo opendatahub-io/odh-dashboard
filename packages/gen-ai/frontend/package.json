@@ -64,7 +64,7 @@
     "raw-loader": "^4.0.2",
     "react-axe": "^3.5.4",
     "react-docgen-typescript-loader": "^3.7.2",
-    "react-refresh": "^0.14.2",
+    "react-refresh": "^0.18.0",
     "regenerator-runtime": "^0.14.1",
     "rimraf": "^6.0.1",
     "sass": "^1.87.0",

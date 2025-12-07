@@ -151,7 +151,7 @@
     "null-loader": "^4.0.1",
     "protobufjs": "^7.3.2",
     "raw-loader": "^4.0.2",
-    "react-refresh": "^0.14.2",
+    "react-refresh": "^0.18.0",
     "regenerator-runtime": "^0.13.7",
     "rimraf": "^3.0.2",
     "sass": "^1.56.2",
