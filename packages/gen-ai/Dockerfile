@@ -38,7 +38,7 @@ COPY packages/gen-ai/bff/internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
 
 # Final minimal image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1764794109
 WORKDIR /
 COPY --from=bff-builder /tmp/bff ./
 COPY --from=ui-builder /usr/src/workspace/packages/gen-ai/frontend/dist/ ./static/
