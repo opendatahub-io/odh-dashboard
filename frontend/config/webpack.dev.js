@@ -22,7 +22,10 @@ const HOST = process.env._ODH_HOST;
 const PORT = process.env._ODH_PORT;
 const BACKEND_PORT = process.env._BACKEND_PORT;
 
-const mfProxies = moduleFederationConfig.map((config) => config.proxy.map((p) => p.path)).flat();
+const mfProxies = moduleFederationConfig
+  .map((config) => config.proxyService?.map((p) => p.path))
+  .flat()
+  .filter((p) => p);
 
 module.exports = smp.wrap(
   merge(
