@@ -56,7 +56,7 @@ describe('DevFeatureFlagsBanner', () => {
     act(() => result.getByTestId('reset-feature-flags-button').click());
     expect(resetFn).toHaveBeenCalled();
     expect(visibleFn).toHaveBeenLastCalledWith(true);
-    act(() => result.getByRole('button', { name: 'Close' }).click());
+    act(() => result.getByTestId('feature-flags-close-status-modal').click());
     expect(visibleFn).toHaveBeenLastCalledWith(false);
   });
 
