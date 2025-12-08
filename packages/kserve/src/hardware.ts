@@ -1,6 +1,36 @@
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import {
+  getExistingHardwareProfileData,
+  getExistingResources,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import {
+  MODEL_SERVING_VISIBILITY,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import type { KServeDeployment } from './deployments';
+
+export { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS };
+
+export const extractHardwareProfileConfig = (
+  kserveDeployment: KServeDeployment,
+): Parameters<typeof useHardwareProfileConfig> => {
+  const { name, namespace: hardwareProfileNamespace } = getExistingHardwareProfileData(
+    kserveDeployment.model,
+  );
+  const { existingContainerResources, existingTolerations, existingNodeSelector } =
+    getExistingResources(kserveDeployment.model, INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS);
+
+  return [
+    name,
+    existingContainerResources,
+    existingTolerations,
+    existingNodeSelector,
+    MODEL_SERVING_VISIBILITY,
+    kserveDeployment.model.metadata.namespace,
+    hardwareProfileNamespace,
+  ];
+};
 
 export const extractReplicas = (kserveDeployment: KServeDeployment): number | null => {
   return (
@@ -42,10 +72,3 @@ export const applyReplicas = (
   result.spec.predictor.maxReplicas = numReplicas;
   return result;
 };
-
-export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
-  containerResourcesPath: 'spec.predictor.model.resources',
-  tolerationsPath: 'spec.predictor.tolerations',
-  nodeSelectorPath: 'spec.predictor.nodeSelector',
-};
-

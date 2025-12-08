@@ -163,27 +163,18 @@ export const mockDeploymentWizardState = (
           data: mockK8sNameDescriptionFieldData(),
           onDataChange: jest.fn(),
         },
-        hardwareProfileOptions: {
-          podSpecOptionsState: {
-            hardwareProfile: {
-              formData: {
-                selectedProfile: undefined,
-                useExistingSettings: false,
-                resources: undefined,
-              },
-              initialHardwareProfile: undefined,
-              isFormDataValid: true,
-              setFormData: jest.fn(),
-              resetFormData: jest.fn(),
-              profilesLoaded: true,
-              profilesLoadError: undefined,
-            },
-            podSpecOptions: {},
+        hardwareProfileConfig: {
+          formData: {
+            selectedProfile: undefined,
+            useExistingSettings: false,
+            resources: undefined,
           },
-          applyToResource: jest.fn(),
-          validateHardwareProfileForm: jest.fn(),
-          loaded: true,
-          error: undefined,
+          initialHardwareProfile: undefined,
+          isFormDataValid: true,
+          setFormData: jest.fn(),
+          resetFormData: jest.fn(),
+          profilesLoaded: true,
+          profilesLoadError: undefined,
         },
         modelFormatState: {
           modelFormatOptions: [],

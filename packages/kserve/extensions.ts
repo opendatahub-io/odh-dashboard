@@ -115,8 +115,8 @@ const extensions: (
     type: 'model-serving.deployment/form-data',
     properties: {
       platform: KSERVE_ID,
-      hardwareProfilePaths: () =>
-        import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
+      extractHardwareProfileConfig: () =>
+        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
       extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
@@ -130,6 +130,8 @@ const extensions: (
         import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
       extractModelServerTemplate: () =>
         import('./src/deployServer').then((m) => m.extractModelServerTemplate),
+      hardwareProfilePaths: () =>
+        import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
     },
   },
   {

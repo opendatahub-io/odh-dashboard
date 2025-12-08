@@ -1,3 +1,4 @@
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   ConnectionTypeConfigMapObj,
@@ -10,8 +11,6 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import type {
   ModelServerOption,
   useModelServerSelectField,
@@ -32,7 +31,6 @@ import {
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
-import type { ModelResourceType } from '../../../extension-points';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -77,6 +75,7 @@ export type InitialWizardFormData = {
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
+  hardwareProfile?: Parameters<typeof useHardwareProfileConfig>;
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
   modelServer?: ModelServerOption;
@@ -87,7 +86,6 @@ export type InitialWizardFormData = {
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
   transformData?: { metadata?: { labels?: Record<string, string> } };
-  hardwareProfilePaths?: CrPathConfig;
   // Add more field handlers as needed
 };
 
@@ -97,7 +95,7 @@ export type WizardFormData = {
     project: ReturnType<typeof useProjectSection>;
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
-    hardwareProfileOptions: UseAssignHardwareProfileResult<ModelResourceType>;
+    hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
     modelFormatState: ReturnType<typeof useModelFormatField>;
     modelLocationData: ReturnType<typeof useModelLocationData>;
     externalRoute: ReturnType<typeof useExternalRouteField>;
@@ -123,6 +121,8 @@ export type RuntimeArgsFieldData = WizardFormData['state']['runtimeArgs']['data'
 export type EnvironmentVariablesFieldData = WizardFormData['state']['environmentVariables']['data'];
 export type ModelServerSelectFieldData = WizardFormData['state']['modelServer']['data'];
 export type CreateConnectionFieldData = WizardFormData['state']['createConnectionData']['data'];
+export type HardwareProfileConfigFieldData =
+  WizardFormData['state']['hardwareProfileConfig']['formData'];
 export type ModelFormatFieldData = WizardFormData['state']['modelFormatState']['modelFormat'];
 export type ModelAvailabilityFieldsData = WizardFormData['state']['modelAvailability']['data'];
 export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStrategy']['data'];

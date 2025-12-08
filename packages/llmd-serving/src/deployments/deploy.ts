@@ -9,8 +9,8 @@ import {
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
-import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
-import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
@@ -33,7 +33,7 @@ type CreateLLMdInferenceServiceParams = {
   projectName: string;
   k8sName: string;
   modelLocationData: ModelLocationData;
-  hardwareProfile?: UseAssignHardwareProfileResult<ModelResourceType>;
+  hardwareProfile: HardwareProfileConfig;
   createConnectionData?: CreateConnectionFieldData;
   displayName?: string;
   description?: string;
@@ -113,12 +113,11 @@ const assembleLLMdInferenceService = (
     createConnectionData,
     dryRun,
   );
-  if (hardwareProfile) {
-    llmInferenceService = hardwareProfile.applyToResource(
-      llmInferenceService,
-      LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-    );
-  }
+  llmInferenceService = applyHardwareProfileConfig(
+    llmInferenceService,
+    hardwareProfile,
+    LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  );
   llmInferenceService = applyReplicas(llmInferenceService, replicas);
   llmInferenceService = applyModelEnvVarsAndArgs(
     llmInferenceService,
@@ -181,7 +180,7 @@ export const deployLLMdDeployment = async (
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     displayName: wizardData.k8sNameDesc.data.name,
     description: wizardData.k8sNameDesc.data.description,
-    hardwareProfile: wizardData.hardwareProfileOptions,
+    hardwareProfile: wizardData.hardwareProfileConfig.formData,
     modelLocationData: wizardData.modelLocationData.data ?? {
       type: ModelLocationType.NEW,
       fieldValues: {},

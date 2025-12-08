@@ -7,7 +7,6 @@ import type {
   ProjectKind,
   SupportedModelFormats,
 } from '@odh-dashboard/internal/k8sTypes';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
@@ -15,6 +14,8 @@ import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import type {
   WizardFormData,
   DeploymentWizardField,
@@ -143,6 +144,9 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
   {
     platform: D['modelServingPlatformId'];
     hardwareProfilePaths: CodeRef<CrPathConfig>;
+    extractHardwareProfileConfig: CodeRef<
+      (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
+    >;
     extractModelFormat?: CodeRef<(deployment: D) => SupportedModelFormats | null>;
     extractReplicas: CodeRef<(deployment: D) => number | null>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
@@ -270,7 +274,6 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
     priority?: number;
     supportsOverwrite?: boolean;
-    hardwareProfilePaths?: CodeRef<CrPathConfig>;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],

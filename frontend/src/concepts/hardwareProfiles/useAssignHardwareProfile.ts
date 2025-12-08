@@ -37,13 +37,14 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
   const existingResources = getExistingResources(cr, paths);
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
     existingResources;
+  const namespace = cr?.metadata?.namespace;
   const hardwareProfileConfig: UseHardwareProfileConfigResult = useHardwareProfileConfig(
     hwpName,
     existingContainerResources,
     existingTolerations,
     existingNodeSelector,
     visibleIn,
-    cr?.metadata?.namespace,
+    namespace,
     hwpNamespace,
   );
   const podSpecOptions = assemblePodSpecOptions(hardwareProfileConfig, existingResources);

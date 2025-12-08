@@ -12,13 +12,9 @@ import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import * as useHardwareProfileConfigModule from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
+import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
+import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
 
-const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS = {
-  containerResourcesPath: 'spec.predictor.model.resources',
-  tolerationsPath: 'spec.predictor.tolerations',
-  nodeSelectorPath: 'spec.predictor.nodeSelector',
-};
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
