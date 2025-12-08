@@ -47,11 +47,10 @@ export const FILE_UPLOAD_CONFIG = {
   MAX_FILES_IN_VECTOR_STORE: 10, // Maximum number of files allowed in vector store
   ALLOWED_FILE_TYPES: {
     'application/pdf': ['.pdf'],
-    'application/msword': ['.doc'],
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     'text/csv': ['.csv'],
+    'text/plain': ['.txt'],
   },
-  ACCEPTED_EXTENSIONS: '.pdf,.doc,.docx,.csv',
+  ACCEPTED_EXTENSIONS: '.pdf,.csv,.txt',
 } as const;
 
 // Error handling constants
