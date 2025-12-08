@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
@@ -307,8 +308,14 @@ func TestRequireAccessToService(t *testing.T) {
 	})
 
 	t.Run("should return server error when CanListLlamaStackDistributions returns other error", func(t *testing.T) {
+		// Use a K8sError to match what the real implementation returns after wrapping
 		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDError: assert.AnError,
+			CanListLSDError: kubernetes.NewK8sErrorWithNamespace(
+				kubernetes.ErrCodeInternalError,
+				"failed to verify user permissions: some internal error",
+				testutil.TestNamespace,
+				500,
+			),
 		}
 		app := App{
 			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
@@ -326,8 +333,8 @@ func TestRequireAccessToService(t *testing.T) {
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		// Server errors return generic message (detailed error is logged but not exposed to client)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+		// Server errors return the K8sError message
+		assert.Contains(t, rr.Body.String(), "failed to verify user permissions")
 	})
 
 	t.Run("should return 403 when user is not allowed to access namespace", func(t *testing.T) {

@@ -210,19 +210,13 @@ func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx co
 // Helper functions to create k8s error types for testing
 
 func NewUnauthorizedError() error {
-	return &k8sStatusError{
-		statusCode: http.StatusUnauthorized,
-		message:    "unauthorized",
-		reason:     "Unauthorized",
-	}
+	// Return K8sError types to match the real implementation
+	return k8s.NewUnauthorizedError("authentication failed: invalid or expired token")
 }
 
 func NewForbiddenError() error {
-	return &k8sStatusError{
-		statusCode: http.StatusForbidden,
-		message:    "forbidden",
-		reason:     "Forbidden",
-	}
+	// Return K8sError types to match the real implementation
+	return k8s.NewPermissionDeniedError("test-namespace", "insufficient permissions to access services in this namespace")
 }
 
 // k8sStatusError implements the k8s APIStatus error interface for testing
