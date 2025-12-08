@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/types"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // LlamaStackConfig represents the main configuration structure
