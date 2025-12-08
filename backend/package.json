@@ -62,7 +62,7 @@
     "@odh-dashboard/eslint-config": "*",
     "@types/http-errors": "^1.8.0",
     "@types/lodash": "^4.14.182",
-    "@types/node": "^18.14.5",
+    "@types/node": "^24.0.0",
     "globals": "^16.4.0",
     "nodemon": "^3.0.2",
     "pino-pretty": "^9.4.0",
