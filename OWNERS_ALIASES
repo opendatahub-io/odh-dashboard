@@ -47,11 +47,12 @@ aliases:
     - DaoDaoNoCode
   hardware-profiles-reviewers:
     - srtanish1992
-    - d0w
     - Gkrumbach07
     - jrenee42
     - DaoDaoNoCode
     - nananosirova
+    - rsun19
+    - DaltheCow
 
   # Model Registry & Model Catalog
   model-registry-catalog-approvers:
@@ -62,7 +63,6 @@ aliases:
     - mturley
     - ppadti
     - YuliaKrimerman
-    - rsun19
 
   # Model Serving & Model Metrics
   model-serving-metrics-approvers:
@@ -81,9 +81,10 @@ aliases:
     - DaoDaoNoCode
   pipelines-reviewers:
     - srtanish1992
-    - d0w
     - Gkrumbach07
     - jrenee42
+    - rsun19
+    - DaltheCow
 
   # General Dashboard infrastructure
   platform-approvers:
@@ -112,9 +113,10 @@ aliases:
     - jrenee42
   workbenches-reviewers:
     - srtanish1992
-    - d0w
     - Gkrumbach07
     - jrenee42
+    - rsun19
+    - DaltheCow
 
   # Gen AI
   gen-ai-approvers:

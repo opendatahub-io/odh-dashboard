@@ -11,7 +11,7 @@ import {
 import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/InferenceServiceTableRow';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
+import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ServingRuntimeDetails';
 import ResourceTr from '#~/components/ResourceTr';
 import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';

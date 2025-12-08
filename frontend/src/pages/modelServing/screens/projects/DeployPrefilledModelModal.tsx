@@ -17,7 +17,6 @@ import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModa
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingRuntimePlatform } from '#~/types';
-import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import ModelServingContextProvider, {
   ModelServingContext,
 } from '#~/pages/modelServing/ModelServingContext';
@@ -80,8 +79,10 @@ const DeployPrefilledModelModalContents: React.FC<
   const [connections] = useServingConnections(selectedProject?.metadata.name);
   const isOciModel = isOciModelUri(modelDeployPrefillInfo.modelArtifactUri);
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
-  const { loaded: projectDeployStatusLoaded, error: projectError } =
-    useProjectErrorForPrefilledModel(selectedProject?.metadata.name, platformToUse);
+  const { error: projectError } = useProjectErrorForPrefilledModel(
+    selectedProject?.metadata.name,
+    platformToUse,
+  );
 
   const error = platformError || projectError;
 
@@ -123,15 +124,10 @@ const DeployPrefilledModelModalContents: React.FC<
       setSelectedProject={setSelectedProject}
       error={error}
       projectLinkExtraUrlParams={projectLinkExtraUrlParams}
-      isOciModel={isOciModel}
     />
   );
 
-  if (
-    (platformToUse === ServingRuntimePlatform.MULTI && !projectDeployStatusLoaded) ||
-    !selectedProject ||
-    !platformToUse
-  ) {
+  if (!selectedProject || !platformToUse) {
     const modalForm = (
       <Form>
         {loadError ? (
@@ -146,7 +142,7 @@ const DeployPrefilledModelModalContents: React.FC<
               data-testid="oci-deploy-kserve-alert"
               variant="info"
               isInline
-              title="This model uses an OCI storage location which supports deploying to only the single-model serving platform. Projects using the multi-model serving platform are excluded from the project selector."
+              title="This model uses an OCI storage location which supports deploying to only the single-model serving platform."
             />
             {projectSection}
           </FormSection>
@@ -166,7 +162,7 @@ const DeployPrefilledModelModalContents: React.FC<
         <ModalFooter>
           {/* The Deploy button is disabled as this particular return of the Modal
           only happens when there's not a valid selected project, otherwise we'll
-          render the ManageKServeModal or ManageInferenceServiceModal */}
+          render the ManageKServeModal */}
           <Button key="deploy" variant="primary" isDisabled>
             Deploy
           </Button>
@@ -178,32 +174,20 @@ const DeployPrefilledModelModalContents: React.FC<
     );
   }
 
-  if (platformToUse === ServingRuntimePlatform.SINGLE) {
-    return (
-      <ManageKServeModal
-        onClose={onClose}
-        servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
-        shouldFormHidden={!!error}
-        modelDeployPrefillInfo={modelDeployPrefillInfo}
-        projectContext={{ currentProject: selectedProject, connections }}
-        projectSection={projectSection}
-        existingUriOption={
-          modelDeployPrefillInfo.modelArtifactUri &&
-          isRedHatRegistryUri(modelDeployPrefillInfo.modelArtifactUri)
-            ? modelDeployPrefillInfo.modelArtifactUri
-            : undefined
-        }
-      />
-    );
-  }
-  // platform === ServingRuntimePlatform.MULTI
   return (
-    <ManageInferenceServiceModal
+    <ManageKServeModal
       onClose={onClose}
+      servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
       shouldFormHidden={!!error}
       modelDeployPrefillInfo={modelDeployPrefillInfo}
       projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}
+      existingUriOption={
+        modelDeployPrefillInfo.modelArtifactUri &&
+        isRedHatRegistryUri(modelDeployPrefillInfo.modelArtifactUri)
+          ? modelDeployPrefillInfo.modelArtifactUri
+          : undefined
+      }
     />
   );
 };

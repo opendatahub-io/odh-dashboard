@@ -60,7 +60,7 @@ const extensions: (
     type: 'model-serving.platform/delete-deployment',
     properties: {
       platform: LLMD_SERVING_ID,
-      onDelete: () => import('../src/deployments').then((m) => m.deleteDeployment),
+      onDelete: () => import('../src/api/LLMdDeployment').then((m) => m.deleteDeployment),
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
     },
@@ -70,7 +70,8 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       priority: 100,
-      isActive: () => import('../src/deployments/deploy').then((m) => m.isLLMdDeployActive),
+      supportsOverwrite: true,
+      isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },
   },

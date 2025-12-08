@@ -48,9 +48,9 @@ alwaysApply: false
 
 ### Folder Structure
 
-**Main Dashboard Tests** (`frontend/src/__tests__/cypress/cypress/`):
+**Main Dashboard Tests** (`packages/cypress/cypress/`):
 ```
-frontend/src/__tests__/cypress/cypress/
+packages/cypress/cypress/
 ├── fixtures/mocked/       # Test fixture files (rarely used for mocks)
 ├── pages/                 # Page Object Model files (shared with E2E)
 ├── tests/mocked/          # Mock test files organized by feature area
@@ -165,17 +165,17 @@ Each module may have specific setup requirements. Always check:
 
 ### Test Data Management
 
-**MANDATORY: Use mocks from `__mocks__` folder**:
-- All mock data MUST come from the `__mocks__` folder
+**MANDATORY: Use mocks from `@odh-dashboard/internal/__mocks__`**:
+- All mock data MUST come from the `@odh-dashboard/internal/__mocks__` package (source: `frontend/src/__mocks__/`)
 - NEVER create inline mock data in test files
 - Import and use existing mock functions (e.g., `mockDashboardConfig`, `mockK8sResourceList`)
-- If a mock doesn't exist, create it in `__mocks__` and make it reusable
+- If a mock doesn't exist, create it in `frontend/src/__mocks__` and make it reusable
 - Mock functions should accept partial data and merge with defaults
 
 **Example mock usage**:
 ```typescript
-import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
-import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
+import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 
 cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
 cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
@@ -1114,9 +1114,9 @@ cy.interceptOdh('POST /api/connection-types', {
 
 **Kubernetes API interceptor patterns**:
 ```typescript
-import { mockK8sResourceList } from '#~/__mocks__';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
-import { ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { ProjectModel } from '../../../utils/models';
 
 // List resources
 cy.interceptK8sList(
@@ -1180,7 +1180,7 @@ cy.findByTestId('status').should('have.text', 'Active');
 
 **Use helper utilities for common assertions**:
 ```typescript
-import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { be } from '../../../utils/should';
 
 // Table sorting
 table.findTableHeaderButton('Name').should(be.sortAscending);
@@ -1251,7 +1251,7 @@ it('should sort table columns', () => {
 
 **Table pagination**:
 ```typescript
-import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { testPagination } from '../../../utils/pagination';
 
 it('should paginate table results', () => {
   const totalItems = 50;
@@ -1349,7 +1349,7 @@ it('should redirect from old v2 route to new v3 route', () => {
 
 **User mocking**:
 ```typescript
-import { asProductAdminUser, asProjectAdminUser, asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { asProductAdminUser, asProjectAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 
 // Product admin (full access)
 asProductAdminUser();
@@ -1363,8 +1363,8 @@ asProjectEditUser();
 
 **Common test utilities**:
 ```typescript
-import { be } from '#~/__tests__/cypress/cypress/utils/should';
-import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { be } from '../../../utils/should';
+import { testPagination } from '../../../utils/pagination';
 
 // Assertion helpers
 element.should(be.sortAscending);
@@ -1412,11 +1412,10 @@ describe('Feature', () => {
 
 **MANDATORY: Always lint before claiming test is complete**:
 
-> **Linting/fixing commands (must run from frontend directory):**
+> **Linting/fixing commands (must run from packages/cypress directory):**
 > ```bash
-> cd frontend
-> npm run test:lint
-> npm run test:fix
+> cd packages/cypress
+> npm run lint -- --fix
 > ```
 
 **All linting errors must be fixed**:
@@ -1435,7 +1434,7 @@ describe('Feature', () => {
 - Complex data structure used in multiple tests
 - Default test data needs to be consistent across tests
 
-**Mock function pattern** (in `__mocks__` folder):
+**Mock function pattern** (in `frontend/src/__mocks__` folder, exposed as `@odh-dashboard/internal/__mocks__`):
 ```typescript
 // mockFeature.ts
 import type { Feature } from '#~/types';
@@ -1460,7 +1459,7 @@ export const mockFeatureList = (count: number = 3): Feature[] =>
 
 **Using mock functions in tests**:
 ```typescript
-import { mockFeature } from '#~/__mocks__/mockFeature';
+import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeature';
 
 // Default mock
 cy.interceptOdh('GET /api/features/:id', mockFeature({}));
@@ -1535,6 +1534,8 @@ npm run test:cypress-ci -- --spec "**/featureName.cy.ts"
 
 **Development workflow** (requires separate terminals):
 ```bash
+cd frontend
+
 # Terminal 1: Start dev server (auto-rebuilds on changes)
 npm run cypress:server:dev
 
@@ -1618,7 +1619,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 - [ ] Include accessibility testing (`cy.testA11y()`)
 
 ### After implementation:
-- [ ] Run linting: `cd frontend && npm run test:lint && npm run test:fix`
+- [ ] Run linting: `cd packages/cypress && npm run lint -- --fix`
 - [ ] Fix ALL linting errors
 - [ ] Run test locally: `npm run test:cypress-ci -- --spec "**/yourTest.cy.ts"`
 - [ ] Verify test passes consistently (run 2-3 times)
@@ -1630,7 +1631,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 ### Quality gates:
 - [ ] No direct `cy.findByTestId`, `cy.findByRole`, or `cy.get` in tests
 - [ ] All selectors are in page objects
-- [ ] All mock data comes from `__mocks__` folder
+- [ ] All mock data comes from `@odh-dashboard/internal/__mocks__`
 - [ ] All network requests are mocked
 - [ ] No arbitrary `cy.wait(milliseconds)`
 - [ ] Test is independent (doesn't depend on other tests)
@@ -1642,10 +1643,10 @@ DEBUG=cypress:* npm run cypress:run:mock
 
 ### Test Structure Template
 ```typescript
-import { mockResource } from '#~/__mocks__/mockResource';
-import { featurePage } from '#~/__tests__/cypress/cypress/pages/feature';
-import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockDashboardConfig } from '#~/__mocks__';
+import { mockResource } from '@odh-dashboard/internal/__mocks__/mockResource';
+import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import { featurePage } from '../../../pages/feature';
+import { asProductAdminUser } from '../../../utils/mockUsers';
 
 // Access control test (outside describe block)
 it('Feature should not be available for non-admins', () => {
@@ -1780,7 +1781,7 @@ export const featurePage = new FeaturePage();
 | **Backend** | All requests mocked | Real cluster APIs |
 | **Speed** | Very fast (seconds) | Slower (minutes) |
 | **Setup** | No cluster needed | Requires cluster access |
-| **Data** | Mocked from `__mocks__` | Real cluster resources |
+| **Data** | Mocked from `@odh-dashboard/internal/__mocks__` | Real cluster resources |
 | **Test Variables** | Not used | Uses `test-variables.yml` |
 | **OC Commands** | Never used | Used for setup/cleanup |
 | **Intercepts** | ALWAYS required | Not used |
@@ -1930,7 +1931,7 @@ myPage.clickButton(); // Safe
 **Best practices summary**:
 1. Always use page objects (never direct selectors in tests)
 2. Always mock network requests (use interceptors)
-3. Always use reusable mocks from `__mocks__`
+3. Always use reusable mocks from `@odh-dashboard/internal/__mocks__`
 4. Always test access control and feature flags
 5. Always test error scenarios
 6. Always lint before finishing
