@@ -190,8 +190,8 @@ describe('Verify models can be deployed from model registry', () => {
       // Check deployment link and verify status in deployments view
       modelRegistry.navigate();
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
-      cy.contains(modelName, { timeout: 30000 }).should('be.visible');
-      cy.contains('Started', { timeout: 120000 }).should('be.visible');
+      cy.contains(modelName).should('be.visible');
+      cy.contains('Started').should('be.visible');
     },
   );
 });
