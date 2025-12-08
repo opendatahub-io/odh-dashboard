@@ -23,6 +23,7 @@ const ConnectionTypeSectionRemoveModal: React.FC<Props> = ({ field, fields, onCl
           label: 'Remove',
           onClick: () => onClose(true, removedFields),
           variant: 'primary',
+          dataTestId: 'modal-submit-button',
         },
         {
           label: 'Cancel',
