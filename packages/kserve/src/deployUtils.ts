@@ -33,7 +33,7 @@ import {
   MetadataAnnotation,
   KnownLabels,
 } from '@odh-dashboard/internal/k8sTypes';
-import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
+import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,

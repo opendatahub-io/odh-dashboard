@@ -22,6 +22,7 @@ type WizardFooterWithDisablingNextProps = {
   isAdvancedSettingsStepValid?: boolean; //TODO: Remove line when summary page added
   onSave?: (overwrite?: boolean) => void;
   overwriteSupported?: boolean;
+  onRefresh?: () => void;
 };
 
 // When clicking Next, the default WizardFooter will skip over disabled steps, but we want to prevent that and just disable the Next button
@@ -34,6 +35,7 @@ export const WizardFooterWithDisablingNext: React.FC<WizardFooterWithDisablingNe
   isAdvancedSettingsStepValid = true, //TODO: Remove line when summary page added
   onSave,
   overwriteSupported,
+  onRefresh,
 }) => {
   const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
 
@@ -61,7 +63,7 @@ export const WizardFooterWithDisablingNext: React.FC<WizardFooterWithDisablingNe
                 error.statusObject.details?.kind !== 'serviceaccounts' ? (
                   <>
                     <AlertActionLink onClick={() => onSave(true)}>Force update</AlertActionLink>
-                    <AlertActionLink onClick={() => location.reload()}>Refresh</AlertActionLink>
+                    {onRefresh && <AlertActionLink onClick={onRefresh}>Refresh</AlertActionLink>}
                   </>
                 ) : undefined
               }
