@@ -22,7 +22,7 @@
     "repo": "https://github.com/kubeflow/model-registry.git",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "0584cd76a52c64dbe86025e27fa8a2d916e1fa05"
+    "commit": "d575328bd1d3b53a359152f7ea2b66286eb20829"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -54,7 +54,8 @@
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
-    "./types/types": "./upstream/frontend/src/app/types.ts"
+    "./types/types": "./upstream/frontend/src/app/types.ts",
+    "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"

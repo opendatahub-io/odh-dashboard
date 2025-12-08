@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { z } from 'zod';
 import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
@@ -15,6 +16,19 @@ import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemp
 const getModelFormatLabel = (modelFormat: SupportedModelFormats): string => {
   return modelFormat.version ? `${modelFormat.name} - ${modelFormat.version}` : modelFormat.name;
 };
+
+// Schema
+export const modelFormatFieldSchema = z.custom<SupportedModelFormats>((val: unknown) => {
+  return !!(
+    typeof val === 'object' &&
+    val &&
+    'name' in val &&
+    typeof val.name === 'string' &&
+    val.name.length > 0
+  );
+}, 'Model format is required for predictive models');
+
+export type ModelFormatFieldData = z.infer<typeof modelFormatFieldSchema>;
 
 // Hooks
 
@@ -32,10 +46,6 @@ export const useModelFormatField = (
   initialModelFormat?: SupportedModelFormats,
   modelType?: ModelTypeFieldData,
   projectName?: string,
-  onModelFormatChange?: (
-    newFormat: SupportedModelFormats | undefined,
-    prevFormat: SupportedModelFormats | undefined,
-  ) => void,
 ): ModelFormatState => {
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =
     useServingRuntimeTemplates();
@@ -94,11 +104,9 @@ export const useModelFormatField = (
 
   const handleSetModelFormat = React.useCallback(
     (newFormat: SupportedModelFormats) => {
-      const prevFormat = tmpModelFormat;
       setTmpModelFormat(newFormat);
-      onModelFormatChange?.(newFormat, prevFormat);
     },
-    [tmpModelFormat, onModelFormatChange],
+    [tmpModelFormat],
   );
 
   return {
@@ -126,7 +134,7 @@ export const ModelFormatField: React.FC<ModelFormatFieldProps> = ({
   const { modelFormatOptions, modelFormat, setModelFormat, error, loaded } = modelFormatState;
 
   return (
-    <FormGroup label="Model framework (name - version)" fieldId="model-framework-select">
+    <FormGroup label="Model framework (name - version)" fieldId="model-framework-select" isRequired>
       <SimpleSelect
         dataTestId="model-framework-select"
         toggleProps={{ id: 'model-framework-select' }}

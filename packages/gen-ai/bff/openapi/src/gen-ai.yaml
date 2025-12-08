@@ -1446,7 +1446,7 @@ components:
         file:
           type: string
           format: binary
-          description: File to upload (max 512MB, supports PDF, TXT, DOC, etc.)
+          description: File to upload (max 512MB, supports PDF, TXT, CSV)
         vector_store_id:
           type: string
           example: 'vs_abc123-def456'

@@ -28,7 +28,7 @@ filters:
       - area/manifests
 
   # Cypress tests
-  'frontend/src/__tests__/cypress/.*':
+  'packages/cypress/.*':
     approvers:
       - quality-e2e-testing-approvers
     reviewers:

@@ -1,4 +1,115 @@
 import { appChrome } from './appChrome';
+import { TableRow } from './components/table';
+import { Modal } from './components/Modal';
+
+class DeleteSourceModal extends Modal {
+  constructor() {
+    super('Delete a source');
+  }
+
+  find() {
+    return cy.findByTestId('delete-source-modal');
+  }
+
+  findDeleteButton() {
+    return this.findFooter().findByRole('button', { name: 'Delete' });
+  }
+
+  findConfirmInput() {
+    return cy.findByTestId('delete-modal-input');
+  }
+
+  typeConfirmation(text: string) {
+    this.findConfirmInput().clear().type(text);
+    return this;
+  }
+}
+
+class CatalogSourceConfigRow extends TableRow {
+  findName() {
+    return this.find().find('[data-label="Name"]');
+  }
+
+  findOrganization() {
+    return this.find().find('[data-label="Organization"]');
+  }
+
+  findModelVisibility() {
+    return this.find().find('[data-label="Model visibility"]');
+  }
+
+  findSourceType() {
+    return this.find().find('[data-label="Source type"]');
+  }
+
+  findEnableToggle() {
+    return this.find().find('[data-label="Enable"]').find('input[type="checkbox"]');
+  }
+
+  findValidationStatus() {
+    return this.find().find('[data-label="Validation status"]');
+  }
+
+  findManageSourceButton() {
+    return this.find()
+      .find('[data-label="Actions"]')
+      .findByRole('button', { name: 'Manage source' });
+  }
+
+  shouldHaveModelVisibility(visibility: 'Filtered' | 'Unfiltered') {
+    this.findModelVisibility().contains(visibility);
+    return this;
+  }
+
+  shouldHaveOrganization(org: string) {
+    this.findOrganization().contains(org);
+    return this;
+  }
+
+  shouldHaveSourceType(type: string) {
+    this.findSourceType().contains(type);
+    return this;
+  }
+
+  toggleEnable() {
+    this.findEnableToggle().click({ force: true });
+    return this;
+  }
+
+  shouldHaveEnableState(enabled: boolean) {
+    if (enabled) {
+      this.findEnableToggle().should('be.checked');
+    } else {
+      this.findEnableToggle().should('not.be.checked');
+    }
+    return this;
+  }
+
+  shouldHaveKebab(shouldExist: boolean) {
+    if (shouldExist) {
+      this.findKebab().should('exist');
+    } else {
+      this.find().within(() => {
+        cy.get('[data-testid*="source-actions"]').should('not.exist');
+      });
+    }
+    return this;
+  }
+
+  shouldHaveValidationStatus(status: 'Connected' | 'Failed' | 'Starting' | 'Unknown' | '-') {
+    this.findValidationStatus().contains(status);
+    return this;
+  }
+
+  findValidationStatusErrorLink() {
+    return this.findValidationStatus().find('[data-testid*="source-status-error-link"]');
+  }
+
+  clickValidationStatusErrorLink() {
+    this.findValidationStatusErrorLink().click();
+    return this;
+  }
+}
 
 class ModelCatalogSettings {
   visit(wait = true) {
@@ -37,6 +148,48 @@ class ModelCatalogSettings {
 
   findAddSourceButton() {
     return cy.findByTestId('add-source-button');
+  }
+
+  findToggleAlert() {
+    return cy.findByTestId('toggle-alert');
+  }
+
+  findTable() {
+    return cy.findByTestId('catalog-source-configs-table');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('catalog-settings-empty-state');
+  }
+
+  getRow(name: string) {
+    return new CatalogSourceConfigRow(() =>
+      this.findTable().find('tbody').find('tr').contains(name).parents('tr'),
+    );
+  }
+
+  findRows() {
+    return this.findTable().find('tbody tr');
+  }
+
+  shouldHaveSourceConfigs() {
+    this.findTable().should('exist');
+    this.findRows().should('have.length.at.least', 1);
+    return this;
+  }
+
+  shouldBeEmpty() {
+    this.findEmptyState().should('exist');
+    return this;
+  }
+
+  findSourceStatusErrorAlert() {
+    return cy.findByTestId('source-status-error-alert');
+  }
+
+  shouldHaveSourceStatusErrorAlert() {
+    this.findSourceStatusErrorAlert().should('exist');
+    return this;
   }
 }
 
@@ -236,3 +389,4 @@ class ManageSourcePage {
 
 export const modelCatalogSettings = new ModelCatalogSettings();
 export const manageSourcePage = new ManageSourcePage();
+export const deleteSourceModal = new DeleteSourceModal();

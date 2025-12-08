@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { pauseTrainJob } from '../../../api/scaling';
+import { pauseTrainJob } from '../../../api';
 import { TrainJobKind } from '../../../k8sTypes';
 
 type UsePauseTrainJobResult = {

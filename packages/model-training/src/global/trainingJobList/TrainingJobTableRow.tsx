@@ -1,8 +1,16 @@
 /* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
-import { Timestamp, Flex, FlexItem, TimestampTooltipVariant, Button } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import {
+  Timestamp,
+  Flex,
+  FlexItem,
+  TimestampTooltipVariant,
+  Button,
+  Tooltip,
+  Icon,
+} from '@patternfly/react-core';
+import { CubesIcon, EditIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
@@ -10,12 +18,13 @@ import TrainingJobProject from './TrainingJobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
+import ScaleNodesModal from './ScaleNodesModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import TrainingJobStatusModal from './TrainingJobStatusModal';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { toggleTrainJobHibernation } from '../../api';
-import useClusterTrainingRuntime from '../../hooks/useClusterTrainingRuntime';
+import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
 type TrainingJobTableRowProps = {
   job: TrainJobKind;
@@ -39,28 +48,20 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
 
   const displayName = getDisplayNameFromK8sResource(job);
 
-  // Fetch ClusterTrainingRuntime if trainer spec is not available
-  const runtimeName =
-    job.spec.runtimeRef.kind === 'ClusterTrainingRuntime' ? job.spec.runtimeRef.name : null;
-  const { clusterTrainingRuntime, loaded: runtimeLoaded } = useClusterTrainingRuntime(
-    !job.spec.trainer ? runtimeName : null,
-  );
-
-  // Get numNodes from trainer spec or ClusterTrainingRuntime
-  const nodesCount = React.useMemo(() => {
-    if (job.spec.trainer?.numNodes) {
-      return job.spec.trainer.numNodes;
-    }
-    if (runtimeLoaded && clusterTrainingRuntime?.spec.mlPolicy?.numNodes) {
-      return clusterTrainingRuntime.spec.mlPolicy.numNodes;
-    }
-    return 0;
-  }, [job.spec.trainer?.numNodes, runtimeLoaded, clusterTrainingRuntime]);
+  // Use custom hook for node scaling functionality
+  const {
+    nodesCount,
+    canScaleNodes,
+    isScaling,
+    scaleNodesModalOpen,
+    setScaleNodesModalOpen,
+    handleScaleNodes,
+  } = useTrainingJobNodeScaling(job, jobStatus);
 
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const { isPaused, isPreempted, isQueued, isRunning, isPending } = getStatusFlags(status);
+  const { isPaused } = getStatusFlags(status);
 
   // const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
 
@@ -104,8 +105,16 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
       onClick: () => onDelete(job),
     });
 
+    // Add scale nodes action only when allowed
+    if (canScaleNodes) {
+      items.push({
+        title: 'Edit node count',
+        onClick: () => setScaleNodesModalOpen(true),
+      });
+    }
+
     return items;
-  }, [status, isPaused, isPreempted, isQueued, isRunning, isPending, job, onDelete]);
+  }, [canScaleNodes, job, onDelete, setScaleNodesModalOpen]);
 
   return (
     <>
@@ -134,9 +143,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                 <FlexItem>{nodesCount}</FlexItem>
               </Flex>
             </FlexItem>
-            {/* Show scaling hint when scaling is available */}
-            {/* TODO: RHOAIENG-37576 Uncomment this when scaling is implemented */}
-            {/* {(isNotPaused || canScaleNodes) && (
+            {canScaleNodes && (
               <FlexItem>
                 <Tooltip content="Click to scale nodes">
                   <Button
@@ -152,7 +159,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                   </Button>
                 </Tooltip>
               </FlexItem>
-            )} */}
+            )}
           </Flex>
         </Td>
         <Td dataLabel="Cluster queue">
@@ -220,6 +227,14 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
           }}
         />
       )}
+
+      <ScaleNodesModal
+        job={scaleNodesModalOpen ? job : undefined}
+        currentNodeCount={nodesCount}
+        isScaling={isScaling}
+        onClose={() => setScaleNodesModalOpen(false)}
+        onConfirm={handleScaleNodes}
+      />
     </>
   );
 };

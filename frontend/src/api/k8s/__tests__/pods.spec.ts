@@ -1,7 +1,7 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
-import { getPodsForKserve, getPodsForModelMesh, getPodsForNotebook } from '#~/api/k8s/pods';
+import { getPodsForKserve, getPodsForNotebook } from '#~/api/k8s/pods';
 import { PodModel } from '#~/api/models';
 import { PodKind } from '#~/k8sTypes';
 
@@ -40,39 +40,6 @@ describe('getPodsForNotebook', () => {
       queryOptions: {
         ns: namespace,
         queryParams: { labelSelector: `notebook-name=${notebookName}` },
-      },
-    });
-  });
-});
-
-describe('getPodsForModelMesh', () => {
-  const modelmeshName = 'model-test';
-  it('should fetch and return list of modelmesh pod', async () => {
-    const modelmeshPodMock = mockPodK8sResource({ name: modelmeshName });
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([modelmeshPodMock]));
-
-    const result = await getPodsForModelMesh(namespace, modelmeshName);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: PodModel,
-      queryOptions: {
-        ns: namespace,
-        queryParams: { labelSelector: `name=modelmesh-serving-${modelmeshName}` },
-      },
-    });
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual([modelmeshPodMock]);
-  });
-
-  it('should handle errors and rethrows', async () => {
-    k8sListResourceMock.mockRejectedValue(new Error('error1'));
-
-    await expect(getPodsForModelMesh(namespace, modelmeshName)).rejects.toThrow('error1');
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
-      model: PodModel,
-      queryOptions: {
-        ns: namespace,
-        queryParams: { labelSelector: `name=modelmesh-serving-${modelmeshName}` },
       },
     });
   });

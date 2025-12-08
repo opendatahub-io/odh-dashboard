@@ -802,41 +802,59 @@ func GetCatalogModelListMock() models.CatalogModelList {
 
 func GetCatalogSourceMocks() []models.CatalogSource {
 	enabled := true
-	disabled := false
+	disabledBool := false
+
+	// Status examples (matching OpenAPI spec)
+	availableStatus := "available"
+	errorStatus := "error"
+	disabledStatus := "disabled"
+
+	invalidCredentialError := "The provided API key is invalid or has expired. Please update your credentials."
+	invalidOrgError := "The specified organization 'invalid-org' does not exist or you don't have access to it. Please verify the organization name and ensure you have the necessary permissions to access models from this organization."
+
 	return []models.CatalogSource{
 		{
 			Id:      "sample-source",
 			Name:    "Sample mocked source",
 			Enabled: &enabled,
 			Labels:  []string{"Sample category 1", "Sample category 2", "Sample category"},
+			Status:  &availableStatus,
 		},
 		{
 			Id:     "huggingface",
 			Name:   "Hugging Face",
 			Labels: []string{"Sample category 2", "Sample category"},
+			// Status is nil - represents "Starting" state (no status yet)
+			Status: nil,
 		},
 		{
 			Id:      "adminModel1",
 			Name:    "Admin model 1",
 			Enabled: &enabled,
 			Labels:  []string{},
+			Status:  &errorStatus,
+			Error:   &invalidCredentialError,
 		},
 		{
 			Id:      "adminModel2",
 			Name:    "Admin model 2",
 			Enabled: &enabled,
 			Labels:  []string{"Sample category 1"},
+			Status:  &errorStatus,
+			Error:   &invalidOrgError,
 		},
 		{
 			Id:     "dora",
 			Name:   "Dora source",
 			Labels: []string{},
+			Status: &availableStatus,
 		},
 		{
 			Id:      "adminModel3",
 			Name:    "Admin model 3",
-			Enabled: &disabled,
+			Enabled: &disabledBool,
 			Labels:  []string{},
+			Status:  &disabledStatus,
 		},
 	}
 }
@@ -1302,14 +1320,6 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
-	// String type filter for use cases
-	filterOptions["use_case"] = models.FilterOption{
-		Type: FilterOptionTypeString,
-		Values: []interface{}{
-			"chatbot", "code_fixing", "long_rag", "rag",
-		},
-	}
-
 	filterOptions["ttft_mean"] = models.FilterOption{
 		Type: FilterOptionTypeNumber,
 		Range: &models.FilterRange{
@@ -1329,25 +1339,33 @@ func GetFilterOptionsListMock() models.FilterOptionsList {
 	}
 }
 
-func CreateSampleCatalogSource(id string, name string, catalogType string) models.CatalogSourceConfig {
-	defaultCatalog := id == "catalog-1"
+func CreateSampleCatalogSource(id string, name string, catalogType string, enabled bool) models.CatalogSourceConfig {
+	defaultCatalog := id == "sample-source"
 
 	sourceConfig := models.CatalogSourceConfig{
-		Name:           name,
-		Id:             id,
-		Type:           catalogType,
-		Enabled:        BoolPtr(true),
-		Labels:         []string{"source-1"},
-		IsDefault:      &defaultCatalog,
-		IncludedModels: []string{"rhelai1/modelcar-granite-7b-starter"},
-		ExcludedModels: []string{"model-a:1.0", "model-b:*"},
+		Name:      name,
+		Id:        id,
+		Type:      catalogType,
+		Enabled:   &enabled,
+		Labels:    []string{"source-1"},
+		IsDefault: &defaultCatalog,
+	}
+
+	if !defaultCatalog {
+		sourceConfig.IncludedModels = []string{"rhelai1/modelcar-granite-7b-starter"}
+		sourceConfig.ExcludedModels = []string{"model-a:1.0", "model-b:*"}
 	}
 
 	switch catalogType {
 	case "yaml":
 		sourceConfig.Yaml = stringToPointer("models:\n  - name: model1")
 	case "huggingface":
-		sourceConfig.AllowedOrganization = stringToPointer("org1")
+		// Use different organizations for the failed sources
+		if id == "adminModel2" {
+			sourceConfig.AllowedOrganization = stringToPointer("invalid-org")
+		} else {
+			sourceConfig.AllowedOrganization = stringToPointer("org1")
+		}
 		sourceConfig.ApiKey = stringToPointer("apikey")
 	}
 
@@ -1359,10 +1377,14 @@ func BoolPtr(b bool) *bool {
 }
 
 func GetCatalogSourceConfigsMocks() []models.CatalogSourceConfig {
+	// Match IDs with catalog sources to show proper statuses
 	return []models.CatalogSourceConfig{
-		CreateSampleCatalogSource("catalog-1", "Default Catalog", "yaml"),
-		CreateSampleCatalogSource("catalog-2", "HuggingFace Catalog", "huggingface"),
-		CreateSampleCatalogSource("catalog-3", "Custom Catalog", "yaml"),
+		CreateSampleCatalogSource("sample-source", "Sample mocked source", "yaml", true),
+		CreateSampleCatalogSource("huggingface", "Hugging Face", "huggingface", false),
+		CreateSampleCatalogSource("adminModel1", "Admin model 1", "huggingface", true),
+		CreateSampleCatalogSource("adminModel2", "Admin model 2", "huggingface", true),
+		CreateSampleCatalogSource("dora", "Dora source", "yaml", true),
+		CreateSampleCatalogSource("catalog-4", "Custom Catalog 2", "yaml", false),
 	}
 }
 
