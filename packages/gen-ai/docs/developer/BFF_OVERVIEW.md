@@ -1,41 +1,4 @@
-# Gen AI BFF Introduction - Presentation Script
-
-**Presenter:** [Your Name]  
-**Date:** [Date]  
-**Audience:** New developers joining the Gen AI team  
-**Duration:** ~45 minutes
-
----
-
-## 🎯 Agenda
-
-1. **High Level Overview** (~10 mins)
-   - What is the Gen AI BFF?
-   - System Architecture
-   - Technology Stack
-   - Key Design Patterns
-
-2. **Contributing Code** (~10 mins)
-   - Project Structure
-   - Coding Standards
-   - Testing Approach
-   - Development Workflow
-
-3. **Running and Testing** (~15 mins)
-   - Development Setup
-   - Running Locally
-   - Mock vs Real Environments
-   - Testing Strategies
-   - Debugging
-
-4. **Future Directions** (~5 mins)
-   - Current Work
-   - Upcoming Features
-   - Technical Debt
-
-5. **Q&A** (~5-10 mins)
-
----
+# Gen AI BFF Overview
 
 ## 1. HIGH LEVEL OVERVIEW
 
