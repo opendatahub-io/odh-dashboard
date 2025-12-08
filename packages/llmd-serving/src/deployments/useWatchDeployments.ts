@@ -3,7 +3,11 @@ import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sType
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { getLLMdDeploymentEndpoints } from './endpoints';
-import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
+import {
+  calculateGracePeriod,
+  getLLMdDeploymentStatus,
+  useLLMInferenceServicePods,
+} from './status';
 import {
   LLMInferenceServiceModel,
   type LLMdDeployment,
@@ -45,15 +49,6 @@ export const useWatchDeployments = (
     loaded ||
     (llmInferenceServiceError ? llmInferenceServiceError.message.includes('forbidden') : false);
 
-  const [timer, setTimer] = React.useState(0);
-  // timer to force a re-render every 10 seconds to calculate the grace period
-  React.useEffect(() => {
-    const id = setInterval(() => {
-      setTimer((x) => x + 1);
-    }, 10000);
-    return () => clearInterval(id);
-  }, []);
-
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
       const pods = deploymentPods.filter(
@@ -66,15 +61,16 @@ export const useWatchDeployments = (
           ?.lastTransitionTime ?? '',
       );
 
+      const gracePeriod = calculateGracePeriod(lastActivity);
       return {
         modelServingPlatformId: LLMD_SERVING_ID,
         model: llmInferenceService,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
-        status: getLLMdDeploymentStatus(llmInferenceService, pods, lastActivity),
+        status: getLLMdDeploymentStatus(llmInferenceService, pods, gracePeriod),
       };
     });
-  }, [filteredLLMInferenceServices, deploymentPods, timer]);
+  }, [filteredLLMInferenceServices, deploymentPods]);
 
   return [deployments, effectivelyLoaded, llmInferenceServiceError];
 };

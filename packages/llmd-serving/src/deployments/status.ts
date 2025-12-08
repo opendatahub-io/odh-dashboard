@@ -35,13 +35,13 @@ export const useLLMInferenceServicePods = (
 export const getLLMdDeploymentStatus = (
   inferenceService: LLMInferenceServiceKind,
   deploymentPods: PodKind[],
-  lastActivity?: Date,
+  gracePeriod?: boolean,
 ): DeploymentStatus => {
   const deploymentPod = deploymentPods.length > 0 ? deploymentPods[0] : undefined;
 
   const modelPodStatus = deploymentPod ? checkModelPodStatus(deploymentPod) : undefined;
 
-  const state = getLLMInferenceServiceModelState(inferenceService, modelPodStatus, lastActivity);
+  const state = getLLMInferenceServiceModelState(inferenceService, modelPodStatus, gracePeriod);
   const message = getLLMInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
   const stoppedStates = getModelDeploymentStoppedStates(
@@ -75,10 +75,8 @@ export const patchDeploymentStoppedStatus = (
 export const getLLMInferenceServiceModelState = (
   is: LLMInferenceServiceKind,
   modelPodStatus?: ModelStatus | null,
-  lastActivity?: Date,
+  gracePeriod?: boolean,
 ): ModelDeploymentState => {
-  const gracePeriod = calculateGracePeriod(lastActivity);
-
   const readyCondition = is.status?.conditions?.find((condition) => condition.type === 'Ready');
   if (modelPodStatus?.failedToSchedule) {
     return ModelDeploymentState.FAILED_TO_LOAD;
@@ -91,16 +89,14 @@ export const getLLMInferenceServiceModelState = (
   ) {
     return ModelDeploymentState.PENDING;
   }
-
-  if (readyCondition?.status === 'False') {
-    return ModelDeploymentState.FAILED_TO_LOAD;
+  switch (readyCondition?.status) {
+    case 'False':
+      return ModelDeploymentState.FAILED_TO_LOAD;
+    case 'True':
+      return ModelDeploymentState.LOADED;
+    default:
+      return ModelDeploymentState.UNKNOWN;
   }
-
-  if (readyCondition?.status === 'True') {
-    return ModelDeploymentState.LOADED;
-  }
-
-  return ModelDeploymentState.UNKNOWN;
 };
 
 export const getLLMInferenceServiceStatusMessage = (
@@ -116,7 +112,7 @@ export const getLLMInferenceServiceStatusMessage = (
   return stateMessage;
 };
 
-const calculateGracePeriod = (lastActivity?: Date): boolean => {
+export const calculateGracePeriod = (lastActivity?: Date): boolean => {
   if (!lastActivity || Number.isNaN(lastActivity.getTime())) {
     return false;
   }
