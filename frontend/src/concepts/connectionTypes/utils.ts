@@ -169,6 +169,7 @@ const modelServingCompatibleTypesMetadata: Record<
     resource: string;
     envVars: string[];
     managedType?: string;
+    protocol: string;
   }
 > = {
   [ModelServingCompatibleTypes.S3ObjectStorage]: {
@@ -176,16 +177,19 @@ const modelServingCompatibleTypesMetadata: Record<
     resource: 's3',
     envVars: S3ConnectionTypeKeys,
     managedType: 's3',
+    protocol: 's3',
   },
   [ModelServingCompatibleTypes.URI]: {
     name: ModelServingCompatibleTypes.URI,
     resource: 'uri-v1',
     envVars: URIConnectionTypeKeys,
+    protocol: 'uri',
   },
   [ModelServingCompatibleTypes.OCI]: {
     name: ModelServingCompatibleTypes.OCI,
     resource: 'oci-v1',
     envVars: OCIConnectionTypeKeys,
+    protocol: 'oci',
   },
 };
 
@@ -211,7 +215,7 @@ export const isModelServingCompatible = (
       }
     }
 
-    const { managedType } = modelServingCompatibleTypesMetadata[type];
+    const { managedType, protocol } = modelServingCompatibleTypesMetadata[type];
     if (
       managedType &&
       !(
@@ -219,6 +223,12 @@ export const isModelServingCompatible = (
         input.metadata.labels['opendatahub.io/managed'] === 'true'
       )
     ) {
+      return false;
+    }
+
+    const connectionProtocol =
+      input.metadata.annotations['opendatahub.io/connection-type-protocol'];
+    if (connectionProtocol && connectionProtocol !== protocol) {
       return false;
     }
 
