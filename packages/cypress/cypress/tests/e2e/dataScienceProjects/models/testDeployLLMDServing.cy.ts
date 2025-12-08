@@ -97,7 +97,7 @@ describe('A user can deploy an LLMD model', () => {
         if (!$selector.is(':disabled')) {
           cy.wrap($selector).click();
           modelServingWizard
-            .findGlobalScopedTemplateOption('Distributed Inference Server with llm-d')
+            .findGlobalScopedTemplateOption('Distributed inference with llm-d')
             .should('exist')
             .click();
         }
@@ -134,7 +134,7 @@ describe('A user can deploy an LLMD model', () => {
       const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
       llmdRow.findStatusLabel('Started');
       // Expand row to verify deployment details
-      llmdRow.findServingRuntime().should('have.text', 'Distributed Inference Server with llm-d');
+      llmdRow.findServingRuntime().should('have.text', 'Distributed inference with llm-d');
     },
   );
 });
