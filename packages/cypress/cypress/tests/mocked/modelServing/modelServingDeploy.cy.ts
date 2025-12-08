@@ -386,15 +386,6 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    // AI Asset
-    modelServingWizard.findSaveAiAssetCheckbox().should('exist');
-    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
-    modelServingWizard.findUseCaseInput().should('not.exist');
-    modelServingWizard.findSaveAiAssetCheckbox().click();
-    modelServingWizard.findUseCaseInput().should('exist');
-    modelServingWizard.findUseCaseInput().should('be.enabled');
-    modelServingWizard.findUseCaseInput().type('test');
-
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -425,7 +416,6 @@ describe('Model Serving Deploy Wizard', () => {
         namespace: 'test-project',
         labels: {
           'opendatahub.io/dashboard': 'true',
-          'opendatahub.io/genai-asset': 'true',
           'networking.kserve.io/visibility': 'exposed',
         },
         annotations: {
@@ -678,9 +668,6 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-
-    modelServingWizard.findSaveAiAssetCheckbox().should('not.exist');
-    modelServingWizard.findUseCaseInput().should('not.exist');
 
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
