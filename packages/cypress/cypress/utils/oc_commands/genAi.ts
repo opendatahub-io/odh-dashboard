@@ -41,7 +41,12 @@ const buildPatchCommand = (resource: string, patchJson: object, namespace?: stri
  */
 const setLlamaStackState = (state: 'Managed' | 'Removed'): Cypress.Chainable<CommandLineResult> => {
   const patchSpec = { spec: { components: { llamastackoperator: { managementState: state } } } };
-  return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec));
+  return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec)).then((result) => {
+    if (result.code !== 0) {
+      throw new Error(`Failed to set LlamaStack state to ${state}: ${result.stderr}`);
+    }
+    return result;
+  });
 };
 
 /**
@@ -52,7 +57,12 @@ const setGenAiStudioEnabled = (
   namespace: string,
 ): Cypress.Chainable<CommandLineResult> => {
   const patchSpec = { spec: { dashboardConfig: { genAiStudio: enabled } } };
-  return cy.exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace));
+  return cy.exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace)).then((result) => {
+    if (result.code !== 0) {
+      throw new Error(`Failed to set Gen AI Studio enabled to ${enabled}: ${result.stderr}`);
+    }
+    return result;
+  });
 };
 
 /**

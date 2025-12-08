@@ -254,7 +254,7 @@ export const deleteNotebook = (
   });
 };
 
-type PollOptions = {
+export type PollOptions = {
   maxAttempts?: number;
   pollIntervalMs?: number;
 };

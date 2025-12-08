@@ -1,12 +1,5 @@
+import type { PollOptions } from './baseCommands';
 import type { CommandLineResult } from '../../types';
-
-/**
- * Polling configuration options
- */
-type PollOptions = {
-  maxAttempts?: number;
-  pollIntervalMs?: number;
-};
 
 /**
  * Type for LlamaStackDistribution status response
