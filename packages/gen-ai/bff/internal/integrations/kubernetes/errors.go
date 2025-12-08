@@ -75,7 +75,7 @@ func IsK8sForbidden(err error) bool {
 }
 
 // wrapK8sSubjectAccessReviewError wraps Kubernetes SubjectAccessReview errors in K8sError for consistent error handling
-func wrapK8sSubjectAccessReviewError(err error, namespace string) error {
+func wrapK8sSubjectAccessReviewError(err error, namespace string) *K8sError {
 	// Check if unauthorized (401) error from K8s API
 	if IsK8sUnauthorized(err) {
 		// 401 means the user's authentication token is invalid/expired
