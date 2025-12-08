@@ -11,8 +11,8 @@ const AppRoutes: React.FC = () => (
     <Route path="/" element={<Navigate to="/maas/tiers" replace />} />
     <Route path="/tiers" element={<AllTiersPage />} />
     <Route path="/tiers/create" element={<CreateTierPage />} />
-    <Route path="/tiers/:tierName" element={<ViewTierPage />} />
-    <Route path="/tiers/:tierName/edit" element={<EditTierPage />} />
+    <Route path="/tiers/view/:tierName" element={<ViewTierPage />} />
+    <Route path="/tiers/edit/:tierName" element={<EditTierPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
