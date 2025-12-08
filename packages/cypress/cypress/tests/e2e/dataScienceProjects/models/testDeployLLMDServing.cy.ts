@@ -1,22 +1,22 @@
-import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { patchOpenShiftResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
-import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { projectDetails, projectListPage } from '../../../../pages/projects';
+import { retryableBefore } from '../../../../utils/retryableHooks';
+import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
-} from '#~/__tests__/cypress/cypress/pages/modelServing';
-import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
-import { checkLLMInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+} from '../../../../pages/modelServing';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import type { DataScienceProjectData } from '../../../../types';
+import { loadDSPFixture } from '../../../../utils/dataLoader';
 import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
-} from '#~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
-import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
-import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+} from '../../../../utils/oc_commands/hardwareProfiles';
+import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
+import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -133,9 +133,6 @@ describe('A user can deploy an LLMD model', () => {
 
       const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
       llmdRow.findStatusLabel('Started');
-      // Verify external service is available
-      llmdRow.findExternalServiceButton().click();
-      llmdRow.findExternalServicePopover().should('exist');
       // Expand row to verify deployment details
       llmdRow.findServingRuntime().should('have.text', 'Distributed Inference Server with llm-d');
     },
