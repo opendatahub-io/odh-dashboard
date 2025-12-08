@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Content, ContentVariants, Timestamp, Flex, FlexItem } from '@patternfly/react-core';
-import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { ProjectKind } from '#~/k8sTypes';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
@@ -37,52 +37,50 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   const shouldShowAiLabel = currentProjectFilterType === allProjectFilterKey && thisIsAiProject;
 
   return (
-    <Tbody>
-      <Tr isControlRow>
-        <Td dataLabel="Name">
-          <TableRowTitleDescription
-            title={
-              <ResourceNameTooltip resource={project}>
-                <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+    <Tr isControlRow>
+      <Td dataLabel="Name">
+        <TableRowTitleDescription
+          title={
+            <ResourceNameTooltip resource={project}>
+              <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem>
+                  <ProjectLink project={project} />
+                </FlexItem>
+                {shouldShowAiLabel && (
                   <FlexItem>
-                    <ProjectLink project={project} />
+                    <AILabel />
                   </FlexItem>
-                  {shouldShowAiLabel && (
-                    <FlexItem>
-                      <AILabel />
-                    </FlexItem>
-                  )}
-                </Flex>
-              </ResourceNameTooltip>
-            }
-            description={getDescriptionFromK8sResource(project)}
-            truncateDescriptionLines={2}
-            subtitle={
-              owner ? (
-                <div>
-                  <Content component={ContentVariants.small}>{owner}</Content>
-                </div>
-              ) : undefined
-            }
-          />
-        </Td>
-        <Td dataLabel="Created">
-          {project.metadata.creationTimestamp ? (
-            <Timestamp date={new Date(project.metadata.creationTimestamp)} />
-          ) : (
-            'Unknown'
-          )}
-        </Td>
-        <Td
-          className="odh-project-table__action-column"
-          isActionCell
-          onMouseEnter={runAccessCheck}
-          onClick={runAccessCheck}
-        >
-          <ActionsColumn items={item} />
-        </Td>
-      </Tr>
-    </Tbody>
+                )}
+              </Flex>
+            </ResourceNameTooltip>
+          }
+          description={getDescriptionFromK8sResource(project)}
+          truncateDescriptionLines={2}
+          subtitle={
+            owner ? (
+              <div>
+                <Content component={ContentVariants.small}>{owner}</Content>
+              </div>
+            ) : undefined
+          }
+        />
+      </Td>
+      <Td dataLabel="Created">
+        {project.metadata.creationTimestamp ? (
+          <Timestamp date={new Date(project.metadata.creationTimestamp)} />
+        ) : (
+          'Unknown'
+        )}
+      </Td>
+      <Td
+        className="odh-project-table__action-column"
+        isActionCell
+        onMouseEnter={runAccessCheck}
+        onClick={runAccessCheck}
+      >
+        <ActionsColumn items={item} />
+      </Td>
+    </Tr>
   );
 };
 

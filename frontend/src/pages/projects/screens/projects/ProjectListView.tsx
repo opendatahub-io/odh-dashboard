@@ -92,7 +92,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         columns={columns}
         emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
         data-testid="project-view-table"
-        disableRowRenderSupport
         rowRenderer={(project) => (
           <ProjectTableRow
             key={project.metadata.uid}
