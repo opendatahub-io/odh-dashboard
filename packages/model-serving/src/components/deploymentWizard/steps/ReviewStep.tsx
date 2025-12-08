@@ -9,6 +9,11 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationType } from '../types';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
@@ -42,7 +47,10 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       {
         key: 'modelType',
         label: 'Model type',
-        comp: (state) => state.modelType.data || '--',
+        comp: (state) =>
+          state.modelType.data === ServingRuntimeModelType.PREDICTIVE
+            ? 'Predictive model'
+            : 'Generative AI model (Example, LLM)',
       },
       {
         key: 'modelLocationData-locationType',
@@ -52,23 +60,28 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
           if (!locationData) {
             return '--';
           }
-          if (locationData.type === ModelLocationType.EXISTING) {
-            return 'Existing connection';
-          }
           if (locationData.type === ModelLocationType.PVC) {
             return 'Cluster storage';
           }
-          const connectionTypeName = locationData.connectionTypeObject?.metadata.name;
-          if (connectionTypeName === 's3') {
+          const connectionType = locationData.connectionTypeObject;
+          if (
+            connectionType &&
+            isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
+          ) {
             return 'S3 object storage';
           }
-          if (connectionTypeName === 'oci-v1') {
+          if (
+            connectionType &&
+            isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+          ) {
             return 'OCI compliant registry';
           }
-          if (connectionTypeName === 'uri-v1') {
+          if (
+            connectionType &&
+            isModelServingCompatible(connectionType, ModelServingCompatibleTypes.URI)
+          ) {
             return 'URI';
           }
-
           return 'New connection';
         },
       },
@@ -83,7 +96,7 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       {
         key: 'modelLocationData-newConnection',
         label: 'New connection',
-        comp: () => 'Yes',
+        comp: (state) => (state.createConnectionData.data.saveConnection === true ? 'Yes' : 'No'),
         isVisible: (wizardState) =>
           wizardState.state.modelLocationData.data?.type === ModelLocationType.NEW,
       },
