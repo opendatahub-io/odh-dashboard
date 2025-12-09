@@ -7,6 +7,7 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
 import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useFileUploadWithPolling from './useFileUploadWithPolling';
 
 export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
 
@@ -52,7 +53,8 @@ const useSourceManagement = ({
   uploadedFiles = [],
   isFilesLoading = false,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
-  const { api, apiAvailable } = useGenAiAPI();
+  const { apiAvailable } = useGenAiAPI();
+  const { uploadFile } = useFileUploadWithPolling();
 
   // Use constants from shared configuration
   const { MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE } = FILE_UPLOAD_CONFIG;
@@ -221,28 +223,28 @@ const useSourceManagement = ({
           const file = pendingFiles[i];
           setUploadProgress({ current: i + 1, total: pendingFiles.length });
 
-          try {
-            // Create FormData for multipart/form-data upload
-            const formData = new FormData();
-            formData.append('file', file);
-            if (settings.chunkOverlap) {
-              formData.append('chunk_overlap_tokens', String(settings.chunkOverlap));
-            }
-            if (settings.maxChunkLength) {
-              formData.append('max_chunk_size_tokens', String(settings.maxChunkLength));
-            }
-            formData.append('vector_store_id', settings.vectorStore);
+          // Update status to uploading before starting
+          setFilesWithSettings((prev) =>
+            prev.map((fileWithSettings) =>
+              fileWithSettings.file.name === file.name
+                ? { ...fileWithSettings, status: 'uploading' }
+                : fileWithSettings,
+            ),
+          );
 
-            await api.uploadSource(formData);
+          const result = await uploadFile(file, settings);
 
-            // Update this specific file status to uploaded
-            setFilesWithSettings((prev) =>
-              prev.map((fileWithSettings) =>
-                fileWithSettings.file.name === file.name
-                  ? { ...fileWithSettings, status: 'uploaded' }
-                  : fileWithSettings,
-              ),
-            );
+          // Update final status based on result
+          const finalStatus: FileStatus = result.success ? 'uploaded' : 'failed';
+          setFilesWithSettings((prev) =>
+            prev.map((fileWithSettings) =>
+              fileWithSettings.file.name === file.name
+                ? { ...fileWithSettings, status: finalStatus }
+                : fileWithSettings,
+            ),
+          );
+
+          if (result.success) {
             fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
               outcome: TrackingOutcome.submit,
               success: true,
@@ -251,23 +253,14 @@ const useSourceManagement = ({
               delimiter: settings.delimiter,
             });
             successCount++;
-          } catch (error) {
-            // Update this specific file status to failed
-            setFilesWithSettings((prev) =>
-              prev.map((fileWithSettings) =>
-                fileWithSettings.file.name === file.name
-                  ? { ...fileWithSettings, status: 'failed' }
-                  : fileWithSettings,
-              ),
-            );
-            failureCount++;
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          } else {
             fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: errorMessage,
+              error: result.error,
             });
-            errors.push(`${file.name}: ${errorMessage}`);
+            errors.push(`${file.name}: ${result.error}`);
+            failureCount++;
           }
         }
 
@@ -312,7 +305,7 @@ const useSourceManagement = ({
       apiAvailable,
       onFileUploadComplete,
       onShowErrorAlert,
-      api,
+      uploadFile,
       onShowSuccessAlert,
       removeUploadedSource,
       processPendingFiles,

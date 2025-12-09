@@ -29,6 +29,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/services"
 )
 
 type App struct {
@@ -44,6 +45,7 @@ type App struct {
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
 	clusterDomain           string
+	fileUploadJobTracker    *services.FileUploadJobTracker
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -160,6 +162,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	memStore := cache.NewMemoryStore()
 	logger.Info("Initialized shared memory store")
 
+	// Initialize file upload job tracker with memory store and logger
+	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
+	logger.Info("Initialized file upload job tracker")
+
 	// Cache cluster domain at startup using service account
 	var clusterDomain string
 	if !cfg.MockK8sClient {
@@ -184,6 +190,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
 		clusterDomain:           clusterDomain,
+		fileUploadJobTracker:    fileUploadJobTracker,
 	}
 	return app, nil
 }
@@ -232,6 +239,7 @@ func (app *App) Routes() http.Handler {
 	// Files (LlamaStack)
 	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
+	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackFileUploadStatusHandler)))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
