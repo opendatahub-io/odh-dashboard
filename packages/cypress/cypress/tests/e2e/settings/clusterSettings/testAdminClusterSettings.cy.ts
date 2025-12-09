@@ -21,11 +21,11 @@ import {
   validateModelServingPlatforms,
   validatePVCSize,
   validateStopIdleNotebooks,
+  checkUserNotInRHODSUserGroups,
 } from '../../../../utils/clusterSettingsUtils';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { applyOpenShiftYaml } from '../../../../utils/oc_commands/baseCommands';
 import { replacePlaceholdersInYaml } from '../../../../utils/yaml_files';
-import { getOdhDashboardConfigGroupsConfig } from '../../../../utils/oc_commands/project';
 import { getClusterRoleBinding } from '../../../../utils/oc_commands/roleBindings';
 
 // Default PVC size constant (matches frontend/src/pages/clusterSettings/const.ts)
@@ -98,56 +98,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         // and after the tests are done, we are going to remove the cluster-admin role.
         // The idea is to check that a cluster-admin user works as a RHOAI Admin user.
         // Check if user is already in allowedGroups or adminGroups
-        cy.step('Check if user is in RHODS user groups');
-        return getOdhDashboardConfigGroupsConfig()
-          .then((result: CommandLineResult) => {
-            if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
-              try {
-                const groupsConfig = JSON.parse(result.stdout);
-                const allowedGroups = groupsConfig.allowedGroups || [];
-                const adminGroups = groupsConfig.adminGroups || [];
-
-                cy.log(`Allowed Groups: ${JSON.stringify(allowedGroups)}`);
-                cy.log(`Admin Groups: ${JSON.stringify(adminGroups)}`);
-
-                // Check if user's groups are in the lists
-                return cy
-                  .exec(
-                    `oc get user ${testUserName} -o jsonpath='{.groups[*]}' --ignore-not-found`,
-                    {
-                      failOnNonZeroExit: false,
-                    },
-                  )
-                  .then((userGroupsResult: CommandLineResult) => {
-                    if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
-                      const userGroups = userGroupsResult.stdout
-                        .trim()
-                        .split(/\s+/)
-                        .filter(Boolean);
-                      cy.log(`User groups: ${JSON.stringify(userGroups)}`);
-
-                      // Verify user is not in allowedGroups or adminGroups
-                      const isInAllowedGroups = userGroups.some((group) =>
-                        allowedGroups.includes(group),
-                      );
-                      const isInAdminGroups = userGroups.some((group) =>
-                        adminGroups.includes(group),
-                      );
-
-                      if (isInAllowedGroups || isInAdminGroups) {
-                        throw new Error(
-                          `User ${testUserName} is already in allowedGroups or adminGroups. Cannot proceed with test.`,
-                        );
-                      }
-                    }
-                  });
-              } catch (error) {
-                cy.log('Could not parse groupsConfig, continuing with test');
-                return cy.wrap(null);
-              }
-            }
-            return cy.wrap(null);
-          })
+        return checkUserNotInRHODSUserGroups(testUserName)
           .then(() => {
             // Get existing ClusterRoleBinding if it exists (for teardown)
             cy.step('Check for existing ClusterRoleBinding');
