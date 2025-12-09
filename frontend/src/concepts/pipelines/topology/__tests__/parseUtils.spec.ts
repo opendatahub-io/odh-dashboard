@@ -615,6 +615,32 @@ describe('pipeline topology parseUtils', () => {
         { mountPath: 'path-2', name: 'test-constant-value' },
       ]);
     });
+
+    it('returns empty when deploymentSpec is undefined', () => {
+      const testPlatformSpec: PlatformSpec = {
+        platforms: {
+          kubernetes: {
+            // deploymentSpec is undefined
+          },
+        },
+      };
+      const result = parseVolumeMounts(testPlatformSpec, 'test-executor-label');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty when executors is undefined', () => {
+      const testPlatformSpec: PlatformSpec = {
+        platforms: {
+          kubernetes: {
+            deploymentSpec: {
+              // executors is undefined
+            },
+          },
+        },
+      };
+      const result = parseVolumeMounts(testPlatformSpec, 'test-executor-label');
+      expect(result).toEqual([]);
+    });
   });
 });
 
