@@ -19,6 +19,7 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
+import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
@@ -48,6 +49,7 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -175,13 +177,22 @@ const ProjectDetails: React.FC = () => {
               component: <ConnectionsList />,
             },
             ...(projectSharingEnabled && allowCreate
-              ? [
-                  {
-                    id: ProjectSectionID.PERMISSIONS,
-                    title: 'Permissions',
-                    component: <ProjectSharing />,
-                  },
-                ]
+              ? projectRBACEnabled
+                ? [
+                    {
+                      id: ProjectSectionID.PERMISSIONS,
+                      title: 'Permissions',
+                      component: <ProjectPermissions />,
+                      label: 'Tech preview',
+                    },
+                  ]
+                : [
+                    {
+                      id: ProjectSectionID.PERMISSIONS,
+                      title: 'Permissions',
+                      component: <ProjectSharing />,
+                    },
+                  ]
               : []),
             ...(biasMetricsAreaAvailable && allowCreate
               ? [
