@@ -295,8 +295,8 @@ export type PipelineSpec = {
 export type PlatformSpec = {
   platforms: {
     kubernetes?: {
-      deploymentSpec: {
-        executors: PipelineExecutorsKF;
+      deploymentSpec?: {
+        executors?: PipelineExecutorsKF;
       };
     };
   };
