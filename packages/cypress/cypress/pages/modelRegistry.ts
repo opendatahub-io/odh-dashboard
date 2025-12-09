@@ -253,6 +253,18 @@ class ModelRegistry {
     return cy.findByTestId('deployments-tab');
   }
 
+  findInferenceServiceTable() {
+    return cy.findByTestId('inference-service-table');
+  }
+
+  getInferenceServiceRow(name: string) {
+    return this.findInferenceServiceTable()
+      .find('tbody')
+      .find('[data-label="Name"]')
+      .contains(name)
+      .closest('tr');
+  }
+
   // Empty state selectors for admin users
   findEmptyStateAdminTitle() {
     return cy.findByText('Create a model registry');

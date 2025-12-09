@@ -84,6 +84,7 @@ module.exports = (env) => ({
           path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
           path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
           path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@fontsource'),
         ],
         use: {
           loader: 'file-loader',
@@ -186,6 +187,16 @@ module.exports = (env) => ({
         ],
       },
       {
+        test: /\.css$/i,
+        exclude: /node_modules\/monaco-editor|@patternfly/,
+        use: [
+          // Creates `style` nodes from JS strings
+          'style-loader',
+          // Translates CSS into CommonJS
+          'css-loader',
+        ],
+      },
+      {
         test: /\.ya?ml$/,
         use: 'js-yaml-loader',
       },
@@ -259,7 +270,9 @@ module.exports = (env) => ({
     env === 'development' || MF_DEV
       ? new webpack.EnvironmentPlugin({
           MF_REMOTES: JSON.stringify(
-            moduleFederationConfig.map((c) => ({ name: c.name, remoteEntry: c.remoteEntry })),
+            moduleFederationConfig
+              .filter((c) => !!c.backend)
+              .map((c) => ({ name: c.name, remoteEntry: c.backend.remoteEntry })),
           ),
         })
       : undefined,
