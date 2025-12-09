@@ -44,6 +44,11 @@ export enum ModelLocationType {
   PVC = 'pvc',
 }
 
+export enum ModelTypeLabel {
+  PREDICTIVE = 'Predictive model',
+  GENERATIVE = 'Generative AI model (Example, LLM)',
+}
+
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;

@@ -1,3 +1,4 @@
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { DataScienceProjectData } from '../../../../types';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
@@ -81,7 +82,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');

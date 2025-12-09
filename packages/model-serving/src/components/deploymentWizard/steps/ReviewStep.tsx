@@ -15,7 +15,7 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { ModelLocationType } from '../types';
+import { ModelLocationType, ModelTypeLabel } from '../types';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 
 type ReviewStepContentProps = {
@@ -49,8 +49,8 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
         label: 'Model type',
         comp: (state) =>
           state.modelType.data === ServingRuntimeModelType.PREDICTIVE
-            ? 'Predictive model'
-            : 'Generative AI model (Example, LLM)',
+            ? ModelTypeLabel.PREDICTIVE
+            : ModelTypeLabel.GENERATIVE,
       },
       {
         key: 'modelLocationData-locationType',

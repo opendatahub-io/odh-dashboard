@@ -24,6 +24,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -341,11 +342,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
-    modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
-      .should('exist')
-      .click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist');
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
     modelServingWizard.findExistingConnectionSelect().should('exist').click();
@@ -641,10 +639,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
-      .should('exist');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist');
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
     modelServingWizard.findExistingConnectionSelect().should('exist').click();
@@ -826,7 +822,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     // select runtime first to ignore any autoselect logic
@@ -885,7 +881,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     // Step 2: Model Deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
@@ -922,7 +918,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
 
     modelServingWizard.findModelLocationSelect().should('exist');
@@ -991,7 +987,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
@@ -1071,7 +1067,7 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 1: Model Source
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findBackButton().should('be.disabled');
     modelServingWizard.findCancelButton().should('be.enabled');
@@ -1219,7 +1215,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findBackButton().should('be.disabled');
     modelServingWizard.findCancelButton().should('be.enabled');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
     modelServingWizard.findPVCSelectValue().should('have.value', 'Test PVC');
@@ -1356,7 +1352,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizardEdit
       .findModelTypeSelect()
-      .should('have.text', 'Predictive model')
+      .should('have.text', ModelTypeLabel.PREDICTIVE)
       .should('be.disabled');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
@@ -1512,11 +1508,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist');
-    modelServingWizard
-      .findModelTypeSelectOption('Generative AI model (Example, LLM)')
-      .should('exist')
-      .click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist');
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
     modelServingWizard.findUrilocationInput().type('https://testinguri');
@@ -1696,7 +1689,10 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Step 1: Select Predictive model type
-      modelServingWizard.findModelTypeSelectOption('Predictive model').should('exist').click();
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE)
+        .should('exist')
+        .click();
       modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
       modelServingWizard.findUrilocationInput().type('https://test');
       modelServingWizard.findSaveConnectionCheckbox().click();
@@ -1730,7 +1726,7 @@ describe('Model Serving Deploy Wizard', () => {
       // Step 5: Go back to step 1 and select Generative
       modelServingWizard.findBackButton().click();
       modelServingWizard.findModelTypeSelect().click();
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       // Step 6: Verify selection is cleared when model type changes

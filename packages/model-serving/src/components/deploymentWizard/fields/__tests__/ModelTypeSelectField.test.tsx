@@ -8,6 +8,7 @@ import {
   useModelTypeField,
   isValidModelType,
 } from '../ModelTypeSelectField';
+import { ModelTypeLabel } from '../../types';
 
 describe('ModelTypeSelectField', () => {
   describe('Schema validation', () => {
@@ -84,7 +85,7 @@ describe('ModelTypeSelectField', () => {
 
     it('should render with selected value', () => {
       render(<ModelTypeSelectField modelType={ServingRuntimeModelType.PREDICTIVE} />);
-      expect(screen.getByText('Predictive model')).toBeInTheDocument();
+      expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
     });
 
     it('should call setModelType on valid selection', async () => {
@@ -94,7 +95,7 @@ describe('ModelTypeSelectField', () => {
       await act(async () => {
         fireEvent.click(button);
       });
-      const option = screen.getByText('Generative AI model (Example, LLM)');
+      const option = screen.getByText(ModelTypeLabel.GENERATIVE);
       await act(async () => {
         fireEvent.click(option);
       });
@@ -122,8 +123,8 @@ describe('ModelTypeSelectField', () => {
         fireEvent.click(button);
       });
 
-      expect(screen.getByText('Predictive model')).toBeInTheDocument();
-      expect(screen.getByText('Generative AI model (Example, LLM)')).toBeInTheDocument();
+      expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
+      expect(screen.getByText(ModelTypeLabel.GENERATIVE)).toBeInTheDocument();
     });
   });
 });
