@@ -228,8 +228,8 @@ export const isModelServingCompatible = (
 
     const connectionProtocol =
       input.metadata.annotations['opendatahub.io/connection-type-protocol'];
-    if (connectionProtocol && connectionProtocol !== protocol) {
-      return false;
+    if (connectionProtocol && connectionProtocol === protocol) {
+      return true;
     }
 
     return modelServingCompatibleTypesMetadata[type].envVars.every((envVar) =>
