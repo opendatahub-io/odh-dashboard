@@ -25,6 +25,8 @@ import {
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { applyOpenShiftYaml } from '../../../../utils/oc_commands/baseCommands';
 import { replacePlaceholdersInYaml } from '../../../../utils/yaml_files';
+import { getOdhDashboardConfigGroupsConfig } from '../../../../utils/oc_commands/project';
+import { getClusterRoleBinding } from '../../../../utils/oc_commands/roleBindings';
 
 // Default PVC size constant (matches frontend/src/pages/clusterSettings/const.ts)
 const DEFAULT_PVC_SIZE = 20;
@@ -97,8 +99,8 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         // The idea is to check that a cluster-admin user works as a RHOAI Admin user.
         // Check if user is already in allowedGroups or adminGroups
         cy.step('Check if user is in RHODS user groups');
-        cy.exec(`oc get OdhDashboardConfig -A -o json | jq -r '.items[].spec.groupsConfig'`).then(
-          (result: CommandLineResult) => {
+        return getOdhDashboardConfigGroupsConfig()
+          .then((result: CommandLineResult) => {
             if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
               try {
                 const groupsConfig = JSON.parse(result.stdout);
@@ -109,62 +111,73 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
                 cy.log(`Admin Groups: ${JSON.stringify(adminGroups)}`);
 
                 // Check if user's groups are in the lists
-                cy.exec(
-                  `oc get user ${testUserName} -o jsonpath='{.groups[*]}' --ignore-not-found`,
-                  {
-                    failOnNonZeroExit: false,
-                  },
-                ).then((userGroupsResult: CommandLineResult) => {
-                  if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
-                    const userGroups = userGroupsResult.stdout.trim().split(/\s+/).filter(Boolean);
-                    cy.log(`User groups: ${JSON.stringify(userGroups)}`);
+                return cy
+                  .exec(
+                    `oc get user ${testUserName} -o jsonpath='{.groups[*]}' --ignore-not-found`,
+                    {
+                      failOnNonZeroExit: false,
+                    },
+                  )
+                  .then((userGroupsResult: CommandLineResult) => {
+                    if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
+                      const userGroups = userGroupsResult.stdout
+                        .trim()
+                        .split(/\s+/)
+                        .filter(Boolean);
+                      cy.log(`User groups: ${JSON.stringify(userGroups)}`);
 
-                    // Verify user is not in allowedGroups or adminGroups
-                    const isInAllowedGroups = userGroups.some((group) =>
-                      allowedGroups.includes(group),
-                    );
-                    const isInAdminGroups = userGroups.some((group) => adminGroups.includes(group));
-
-                    if (isInAllowedGroups || isInAdminGroups) {
-                      throw new Error(
-                        `User ${testUserName} is already in allowedGroups or adminGroups. Cannot proceed with test.`,
+                      // Verify user is not in allowedGroups or adminGroups
+                      const isInAllowedGroups = userGroups.some((group) =>
+                        allowedGroups.includes(group),
                       );
+                      const isInAdminGroups = userGroups.some((group) =>
+                        adminGroups.includes(group),
+                      );
+
+                      if (isInAllowedGroups || isInAdminGroups) {
+                        throw new Error(
+                          `User ${testUserName} is already in allowedGroups or adminGroups. Cannot proceed with test.`,
+                        );
+                      }
                     }
-                  }
-                });
+                  });
               } catch (error) {
                 cy.log('Could not parse groupsConfig, continuing with test');
+                return cy.wrap(null);
               }
             }
-          },
-        );
-
-        // Get existing ClusterRoleBinding if it exists (for teardown)
-        cy.step('Check for existing ClusterRoleBinding');
-        cy.exec(`oc get clusterrolebinding ${clusterRoleBindingName} -o json --ignore-not-found`, {
-          failOnNonZeroExit: false,
-        }).then((result: CommandLineResult) => {
-          if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
-            originalClusterRoleBinding = result.stdout;
-            cy.log('Found existing ClusterRoleBinding, will restore after test');
-          }
-        });
-
-        // Create ClusterRoleBinding to make user cluster-admin
-        cy.step('Create ClusterRoleBinding for cluster-admin');
-        cy.fixture('resources/yaml/cluster_role_binding.yaml').then((yamlContent) => {
-          const replacements = {
-            CLUSTER_ROLE_BINDING_NAME: clusterRoleBindingName,
-            USER_NAME: testUserName,
-          };
-          const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, replacements);
-          return applyOpenShiftYaml(modifiedYamlContent).then((result: CommandLineResult) => {
+            return cy.wrap(null);
+          })
+          .then(() => {
+            // Get existing ClusterRoleBinding if it exists (for teardown)
+            cy.step('Check for existing ClusterRoleBinding');
+            return getClusterRoleBinding(clusterRoleBindingName);
+          })
+          .then((result: CommandLineResult) => {
+            if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
+              originalClusterRoleBinding = result.stdout;
+              cy.log('Found existing ClusterRoleBinding, will restore after test');
+            }
+          })
+          .then(() => {
+            // Create ClusterRoleBinding to make user cluster-admin
+            cy.step('Create ClusterRoleBinding for cluster-admin');
+            return cy.fixture('resources/yaml/cluster_role_binding.yaml');
+          })
+          .then((yamlContent) => {
+            const replacements = {
+              CLUSTER_ROLE_BINDING_NAME: clusterRoleBindingName,
+              USER_NAME: testUserName,
+            };
+            const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, replacements);
+            return applyOpenShiftYaml(modifiedYamlContent);
+          })
+          .then((result: CommandLineResult) => {
             if (result.code !== 0) {
               throw new Error(`Failed to create ClusterRoleBinding: ${result.stderr}`);
             }
             cy.log('Successfully created ClusterRoleBinding');
           });
-        });
       });
   });
 
