@@ -353,37 +353,41 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     cy.intercept({ pathname: '/_mf/**' }, { statusCode: 404 });
 
     // For each module federation config, intercept the request and forward it to the module federation server.
-    Cypress.env('mfConfigs')?.forEach((mfConfig: ModuleFederationConfig) => {
-      const mfPathPrefix = `/_mf/${mfConfig.name}`;
-      cy.intercept(
-        {
-          pathname: `${mfPathPrefix}/**`,
-          method: 'GET',
-        },
-        async (req) => {
-          // Extract the remainder of the URL after the module federation prefix
-          const originalPath = req.url;
-          const remainder = originalPath.replace(new RegExp(`^.*${mfPathPrefix}`), '');
+    Cypress.env('mfConfigs')?.forEach(({ backend, name }: ModuleFederationConfig) => {
+      if (backend != null) {
+        const mfPathPrefix = `/_mf/${name}`;
+        cy.intercept(
+          {
+            pathname: `${mfPathPrefix}/**`,
+            method: 'GET',
+          },
+          async (req) => {
+            // Extract the remainder of the URL after the module federation prefix
+            const originalPath = req.url;
+            // Escape regex special characters in mfPathPrefix
+            const escapedPrefix = mfPathPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const remainder = originalPath.replace(new RegExp(`^.*${escapedPrefix}`), '');
 
-          // Construct the forwarded URL
-          const baseUrl = getModuleFederationURL(mfConfig).local;
-          const forwardedUrl = `${baseUrl}${remainder}`;
+            // Construct the forwarded URL
+            const baseUrl = getModuleFederationURL(backend).local;
+            const forwardedUrl = `${baseUrl}${remainder}`;
 
-          try {
-            // Use fetch as oppose to req.continue or cy.request to ECONNREFUSED errors.
-            const response = await fetch(forwardedUrl);
-            req.reply({
-              statusCode: response.status,
-              body: await response.text(),
-            });
-          } catch (error) {
-            req.reply({
-              statusCode: 404,
-              statusText: 'Module federation request failed',
-            });
-          }
-        },
-      );
+            try {
+              // Use fetch as opposed to req.continue or cy.request to avoid ECONNREFUSED errors.
+              const response = await fetch(forwardedUrl);
+              req.reply({
+                statusCode: response.status,
+                body: await response.text(),
+              });
+            } catch (error) {
+              req.reply({
+                statusCode: 404,
+                statusText: 'Module federation request failed',
+              });
+            }
+          },
+        );
+      }
     });
 
     // Default intercepts.

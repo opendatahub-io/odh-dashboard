@@ -1065,6 +1065,26 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
   }
 
+  findLocationAccessKeyInput() {
+    return cy.findByTestId('field AWS_ACCESS_KEY_ID');
+  }
+
+  findLocationSecretKeyInput() {
+    return cy.findByTestId('field AWS_SECRET_ACCESS_KEY');
+  }
+
+  findLocationEndpointInput() {
+    return cy.findByTestId('field AWS_S3_ENDPOINT');
+  }
+
+  findLocationBucketInput() {
+    return cy.findByTestId('field AWS_S3_BUCKET');
+  }
+
+  findLocationRegionInput() {
+    return cy.findByTestId('field AWS_DEFAULT_REGION');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }
