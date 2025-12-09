@@ -8,7 +8,10 @@ inferenceServiceName: 'llama-32-1b-instruct'
 modelType: 'Generative AI model (Example, LLM)'
 servingRuntime: 'vLLM CPU (amd64 - EXPERIMENTAL)'
 testMessage: 'Hello, this is a test message.'
-cpuRequested: 1
-cpuLimit: 4
-memoryRequested: 8
-memoryLimit: 8
+# Hardware Profile configuration
+hardwareProfileResourceYamlPath: 'resources/hardwareProfile/gen_ai_hardware_profile.yaml'
+hardwareProfileName: 'cypress-gen-ai-hardware-profile'
+hardwareProfileDeploymentSize: 'cypress-gen-ai-hardware-profile Compatible CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 8 GiB; Limit = 8 GiB'
+# Playground resources
+configMapName: 'llama-stack-config'
+playgroundServiceName: 'lsd-genai-playground-service'

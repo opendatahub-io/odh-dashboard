@@ -423,4 +423,9 @@ export type GenAiTestData = {
   cpuLimit: number;
   memoryRequested: number;
   memoryLimit: number;
+  hardwareProfileResourceYamlPath: string;
+  hardwareProfileName: string;
+  hardwareProfileDeploymentSize: string;
+  configMapName: string;
+  playgroundServiceName: string;
 };

@@ -1,9 +1,6 @@
 import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import {
-  verifyOpenShiftProjectExists,
-  deleteOpenShiftProject,
-} from '../../../utils/oc_commands/project';
+import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
@@ -16,8 +13,10 @@ import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
-import { projectDetails, projectListPage, createProjectModal } from '../../../pages/projects';
+import { projectDetails, projectListPage } from '../../../pages/projects';
+import { createCleanProject } from '../../../utils/projectChecker';
 import {
+  inferenceServiceModal,
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
@@ -26,6 +25,10 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 import { servingRuntimes } from '../../../pages/servingRuntimes';
 import { getVllmCpuAmd64RuntimePath } from '../../../utils/fileImportUtils';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
+import {
+  cleanupHardwareProfiles,
+  createCleanHardwareProfile,
+} from '../../../utils/oc_commands/hardwareProfiles';
 
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
@@ -37,7 +40,19 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let servingRuntimeName: string;
   let servingRuntimeDisplayName: string;
 
+  // Hardware profile variables
+  let hardwareProfileName: string;
+
   retryableBefore(() => {
+    // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
+    Cypress.on('uncaught:exception', (err) => {
+      // Ignore SyntaxError from missing federated modules
+      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
+        return false;
+      }
+      return true;
+    });
+
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
     getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
@@ -64,13 +79,14 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
             throw new Error('Project name is undefined or empty');
           }
 
-          return verifyOpenShiftProjectExists(projectName);
+          cy.log(`Creating project ${projectName} using oc commands`);
+          return createCleanProject(projectName);
         })
-        .then((exists: boolean) => {
-          if (exists) {
-            return deleteOpenShiftProject(projectName);
-          }
-          return cy.wrap(null);
+        .then(() => {
+          // Create hardware profile for model deployment
+          hardwareProfileName = testData.hardwareProfileName;
+          cy.log(`Creating Hardware Profile: ${hardwareProfileName}`);
+          createCleanHardwareProfile(testData.hardwareProfileResourceYamlPath);
         })
         .then(() => enableGenAiFeatures())
         .then(() => getVllmCpuAmd64RuntimeInfo())
@@ -99,17 +115,12 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     if (servingRuntimeName) {
       cleanupServingRuntimeTemplate(servingRuntimeName);
     }
-  });
 
-  // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
-  beforeEach(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      // Ignore SyntaxError from missing federated modules
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
-        return false;
-      }
-      return true;
-    });
+    // Cleanup hardware profile
+    if (hardwareProfileName) {
+      cy.log(`Cleaning up Hardware Profile: ${hardwareProfileName}`);
+      cleanupHardwareProfiles(hardwareProfileName);
+    }
   });
 
   it(
@@ -162,38 +173,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   );
 
   it(
-    'Create namespace for test',
-    {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Namespace', '@Connection'],
-    },
-    () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
-      cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      projectListPage.navigate();
-
-      cy.step('Open Create Project modal');
-      createProjectModal.shouldBeOpen(false);
-      projectListPage.findCreateProjectButton().click();
-
-      cy.step(`Create project: ${projectName}`);
-      createProjectModal.k8sNameDescription.findDisplayNameInput().type(projectName);
-      createProjectModal.k8sNameDescription
-        .findDescriptionInput()
-        .type(testData.projectDescription);
-      createProjectModal.findSubmitButton().click();
-
-      cy.step(`Verify that the project ${projectName} has been created`);
-      cy.url().should('include', `/projects/${projectName}`);
-      projectDetails.verifyProjectName(projectName);
-    },
-  );
-
-  it(
     'Deploy Gen AI model using URI',
     {
       tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment'],
@@ -217,7 +196,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
-      cy.step('Step 1: Model details - Configure model location');
+      cy.step('Model details - Configure model location');
       // Select URI as model location and enter the model URI
       modelServingWizard.findModelLocationSelectOption('URI').click();
       modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
@@ -231,77 +210,10 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       modelServingWizard.findModelDeploymentNameInput().clear().type(testData.modelDeploymentName);
 
       cy.step('Select hardware profile');
-      // Handle the case where 'default-profile' is auto-selected and greyed out
-      modelServingWizard.findHardwareProfileSelect().then(($dropdown) => {
-        if ($dropdown.prop('disabled') || $dropdown.attr('aria-disabled') === 'true') {
-          // If disabled, verify the default profile is already selected
-          cy.wrap($dropdown).should('contain.text', 'default-profile');
-          cy.log(
-            'Hardware profile is auto-selected and disabled - default-profile already selected',
-          );
-        } else {
-          // If enabled, proceed with selection
-          cy.wrap($dropdown).click();
-          modelServingWizard.findHardwareProfileOption('default-profile').click();
-        }
-      });
-
-      cy.step('Expand "Customize resource requests and limits" section');
-      modelServingWizard.findCustomizeResourcesButton().click();
-
-      cy.step('Read and log default resource values (if any)');
-      modelServingWizard
-        .findCPURequestedInput()
-        .invoke('val')
-        .then((val) => {
-          cy.log(`Default CPU Requested: ${val || '(empty)'}`);
-        });
-
-      modelServingWizard
-        .findCPULimitInput()
-        .invoke('val')
-        .then((val) => {
-          cy.log(`Default CPU Limit: ${val || '(empty)'}`);
-        });
-
-      modelServingWizard
-        .findMemoryRequestedInput()
-        .invoke('val')
-        .then((val) => {
-          cy.log(`Default Memory Requested: ${val || '(empty)'}`);
-        });
-
-      modelServingWizard
-        .findMemoryLimitInput()
-        .invoke('val')
-        .then((val) => {
-          cy.log(`Default Memory Limit: ${val || '(empty)'}`);
-        });
-
-      cy.step(`Modify CPU requests to ${testData.cpuRequested}`);
-      modelServingWizard.findCPURequestedInput().clear().type(testData.cpuRequested.toString());
-      modelServingWizard
-        .findCPURequestedInput()
-        .should('have.value', testData.cpuRequested.toString());
-
-      cy.step(`Modify CPU limits to ${testData.cpuLimit}`);
-      modelServingWizard.findCPULimitInput().clear().type(testData.cpuLimit.toString());
-      modelServingWizard.findCPULimitInput().should('have.value', testData.cpuLimit.toString());
-
-      cy.step(`Modify Memory requests to ${testData.memoryRequested}`);
-      modelServingWizard
-        .findMemoryRequestedInput()
-        .clear()
-        .type(testData.memoryRequested.toString());
-      modelServingWizard
-        .findMemoryRequestedInput()
-        .should('have.value', testData.memoryRequested.toString());
-
-      cy.step(`Modify Memory limits to ${testData.memoryLimit}`);
-      modelServingWizard.findMemoryLimitInput().clear().type(testData.memoryLimit.toString());
-      modelServingWizard
-        .findMemoryLimitInput()
-        .should('have.value', testData.memoryLimit.toString());
+      inferenceServiceModal.selectPotentiallyDisabledProfile(
+        testData.hardwareProfileDeploymentSize,
+        hardwareProfileName,
+      );
 
       cy.step('Select serving runtime');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
@@ -367,13 +279,13 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Wait for llama-stack-config ConfigMap to be created');
-      waitForResource('configmap', 'llama-stack-config', projectName);
+      waitForResource('configmap', testData.configMapName, projectName);
 
       cy.step('Wait for LlamaStackDistribution to be ready');
       checkLlamaStackDistributionReady(projectName);
 
       cy.step('Wait for playground service to be created');
-      waitForResource('service', 'lsd-genai-playground-service', projectName);
+      waitForResource('service', testData.playgroundServiceName, projectName);
 
       cy.step('Navigate to playground URL');
       genAiPlayground.navigate(projectName);
