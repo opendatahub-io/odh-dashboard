@@ -264,7 +264,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Access Settings -> Cluster Settings -> Storage classes');
       storageClassesPage.visit();
-      cy.findByTestId('app-page-title').should('contain', 'Storage classes');
+      storageClassesPage.findPageTitle().should('contain', 'Storage classes');
 
       cy.step('Access Settings -> Environment setup -> Workbench images');
       notebookImageSettings.visit();
@@ -272,11 +272,11 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Access Settings -> Environment setup -> Hardware profiles');
       hardwareProfile.visit();
-      cy.findByTestId('app-page-title').should('exist');
+      hardwareProfile.findPageTitle().should('exist');
 
       cy.step('Access Settings -> Environment setup -> Connection types');
       connectionTypesPage.visit();
-      cy.findByTestId('app-page-title').should('exist');
+      connectionTypesPage.findPageTitle().should('exist');
 
       cy.step('Access Settings -> Model resources and operations -> Serving runtimes');
       servingRuntimes.visit();
@@ -284,7 +284,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Access Settings -> Model resources and operations -> AI registry settings');
       modelRegistrySettings.visit();
-      cy.findByTestId('app-page-title').should('contain', 'AI registry settings');
+      modelRegistrySettings.findPageTitle().should('contain', 'AI registry settings');
 
       cy.step('Access Settings -> User management');
       userManagement.visit();
