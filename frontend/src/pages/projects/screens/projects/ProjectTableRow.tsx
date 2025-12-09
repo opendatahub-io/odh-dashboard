@@ -37,7 +37,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
   const shouldShowAiLabel = currentProjectFilterType === allProjectFilterKey && thisIsAiProject;
 
   return (
-    <Tr isControlRow>
+    <Tr>
       <Td dataLabel="Name">
         <TableRowTitleDescription
           title={

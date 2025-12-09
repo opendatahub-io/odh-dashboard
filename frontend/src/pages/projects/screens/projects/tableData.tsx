@@ -9,18 +9,18 @@ export const columns: SortableData<ProjectKind>[] = [
     label: 'Name',
     sortable: (a, b) =>
       getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
-    width: 30,
+    width: 40,
   },
   {
     field: 'created',
     label: 'Created',
     sortable: (a, b) => getProjectCreationTime(a) - getProjectCreationTime(b),
-    width: 30,
+    width: 40,
   },
   {
     field: 'kebab',
     label: '',
     sortable: false,
-    width: 10,
+    width: 20,
   },
 ];
