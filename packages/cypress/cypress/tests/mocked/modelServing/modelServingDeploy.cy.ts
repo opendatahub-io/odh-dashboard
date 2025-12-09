@@ -425,7 +425,6 @@ describe('Model Serving Deploy Wizard', () => {
           'opendatahub.io/hardware-profile-name': 'small-profile',
           'opendatahub.io/model-type': 'generative',
           'security.opendatahub.io/enable-auth': 'true',
-          'opendatahub.io/genai-use-case': 'test',
         },
       },
       spec: {
