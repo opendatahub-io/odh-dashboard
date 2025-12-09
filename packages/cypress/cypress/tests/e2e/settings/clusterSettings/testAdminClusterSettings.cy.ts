@@ -1,6 +1,6 @@
 import * as yaml from 'js-yaml';
 
-import { LDAP_CONTRIBUTOR_USER, LDAP_USER_10 } from '../../../../utils/e2eUsers';
+import { LDAP_CONTRIBUTOR_USER, LDAP_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 // eslint-disable-next-line no-restricted-syntax
 import { clusterSettings } from '../../../../pages/clusterSettings';
 import { userManagement } from '../../../../pages/userManagement';
@@ -50,7 +50,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       .fixture('e2e/settings/clusterSettings/testAdminClusterSettings.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as TestAdminClusterSettingsData;
-        testUserName = LDAP_USER_10.USERNAME;
+        testUserName = LDAP_CLUSTER_ADMIN_USER.USERNAME;
         clusterRoleBindingName = `${testData.clusterRoleBindingNamePrefix}-${testUserName}-cluster-admin`;
         cy.log(
           `Loaded test data - User: ${testUserName}, ClusterRoleBinding: ${clusterRoleBindingName}`,
@@ -209,7 +209,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     () => {
       // Authentication and navigation
       cy.step(`Log into the application as ${testUserName}`);
-      cy.visitWithLogin('/', LDAP_USER_10);
+      cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Cluster Settings');
       clusterSettings.visit();
@@ -253,7 +253,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-1688', '@Dashboard'] },
     () => {
       cy.step(`Log into the application as ${testUserName}`);
-      cy.visitWithLogin('/', LDAP_USER_10);
+      cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 
       cy.step('Verify Cluster Settings is visible in navigation');
       clusterSettings.findNavItem().should('exist').and('be.visible');
