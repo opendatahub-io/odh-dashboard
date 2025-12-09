@@ -29,7 +29,7 @@ ENV DEPLOYMENT_MODE=standalone
 RUN npm run build:prod
 
 # Backend build stage
-FROM registry.redhat.io/ubi9/go-toolset:1.24 AS bff-builder
+FROM registry.redhat.io/ubi9/go-toolset:9.7 AS bff-builder
 WORKDIR /usr/src/app
 COPY packages/gen-ai/bff/go.mod packages/gen-ai/bff/go.sum ./
 RUN go mod download
