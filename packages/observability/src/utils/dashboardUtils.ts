@@ -3,17 +3,43 @@ import type { DashboardResource } from '@perses-dev/core';
 export const BASE_PATH = '/observe-and-monitor/dashboard';
 export const DASHBOARD_QUERY_PARAM = 'dashboard';
 
+const PERSES_DASHBOARD_PREFIX = 'dashboard-';
+const PERSES_DASHBOARD_ADMIN_SUFFIX = '-admin';
+
+/**
+ * Filters and sorts dashboards according to user admin status.
+ * - Only includes dashboards with names starting with PERSES_DASHBOARD_PREFIX
+ * - Non-admin users are excluded from dashboards ending with PERSES_DASHBOARD_ADMIN_SUFFIX
+ * - Results are sorted lexicographically by metadata.name
+ * @param dashboards - List of dashboard resources
+ * @param isAdminUser - Boolean flag indicating if the user is an admin
+ * @returns Filtered and sorted dashboards
+ */
+export function filterDashboards(
+  dashboards: DashboardResource[],
+  isAdminUser: boolean,
+): DashboardResource[] {
+  return dashboards
+    .filter(({ metadata: { name } }) => {
+      if (!name.startsWith(PERSES_DASHBOARD_PREFIX)) {
+        return false;
+      }
+      if (!isAdminUser && name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX)) {
+        return false;
+      }
+      return true;
+    })
+    .toSorted(({ metadata: { name: a } }, { metadata: { name: b } }) => a.localeCompare(b));
+}
+
 /**
  * Build URL for the dashboard page
  * @param projectName - Selected project name (empty string for "All projects")
- * @param dashboardName - Selected dashboard name (optional, defaults to first dashboard)
+ * @param dashboardName - Selected dashboard name
  */
-export const buildDashboardUrl = (projectName: string, dashboardName?: string): string => {
+export const buildDashboardUrl = (projectName: string, dashboardName: string): string => {
   const path = projectName ? `${BASE_PATH}/${encodeURIComponent(projectName)}` : BASE_PATH;
-  if (dashboardName) {
-    return `${path}?${DASHBOARD_QUERY_PARAM}=${encodeURIComponent(dashboardName)}`;
-  }
-  return path;
+  return `${path}?${DASHBOARD_QUERY_PARAM}=${encodeURIComponent(dashboardName)}`;
 };
 
 /**
@@ -21,32 +47,3 @@ export const buildDashboardUrl = (projectName: string, dashboardName?: string): 
  */
 export const getDashboardDisplayName = (dashboard: DashboardResource): string =>
   dashboard.spec.display?.name || dashboard.metadata.name;
-
-const DASHBOARD_PRIORITY_ORDER = ['cluster', 'model'];
-
-/**
- * Sort dashboards with a fixed order for specific dashboard names.
- * - "cluster" is always first
- * - "model" is always second
- * - All other dashboards maintain their original relative order
- */
-export const sortDashboardsByPriority = (dashboards: DashboardResource[]): DashboardResource[] =>
-  dashboards.toSorted((a, b) => {
-    const aPriority = DASHBOARD_PRIORITY_ORDER.indexOf(a.metadata.name);
-    const bPriority = DASHBOARD_PRIORITY_ORDER.indexOf(b.metadata.name);
-
-    // Both have priority - sort by priority
-    if (aPriority !== -1 && bPriority !== -1) {
-      return aPriority - bPriority;
-    }
-    // Only a has priority - a comes first
-    if (aPriority !== -1) {
-      return -1;
-    }
-    // Only b has priority - b comes first
-    if (bPriority !== -1) {
-      return 1;
-    }
-    // Neither has priority - maintain original order
-    return 0;
-  });

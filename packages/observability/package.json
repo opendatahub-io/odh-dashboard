@@ -5,6 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
   },
   "exports": {
@@ -17,10 +19,9 @@
         "authorize": true,
         "path": "/perses/api",
         "pathRewrite": "",
-        "tls": true,
+        "tls": false,
         "service": {
-          "name": "perses",
-          "namespace": "openshift-cluster-observability-operator",
+          "name": "data-science-perses",
           "port": 8080
         },
         "localService": {
@@ -69,6 +70,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }
 }
