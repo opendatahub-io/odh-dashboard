@@ -86,6 +86,7 @@ export const WizardFooterWithDisablingNext: React.FC<WizardFooterWithDisablingNe
               </ActionListItem>
               <ActionListItem>
                 <Button
+                  data-testid={isFinalStep ? 'wizard-submit-button' : 'wizard-next-button'}
                   variant="primary"
                   onClick={goToNextStep}
                   isLoading={isLoading}
