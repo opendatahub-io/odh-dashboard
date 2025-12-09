@@ -15,12 +15,17 @@ import type {
   ModelServingDeploy,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
+import {
+  DataScienceStackComponent,
+  SupportedArea,
+} from '@odh-dashboard/internal/concepts/areas/index';
+import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
 
 const extensions: (
+  | AreaExtension
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
@@ -32,6 +37,15 @@ const extensions: (
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
 )[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: SupportedArea.K_SERVE,
+      featureFlags: ['disableKServe'],
+      requiredComponents: [DataScienceStackComponent.K_SERVE],
+      reliantAreas: [SupportedArea.MODEL_SERVING],
+    },
+  },
   {
     type: 'model-serving.platform',
     properties: {
