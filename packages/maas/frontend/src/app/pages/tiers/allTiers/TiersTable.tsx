@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button, SearchInput, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import Table from '@odh-dashboard/internal/components/table/Table';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { PlusIcon } from '@patternfly/react-icons';
 import { Tier } from '~/app/types/tier';
 import { tierColumns } from './columns';
 import TiersTableRow from './TiersTableRow';
@@ -43,6 +44,7 @@ const TiersTable: React.FC<TiersTableProps> = ({ tiers }) => {
                 variant="primary"
                 component={(props) => <Link {...props} to="/maas/tiers/create" />}
                 data-testid="create-tier-button"
+                icon={<PlusIcon />}
               >
                 Create tier
               </Button>

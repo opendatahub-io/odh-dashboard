@@ -45,8 +45,16 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
         <ActionsColumn
           items={[
             {
-              title: 'Edit',
+              title: 'View details',
+              onClick: () => navigate(`/maas/tiers/view/${tier.name}`),
+            },
+            {
+              title: 'Edit tier',
               onClick: () => navigate(`/maas/tiers/edit/${tier.name}`),
+            },
+            {
+              title: 'Delete tier',
+              // TODO: Add delete tier functionality
             },
           ]}
         />
