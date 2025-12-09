@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import { getSingleModelPath } from './fileImportUtils';
+import { getSingleModelPath, getVllmCpuAmd64RuntimePath } from './fileImportUtils';
 
 // Define interfaces for the parsed YAML structure
 interface Metadata {
@@ -19,6 +19,32 @@ export function getSingleModelServingRuntimeInfo(): Cypress.Chainable<{
   displayName: string;
 }> {
   const filePath = getSingleModelPath();
+
+  return cy.readFile(filePath).then((content) => {
+    const parsedYaml = yaml.load(content) as SingleModelParsedYaml;
+    const singleModelServingName = parsedYaml.metadata.name || '';
+    const displayName = parsedYaml.metadata.annotations?.['openshift.io/display-name'] || '';
+
+    // Check if values are strings
+    if (typeof singleModelServingName !== 'string' || typeof displayName !== 'string') {
+      throw new Error(
+        `Expected singleModelServingName to be a string, but got: ${typeof singleModelServingName}`,
+      );
+    }
+
+    return {
+      singleModelServingName,
+      displayName,
+    };
+  });
+}
+
+// Function to get vLLM CPU AMD64 serving runtime info
+export function getVllmCpuAmd64RuntimeInfo(): Cypress.Chainable<{
+  singleModelServingName: string;
+  displayName: string;
+}> {
+  const filePath = getVllmCpuAmd64RuntimePath();
 
   return cy.readFile(filePath).then((content) => {
     const parsedYaml = yaml.load(content) as SingleModelParsedYaml;
