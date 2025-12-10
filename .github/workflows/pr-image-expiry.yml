@@ -1,9 +1,17 @@
 name: Apply PR Image Expiry Label
 
 on:
-  pull_request:
+  # Use pull_request_target to access secrets for PRs from forks
+  # This is safe because we only label existing images, not run untrusted PR code
+  pull_request_target:
     types: [closed]
-  workflow_dispatch: {}
+  # Manual trigger for testing - select your branch to run YOUR version of the workflow
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to apply expiry label to'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,7 +30,8 @@ jobs:
   apply-expiry-label:
     runs-on: ubuntu-latest
     # TODO: Remove this condition after testing - only run for test branch during validation
-    if: github.event.pull_request.head.ref == 'test/pr-image-expiry-RHOAIENG-13878-v2'
+    # Allow workflow_dispatch (manual runs) or PRs from test branch
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'task/RHOAIENG-13879_test_3'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,6 +52,7 @@ jobs:
           crane version
 
       - name: Login to Quay
+        id: quay-login
         env:
           QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
           QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
@@ -50,13 +60,18 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${QUAY_ROBOT_USERNAME:-}" || -z "${QUAY_TOKEN:-}" ]]; then
-            echo "Quay credentials not available; skipping label application." && exit 0
+            echo "Quay credentials not available; skipping label application."
+            echo "logged_in=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           crane auth login quay.io -u "$QUAY_ROBOT_USERNAME" -p "$QUAY_TOKEN"
+          echo "logged_in=true" >> "$GITHUB_OUTPUT"
 
       - name: Apply expiry label to PR image (best-effort)
+        if: steps.quay-login.outputs.logged_in == 'true'
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          # Use input PR number for workflow_dispatch, otherwise use PR event number
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
         shell: bash
         run: |
           set -euo pipefail
