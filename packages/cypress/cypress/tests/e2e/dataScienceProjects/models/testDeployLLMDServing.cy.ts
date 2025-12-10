@@ -95,7 +95,11 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Select Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist')
+        .click();
       // Verify replica settings are available for LLMD
       modelServingWizard.findNumReplicasInputField().should('exist').should('have.value', '1');
       modelServingWizard.findNextButton().should('be.enabled').click();
