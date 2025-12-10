@@ -1,5 +1,5 @@
 import { ConsoleLinkKind } from '#~/k8sTypes';
-import { MOCK_ODH_ICON } from '#~/__mocks__/mockIcon';
+import { MOCK_MLFLOW_ICON, MOCK_ODH_ICON } from '#~/__mocks__/mockIcon';
 
 export type ConsoleLinkData = {
   name: string;
@@ -7,6 +7,7 @@ export type ConsoleLinkData = {
   section: string;
   href?: string;
   location?: string;
+  imageURL?: string;
 };
 export const mockConsoleLink = ({
   name,
@@ -14,6 +15,7 @@ export const mockConsoleLink = ({
   displayText,
   location,
   href,
+  imageURL,
 }: ConsoleLinkData): ConsoleLinkKind => ({
   apiVersion: 'v1',
   apiGroup: 'openshift.io',
@@ -23,7 +25,7 @@ export const mockConsoleLink = ({
   },
   spec: {
     applicationMenu: {
-      imageURL: MOCK_ODH_ICON,
+      imageURL: imageURL ?? MOCK_ODH_ICON,
       section,
     },
     href: href ?? 'https://opendatahub.io/',
@@ -38,5 +40,13 @@ export const mockOpenDataHubConsoleLink = mockConsoleLink({
   section: `OpenShift Open Data Hub`,
 });
 
+export const mockMLflowLink = mockConsoleLink({
+  name: 'mlflowlink',
+  displayText: 'MLflow',
+  section: `Applications`,
+  imageURL: MOCK_MLFLOW_ICON,
+  href: '/mlflow',
+});
+
 export const mockConsoleLinks = (alternatives?: ConsoleLinkKind[]): ConsoleLinkKind[] =>
-  alternatives ?? [mockOpenDataHubConsoleLink];
+  alternatives ?? [mockOpenDataHubConsoleLink, mockMLflowLink];
