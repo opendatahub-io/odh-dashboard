@@ -492,9 +492,11 @@ export const trimInputOnPaste =
 
 export const getConnectionProtocolType = (
   connectionType: ConnectionTypeConfigMapObj | string[] | Connection,
-): string =>
+): string | undefined =>
   isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
     ? 's3'
     : isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
     ? 'oci'
-    : 'uri';
+    : isModelServingCompatible(connectionType, ModelServingCompatibleTypes.URI)
+    ? 'uri'
+    : undefined;
