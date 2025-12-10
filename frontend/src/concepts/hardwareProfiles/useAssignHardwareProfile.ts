@@ -5,8 +5,8 @@ import {
   HardwarePodSpecOptions,
   HardwareProfileOptions,
   CrPathConfig,
-} from '#~/concepts/hardwareProfiles/types.ts';
-import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils.ts';
+} from '#~/concepts/hardwareProfiles/types';
+import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,

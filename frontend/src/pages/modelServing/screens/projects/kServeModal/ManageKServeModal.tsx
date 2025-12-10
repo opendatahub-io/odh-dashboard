@@ -32,7 +32,7 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
-import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection.tsx';
+import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection';
 import ServingRuntimeTemplateSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
@@ -59,11 +59,11 @@ import usePrefillModelDeployModal, {
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import usePvcs from '#~/pages/modelServing/usePvcs';
-import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
+import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   MODEL_SERVING_VISIBILITY,
-} from '#~/concepts/hardwareProfiles/const.ts';
+} from '#~/concepts/hardwareProfiles/const';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';

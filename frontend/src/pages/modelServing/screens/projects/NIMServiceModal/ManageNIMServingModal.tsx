@@ -34,7 +34,7 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
-import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection.tsx';
+import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection';
 import NIMModelListSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
@@ -65,11 +65,11 @@ import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/pr
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
-import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
+import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   MODEL_SERVING_VISIBILITY,
-} from '#~/concepts/hardwareProfiles/const.ts';
+} from '#~/concepts/hardwareProfiles/const';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';

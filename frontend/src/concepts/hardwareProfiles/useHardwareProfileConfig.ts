@@ -4,14 +4,14 @@ import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
-import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
+import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import {
   filterProfilesByKueue,
   useKueueConfiguration,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility.ts';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 

@@ -16,6 +16,8 @@ import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import type { ContainerResources } from '@odh-dashboard/internal/types';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
@@ -24,7 +26,6 @@ import {
   type Deployment,
 } from '../../../../extension-points';
 import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
-import { useModelServingHardwareProfile } from '../../deploymentWizard/useModelServingHardwareProfile';
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
@@ -145,10 +146,10 @@ export const DeploymentRowExpandedSection: React.FC<{
   isVisible: boolean;
   hardwareProfilePaths: CrPathConfig;
 }> = ({ deployment, isVisible, hardwareProfilePaths }) => {
-  const hardwareProfileOptions = useModelServingHardwareProfile(
-    deployment.model,
-    hardwareProfilePaths,
-  );
+  const hardwareProfileOptions = useAssignHardwareProfile(deployment.model, {
+    visibleIn: MODEL_SERVING_VISIBILITY,
+    paths: hardwareProfilePaths,
+  });
   const [formDataExtension] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
     deployment,

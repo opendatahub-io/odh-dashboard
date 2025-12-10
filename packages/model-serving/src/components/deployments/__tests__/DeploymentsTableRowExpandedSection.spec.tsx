@@ -1,20 +1,12 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
+import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRowExpandedSection } from '../row/DeploymentsTableRowExpandedSection';
 
 jest.mock('@odh-dashboard/plugin-core');
-
-jest.mock('@odh-dashboard/internal/concepts/areas/index', () => ({
-  SupportedArea: {
-    DS_PROJECT_SCOPED: 'DS_PROJECT_SCOPED',
-    DS_PIPELINES: 'DS_PIPELINES',
-  },
-  useIsAreaAvailable: () => ({ status: false }),
-  conditionalArea: () => (Component: React.ComponentType<unknown>) => Component,
-}));
-
 jest.mock('@odh-dashboard/internal/app/AppContext', () => ({
   useAppContext: () => ({
     dashboardConfig: {
@@ -49,39 +41,10 @@ jest.mock('@odh-dashboard/internal/redux/hooks', () => ({
   useAppSelector: jest.fn((selector) => selector({ dashboardNamespace: 'test-namespace' })),
 }));
 
-const mockUseModelServingHardwareProfile = jest.fn();
-
-jest.mock('../../deploymentWizard/useModelServingHardwareProfile.ts', () => ({
-  useModelServingHardwareProfile: (...args: unknown[]) =>
-    mockUseModelServingHardwareProfile(...args),
+const mockUseAssignHardwareProfile = jest.fn();
+jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+  useAssignHardwareProfile: (...args: unknown[]) => mockUseAssignHardwareProfile(...args),
 }));
-
-const createMockHardwareProfileResult = () => ({
-  podSpecOptionsState: {
-    hardwareProfile: {
-      formData: {
-        selectedProfile: undefined,
-        useExistingSettings: false,
-      },
-      initialHardwareProfile: undefined,
-      isFormDataValid: false,
-      setFormData: jest.fn(),
-      resetFormData: jest.fn(),
-      profilesLoaded: true,
-      profilesLoadError: undefined,
-    },
-    podSpecOptions: {
-      resources: {
-        requests: { cpu: '2', memory: '4Gi' },
-        limits: { cpu: '2', memory: '4Gi' },
-      },
-    },
-  },
-  applyToResource: jest.fn(),
-  validateHardwareProfileForm: jest.fn(),
-  loaded: true,
-  error: undefined,
-});
 
 const mockDeployment = () => ({
   modelServingPlatformId: 'test-platform',
@@ -100,11 +63,15 @@ const mockDeployment = () => ({
 describe('DeploymentsTableRowExpandedSection', () => {
   beforeEach(() => {
     mockExtensions();
-    mockUseModelServingHardwareProfile.mockReturnValue(createMockHardwareProfileResult());
+    mockUseAssignHardwareProfile.mockReturnValue(
+      mockUseAssignHardwareProfileResult({
+        selectedHardwareProfile: mockHardwareProfile({ displayName: 'test-profile' }),
+      }),
+    );
   });
 
   afterEach(() => {
-    mockUseModelServingHardwareProfile.mockReset();
+    mockUseAssignHardwareProfile.mockReset();
   });
   it('should render the expanded row with correct data', () => {
     render(
@@ -125,7 +92,7 @@ describe('DeploymentsTableRowExpandedSection', () => {
     // replicas
     expect(screen.getByText('1')).toBeInTheDocument();
     // hardware profile
-    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('test-profile')).toBeInTheDocument();
     // model availability
     expect(screen.getByText('Model-as-a-Service (MaaS)')).toBeInTheDocument();
     // use case
