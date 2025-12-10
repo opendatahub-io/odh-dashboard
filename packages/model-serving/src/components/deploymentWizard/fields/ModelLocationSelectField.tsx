@@ -20,6 +20,7 @@ import {
   getConnectionTypeRef,
   ModelServingCompatibleTypes,
   isModelServingCompatible,
+  filterEnabledConnectionTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
@@ -89,6 +90,11 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     value: ModelLocationType.NEW,
   };
   const [modelServingConnectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+
+  const filteredModelServingConnectionTypes = React.useMemo(() => {
+    return filterEnabledConnectionTypes(modelServingConnectionTypes);
+  }, [modelServingConnectionTypes]);
+
   const pvcs = usePvcs(projectName);
   const { selectedConnection, connections, setSelectedConnection } = useModelLocationData(
     projectName,
@@ -98,13 +104,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return connections.filter((c) => c.metadata.labels['opendatahub.io/dashboard'] === 'true');
   }, [connections]);
 
-  const uriConnectionTypes = modelServingConnectionTypes.filter((t) =>
+  const uriConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
     isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
   );
-  const ociConnectionTypes = modelServingConnectionTypes.filter((t) =>
+  const ociConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
     isModelServingCompatible(t, ModelServingCompatibleTypes.OCI),
   );
-  const s3ConnectionTypes = modelServingConnectionTypes.filter((t) =>
+  const s3ConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
     isModelServingCompatible(t, ModelServingCompatibleTypes.S3ObjectStorage),
   );
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
@@ -169,12 +175,12 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       return modelLocationData.connectionTypeObject;
     }
     if (selectedConnection) {
-      return modelServingConnectionTypes.find(
+      return filteredModelServingConnectionTypes.find(
         (t) => getResourceNameFromK8sResource(t) === getConnectionTypeRef(selectedConnection),
       );
     }
     return undefined;
-  }, [modelLocationData, modelServingConnectionTypes, selectedConnection]);
+  }, [modelLocationData, filteredModelServingConnectionTypes, selectedConnection]);
 
   const baseOptions = React.useMemo(
     () => [
@@ -324,7 +330,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 <ModelLocationInputFields
                   modelLocation={modelLocation}
                   connections={filteredConnections}
-                  connectionTypes={modelServingConnectionTypes}
+                  connectionTypes={filteredModelServingConnectionTypes}
                   selectedConnection={selectedConnection}
                   setSelectedConnection={setSelectedConnection}
                   selectedConnectionType={selectedConnectionType}
