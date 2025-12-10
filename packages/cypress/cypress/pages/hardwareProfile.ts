@@ -126,10 +126,6 @@ class HardwareProfile {
     return cy.findByTestId('app-page-title');
   }
 
-  findPageTitle() {
-    return cy.findByTestId('app-page-title');
-  }
-
   findTableHeaderButton(name: string) {
     return this.findTable().find('thead').findByRole('button', { name });
   }
