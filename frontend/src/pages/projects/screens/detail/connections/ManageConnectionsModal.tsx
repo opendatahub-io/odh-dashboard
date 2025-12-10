@@ -100,7 +100,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
   );
   const protocolType = selectedConnectionType
     ? getConnectionProtocolType(selectedConnectionType)
-    : 'uri';
+    : undefined;
 
   const { changeSelectionType } = usePersistentData({
     setConnectionValues,
@@ -184,7 +184,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
             );
             assembledConnection.metadata.annotations = {
               ...assembledConnection.metadata.annotations,
-              'opendatahub.io/connection-type-protocol': protocolType,
+              ...(protocolType && { 'opendatahub.io/connection-type-protocol': protocolType }),
             };
 
             onSubmit(assembledConnection)

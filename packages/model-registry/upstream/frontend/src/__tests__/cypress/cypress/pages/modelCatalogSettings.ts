@@ -76,15 +76,6 @@ class CatalogSourceConfigRow extends TableRow {
     return this;
   }
 
-  shouldHaveEnableToggle(shouldExist: boolean) {
-    if (shouldExist) {
-      this.findEnableToggle().should('exist');
-    } else {
-      this.find().find('[data-label="Enable"]').should('be.empty');
-    }
-    return this;
-  }
-
   shouldHaveEnableState(enabled: boolean) {
     if (enabled) {
       this.findEnableToggle().should('be.checked');
@@ -157,6 +148,10 @@ class ModelCatalogSettings {
 
   findAddSourceButton() {
     return cy.findByTestId('add-source-button');
+  }
+
+  findToggleAlert() {
+    return cy.findByTestId('toggle-alert');
   }
 
   findTable() {

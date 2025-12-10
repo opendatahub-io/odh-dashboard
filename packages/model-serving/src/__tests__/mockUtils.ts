@@ -209,7 +209,6 @@ export const mockDeploymentWizardState = (
         },
         modelAvailability: {
           data: {
-            saveAsAiAsset: false,
             useCase: '',
           },
           setData: jest.fn(),

@@ -329,7 +329,13 @@ export const parseVolumeMounts = (
   platformSpec?: PlatformSpec,
   executorLabel?: string,
 ): VolumeMount[] => {
-  if (!platformSpec || !platformSpec.platforms.kubernetes || !executorLabel) {
+  if (
+    !platformSpec ||
+    !platformSpec.platforms.kubernetes ||
+    !platformSpec.platforms.kubernetes.deploymentSpec ||
+    !platformSpec.platforms.kubernetes.deploymentSpec.executors ||
+    !executorLabel
+  ) {
     return [];
   }
 

@@ -223,12 +223,6 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
     title: 'Advanced settings',
     items: [
       {
-        key: 'modelAvailability-aiAssetEndpoint',
-        label: 'AI asset endpoint',
-        comp: (state) => (state.modelAvailability.data.saveAsAiAsset ? 'Yes' : 'No'),
-        isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
-      },
-      {
         key: 'modelAvailability-maasEndpoint',
         label: 'Add as MaaS endpoint',
         comp: (state) => (state.modelAvailability.data.saveAsMaaS ? 'Yes' : 'No'),
@@ -351,7 +345,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
 
             return (
               <StackItem key={section.title}>
-                <FormSection title={section.title}>
+                <FormSection
+                  title={section.title}
+                  data-testid={`review-step-${section.title.toLowerCase().replace(/\s+/g, '-')}`}
+                >
                   <DescriptionList
                     isHorizontal
                     isCompact

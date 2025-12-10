@@ -39,7 +39,7 @@ describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
 
   it(
     'Upload custom resource and verify',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-697', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-697', '@Dashboard', '@NonConcurrent'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

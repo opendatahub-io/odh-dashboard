@@ -126,7 +126,6 @@ describe('Connections', () => {
         kind: 'Secret',
         metadata: {
           annotations: {
-            'opendatahub.io/connection-type-protocol': 'uri',
             'opendatahub.io/connection-type-ref': 'test',
             'openshift.io/description': '',
             'openshift.io/display-name': 'new connection',
