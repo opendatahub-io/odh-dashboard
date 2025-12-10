@@ -155,7 +155,6 @@ describe('Catalog Source Configs Table', () => {
       row.shouldHaveOrganization('-');
       row.shouldHaveModelVisibility('Unfiltered');
       row.shouldHaveSourceType('YAML file');
-      row.shouldHaveEnableToggle(false); // Default sources don't have toggle
     });
 
     it('should render Hugging Face source correctly', () => {
@@ -165,7 +164,6 @@ describe('Catalog Source Configs Table', () => {
       row.shouldHaveOrganization('Google');
       row.shouldHaveModelVisibility('Filtered');
       row.shouldHaveSourceType('Hugging Face');
-      row.shouldHaveEnableToggle(true);
       row.shouldHaveEnableState(true);
     });
 
@@ -176,35 +174,95 @@ describe('Catalog Source Configs Table', () => {
       row.shouldHaveOrganization('-');
       row.shouldHaveModelVisibility('Filtered');
       row.shouldHaveSourceType('YAML file');
-      row.shouldHaveEnableToggle(true);
       row.shouldHaveEnableState(false);
     });
   });
 
   describe('Enable toggle functionality', () => {
-    it('should show alert when enable toggle is clicked', () => {
+    it('should disable the source when toggle is clicked', () => {
+      cy.intercept('PATCH', '/model-registry/api/v1/settings/model_catalog/source_configs/*', {
+        statusCode: 200,
+        body: {
+          data: mockYamlCatalogSourceConfig({ id: 'source_2', isDefault: false }),
+        },
+      }).as('manageToggle');
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.findEnableToggle().should('exist').and('be.checked');
 
-      cy.window().then((win) => {
-        cy.stub(win, 'alert').as('windowAlert');
-      });
-
       row.toggleEnable();
-
-      cy.get('@windowAlert').should(
-        'have.been.calledWith',
-        'Toggle clicked! "HuggingFace Google" will be disabled when functionality is implemented.',
-      );
+      cy.wait('@manageToggle').then((interception) => {
+        expect(interception.request.body).to.eql({
+          data: {
+            enabled: false,
+          },
+        });
+      });
     });
 
-    it('should not show toggle for default sources', () => {
+    it('should enable the source when toggle is clicked', () => {
+      cy.intercept('PATCH', '/model-registry/api/v1/settings/model_catalog/source_configs/*', {
+        statusCode: 200,
+        body: {
+          data: mockYamlCatalogSourceConfig({ id: 'source_2', isDefault: false }),
+        },
+      }).as('manageToggle');
       modelCatalogSettings.visit();
-      const row = modelCatalogSettings.getRow('Default Catalog');
+      const row = modelCatalogSettings.getRow('Custom YAML');
       row.findName().should('be.visible');
-      row.shouldHaveEnableToggle(false);
+      row.findEnableToggle().should('exist').and('not.be.checked');
+
+      row.toggleEnable();
+      cy.wait('@manageToggle').then((interception) => {
+        expect(interception.request.body).to.eql({
+          data: {
+            enabled: true,
+          },
+        });
+      });
+    });
+
+    it('should show error, if the patch call to toggle fails', () => {
+      cy.intercept(
+        'PATCH',
+        '/model-registry/api/v1/settings/model_catalog/source_configs/*',
+        (req) => {
+          req.reply({
+            statusCode: 404,
+          });
+        },
+      ).as('manageToggle');
+      modelCatalogSettings.visit();
+      const row = modelCatalogSettings.getRow('Custom YAML');
+      row.findName().should('be.visible');
+      row.findEnableToggle().should('exist').and('not.be.checked');
+
+      row.toggleEnable();
+      modelCatalogSettings.findToggleAlert().should('exist');
+      modelCatalogSettings
+        .findToggleAlert()
+        .should('have.text', 'Danger alert:Error enabling/disabling source Custom YAML');
+    });
+
+    it('should disable the toggle, when the request is processing', () => {
+      cy.intercept(
+        'PATCH',
+        '/model-registry/api/v1/settings/model_catalog/source_configs/*',
+        (req) => {
+          req.reply({
+            statusCode: 200,
+            delay: 1000,
+          });
+        },
+      ).as('manageToggle');
+      modelCatalogSettings.visit();
+      const row = modelCatalogSettings.getRow('Custom YAML');
+      row.findName().should('be.visible');
+      row.findEnableToggle().should('exist').and('not.be.checked');
+
+      row.toggleEnable();
+      row.findEnableToggle().should('be.disabled');
     });
   });
 
@@ -884,7 +942,6 @@ describe('Manage Source Page', () => {
     manageSourcePage.findSourceTypeHuggingFace().should('not.exist');
     manageSourcePage.findSourceTypeYaml().should('not.exist');
 
-    manageSourcePage.toggleModelVisibility();
     manageSourcePage.findAllowedModelsInput().should('exist');
     manageSourcePage.findExcludedModelsInput().should('exist');
     manageSourcePage.findAllowedModelsInput().type(', model-1-*, model-2-*');

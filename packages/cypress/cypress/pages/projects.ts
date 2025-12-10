@@ -55,55 +55,9 @@ class NotebookRow extends TableRow {
   }
 }
 
-class ProjectNotebookRow extends TableRow {
-  findNotebookRouteLink() {
-    return this.find().findByTestId('notebook-route-link');
-  }
-
-  findDisabledNotebookLink() {
-    return this.find().findByTestId('notebook-route-link');
-  }
-
-  findNotebookStatusText() {
-    return this.find().findByTestId('notebook-status-text');
-  }
-
-  findNotebookStop() {
-    return this.find().findByTestId('state-action-toggle');
-  }
-}
-
 class ProjectRow extends TableRow {
   findDescription() {
     return this.find().findByTestId('table-row-title-description');
-  }
-
-  findNotebookColumn() {
-    return this.find().findByTestId('notebook-column-expand');
-  }
-
-  findNotebookColumnExpander() {
-    return this.find().findByTestId('notebook-column-expand').find('button');
-  }
-
-  findNotebookTable() {
-    // Navigate from the project row to the expanded row's notebook table
-    return this.find().parents('tbody').find('[data-testid="project-notebooks-table"]');
-  }
-
-  getNotebookRows() {
-    return this.findNotebookTable().findByTestId('project-notebooks-table-row');
-  }
-
-  getNotebookRow(notebookName: string) {
-    // Find the notebook row by looking for the notebook name in the Name column (data-label="Name")
-    return new ProjectNotebookRow(() =>
-      this.findNotebookTable().find('[data-label="Name"]').contains(notebookName).parents('tr'),
-    );
-  }
-
-  findNotebookLink(notebookName: string) {
-    return this.findNotebookTable().findByRole('link', { name: notebookName });
   }
 
   findAILabel() {

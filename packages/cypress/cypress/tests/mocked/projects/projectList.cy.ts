@@ -6,16 +6,10 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { incrementResourceVersion } from '@odh-dashboard/internal/__mocks__/mockUtils';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
-import { mockDscStatus, mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProjectAdminUser } from '../../../utils/mockUsers';
-import { notebookConfirmModal } from '../../../pages/workbench';
 import { testPagination } from '../../../utils/pagination';
 import {
-  NotebookModel,
-  PodModel,
   ProjectModel,
   ProjectRequestModel,
   SelfSubjectAccessReviewModel,
@@ -442,155 +436,6 @@ describe('Projects details', () => {
     projectListPage.getProjectRow('AI Project 2').find().should('exist');
     projectListPage.getProjectRow('Non-AI Project 1').find().should('exist');
     projectListPage.getProjectRow('Non-AI Project 2').find().should('exist');
-  });
-
-  it('should show list of workbenches when the column is expanded', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    cy.interceptK8sList(
-      { model: NotebookModel },
-      mockK8sResourceList([
-        mockNotebookK8sResource({
-          opts: {
-            spec: {
-              template: {
-                spec: {
-                  containers: [
-                    {
-                      name: 'test-notebook',
-                      image: 'test-image:latest',
-                    },
-                  ],
-                },
-              },
-            },
-            metadata: {
-              name: 'test-notebook',
-              namespace: 'test-project',
-              labels: {
-                'opendatahub.io/notebook-image': 'true',
-              },
-              annotations: {
-                'opendatahub.io/image-display-name': 'Test image',
-              },
-            },
-          },
-        }),
-      ]),
-    );
-    projectListPage.visit();
-    const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findNotebookColumnExpander().click();
-    const notebookRows = projectTableRow.getNotebookRows();
-    notebookRows.should('have.length', 1);
-  });
-
-  it('should open the modal to stop workbench when user stops the workbench', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
-    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
-    cy.interceptK8sList(
-      NotebookModel,
-      mockK8sResourceList([
-        mockNotebookK8sResource({
-          opts: {
-            spec: {
-              template: {
-                spec: {
-                  containers: [
-                    {
-                      name: 'test-notebook',
-                      image: 'test-image:latest',
-                    },
-                  ],
-                },
-              },
-            },
-            metadata: {
-              name: 'test-notebook',
-              namespace: 'test-project',
-              labels: {
-                'opendatahub.io/notebook-image': 'true',
-              },
-              annotations: {
-                'openshift.io/display-name': 'Test Notebook',
-                'opendatahub.io/image-display-name': 'Test image',
-              },
-            },
-          },
-        }),
-      ]),
-    );
-    projectListPage.visit();
-    const projectTableRow = projectListPage.getProjectRow('Test Project');
-    projectTableRow.findNotebookColumnExpander().click();
-    const notebookRows = projectTableRow.getNotebookRows();
-    notebookRows.should('have.length', 1);
-
-    const notebookRow = projectTableRow.getNotebookRow('Test Notebook');
-    notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
-
-    notebookRow.findNotebookStop().click();
-
-    //stop workbench
-    notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
-    cy.interceptK8s(
-      NotebookModel,
-      mockNotebookK8sResource({
-        opts: {
-          metadata: {
-            labels: {
-              'opendatahub.io/notebook-image': 'true',
-            },
-            annotations: {
-              'kubeflow-resource-stopped': '2023-02-14T21:45:14Z',
-              'openshift.io/display-name': 'Test Notebook',
-              'opendatahub.io/image-display-name': 'Test image',
-            },
-          },
-        },
-      }),
-    );
-    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: false })]));
-
-    notebookConfirmModal.findStopWorkbenchButton().click();
-    cy.wait('@stopWorkbench').then((interception) => {
-      expect(interception.request.body).to.containSubset([
-        {
-          op: 'add',
-          path: '/metadata/annotations/kubeflow-resource-stopped',
-        },
-      ]);
-    });
-    notebookRow.findNotebookStatusText().should('have.text', 'Stopped');
-    notebookRow.findNotebookRouteLink().should('have.attr', 'aria-disabled', 'true');
-  });
-
-  describe('Workbench disabled', () => {
-    beforeEach(() => {
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Removed' },
-            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-            [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
-          },
-        }),
-      );
-      initIntercepts();
-    });
-
-    it('should hide workbench column when workbenches are disabled', () => {
-      projectListPage.visit();
-
-      // Verify workbench column is not present
-      cy.get('th').contains('Workbenches').should('not.exist');
-
-      // Verify workbench status indicators are not shown
-      const projectTableRow = projectListPage.getProjectRow('Test Project');
-      projectTableRow.findNotebookColumn().should('not.exist');
-    });
   });
 });
 

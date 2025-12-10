@@ -18,11 +18,12 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import type { WBStorageClassesTestData } from '../../../../types';
 import { selectNotebookImageWithBackendFallback } from '../../../../utils/oc_commands/imageStreams';
 import { loadWBStorageClassesFixture } from '../../../../utils/dataLoader';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 describe('Workbench Storage Classes Tests', () => {
   const createdStorageClasses: string[] = [];
-
   let projectName: string;
+  const uuid = generateTestUUID();
 
   // Storage class names
   let storageClassRWO: string;
@@ -60,7 +61,7 @@ describe('Workbench Storage Classes Tests', () => {
     return loadWBStorageClassesFixture('e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml')
       .then((fixtureData: WBStorageClassesTestData) => {
         cy.log('Loaded test data from fixtures');
-        projectName = fixtureData.projectName;
+        projectName = `${fixtureData.projectName}-${uuid}`;
         storageClassRWO = fixtureData.storageClassRWO;
         storageClassMultiAccess = fixtureData.storageClassMultiAccess;
         workbenchNameRWO = fixtureData.workbenchRWO;
@@ -115,15 +116,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Create workbench with RWO storage and verify storage attachment',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet1',
-        '@Storage',
-        '@ODS-1931',
-        '@Dashboard',
-        '@Workbenches',
-        '@NonConcurrent',
-      ],
+      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'],
     },
     () => {
       let selectedImageStream: string;

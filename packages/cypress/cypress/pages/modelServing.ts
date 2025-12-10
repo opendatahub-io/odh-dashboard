@@ -1065,6 +1065,26 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('pvc-connection-selector').findByRole('combobox');
   }
 
+  findLocationAccessKeyInput() {
+    return cy.findByTestId('field AWS_ACCESS_KEY_ID');
+  }
+
+  findLocationSecretKeyInput() {
+    return cy.findByTestId('field AWS_SECRET_ACCESS_KEY');
+  }
+
+  findLocationEndpointInput() {
+    return cy.findByTestId('field AWS_S3_ENDPOINT');
+  }
+
+  findLocationBucketInput() {
+    return cy.findByTestId('field AWS_S3_BUCKET');
+  }
+
+  findLocationRegionInput() {
+    return cy.findByTestId('field AWS_DEFAULT_REGION');
+  }
+
   findOCIModelURI() {
     return cy.findByTestId('model-uri');
   }
@@ -1092,6 +1112,10 @@ class ModelServingWizard extends Wizard {
 
   findSaveConnectionCheckbox() {
     return cy.findByTestId('save-connection-checkbox');
+  }
+
+  findSaveConnectionInput() {
+    return cy.findByTestId('save-connection-name-desc-name');
   }
 
   findExternalRouteCheckbox() {
@@ -1246,6 +1270,39 @@ class ModelServingWizard extends Wizard {
 
   findDeploymentStrategyRecreateOption() {
     return this.findDeploymentStrategySection().findByTestId('deployment-strategy-recreate');
+  }
+
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  findHardwareProfileOption(name: string) {
+    return cy.findByTestId(name);
+  }
+
+  findCustomizeResourcesButton() {
+    return cy.findByTestId('hardware-profile-customize').findByRole('button');
+  }
+
+  findGlobalScopedServingRuntimes() {
+    return cy.findByTestId('global-scoped-serving-runtimes');
+  }
+
+  findServingRuntimeOption(runtimeName: string) {
+    // Escape regex special characters to match literal text
+    const escapedName = runtimeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Search for the runtime by display name within menu items (more flexible than testid)
+    return this.findGlobalScopedServingRuntimes().findByRole('menuitem', {
+      name: new RegExp(escapedName, 'i'),
+    });
+  }
+
+  findDeployButton() {
+    return this.findFooter().findByTestId('wizard-submit-button');
+  }
+
+  findReviewStepModelDetailsSection() {
+    return cy.findByTestId('review-step-model-details');
   }
 }
 
