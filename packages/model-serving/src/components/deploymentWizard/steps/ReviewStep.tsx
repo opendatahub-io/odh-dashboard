@@ -9,8 +9,14 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import {
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
+  isConnectionTypeDataField,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { ModelLocationType } from '../types';
+import { ModelLocationType, ModelTypeLabel } from '../types';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 
 type ReviewStepContentProps = {
@@ -42,7 +48,10 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       {
         key: 'modelType',
         label: 'Model type',
-        comp: (state) => state.modelType.data || '--',
+        comp: (state) =>
+          state.modelType.data === ServingRuntimeModelType.PREDICTIVE
+            ? ModelTypeLabel.PREDICTIVE
+            : ModelTypeLabel.GENERATIVE,
       },
       {
         key: 'modelLocationData-locationType',
@@ -52,23 +61,28 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
           if (!locationData) {
             return '--';
           }
-          if (locationData.type === ModelLocationType.EXISTING) {
-            return 'Existing connection';
-          }
           if (locationData.type === ModelLocationType.PVC) {
             return 'Cluster storage';
           }
-          const connectionTypeName = locationData.connectionTypeObject?.metadata.name;
-          if (connectionTypeName === 's3') {
+          const connectionType = locationData.connectionTypeObject;
+          if (
+            connectionType &&
+            isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)
+          ) {
             return 'S3 object storage';
           }
-          if (connectionTypeName === 'oci-v1') {
+          if (
+            connectionType &&
+            isModelServingCompatible(connectionType, ModelServingCompatibleTypes.OCI)
+          ) {
             return 'OCI compliant registry';
           }
-          if (connectionTypeName === 'uri-v1') {
+          if (
+            connectionType &&
+            isModelServingCompatible(connectionType, ModelServingCompatibleTypes.URI)
+          ) {
             return 'URI';
           }
-
           return 'New connection';
         },
       },
@@ -83,7 +97,7 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       {
         key: 'modelLocationData-newConnection',
         label: 'New connection',
-        comp: () => 'Yes',
+        comp: (state) => (state.createConnectionData.data.saveConnection === true ? 'Yes' : 'No'),
         isVisible: (wizardState) =>
           wizardState.state.modelLocationData.data?.type === ModelLocationType.NEW,
       },
@@ -107,14 +121,14 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       },
       {
         key: 'modelLocationData-connectionFields',
-        label: 'Connection details',
+        label: 'Location details',
         comp: (state) => {
           const locationData = state.modelLocationData.data;
           if (!locationData || locationData.type !== ModelLocationType.NEW) {
             return undefined;
           }
 
-          const { fieldValues: fields, additionalFields } = locationData;
+          const { fieldValues: fields, additionalFields, connectionTypeObject } = locationData;
 
           return (
             <>
@@ -122,11 +136,13 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
                 if (!value) {
                   return null;
                 }
-                const label = key
-                  .replace(/_/g, ' ')
-                  .split(' ')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                  .join(' ');
+                // Find the field object where envVar matches the key, then use its name
+                const field = connectionTypeObject?.data?.fields?.find(
+                  (typeField) =>
+                    isConnectionTypeDataField(typeField) &&
+                    typeField.envVar.toLowerCase() === key.toLowerCase(),
+                );
+                const label = field?.name || key;
 
                 const isSensitive = key.toLowerCase().includes('secret');
                 const displayValue = isSensitive ? '•'.repeat(String(value).length) : String(value);
@@ -210,7 +226,7 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       {
         key: 'modelServer',
         label: 'Serving runtime',
-        comp: (state) => state.modelServer.data?.name || 'Auto-selected',
+        comp: (state) => state.modelServer.data?.label || 'Auto-selected',
       },
       {
         key: 'numReplicas',
