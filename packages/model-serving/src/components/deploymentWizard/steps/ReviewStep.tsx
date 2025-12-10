@@ -120,7 +120,7 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       },
       {
         key: 'modelLocationData-connectionFields',
-        label: 'Connection details',
+        label: 'Location details',
         comp: (state) => {
           const locationData = state.modelLocationData.data;
           if (!locationData || locationData.type !== ModelLocationType.NEW) {
