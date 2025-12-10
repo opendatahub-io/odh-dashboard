@@ -130,7 +130,6 @@ const assembleInferenceService = (
   inferenceService = applyAiAvailableAssetAnnotations(
     inferenceService,
     modelAvailability ?? {
-      saveAsAiAsset: false,
       useCase: '',
     },
   );

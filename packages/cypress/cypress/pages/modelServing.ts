@@ -1226,10 +1226,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId(`env-var-value-${value}`);
   }
 
-  findSaveAiAssetCheckbox() {
-    return cy.findByTestId('save-as-ai-asset-checkbox');
-  }
-
   findSaveAsMaaSCheckbox() {
     return cy.findByTestId('save-as-maas-checkbox');
   }
@@ -1296,6 +1292,39 @@ class ModelServingWizard extends Wizard {
 
   findDeploymentStrategyRecreateOption() {
     return this.findDeploymentStrategySection().findByTestId('deployment-strategy-recreate');
+  }
+
+  findHardwareProfileSelect() {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  findHardwareProfileOption(name: string) {
+    return cy.findByTestId(name);
+  }
+
+  findCustomizeResourcesButton() {
+    return cy.findByTestId('hardware-profile-customize').findByRole('button');
+  }
+
+  findGlobalScopedServingRuntimes() {
+    return cy.findByTestId('global-scoped-serving-runtimes');
+  }
+
+  findServingRuntimeOption(runtimeName: string) {
+    // Escape regex special characters to match literal text
+    const escapedName = runtimeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Search for the runtime by display name within menu items (more flexible than testid)
+    return this.findGlobalScopedServingRuntimes().findByRole('menuitem', {
+      name: new RegExp(escapedName, 'i'),
+    });
+  }
+
+  findDeployButton() {
+    return this.findFooter().findByTestId('wizard-submit-button');
+  }
+
+  findReviewStepModelDetailsSection() {
+    return cy.findByTestId('review-step-model-details');
   }
 }
 

@@ -122,6 +122,12 @@ class ChatbotPage {
     return cy.findByRole('button', { name: 'Send' });
   }
 
+  findStopButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // PatternFly MessageBar component - Stop button appears when loading
+    // NOTE: Cannot add testID to external library component, using semantic role
+    return cy.findByRole('button', { name: 'Stop' });
+  }
+
   findWelcomeMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByText(/Welcome to the model playground/i);
   }
@@ -182,6 +188,14 @@ class ChatbotPage {
     return cy.findByText(/Model/i).parent().find('button') as unknown as Cypress.Chainable<
       JQuery<HTMLElement>
     >;
+  }
+
+  findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: /Llama|Select a model/i });
+  }
+
+  verifyModelSelected(): void {
+    this.findModelSelectorButton().should('be.visible').and('contain', 'Llama');
   }
 
   selectModel(modelName: string): void {
@@ -298,6 +312,57 @@ class ChatbotPage {
 
   verifyBotResponseContains(text: string): void {
     this.findBotMessages().should('contain.text', text);
+  }
+
+  verifyStopButtonVisible(): void {
+    this.findStopButton().should('be.visible');
+  }
+
+  verifyStopButtonNotVisible(): void {
+    this.findStopButton().should('not.exist');
+  }
+
+  clickStopButton(): void {
+    this.findStopButton().click();
+  }
+
+  verifyStopMessageInChat(): void {
+    this.findBotMessages().should('contain.text', 'You stopped this message');
+  }
+
+  // Chat Reset Methods
+  findNewChatButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('new-chat-button');
+  }
+
+  startNewChatIfAvailable(): void {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="new-chat-button"]:not(:disabled)').length > 0) {
+        this.findNewChatButton().click();
+        cy.findByRole('button', { name: /Start new chat/i }).click();
+        // Wait for page to stabilize after new chat
+        this.findChatbotPlayground().should('be.visible');
+        this.findMessageInput().should('not.be.disabled');
+      }
+    });
+  }
+
+  expandModelDetailsAccordion(): void {
+    // Expand the Model Details accordion if it's collapsed
+    cy.get('#model-details-item').then(($toggle) => {
+      if ($toggle.attr('aria-expanded') === 'false') {
+        cy.wrap($toggle).click();
+      }
+    });
+    // Wait for accordion content to be visible
+    cy.get('#model-details-content').should('be.visible');
+  }
+
+  resetChatState(): void {
+    this.startNewChatIfAvailable();
+    // Expand the model details accordion to access streaming toggle
+    this.expandModelDetailsAccordion();
+    this.toggleStreaming(true);
   }
 }
 

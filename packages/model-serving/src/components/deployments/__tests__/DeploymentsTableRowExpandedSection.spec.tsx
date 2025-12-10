@@ -24,7 +24,6 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
         extractReplicas: () => 1,
         extractHardwareProfileConfig: () => [null, {}],
         extractModelAvailabilityData: () => ({
-          saveAsAiAsset: true,
           saveAsMaaS: true,
           useCase: 'test-use-case',
         }),
@@ -66,7 +65,7 @@ describe('DeploymentsTableRowExpandedSection', () => {
     // hardware profile
     expect(screen.getByText('Custom')).toBeInTheDocument();
     // model availability
-    expect(screen.getByText('AI asset endpoint, Model-as-a-Service (MaaS)')).toBeInTheDocument();
+    expect(screen.getByText('Model-as-a-Service (MaaS)')).toBeInTheDocument();
     // use case
     expect(screen.getByText('test-use-case')).toBeInTheDocument();
   });
