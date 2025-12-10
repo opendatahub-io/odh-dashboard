@@ -13,6 +13,7 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
+  isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationType, ModelTypeLabel } from '../types';
@@ -127,7 +128,7 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
             return undefined;
           }
 
-          const { fieldValues: fields, additionalFields } = locationData;
+          const { fieldValues: fields, additionalFields, connectionTypeObject } = locationData;
 
           return (
             <>
@@ -135,11 +136,13 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
                 if (!value) {
                   return null;
                 }
-                const label = key
-                  .replace(/_/g, ' ')
-                  .split(' ')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                  .join(' ');
+                // Find the field object where envVar matches the key, then use its name
+                const field = connectionTypeObject?.data?.fields?.find(
+                  (typeField) =>
+                    isConnectionTypeDataField(typeField) &&
+                    typeField.envVar.toLowerCase() === key.toLowerCase(),
+                );
+                const label = field?.name || key;
 
                 const isSensitive = key.toLowerCase().includes('secret');
                 const displayValue = isSensitive ? '•'.repeat(String(value).length) : String(value);
