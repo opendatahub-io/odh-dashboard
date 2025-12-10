@@ -58,10 +58,6 @@ class ModelRegistrySettings {
     cy.findByTestId('app-page-title').contains('AI registry settings');
   }
 
-  findPageTitle() {
-    return cy.findByTestId('app-page-title');
-  }
-
   findNavItem() {
     return appChrome.findNavItem({
       name: 'AI registry settings',
