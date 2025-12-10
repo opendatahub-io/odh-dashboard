@@ -97,42 +97,46 @@ export const validateStopIdleNotebooks = (
  */
 export const checkUserNotInRHODSUserGroups = (userName: string): Cypress.Chainable<void> => {
   cy.step('Check if user is in RHODS user groups');
-  return getOdhDashboardConfigGroupsConfig().then((result: CommandLineResult) => {
-    if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
-      try {
-        const groupsConfig = JSON.parse(result.stdout);
-        const allowedGroups = groupsConfig.allowedGroups || [];
-        const adminGroups = groupsConfig.adminGroups || [];
+  return getOdhDashboardConfigGroupsConfig()
+    .then((result: CommandLineResult) => {
+      if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
+        try {
+          const groupsConfig = JSON.parse(result.stdout);
+          const allowedGroups = groupsConfig.allowedGroups || [];
+          const adminGroups = groupsConfig.adminGroups || [];
 
-        cy.log(`Allowed Groups: ${JSON.stringify(allowedGroups)}`);
-        cy.log(`Admin Groups: ${JSON.stringify(adminGroups)}`);
+          cy.log(`Allowed Groups: ${JSON.stringify(allowedGroups)}`);
+          cy.log(`Admin Groups: ${JSON.stringify(adminGroups)}`);
 
-        // Check if user's groups are in the lists
-        return cy
-          .exec(`oc get user ${userName} -o jsonpath='{.groups[*]}' --ignore-not-found`, {
-            failOnNonZeroExit: false,
-          })
-          .then((userGroupsResult: CommandLineResult) => {
-            if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
-              const userGroups = userGroupsResult.stdout.trim().split(/\s+/).filter(Boolean);
-              cy.log(`User groups: ${JSON.stringify(userGroups)}`);
+          // Check if user's groups are in the lists
+          return cy
+            .exec(`oc get user ${userName} -o jsonpath='{.groups[*]}' --ignore-not-found`, {
+              failOnNonZeroExit: false,
+            })
+            .then((userGroupsResult: CommandLineResult) => {
+              if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
+                const userGroups = userGroupsResult.stdout.trim().split(/\s+/).filter(Boolean);
+                cy.log(`User groups: ${JSON.stringify(userGroups)}`);
 
-              // Verify user is not in allowedGroups or adminGroups
-              const isInAllowedGroups = userGroups.some((group) => allowedGroups.includes(group));
-              const isInAdminGroups = userGroups.some((group) => adminGroups.includes(group));
+                // Verify user is not in allowedGroups or adminGroups
+                const isInAllowedGroups = userGroups.some((group) => allowedGroups.includes(group));
+                const isInAdminGroups = userGroups.some((group) => adminGroups.includes(group));
 
-              if (isInAllowedGroups || isInAdminGroups) {
-                throw new Error(
-                  `User ${userName} is already in allowedGroups or adminGroups. Cannot proceed with test.`,
-                );
+                if (isInAllowedGroups || isInAdminGroups) {
+                  throw new Error(
+                    `User ${userName} is already in allowedGroups or adminGroups. Cannot proceed with test.`,
+                  );
+                }
               }
-            }
-          });
-      } catch (error) {
-        cy.log('Could not parse groupsConfig, continuing with test');
-        return cy.wrap(null);
+            });
+        } catch (error) {
+          cy.log('Could not parse groupsConfig, continuing with test');
+          return cy.wrap(undefined);
+        }
       }
-    }
-    return cy.wrap(null);
-  });
+      return cy.wrap(undefined);
+    })
+    .then(() => {
+      // Explicitly return void to satisfy type checker
+    }) as unknown as Cypress.Chainable<void>;
 };
