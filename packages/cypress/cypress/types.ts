@@ -224,6 +224,8 @@ export type DataScienceProjectData = {
   pvStorageNameEdited: string;
   invalidResourceNames: string[];
   hardwareProfileName: string;
+  resourceType: string;
+  Image: string;
 };
 
 export type NotebookImageData = {

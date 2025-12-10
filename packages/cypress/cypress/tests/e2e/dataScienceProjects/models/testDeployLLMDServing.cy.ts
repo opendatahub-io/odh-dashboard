@@ -25,6 +25,8 @@ const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
+let resourceType: string;
+let Image: string;
 
 describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
@@ -37,6 +39,8 @@ describe('A user can deploy an LLMD model', () => {
         modelURI = testData.modelURI;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
+        resourceType = testData.resourceType;
+        Image = testData.Image;
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -91,17 +95,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Select Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
-      // Only interact with serving runtime template selector if it's not disabled
-      // (it may be disabled when only one option is available)
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().then(($selector) => {
-        if (!$selector.is(':disabled')) {
-          cy.wrap($selector).click();
-          modelServingWizard
-            .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-            .should('exist')
-            .click();
-        }
-      });
+      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
       // Verify replica settings are available for LLMD
       modelServingWizard.findNumReplicasInputField().should('exist').should('have.value', '1');
       modelServingWizard.findNextButton().should('be.enabled').click();
@@ -119,12 +113,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
       // Patch the LLM Inference Service to set image to VLLM CPU
       // workaround for model to be deployed without GPUs.
-      patchOpenShiftResource(
-        'llminferenceservice',
-        modelName,
-        '{"spec":{"template":{"containers":[{"name":"main","image":"quay.io/pierdipi/vllm-cpu:latest"}]}}}',
-        projectName,
-      );
+      patchOpenShiftResource(resourceType, modelName, Image, projectName);
       cy.step('Verify that the Model is ready');
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
 

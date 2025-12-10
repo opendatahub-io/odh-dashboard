@@ -110,7 +110,7 @@ export const checkInferenceServiceState = (
   namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o json`;
+  const ocCommand = `oc get InferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
@@ -287,7 +287,7 @@ export const checkLLMInferenceServiceState = (
   namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get LLMinferenceService ${serviceName} -n ${namespace} -o json`;
+  const ocCommand = `oc get LLMInferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
