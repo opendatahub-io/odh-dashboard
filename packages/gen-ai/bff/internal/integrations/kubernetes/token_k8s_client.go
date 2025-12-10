@@ -56,6 +56,12 @@ const (
 
 	// Label for LSD identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
+
+	// Labels for identifying KServe services
+	InferenceServiceName                 = "serving.kserve.io/inferenceservice"
+	LLMInferenceServiceName              = "app.kubernetes.io/name"
+	LLMInferenceServiceComponent         = "app.kubernetes.io/component"
+	LLMInferenceServiceWorkloadComponent = "llminferenceservice-workload"
 )
 
 type TokenKubernetesClient struct {
@@ -1318,7 +1324,7 @@ func (kc *TokenKubernetesClient) findServicesForKServeResource(ctx context.Conte
 
 	// Try InferenceService label first
 	labelSelector := labels.SelectorFromSet(map[string]string{
-		"serving.kserve.io/inferenceservice": isvc.GetName(),
+		InferenceServiceName: isvc.GetName(),
 	})
 
 	listOptions := &client.ListOptions{
@@ -1333,8 +1339,8 @@ func (kc *TokenKubernetesClient) findServicesForKServeResource(ctx context.Conte
 	// If not found, try LLMInferenceService workload service labels
 	if len(svcList.Items) == 0 {
 		labelSelector = labels.SelectorFromSet(map[string]string{
-			"app.kubernetes.io/name":      isvc.GetName(),
-			"app.kubernetes.io/component": "llminferenceservice-workload",
+			LLMInferenceServiceName:      isvc.GetName(),
+			LLMInferenceServiceComponent: LLMInferenceServiceWorkloadComponent,
 		})
 		listOptions.LabelSelector = labelSelector
 
