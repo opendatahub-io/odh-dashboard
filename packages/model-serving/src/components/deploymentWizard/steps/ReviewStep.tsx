@@ -226,7 +226,7 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
       {
         key: 'modelServer',
         label: 'Serving runtime',
-        comp: (state) => state.modelServer.data?.name || 'Auto-selected',
+        comp: (state) => state.modelServer.data?.label || 'Auto-selected',
       },
       {
         key: 'numReplicas',
