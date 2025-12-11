@@ -72,17 +72,20 @@ jobs:
           echo "Target image: $IMAGE_REF"
 
           # Wait for the PR image to exist (Konflux/AppStudio push) up to ~2 minutes
+          image_found=false
           for i in {1..12}; do
             if crane manifest "$IMAGE_REF" >/dev/null 2>&1; then
               echo "Found image $IMAGE_REF"
+              image_found=true
               break
             fi
             echo "Image not found yet. Retry $i/12 ..."
             sleep 10
           done
 
-          if ! crane manifest "$IMAGE_REF" >/dev/null 2>&1; then
-            echo "PR image not available; skipping label application." && exit 0
+          if [[ "$image_found" != "true" ]]; then
+            echo "PR image not available; skipping label application."
+            exit 0
           fi
 
           echo "Applying label quay.expires-after=${EXPIRES_AFTER} to $IMAGE_REF"

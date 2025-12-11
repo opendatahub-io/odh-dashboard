@@ -19,10 +19,6 @@ concurrency:
   group: e2e-pr-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
-concurrency:
-  group: e2e-${{ github.event.issue.number || github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
   pull-requests: write
