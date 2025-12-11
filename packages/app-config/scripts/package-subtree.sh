@@ -241,6 +241,7 @@ UPSTREAM_REPO=$(jq -r '.subtree.repo' "$PACKAGE_JSON")
 UPSTREAM_SUBDIR=$(jq -r '.subtree.src // ""' "$PACKAGE_JSON")
 TARGET_RELATIVE=$(jq -r '.subtree.target' "$PACKAGE_JSON")
 CURRENT_COMMIT=$(jq -r '.subtree.commit // ""' "$PACKAGE_JSON")
+UPSTREAM_BRANCH=$(jq -r '.subtree.branch // "main"' "$PACKAGE_JSON")
 
 # Validate required configuration fields
 if [ -z "$UPSTREAM_REPO" ] || [ "$UPSTREAM_REPO" = "null" ]; then
@@ -301,7 +302,7 @@ if [ "$CONTINUE_MODE" = true ]; then
   trap 'cd "$MONOREPO_ROOT"; rm -rf "$TMP_DIR"' EXIT
   
   # Clone repository to determine commit information
-  git clone -q "$UPSTREAM_REPO" "$TMP_DIR/repo"
+  git clone -q -b "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
   cd "$TMP_DIR/repo"
   
   # Get target commit SHA
@@ -378,7 +379,7 @@ TMP_DIR=$(mktemp -d)
 trap 'cd "$MONOREPO_ROOT"; rm -rf "$TMP_DIR"' EXIT
 
 # Clone repository
-git clone -q "$UPSTREAM_REPO" "$TMP_DIR/repo"
+git clone -q -b "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
 cd "$TMP_DIR/repo"
 
 # Get target commit SHA
