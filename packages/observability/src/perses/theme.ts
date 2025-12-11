@@ -145,10 +145,6 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
             '& .MuiBox-root': {
               alignItems: 'flex-start',
             },
-            // Set typography color inside cards to regular text color
-            '& .MuiTypography-root': {
-              color: 'var(--pf-t--global--text--color--regular)',
-            },
             // Remove left padding from stat chart values (h3 inside cards only)
             '& .MuiTypography-h3': {
               paddingLeft: 0,
