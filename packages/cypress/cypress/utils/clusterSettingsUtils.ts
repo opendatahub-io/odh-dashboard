@@ -1,5 +1,6 @@
+import { getOdhDashboardConfigGroupsConfig } from './oc_commands/project';
+import type { CommandLineResult, DashboardConfig, NotebookControllerCullerConfig } from '../types';
 import { modelServingSettings, pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
-import type { DashboardConfig, NotebookControllerCullerConfig } from '../types';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes
@@ -85,4 +86,57 @@ export const validateStopIdleNotebooks = (
       cy.log('Stop idle notebooks after should be checked when culling is enabled');
     }
   }
+};
+
+/**
+ * Checks if a user is in RHODS user groups (allowedGroups or adminGroups).
+ * Throws an error if the user is already in these groups.
+ *
+ * @param userName The username to check.
+ * @returns A Cypress.Chainable that resolves when the check is complete.
+ */
+export const checkUserNotInRHODSUserGroups = (userName: string): Cypress.Chainable<void> => {
+  cy.step('Check if user is in RHODS user groups');
+  return getOdhDashboardConfigGroupsConfig()
+    .then((result: CommandLineResult) => {
+      if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
+        try {
+          const groupsConfig = JSON.parse(result.stdout);
+          const allowedGroups = groupsConfig.allowedGroups || [];
+          const adminGroups = groupsConfig.adminGroups || [];
+
+          cy.log(`Allowed Groups: ${JSON.stringify(allowedGroups)}`);
+          cy.log(`Admin Groups: ${JSON.stringify(adminGroups)}`);
+
+          // Check if user's groups are in the lists
+          return cy
+            .exec(`oc get user ${userName} -o jsonpath='{.groups[*]}' --ignore-not-found`, {
+              failOnNonZeroExit: false,
+            })
+            .then((userGroupsResult: CommandLineResult) => {
+              if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
+                const userGroups = userGroupsResult.stdout.trim().split(/\s+/).filter(Boolean);
+                cy.log(`User groups: ${JSON.stringify(userGroups)}`);
+
+                // Verify user is not in allowedGroups or adminGroups
+                const isInAllowedGroups = userGroups.some((group) => allowedGroups.includes(group));
+                const isInAdminGroups = userGroups.some((group) => adminGroups.includes(group));
+
+                if (isInAllowedGroups || isInAdminGroups) {
+                  throw new Error(
+                    `User ${userName} is already in allowedGroups or adminGroups. Cannot proceed with test.`,
+                  );
+                }
+              }
+            });
+        } catch (error) {
+          cy.log('Could not parse groupsConfig, continuing with test');
+          return cy.wrap(undefined);
+        }
+      }
+      return cy.wrap(undefined);
+    })
+    .then(() => {
+      // Explicitly return void to satisfy type checker
+    }) as unknown as Cypress.Chainable<void>;
 };
