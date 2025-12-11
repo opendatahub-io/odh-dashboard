@@ -175,12 +175,12 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       return modelLocationData.connectionTypeObject;
     }
     if (selectedConnection) {
-      return filteredModelServingConnectionTypes.find(
+      return modelServingConnectionTypes.find(
         (t) => getResourceNameFromK8sResource(t) === getConnectionTypeRef(selectedConnection),
       );
     }
     return undefined;
-  }, [modelLocationData, filteredModelServingConnectionTypes, selectedConnection]);
+  }, [modelLocationData, modelServingConnectionTypes, selectedConnection]);
 
   const baseOptions = React.useMemo(
     () => [
@@ -330,7 +330,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 <ModelLocationInputFields
                   modelLocation={modelLocation}
                   connections={filteredConnections}
-                  connectionTypes={filteredModelServingConnectionTypes}
+                  connectionTypes={modelServingConnectionTypes}
                   selectedConnection={selectedConnection}
                   setSelectedConnection={setSelectedConnection}
                   selectedConnectionType={selectedConnectionType}
