@@ -1,7 +1,7 @@
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
-  name: model
+  name: dashboard-1-model
 spec:
   display:
     name: Model
