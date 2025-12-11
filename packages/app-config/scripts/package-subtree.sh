@@ -304,7 +304,7 @@ if [ "$CONTINUE_MODE" = true ]; then
   # Clone repository to determine commit information
   git clone -q -b "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
   cd "$TMP_DIR/repo"
-  
+
   # Get target commit SHA
   if [ -n "$COMMIT_SHA" ]; then
     git checkout -q "$COMMIT_SHA"
@@ -312,7 +312,7 @@ if [ "$CONTINUE_MODE" = true ]; then
   else
     TARGET_COMMIT=$(git rev-parse HEAD)
   fi
-  
+
   # We need to determine what commit we're continuing from
   # This should be the next commit after the current one in package.json
   commits=$(git rev-list --reverse "$CURRENT_COMMIT..$TARGET_COMMIT")
@@ -388,6 +388,18 @@ if [ -n "$COMMIT_SHA" ]; then
   TARGET_COMMIT=$(git rev-parse HEAD)
 else
   TARGET_COMMIT=$(git rev-parse HEAD)
+fi
+
+# Validate that CURRENT_COMMIT exists in this branch (skip for initial setup)
+if [ -n "$CURRENT_COMMIT" ] && [ "$CURRENT_COMMIT" != "null" ] && [ "$CURRENT_COMMIT" != "" ]; then
+  if ! git rev-parse --verify "$CURRENT_COMMIT" >/dev/null 2>&1; then
+    error_msg "Current commit $CURRENT_COMMIT not found in branch '$UPSTREAM_BRANCH' of $UPSTREAM_REPO"
+    echo ""
+    echo "You are probably syncing from a temporarily overridden repo and branch for an"
+    echo "unmerged PR. The PR's branch may have been rebased, and you may need to rebase"
+    echo "that branch first and try again."
+    clean_exit 1 "" true
+  fi
 fi
 
 # Handle initial setup case
