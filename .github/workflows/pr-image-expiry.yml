@@ -21,8 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Default Quay image repo; can be overridden by secret if provided
-  QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO || 'quay.io/opendatahub/odh-dashboard' }}
+  # TODO: Change back to secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO || 'quay.io/opendatahub/odh-dashboard' after testing
+  QUAY_ODH_DASHBOARD_IMAGE_REPO: 'quay.io/asurti/anish/odh-dashboard'
   # TODO: Change back to 21d after testing
   EXPIRES_AFTER: 2h
 
