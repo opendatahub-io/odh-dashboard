@@ -17,7 +17,6 @@ import { ModelServerSelectFieldData, isModelAvailabilityField } from '../types';
 import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 
 export type ModelAvailabilityFieldsData = {
-  saveAsAiAsset: boolean;
   saveAsMaaS?: boolean;
   useCase?: string;
 };
@@ -49,7 +48,6 @@ export const useModelAvailabilityFields = (
   });
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
-      saveAsAiAsset: false,
       saveAsMaaS: undefined,
       useCase: '',
     },
@@ -58,7 +56,6 @@ export const useModelAvailabilityFields = (
   const AiAssetData = React.useMemo(() => {
     if (modelType && modelType !== ServingRuntimeModelType.GENERATIVE) {
       return {
-        saveAsAiAsset: false,
         saveAsMaaS: undefined,
         useCase: '',
       };
@@ -87,7 +84,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
 }) => {
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
-      if (!newData.saveAsAiAsset && !newData.saveAsMaaS) {
+      if (!newData.saveAsMaaS) {
         setData({ ...newData, useCase: '' });
       } else {
         setData(newData);
@@ -99,29 +96,6 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   return (
     <StackItem>
       <Stack hasGutter>
-        <StackItem>
-          <Checkbox
-            id="save-as-ai-asset-checkbox"
-            data-testid="save-as-ai-asset-checkbox"
-            label={
-              <>
-                <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
-                <Flex>
-                  <FlexItem>
-                    Enable users in your namespace to test this model in the playground by adding
-                    its endpoint to the{' '}
-                    <span className="pf-v6-c-form__label-text">AI asset endpoints</span> page.
-                  </FlexItem>
-                  <Label isCompact color="yellow" variant="outline">
-                    Tech preview
-                  </Label>
-                </Flex>
-              </>
-            }
-            isChecked={data.saveAsAiAsset}
-            onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
-          />
-        </StackItem>
         {showSaveAsMaaS && (
           <StackItem>
             <Checkbox
@@ -147,7 +121,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             />
           </StackItem>
         )}
-        {(data.saveAsAiAsset || (showSaveAsMaaS && data.saveAsMaaS)) && (
+        {showSaveAsMaaS && data.saveAsMaaS && (
           <StackItem>
             <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
               <FormGroup label="Use case">

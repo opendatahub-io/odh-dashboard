@@ -78,7 +78,7 @@ Each federated module must include a `module-federation` property in its `packag
 - **tls** (boolean, optional): Whether to use TLS for connections (defaults to true)
 - **proxy** (array): Array of API proxy configurations for backend services
   - **path** (string): The URL path to proxy (e.g., `/api/v1/models`)
-  - **pathRewrite** (string, optional): Path rewrite rule (defaults to the same as `path`)
+  - **pathRewrite** (string, optional): Path rewrite rule (defaults to empty string)
 - **local** (object): Development server configuration
   - **host** (string, optional): Development host (defaults to `localhost`)
   - **port** (number): Development server port

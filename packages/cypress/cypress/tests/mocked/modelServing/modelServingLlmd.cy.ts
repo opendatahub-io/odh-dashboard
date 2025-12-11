@@ -9,7 +9,10 @@ import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockPr
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  mockServingRuntimeTemplateK8sResource,
+  mockStandardModelServingTemplateK8sResources,
+} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockConnectionTypeConfigMap,
@@ -20,6 +23,7 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import {
   HardwareProfileModel,
@@ -99,36 +103,9 @@ const initIntercepts = ({
   ]).as('getConnectionTypes');
   cy.interceptK8sList(
     TemplateModel,
-    mockK8sResourceList(
-      [
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-2',
-          displayName: 'OpenVINO',
-          modelTypes: [ServingRuntimeModelType.PREDICTIVE],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-5',
-          displayName: 'vLLM NVIDIA',
-          modelTypes: [ServingRuntimeModelType.GENERATIVE],
-          supportedModelFormats: [
-            {
-              name: 'vLLM',
-            },
-          ],
-        }),
-        mockServingRuntimeTemplateK8sResource({
-          name: 'template-6',
-          displayName: 'vLLM CPU',
-          modelTypes: [ServingRuntimeModelType.GENERATIVE],
-          supportedModelFormats: [
-            {
-              name: 'vLLM',
-            },
-          ],
-        }),
-      ],
-      { namespace: 'opendatahub' },
-    ),
+    mockK8sResourceList(mockStandardModelServingTemplateK8sResources(), {
+      namespace: 'opendatahub',
+    }),
   );
 
   cy.interceptK8sList(
@@ -301,7 +278,7 @@ describe('Model Serving LLMD', () => {
         .should('exist')
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -455,7 +432,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit
         .findModelTypeSelect()
         .should('be.disabled')
-        .should('have.text', 'Generative AI model (Example, LLM)');
+        .should('have.text', ModelTypeLabel.GENERATIVE);
       modelServingWizardEdit.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizardEdit.findSaveConnectionCheckbox().click();
       modelServingWizardEdit.findSaveConnectionCheckbox().should('not.be.checked');
@@ -535,7 +512,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelLocationSelectOption('URI').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().click();
 
       modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
