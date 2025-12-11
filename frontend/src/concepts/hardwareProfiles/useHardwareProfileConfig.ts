@@ -131,15 +131,9 @@ export const useHardwareProfileConfig = (
     useExistingSettings: false,
   });
 
-  let profiles = dashboardProfiles;
-  let profilesLoaded = dashboardProfilesLoaded;
-  let profilesLoadError = dashboardProfilesLoadError;
-
-  if (projectScopedProfiles.length > 0) {
-    profiles = [...dashboardProfiles, ...projectScopedProfiles];
-    profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
-    profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
-  }
+  const profiles = [...dashboardProfiles, ...projectScopedProfiles];
+  const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
+  const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
