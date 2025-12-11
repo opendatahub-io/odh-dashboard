@@ -17,7 +17,6 @@ describe('Verify Hardware Profiles Deletion/Change when applied to a resource', 
   let projectName: string;
   let projectDescription: string;
   let hardwareProfileName: string;
-  let updatedHardwareProfileName: string;
   const projectUuid = generateTestUUID();
   const hardwareProfileUuid = generateTestUUID();
 
@@ -31,7 +30,6 @@ describe('Verify Hardware Profiles Deletion/Change when applied to a resource', 
         projectName = `${testData.projectNamespace}-${projectUuid}`;
         projectDescription = testData.projectDescription;
         hardwareProfileName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
-        updatedHardwareProfileName = `${testData.updatedHardwareProfileName}-${hardwareProfileUuid}`;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -44,32 +42,24 @@ describe('Verify Hardware Profiles Deletion/Change when applied to a resource', 
 
         // Load Hardware Profile
         cy.log(`Loaded Hardware Profile Name: ${hardwareProfileName}`);
-        cy.log(`Loaded Hardware Profile Name: ${updatedHardwareProfileName}`);
 
         // Cleanup Hardware Profile if it already exists - chain properly
-        return cleanupHardwareProfiles(hardwareProfileName).then(() => {
-          return cleanupHardwareProfiles(updatedHardwareProfileName);
-        });
+        return cleanupHardwareProfiles(hardwareProfileName);
       }),
   );
 
   // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Cleanup both hardware profiles with UUIDs
+    // Cleanup hardware profile with UUID
     cy.log(`Cleaning up Hardware Profile: ${hardwareProfileName}`);
-    return cleanupHardwareProfiles(hardwareProfileName)
-      .then(() => {
-        cy.log(`Cleaning up Hardware Profile: ${updatedHardwareProfileName}`);
-        return cleanupHardwareProfiles(updatedHardwareProfileName);
-      })
-      .then(() => {
-        // Delete provisioned Project (this will also clean up workbenches)
-        if (projectName) {
-          cy.log(`Deleting Project ${projectName} after the test has finished.`);
-          return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-        }
-        return cy.wrap(null);
-      });
+    return cleanupHardwareProfiles(hardwareProfileName).then(() => {
+      // Delete provisioned Project (this will also clean up workbenches)
+      if (projectName) {
+        cy.log(`Deleting Project ${projectName} after the test has finished.`);
+        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      }
+      return cy.wrap(null);
+    });
   });
 
   it(
