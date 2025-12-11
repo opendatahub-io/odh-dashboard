@@ -26,7 +26,10 @@ import {
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { applyOpenShiftYaml } from '../../../../utils/oc_commands/baseCommands';
 import { replacePlaceholdersInYaml } from '../../../../utils/yaml_files';
-import { getClusterRoleBinding } from '../../../../utils/oc_commands/roleBindings';
+import {
+  getClusterRoleBinding,
+  deleteClusterRoleBinding,
+} from '../../../../utils/oc_commands/roleBindings';
 
 // Default PVC size constant (matches frontend/src/pages/clusterSettings/const.ts)
 const DEFAULT_PVC_SIZE = 20;
@@ -135,9 +138,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   after(() => {
     // Cleanup: Remove the ClusterRoleBinding we created
     cy.step('Cleanup: Remove test ClusterRoleBinding');
-    cy.exec(`oc delete clusterrolebinding ${clusterRoleBindingName} --ignore-not-found`, {
-      failOnNonZeroExit: false,
-    }).then((result: CommandLineResult) => {
+    deleteClusterRoleBinding(clusterRoleBindingName).then((result: CommandLineResult) => {
       if (result.code === 0) {
         cy.log('Successfully removed test ClusterRoleBinding');
       }

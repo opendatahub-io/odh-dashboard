@@ -51,3 +51,25 @@ export const getClusterRoleBinding = (
     return cy.wrap(result);
   });
 };
+
+/**
+ * Deletes a ClusterRoleBinding by name.
+ *
+ * @param clusterRoleBindingName The name of the ClusterRoleBinding to delete.
+ * @returns A Cypress.Chainable that resolves to the command result.
+ */
+export const deleteClusterRoleBinding = (
+  clusterRoleBindingName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const command = `oc delete clusterrolebinding ${clusterRoleBindingName} --ignore-not-found`;
+  cy.log(`Deleting ClusterRoleBinding: ${command}`);
+
+  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code === 0) {
+      cy.log(`Successfully deleted ClusterRoleBinding: ${clusterRoleBindingName}`);
+    } else {
+      cy.log(`Failed to delete ClusterRoleBinding: ${clusterRoleBindingName}`, result.stderr);
+    }
+    return cy.wrap(result);
+  });
+};
