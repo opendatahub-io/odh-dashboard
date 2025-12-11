@@ -81,7 +81,7 @@ tools = [
         {{- range $key, $value := .Headers }}
         "{{$key}}": "{{$value}}",
         {{- end }}
-      }{{- end }}{{- if .AllowedTools }},
+      }{{- end }}{{- if ne .AllowedTools nil }},
       "allowed_tools": [
         {{- range $i, $tool := .AllowedTools }}
         {{- if $i }},{{ end }}

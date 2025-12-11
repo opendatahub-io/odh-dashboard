@@ -254,6 +254,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         selectedMcpServerIds={selectedMcpServerIds}
         mcpServers={mcpServers}
         mcpServerTokens={mcpServerTokens}
+        toolSelections={getToolSelections}
+        namespace={namespace?.name}
       />
       <NewChatModal
         isOpen={isNewChatModalOpen}
