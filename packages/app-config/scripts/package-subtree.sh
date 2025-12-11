@@ -333,11 +333,10 @@ Branch: $PR_BRANCH
 This commit should NOT be merged. It exists only to test changes from an unmerged PR."
 
   if ! git commit -q -m "$commit_msg"; then
-    error_msg "Failed to commit package.json changes"
-    clean_exit 1 "" true
+    warning_msg "Failed to commit package.json changes (assuming changes were already present)"
+  else
+    success_msg "Committed package.json changes with DO NOT MERGE warning"
   fi
-
-  success_msg "Committed package.json changes with DO NOT MERGE warning"
   echo ""
 fi
 
@@ -425,6 +424,17 @@ if [ "$CONTINUE_MODE" = true ]; then
     TARGET_COMMIT=$(git rev-parse HEAD)
   fi
 
+  # Validate that CURRENT_COMMIT exists in this branch's history
+  # Check if the commit is an ancestor of HEAD (i.e., it's in this branch's history)
+  if ! git merge-base --is-ancestor "$CURRENT_COMMIT" HEAD 2>/dev/null; then
+    cd "$MONOREPO_ROOT"
+    error_msg "Current commit $CURRENT_COMMIT not found in branch '$UPSTREAM_BRANCH' of $UPSTREAM_REPO"
+    echo ""
+    echo "You are probably syncing from a temporarily overridden repo and branch for an"
+    echo "unmerged PR. The PR's branch may be out of date. Rebase it and try again."
+    clean_exit 1 "" true
+  fi
+
   # We need to determine what commit we're continuing from
   # This should be the next commit after the current one in package.json
   commits=$(git rev-list --reverse "$CURRENT_COMMIT..$TARGET_COMMIT")
@@ -504,12 +514,12 @@ fi
 
 # Validate that CURRENT_COMMIT exists in this branch (skip for initial setup)
 if [ -n "$CURRENT_COMMIT" ] && [ "$CURRENT_COMMIT" != "null" ] && [ "$CURRENT_COMMIT" != "" ]; then
-  if ! git rev-parse --verify "$CURRENT_COMMIT" >/dev/null 2>&1; then
+  # Check if the commit is an ancestor of HEAD (i.e., it's in this branch's history)
+  if ! git merge-base --is-ancestor "$CURRENT_COMMIT" HEAD 2>/dev/null; then
     error_msg "Current commit $CURRENT_COMMIT not found in branch '$UPSTREAM_BRANCH' of $UPSTREAM_REPO"
     echo ""
     echo "You are probably syncing from a temporarily overridden repo and branch for an"
-    echo "unmerged PR. The PR's branch may have been rebased, and you may need to rebase"
-    echo "that branch first and try again."
+    echo "unmerged PR. The PR's branch may be out of date. Rebase it and try again."
     clean_exit 1 "" true
   fi
 fi
@@ -993,19 +1003,19 @@ if [ -n "$DO_NOT_MERGE_FLAG" ] && [ "$DO_NOT_MERGE_FLAG" != "null" ]; then
   echo -e "${RED}║                                                                            ║${NC}"
   echo -e "${RED}║  ⚠️  WARNING: DO NOT MERGE THESE COMMITS! ⚠️                               ║${NC}"
   echo -e "${RED}║                                                                            ║${NC}"
-  echo -e "${RED}║  These commits are ONLY for testing changes from an unmerged upstream PR. ║${NC}"
+  echo -e "${RED}║  These commits are ONLY for testing changes from an unmerged upstream PR.  ║${NC}"
   echo -e "${RED}║                                                                            ║${NC}"
-  echo -e "${RED}║  All commits created during this sync have the prefix:                    ║${NC}"
-  echo -e "${RED}║  [DO NOT MERGE - PR TEST SYNC]                                            ║${NC}"
+  echo -e "${RED}║  All commits created during this sync have the prefix:                     ║${NC}"
+  echo -e "${RED}║  [DO NOT MERGE - PR TEST SYNC]                                             ║${NC}"
   echo -e "${RED}║                                                                            ║${NC}"
   echo -e "${RED}║  Next steps:                                                               ║${NC}"
-  echo -e "${RED}║  1. Test the changes from the upstream PR                                 ║${NC}"
+  echo -e "${RED}║  1. Test the changes from the upstream PR                                  ║${NC}"
   echo -e "${RED}║  2. After the PR is merged upstream, start a fresh branch from             ║${NC}"
   echo -e "${RED}║     odh-dashboard main                                                     ║${NC}"
-  echo -e "${RED}║  3. Run the sync script again WITHOUT the --pr option to get the          ║${NC}"
+  echo -e "${RED}║  3. Run the sync script again WITHOUT the --pr option to get the           ║${NC}"
   echo -e "${RED}║     official merged changes                                                ║${NC}"
   echo -e "${RED}║                                                                            ║${NC}"
-  echo -e "${RED}║  DO NOT merge this branch into odh-dashboard main!                        ║${NC}"
+  echo -e "${RED}║  DO NOT merge this branch into odh-dashboard main!                         ║${NC}"
   echo -e "${RED}║                                                                            ║${NC}"
   echo -e "${RED}╚════════════════════════════════════════════════════════════════════════════╝${NC}"
   echo ""
