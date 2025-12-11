@@ -25,7 +25,7 @@ describe('Application', () => {
     appChrome.findNavSection('Settings').should('exist');
   });
 
-  it('Validate clicking on App Launcher opens menu', () => {
+  it('MLflow is disabled, should not show the MLflow link', () => {
     cy.interceptOdh('GET /api/console-links', mockConsoleLinks());
     appChrome.visit();
     const applicationLauncher = appChrome.getApplicationLauncher();
@@ -33,7 +33,7 @@ describe('Application', () => {
 
     // Have a static item
     const applicationLauncherMenuGroupStatic =
-      applicationLauncher.getApplicationLauncherMenuGroup('Red Hat Applications');
+      applicationLauncher.getApplicationLauncherMenuGroup('Applications');
     applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem(
       'OpenShift Cluster Manager',
     );
@@ -42,6 +42,28 @@ describe('Application', () => {
     applicationLauncher
       .findApplicationLauncherMenuGroup(`OpenShift Open Data Hub`)
       .should('not.exist');
+
+    // Should not have the MLflow link
+    applicationLauncherMenuGroupStatic.shouldNotHaveApplicationLauncherItem('MLflow');
+  });
+
+  it('Validate clicking on App Launcher opens menu', () => {
+    cy.interceptOdh('GET /api/console-links', mockConsoleLinks());
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+    appChrome.visit();
+    const applicationLauncher = appChrome.getApplicationLauncher();
+    applicationLauncher.toggleAppLauncherButton();
+
+    // Have a static item
+    const applicationLauncherMenuGroupStatic =
+      applicationLauncher.getApplicationLauncherMenuGroup('Applications');
+
+    // Have the MLflow link
+    applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem('MLflow');
+
+    applicationLauncherMenuGroupStatic
+      .findApplicationLauncherItem('MLflow')
+      .should('have.attr', 'href', '/mlflow');
 
     applicationLauncher.toggleAppLauncherButton();
   });
