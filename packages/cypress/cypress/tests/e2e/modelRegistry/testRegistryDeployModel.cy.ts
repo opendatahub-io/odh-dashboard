@@ -163,7 +163,7 @@ describe('Verify models can be deployed from model registry', () => {
         .should('have.value', AWS_BUCKETS.BUCKET_1.REGION);
       modelServingWizard.findLocationPathInput().should('have.value', testData.modelOpenVinoPath);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionNameInput().clear().type(`${projectName}-connection`);
+      modelServingWizard.findSaveConnectionName().clear().type(`${projectName}-connection`);
       modelServingWizard.findModelTypeSelectOption('Predictive model').click();
       modelServingWizard.findNextButton().click();
 

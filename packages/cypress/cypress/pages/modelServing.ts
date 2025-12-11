@@ -1114,7 +1114,7 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-connection-checkbox');
   }
 
-  findSaveConnectionNameInput() {
+  findSaveConnectionName() {
     return cy.findByTestId('save-connection-name-desc-name');
   }
 

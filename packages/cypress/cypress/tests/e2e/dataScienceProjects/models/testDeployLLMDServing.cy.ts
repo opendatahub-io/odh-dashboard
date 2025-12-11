@@ -88,7 +88,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findModelLocationSelectOption('URI').click();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionNameInput().clear().type(`${modelName}-connection`);
+      modelServingWizard.findSaveConnectionName().clear().type(`${modelName}-connection`);
       modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
