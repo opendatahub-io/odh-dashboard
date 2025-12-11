@@ -3,10 +3,10 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
-  k8sListResource,
   k8sPatchResource,
   K8sStatus,
   K8sResourceCommon,
+  k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   K8sAPIOptions,
@@ -95,10 +95,10 @@ export const listRoleBindings = (
     ...(namespace && { ns: namespace }),
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
-  return k8sListResource<RoleBindingKind>({
+  return k8sListResourceItems<RoleBindingKind>({
     model: RoleBindingModel,
     queryOptions,
-  }).then((listResource) => listResource.items);
+  });
 };
 
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBindingKind> =>
