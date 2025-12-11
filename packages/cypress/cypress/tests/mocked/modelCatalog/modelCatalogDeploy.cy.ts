@@ -148,6 +148,7 @@ describe('Deploy catalog model', () => {
     cy.wait('@loadModel');
     cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().should('be.enabled');
+    modelDetailsPage.findDeployModelButton().should('not.have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().click();
     modelServingWizard.findModelSourceStep().should('exist');
   });
@@ -158,6 +159,8 @@ describe('Deploy catalog model', () => {
 
     cy.wait('@loadModel');
     cy.wait('@loadArtifacts');
+    modelDetailsPage.findDeployModelButton().should('be.enabled');
+    modelDetailsPage.findDeployModelButton().should('not.have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().click();
     modelServingWizard.findPrefillAlert().should('exist');
     modelServingWizard.findModelSourceStep().should('be.enabled');
