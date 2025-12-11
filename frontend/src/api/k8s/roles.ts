@@ -1,7 +1,7 @@
 import {
   k8sCreateResource,
   k8sGetResource,
-  k8sListResource,
+  k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, RoleKind } from '#~/k8sTypes';
 import { RoleModel } from '#~/api/models';
@@ -48,8 +48,8 @@ export const listRoles = (namespace?: string, labelSelector?: string): Promise<R
     ...(namespace && { ns: namespace }),
     ...(labelSelector && { queryParams: { labelSelector } }),
   };
-  return k8sListResource<RoleKind>({
+  return k8sListResourceItems<RoleKind>({
     model: RoleModel,
     queryOptions,
-  }).then((listResource) => listResource.items);
+  });
 };
