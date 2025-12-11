@@ -154,23 +154,26 @@ clean_exit() {
 }
 
 show_usage() {
-  echo "Usage: $0 --package=<package-name> [--commit=<commit-sha>] [--continue]"
+  echo "Usage: $0 --package=<package-name> [--commit=<commit-sha>] [--continue] [--pr=<pr-url>]"
   echo ""
   echo "Options:"
   echo "  --package=NAME     Required. Name of the package to update (e.g., @odh-dashboard/model-registry)"
   echo "  --commit=SHA       Optional. Specific commit to update to (default: latest)"
   echo "  --continue         Continue from a previous conflict resolution"
+  echo "  --pr=URL           Optional. GitHub PR URL to temporarily sync from (e.g., https://github.com/owner/repo/pull/123)"
   echo ""
   echo "Examples:"
   echo "  $0 --package=@odh-dashboard/model-registry"
   echo "  $0 --package=@odh-dashboard/model-registry --commit=abc123"
   echo "  $0 --package=@odh-dashboard/model-registry --continue"
+  echo "  $0 --package=@odh-dashboard/model-registry --pr=https://github.com/kubeflow/model-registry/pull/123"
 }
 
 # Parse command line arguments
 CONTINUE_MODE=false
 PACKAGE_NAME=""
 COMMIT_SHA=""
+PR_URL=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -184,6 +187,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --continue)
       CONTINUE_MODE=true
+      shift
+      ;;
+    --pr=*)
+      PR_URL="${1#*=}"
       shift
       ;;
     -h|--help)
@@ -236,12 +243,117 @@ PACKAGE_JSON="$MONOREPO_ROOT/$WORKSPACE_LOCATION/package.json"
 # Change to monorepo root to ensure we're in a safe directory
 cd "$MONOREPO_ROOT"
 
+# Handle --pr option to temporarily override repo and branch
+if [ -n "$PR_URL" ]; then
+  # Verify gh CLI is available
+  if ! command -v gh >/dev/null 2>&1; then
+    clean_exit 1 "The 'gh' CLI tool is required for --pr option but not found in PATH" true
+  fi
+
+  progress_msg "Fetching PR information from $PR_URL"
+
+  # Extract PR information using gh CLI
+  # Use the PR URL directly with gh pr view
+  # We need headRepositoryOwner to get the owner login separately since it's not nested in headRepository
+  PR_INFO=$(gh pr view "$PR_URL" --json headRepositoryOwner,headRepository,headRefName 2>&1)
+  if [ $? -ne 0 ]; then
+    error_msg "Failed to fetch PR information"
+    echo "$PR_INFO"
+    clean_exit 1 "" true
+  fi
+
+  # Extract repo owner, name, and branch
+  PR_REPO_OWNER=$(echo "$PR_INFO" | jq -r '.headRepositoryOwner.login')
+  PR_REPO_NAME=$(echo "$PR_INFO" | jq -r '.headRepository.name')
+  PR_BRANCH=$(echo "$PR_INFO" | jq -r '.headRefName')
+
+  if [ -z "$PR_REPO_OWNER" ] || [ "$PR_REPO_OWNER" = "null" ] || \
+     [ -z "$PR_REPO_NAME" ] || [ "$PR_REPO_NAME" = "null" ] || \
+     [ -z "$PR_BRANCH" ] || [ "$PR_BRANCH" = "null" ]; then
+    error_msg "Failed to extract repository and branch information from PR"
+    echo "This could mean:"
+    echo "  • The gh CLI is not authenticated (run 'gh auth login')"
+    echo "  • The PR URL is invalid"
+    echo "  • The JSON structure from gh has changed"
+    clean_exit 1 "" true
+  fi
+
+  PR_REPO_URL="https://github.com/$PR_REPO_OWNER/$PR_REPO_NAME.git"
+
+  info_msg "PR Details:"
+  echo "  Repository: $PR_REPO_URL"
+  echo "  Branch: $PR_BRANCH"
+  echo ""
+
+  # Update package.json with temporary overrides
+  warning_msg "Temporarily updating package.json with PR overrides"
+  echo -e "${RED}⚠️  DO NOT MERGE these changes!${NC}"
+  echo ""
+
+  temp_file="$PACKAGE_JSON.tmp"
+  # Reconstruct the subtree object with DO_NOT_MERGE_OVERRIDDEN_FOR_PR first
+  if ! jq --arg repo "$PR_REPO_URL" \
+          --arg branch "$PR_BRANCH" \
+          --arg pr_url "$PR_URL" \
+          '.subtree = {
+            DO_NOT_MERGE_OVERRIDDEN_FOR_PR: $pr_url,
+            repo: $repo,
+            branch: $branch,
+            src: .subtree.src,
+            target: .subtree.target,
+            commit: .subtree.commit
+          } |
+          if .subtree.src == null then del(.subtree.src) else . end' \
+          "$PACKAGE_JSON" > "$temp_file"; then
+    error_msg "Failed to update package.json with PR overrides"
+    rm -f "$temp_file"
+    clean_exit 1 "" true
+  fi
+
+  if ! mv "$temp_file" "$PACKAGE_JSON"; then
+    error_msg "Failed to write updated package.json"
+    rm -f "$temp_file"
+    clean_exit 1 "" true
+  fi
+
+  success_msg "Updated package.json with temporary PR overrides"
+
+  # Commit the package.json changes
+  if ! git add "$PACKAGE_JSON"; then
+    error_msg "Failed to stage package.json"
+    clean_exit 1 "" true
+  fi
+
+  commit_msg="[DO NOT MERGE - PR TEST SYNC] Override subtree config for PR testing
+
+Temporarily syncing from PR: $PR_URL
+Repository: $PR_REPO_URL
+Branch: $PR_BRANCH
+
+This commit should NOT be merged. It exists only to test changes from an unmerged PR."
+
+  if ! git commit -q -m "$commit_msg"; then
+    error_msg "Failed to commit package.json changes"
+    clean_exit 1 "" true
+  fi
+
+  success_msg "Committed package.json changes with DO NOT MERGE warning"
+  echo ""
+fi
+
 # Read config from package.json (needed for both modes)
 UPSTREAM_REPO=$(jq -r '.subtree.repo' "$PACKAGE_JSON")
 UPSTREAM_SUBDIR=$(jq -r '.subtree.src // ""' "$PACKAGE_JSON")
 TARGET_RELATIVE=$(jq -r '.subtree.target' "$PACKAGE_JSON")
 CURRENT_COMMIT=$(jq -r '.subtree.commit // ""' "$PACKAGE_JSON")
 UPSTREAM_BRANCH=$(jq -r '.subtree.branch // "main"' "$PACKAGE_JSON")
+DO_NOT_MERGE_FLAG=$(jq -r '.subtree.DO_NOT_MERGE_OVERRIDDEN_FOR_PR // ""' "$PACKAGE_JSON")
+
+# Set commit message prefix if this is a PR test sync
+COMMIT_PREFIX=""
+if [ -n "$DO_NOT_MERGE_FLAG" ] && [ "$DO_NOT_MERGE_FLAG" != "null" ]; then
+  COMMIT_PREFIX="[DO NOT MERGE - PR TEST SYNC] "
+fi
 
 # Validate required configuration fields
 if [ -z "$UPSTREAM_REPO" ] || [ "$UPSTREAM_REPO" = "null" ]; then
@@ -319,9 +431,9 @@ if [ "$CONTINUE_MODE" = true ]; then
   if [ -n "$commits" ]; then
     continue_commit=$(echo "$commits" | head -n 1)
     continue_commit_msg=$(git log -1 --format="%s" "$continue_commit")
-    
+
     cd "$MONOREPO_ROOT"
-    git commit -q -m "Update $PACKAGE_NAME: $continue_commit_msg (resolved conflicts)
+    git commit -q -m "${COMMIT_PREFIX}Update $PACKAGE_NAME: $continue_commit_msg (resolved conflicts)
 
 Upstream commit: $continue_commit"
     
@@ -342,7 +454,7 @@ Upstream commit: $continue_commit"
     CURRENT_COMMIT="$continue_commit"
   else
     # No more commits, just commit with a generic message
-    git commit -q -m "Update $PACKAGE_NAME: Manual conflict resolution"
+    git commit -q -m "${COMMIT_PREFIX}Update $PACKAGE_NAME: Manual conflict resolution"
     success_msg "Committed staged changes"
   fi
   
@@ -429,7 +541,7 @@ if [ ! -d "$TARGET_DIR" ] && ([ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = 
   fi
   
   # Create initial commit
-  initial_commit_msg="chore(subtree): initial sync of $PACKAGE_NAME to $TARGET_COMMIT"
+  initial_commit_msg="${COMMIT_PREFIX}chore(subtree): initial sync of $PACKAGE_NAME to $TARGET_COMMIT"
   if ! git commit -q -m "$initial_commit_msg"; then
     clean_exit 1 "Failed to create initial setup commit"
   fi
@@ -722,7 +834,7 @@ apply_patch_based_update() {
       fi
       
       # Stage changes and create commit
-      safe_git_commit_if_changes "Update $PACKAGE_NAME: $commit_msg
+      safe_git_commit_if_changes "${COMMIT_PREFIX}Update $PACKAGE_NAME: $commit_msg
 
 Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
       local commit_exit_code=$?
@@ -739,7 +851,7 @@ Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
       elif [ $commit_exit_code -eq 2 ]; then
         # No changes to commit, but still update package.json for tracking
         if update_package_json_commit "$commit"; then
-          local tracking_msg="Update $PACKAGE_NAME tracking to $commit (no file changes)"
+          local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
           if safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null; then
             info_msg "No changes from commit $commit_count/$total_commits"
           fi
@@ -758,7 +870,7 @@ Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
       # Still update package.json to track progress
       cd "$MONOREPO_ROOT"
       if update_package_json_commit "$commit"; then
-        local tracking_msg="Update $PACKAGE_NAME tracking to $commit (no file changes)"
+        local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
         safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
       else
         warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
@@ -873,3 +985,28 @@ apply_patch_based_update "$CURRENT_COMMIT" "$TARGET_COMMIT" "$UPSTREAM_SUBDIR" "
 cd "$MONOREPO_ROOT"
 
 success_msg "Successfully updated $PACKAGE_NAME to $TARGET_COMMIT"
+
+# Display final warning if this was a PR test sync
+if [ -n "$DO_NOT_MERGE_FLAG" ] && [ "$DO_NOT_MERGE_FLAG" != "null" ]; then
+  echo ""
+  echo -e "${RED}╔════════════════════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${RED}║                                                                            ║${NC}"
+  echo -e "${RED}║  ⚠️  WARNING: DO NOT MERGE THESE COMMITS! ⚠️                               ║${NC}"
+  echo -e "${RED}║                                                                            ║${NC}"
+  echo -e "${RED}║  These commits are ONLY for testing changes from an unmerged upstream PR. ║${NC}"
+  echo -e "${RED}║                                                                            ║${NC}"
+  echo -e "${RED}║  All commits created during this sync have the prefix:                    ║${NC}"
+  echo -e "${RED}║  [DO NOT MERGE - PR TEST SYNC]                                            ║${NC}"
+  echo -e "${RED}║                                                                            ║${NC}"
+  echo -e "${RED}║  Next steps:                                                               ║${NC}"
+  echo -e "${RED}║  1. Test the changes from the upstream PR                                 ║${NC}"
+  echo -e "${RED}║  2. After the PR is merged upstream, start a fresh branch from             ║${NC}"
+  echo -e "${RED}║     odh-dashboard main                                                     ║${NC}"
+  echo -e "${RED}║  3. Run the sync script again WITHOUT the --pr option to get the          ║${NC}"
+  echo -e "${RED}║     official merged changes                                                ║${NC}"
+  echo -e "${RED}║                                                                            ║${NC}"
+  echo -e "${RED}║  DO NOT merge this branch into odh-dashboard main!                        ║${NC}"
+  echo -e "${RED}║                                                                            ║${NC}"
+  echo -e "${RED}╚════════════════════════════════════════════════════════════════════════════╝${NC}"
+  echo ""
+fi
