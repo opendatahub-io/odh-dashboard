@@ -387,15 +387,21 @@ describe('Playground - MCP Servers', () => {
       mcpToolsModal.findToolRows().should('have.length.at.least', 1);
 
       cy.step('Get initial tool count and verify all selected');
+      // Use .should() to retry until all tools are selected (handles race condition)
+      mcpToolsModal
+        .findToolCountText()
+        .should('exist')
+        .and(($el) => {
+          const match = $el.text().match(/(\d+) out of (\d+)/);
+          expect(match![1]).to.equal(match![2]);
+        });
+
       mcpToolsModal
         .findToolCountText()
         .invoke('text')
         .then((text) => {
           const match = text.match(/(\d+) out of (\d+)/);
           const totalTools = parseInt(match![2], 10);
-          const initialSelected = parseInt(match![1], 10);
-          // Verify all tools are selected initially
-          expect(initialSelected).to.equal(totalTools);
 
           cy.step('Deselect first 2 tools');
           mcpToolsModal.findToolCheckbox(0).click();
@@ -469,14 +475,21 @@ describe('Playground - MCP Servers', () => {
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+      // Use .should() to retry until all tools are selected (handles race condition)
+      mcpToolsModal
+        .findToolCountText()
+        .should('exist')
+        .and(($el) => {
+          const match = $el.text().match(/(\d+) out of (\d+)/);
+          expect(match![1]).to.equal(match![2]);
+        });
+
       mcpToolsModal
         .findToolCountText()
         .invoke('text')
         .then((text) => {
           const match = text.match(/(\d+) out of (\d+)/);
           const totalTools = parseInt(match![2], 10);
-          const initialSelected = parseInt(match![1], 10);
-          expect(initialSelected).to.equal(totalTools); // All selected initially
 
           cy.step('Test search functionality - search for "pod"');
           mcpToolsModal.findSearchInput().clear().type('pod');
