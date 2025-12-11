@@ -30,9 +30,10 @@ export const handleConnectionCreation = async (
   if (!modelLocationData) {
     return Promise.resolve(undefined);
   }
-  const protocolType = modelLocationData.connectionTypeObject
-    ? getConnectionProtocolType(modelLocationData.connectionTypeObject)
-    : 'uri';
+  const protocolType =
+    (modelLocationData.connectionTypeObject
+      ? getConnectionProtocolType(modelLocationData.connectionTypeObject)
+      : undefined) ?? 'uri';
 
   // If the connection already exists, patch the protocol annotation if it needs it, but don't wait for it
   if (modelLocationData.type === ModelLocationType.EXISTING) {

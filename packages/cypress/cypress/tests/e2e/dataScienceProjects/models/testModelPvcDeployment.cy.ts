@@ -1,3 +1,4 @@
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import {
   modelServingGlobal,
   modelServingSection,
@@ -131,7 +132,7 @@ describe('[Product Bug: RHOAIENG-41299] Verify a model can be deployed from a PV
       modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
       // There's only one PVC so it's automatically selected
       modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
