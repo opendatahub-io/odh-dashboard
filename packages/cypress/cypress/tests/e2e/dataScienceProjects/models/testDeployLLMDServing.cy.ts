@@ -24,7 +24,11 @@ let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
+let modelLocationType: string;
 let modelURI: string;
+let servingRuntime: string;
+let modelStatus: string;
+let modelType: string;
 let resourceType: string;
 let Image: string;
 
@@ -36,7 +40,11 @@ describe('A user can deploy an LLMD model', () => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
-        modelURI = testData.modelURI;
+        modelLocationType = testData.modelLocationType;
+        modelURI = testData.modelLocationURI;
+        modelType = testData.modelType;
+        servingRuntime = testData.servingRuntime;
+        modelStatus = testData.modelStatus;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
         resourceType = testData.resourceType;
@@ -85,21 +93,18 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Select Model details');
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption(modelLocationType).click();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionName().clear().type(`${modelName}-connection`);
-      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findSaveConnectionInput().clear().type(`${modelName}-connection`);
+      modelServingWizard.findModelTypeSelectOption(modelType).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-        .should('exist')
-        .click();
+      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
       // Verify replica settings are available for LLMD
       modelServingWizard.findNumReplicasInputField().should('exist').should('have.value', '1');
       modelServingWizard.findNextButton().should('be.enabled').click();
@@ -125,9 +130,9 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.visit(projectName);
 
       const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
-      llmdRow.findStatusLabel('Started');
+      llmdRow.findStatusLabel(modelStatus);
       // Expand row to verify deployment details
-      llmdRow.findServingRuntime().should('have.text', 'Distributed inference with llm-d');
+      llmdRow.findServingRuntime().should('have.text', servingRuntime);
     },
   );
 });
