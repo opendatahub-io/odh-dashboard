@@ -170,7 +170,6 @@ describe('Deploy catalog model', () => {
       .findModelTypeSelect()
       .should('contain.text', 'Generative AI model (Example, LLM)');
     modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
-    // modelServingWizard.findModelLocationSelectOption('URI').should('exist');
     modelServingWizard
       .findUrilocationInput()
       .should(
