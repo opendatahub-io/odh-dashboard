@@ -2,7 +2,7 @@ import { Spinner, Flex, FlexItem, Popover } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
+import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { NotebookKind } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
