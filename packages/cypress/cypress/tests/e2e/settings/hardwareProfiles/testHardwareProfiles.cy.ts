@@ -9,7 +9,7 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
   let testData: HardwareProfilesData;
-  let hardwareProfileName: string;
+  let hardwareProfileResourceName: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -20,11 +20,11 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
         testData = yaml.load(yamlContent) as HardwareProfilesData;
 
         // Load Hardware Profile
-        hardwareProfileName = `${testData.hardwareProfileName}-${uuid}`;
-        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileName}`);
+        hardwareProfileResourceName = `${testData.hardwareProfileName}-${uuid}`;
+        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
-        // Call cleanupHardwareProfiles here, after hardwareProfileName is set
-        return cleanupHardwareProfiles(hardwareProfileName);
+        // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
+        return cleanupHardwareProfiles(hardwareProfileResourceName);
       }),
   );
 
@@ -43,18 +43,20 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
       // Create a Hardware Profile
       cy.step('Create a Hardware Profile and confirm creation was successful');
       hardwareProfile.findCreateButton().click();
-      createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill(hardwareProfileName);
+      createHardwareProfile.k8sNameDescription
+        .findDisplayNameInput()
+        .fill(hardwareProfileResourceName);
       createHardwareProfile.findDescriptionTextBox().fill(testData.hardwareProfileDescription);
       createHardwareProfile.findSubmitButton().click();
       const toolbar = hardwareProfile.getUniqueTableToolbar();
-      toolbar.findSearchInput().type(hardwareProfileName);
-      const row = hardwareProfile.getUniqueRow(hardwareProfileName);
+      toolbar.findSearchInput().type(hardwareProfileResourceName);
+      const row = hardwareProfile.getUniqueRow(hardwareProfileResourceName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
 
       // Edit a Harware Profile
       cy.step('Edit the created hardware profile and confirm updates have been saved successfully');
       hardwareProfile
-        .getUniqueRow(hardwareProfileName)
+        .getUniqueRow(hardwareProfileResourceName)
         .findKebabAction('Edit')
         .click({ force: true });
       createHardwareProfile
@@ -62,15 +64,18 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
         .clear()
         .fill(testData.hardwareProfileEditedDescription);
       createHardwareProfile.findSubmitButton().click();
-      toolbar.findSearchInput().type(hardwareProfileName);
+      toolbar.findSearchInput().type(hardwareProfileResourceName);
       row.findDescription().should('contain', testData.hardwareProfileEditedDescription);
 
       cy.step('Delete the hardware profile and confirm deletion');
       // Delete a Hardware Profile
-      hardwareProfile.getRow(hardwareProfileName).findKebabAction('Delete').click({ force: true });
-      deleteModal.findInput().fill(hardwareProfileName);
+      hardwareProfile
+        .getRow(hardwareProfileResourceName)
+        .findKebabAction('Delete')
+        .click({ force: true });
+      deleteModal.findInput().fill(hardwareProfileResourceName);
       deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
-      row.findDescription().should('not.contain', hardwareProfileName);
+      row.findDescription().should('not.contain', hardwareProfileResourceName);
     },
   );
 });
