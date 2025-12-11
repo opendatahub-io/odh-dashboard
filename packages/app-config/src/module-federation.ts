@@ -11,7 +11,7 @@ import type {
  * The old format has `remoteEntry` as a required top-level property, while the new format
  * has it nested under `backend.remoteEntry`.
  */
-export const isOldConfig = (
+const isOldConfig = (
   config: ModuleFederationConfig | ModuleFederationConfigOld,
 ): config is ModuleFederationConfigOld => {
   return 'remoteEntry' in config;
@@ -26,7 +26,7 @@ export const isOldConfig = (
  * @param oldConfig - The deprecated config format
  * @returns The converted config in the new format
  */
-export const convertModuleFederationConfig = (
+const convertModuleFederationConfig = (
   oldConfig: ModuleFederationConfigOld,
 ): ModuleFederationConfig => {
   const { name, remoteEntry, authorize, local, service, proxy, tls } = oldConfig;
@@ -57,6 +57,7 @@ export const convertModuleFederationConfig = (
       ...(p.pathRewrite && { pathRewrite: p.pathRewrite }),
       service: normalizedService,
       ...(authorize !== undefined && { authorize }),
+      ...(tls !== undefined && { tls }),
       ...(local && {
         localService: {
           host: local.host,

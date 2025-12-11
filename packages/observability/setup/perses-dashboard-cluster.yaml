@@ -1,7 +1,7 @@
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
-  name: cluster
+  name: dashboard-0-cluster-admin
 spec:
   display:
     name: Cluster

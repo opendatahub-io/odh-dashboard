@@ -104,10 +104,27 @@ export type SimplifiedUsage = {
   total_tokens: number;
 };
 
+// File citation annotation from RAG responses
+export type FileCitationAnnotation = {
+  type: 'file_citation';
+  file_id: string;
+  filename: string;
+  start_index?: number;
+  end_index?: number;
+  index?: number;
+  title?: string;
+  url?: string;
+  container_id?: string;
+};
+
+// Generic annotation type (could be file_citation or other types from API)
+export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: string]: unknown };
+
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
   text: string;
+  annotations?: ContentAnnotation[];
 };
 
 export type OutputItem = {
@@ -135,6 +152,13 @@ export type MCPToolCallData = {
   toolOutput?: string;
 };
 
+// Source item for PatternFly Chatbot SourcesCard
+export type SourceItem = {
+  title: string;
+  link: string;
+  hasShowMore?: boolean;
+};
+
 // Frontend-friendly response type (flattened)
 export type SimplifiedResponseData = {
   id: string;
@@ -144,6 +168,7 @@ export type SimplifiedResponseData = {
   content: string;
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
+  sources?: SourceItem[]; // Optional - file sources from RAG annotations
 };
 
 export type FileError = {

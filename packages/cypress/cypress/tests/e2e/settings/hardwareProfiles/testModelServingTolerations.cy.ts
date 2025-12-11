@@ -1,3 +1,4 @@
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTolerationsTestData } from '../../../../types';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
@@ -133,7 +134,7 @@ describe('ModelServing - tolerations tests', () => {
       cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
