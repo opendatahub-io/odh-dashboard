@@ -12,6 +12,7 @@ import {
   decodeParams,
   getModelArtifactUri,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getDeployButtonState } from '../utils';
 
 type ModelCatalogDeployWrapperProps = {
   model: CatalogModel;
@@ -29,6 +30,11 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
+  const [availablePlatformIds, setAvailablePlatformIds] = React.useState<string[]>([]);
+  const platformIdButtonState = React.useMemo(
+    () => getDeployButtonState(availablePlatformIds, true),
+    [availablePlatformIds],
+  );
   const uri = artifacts.items.length > 0 ? getModelArtifactUri(artifacts.items) : '';
   const cancelReturnRoute = getCatalogModelDetailsRoute({
     sourceId: decodedParams.sourceId,
@@ -41,7 +47,8 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
       modelUri: uri,
       returnRouteValue: '/ai-hub/deployments/',
       cancelReturnRouteValue: cancelReturnRoute,
-      wizardStartIndex: 2,
+      wizardStartIndex: 1,
+      prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
     }),
     [model.name, uri, cancelReturnRoute],
   );
@@ -68,12 +75,26 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     !!uri;
 
   const buttonState =
-    canInitializeWizardNavigation && navigateToWizard !== null
+    platformIdButtonState.enabled && canInitializeWizardNavigation && navigateToWizard !== null
       ? { enabled: true }
-      : { enabled: false, tooltip: 'Deployment wizard is not available' };
+      : {
+          enabled: false,
+          tooltip: platformIdButtonState.tooltip || 'Deployment wizard is not available',
+        };
 
   return (
     <>
+      {navigateExtensions.map((extension) => {
+        return (
+          extension.properties.useAvailablePlatformIds && (
+            <HookNotify
+              key={extension.uid}
+              useHook={extension.properties.useAvailablePlatformIds}
+              onNotify={(value) => setAvailablePlatformIds(value ?? [])}
+            />
+          )
+        );
+      })}
       {/* Get navigation function only when we have all the prefill data */}
       {canInitializeWizardNavigation &&
         navigateExtensions.map((extension) => {

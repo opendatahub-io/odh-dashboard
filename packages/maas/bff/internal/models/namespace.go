@@ -6,9 +6,9 @@ type NamespaceModel struct {
 }
 
 func NewNamespaceModelFromNamespace(name string) NamespaceModel {
-	displayName := name // For now, use name as display name, but this can be customized later
+	displayName := name + "-maas" // For now, use name as display name, but this can be customized later
 	return NamespaceModel{
-		Name:        name,
+		Name:        name + "-maas",
 		DisplayName: &displayName,
 	}
 }

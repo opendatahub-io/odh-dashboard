@@ -45,31 +45,76 @@ metadata:
 spec:
   type: Monitoring
   monitoring:
-    acm:
-      enabled: true
-      alertmanager:
-        url: 'https://alertmanager.open-cluster-management-observability.svc:9095'
-      thanosQuerier:
-        url: 'https://rbac-query-proxy.open-cluster-management-observability.svc:8443'
     perses:
-      enabled: true
-    incidents:
       enabled: true
 EOF
 ```
 
-## 3. Apply Dashboard Resources
+## 3. Configure Monitoring (Cluster with Observability Stack)
 
-Apply all resources to your cluster:
+If running against a cluster with the observability stack, ensure that monitoring is enabled in the DSCInitialization with the following spec update:
 
-```bash
-oc apply -n opendatahub -f packages/observability/setup/
+```yaml
+  monitoring:
+    managementState: Managed
+    metrics:
+      storage:
+        retention: 90d
+        size: 5Gi
+    namespace: opendatahub
+    traces:
+      sampleRatio: '0.1'
+      storage:
+        backend: pv
+        retention: 2160h0m0s
+      tls:
+        enabled: true
 ```
 
-## Files
+## 4. Apply Dashboard Resources
 
-| File | Kind | Description |
-|------|------|-------------|
-| `prometheus-data-source.yaml` | PersesDatasource | Configures Thanos Querier as the Prometheus datasource |
-| `perses-dashboard-cluster.yaml` | PersesDashboard | Cluster-wide metrics dashboard (GPU, CPU, Memory, Network) |
-| `perses-dashboard-model.yaml` | PersesDashboard | Model performance metrics dashboard (latency, throughput, TTFT) |
+Apply the dashboard resources to your cluster:
+
+```bash
+oc apply -n opendatahub -f packages/observability/setup/perses-dashboard-cluster.yaml
+oc apply -n opendatahub -f packages/observability/setup/perses-dashboard-model.yaml
+```
+
+**Note:** If running on a cluster that doesn't support the monitoring stack, you also need to apply the data source:
+
+```bash
+oc apply -n opendatahub -f packages/observability/setup/prometheus-data-source.yaml
+```
+
+## 5. (Cluster with Monitoring) Network Policy for Dashboard Data
+
+If running on a cluster with monitoring enabled and data isn't loading in the dashboards, you may need to create a network policy in the application namespace to allow the Perses operator to access the dashboards:
+
+```bash
+oc apply -n opendatahub -f packages/observability/setup/network-policy-perses-operator-access.yaml
+```
+
+## 6. (Cluster with Monitoring) Update Federation Config for Perses Proxy
+
+When the monitoring component is available, you need to update the `federation-config` ConfigMap to set up the proxy to the running Perses instance.
+
+Add the following entry to the JSON array in the ConfigMap:
+
+```json
+{
+  "name": "perses",
+  "proxyService": [
+    {
+      "authorize": true,
+      "path": "/perses/api",
+      "pathRewrite": "",
+      "tls": false,
+      "service": {
+        "name": "data-science-perses",
+        "namespace": "opendatahub",
+        "port": 8080
+      }
+    }
+  ]
+}
+```

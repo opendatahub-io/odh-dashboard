@@ -1118,6 +1118,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('save-connection-name-desc-name');
   }
 
+  findPrefillAlert() {
+    return cy.findByTestId('prefill-alert');
+  }
+
   findExternalRouteCheckbox() {
     return cy.findByTestId('model-access-checkbox');
   }

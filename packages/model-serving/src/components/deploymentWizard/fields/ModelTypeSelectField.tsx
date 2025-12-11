@@ -5,6 +5,7 @@ import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ModelTypeLabel } from '../types';
 
 // Schema
 
@@ -58,11 +59,11 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       options={[
         {
           key: ServingRuntimeModelType.PREDICTIVE,
-          label: 'Predictive model',
+          label: ModelTypeLabel.PREDICTIVE,
         },
         {
           key: ServingRuntimeModelType.GENERATIVE,
-          label: 'Generative AI model (Example, LLM)',
+          label: ModelTypeLabel.GENERATIVE,
         },
       ]}
       onChange={(key) => {

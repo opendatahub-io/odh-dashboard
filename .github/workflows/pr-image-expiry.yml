@@ -1,7 +1,9 @@
 name: Apply PR Image Expiry Label
 
 on:
-  pull_request:
+  # Use pull_request_target to access secrets for PRs from forks
+  # This is safe because we only label existing images, not run untrusted PR code
+  pull_request_target:
     types: [closed]
   workflow_dispatch: {}
 
@@ -15,14 +17,11 @@ concurrency:
 env:
   # Default Quay image repo; can be overridden by secret if provided
   QUAY_ODH_DASHBOARD_IMAGE_REPO: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_REPO || 'quay.io/opendatahub/odh-dashboard' }}
-  # TODO: Change back to 21d after testing
-  EXPIRES_AFTER: 2h
+  EXPIRES_AFTER: ${{ secrets.QUAY_ODH_DASHBOARD_IMAGE_EXPIRES_AFTER || '21d' }}
 
 jobs:
   apply-expiry-label:
     runs-on: ubuntu-latest
-    # TODO: Remove this condition after testing - only run for test branch during validation
-    if: github.event.pull_request.head.ref == 'test/pr-image-expiry-RHOAIENG-13878-v2'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,6 +42,7 @@ jobs:
           crane version
 
       - name: Login to Quay
+        id: quay-login
         env:
           QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
           QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
@@ -50,35 +50,42 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${QUAY_ROBOT_USERNAME:-}" || -z "${QUAY_TOKEN:-}" ]]; then
-            echo "Quay credentials not available; skipping label application." && exit 0
+            echo "Quay credentials not available; skipping label application."
+            echo "logged_in=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           crane auth login quay.io -u "$QUAY_ROBOT_USERNAME" -p "$QUAY_TOKEN"
+          echo "logged_in=true" >> "$GITHUB_OUTPUT"
 
       - name: Apply expiry label to PR image (best-effort)
+        if: steps.quay-login.outputs.logged_in == 'true'
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
           set -euo pipefail
           if [[ -z "${PR_NUMBER:-}" ]]; then
-            echo "No PR number provided; nothing to do." && exit 0
+            echo "Not a pull_request event; nothing to do." && exit 0
           fi
 
           IMAGE_REF="${QUAY_ODH_DASHBOARD_IMAGE_REPO}:pr-${PR_NUMBER}"
           echo "Target image: $IMAGE_REF"
 
           # Wait for the PR image to exist (Konflux/AppStudio push) up to ~2 minutes
+          image_found=false
           for i in {1..12}; do
             if crane manifest "$IMAGE_REF" >/dev/null 2>&1; then
               echo "Found image $IMAGE_REF"
+              image_found=true
               break
             fi
             echo "Image not found yet. Retry $i/12 ..."
             sleep 10
           done
 
-          if ! crane manifest "$IMAGE_REF" >/dev/null 2>&1; then
-            echo "PR image not available; skipping label application." && exit 0
+          if [[ "$image_found" != "true" ]]; then
+            echo "PR image not available; skipping label application."
+            exit 0
           fi
 
           echo "Applying label quay.expires-after=${EXPIRES_AFTER} to $IMAGE_REF"
