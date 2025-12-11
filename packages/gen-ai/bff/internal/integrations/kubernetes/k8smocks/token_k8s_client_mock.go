@@ -400,10 +400,9 @@ providers:
     provider_type: inline::milvus
     config:
       db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
-      kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/milvus_registry.db
+      persistence:
+        namespace: vector_io::milvus
+        backend: kv_default
   safety: []
   eval: []
   files:
@@ -412,16 +411,15 @@ providers:
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
-        type: sqlite
-        db_path: /opt/app-root/src/.llama/distributions/rh/files_metadata.db
+        table_name: files_metadata
+        backend: sql_default
   datasetio:
   - provider_id: huggingface
     provider_type: remote::huggingface
     config:
       kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/huggingface_datasetio.db
+        namespace: datasetio::huggingface
+        backend: kv_default
   scoring:
   - provider_id: basic
     provider_type: inline::basic
@@ -449,6 +447,24 @@ metadata_store:
   db_path: /opt/app-root/src/.llama/distributions/rh/registry.db
   type: sqlite
   db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/sql_store.db
+  stores:
+    metadata:
+      namespace: registry
+      backend: kv_default
+    inference:
+      table_name: inference_store
+      backend: sql_default
+    conversations:
+      table_name: openai_conversations
+      backend: sql_default
 models:
   - metadata:
       embedding_dimension: 768

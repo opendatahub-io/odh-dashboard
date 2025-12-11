@@ -14,6 +14,10 @@ TEST_USER_3:
   AUTH_TYPE: contributor-auth
   USERNAME: contributor-username
   PASSWORD: contributor-passwd
+TEST_USER_5:
+  AUTH_TYPE: cluster-admin-auth
+  USERNAME: cluster-admin-username
+  PASSWORD: cluster-admin-passwd
 OCP_ADMIN_USER:
   AUTH_TYPE: adm-auth
   USERNAME: adminuser
