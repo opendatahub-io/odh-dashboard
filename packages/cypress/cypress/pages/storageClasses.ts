@@ -22,6 +22,10 @@ class StorageClassesPage {
     cy.testA11y();
   }
 
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
   findNavItem() {
     return appChrome.findNavItem({
       name: 'Storage classes',

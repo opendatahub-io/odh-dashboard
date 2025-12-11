@@ -131,7 +131,7 @@ export function extractHttpsUrlsWithLocation(directory: string): UrlLocation[] {
           yamlDocuments.forEach((yamlContent) => {
             if (typeof yamlContent === 'object' && yamlContent !== null) {
               Object.values(yamlContent).forEach((value) =>
-                extractUrlsWithLocation(value, urlLocations, filePath, 0),
+                extractUrlsWithLocation(value as YamlValue, urlLocations, filePath, 0),
               );
             }
           });
