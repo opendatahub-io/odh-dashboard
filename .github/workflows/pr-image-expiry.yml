@@ -54,7 +54,7 @@ jobs:
       - name: Login to Quay
         id: quay-login
         env:
-          QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
           QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
         shell: bash
         run: |
