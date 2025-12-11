@@ -99,7 +99,7 @@ describe('Verify Hardware Profiles - Creating with various complexity in name', 
           cy.log(`Loaded Hardware Profile Name: ${hardwareProfileName}`);
         });
 
-        // Cleanup Hardware Profiles if they already exist - chain properly
+        // Cleanup Hardware Profiles if they already exist
         return cy.wrap(hardwareProfileNames).each((profileName: string) => {
           return cleanupHardwareProfiles(profileName);
         });
@@ -134,7 +134,7 @@ describe('Verify Hardware Profiles - Creating with various complexity in name', 
   );
 
   after(() => {
-    // Cleanup all hardware profiles - chain properly
+    // Cleanup all hardware profiles
     return cy.wrap(hardwareProfileNames).each((profileName: string) => {
       cy.log(`Cleaning up Hardware Profile: ${profileName}`);
       return cleanupHardwareProfiles(profileName);
