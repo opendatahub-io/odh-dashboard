@@ -1197,7 +1197,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		}
 
 		// Extract endpoint from LLMInferenceService
-		endpointURL, extractErr := kc.extractEndpointFromLLMInferenceService(ctx, targetLLMSVC, namespace)
+		endpointURL, extractErr := kc.extractEndpointFromLLMInferenceService(ctx, targetLLMSVC)
 		if extractErr != nil {
 			kc.Logger.Error("failed to extract endpoint from LLMInferenceService", "modelID", modelID, "error", extractErr)
 			return nil, fmt.Errorf("failed to extract endpoint from LLMInferenceService for model '%s': %w", modelID, extractErr)
@@ -1406,21 +1406,21 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 }
 
 // extractEndpointFromLLMInferenceService extracts the endpoint URL from LLMInferenceService by constructing internal URL from its Service
-func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService, namespace string) (string, error) {
+func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
 	// Find services owned by this LLMInferenceService
-	services, err := kc.findServicesForKServeResource(ctx, namespace, llmSvc)
+	services, err := kc.findServicesForKServeResource(ctx, llmSvc.Namespace, llmSvc)
 	if err != nil {
 		kc.Logger.Error("failed to find services for LLMInferenceService", "name", llmSvc.Name, "error", err)
 		return "", fmt.Errorf("failed to find services for LLMInferenceService '%s': %w", llmSvc.Name, err)
 	}
 	if len(services) == 0 {
-		kc.Logger.Error("no services found for LLMInferenceService", "name", llmSvc.Name, "namespace", namespace)
+		kc.Logger.Error("no services found for LLMInferenceService", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
 		return "", fmt.Errorf("no services found for LLMInferenceService '%s' - service may not be ready", llmSvc.Name)
 	}
 
 	// Use the first service to construct internal URL
 	svc := services[0]
-	port := kc.getServingPort(ctx, namespace, svc.Name)
+	port := kc.getServingPort(ctx, llmSvc.Namespace, svc.Name)
 
 	// Determine scheme based on authentication annotation
 	scheme := "http"
@@ -1430,7 +1430,7 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx cont
 
 	// Construct internal URL from service name with port
 	// LLMInferenceService workload services (KServe headless mode) always require port
-	internalURL := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, svc.Name, namespace, port)
+	internalURL := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, svc.Name, llmSvc.Namespace, port)
 
 	kc.Logger.Info("constructed internal URL for LLMInferenceService",
 		"llmServiceName", llmSvc.Name,
