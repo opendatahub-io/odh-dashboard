@@ -128,6 +128,9 @@ export const setupBaseMCPServerMocks = (
   }
 
   cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
+
+  // Mock user endpoint to prevent Kubernetes config errors
+  cy.interceptGenAi('GET /api/v1/user', { data: { userId: 'test-user' } });
 };
 
 export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
