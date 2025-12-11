@@ -84,6 +84,9 @@ const extensions: (
       platform: KSERVE_ID,
       watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.platform/delete-deployment',
@@ -93,6 +96,9 @@ const extensions: (
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.metrics',
@@ -100,7 +106,7 @@ const extensions: (
       platform: KSERVE_ID,
     },
     flags: {
-      required: [SupportedArea.K_SERVE_METRICS],
+      required: [SupportedArea.K_SERVE, SupportedArea.K_SERVE_METRICS],
     },
   },
   {
@@ -108,6 +114,9 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       ServingDetailsComponent: () => import('./src/components/deploymentServingDetails'),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -117,12 +126,18 @@ const extensions: (
       patchDeploymentStoppedStatus: () =>
         import('./src/deploymentStatus').then((m) => m.patchDeploymentStoppedStatus),
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.platform/fetch-deployment-status',
     properties: {
       platform: KSERVE_ID,
       fetch: () => import('./src/deployments').then((m) => m.fetchDeploymentStatus),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -147,6 +162,9 @@ const extensions: (
       hardwareProfilePaths: () =>
         import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.deployment/deploy',
@@ -156,6 +174,9 @@ const extensions: (
       priority: 0,
       supportsOverwrite: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
 ];

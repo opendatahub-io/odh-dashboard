@@ -7,11 +7,15 @@ import type {
   ModelServingDeleteModal,
   ModelServingDeploymentTransformExtension,
 } from '@odh-dashboard/model-serving/extension-points';
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { LLMdDeployment } from '../src/types';
+import type { AreaExtension } from '../../plugin-core/src/extension-points/areas';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
 const extensions: (
+  | AreaExtension
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
   | DeployedModelServingDetails<LLMdDeployment>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
@@ -21,11 +25,21 @@ const extensions: (
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
 )[] = [
   {
+    type: 'app.area',
+    properties: {
+      id: LLMD_SERVING_ID,
+      reliantAreas: [SupportedArea.K_SERVE],
+    },
+  },
+  {
     type: 'model-serving.platform/watch-deployments',
     properties: {
       platform: LLMD_SERVING_ID,
       watch: () =>
         import('../src/deployments/useWatchDeployments').then((m) => m.useWatchDeployments),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -33,6 +47,9 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       ServingDetailsComponent: () => import('../src/components/servingRuntime'),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -59,6 +76,9 @@ const extensions: (
           (m) => m.LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
         ),
     },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
   },
   {
     type: 'model-serving.platform/delete-deployment',
@@ -67,6 +87,9 @@ const extensions: (
       onDelete: () => import('../src/api/LLMdDeployment').then((m) => m.deleteDeployment),
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -78,12 +101,18 @@ const extensions: (
       isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
   },
   {
     type: 'model-serving.deployment/wizard-field',
     properties: {
       platform: LLMD_SERVING_ID,
       field: () => import('../src/wizardFields/modelServerField').then((m) => m.modelServerField),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -94,7 +123,7 @@ const extensions: (
         import('../src/wizardFields/modelAvailability').then((m) => m.modelAvailabilityField),
     },
     flags: {
-      required: ['model-as-service'],
+      required: ['model-as-service', LLMD_SERVING_ID],
     },
   },
   {
@@ -104,6 +133,9 @@ const extensions: (
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.externalRouteField),
     },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
   },
   {
     type: 'model-serving.deployment/wizard-field',
@@ -112,6 +144,9 @@ const extensions: (
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.tokenAuthField),
     },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
   },
   {
     type: 'model-serving.deployment/wizard-field',
@@ -119,6 +154,9 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.deploymentStrategyField),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
 ];
