@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -13,8 +14,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -118,7 +121,8 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		// Async upload returns 202 Accepted with job_id
+		assert.Equal(t, http.StatusAccepted, rr.Code)
 
 		respBody, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
@@ -132,10 +136,11 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.Contains(t, response, "data")
 		data := response["data"].(map[string]interface{})
 
-		// Verify mock response structure
-		assert.Contains(t, data, "file_id")
-		assert.Equal(t, "file-mock123abc456def", data["file_id"])
-		assert.Contains(t, data, "vector_store_file")
+		// Verify async job response structure
+		assert.Contains(t, data, "job_id")
+		assert.Contains(t, data, "status")
+		assert.Equal(t, "pending", data["status"])
+		assert.NotEmpty(t, data["job_id"])
 	})
 
 	t.Run("should upload file with optional parameters", func(t *testing.T) {
@@ -154,7 +159,8 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		// Async upload returns 202 Accepted
+		assert.Equal(t, http.StatusAccepted, rr.Code)
 
 		respBody, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
@@ -167,12 +173,11 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		// Verify envelope structure
 		assert.Contains(t, response, "data")
 		data := response["data"].(map[string]interface{})
-		assert.Equal(t, "file-mock123abc456def", data["file_id"])
 
-		// Verify vector store file details
-		vectorStoreFile := data["vector_store_file"].(map[string]interface{})
-		assert.Equal(t, "vs_test123", vectorStoreFile["vector_store_id"])
-		assert.Equal(t, "completed", vectorStoreFile["status"])
+		// Verify async job response
+		assert.Contains(t, data, "job_id")
+		assert.Contains(t, data, "status")
+		assert.Equal(t, "pending", data["status"])
 	})
 
 	t.Run("should return error when file is missing", func(t *testing.T) {
@@ -254,9 +259,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		// Async upload returns 202 Accepted
+		assert.Equal(t, http.StatusAccepted, rr.Code)
 
-		// Verify response structure matches FileUploadResult
+		// Verify response structure matches async job response
 		var response map[string]interface{}
 		respBody, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
@@ -269,12 +275,10 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		assert.Contains(t, response, "data")
 		data := response["data"].(map[string]interface{})
 
-		// Should have FileUploadResult structure
-		assert.Contains(t, data, "file_id")
-		assert.Contains(t, data, "vector_store_file")
-
-		// Verify mock file ID
-		assert.Equal(t, "file-mock123abc456def", data["file_id"])
+		// Should have async job response structure
+		assert.Contains(t, data, "job_id")
+		assert.Contains(t, data, "status")
+		assert.Equal(t, "pending", data["status"])
 	})
 
 	t.Run("should handle static chunking parameters", func(t *testing.T) {
@@ -308,7 +312,8 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		app.LlamaStackUploadFileHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
+		// Async upload returns 202 Accepted
+		assert.Equal(t, http.StatusAccepted, rr.Code)
 
 		responseBody, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
@@ -321,7 +326,42 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		// Verify envelope structure
 		assert.Contains(t, response, "data")
 		data := response["data"].(map[string]interface{})
-		assert.Equal(t, "file-mock123abc456def", data["file_id"])
+
+		// Verify async job response
+		assert.Contains(t, data, "job_id")
+		assert.Contains(t, data, "status")
+		assert.Equal(t, "pending", data["status"])
+	})
+
+	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
+		body, contentType, err := createMultipartFormData("test.txt", "Test content", "vs_test123", "", "")
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/files/upload?namespace=test-namespace", bytes.NewReader(body))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", contentType)
+
+		// Do NOT add namespace to context (simulate middleware failure)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackUploadFileHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+		respBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(respBody, &response)
+		assert.NoError(t, err)
+
+		// The error response uses a generic message for server errors
+		errorObj := response["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "server encountered a problem")
 	})
 }
 
@@ -410,6 +450,247 @@ func TestLlamaStackListFilesHandler(t *testing.T) {
 		app.LlamaStackListFilesHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
+	// Save current working directory
+	originalWd, err := os.Getwd()
+	assert.NoError(t, err)
+
+	// Change to project root directory
+	projectRoot := filepath.Join(originalWd, "..", "..")
+	err = os.Chdir(projectRoot)
+	assert.NoError(t, err)
+
+	defer func() {
+		err := os.Chdir(originalWd)
+		assert.NoError(t, err)
+	}()
+
+	// Create test app with full configuration
+	cfg := config.EnvConfig{
+		Port:            4000,
+		APIPathPrefix:   "/api/v1",
+		StaticAssetsDir: "static",
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
+		MockLSClient:    true,
+		LlamaStackURL:   testutil.TestLlamaStackURL,
+		MockK8sClient:   true,
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	app, err := NewApp(cfg, logger)
+	assert.NoError(t, err)
+
+	t.Run("should return pending status for newly created job", func(t *testing.T) {
+		// Create a job first
+		namespace := "test-namespace"
+		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// Verify envelope structure
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+
+		// Verify status response
+		assert.Equal(t, jobID, data["job_id"])
+		assert.Equal(t, "pending", data["status"])
+		assert.Contains(t, data, "created_at")
+		assert.Contains(t, data, "updated_at")
+	})
+
+	t.Run("should return processing status", func(t *testing.T) {
+		namespace := "test-namespace"
+		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+		err := app.fileUploadJobTracker.UpdateJobStatus(namespace, jobID, "processing")
+		assert.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "processing", data["status"])
+	})
+
+	t.Run("should return completed status with result", func(t *testing.T) {
+		namespace := "test-namespace"
+		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+
+		// Set job result
+		completedStatus := openai.VectorStoreFileStatusCompleted
+		result := &llamastack.FileUploadResult{
+			FileID: "file-test-123",
+			VectorStoreFile: &openai.VectorStoreFile{
+				ID:            "vsf-test-456",
+				VectorStoreID: "vs-test-789",
+				Status:        completedStatus,
+			},
+		}
+		err := app.fileUploadJobTracker.SetJobResult(namespace, jobID, result)
+		assert.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "completed", data["status"])
+		assert.Contains(t, data, "result")
+
+		resultData := data["result"].(map[string]interface{})
+		assert.Equal(t, "file-test-123", resultData["file_id"])
+	})
+
+	t.Run("should return failed status with error", func(t *testing.T) {
+		namespace := "test-namespace"
+		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+
+		// Set job error
+		err := app.fileUploadJobTracker.SetJobError(namespace, jobID, errors.New("upload failed: network timeout"))
+		assert.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		data := response["data"].(map[string]interface{})
+		assert.Equal(t, "failed", data["status"])
+		assert.Equal(t, "upload failed: network timeout", data["error"])
+	})
+
+	t.Run("should return error when job_id is missing", func(t *testing.T) {
+		namespace := "test-namespace"
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace, nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		errorObj := response["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "job_id query parameter is required")
+	})
+
+	t.Run("should return 404 when job does not exist", func(t *testing.T) {
+		namespace := "test-namespace"
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id=non-existent-job", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("should isolate jobs by namespace", func(t *testing.T) {
+		namespace1 := "namespace-1"
+		namespace2 := "namespace-2"
+
+		// Create job in namespace1
+		jobID := app.fileUploadJobTracker.CreateJob(namespace1)
+
+		// Try to access from namespace2
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace2+"&job_id="+jobID, nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace2)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		// Should not find job in different namespace
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?job_id=test-job", nil)
+		// Do not add namespace to context
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackFileUploadStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+		responseBody, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(responseBody, &response)
+		assert.NoError(t, err)
+
+		// The error response uses a generic message for server errors
+		errorObj := response["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "server encountered a problem")
 	})
 }
 
