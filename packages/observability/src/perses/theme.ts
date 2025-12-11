@@ -142,13 +142,6 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
                 paddingRight: 'var(--pf-t--global--spacer--lg)',
               },
             },
-            '& .MuiBox-root': {
-              alignItems: 'flex-start',
-            },
-            // Remove left padding from stat chart values (h3 inside cards only)
-            '& .MuiTypography-h3': {
-              paddingLeft: 0,
-            },
           },
         },
       },
