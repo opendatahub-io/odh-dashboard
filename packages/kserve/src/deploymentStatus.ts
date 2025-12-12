@@ -5,10 +5,9 @@ import {
   getInferenceServiceStatusMessage,
 } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
 import { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
-import { isModelServingStopped } from './utils';
+import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { KServeDeployment } from './deployments';
 
 export const patchDeploymentStoppedStatus = (
@@ -44,24 +43,11 @@ export const getKServeDeploymentStatus = (
   const state = getInferenceServiceModelState(inferenceService, modelPodStatus);
   const message = getInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
-  const isStopped = isModelServingStopped(inferenceService);
-  const stoppedStates = {
-    // ISVC doesn't have annotation and state is LOADED
-    isRunning:
-      (state === ModelDeploymentState.LOADED || state === ModelDeploymentState.FAILED_TO_LOAD) &&
-      !isStopped,
-    // ISVC has annotation and there are no pods
-    isStopped: isStopped && !deploymentPod,
-    // ISVC doesn't have annotation and state is PENDING, LOADING, STANDBY or UNKNOWN
-    isStarting:
-      (state === ModelDeploymentState.PENDING ||
-        state === ModelDeploymentState.LOADING ||
-        state === ModelDeploymentState.STANDBY ||
-        state === ModelDeploymentState.UNKNOWN) &&
-      !isStopped,
-    // ISVC has annotation and there are pods
-    isStopping: isStopped && !!deploymentPod,
-  };
+  const stoppedStates = getModelDeploymentStoppedStates(
+    state,
+    inferenceService.metadata.annotations,
+    deploymentPod,
+  );
 
   return { state, message, stoppedStates };
 };

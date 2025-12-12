@@ -6,6 +6,7 @@ import type {
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
   ModelServingDeploymentTransformExtension,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '../src/types';
 
@@ -19,6 +20,7 @@ const extensions: (
   | ModelServingDeploy<LLMdDeployment>
   | DeploymentWizardFieldExtension<LLMdDeployment>
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
+  | ModelServingStartStopAction<LLMdDeployment>
 )[] = [
   {
     type: 'model-serving.platform/watch-deployments',
@@ -119,6 +121,14 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.deploymentStrategyField),
+    },
+  },
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
 ];
