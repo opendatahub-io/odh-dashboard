@@ -15,6 +15,7 @@ import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
+import EmptyModelServingPlatformSection from './NoProjectServingEnabledSection';
 import {
   useProjectServingPlatform,
   type ModelServingPlatform,
@@ -39,6 +40,10 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
     projectPlatformError,
     clearProjectPlatformError,
   } = useProjectServingPlatform(currentProject, platforms);
+
+  if (platforms.length === 0 && !activePlatform) {
+    return <EmptyModelServingPlatformSection />;
+  }
 
   // If no platform is selected -
   if (!activePlatform) {
