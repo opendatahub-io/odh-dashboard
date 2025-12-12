@@ -1,0 +1,11 @@
+projectName: trainer-v2-test
+trainJobName: test-train-job
+trainingRuntimeName: test-training-runtime
+flavorName: default-flavor
+clusterQueueName: default
+localQueueName: default
+cpuQuota: 100
+memoryQuota: 200
+gpuQuota: 8
+
+
