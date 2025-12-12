@@ -31,7 +31,6 @@ import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import FeatureStoreIntegration from '#~/pages/projects/featureStoreConfig/FeatureStoreIntegration';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -49,7 +48,6 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const featureStoreEnabled = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -176,15 +174,6 @@ const ProjectDetails: React.FC = () => {
               title: 'Connections',
               component: <ConnectionsList />,
             },
-            ...(featureStoreEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.FEATURE_STORE,
-                    title: 'Feature store integration',
-                    component: <FeatureStoreIntegration />,
-                  },
-                ]
-              : []),
             ...(projectSharingEnabled && allowCreate
               ? [
                   {
@@ -207,7 +196,6 @@ const ProjectDetails: React.FC = () => {
           [
             allowCreate,
             biasMetricsAreaAvailable,
-            featureStoreEnabled,
             pipelinesEnabled,
             projectSharingEnabled,
             workbenchEnabled,
