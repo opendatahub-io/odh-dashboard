@@ -8,8 +8,8 @@ export interface TrainerStatus {
   totalSteps?: number | null;
   currentEpoch?: number | null;
   totalEpochs?: number | null;
-  trainMetrics?: Record<string, number> | null;
-  evalMetrics?: Record<string, number> | null;
+  trainMetrics?: Record<string, string | number | null> | null;
+  evalMetrics?: Record<string, string | number | null> | null;
   lastUpdatedTime?: string;
 }
 

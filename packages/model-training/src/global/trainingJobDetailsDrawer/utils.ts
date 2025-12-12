@@ -143,3 +143,26 @@ export const getTrainerStatus = (job: TrainJobKind): TrainerStatus | null => {
     return null;
   }
 };
+
+/**
+ * Formats a metric key from snake_case or camelCase to a readable label.
+ * e.g., "grad_norm" -> "Grad norm", "learningRate" -> "Learning rate"
+ */
+export const formatMetricLabel = (key: string): string => {
+  const words = key
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/**
+ * Formats a metric value for display.
+ * Handles null, undefined, numbers, and strings.
+ */
+export const formatMetricValue = (value: string | number | null | undefined): string => {
+  if (value == null) {
+    return '-';
+  }
+  return String(value);
+};
