@@ -11,7 +11,7 @@ import {
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import type { ModelRegistryTestData } from '../../../types';
 
-describe('Verify a model registry can be created and deleted', () => {
+describe('[Product Bug: RHOAIENG-41476] Verify a model registry can be created and deleted', () => {
   let testData: ModelRegistryTestData;
   let deploymentName: string;
   let registryName: string;
@@ -41,7 +41,7 @@ describe('Verify a model registry can be created and deleted', () => {
 
   it(
     'Creates a model registry and then deletes it',
-    { tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4', '@NonConcurrent'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4', '@NonConcurrent', '@Bug'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
