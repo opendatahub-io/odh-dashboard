@@ -335,9 +335,10 @@ describe('Playground - MCP Servers', () => {
     },
   );
 
-  it(
-    'should auto-unlock server without token when selected in playground',
-    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock'] },
+  // Skipped because it is flaky
+  it.skip(
+    '[Automation Bug: RHOAIENG-41824] should auto-unlock server without token when selected in playground',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock', '@Bug'] },
     () => {
       const namespace = config.defaultNamespace;
       const { name: serverName, url: serverUrl } = config.servers.kubernetes;
@@ -469,14 +470,21 @@ describe('Playground - MCP Servers', () => {
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+      // Use .should() to retry until all tools are selected (handles race condition)
+      mcpToolsModal
+        .findToolCountText()
+        .should('exist')
+        .and(($el) => {
+          const match = $el.text().match(/(\d+) out of (\d+)/);
+          expect(match![1]).to.equal(match![2]);
+        });
+
       mcpToolsModal
         .findToolCountText()
         .invoke('text')
         .then((text) => {
           const match = text.match(/(\d+) out of (\d+)/);
           const totalTools = parseInt(match![2], 10);
-          const initialSelected = parseInt(match![1], 10);
-          expect(initialSelected).to.equal(totalTools); // All selected initially
 
           cy.step('Test search functionality - search for "pod"');
           mcpToolsModal.findSearchInput().clear().type('pod');

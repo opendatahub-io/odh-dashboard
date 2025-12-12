@@ -260,8 +260,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Retrieve and inject MaaS provider data for custom headers
-	providerData := app.getMaaSProviderData(ctx, createRequest.Model)
+	// Retrieve and inject provider data for custom headers (MaaS or LLMInferenceService)
+	providerData := app.getProviderData(ctx, createRequest.Model)
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -427,7 +427,30 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	return nil
 }
 
-// getMaaSProviderData retrieves and caches MaaS tokens for models, returning provider data for injection
+// getProviderData retrieves provider data (auth tokens) for models
+func (app *App) getProviderData(ctx context.Context, modelID string) map[string]interface{} {
+	// Try MaaS first
+	if maasData := app.getMaaSProviderData(ctx, modelID); maasData != nil {
+		return maasData
+	}
+	// Then try user JWT for InferenceService and LLMInferenceService
+	return app.getUserJWTProviderData(ctx, modelID)
+}
+
+// getUserJWTProviderData retrieves user JWT token for InferenceService and LLMInferenceService models
+func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[string]interface{} {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil || identity.Token == "" {
+		return nil
+	}
+
+	app.logger.Debug("Injected user JWT token as provider data", "model", modelID)
+	return map[string]interface{}{
+		"vllm_api_token": identity.Token,
+	}
+}
+
+// getMaaSProviderData retrieves and caches MaaS tokens for MaaS models
 func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
