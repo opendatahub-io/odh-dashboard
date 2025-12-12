@@ -138,3 +138,82 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	f.clients[identity.Token] = client
 	return client, nil
 }
+
+// ─── MOCK FACTORIES FOR TESTING ───────────────────────────────────────────────
+
+// NewMockTokenClientFactory creates a basic mock factory for simple tests
+func NewMockTokenClientFactory() k8s.KubernetesClientFactory {
+	return &ConfigurableMockTokenClientFactory{
+		CanListLSDAllowed: true, // Default to allowed
+	}
+}
+
+// FailingMockTokenClientFactory simulates GetClient failures
+type FailingMockTokenClientFactory struct {
+	GetClientError error
+}
+
+func (f *FailingMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return nil, f.GetClientError
+}
+
+func (f *FailingMockTokenClientFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "valid-token"}, nil
+}
+
+func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
+// ConfigurableMockTokenClientFactory allows configuring CanListLlamaStackDistributions behavior
+type ConfigurableMockTokenClientFactory struct {
+	CanListLSDAllowed bool
+	CanListLSDError   error
+}
+
+func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return &ConfigurableMockKubernetesClient{
+		CanListLSDAllowed: f.CanListLSDAllowed,
+		CanListLSDError:   f.CanListLSDError,
+	}, nil
+}
+
+func (f *ConfigurableMockTokenClientFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "valid-token"}, nil
+}
+
+func (f *ConfigurableMockTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
+// ConfigurableMockKubernetesClient allows configuring authorization check behavior
+type ConfigurableMockKubernetesClient struct {
+	k8s.KubernetesClientInterface
+	CanListLSDAllowed bool
+	CanListLSDError   error
+}
+
+func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	if c.CanListLSDError != nil {
+		return false, c.CanListLSDError
+	}
+	return c.CanListLSDAllowed, nil
+}
+
+// Helper functions to create k8s error types for testing
+
+func NewUnauthorizedError() error {
+	// Return K8sError types to match the real implementation
+	return k8s.NewUnauthorizedError("authentication failed: invalid or expired token")
+}
+
+func NewForbiddenError() error {
+	// Return K8sError types to match the real implementation
+	return k8s.NewPermissionDeniedError("test-namespace", "insufficient permissions to access services in this namespace")
+}
