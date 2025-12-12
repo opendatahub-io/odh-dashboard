@@ -28,6 +28,7 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
+import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -1794,6 +1795,663 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'vLLM AMD');
+    });
+  });
+  describe('Model location data prefill', () => {
+    beforeEach(() => {
+      initIntercepts({});
+    });
+
+    it('should prefill model location data for saved S3, saved OCI, and saved URI', () => {
+      const savedS3Secret = mockSecretK8sResource({
+        name: 'saved-s3-secret',
+        namespace: 'test-project',
+        displayName: 'Saved S3 Secret',
+        connectionType: 's3',
+        data: {
+          AWS_ACCESS_KEY_ID: 'dGVzdC1rZXk=',
+          AWS_SECRET_ACCESS_KEY: 'dGVzdC1zZWNyZXQ=',
+          AWS_S3_ENDPOINT: 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
+          AWS_S3_BUCKET: 'dGVzdC1idWNrZXQ=',
+          AWS_DEFAULT_REGION: 'dXMtZWFzdC0x',
+        },
+      });
+
+      const savedOCISecret = mockCustomSecretK8sResource({
+        name: 'saved-oci-secret',
+        namespace: 'test-project',
+        type: 'kubernetes.io/dockerconfigjson',
+        annotations: {
+          'opendatahub.io/connection-type-protocol': 'oci',
+          'opendatahub.io/connection-type-ref': 'oci-v1',
+          'openshift.io/display-name': 'Saved OCI Secret',
+        },
+        data: {
+          '.dockerconfigjson':
+            'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+          OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+          ACCESS_TYPE: 'WyJQdWxsIl0=',
+        },
+      });
+
+      const savedURISecret = mockSecretK8sResource({
+        name: 'saved-uri-secret',
+        namespace: 'test-project',
+        displayName: 'Saved URI Secret',
+        connectionType: 'uri',
+        data: {
+          URI: 'aHR0cHM6Ly90ZXN0LmlvL29yZ2FuaXphdGlvbi90ZXN0LW1vZGVsOmxhdGVzdA==',
+        },
+      });
+      const savedURIModel = mockInferenceServiceK8sResource({
+        name: 'saved-uri-model',
+        displayName: 'Saved URI Model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        storageUri: 'https://test.io/organization/test-model:latest',
+        secretName: 'saved-uri-secret',
+      });
+
+      const savedS3Model = mockInferenceServiceK8sResource({
+        name: 'saved-s3-model',
+        displayName: 'Saved S3 Model',
+        secretName: 'saved-s3-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        predictorAnnotations: {
+          'opendatahub.io/connection-path': 'test-model/',
+        },
+      });
+
+      const savedOCIModel = mockInferenceServiceK8sResource({
+        name: 'saved-oci-model',
+        displayName: 'Saved OCI Model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        imagePullSecrets: [{ name: 'saved-oci-secret' }],
+        storageUri: 'oci://test.io/organization/test-model:latest',
+      });
+
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([savedS3Secret, savedOCISecret, savedURISecret]),
+      );
+
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([savedS3Model, savedOCIModel, savedURIModel]),
+      );
+
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      // Saved S3 connection - should prefill 'existing connection', select it, and show model path
+      modelServingGlobal.getModelRow('Saved S3 Model').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Saved S3 Secret');
+      modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Saved OCI connection - should prefill existing connection, select it, and show model URI
+      modelServingGlobal.getModelRow('Saved OCI Model').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Saved OCI Secret');
+      modelServingWizardEdit
+        .findOCIModelURI()
+        .should('have.value', 'test.io/organization/test-model:latest');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Saved URI connection - should prefill existing connection
+      modelServingGlobal.getModelRow('Saved URI Model').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Saved URI Secret');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+    });
+
+    it('should prefill model location data for unsaved S3, unsaved OCI, and unsaved URI', () => {
+      const unsavedS3Secret = mockSecretK8sResource({
+        name: 'secret-12345-unsaved-s3',
+        namespace: 'test-project',
+        displayName: 'Unsaved S3 Secret',
+        connectionType: 's3',
+        data: {
+          AWS_ACCESS_KEY_ID: 'dW5zYXZlZC1rZXk=',
+          AWS_SECRET_ACCESS_KEY: 'dW5zYXZlZC1zZWNyZXQ=',
+          AWS_S3_ENDPOINT: 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
+          AWS_S3_BUCKET: 'dW5zYXZlZC1idWNrZXQ=',
+        },
+      });
+      // Add ownerReferences to make it an unsaved connection
+      unsavedS3Secret.metadata.ownerReferences = [
+        {
+          apiVersion: 'v1',
+          kind: 'InferenceService',
+          name: 'unsaved-s3-model',
+          uid: 'test-uid',
+        },
+      ];
+
+      const unsavedURISecret = mockSecretK8sResource({
+        name: 'secret-12345-unsaved-uri',
+        namespace: 'test-project',
+        displayName: 'Unsaved URI Secret',
+        connectionType: 'uri',
+        data: {
+          URI: 'aHR0cHM6Ly90ZXN0LmlvL29yZ2FuaXphdGlvbi90ZXN0LW1vZGVsOmxhdGVzdA==',
+        },
+      });
+      // Add ownerReferences to make it an unsaved connection
+      unsavedURISecret.metadata.ownerReferences = [
+        {
+          apiVersion: 'v1',
+          kind: 'InferenceService',
+          name: 'unsaved-uri-model',
+          uid: 'test-uid',
+        },
+      ];
+
+      const unsavedOCISecret = mockCustomSecretK8sResource({
+        name: 'secret-12345-unsaved-oci',
+        namespace: 'test-project',
+        type: 'kubernetes.io/dockerconfigjson',
+        annotations: {
+          'opendatahub.io/connection-type-protocol': 'oci',
+          'opendatahub.io/connection-type-ref': 'oci-v1',
+          'openshift.io/display-name': 'Unsaved OCI Secret',
+        },
+        data: {
+          '.dockerconfigjson':
+            'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+          OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+          ACCESS_TYPE: 'WyJQdWxsIl0=',
+        },
+      });
+      // Add ownerReferences to make it an unsaved connection
+      unsavedOCISecret.metadata.ownerReferences = [
+        {
+          apiVersion: 'v1',
+          kind: 'InferenceService',
+          name: 'unsaved-oci-model',
+          uid: 'test-uid',
+        },
+      ];
+      const unsavedURIModel = mockInferenceServiceK8sResource({
+        name: 'unsaved-uri-model',
+        displayName: 'Unsaved URI Model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        storageUri: 'https://test.io/organization/test-model:latest',
+        secretName: 'secret-12345-unsaved-uri',
+      });
+
+      const unsavedOCIModel = mockInferenceServiceK8sResource({
+        name: 'unsaved-oci-model',
+        displayName: 'Unsaved OCI Model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        imagePullSecrets: [{ name: 'secret-12345-unsaved-oci' }],
+        storageUri: 'oci://test.io/organization/test-model:latest',
+      });
+      const unsavedS3Model = mockInferenceServiceK8sResource({
+        name: 'unsaved-s3-model',
+        displayName: 'Unsaved S3 Model',
+        secretName: 'secret-12345-unsaved-s3',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        path: 'path/to/model',
+      });
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([unsavedS3Secret, unsavedURISecret, unsavedOCISecret]),
+      );
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([unsavedS3Model, unsavedURIModel, unsavedOCIModel]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      // Unsaved S3 connection - should select S3 location type, select it, and prefill all fields
+      modelServingGlobal.getModelRow('Unsaved S3 Model').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('S3 object storage').should('exist');
+      modelServingWizardEdit.findLocationAccessKeyInput().should('have.value', 'unsaved-key');
+      modelServingWizardEdit.findLocationSecretKeyInput().should('have.value', 'unsaved-secret');
+      modelServingWizardEdit
+        .findLocationEndpointInput()
+        .should('have.value', 'https://s3.amazonaws.com/');
+      modelServingWizardEdit.findLocationBucketInput().should('have.value', 'unsaved-bucket');
+      modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Unsaved URI connection - should select URI location type, select it, and prefill all fields
+      modelServingGlobal.getModelRow('Unsaved URI Model').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('URI').should('exist');
+      modelServingWizardEdit
+        .findUrilocationInput()
+        .should('have.value', 'https://test.io/organization/test-model:latest');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Unsaved OCI connection - should select OCI location type, select it, and prefill all fields
+      modelServingGlobal.getModelRow('Unsaved OCI Model').findKebabAction('Edit').click();
+      modelServingWizardEdit
+        .findModelLocationSelectOption('OCI compliant registry')
+        .should('exist');
+      modelServingWizardEdit
+        .findOCIModelURI()
+        .should('have.value', 'test.io/organization/test-model:latest');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+    });
+
+    it('should prefill model location data for saved deleted S3 type, saved deleted OCI type, and saved deleted URI type', () => {
+      // Saved OCI secret with a non-existent connection type
+      const savedDeletedTypeOCISecret = mockCustomSecretK8sResource({
+        name: 'saved-deleted-type-oci-secret',
+        namespace: 'test-project',
+        type: 'kubernetes.io/dockerconfigjson',
+        annotations: {
+          'opendatahub.io/connection-type': 'oci-deleted',
+          'openshift.io/display-name': 'Saved Deleted Type OCI Secret',
+          'opendatahub.io/connection-type-protocol': 'oci',
+          'opendatahub.io/connection-type-ref': 'ct-deleted-oci',
+        },
+        data: {
+          '.dockerconfigjson':
+            'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+          OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+          ACCESS_TYPE: 'WyJQdWxsIl0=',
+          CUSTOM_FIELD: 'Y3VzdG9tLXZhbHVl',
+        },
+      });
+      const savedDeletedTypeURISecret = mockCustomSecretK8sResource({
+        name: 'saved-deleted-type-uri-secret',
+        namespace: 'test-project',
+        annotations: {
+          'opendatahub.io/connection-type': 'uri-deleted',
+          'openshift.io/display-name': 'Saved Deleted Type URI Secret',
+          'opendatahub.io/connection-type-protocol': 'uri',
+          'opendatahub.io/connection-type-ref': 'ct-deleted-uri',
+        },
+        data: {
+          URI: 'aHR0cHM6Ly90ZXN0LmlvL29yZ2FuaXphdGlvbi9zYXZlZC1kZWxldGVkLW1vZGVsOmxhdGVzdA==',
+          CUSTOM_URI_FIELD: 'Y3VzdG9tLXZhbHVl',
+        },
+      });
+      const savedDeletedTypeS3Secret = mockCustomSecretK8sResource({
+        name: 'saved-deleted-type-s3-secret',
+        namespace: 'test-project',
+        type: 'Opaque',
+        labels: {
+          [KnownLabels.DATA_CONNECTION_AWS]: 'true',
+        },
+        annotations: {
+          'opendatahub.io/connection-type': 's3',
+          'openshift.io/display-name': 'Saved Deleted Type S3 Secret',
+          'opendatahub.io/connection-type-protocol': 's3',
+          'opendatahub.io/connection-type-ref': 'ct-deleted-s3',
+        },
+        data: {
+          AWS_ACCESS_KEY_ID: 'dGVzdC1rZXk=',
+          AWS_SECRET_ACCESS_KEY: 'dGVzdC1zZWNyZXQ=',
+          AWS_S3_ENDPOINT: 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
+          AWS_S3_BUCKET: 'dGVzdC1idWNrZXQ=',
+          AWS_DEFAULT_REGION: 'dXMtZWFzdC0x',
+        },
+      });
+      const savedDeletedTypeS3Model = mockInferenceServiceK8sResource({
+        name: 'saved-deleted-type-s3-model',
+        displayName: 'Saved Deleted Type S3 Model',
+        secretName: 'saved-deleted-type-s3-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        path: 'path/to/model',
+      });
+      const savedDeletedTypeURIModel = mockInferenceServiceK8sResource({
+        name: 'saved-deleted-type-uri-model',
+        displayName: 'Saved Deleted Type URI Model',
+        secretName: 'saved-deleted-type-uri-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        storageUri: 'https://test.io/organization/saved-deleted-model:latest',
+      });
+      const savedDeletedTypeOCIModel = mockInferenceServiceK8sResource({
+        name: 'saved-deleted-type-oci-model',
+        displayName: 'Saved Deleted Type OCI Model',
+        secretName: 'saved-deleted-type-oci-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        imagePullSecrets: [{ name: 'saved-deleted-type-oci-secret' }],
+        storageUri: 'oci://test.io/organization/saved-deleted-model:latest',
+      });
+
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([
+          savedDeletedTypeOCISecret,
+          savedDeletedTypeURISecret,
+          savedDeletedTypeS3Secret,
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          savedDeletedTypeOCIModel,
+          savedDeletedTypeURIModel,
+          savedDeletedTypeS3Model,
+        ]),
+      );
+      modelServingGlobal.visit('test-project');
+
+      // Saved OCI connection with non-existent connection type - should select existing connection, select it, and prefill model URI
+      modelServingGlobal
+        .getModelRow('Saved Deleted Type OCI Model')
+        .findKebabAction('Edit')
+        .click();
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit
+        .findExistingConnectionValue()
+        .should('have.value', 'Saved Deleted Type OCI Secret');
+      modelServingWizardEdit
+        .findOCIModelURI()
+        .should('have.value', 'test.io/organization/saved-deleted-model:latest');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Saved URI connection with non-existent connection type - should select existing connection, select it, and prefill model URI
+      modelServingGlobal
+        .getModelRow('Saved Deleted Type URI Model')
+        .findKebabAction('Edit')
+        .click();
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit
+        .findExistingConnectionValue()
+        .should('have.value', 'Saved Deleted Type URI Secret');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Saved S3 connection with non-existent connection type - should select existing connection, select it, and prefill model path
+      modelServingGlobal.getModelRow('Saved Deleted Type S3 Model').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit
+        .findExistingConnectionValue()
+        .should('have.value', 'Saved Deleted Type S3 Secret');
+      modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+    });
+
+    it('should prefill model location data for unsaved deleted S3 type, unsaved deleted OCI type, and unsaved deleted URI type', () => {
+      const unsavedDeletedTypeURISecret = mockCustomSecretK8sResource({
+        name: 'unsaved-deleted-type-uri-secret',
+        namespace: 'test-project',
+        annotations: {
+          'opendatahub.io/connection-type': 'uri-deleted',
+          'openshift.io/display-name': 'Unsaved Deleted Type URI Secret',
+          'opendatahub.io/connection-type-protocol': 'uri',
+          'opendatahub.io/connection-type-ref': 'ct-deleted-uri',
+        },
+        data: {
+          URI: 'aHR0cHM6Ly90ZXN0LmlvL29yZ2FuaXphdGlvbi91bnNhdmVkLWRlbGV0ZWQtbW9kZWw6bGF0ZXN0',
+          CUSTOM_URI_FIELD: 'Y3VzdG9tLXZhbHVl',
+        },
+      });
+      unsavedDeletedTypeURISecret.metadata.ownerReferences = [
+        {
+          apiVersion: 'v1',
+          kind: 'InferenceService',
+          name: 'unsaved-deleted-type-uri-model',
+          uid: 'test-uid',
+        },
+      ];
+      const unsavedDeletedTypeS3Secret = mockSecretK8sResource({
+        name: 'unsaved-deleted-type-s3-secret',
+        namespace: 'test-project',
+        annotations: {
+          'openshift.io/display-name': 'Unsaved Deleted Type S3 Secret',
+          'opendatahub.io/connection-type-protocol': 's3',
+          'opendatahub.io/connection-type-ref': 'ct-deleted-s3',
+        },
+        data: {
+          AWS_ACCESS_KEY_ID: 'dGVzdC1rZXk=',
+          AWS_SECRET_ACCESS_KEY: 'dGVzdC1zZWNyZXQ=',
+          AWS_S3_ENDPOINT: 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
+          AWS_S3_BUCKET: 'dGVzdC1idWNrZXQ=',
+          AWS_DEFAULT_REGION: 'dXMtZWFzdC0x',
+        },
+      });
+      unsavedDeletedTypeS3Secret.metadata.ownerReferences = [
+        {
+          apiVersion: 'v1',
+          kind: 'InferenceService',
+          name: 'unsaved-deleted-type-s3-model',
+          uid: 'test-uid',
+        },
+      ];
+      const unsavedDeletedTypeS3Model = mockInferenceServiceK8sResource({
+        name: 'unsaved-deleted-type-s3-model',
+        displayName: 'Unsaved Deleted Type S3 Model',
+        secretName: 'unsaved-deleted-type-s3-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        path: 'path/to/model',
+      });
+      const unsavedDeletedTypeURIModel = mockInferenceServiceK8sResource({
+        name: 'unsaved-deleted-type-uri-model',
+        displayName: 'Unsaved Deleted Type URI Model',
+        secretName: 'unsaved-deleted-type-uri-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        storageUri: 'https://test.io/organization/unsaved-deleted-model:latest',
+      });
+      // OCI secret with non-existent connection type
+      const unsavedDeletedTypeOCISecret = mockCustomSecretK8sResource({
+        name: 'unsaved-deleted-type-oci-secret',
+        namespace: 'test-project',
+        type: 'kubernetes.io/dockerconfigjson',
+        annotations: {
+          'opendatahub.io/connection-type': 'oci-deleted',
+          'openshift.io/display-name': 'Unsaved Deleted Type OCI Secret',
+          'opendatahub.io/connection-type-protocol': 'oci',
+          'opendatahub.io/connection-type-ref': 'oci-deleted',
+        },
+        data: {
+          '.dockerconfigjson':
+            'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+          OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+          ACCESS_TYPE: 'WyJQdWxsIl0=',
+          // Custom field for testing rendering based on the secret data
+          CUSTOM_FIELD: 'Y3VzdG9tLXZhbHVl',
+        },
+      });
+
+      unsavedDeletedTypeOCISecret.metadata.ownerReferences = [
+        {
+          apiVersion: 'v1',
+          kind: 'InferenceService',
+          name: 'unsaved-deleted-type-oci-model',
+          uid: 'test-uid',
+        },
+      ];
+      const unsavedDeletedTypeOCIModel = mockInferenceServiceK8sResource({
+        name: 'unsaved-deleted-type-oci-model',
+        displayName: 'Unsaved Deleted Type OCI Model',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        imagePullSecrets: [{ name: 'unsaved-deleted-type-oci-secret' }],
+        storageUri: 'oci://test.io/organization/unsaved-deleted-model:latest',
+      });
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([
+          unsavedDeletedTypeOCISecret,
+          unsavedDeletedTypeURISecret,
+          unsavedDeletedTypeS3Secret,
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          unsavedDeletedTypeOCIModel,
+          unsavedDeletedTypeURIModel,
+          unsavedDeletedTypeS3Model,
+        ]),
+      );
+      modelServingGlobal.visit('test-project');
+
+      // Unsaved OCI connection with non-existent connection type - should select OCI location type, select it, and prefill fields
+      modelServingGlobal
+        .getModelRow('Unsaved Deleted Type OCI Model')
+        .findKebabAction('Edit')
+        .click();
+      modelServingWizardEdit
+        .findModelLocationSelectOption('OCI compliant registry')
+        .should('exist');
+      // Checking the custom field is read from the secret and rendered in the UI
+      cy.findByTestId('field CUSTOM_FIELD').should('have.value', 'custom-value');
+      // Verify OCI fields are prefilled (connection type should be inferred as OCI compatible)
+      modelServingWizardEdit
+        .findOCIModelURI()
+        .should('have.value', 'test.io/organization/unsaved-deleted-model:latest');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Unsaved URI connection with non-existent connection type - should select URI location type, select it, and prefill fields
+      modelServingGlobal
+        .getModelRow('Unsaved Deleted Type URI Model')
+        .findKebabAction('Edit')
+        .click();
+      modelServingWizardEdit.findModelLocationSelectOption('URI').should('exist');
+      modelServingWizardEdit
+        .findUrilocationInput()
+        .should('have.value', 'https://test.io/organization/unsaved-deleted-model:latest');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+
+      // Unsaved S3 connection with non-existent connection type - should select S3 location type, select it, and prefill fields
+      modelServingGlobal
+        .getModelRow('Unsaved Deleted Type S3 Model')
+        .findKebabAction('Edit')
+        .click();
+      modelServingWizardEdit.findModelLocationSelectOption('S3 object storage').should('exist');
+      modelServingWizardEdit.findLocationAccessKeyInput().should('have.value', 'test-key');
+      modelServingWizardEdit.findLocationSecretKeyInput().should('have.value', 'test-secret');
+      modelServingWizardEdit
+        .findLocationEndpointInput()
+        .should('have.value', 'https://s3.amazonaws.com/');
+      modelServingWizardEdit.findLocationBucketInput().should('have.value', 'test-bucket');
+      modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
+      modelServingWizardEdit.findCancelButton().click();
+      modelServingWizardEdit.findDiscardButton().click();
+    });
+
+    it('should auto-select single connection (OCI) and prefill additional fields on edit', () => {
+      const singleOCISecret = mockCustomSecretK8sResource({
+        name: 'single-oci-secret',
+        namespace: 'test-project',
+        type: 'kubernetes.io/dockerconfigjson',
+        annotations: {
+          'opendatahub.io/connection-type': 'oci',
+          'openshift.io/display-name': 'Single OCI Secret',
+        },
+        data: {
+          '.dockerconfigjson':
+            'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+          OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+          OCI_MODEL_URI: 'b2NpOi8vdGVzdC5pby9vcmdhbml6YXRpb24vc2luZ2xlLW1vZGVsOmxhdGVzdA==',
+          ACCESS_TYPE: 'WyJQdWxsIl0=',
+        },
+      });
+
+      const singleOCIModel = mockInferenceServiceK8sResource({
+        name: 'single-oci-model',
+        displayName: 'Single OCI Model',
+        secretName: 'single-oci-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        imagePullSecrets: [{ name: 'single-oci-secret' }],
+        storageUri: 'oci://test.io/organization/single-model:latest',
+      });
+
+      // Only one connection in the project
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([singleOCISecret]),
+      );
+
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([singleOCIModel]),
+      );
+
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Single OCI Model').findKebabAction('Edit').click();
+
+      // Verify existing connection is selected (auto-selected since it's the only one)
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit
+        .findExistingConnectionValue()
+        .should('have.value', 'Single OCI Secret');
+
+      // Verify model URI is prefilled
+      modelServingWizardEdit
+        .findOCIModelURI()
+        .should('have.value', 'test.io/organization/single-model:latest');
+    });
+
+    it('should auto-select single connection (S3) and prefill additional fields on edit', () => {
+      const singleS3Secret = mockSecretK8sResource({
+        name: 'single-s3-secret',
+        displayName: 'Single S3 Secret',
+        namespace: 'test-project',
+        connectionType: 's3',
+        data: {
+          AWS_ACCESS_KEY_ID: 'dGVzdC1rZXk=',
+          AWS_SECRET_ACCESS_KEY: 'dGVzdC1zZWNyZXQ=',
+          AWS_S3_ENDPOINT: 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
+          AWS_S3_BUCKET: 'dGVzdC1idWNrZXQ=',
+          AWS_DEFAULT_REGION: 'dXMtZWFzdC0x',
+        },
+      });
+
+      const singleS3Model = mockInferenceServiceK8sResource({
+        name: 'single-s3-model',
+        displayName: 'Single S3 Model',
+        secretName: 'single-s3-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        imagePullSecrets: [{ name: 'single-s3-secret' }],
+        storageUri: 's3://test.io/single-model:latest',
+        path: 'path/to/model',
+      });
+
+      // Only one connection in the project
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([singleS3Secret]),
+      );
+
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([singleS3Model]),
+      );
+
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Single S3 Model').findKebabAction('Edit').click();
+
+      // Verify existing connection is selected (auto-selected since it's the only one)
+      modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+      modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Single S3 Secret');
+
+      // Verify model path is prefilled
+      modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
     });
   });
 });
