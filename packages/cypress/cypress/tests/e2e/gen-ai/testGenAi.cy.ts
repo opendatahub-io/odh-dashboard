@@ -228,6 +228,10 @@ describe('[Product Bug: RHOAIENG-41634] Verify Gen AI Namespace - Creation and C
       modelServingWizard.findGlobalScopedLabel().should('be.visible');
 
       modelServingWizard.findNextButton().click();
+
+      cy.step('Enable AI asset endpoint');
+      modelServingWizard.findSaveAiAssetCheckbox().click();
+
       modelServingWizard.findNextButton().click();
 
       cy.step('Wait for Review step to load');
