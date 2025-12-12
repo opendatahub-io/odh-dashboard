@@ -9,8 +9,8 @@ import type {
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { LLMdDeployment } from '../src/types';
-import type { AreaExtension } from '../../plugin-core/src/extension-points/areas';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
