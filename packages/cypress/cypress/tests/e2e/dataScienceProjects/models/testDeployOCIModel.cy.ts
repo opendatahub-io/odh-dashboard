@@ -1,3 +1,4 @@
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -110,7 +111,7 @@ describe(
         cy.step('Step 1: Model details');
         modelServingWizard.findModelLocationSelectOption('Existing connection').click();
         modelServingWizard.findOCIModelURI().clear().type(modelDeploymentURI);
-        modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+        modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 2: Model deployment');

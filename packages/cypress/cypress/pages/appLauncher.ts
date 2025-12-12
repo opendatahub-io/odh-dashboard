@@ -2,8 +2,17 @@ import { Contextual } from './components/Contextual';
 
 class ApplicationLauncherMenuGroup extends Contextual<HTMLElement> {
   shouldHaveApplicationLauncherItem(name: string) {
-    this.find().findAllByTestId('application-launcher-item').contains(name).should('exist');
+    this.findApplicationLauncherItem(name).should('exist');
     return this;
+  }
+
+  shouldNotHaveApplicationLauncherItem(name: string) {
+    this.findApplicationLauncherItem(name).should('not.exist');
+    return this;
+  }
+
+  findApplicationLauncherItem(name: string) {
+    return this.find().findAllByTestId('application-launcher-item').contains(name);
   }
 }
 

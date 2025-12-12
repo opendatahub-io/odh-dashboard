@@ -15,12 +15,9 @@ import {
   mockCatalogSourceList,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogSourceList';
 import type { ModelCatalogSource } from '@odh-dashboard/internal/concepts/modelCatalog/types';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
-import { ServingRuntimeModel } from '../../../utils/models';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
-import { kserveModal } from '../../../pages/modelServing';
+import { modelServingWizard } from '../../../pages/modelServing';
 import { initDeployPrefilledModelIntercepts } from '../../../utils/modelServingUtils';
-import { modelCatalogDeployModal } from '../../../pages/modelCatalog/modelCatalogDeployModal';
 
 const MODEL_CATALOG_API_VERSION = 'v1';
 const MODEL_REGISTRY_API_VERSION = 'v1';
@@ -40,6 +37,7 @@ const initIntercepts = ({
   sources = [mockCatalogSource({}), mockCatalogSource({ id: 'source-2', name: 'source 2' })],
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({ isEmpty, disableKServe });
+  cy.interceptOdh('GET /api/components', null, []);
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/namespaces`,
     {
@@ -128,7 +126,7 @@ const initIntercepts = ({
   ).as('loadArtifacts');
 };
 
-describe.skip('Deploy catalog model', () => {
+describe('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
     initIntercepts({ disableKServe: true });
     modelDetailsPage.visit();
@@ -149,53 +147,50 @@ describe.skip('Deploy catalog model', () => {
 
     cy.wait('@loadModel');
     cy.wait('@loadArtifacts');
-    modelDetailsPage.findDeployModelButton().click();
-    modelCatalogDeployModal.selectProjectByName('Test project');
     modelDetailsPage.findDeployModelButton().should('be.enabled');
-  });
-
-  it('OCI info alert is visible', () => {
-    initIntercepts({});
-    modelDetailsPage.visit();
+    modelDetailsPage.findDeployModelButton().should('not.have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().click();
-    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
-    cy.findByTestId('oci-deploy-kserve-alert').should('exist');
+    modelServingWizard.findModelSourceStep().should('exist');
   });
 
-  it('Selects Current URI in case of built-in registry OCI connections', () => {
+  it('Prefills deployment wizard model location details and type', () => {
     initIntercepts({});
     modelDetailsPage.visit();
 
     cy.wait('@loadModel');
     cy.wait('@loadArtifacts');
+    modelDetailsPage.findDeployModelButton().should('be.enabled');
+    modelDetailsPage.findDeployModelButton().should('not.have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findDeployModelButton().click();
-    modelCatalogDeployModal.selectProjectByName('KServe project');
-
-    // Validate name input field
-    kserveModal.findModelNameInput().should('exist');
-    kserveModal.findModelNameInput().should('have.value', 'sample-category-1-model-1');
-
-    // Validate model framework section
-    kserveModal.findModelFrameworkSelect().should('be.disabled');
-    cy.findByText('The format of the source model is').should('not.exist');
-
-    // Validate connection section
-    kserveModal.findExistingUriOption().should('be.checked');
-    kserveModal.find().within(() => {
-      cy.findByText('oci://registry.redhat.io/rhelai1/modelcar-granite-7b-redhat-lab:1.4.0').should(
-        'exist',
+    modelServingWizard.findPrefillAlert().should('exist');
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.enabled');
+    modelServingWizard
+      .findModelTypeSelect()
+      .should('contain.text', 'Generative AI model (Example, LLM)');
+    modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
+    modelServingWizard
+      .findUrilocationInput()
+      .should(
+        'have.value',
+        'oci://registry.redhat.io/rhelai1/modelcar-granite-7b-redhat-lab:1.4.0',
       );
-    });
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard
+      .findModelDeploymentNameInput()
+      .should('have.value', 'sample-category-1-model-1');
   });
 
-  it('Deploy modal will show spinner, if the data is still loading', () => {
+  // TODO: unskip when we add a spinner for loading location data RHOAIENG-41407
+  it.skip('Deployment wizard will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
     modelDetailsPage.visit();
 
     cy.wait('@loadModel');
     cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().click();
-    modelCatalogDeployModal.selectProjectByName('KServe project');
-    kserveModal.findSpinner().should('exist');
+    // Look for spinner here
   });
 });

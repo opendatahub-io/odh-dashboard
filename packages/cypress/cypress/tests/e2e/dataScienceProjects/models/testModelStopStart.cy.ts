@@ -1,4 +1,5 @@
 import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
+import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import {
   modelServingGlobal,
   modelServingSection,
@@ -91,7 +92,7 @@ describe('A model can be stopped and started', () => {
       cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');

@@ -6,6 +6,8 @@ const extensions: Extension[] = [
   {
     type: 'model-catalog.deployment/navigate-wizard',
     properties: {
+      useAvailablePlatformIds: () =>
+        import('../modelRegistry/useAvailablePlatformIds').then((m) => m.default),
       useNavigateToDeploymentWizardWithData: () =>
         import('../modelRegistry/useNavigateToDeploymentWizardWithData').then(
           (m) => m.useNavigateToDeploymentWizardWithData,

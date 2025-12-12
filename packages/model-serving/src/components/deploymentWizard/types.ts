@@ -44,11 +44,17 @@ export enum ModelLocationType {
   PVC = 'pvc',
 }
 
+export enum ModelTypeLabel {
+  PREDICTIVE = 'Predictive model',
+  GENERATIVE = 'Generative AI model (Example, LLM)',
+}
+
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
   connection?: string;
   disableInputFields?: boolean;
+  prefillAlertText?: string;
   fieldValues: Record<string, ConnectionTypeValueType>;
   additionalFields: {
     // For S3 and OCI additional fields

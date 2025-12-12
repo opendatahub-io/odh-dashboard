@@ -130,6 +130,8 @@ const extensions: (
         import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
       extractModelServerTemplate: () =>
         import('./src/deployServer').then((m) => m.extractModelServerTemplate),
+      hardwareProfilePaths: () =>
+        import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
     },
   },
   {

@@ -8,7 +8,7 @@ import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { isValidModelLocationData } from '../../fields/ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType } from '../../types';
+import { ModelLocationData, ModelLocationType, ModelTypeLabel } from '../../types';
 import { createConnectionDataSchema } from '../../fields/CreateConnectionInputFields';
 
 const modelSourceStepSchema = z.object({
@@ -177,7 +177,7 @@ describe('ModelSourceStep', () => {
           validation={mockValidation}
         />,
       );
-      expect(screen.getByText('Generative AI model (Example, LLM)')).toBeInTheDocument();
+      expect(screen.getByText(ModelTypeLabel.GENERATIVE)).toBeInTheDocument();
       expect(screen.getByTestId('field URI')).toHaveValue('https://test');
       expect(screen.getByTestId('save-connection-checkbox')).toBeInTheDocument();
       expect(screen.getByTestId('save-connection-checkbox')).toBeChecked();

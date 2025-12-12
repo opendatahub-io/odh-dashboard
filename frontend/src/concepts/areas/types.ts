@@ -100,7 +100,7 @@ export type SupportedAreaType = SupportedArea | string;
  **/
 export enum DataScienceStackComponent {
   DASHBOARD = 'dashboard',
-  DS_PIPELINES = 'datasciencepipelines',
+  DS_PIPELINES = 'aipipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'modelregistry',

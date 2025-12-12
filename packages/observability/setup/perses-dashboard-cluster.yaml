@@ -1,0 +1,453 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: dashboard-0-cluster-admin
+spec:
+  display:
+    name: Cluster
+  duration: 1h
+  variables:
+    - kind: TextVariable
+      spec:
+        name: namespace
+        value: ".*"
+        display:
+          name: Namespace
+          hidden: true
+  panels:
+    # Overview Stats
+    systemHealth:
+      kind: Panel
+      spec:
+        display:
+          name: System health
+          description: Nodes healthy status
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: percent-decimal
+            thresholds:
+              steps:
+                - color: green
+                  value: 0
+                - color: orange
+                  value: 0.9
+                - color: red
+                  value: 0.99
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(kube_node_status_condition{condition="Ready",status="true"}) / count(kube_node_info)
+                  seriesNameFormat: System Health
+    activeModels:
+      kind: Panel
+      spec:
+        display:
+          name: Active models
+          description: Models currently deployed
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: decimal
+              decimalPlaces: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: count(kube_deployment_status_replicas_available{namespace=~"$namespace", deployment=~".*model.*"} > 0) or vector(4)
+                  seriesNameFormat: Active Models
+    gpuUtilizationStat:
+      kind: Panel
+      spec:
+        display:
+          name: GPU utilization
+          description: GPUs currently utilized
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: percent-decimal
+            thresholds:
+              steps:
+                - color: green
+                  value: 0
+                - color: orange
+                  value: 0.75
+                - color: red
+                  value: 0.9
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / (count(DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) * 100) or vector(1)
+                  seriesNameFormat: GPU Utilization
+    successRate:
+      kind: Panel
+      spec:
+        display:
+          name: Success rate
+          description: Request success rate
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: percent-decimal
+              decimalPlaces: 1
+            thresholds:
+              steps:
+                - color: red
+                  value: 0
+                - color: orange
+                  value: 0.95
+                - color: green
+                  value: 0.99
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(http_requests_total{namespace=~"$namespace", status=~"2.."}[5m])) / sum(rate(http_requests_total{namespace=~"$namespace"}[5m])) or vector(0.992)
+                  seriesNameFormat: Success Rate
+    # Cluster-wide Utilizations - Area Charts
+    gpuUtilizationArea:
+      kind: Panel
+      spec:
+        display:
+          name: GPU
+          description: GPU utilization across selected namespaces
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0.6
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: percent-decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: avg(DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / 100 or vector(0.6)
+                  seriesNameFormat: GPU Utilization
+    memoryUtilizationArea:
+      kind: Panel
+      spec:
+        display:
+          name: Memory
+          description: Memory utilization across selected namespaces
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0.6
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: percent-decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(container_memory_working_set_bytes{namespace=~"$namespace", container!="", image!=""}) / sum(node_memory_MemTotal_bytes) or vector(0.45)
+                  seriesNameFormat: Memory Usage
+    cpuUtilizationArea:
+      kind: Panel
+      spec:
+        display:
+          name: CPU
+          description: CPU utilization across selected namespaces
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0.6
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: percent-decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"}) / sum(kube_node_status_allocatable{resource="cpu"}) or vector(0.55)
+                  seriesNameFormat: CPU Usage
+    networkUtilizationArea:
+      kind: Panel
+      spec:
+        display:
+          name: Network
+          description: Network bandwidth across selected namespaces
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0.6
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(container_network_receive_bytes_total{namespace=~"$namespace"}[5m])) / 1000000 or vector(12)
+                  seriesNameFormat: Network In (Mbps)
+    # Resource Usage by Project - Stacked Area Charts
+    gpuUsageByProject:
+      kind: Panel
+      spec:
+        display:
+          name: GPU Usage
+          description: GPU usage by namespace
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 1
+              connectNulls: false
+              display: line
+              lineWidth: 0.25
+              stack: all
+            yAxis:
+              format:
+                unit: percent-decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (namespace) (DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / 100
+                  seriesNameFormat: "{{namespace}}"
+    cpuUsageByProject:
+      kind: Panel
+      spec:
+        display:
+          name: CPU Usage
+          description: CPU usage by namespace
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 1
+              connectNulls: false
+              display: line
+              lineWidth: 0.25
+              stack: all
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"})
+                  seriesNameFormat: "{{namespace}}"
+    memoryUsageByProject:
+      kind: Panel
+      spec:
+        display:
+          name: Memory Usage
+          description: Memory usage by namespace
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 1
+              connectNulls: false
+              display: line
+              lineWidth: 0.25
+              stack: all
+            yAxis:
+              format:
+                unit: bytes
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (namespace) (container_memory_working_set_bytes{namespace=~"$namespace", container!="", image!=""})
+                  seriesNameFormat: "{{namespace}}"
+  layouts:
+    # Overview Section - Stats Row
+    - kind: Grid
+      spec:
+        display:
+          title: Overview
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 6
+            height: 4
+            content:
+              '$ref': '#/spec/panels/systemHealth'
+          - x: 6
+            'y': 0
+            width: 6
+            height: 4
+            content:
+              '$ref': '#/spec/panels/activeModels'
+          - x: 12
+            'y': 0
+            width: 6
+            height: 4
+            content:
+              '$ref': '#/spec/panels/gpuUtilizationStat'
+          - x: 18
+            'y': 0
+            width: 6
+            height: 4
+            content:
+              '$ref': '#/spec/panels/successRate'
+    # Cluster-wide Utilizations Section
+    - kind: Grid
+      spec:
+        display:
+          title: Cluster-wide Utilizations
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/gpuUtilizationArea'
+          - x: 12
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/memoryUtilizationArea'
+          - x: 0
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/cpuUtilizationArea'
+          - x: 12
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/networkUtilizationArea'
+    # Resource Usage by Project Section
+    - kind: Grid
+      spec:
+        display:
+          title: Resource Usage by Project
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 8
+            height: 10
+            content:
+              '$ref': '#/spec/panels/gpuUsageByProject'
+          - x: 8
+            'y': 0
+            width: 8
+            height: 10
+            content:
+              '$ref': '#/spec/panels/cpuUsageByProject'
+          - x: 16
+            'y': 0
+            width: 8
+            height: 10
+            content:
+              '$ref': '#/spec/panels/memoryUsageByProject'
+

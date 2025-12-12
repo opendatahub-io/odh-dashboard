@@ -1339,14 +1339,14 @@ func GetFilterOptionsListMock() models.FilterOptionsList {
 	}
 }
 
-func CreateSampleCatalogSource(id string, name string, catalogType string) models.CatalogSourceConfig {
+func CreateSampleCatalogSource(id string, name string, catalogType string, enabled bool) models.CatalogSourceConfig {
 	defaultCatalog := id == "sample-source"
 
 	sourceConfig := models.CatalogSourceConfig{
 		Name:      name,
 		Id:        id,
 		Type:      catalogType,
-		Enabled:   BoolPtr(true),
+		Enabled:   &enabled,
 		Labels:    []string{"source-1"},
 		IsDefault: &defaultCatalog,
 	}
@@ -1379,11 +1379,12 @@ func BoolPtr(b bool) *bool {
 func GetCatalogSourceConfigsMocks() []models.CatalogSourceConfig {
 	// Match IDs with catalog sources to show proper statuses
 	return []models.CatalogSourceConfig{
-		CreateSampleCatalogSource("sample-source", "Sample mocked source", "yaml"),
-		CreateSampleCatalogSource("huggingface", "Hugging Face", "huggingface"),
-		CreateSampleCatalogSource("adminModel1", "Admin model 1", "huggingface"),
-		CreateSampleCatalogSource("adminModel2", "Admin model 2", "huggingface"),
-		CreateSampleCatalogSource("dora", "Dora source", "yaml"),
+		CreateSampleCatalogSource("sample-source", "Sample mocked source", "yaml", true),
+		CreateSampleCatalogSource("huggingface", "Hugging Face", "huggingface", false),
+		CreateSampleCatalogSource("adminModel1", "Admin model 1", "huggingface", true),
+		CreateSampleCatalogSource("adminModel2", "Admin model 2", "huggingface", true),
+		CreateSampleCatalogSource("dora", "Dora source", "yaml", true),
+		CreateSampleCatalogSource("catalog-4", "Custom Catalog 2", "yaml", false),
 	}
 }
 
@@ -1406,11 +1407,75 @@ func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel 
 			Included: true,
 		},
 		{
+			Name:     "sample-source/model-2",
+			Included: true,
+		},
+		{
+			Name:     "sample-source/model-3",
+			Included: true,
+		},
+		{
+			Name:     "sample-source/model-4",
+			Included: true,
+		},
+		{
+			Name:     "sample-source/model-5",
+			Included: true,
+		},
+		{
+			Name:     "sample-source/model-6",
+			Included: false,
+		},
+		{
+			Name:     "adminModel1/model-1",
+			Included: true,
+		},
+		{
 			Name:     "adminModel1/model-2",
 			Included: true,
 		},
 		{
 			Name:     "adminModel1/model-3",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-4",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-5",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-6",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-7",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-8",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-9",
+			Included: true,
+		},
+		{
+			Name:     "adminModel1/model-10",
+			Included: false,
+		},
+		{
+			Name:     "adminModel1/model-11",
+			Included: false,
+		},
+		{
+			Name:     "adminModel1/model-12",
+			Included: false,
+		},
+		{
+			Name:     "adminModel1/model-13",
 			Included: false,
 		},
 	}
@@ -1418,9 +1483,9 @@ func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel 
 
 func GetCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
 	return models.CatalogSourcePreviewSummary{
-		TotalModels:    1500,
-		IncludedModels: 850,
-		ExcludedModels: 650,
+		TotalModels:    20,
+		IncludedModels: 15,
+		ExcludedModels: 5,
 	}
 }
 

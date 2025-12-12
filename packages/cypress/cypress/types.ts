@@ -186,6 +186,7 @@ export type CommandLineResult = {
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
   TEST_USER_3: UserAuthConfig;
+  TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
@@ -406,4 +407,26 @@ export type FeatureStoreTestData = {
   feastInstanceName: string;
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
+};
+
+export type GenAiTestData = {
+  projectDescription: string;
+  connectionName: string;
+  connectionDescription: string;
+  connectionType: string;
+  connectionURI: string;
+  modelDeploymentName: string;
+  inferenceServiceName: string;
+  modelType: string;
+  servingRuntime: string;
+  testMessage: string;
+  cpuRequested: number;
+  cpuLimit: number;
+  memoryRequested: number;
+  memoryLimit: number;
+  hardwareProfileResourceYamlPath: string;
+  hardwareProfileName: string;
+  hardwareProfileDeploymentSize: string;
+  configMapName: string;
+  playgroundServiceName: string;
 };

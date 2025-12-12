@@ -13,8 +13,10 @@ import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks';
 import { getOpenShiftConsoleServerURL } from '#~/utilities/clusterUtils';
 import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '#~/types';
-import { useAppContext } from './AppContext';
 import './AppLauncher.scss';
+import { SupportedArea } from '#~/concepts/areas/types';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { useAppContext } from './AppContext';
 
 const appConsoleLinkNames = ['rhodslink', 'odhlink'];
 
@@ -65,6 +67,7 @@ const AppLauncher: React.FC = () => {
   const { clusterID, clusterBranding, serverURL } = useClusterInfo();
   const { consoleLinks } = useWatchConsoleLinks();
   const { dashboardConfig } = useAppContext();
+  const isMLflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
 
   const { disableClusterManager } = dashboardConfig.spec.dashboardConfig;
 
@@ -73,7 +76,8 @@ const AppLauncher: React.FC = () => {
       .filter(
         (link) =>
           link.spec.location === 'ApplicationMenu' &&
-          !appConsoleLinkNames.includes(link.metadata?.name ?? ''),
+          !appConsoleLinkNames.includes(link.metadata?.name ?? '') &&
+          (isMLflowEnabled || link.metadata?.name !== 'mlflowlink'),
       )
       .toSorted((a, b) => a.spec.text.localeCompare(b.spec.text));
 
@@ -85,7 +89,7 @@ const AppLauncher: React.FC = () => {
         return [];
       }
       const section: Section = {
-        label: `Red Hat Applications`,
+        label: `Applications`,
         actions: [],
       };
       if (osConsoleAction) {
@@ -115,7 +119,7 @@ const AppLauncher: React.FC = () => {
     }, getODHApplications());
 
     return sections.toSorted((a, b) => sectionSortValue(a) - sectionSortValue(b));
-  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL]);
+  }, [clusterBranding, clusterID, consoleLinks, disableClusterManager, serverURL, isMLflowEnabled]);
 
   const onSelect = () => {
     setIsOpen(false);

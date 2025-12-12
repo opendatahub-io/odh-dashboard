@@ -222,6 +222,25 @@ export const getNotebookControllerCullerConfig = (key?: string): Cypress.Chainab
   });
 };
 
+/**
+ * Retrieves the groupsConfig from OdhDashboardConfig across all namespaces.
+ *
+ * @returns A Cypress.Chainable that resolves to the groupsConfig object or null if not found.
+ */
+export const getOdhDashboardConfigGroupsConfig = (): Cypress.Chainable<CommandLineResult> => {
+  const command = `oc get OdhDashboardConfig -A -o json | jq -r '.items[].spec.groupsConfig'`;
+  cy.log(`Getting OdhDashboardConfig groupsConfig: ${command}`);
+
+  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR getting OdhDashboardConfig groupsConfig
+              stdout: ${result.stdout}
+              stderr: ${result.stderr}`);
+    }
+    return cy.wrap(result);
+  });
+};
+
 // Helper function to safely get nested properties
 function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce((current: unknown, key: string) => {

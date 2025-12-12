@@ -12,6 +12,7 @@ import {
   BFFConfig,
   CodeExportRequest,
   CreateResponseRequest,
+  FileCitationAnnotation,
   FileUploadResult,
   LlamaModel,
   LlamaStackDistributionModel,
@@ -23,6 +24,7 @@ import {
   MCPToolsStatus,
   OutputItem,
   SimplifiedResponseData,
+  SourceItem,
   VectorStore,
   VectorStoreFile,
   CodeExportData,
@@ -69,6 +71,100 @@ const getMessageFromError = (error: unknown): string | undefined => {
 };
 
 /**
+ * Regex pattern to match file citation tokens in the format <|file-{id}|>
+ */
+const FILE_CITATION_PATTERN = /<\|file-([a-f0-9]+)\|>/g;
+
+/**
+ * Result of processing file citations from content and annotations
+ */
+type ProcessedContentResult = {
+  content: string;
+  sources: SourceItem[];
+};
+
+/**
+ * Processes file citation tokens and annotations - removes inline tokens from text
+ * and extracts unique source filenames for the PatternFly SourcesCard component.
+ * @param content - The text content that may contain file citation tokens
+ * @param annotations - Array of file citation annotations with file_id to filename mappings
+ * @returns ProcessedContentResult - Content with tokens removed and sources array
+ */
+const processFileCitations = (
+  content: string,
+  annotations: FileCitationAnnotation[],
+): ProcessedContentResult => {
+  // Remove all file citation tokens from the content (if any exist)
+  const processedContent = content.replace(FILE_CITATION_PATTERN, '').trim();
+
+  if (annotations.length === 0) {
+    return { content: processedContent, sources: [] };
+  }
+
+  // Collect unique filenames from annotations
+  const allFilenames = new Set<string>();
+  for (const annotation of annotations) {
+    if (annotation.filename) {
+      allFilenames.add(annotation.filename);
+    }
+  }
+
+  // Convert to SourceItem array for PatternFly SourcesCard
+  const sources: SourceItem[] = Array.from(allFilenames).map((filename) => ({
+    title: filename,
+    link: '#', // Placeholder link (onClick prevents navigation)
+    hasShowMore: false,
+  }));
+
+  return { content: processedContent, sources };
+};
+
+/**
+ * Type guard to check if an annotation is a file citation
+ */
+function isFileCitationAnnotation(annotation: unknown): annotation is FileCitationAnnotation {
+  if (typeof annotation !== 'object' || annotation === null) {
+    return false;
+  }
+  return (
+    'type' in annotation &&
+    annotation.type === 'file_citation' &&
+    'file_id' in annotation &&
+    typeof annotation.file_id === 'string' &&
+    'filename' in annotation &&
+    typeof annotation.filename === 'string'
+  );
+}
+
+/**
+ * Extracts file citation annotations from the backend response output array
+ * @param output - Array of output items from backend response
+ * @returns FileCitationAnnotation[] - Array of file citation annotations
+ */
+const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnotation[] => {
+  if (!output || output.length === 0) {
+    return [];
+  }
+
+  const annotations: FileCitationAnnotation[] = [];
+  for (const item of output) {
+    if (item.content && Array.isArray(item.content)) {
+      for (const contentItem of item.content) {
+        if (contentItem.annotations && Array.isArray(contentItem.annotations)) {
+          for (const annotation of contentItem.annotations) {
+            if (isFileCitationAnnotation(annotation)) {
+              annotations.push(annotation);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return annotations;
+};
+
+/**
  * Extracts text content from the backend response output array
  * @param output - Array of output items from backend response
  * @returns string - Concatenated text content
@@ -99,15 +195,19 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
+  const rawContent = extractContentFromOutput(backendResponse.output);
+  const annotations = extractAnnotationsFromOutput(backendResponse.output);
+  const { content, sources } = processFileCitations(rawContent, annotations);
 
   return {
     id: backendResponse.id,
     model: backendResponse.model,
     status: backendResponse.status,
     created_at: backendResponse.created_at,
-    content: extractContentFromOutput(backendResponse.output),
+    content,
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
+    ...(sources.length > 0 && { sources }),
   };
 };
 
@@ -219,13 +319,23 @@ const streamCreateResponse = (
           ? extractMCPToolCallData(completeResponseData.output)
           : undefined;
 
+        // Extract annotations and process file citations
+        const annotations = completeResponseData?.output
+          ? extractAnnotationsFromOutput(completeResponseData.output)
+          : [];
+        const { content: processedContent, sources } = processFileCitations(
+          fullContent,
+          annotations,
+        );
+
         resolve({
           id: completeResponseData?.id || 'streaming-response',
           model: completeResponseData?.model || request.model,
           status: completeResponseData?.status || 'completed',
           created_at: completeResponseData?.created_at || Date.now(),
-          content: fullContent,
+          content: processedContent,
           ...(toolCallData && { toolCallData }),
+          ...(sources.length > 0 && { sources }),
         });
       })
       .catch((error) => {

@@ -16,6 +16,7 @@ type LlamaStackConfig struct {
 	APIs          []string      `json:"apis" yaml:"apis"`
 	Providers     Providers     `json:"providers" yaml:"providers"`
 	MetadataStore MetadataStore `json:"metadata_store" yaml:"metadata_store"`
+	Storage       Storage       `json:"storage" yaml:"storage"`
 	Models        []Model       `json:"models" yaml:"models"`
 	Shields       []Shield      `json:"shields" yaml:"shields"`
 	VectorDBs     []VectorDB    `json:"vector_dbs" yaml:"vector_dbs"`
@@ -46,6 +47,11 @@ type Provider struct {
 type MetadataStore struct {
 	Type   string `json:"type" yaml:"type"`
 	DBPath string `json:"db_path" yaml:"db_path"`
+}
+
+type Storage struct {
+	Backends map[string]interface{} `json:"backends" yaml:"backends"`
+	Stores   map[string]interface{} `json:"stores" yaml:"stores"`
 }
 
 type Model struct {
@@ -79,23 +85,23 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			VectorIO: []Provider{
 				NewProvider("milvus", "inline::milvus", map[string]interface{}{
 					"db_path": "/opt/app-root/src/.llama/distributions/rh/milvus.db",
-					"kvstore": map[string]interface{}{
-						"type":      "sqlite",
-						"namespace": nil,
-						"db_path":   "/opt/app-root/src/.llama/distributions/rh/milvus_registry.db",
+					"persistence": map[string]interface{}{
+						"namespace": "vector_io::milvus",
+						"backend":   "kv_default",
 					},
 				}),
 			},
 			Agents: []Provider{
 				NewProvider("meta-reference", "inline::meta-reference", map[string]interface{}{
-					"persistence_store": map[string]interface{}{
-						"type":      "sqlite",
-						"namespace": nil,
-						"db_path":   "/opt/app-root/src/.llama/distributions/rh/agents_store.db",
-					},
-					"responses_store": map[string]interface{}{
-						"type":    "sqlite",
-						"db_path": "/opt/app-root/src/.llama/distributions/rh/responses_store.db",
+					"persistence": map[string]interface{}{
+						"agent_state": map[string]interface{}{
+							"namespace": "agents",
+							"backend":   "kv_default",
+						},
+						"responses": map[string]interface{}{
+							"table_name": "responses",
+							"backend":    "sql_default",
+						},
 					},
 				}),
 			},
@@ -103,17 +109,16 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				NewProvider("meta-reference-files", "inline::localfs", map[string]interface{}{
 					"storage_dir": "/opt/app-root/src/.llama/distributions/rh/files",
 					"metadata_store": map[string]interface{}{
-						"type":    "sqlite",
-						"db_path": "/opt/app-root/src/.llama/distributions/rh/files_metadata.db",
+						"table_name": "files_metadata",
+						"backend":    "sql_default",
 					},
 				}),
 			},
 			DatasetIO: []Provider{
 				NewProvider("huggingface", "remote::huggingface", map[string]interface{}{
 					"kvstore": map[string]interface{}{
-						"type":      "sqlite",
-						"namespace": nil,
-						"db_path":   "/opt/app-root/src/.llama/distributions/rh/huggingface_datasetio.db",
+						"namespace": "datasetio::huggingface",
+						"backend":   "kv_default",
 					},
 				}),
 			},
@@ -135,6 +140,32 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		MetadataStore: MetadataStore{
 			Type:   "sqlite",
 			DBPath: "/opt/app-root/src/.llama/distributions/rh/inference_store.db",
+		},
+		Storage: Storage{
+			Backends: map[string]interface{}{
+				"kv_default": map[string]interface{}{
+					"type":    "kv_sqlite",
+					"db_path": "/opt/app-root/src/.llama/distributions/rh/kvstore.db",
+				},
+				"sql_default": map[string]interface{}{
+					"type":    "sql_sqlite",
+					"db_path": "/opt/app-root/src/.llama/distributions/rh/sql_store.db",
+				},
+			},
+			Stores: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"namespace": "registry",
+					"backend":   "kv_default",
+				},
+				"inference": map[string]interface{}{
+					"table_name": "inference_store",
+					"backend":    "sql_default",
+				},
+				"conversations": map[string]interface{}{
+					"table_name": "openai_conversations",
+					"backend":    "sql_default",
+				},
+			},
 		},
 		Server: Server{
 			Port: 8321,

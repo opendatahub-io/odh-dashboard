@@ -1059,7 +1059,6 @@ describe('Model Training', () => {
         {
           model: PodModel,
           ns: projectName,
-          queryParams: { labelSelector: 'training.kubeflow.org/job-role=worker' },
         },
         mockK8sResourceList(mockTrainingPods),
       );
@@ -1076,14 +1075,14 @@ describe('Model Training', () => {
           },
         },
         {
-          delay: 1000,
+          delay: 2000,
           body: mockPodLogs({
             namespace: projectName,
             podName: 'image-classification-job-worker-0',
             containerName: 'image-classification-job-worker-0',
           }),
         },
-      );
+      ).as('fetchLogs');
 
       modelTrainingGlobal.visit(projectName);
 
@@ -1094,6 +1093,9 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.selectTab('Logs');
 
       trainingJobLogsTab.findLoadingSpinner().should('exist');
+
+      cy.wait('@fetchLogs');
+      trainingJobLogsTab.findLoadingSpinner().should('not.exist');
     });
   });
 

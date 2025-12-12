@@ -21,9 +21,9 @@ import { formatMemory } from '#~/utilities/valueUnits';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
-import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
-import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
-import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils.ts';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 
 const NotebookServerDetails: React.FC = () => {
   const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);

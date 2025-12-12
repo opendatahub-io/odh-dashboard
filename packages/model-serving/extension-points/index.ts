@@ -15,6 +15,7 @@ import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelSe
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import type {
   WizardFormData,
   DeploymentWizardField,
@@ -142,6 +143,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
     >;
@@ -152,7 +154,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
     >;
     extractModelAvailabilityData: CodeRef<
-      (deployment: D) => { saveAsAiAsset: boolean; saveAsMaaS?: boolean; useCase?: string } | null
+      (deployment: D) => { saveAsMaaS?: boolean; useCase?: string } | null
     >;
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
     extractDeploymentStrategy?: CodeRef<
