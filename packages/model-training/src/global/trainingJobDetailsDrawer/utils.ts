@@ -5,6 +5,8 @@ import {
   splitValueUnit,
   UnitOption,
 } from '@odh-dashboard/internal/utilities/valueUnits';
+import { TrainJobKind, TrainerStatus } from '../../k8sTypes';
+import { TRAINER_STATUS_ANNOTATION } from '../../const';
 
 /**
  * Converts a value string (e.g., "8Gi") to a numeric value in the base unit
@@ -123,4 +125,21 @@ export const getDefaultPodContainerName = (pod: PodKind | null): string => {
     pod.metadata.annotations?.['kubectl.kubernetes.io/default-container'];
 
   return podContainers.find((c) => c.name === defaultContainerName)?.name || podContainers[0].name;
+};
+
+/**
+ * Parse the trainerStatus from the TrainJob annotation.
+ * The trainerStatus is stored as a JSON string in the annotation.
+ */
+export const getTrainerStatus = (job: TrainJobKind): TrainerStatus | null => {
+  const annotation = job.metadata.annotations?.[TRAINER_STATUS_ANNOTATION];
+  if (!annotation) {
+    return null;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return JSON.parse(annotation) as TrainerStatus;
+  } catch {
+    return null;
+  }
 };

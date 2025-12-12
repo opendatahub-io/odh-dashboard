@@ -3,6 +3,7 @@ import * as _ from 'lodash-es';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
 import { TrainJobKind, TrainerStatus } from '@odh-dashboard/model-training/k8sTypes';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
+import { TRAINER_STATUS_ANNOTATION } from '../const';
 
 type MockResourceConfigType = {
   name?: string;
@@ -153,8 +154,7 @@ export const mockTrainJobK8sResource = ({
   ],
   trainerStatus = {
     progressPercentage: 64,
-    estimatedRemainingDurationSeconds: 1800,
-    estimatedRemainingTimeSummary: '30 minutes',
+    estimatedRemainingSeconds: 1800,
     currentStep: 3000,
     totalSteps: 4690,
     currentEpoch: 3,
@@ -187,6 +187,7 @@ export const mockTrainJobK8sResource = ({
     generation: 1,
     annotations: {
       'opendatahub.io/display-name': name,
+      [TRAINER_STATUS_ANNOTATION]: JSON.stringify(trainerStatus),
     },
   };
 
@@ -222,7 +223,6 @@ export const mockTrainJobK8sResource = ({
       status: {
         conditions,
         jobsStatus,
-        trainerStatus,
       },
     },
     {},

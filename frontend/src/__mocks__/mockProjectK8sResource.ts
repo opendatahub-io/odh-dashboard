@@ -13,6 +13,7 @@ type MockResourceConfigType = {
   enableNIM?: boolean;
   isDSProject?: boolean;
   phase?: 'Active' | 'Terminating';
+  enableKueue?: boolean;
 };
 
 export const mockProjectK8sResource = ({
@@ -26,6 +27,7 @@ export const mockProjectK8sResource = ({
   description = '',
   isDSProject = true,
   phase = 'Active',
+  enableKueue = false,
 }: MockResourceConfigType): ProjectKind => ({
   kind: 'Project',
   apiVersion: 'project.openshift.io/v1',
@@ -39,6 +41,7 @@ export const mockProjectK8sResource = ({
         [KnownLabels.MODEL_SERVING_PROJECT]: 'false',
       }),
       ...(isDSProject && { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
+      ...(enableKueue && { 'kueue.openshift.io/managed': 'true' }),
     },
     ...(hasAnnotations && {
       annotations: {

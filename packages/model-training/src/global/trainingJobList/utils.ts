@@ -192,10 +192,6 @@ const extractWorkloadConditions = (
       ({ type, status }) =>
         type === WorkloadConditionType.QuotaReserved && status === ConditionStatus.False,
     ),
-    Running: conditions.find(
-      ({ type, status }) =>
-        type === WorkloadConditionType.PodsReady && status === ConditionStatus.True,
-    ),
     Admitted: conditions.find(
       ({ type, status }) =>
         type === WorkloadConditionType.Admitted && status === ConditionStatus.True,

@@ -8,6 +8,7 @@ import {
   StackItem,
   Stack,
 } from '@patternfly/react-core';
+import { getTrainerStatus } from './utils';
 import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobDetailsTabProps = {
@@ -15,14 +16,13 @@ type TrainingJobDetailsTabProps = {
 };
 
 const TrainingJobDetailsTab: React.FC<TrainingJobDetailsTabProps> = ({ job }) => {
-  const trainerStatus = job.status?.trainerStatus;
+  const trainerStatus = getTrainerStatus(job);
 
   // Progress information
   const estimatedTimeRemaining =
-    trainerStatus?.estimatedRemainingTimeSummary ||
-    (trainerStatus?.estimatedRemainingDurationSeconds
-      ? `${Math.round(trainerStatus.estimatedRemainingDurationSeconds / 60)} minutes`
-      : '-');
+    trainerStatus?.estimatedRemainingSeconds != null
+      ? `${Math.round(trainerStatus.estimatedRemainingSeconds / 60)} minutes`
+      : '-';
 
   const currentSteps = trainerStatus?.currentStep ?? '-';
   const totalSteps = trainerStatus?.totalSteps ?? '-';

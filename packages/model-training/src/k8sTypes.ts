@@ -1,9 +1,9 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { TRAINER_STATUS_ANNOTATION } from './const';
 
 export interface TrainerStatus {
   progressPercentage?: number | null;
-  estimatedRemainingDurationSeconds?: number | null;
-  estimatedRemainingTimeSummary?: string | null;
+  estimatedRemainingSeconds?: number | null;
   currentStep?: number | null;
   totalSteps?: number | null;
   currentEpoch?: number | null;
@@ -17,6 +17,7 @@ export type TrainJobKind = K8sResourceCommon & {
   metadata: {
     annotations?: Partial<{
       'opendatahub.io/display-name': string;
+      [TRAINER_STATUS_ANNOTATION]?: string;
     }>;
     name: string;
     namespace: string;
@@ -77,7 +78,6 @@ export type TrainJobKind = K8sResourceCommon & {
       succeeded?: number;
       suspended?: number;
     }>;
-    trainerStatus?: TrainerStatus;
   };
 };
 
