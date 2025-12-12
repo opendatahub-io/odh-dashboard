@@ -3,6 +3,7 @@ import { Flex, FlexItem, Label, Progress, Skeleton } from '@patternfly/react-cor
 import { getTrainingJobStatusSync, getStatusInfo } from '../utils';
 import { TrainJobKind } from '../../../k8sTypes';
 import { TrainingJobState } from '../../../types';
+import { getTrainerStatus } from '../../trainingJobDetailsDrawer/utils';
 
 type TrainingJobStatusProps = {
   job: TrainJobKind;
@@ -25,7 +26,7 @@ const TrainingJobStatus = ({
   }
 
   const statusInfo = getStatusInfo(status);
-  const trainerStatus = job.status?.trainerStatus;
+  const trainerStatus = getTrainerStatus(job);
   const progressPercentage = trainerStatus?.progressPercentage;
 
   // Show progress bar for running jobs that have progress information
