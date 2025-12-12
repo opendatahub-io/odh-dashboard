@@ -1,26 +1,26 @@
 import * as React from 'react';
-import {
-  HardwareProfileKind,
-  HardwareProfileFeatureVisibility,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { HardwareProfileKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import { ModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { MODEL_SERVING_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import {
+  HardwarePodSpecOptions,
+  HardwarePodSpecOptionsState,
+} from '#~/concepts/hardwareProfiles/types';
 
-type ServingRuntimeSizeSectionProps = {
-  podSpecOptionState: ModelServingHardwareProfileState;
+type DeploymentHardwareProfileSectionProps = {
+  podSpecOptionState: HardwarePodSpecOptionsState<HardwarePodSpecOptions>;
   projectName?: string;
   servingRuntimeSelected?: ServingRuntimeKind;
   isEditing?: boolean;
 };
 
-const ServingRuntimeSizeSection = ({
+const DeploymentHardwareProfileSection = ({
   podSpecOptionState,
   projectName,
   servingRuntimeSelected,
   isEditing = false,
-}: ServingRuntimeSizeSectionProps): React.ReactNode => {
+}: DeploymentHardwareProfileSectionProps): React.ReactNode => {
   const isHardwareProfileSupported = React.useCallback(
     (profile: HardwareProfileKind) => {
       if (!servingRuntimeSelected) {
@@ -46,10 +46,10 @@ const ServingRuntimeSizeSection = ({
         podSpecOptionsState={podSpecOptionState}
         isEditing={isEditing}
         isHardwareProfileSupported={isHardwareProfileSupported}
-        visibleIn={[HardwareProfileFeatureVisibility.MODEL_SERVING]}
+        visibleIn={MODEL_SERVING_VISIBILITY}
       />
     </>
   );
 };
 
-export default ServingRuntimeSizeSection;
+export default DeploymentHardwareProfileSection;

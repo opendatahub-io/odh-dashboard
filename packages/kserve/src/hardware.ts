@@ -1,15 +1,35 @@
-import { extractHardwareProfileConfigFromInferenceService } from '@odh-dashboard/internal/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import type {
-  HardwareProfileConfig,
-  useHardwareProfileConfig,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  getExistingHardwareProfileData,
+  getExistingResources,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import {
+  MODEL_SERVING_VISIBILITY,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import type { KServeDeployment } from './deployments';
+
+export { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS };
 
 export const extractHardwareProfileConfig = (
   kserveDeployment: KServeDeployment,
 ): Parameters<typeof useHardwareProfileConfig> => {
-  return extractHardwareProfileConfigFromInferenceService(kserveDeployment.model);
+  const { name, namespace: hardwareProfileNamespace } = getExistingHardwareProfileData(
+    kserveDeployment.model,
+  );
+  const { existingContainerResources, existingTolerations, existingNodeSelector } =
+    getExistingResources(kserveDeployment.model, INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS);
+
+  return [
+    name,
+    existingContainerResources,
+    existingTolerations,
+    existingNodeSelector,
+    MODEL_SERVING_VISIBILITY,
+    kserveDeployment.model.metadata.namespace,
+    hardwareProfileNamespace,
+  ];
 };
 
 export const extractReplicas = (kserveDeployment: KServeDeployment): number | null => {
@@ -41,31 +61,6 @@ export const extractEnvironmentVariables = (
       value: envVar.value ?? '',
     })),
   };
-};
-
-export const applyHardwareProfileToDeployment = (
-  inferenceService: InferenceServiceKind,
-  hardwareProfile: HardwareProfileConfig,
-): InferenceServiceKind => {
-  const result = structuredClone(inferenceService);
-  const hardwareProfileName = hardwareProfile.selectedProfile?.metadata.name ?? '';
-  const hardwareProfileNamespace = hardwareProfile.selectedProfile?.metadata.namespace ?? '';
-
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    'opendatahub.io/hardware-profile-name': hardwareProfileName,
-    'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
-  };
-
-  result.spec.predictor.model = {
-    ...result.spec.predictor.model,
-    resources: {
-      ...result.spec.predictor.model?.resources,
-      ...hardwareProfile.resources,
-    },
-  };
-
-  return result;
 };
 
 export const applyReplicas = (

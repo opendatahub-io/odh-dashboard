@@ -117,7 +117,8 @@ describe('ProjectSection', () => {
           setProjectName={mockSetProject}
         />,
       );
-      expect(screen.getByText('test-project')).toBeInTheDocument();
+      expect(screen.getByTestId('project-name')).toBeInTheDocument();
+      expect(screen.getByTestId('project-name')).toHaveValue(mockProject.metadata.name);
     });
   });
 });

@@ -1,5 +1,15 @@
 import React from 'react';
 import { Theme, ThemeOptions } from '@mui/material';
+
+// Extend MUI theme to include x-date-pickers components
+declare module '@mui/material/styles' {
+  interface Components {
+    MuiPickersDay?: object;
+    MuiClock?: object;
+    MuiClockPointer?: object;
+    MuiClockNumber?: object;
+  }
+}
 import { ChartThemeColor, getThemeColors } from '@patternfly/react-charts/victory';
 import {
   generateChartsTheme,
@@ -8,11 +18,11 @@ import {
   typography,
 } from '@perses-dev/components';
 import {
-  chart_color_blue_100,
-  chart_color_blue_200,
-  chart_color_blue_300,
   t_color_gray_95,
   t_color_white,
+  t_global_color_brand_default,
+  t_global_color_brand_hover,
+  t_global_spacer_md,
 } from '@patternfly/react-tokens';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 
@@ -53,17 +63,19 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
       },
       h2: {
         // Panel Group Heading
-        color: 'var(--pf-t--global--text--color--brand--default)',
-        fontWeight: 'var(--pf-t--global--font--weight--body--default)',
+        color: 'var(--pf-t--global--text--color--regular)',
+        fontFamily: 'var(--pf-t--global--font--family--heading)',
+        fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
         fontSize: 'var(--pf-t--global--font--size--600)',
       },
     },
     palette: {
       primary: {
-        light: chart_color_blue_100.value,
-        main: chart_color_blue_200.value,
-        dark: chart_color_blue_300.value,
-        contrastText: primaryTextColor,
+        // Maps to PatternFly brand tokens: default, hover, clicked
+        light: t_global_color_brand_default.value,
+        main: t_global_color_brand_default.value,
+        dark: t_global_color_brand_hover.value, // MUI uses 'dark' for hover
+        contrastText: t_color_white.value,
       },
       secondary: {
         main: primaryTextColor,
@@ -135,20 +147,25 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
       },
       MuiOutlinedInput: {
         styleOverrides: {
+          // Hide the notched outline (no floating label in border)
           notchedOutline: {
-            borderColor: 'var(--pf-t--global--border--color--default)',
+            border: 'none',
           },
           root: {
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'var(--pf-t--global--border--color--default)',
+            // Bootstrap-style: full border on the root instead
+            borderRadius: 'var(--pf-t--global--border--radius--small)',
+            border: '1px solid',
+            borderColor: 'var(--pf-t--global--border--color--default)',
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+            '&:hover': {
+              borderColor: 'var(--pf-t--global--border--color--hover)',
             },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'var(--pf-t--global--border--color--default)',
+            '&.Mui-focused': {
+              borderColor: 'var(--pf-t--global--border--color--clicked)',
             },
           },
           input: {
-            // Dashboard Variables >> Text Variable
-            padding: '8.5px 14px',
+            padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
           },
         },
       },
@@ -156,6 +173,218 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
         styleOverrides: {
           icon: {
             color: primaryTextColor,
+          },
+        },
+      },
+      MuiFormLabel: {
+        styleOverrides: {
+          root: {
+            color: 'var(--pf-t--global--text--color--regular)',
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            // Ensure consistent left alignment
+            paddingLeft: 0,
+            marginLeft: 0,
+            '&.Mui-focused': {
+              color: 'var(--pf-t--global--text--color--regular)',
+            },
+          },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: 'var(--pf-t--global--text--color--regular)',
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            // Position label above input (standard-like behavior)
+            position: 'relative',
+            transform: 'none',
+            marginBottom: 'var(--pf-t--global--spacer--sm)',
+            marginLeft: 0,
+            paddingLeft: 0,
+            fontSize: 'var(--pf-t--global--font--size--body--default)',
+            '&.Mui-focused': {
+              color: 'var(--pf-t--global--text--color--regular)',
+            },
+            '&.MuiInputLabel-shrink': {
+              transform: 'none',
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+              marginLeft: 0,
+              paddingLeft: 0,
+            },
+            '&.MuiInputLabel-outlined': {
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            },
+            '&.MuiInputLabel-outlined.MuiInputLabel-shrink': {
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            },
+          },
+          shrink: {
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+          },
+          outlined: {
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+          },
+        },
+      },
+      MuiFormControl: {},
+      MuiFormHelperText: {
+        styleOverrides: {
+          root: {
+            marginLeft: 0,
+          },
+        },
+      },
+      MuiStack: {},
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            padding: 'var(--pf-t--global--spacer--lg)',
+            fontSize: 'var(--pf-t--global--font--size--heading--md)',
+            fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+          },
+        },
+      },
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            padding: 'var(--pf-t--global--spacer--lg)',
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 'var(--pf-t--global--border--radius--large)',
+          },
+          root: {
+            // Styles scoped to modal/dialog only
+            '& .MuiStack-root': {
+              paddingTop: t_global_spacer_md.value,
+            },
+            '& .MuiFormLabel-root, & .MuiInputLabel-root': {
+              paddingLeft: 0,
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            },
+            // Target the label that's a sibling of the PromQL expression editor
+            '& .MuiStack-root:has([data-testid="promql_expression_editor"]) > .MuiInputLabel-root':
+              {
+                left: 0,
+                marginLeft: 0,
+              },
+            // Only apply margin-top to icon button directly adjacent to PromQL expression editor
+            '& [data-testid="promql_expression_editor"] + .MuiIconButton-root': {
+              marginTop: t_global_spacer_md.value,
+            },
+            // CodeMirror editor text - always dark
+            '& .cm-line': {
+              color: t_color_gray_95.value,
+            },
+          },
+        },
+      },
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            // Use PatternFly inverse colors for tooltip
+            backgroundColor: 'var(--pf-t--global--background--color--inverse--default)',
+            // Override Typography color inside tooltip
+            '& .MuiTypography-root': {
+              color: 'var(--pf-t--global--text--color--inverse)',
+            },
+          },
+          arrow: {
+            color: 'var(--pf-t--global--background--color--inverse--default)',
+          },
+        },
+      },
+      MuiPickersDay: {
+        styleOverrides: {
+          root: {
+            '&.Mui-selected': {
+              // Lighter brand bg + dark text in dark theme, default brand bg + white text in light theme
+              backgroundColor: 'var(--pf-t--global--color--brand--default)',
+              color: 'var(--pf-t--global--text--color--on-brand--default)',
+            },
+          },
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 'var(--pf-t--global--border--radius--pill)',
+          },
+          containedPrimary: {
+            // Text color for content on brand background
+            color: 'var(--pf-t--global--text--color--on-brand--default)',
+            backgroundColor: 'var(--pf-t--global--color--brand--default)',
+            '&:hover': {
+              backgroundColor: 'var(--pf-t--global--color--brand--hover)',
+            },
+            '&:active': {
+              backgroundColor: 'var(--pf-t--global--color--brand--clicked)',
+            },
+          },
+          outlinedPrimary: {
+            color: 'var(--pf-t--global--color--brand--default)',
+            borderColor: 'var(--pf-t--global--color--brand--default)',
+            '&:hover': {
+              borderColor: 'var(--pf-t--global--color--brand--hover)',
+            },
+          },
+          outlinedSecondary: {
+            // Icon-style buttons (refresh, etc.) - use small radius instead of pill
+            borderRadius: 'var(--pf-t--global--border--radius--small)',
+            borderColor: 'var(--pf-t--global--border--color--default)',
+            '&:hover': {
+              borderColor: 'var(--pf-t--global--border--color--hover)',
+              backgroundColor: 'var(--pf-t--global--background--color--control--default)',
+            },
+          },
+        },
+      },
+      MuiClock: {
+        styleOverrides: {
+          root: {
+            // Clock pin (center dot)
+            '& .MuiClock-pin': {
+              backgroundColor: 'var(--pf-t--global--color--brand--default)',
+            },
+            // AM/PM buttons when selected
+            '& .MuiClock-amButton.Mui-selected, & .MuiClock-pmButton.Mui-selected': {
+              backgroundColor: 'var(--pf-t--global--color--brand--default)',
+              '&:hover': {
+                backgroundColor: 'var(--pf-t--global--color--brand--hover)',
+              },
+              // AM/PM text inside selected button - use inverse color
+              '& .MuiClock-meridiemText': {
+                color: 'var(--pf-t--global--text--color--inverse)',
+              },
+            },
+          },
+        },
+      },
+      MuiClockPointer: {
+        styleOverrides: {
+          root: {
+            // Clock hand/pointer
+            backgroundColor: 'var(--pf-t--global--color--brand--default)',
+          },
+          thumb: {
+            // Clock pointer thumb (circle at the end)
+            backgroundColor: 'var(--pf-t--global--color--brand--default)',
+            borderColor: 'var(--pf-t--global--color--brand--default)',
+            // Text color - inverse
+            color: 'var(--pf-t--global--text--color--inverse)',
+          },
+        },
+      },
+      MuiClockNumber: {
+        styleOverrides: {
+          root: {
+            // Selected clock number - use inverse text color
+            '&.Mui-selected': {
+              color: 'var(--pf-t--global--text--color--inverse)',
+            },
           },
         },
       },

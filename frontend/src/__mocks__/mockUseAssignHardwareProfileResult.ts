@@ -1,15 +1,17 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { HardwareProfileKind } from '#~/k8sTypes';
-import { ContainerResources, Toleration, NodeSelector } from '#~/types';
+import type { ContainerResources, Toleration, NodeSelector } from '#~/types';
 import { applyHardwareProfileConfig } from '#~/concepts/hardwareProfiles/utils';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
+import type { CrPathConfig } from '#~/concepts/hardwareProfiles/types';
 
 type MockHardwareProfileOptionsConfig = {
   selectedHardwareProfile?: HardwareProfileKind;
   resources?: ContainerResources;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  paths?: CrPathConfig;
 };
 
 export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>({
@@ -26,6 +28,7 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
   },
   tolerations = [],
   nodeSelector = {},
+  paths = NOTEBOOK_HARDWARE_PROFILE_PATHS,
 }: MockHardwareProfileOptionsConfig = {}): UseAssignHardwareProfileResult<T> => {
   const formData = {
     selectedProfile: selectedHardwareProfile,
@@ -55,9 +58,11 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
         selectedHardwareProfile,
       },
     },
-    applyToResource: (resource: T): T => {
-      return applyHardwareProfileConfig(resource, formData, NOTEBOOK_HARDWARE_PROFILE_PATHS);
+    applyToResource: <R extends T>(resource: R): R => {
+      return applyHardwareProfileConfig(resource, formData, paths);
     },
     validateHardwareProfileForm: () => true,
+    loaded: true,
+    error: undefined,
   };
 };
