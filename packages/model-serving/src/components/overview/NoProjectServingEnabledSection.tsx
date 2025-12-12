@@ -13,11 +13,9 @@ const EmptyModelServingPlatformSection: React.FC = () => (
         title="No model serving platform selected"
       >
         <CardBody>
-          <Content>
-            <Content component="small">
-              To enable model serving, an administrator must first select a model serving platform
-              in the cluster settings
-            </Content>
+          <Content component="small">
+            To enable model serving, an administrator must first select a model serving platform in
+            the cluster settings
           </Content>
         </CardBody>
       </OverviewCard>

@@ -7,7 +7,7 @@ const EmptyModelServingPlatform: React.FC = () => (
   <EmptyState
     headingLevel="h3"
     icon={() => <img src={gearsImg} alt="settings" />}
-    titleText="No model serving platform enabled"
+    titleText="No model serving platform selected"
     variant="xs"
   >
     <EmptyStateBody>
