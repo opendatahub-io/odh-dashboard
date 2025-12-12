@@ -48,7 +48,7 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
         .fill(hardwareProfileResourceName);
       createHardwareProfile.findDescriptionTextBox().fill(testData.hardwareProfileDescription);
       createHardwareProfile.findSubmitButton().click();
-      const toolbar = hardwareProfile.getUniqueTableToolbar();
+      let toolbar = hardwareProfile.getUniqueTableToolbar();
       toolbar.findSearchInput().type(hardwareProfileResourceName);
       const row = hardwareProfile.getUniqueRow(hardwareProfileResourceName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
@@ -75,7 +75,9 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
         .click({ force: true });
       deleteModal.findInput().fill(hardwareProfileResourceName);
       deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
-      row.findDescription().should('not.contain', hardwareProfileResourceName);
+      toolbar = hardwareProfile.getUniqueTableToolbar();
+      toolbar.findSearchInput().type(hardwareProfileResourceName);
+      hardwareProfile.findHardwareProfilesEmptyState().should('exist');
     },
   );
 });

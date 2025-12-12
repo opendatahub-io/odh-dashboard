@@ -123,7 +123,8 @@ describe('Verify Hardware Profiles Deletion/Change when applied to a resource', 
       hardwareProfile.getRow(hardwareProfileName).findKebabAction('Delete').click({ force: true });
       deleteModal.findInput().fill(hardwareProfileName);
       deleteModal.findSubmitButton().should('be.enabled').click({ force: true });
-      row.findDescription().should('not.contain', hardwareProfileName);
+      toolbar.findSearchInput().type(hardwareProfileName);
+      hardwareProfile.findHardwareProfilesEmptyState().should('exist');
 
       // Project navigation
       projectListPage.navigate();
