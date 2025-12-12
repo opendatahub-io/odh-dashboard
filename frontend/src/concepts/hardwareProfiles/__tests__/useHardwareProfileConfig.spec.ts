@@ -29,7 +29,7 @@ describe('useHardwareProfileConfig', () => {
       projectProfiles: [[], true, undefined],
       globalProfiles: [[], true, undefined],
     });
-    mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'test-namespace' });
+    mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'opendatahub' });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
       devFlags: {},
@@ -129,7 +129,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '2Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('test-profile', resources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'test-profile',
+      resources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      hardwareProfile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     expect(state.formData.selectedProfile).toBe(hardwareProfile);
@@ -228,7 +236,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '4Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('updated-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'updated-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      hardwareProfile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     expect(state.formData.selectedProfile).toBe(hardwareProfile);
@@ -265,7 +281,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '4Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('empty-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'empty-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      emptyProfile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     expect(state.formData.selectedProfile).toBe(emptyProfile);
@@ -309,7 +333,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '4Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('standard-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'standard-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     expect(state.formData.selectedProfile).toBe(profile);
@@ -357,7 +389,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '4Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('profile-with-gpu', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'profile-with-gpu',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profileWithGPU.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     expect(state.formData.resources).toEqual({
@@ -390,7 +430,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 1 },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('cpu-only-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'cpu-only-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profileCpuOnly.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     // Only CPU should remain, orphans removed
@@ -415,7 +463,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '2', memory: '4Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('empty-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'empty-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      emptyProfile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     expect(state.formData.resources).toEqual({
@@ -455,7 +511,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '4', memory: '8Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('standard-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'standard-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     // Customized values should be preserved
@@ -503,7 +567,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '4', memory: '8Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('profile-with-gpu', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'profile-with-gpu',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profileWithGPU.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     // Customizations preserved, GPU added with default
@@ -540,6 +612,11 @@ describe('useHardwareProfileConfig', () => {
     const renderResult = testHook(useHardwareProfileConfig)(
       'cpu-only-profile-customized',
       existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profileCpuOnlyCustomized.metadata.namespace,
     );
     const state = renderResult.result.current;
 
@@ -566,7 +643,15 @@ describe('useHardwareProfileConfig', () => {
       limits: { cpu: '4', memory: '8Gi' },
     };
 
-    const renderResult = testHook(useHardwareProfileConfig)('empty-profile', existingResources);
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'empty-profile',
+      existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      emptyProfile.metadata.namespace,
+    );
     const state = renderResult.result.current;
 
     // All resources cleared, customizations lost
@@ -610,6 +695,11 @@ describe('useHardwareProfileConfig', () => {
     const renderResult = testHook(useHardwareProfileConfig)(
       'updated-constraints-profile',
       existingResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      profileWithNewConstraints.metadata.namespace,
     );
     const state = renderResult.result.current;
 

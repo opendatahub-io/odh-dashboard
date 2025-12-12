@@ -1,5 +1,6 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileBindingConfig } from './types';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
+import { HardwareProfileBindingConfig, CrPathConfig } from './types';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';
@@ -75,3 +76,12 @@ export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
     path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
   },
 ];
+
+export const WORKBENCH_VISIBILITY = [HardwareProfileFeatureVisibility.WORKBENCH];
+export const MODEL_SERVING_VISIBILITY = [HardwareProfileFeatureVisibility.MODEL_SERVING];
+
+export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
+  containerResourcesPath: 'spec.predictor.model.resources',
+  tolerationsPath: 'spec.predictor.tolerations',
+  nodeSelectorPath: 'spec.predictor.nodeSelector',
+};

@@ -4,7 +4,6 @@ import {
   type InferenceServiceKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-
 import {
   DeploymentStrategyFieldData,
   type ModelLocationData,
@@ -18,6 +17,8 @@ import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/componen
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import * as _ from 'lodash-es';
+import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -30,7 +31,7 @@ import {
   applyModelType,
   applyDeploymentStrategy,
 } from './deployUtils';
-import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
+import { applyReplicas } from './hardware';
 import {
   createInferenceService,
   patchInferenceService,
@@ -119,7 +120,11 @@ const assembleInferenceService = (
     secretName,
   );
 
-  inferenceService = applyHardwareProfileToDeployment(inferenceService, hardwareProfile);
+  inferenceService = applyHardwareProfileConfig(
+    inferenceService,
+    hardwareProfile,
+    INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  );
 
   inferenceService = applyAuth(
     inferenceService,

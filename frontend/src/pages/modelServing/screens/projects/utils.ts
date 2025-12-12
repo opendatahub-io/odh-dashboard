@@ -36,11 +36,11 @@ import {
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
+import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
@@ -303,7 +303,7 @@ export const getProjectModelServingPlatform = (
 const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
   dryRun = false,
   isStorageNeeded?: boolean,
   connection?: Connection,
@@ -350,7 +350,7 @@ const createInferenceServiceAndDataConnection = async (
       },
       editInfo,
       secret?.metadata.name,
-      podSpecOptions,
+      applyHardwareProfile,
       dryRun,
       isStorageNeeded,
     );
@@ -365,7 +365,7 @@ const createInferenceServiceAndDataConnection = async (
         imagePullSecrets,
       },
       secret?.metadata.name,
-      podSpecOptions,
+      applyHardwareProfile,
       dryRun,
       isStorageNeeded,
     );
@@ -378,7 +378,7 @@ export const getSubmitInferenceServiceResourceFn = (
   editInfo: InferenceServiceKind | undefined,
   servingRuntimeName: string,
   inferenceServiceName: string,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
   allowCreate?: boolean,
   secrets?: SecretKind[],
   isStorageNeeded?: boolean,
@@ -401,7 +401,7 @@ export const getSubmitInferenceServiceResourceFn = (
     createInferenceServiceAndDataConnection(
       inferenceServiceData,
       editInfo,
-      podSpecOptions,
+      applyHardwareProfile,
       dryRun,
       isStorageNeeded,
       connection,
@@ -435,7 +435,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  podSpecOptions: ModelServingPodSpecOptions,
+  podSpecOptions: HardwarePodSpecOptions,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
@@ -479,7 +479,6 @@ export const getSubmitServingRuntimeResourcesFn = (
               existingData: editInfo.servingRuntime,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
-              podSpecOptions,
             }),
           ]
         : [
@@ -489,7 +488,6 @@ export const getSubmitServingRuntimeResourcesFn = (
               servingRuntime: servingRuntimeSelected,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
-              podSpecOptions,
             }),
           ]),
     ]);

@@ -19,7 +19,6 @@ import {
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { parseCommandLine } from '#~/api/k8s/utils';
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { getModelServingProjects } from '#~/api';
 
 const applyAuthToInferenceService = (
@@ -63,7 +62,7 @@ export const assembleInferenceService = (
   editName?: string,
   inferenceService?: InferenceServiceKind,
   isStorageNeeded?: boolean,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
 ): InferenceServiceKind => {
   const {
     storage,
@@ -109,20 +108,6 @@ export const assembleInferenceService = (
 
   annotations['openshift.io/display-name'] = data.name.trim();
   annotations['serving.kserve.io/deploymentMode'] = DeploymentMode.RawDeployment;
-
-  const dashboardNamespace = data.dashboardNamespace ?? '';
-  if (podSpecOptions && podSpecOptions.selectedHardwareProfile) {
-    annotations['opendatahub.io/hardware-profile-name'] =
-      podSpecOptions.selectedHardwareProfile.metadata.name;
-    if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
-      annotations['opendatahub.io/hardware-profile-namespace'] = project;
-    } else {
-      annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
-    }
-    annotations['opendatahub.io/hardware-profile-resource-version'] =
-      podSpecOptions.selectedHardwareProfile.metadata.resourceVersion || '';
-  }
-
   const labels = { ...updatedInferenceService.metadata.labels, ...data.labels };
   labels[KnownLabels.DASHBOARD_RESOURCE] = 'true';
 
@@ -164,24 +149,8 @@ export const assembleInferenceService = (
 
   updatedInferenceService = applyAuthToInferenceService(updatedInferenceService, tokenAuth);
   updatedInferenceService = applyRoutingToInferenceService(updatedInferenceService, externalRoute);
-
-  if (podSpecOptions) {
-    const { tolerations, resources, nodeSelector } = podSpecOptions;
-    if (!podSpecOptions.selectedHardwareProfile) {
-      if (tolerations) {
-        updatedInferenceService.spec.predictor.tolerations = tolerations;
-      }
-      if (nodeSelector) {
-        updatedInferenceService.spec.predictor.nodeSelector = nodeSelector;
-      }
-    }
-    updatedInferenceService.spec.predictor.model = {
-      ...updatedInferenceService.spec.predictor.model,
-      resources: {
-        ...updatedInferenceService.spec.predictor.model?.resources,
-        ...resources,
-      },
-    };
+  if (applyHardwareProfile) {
+    updatedInferenceService = applyHardwareProfile(updatedInferenceService);
   }
 
   // If storage is not needed, remove storage from the inference service
@@ -277,7 +246,7 @@ export const getInferenceServicePods = (
 export const createInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
   dryRun = false,
   isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
@@ -287,7 +256,7 @@ export const createInferenceService = (
     undefined,
     undefined,
     isStorageNeeded,
-    podSpecOptions,
+    applyHardwareProfile,
   );
   return k8sCreateResource<InferenceServiceKind>(
     applyK8sAPIOptions(
@@ -304,7 +273,7 @@ export const updateInferenceService = (
   data: CreatingInferenceServiceObject,
   existingData: InferenceServiceKind,
   secretKey?: string,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
   dryRun = false,
   isStorageNeeded?: boolean,
 ): Promise<InferenceServiceKind> => {
@@ -314,7 +283,7 @@ export const updateInferenceService = (
     existingData.metadata.name,
     existingData,
     isStorageNeeded,
-    podSpecOptions,
+    applyHardwareProfile,
   );
 
   return k8sUpdateResource<InferenceServiceKind>(
