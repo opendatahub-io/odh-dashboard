@@ -1,13 +1,30 @@
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
+import { appChrome } from './appChrome';
 
 class ModelTrainingGlobal {
   visit(projectName?: string) {
     const baseUrl = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
-    const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue`;
+    // Enable both Model Training Plugin and Training Jobs feature flags
+    const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue%2CtrainingJobs%3Dtrue`;
     cy.visitWithLogin(url);
+    this.wait();
+  }
+
+  navigate() {
+    // Wait for the sidebar to be visible and ready
+    cy.get('#page-sidebar').should('be.visible');
+    cy.get('#dashboard-page-main').should('be.visible');
+
+    appChrome
+      .findNavItem({
+        name: 'Training jobs',
+        rootSection: 'Develop & train',
+      })
+      .click();
+
     this.wait();
   }
 
@@ -25,7 +42,7 @@ class ModelTrainingGlobal {
   }
 
   findProjectSelectorToggle() {
-    return cy.findByTestId('project-selector-dropdown-toggle');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   selectProject(projectName: string) {
