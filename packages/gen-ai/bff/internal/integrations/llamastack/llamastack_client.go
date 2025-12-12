@@ -95,7 +95,7 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 	limit := int64(100)
 	if params.Limit != nil {
 		if *params.Limit < 1 || *params.Limit > 100 {
-			return nil, fmt.Errorf("limit must be between 1 and 100, got: %d", *params.Limit)
+			return nil, NewInvalidRequestError(fmt.Sprintf("limit must be between 1 and 100, got: %d", *params.Limit))
 		}
 		limit = *params.Limit
 	}
@@ -103,7 +103,7 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 
 	if params.Order != "" {
 		if params.Order != "asc" && params.Order != "desc" {
-			return nil, fmt.Errorf("order must be 'asc' or 'desc', got: %s", params.Order)
+			return nil, NewInvalidRequestError(fmt.Sprintf("order must be 'asc' or 'desc', got: %s", params.Order))
 		}
 		apiParams.Order = openai.VectorStoreListParamsOrder(params.Order)
 	}
@@ -155,24 +155,24 @@ type CreateVectorStoreParams struct {
 func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateVectorStoreParams) (*openai.VectorStore, error) {
 	// Validate required fields first
 	if strings.TrimSpace(params.Name) == "" {
-		return nil, fmt.Errorf("name is required")
+		return nil, NewInvalidRequestError("name is required")
 	}
 	if strings.TrimSpace(params.ProviderID) == "" {
-		return nil, fmt.Errorf("provider_id is required")
+		return nil, NewInvalidRequestError("provider_id is required")
 	}
 
 	// Validate metadata if provided
 	if len(params.Metadata) > 0 {
 		if len(params.Metadata) > 16 {
-			return nil, fmt.Errorf("metadata can have max 16 key-value pairs, got: %d", len(params.Metadata))
+			return nil, NewInvalidRequestError(fmt.Sprintf("metadata can have max 16 key-value pairs, got: %d", len(params.Metadata)))
 		}
 
 		for k, v := range params.Metadata {
 			if len(k) > 64 {
-				return nil, fmt.Errorf("metadata key '%s' exceeds 64 chars", k)
+				return nil, NewInvalidRequestError(fmt.Sprintf("metadata key '%s' exceeds 64 chars", k))
 			}
 			if len(v) > 512 {
-				return nil, fmt.Errorf("metadata value for '%s' exceeds 512 chars", k)
+				return nil, NewInvalidRequestError(fmt.Sprintf("metadata value for '%s' exceeds 512 chars", k))
 			}
 		}
 	}
@@ -266,7 +266,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 	if params.Reader != nil {
 		// Direct streaming approach
 		if params.Filename == "" {
-			return nil, fmt.Errorf("filename is required when using Reader")
+			return nil, NewInvalidRequestError("filename is required when using Reader")
 		}
 		apiParams.File = openai.File(params.Reader, params.Filename, params.ContentType)
 	} else if params.FilePath != "" {
@@ -278,7 +278,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 		defer file.Close()
 		apiParams.File = openai.File(file, params.FilePath, "")
 	} else {
-		return nil, fmt.Errorf("either FilePath or Reader+Filename must be provided")
+		return nil, NewInvalidRequestError("either FilePath or Reader+Filename must be provided")
 	}
 
 	purpose := params.Purpose
@@ -295,7 +295,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 		}
 	}
 	if !purposeValid {
-		return nil, fmt.Errorf("purpose must be one of %v, got: %s", validPurposes, purpose)
+		return nil, NewInvalidRequestError(fmt.Sprintf("purpose must be one of %v, got: %s", validPurposes, purpose))
 	}
 	apiParams.Purpose = openai.FilePurpose(purpose)
 
@@ -391,10 +391,10 @@ type CreateResponseParams struct {
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
 func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*responses.ResponseNewParams, error) {
 	if params.Input == "" {
-		return nil, fmt.Errorf("input is required")
+		return nil, NewInvalidRequestError("input is required")
 	}
 	if params.Model == "" {
-		return nil, fmt.Errorf("model is required")
+		return nil, NewInvalidRequestError("model is required")
 	}
 
 	apiParams := &responses.ResponseNewParams{
@@ -458,14 +458,14 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 
 	if params.Temperature != nil {
 		if *params.Temperature < 0 || *params.Temperature > 2 {
-			return nil, fmt.Errorf("temperature must be between 0 and 2, got: %.2f", *params.Temperature)
+			return nil, NewInvalidRequestError(fmt.Sprintf("temperature must be between 0 and 2, got: %.2f", *params.Temperature))
 		}
 		apiParams.Temperature = openai.Float(*params.Temperature)
 	}
 
 	if params.TopP != nil {
 		if *params.TopP < 0 || *params.TopP > 1 {
-			return nil, fmt.Errorf("top_p must be between 0 and 1, got: %.2f", *params.TopP)
+			return nil, NewInvalidRequestError(fmt.Sprintf("top_p must be between 0 and 1, got: %.2f", *params.TopP))
 		}
 		apiParams.TopP = openai.Float(*params.TopP)
 	}
@@ -484,10 +484,10 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 		for _, mcpServer := range params.Tools {
 			// Validate MCP server parameters
 			if mcpServer.ServerLabel == "" {
-				return nil, fmt.Errorf("server_label is required for MCP server")
+				return nil, NewInvalidRequestError("server_label is required for MCP server")
 			}
 			if mcpServer.ServerURL == "" {
-				return nil, fmt.Errorf("server_url is required for MCP server")
+				return nil, NewInvalidRequestError("server_url is required for MCP server")
 			}
 
 			// Create MCP tool parameter for OpenAI client
@@ -572,7 +572,7 @@ func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface
 // DeleteVectorStore deletes a vector store by ID.
 func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
 	if vectorStoreID == "" {
-		return fmt.Errorf("vectorStoreID is required")
+		return NewInvalidRequestError("vectorStoreID is required")
 	}
 
 	_, err := c.client.VectorStores.Delete(ctx, vectorStoreID)
@@ -586,7 +586,7 @@ func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID 
 // GetResponse retrieves a response by ID for validation purposes.
 func (c *LlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
 	if responseID == "" {
-		return nil, fmt.Errorf("responseID is required")
+		return nil, NewInvalidRequestError("responseID is required")
 	}
 
 	response, err := c.client.Responses.Get(ctx, responseID, responses.ResponseGetParams{})
@@ -603,14 +603,14 @@ func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams
 
 	if params.Limit != nil {
 		if *params.Limit < 1 || *params.Limit > 10000 {
-			return nil, fmt.Errorf("limit must be between 1 and 10000, got: %d", *params.Limit)
+			return nil, NewInvalidRequestError(fmt.Sprintf("limit must be between 1 and 10000, got: %d", *params.Limit))
 		}
 		apiParams.Limit = openai.Int(*params.Limit)
 	}
 
 	if params.Order != "" {
 		if params.Order != "asc" && params.Order != "desc" {
-			return nil, fmt.Errorf("order must be 'asc' or 'desc', got: %s", params.Order)
+			return nil, NewInvalidRequestError(fmt.Sprintf("order must be 'asc' or 'desc', got: %s", params.Order))
 		}
 		apiParams.Order = openai.FileListParamsOrder(params.Order)
 	}
@@ -625,7 +625,7 @@ func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams
 			}
 		}
 		if !purposeValid {
-			return nil, fmt.Errorf("purpose must be one of %v, got: %s", validPurposes, params.Purpose)
+			return nil, NewInvalidRequestError(fmt.Sprintf("purpose must be one of %v, got: %s", validPurposes, params.Purpose))
 		}
 		apiParams.Purpose = openai.String(params.Purpose)
 	}
@@ -641,7 +641,7 @@ func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams
 // GetFile retrieves a file by ID.
 func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
 	if fileID == "" {
-		return nil, fmt.Errorf("fileID is required")
+		return nil, NewInvalidRequestError("fileID is required")
 	}
 
 	file, err := c.client.Files.Get(ctx, fileID)
@@ -655,7 +655,7 @@ func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.
 // DeleteFile deletes a file by ID.
 func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
 	if fileID == "" {
-		return fmt.Errorf("fileID is required")
+		return NewInvalidRequestError("fileID is required")
 	}
 
 	_, err := c.client.Files.Delete(ctx, fileID)
@@ -669,21 +669,21 @@ func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error 
 // ListVectorStoreFiles retrieves files in a vector store with optional filtering parameters.
 func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error) {
 	if vectorStoreID == "" {
-		return nil, fmt.Errorf("vectorStoreID is required")
+		return nil, NewInvalidRequestError("vectorStoreID is required")
 	}
 
 	apiParams := openai.VectorStoreFileListParams{}
 
 	if params.Limit != nil {
 		if *params.Limit < 1 || *params.Limit > 100 {
-			return nil, fmt.Errorf("limit must be between 1 and 100, got: %d", *params.Limit)
+			return nil, NewInvalidRequestError(fmt.Sprintf("limit must be between 1 and 100, got: %d", *params.Limit))
 		}
 		apiParams.Limit = openai.Int(*params.Limit)
 	}
 
 	if params.Order != "" {
 		if params.Order != "asc" && params.Order != "desc" {
-			return nil, fmt.Errorf("order must be 'asc' or 'desc', got: %s", params.Order)
+			return nil, NewInvalidRequestError(fmt.Sprintf("order must be 'asc' or 'desc', got: %s", params.Order))
 		}
 		apiParams.Order = openai.VectorStoreFileListParamsOrder(params.Order)
 	}
@@ -698,7 +698,7 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 			}
 		}
 		if !filterValid {
-			return nil, fmt.Errorf("filter must be one of %v, got: %s", validFilters, params.Filter)
+			return nil, NewInvalidRequestError(fmt.Sprintf("filter must be one of %v, got: %s", validFilters, params.Filter))
 		}
 		apiParams.Filter = openai.VectorStoreFileListParamsFilter(params.Filter)
 	}
@@ -714,10 +714,10 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 // DeleteVectorStoreFile removes a file from a vector store.
 func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
 	if vectorStoreID == "" {
-		return fmt.Errorf("vectorStoreID is required")
+		return NewInvalidRequestError("vectorStoreID is required")
 	}
 	if fileID == "" {
-		return fmt.Errorf("fileID is required")
+		return NewInvalidRequestError("fileID is required")
 	}
 
 	_, err := c.client.VectorStores.Files.Delete(ctx, vectorStoreID, fileID)
