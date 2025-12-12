@@ -10,27 +10,26 @@ export const DeployButton: React.FC<{
 }> = ({ project, variant = 'primary' }) => {
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard();
 
-  const { disabled: canMakeNewDeployment, disabledReason: reason } =
-    useCanMakeNewDeployment(project);
+  const { disabled, disabledReason } = useCanMakeNewDeployment(project);
 
   const deployButton = (
     <Button
       data-testid="deploy-button"
       variant={variant}
       onClick={() => navigateToDeploymentWizard(project?.metadata.name)}
-      isAriaDisabled={!canMakeNewDeployment}
+      isAriaDisabled={disabled}
       isInline={variant === 'link'}
     >
       Deploy model
     </Button>
   );
 
-  if (!canMakeNewDeployment) {
+  if (disabled) {
     return (
       <Tooltip
         data-testid="deploy-model-tooltip"
         aria-label="Model Serving Action Info"
-        content={reason}
+        content={disabledReason}
       >
         {deployButton}
       </Tooltip>
