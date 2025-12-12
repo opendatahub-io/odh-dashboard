@@ -109,8 +109,8 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, http.StatusForbidden)
 
 		assert.Equal(t, http.StatusForbidden, httpErr.StatusCode)
-		assert.Equal(t, "forbidden", httpErr.ErrorResponse.Code)
-		assert.Equal(t, "user does not have permission", httpErr.ErrorResponse.Message)
+		assert.Equal(t, "forbidden", httpErr.Code)
+		assert.Equal(t, "user does not have permission", httpErr.Message)
 	})
 
 	t.Run("should map not found error correctly", func(t *testing.T) {
@@ -118,8 +118,8 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, http.StatusNotFound)
 
 		assert.Equal(t, http.StatusNotFound, httpErr.StatusCode)
-		assert.Equal(t, "not_found", httpErr.ErrorResponse.Code)
-		assert.Equal(t, "resource not found", httpErr.ErrorResponse.Message)
+		assert.Equal(t, "not_found", httpErr.Code)
+		assert.Equal(t, "resource not found", httpErr.Message)
 	})
 
 	t.Run("should map internal error correctly", func(t *testing.T) {
@@ -132,8 +132,8 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, http.StatusInternalServerError)
 
 		assert.Equal(t, http.StatusInternalServerError, httpErr.StatusCode)
-		assert.Equal(t, "internal_server_error", httpErr.ErrorResponse.Code)
-		assert.Equal(t, "failed to verify user permissions: some error", httpErr.ErrorResponse.Message)
+		assert.Equal(t, "internal_server_error", httpErr.Code)
+		assert.Equal(t, "failed to verify user permissions: some error", httpErr.Message)
 	})
 
 	t.Run("should handle unknown status codes with default case", func(t *testing.T) {
@@ -141,9 +141,9 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, 599)
 
 		assert.Equal(t, 599, httpErr.StatusCode)
-		assert.Equal(t, "k8s_error", httpErr.ErrorResponse.Code)
-		assert.Contains(t, httpErr.ErrorResponse.Message, "Kubernetes error (HTTP 599)")
-		assert.Contains(t, httpErr.ErrorResponse.Message, "custom error message")
+		assert.Equal(t, "k8s_error", httpErr.Code)
+		assert.Contains(t, httpErr.Message, "Kubernetes error (HTTP 599)")
+		assert.Contains(t, httpErr.Message, "custom error message")
 	})
 
 	t.Run("should use default status code when K8sError status is 0", func(t *testing.T) {
@@ -152,8 +152,8 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, http.StatusUnauthorized)
 
 		assert.Equal(t, http.StatusUnauthorized, httpErr.StatusCode)
-		assert.Equal(t, "unauthorized", httpErr.ErrorResponse.Code)
-		assert.Equal(t, "test message", httpErr.ErrorResponse.Message)
+		assert.Equal(t, "unauthorized", httpErr.Code)
+		assert.Equal(t, "test message", httpErr.Message)
 	})
 }
 
