@@ -24,7 +24,7 @@ export const useCanMakeNewDeployment = (
     : isKueueDisabled
     ? 'Kueue is not enabled. Contact your administrator.'
     : isMissingDeployMethods
-    ? 'At least one model servingplatform must be enabled to deploy a model. Contact your administrator.'
+    ? 'At least one model serving platform must be enabled to deploy a model. Contact your administrator.'
     : 'Deploying a model is not possible. Contact your administrator.';
 
   return { disabled, disabledReason };

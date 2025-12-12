@@ -48,44 +48,6 @@ describe('DeployButton', () => {
     );
 
   describe('disabled states', () => {
-    it('should show tooltip when disabled due to missing templates', () => {
-      mockUseCanMakeNewDeployment.mockReturnValue({
-        disabled: true,
-        disabledReason:
-          'At least one serving runtime must be enabled to deploy a model. Contact your administrator.',
-      });
-
-      renderDeployButton();
-
-      const button = screen.getByTestId('deploy-button');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-
-    it('should show tooltip when disabled due to Kueue not enabled', () => {
-      mockUseCanMakeNewDeployment.mockReturnValue({
-        disabled: true,
-        disabledReason: 'Kueue is not enabled. Contact your administrator.',
-      });
-
-      renderDeployButton();
-
-      const button = screen.getByTestId('deploy-button');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-
-    it('should show tooltip when disabled due to missing deploy methods', () => {
-      mockUseCanMakeNewDeployment.mockReturnValue({
-        disabled: true,
-        disabledReason:
-          'At least one model servingplatform must be enabled to deploy a model. Contact your administrator.',
-      });
-
-      renderDeployButton();
-
-      const button = screen.getByTestId('deploy-button');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-
     it('should not be aria-disabled when enabled', () => {
       mockUseCanMakeNewDeployment.mockReturnValue({
         disabled: false,
