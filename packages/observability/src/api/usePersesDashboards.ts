@@ -1,50 +1,34 @@
 import * as React from 'react';
 import { DashboardResource } from '@perses-dev/core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
+import useFetch, { type FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { fetchProjectDashboards } from '../perses/perses-client/perses-client';
+import { filterDashboards } from '../utils/dashboardUtils';
 
-interface UseClusterObservabilityDashboardsResult {
+type UsePersesDashboardsResult = Omit<FetchStateObject<DashboardResource[]>, 'data'> & {
   dashboards: DashboardResource[];
-  loaded: boolean;
-  error: Error | undefined;
-}
+};
 
 /**
  * Hook to fetch observability dashboards from Perses API
  * Fetches dashboards from /api/v1/projects/{dashboardNamespace}/dashboards
  */
-export const useClusterObservabilityDashboards = (): UseClusterObservabilityDashboardsResult => {
+export const usePersesDashboards = (): UsePersesDashboardsResult => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [dashboards, setDashboards] = React.useState<DashboardResource[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>();
+  const { isAdmin } = useUser();
 
-  React.useEffect(() => {
-    let cancelled = false;
+  const fetchDashboards = React.useCallback(
+    () => fetchProjectDashboards(dashboardNamespace),
+    [dashboardNamespace],
+  );
 
-    const fetchDashboards = async () => {
-      try {
-        setLoaded(false);
-        setError(undefined);
-        const persesDashboards = await fetchProjectDashboards(dashboardNamespace);
-        if (!cancelled) {
-          setDashboards(persesDashboards);
-          setLoaded(true);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e : new Error(String(e)));
-          setLoaded(true);
-        }
-      }
-    };
+  const { data: allDashboards, loaded, error, refresh } = useFetch(fetchDashboards, []);
 
-    fetchDashboards();
+  const dashboards = React.useMemo(
+    () => filterDashboards(allDashboards, isAdmin),
+    [allDashboards, isAdmin],
+  );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [dashboardNamespace]);
-
-  return { dashboards, loaded, error };
+  return { dashboards, loaded, error, refresh };
 };

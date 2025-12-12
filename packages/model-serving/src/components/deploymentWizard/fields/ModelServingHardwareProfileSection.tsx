@@ -1,37 +1,11 @@
 import React from 'react';
 import HardwareProfileFormSection from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileFormSection';
-import {
-  useHardwareProfileConfig,
-  type UseHardwareProfileConfigResult,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas/index';
-import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTypes';
-import { ContainerResources, NodeSelector, Toleration } from '@odh-dashboard/internal/types';
+import { type UseHardwareProfileConfigResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import type {
   HardwarePodSpecOptionsState,
   PodSpecOptions,
 } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-
-export const useModelServingHardwareProfileSection = (
-  name?: string,
-  resources?: ContainerResources,
-  tolerations?: Toleration[],
-  nodeSelector?: NodeSelector,
-  namespace?: string,
-  hardwareProfileNamespace?: string,
-): UseHardwareProfileConfigResult => {
-  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
-
-  return useHardwareProfileConfig(
-    name,
-    resources,
-    tolerations,
-    nodeSelector,
-    [HardwareProfileFeatureVisibility.MODEL_SERVING],
-    isProjectScoped ? namespace : undefined,
-    hardwareProfileNamespace,
-  );
-};
 
 type ModelServingHardwareProfileSectionComponentProps = {
   hardwareProfileConfig: UseHardwareProfileConfigResult;
@@ -60,7 +34,7 @@ export const ModelServingHardwareProfileSection: React.FC<
       podSpecOptionsState={podSpecOptionsState}
       isEditing={isEditing}
       isHardwareProfileSupported={() => true}
-      visibleIn={[HardwareProfileFeatureVisibility.MODEL_SERVING]}
+      visibleIn={MODEL_SERVING_VISIBILITY}
     />
   );
 };

@@ -1,11 +1,12 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
+import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRowExpandedSection } from '../row/DeploymentsTableRowExpandedSection';
 
 jest.mock('@odh-dashboard/plugin-core');
-
 jest.mock('@odh-dashboard/internal/app/AppContext', () => ({
   useAppContext: () => ({
     dashboardConfig: {
@@ -22,7 +23,11 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
       properties: {
         extractModelFormat: () => ({ name: 'test-model-format' }),
         extractReplicas: () => 1,
-        extractHardwareProfileConfig: () => [null, {}],
+        hardwareProfilePaths: {
+          containerResourcesPath: 'spec.predictor.model.resources',
+          tolerationsPath: 'spec.predictor.tolerations',
+          nodeSelectorPath: 'spec.predictor.nodeSelector',
+        },
         extractModelAvailabilityData: () => ({
           saveAsMaaS: true,
           useCase: 'test-use-case',
@@ -34,6 +39,11 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
 
 jest.mock('@odh-dashboard/internal/redux/hooks', () => ({
   useAppSelector: jest.fn((selector) => selector({ dashboardNamespace: 'test-namespace' })),
+}));
+
+const mockUseAssignHardwareProfile = jest.fn();
+jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+  useAssignHardwareProfile: (...args: unknown[]) => mockUseAssignHardwareProfile(...args),
 }));
 
 const mockDeployment = () => ({
@@ -53,9 +63,28 @@ const mockDeployment = () => ({
 describe('DeploymentsTableRowExpandedSection', () => {
   beforeEach(() => {
     mockExtensions();
+    mockUseAssignHardwareProfile.mockReturnValue(
+      mockUseAssignHardwareProfileResult({
+        selectedHardwareProfile: mockHardwareProfile({ displayName: 'test-profile' }),
+      }),
+    );
+  });
+
+  afterEach(() => {
+    mockUseAssignHardwareProfile.mockReset();
   });
   it('should render the expanded row with correct data', () => {
-    render(<DeploymentRowExpandedSection deployment={mockDeployment()} isVisible />);
+    render(
+      <DeploymentRowExpandedSection
+        deployment={mockDeployment()}
+        isVisible
+        hardwareProfilePaths={{
+          containerResourcesPath: 'spec.predictor.model.resources',
+          tolerationsPath: 'spec.predictor.tolerations',
+          nodeSelectorPath: 'spec.predictor.nodeSelector',
+        }}
+      />,
+    );
     // description
     expect(screen.getByText('test-description')).toBeInTheDocument();
     // model format
@@ -63,7 +92,7 @@ describe('DeploymentsTableRowExpandedSection', () => {
     // replicas
     expect(screen.getByText('1')).toBeInTheDocument();
     // hardware profile
-    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByText('test-profile')).toBeInTheDocument();
     // model availability
     expect(screen.getByText('Model-as-a-Service (MaaS)')).toBeInTheDocument();
     // use case
