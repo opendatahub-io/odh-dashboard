@@ -178,7 +178,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		for _, m := range cfg.RegisteredResources.Models {
 			registered[m.ModelID] = true
 		}
-		assert.True(t, registered[constants.DefaultEmbeddingModel.ModelID], "default embedding model should be registered")
+		assert.True(t, registered[constants.DefaultEmbeddingModel().ModelID], "default embedding model should be registered")
 		assert.True(t, registered["llama-2-7b-chat"], "MaaS model should be registered")
 		assert.True(t, registered["granite-7b-lab"], "MaaS model should be registered")
 	})
