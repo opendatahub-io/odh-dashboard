@@ -141,6 +141,7 @@ export const mockInferenceServiceK8sResource = ({
       }),
       ...(modelType && { 'opendatahub.io/model-type': modelType }),
       ...(secretName && { 'opendatahub.io/connections': secretName }),
+      ...(path && { 'opendatahub.io/connection-path': path }),
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
