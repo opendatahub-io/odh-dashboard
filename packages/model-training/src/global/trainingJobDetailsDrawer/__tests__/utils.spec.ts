@@ -2,7 +2,13 @@ import { ClusterQueueKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { ContainerResourceAttributes } from '@odh-dashboard/internal/types';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
-import { getAllConsumedResources, convertToBaseUnit, getDefaultPodContainerName } from '../utils';
+import {
+  getAllConsumedResources,
+  convertToBaseUnit,
+  getDefaultPodContainerName,
+  formatMetricLabel,
+  formatMetricValue,
+} from '../utils';
 
 const createMockClusterQueue = (overrides?: Partial<ClusterQueueKind>): ClusterQueueKind => ({
   ...mockClusterQueueK8sResource({}),
@@ -824,6 +830,82 @@ describe('getDefaultPodContainerName', () => {
       });
 
       expect(getDefaultPodContainerName(pod)).toBe('container-1');
+    });
+  });
+});
+
+describe('formatMetricLabel', () => {
+  it('should convert snake_case to readable label', () => {
+    expect(formatMetricLabel('grad_norm')).toBe('Grad norm');
+    expect(formatMetricLabel('learning_rate')).toBe('Learning rate');
+    expect(formatMetricLabel('total_batches')).toBe('Total batches');
+    expect(formatMetricLabel('total_samples')).toBe('Total samples');
+  });
+
+  it('should convert camelCase to readable label', () => {
+    expect(formatMetricLabel('learningRate')).toBe('Learning rate');
+    expect(formatMetricLabel('totalBatches')).toBe('Total batches');
+  });
+
+  it('should handle multiple underscores', () => {
+    expect(formatMetricLabel('train_loss_value')).toBe('Train loss value');
+    expect(formatMetricLabel('trainLossValue')).toBe('Train loss value');
+  });
+
+  it('should capitalize single words', () => {
+    expect(formatMetricLabel('loss')).toBe('Loss');
+    expect(formatMetricLabel('accuracy')).toBe('Accuracy');
+    expect(formatMetricLabel('throughput')).toBe('Throughput');
+  });
+
+  it('should handle already capitalized words', () => {
+    expect(formatMetricLabel('Loss')).toBe('Loss');
+    expect(formatMetricLabel('LOSS')).toBe('Loss');
+  });
+
+  it('should handle empty string', () => {
+    expect(formatMetricLabel('')).toBe('');
+  });
+
+  it('should handle single character', () => {
+    expect(formatMetricLabel('a')).toBe('A');
+  });
+});
+
+describe('formatMetricValue', () => {
+  describe('null and undefined handling', () => {
+    it('should return dash for null', () => {
+      expect(formatMetricValue(null)).toBe('-');
+    });
+
+    it('should return dash for undefined', () => {
+      expect(formatMetricValue(undefined)).toBe('-');
+    });
+  });
+
+  describe('number handling', () => {
+    it('should convert integers to string', () => {
+      expect(formatMetricValue(42)).toBe('42');
+      expect(formatMetricValue(0)).toBe('0');
+      expect(formatMetricValue(-10)).toBe('-10');
+    });
+
+    it('should convert floats to string', () => {
+      expect(formatMetricValue(3.14159)).toBe('3.14159');
+      expect(formatMetricValue(0.2344)).toBe('0.2344');
+      expect(formatMetricValue(0.8993774)).toBe('0.8993774');
+    });
+  });
+
+  describe('string handling', () => {
+    it('should return string values as-is', () => {
+      expect(formatMetricValue('1.7261')).toBe('1.7261');
+      expect(formatMetricValue('22.83')).toBe('22.83');
+      expect(formatMetricValue('some text')).toBe('some text');
+    });
+
+    it('should handle empty string', () => {
+      expect(formatMetricValue('')).toBe('');
     });
   });
 });

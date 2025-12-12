@@ -152,13 +152,11 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
               onScaleNodes={() => setScaleNodesModalOpen(true)}
             />
           </Tab>
-          {/* <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
-            <TrainingJobResourcesTab job={job} />
-          </Tab> */}
-          <Tab eventKey={1} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
+
+          <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
             <TrainingJobPodsTab job={job} onPodClick={handlePodClick} />
           </Tab>
-          <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
+          <Tab eventKey={3} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
             <TrainingJobLogsTab
               job={job}
               selectedPod={selectedPodForLogs}

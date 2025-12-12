@@ -8,7 +8,7 @@ import {
   StackItem,
   Stack,
 } from '@patternfly/react-core';
-import { getTrainerStatus } from './utils';
+import { formatMetricLabel, formatMetricValue, getTrainerStatus } from './utils';
 import { TrainJobKind } from '../../k8sTypes';
 
 type TrainingJobDetailsTabProps = {
@@ -29,24 +29,11 @@ const TrainingJobDetailsTab: React.FC<TrainingJobDetailsTabProps> = ({ job }) =>
   const currentEpochs = trainerStatus?.currentEpoch ?? '-';
   const totalEpochs = trainerStatus?.totalEpochs ?? '-';
 
-  // Metrics - combine train and eval metrics
-  const allMetrics = {
-    ...trainerStatus?.trainMetrics,
-    ...trainerStatus?.evalMetrics,
-  };
-
-  // Extract common metrics (case-insensitive lookup)
-  const getMetric = (name: string): string => {
-    const key = Object.keys(allMetrics).find((k) => k.toLowerCase() === name.toLowerCase());
-    return key ? allMetrics[key].toString() : '-';
-  };
-
-  const loss = getMetric('loss');
-  const accuracy = getMetric('accuracy');
-  const totalBatches =
-    getMetric('total_batches') !== '-' ? getMetric('total_batches') : getMetric('batches');
-  const totalSamples =
-    getMetric('total_samples') !== '-' ? getMetric('total_samples') : getMetric('samples');
+  // Collect all metrics dynamically from trainMetrics and evalMetrics
+  const allMetricEntries = [
+    ...Object.entries(trainerStatus?.trainMetrics ?? {}),
+    ...Object.entries(trainerStatus?.evalMetrics ?? {}),
+  ];
 
   return (
     <Stack hasGutter>
@@ -77,39 +64,25 @@ const TrainingJobDetailsTab: React.FC<TrainingJobDetailsTabProps> = ({ job }) =>
           </DescriptionListGroup>
         </DescriptionList>
       </StackItem>
-      <StackItem className="pf-v6-u-mt-md pf-v6-u-mb-md">
-        <DescriptionList isHorizontal>
-          <Title headingLevel="h3" size="md" data-testid="metrics-section">
-            Metrics
-          </Title>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Loss:</DescriptionListTerm>
-            <DescriptionListDescription data-testid="loss-value">{loss}</DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Accuracy:</DescriptionListTerm>
-            <DescriptionListDescription data-testid="accuracy-value">
-              {accuracy}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Total batches:
-            </DescriptionListTerm>
-            <DescriptionListDescription data-testid="total-batches-value">
-              {totalBatches}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Total samples:
-            </DescriptionListTerm>
-            <DescriptionListDescription data-testid="total-samples-value">
-              {totalSamples}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        </DescriptionList>
-      </StackItem>
+      {allMetricEntries.length > 0 && (
+        <StackItem className="pf-v6-u-mt-md pf-v6-u-mb-md">
+          <DescriptionList isHorizontal>
+            <Title headingLevel="h3" size="md" data-testid="metrics-section">
+              Metrics
+            </Title>
+            {allMetricEntries.map(([key, value]) => (
+              <DescriptionListGroup key={key}>
+                <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+                  {formatMetricLabel(key)}:
+                </DescriptionListTerm>
+                <DescriptionListDescription data-testid={`metric-${key}-value`}>
+                  {formatMetricValue(value)}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ))}
+          </DescriptionList>
+        </StackItem>
+      )}
     </Stack>
   );
 };
