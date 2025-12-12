@@ -7,6 +7,7 @@ export const techPreviewFlags = {
   modelAsService: false,
   aiCatalogSettings: false,
   mlflow: false,
+  projectRBAC: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -197,6 +198,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
+  },
+  [SupportedArea.PROJECT_RBAC_SETTINGS]: {
+    featureFlags: ['projectRBAC'],
   },
 };
 
