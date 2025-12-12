@@ -194,7 +194,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
                       />
                     </ToolbarItem>
                     <ToolbarItem>
-                      <Content>
+                      <Content data-testid="mcp-tools-selection-count">
                         {selections.length} out of {tools.length} selected
                       </Content>
                     </ToolbarItem>
