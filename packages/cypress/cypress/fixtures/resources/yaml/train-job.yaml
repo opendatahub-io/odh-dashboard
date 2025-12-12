@@ -1,0 +1,28 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: ${trainJobName}
+  namespace: ${namespace}
+  labels:
+    kueue.x-k8s.io/queue-name: ${localQueueName}
+  annotations:
+    trainer.opendatahub.io/progression-tracking: "true"
+    trainer.opendatahub.io/metrics-port: "28080"
+spec:
+  runtimeRef:
+    apiGroup: trainer.kubeflow.org
+    kind: TrainingRuntime
+    name: ${trainingRuntimeName}
+  suspend: false
+  trainer:
+    numNodes: 1
+    numProcPerNode: 1
+    resourcesPerNode:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+
+
