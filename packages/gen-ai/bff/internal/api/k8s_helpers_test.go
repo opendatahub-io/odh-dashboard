@@ -91,8 +91,8 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, http.StatusUnauthorized)
 
 		assert.Equal(t, http.StatusUnauthorized, httpErr.StatusCode)
-		assert.Equal(t, "unauthorized", httpErr.ErrorResponse.Code)
-		assert.Equal(t, "authentication failed: invalid or expired token", httpErr.ErrorResponse.Message)
+		assert.Equal(t, "unauthorized", httpErr.Code)
+		assert.Equal(t, "authentication failed: invalid or expired token", httpErr.Message)
 	})
 
 	t.Run("should map forbidden error correctly", func(t *testing.T) {
@@ -100,8 +100,8 @@ func TestMapK8sErrorToHTTPError(t *testing.T) {
 		httpErr := app.mapK8sErrorToHTTPError(k8sErr, http.StatusForbidden)
 
 		assert.Equal(t, http.StatusForbidden, httpErr.StatusCode)
-		assert.Equal(t, "forbidden", httpErr.ErrorResponse.Code)
-		assert.Equal(t, "insufficient permissions", httpErr.ErrorResponse.Message)
+		assert.Equal(t, "forbidden", httpErr.Code)
+		assert.Equal(t, "insufficient permissions", httpErr.Message)
 	})
 
 	t.Run("should map permission denied error correctly", func(t *testing.T) {

@@ -14,7 +14,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -217,25 +216,4 @@ func NewUnauthorizedError() error {
 func NewForbiddenError() error {
 	// Return K8sError types to match the real implementation
 	return k8s.NewPermissionDeniedError("test-namespace", "insufficient permissions to access services in this namespace")
-}
-
-// k8sStatusError implements the k8s APIStatus error interface for testing
-type k8sStatusError struct {
-	statusCode int
-	message    string
-	reason     string
-}
-
-func (e *k8sStatusError) Error() string {
-	return e.message
-}
-
-// Status implements the APIStatus interface required by k8serrors.IsUnauthorized/IsForbidden
-func (e *k8sStatusError) Status() metav1.Status {
-	return metav1.Status{
-		Status:  metav1.StatusFailure,
-		Code:    int32(e.statusCode),
-		Reason:  metav1.StatusReason(e.reason),
-		Message: e.message,
-	}
 }
