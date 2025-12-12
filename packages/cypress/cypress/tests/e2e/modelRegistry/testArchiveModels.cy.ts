@@ -30,7 +30,7 @@ import {
   FormFieldSelector as VersionFormFieldSelector,
 } from '../../../pages/modelRegistry/registerVersionPage';
 
-describe('[Product Bug: RHOAIENG-35821] Verify that models and versions can be archived and restored via model registry', () => {
+describe('[Product Bug: RHOAIENG-41476] Verify that models and versions can be archived and restored via model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let deploymentName: string;
