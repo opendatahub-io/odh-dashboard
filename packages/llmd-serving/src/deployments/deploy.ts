@@ -10,7 +10,8 @@ import {
 } from '@odh-dashboard/model-serving/types/form-data';
 import * as _ from 'lodash-es';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig, applyReplicas } from './hardware';
+import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
   applyModelEnvVarsAndArgs,
@@ -93,6 +94,13 @@ const assembleLLMdInferenceService = (
             route: {},
             gateway: {},
           },
+          template: {
+            containers: [
+              {
+                name: 'main',
+              },
+            ],
+          },
         },
       };
 
@@ -105,7 +113,11 @@ const assembleLLMdInferenceService = (
     createConnectionData,
     dryRun,
   );
-  llmInferenceService = applyHardwareProfileConfig(llmInferenceService, hardwareProfile);
+  llmInferenceService = applyHardwareProfileConfig(
+    llmInferenceService,
+    hardwareProfile,
+    LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  );
   llmInferenceService = applyReplicas(llmInferenceService, replicas);
   llmInferenceService = applyModelEnvVarsAndArgs(
     llmInferenceService,

@@ -32,7 +32,7 @@ import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
-import ServingRuntimeSizeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
+import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection';
 import ServingRuntimeTemplateSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
@@ -53,14 +53,17 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
-import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
 } from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
-import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import usePvcs from '#~/pages/modelServing/usePvcs';
+import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import {
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  MODEL_SERVING_VISIBILITY,
+} from '#~/concepts/hardwareProfiles/const';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -113,15 +116,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
       editInfo?.secrets,
     );
-  const podSpecOptionsState = useModelServingHardwareProfileState(
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-    editInfo?.inferenceServiceEditInfo,
-  );
+  const { podSpecOptionsState, validateHardwareProfileForm, applyToResource } =
+    useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
+      visibleIn: MODEL_SERVING_VISIBILITY,
+      paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    });
+
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
   });
-
-  const { isValid: isModelServerSizeValid } = useModelServerSizeValidation(podSpecOptionsState);
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
@@ -211,7 +214,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     return isConnectionValid;
   };
 
-  const baseInputValueValid = createDataInferenceService.maxReplicas >= 0 && isModelServerSizeValid;
+  const baseInputValueValid = createDataInferenceService.maxReplicas >= 0;
 
   const isDisabledInferenceService =
     !isK8sNameDescriptionDataValid(kServeNameDesc) ||
@@ -222,7 +225,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.servingRuntimeEnvVars?.some(
       (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
     ) ||
-    !podSpecOptionsState.hardwareProfile.isFormDataValid;
+    !validateHardwareProfileForm();
 
   const servingRuntimeSelected = React.useMemo(() => {
     const templates =
@@ -292,7 +295,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       servingRuntimeName,
       inferenceServiceName,
-      podSpecOptionsState.podSpecOptions,
+      applyToResource,
       allowCreate,
       editInfo?.secrets,
       undefined,
@@ -399,7 +402,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 server replicas."
                   onValidationChange={setHasReplicaValidationErrors}
                 />
-                <ServingRuntimeSizeSection
+                <DeploymentHardwareProfileSection
                   podSpecOptionState={podSpecOptionsState}
                   projectName={namespace}
                   servingRuntimeSelected={servingRuntimeSelected}

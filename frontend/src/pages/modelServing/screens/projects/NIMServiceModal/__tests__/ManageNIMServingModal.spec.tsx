@@ -7,10 +7,10 @@ import { InferenceServiceKind, ServingRuntimeKind, ProjectKind, SecretKind } fro
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import * as utils from '#~/pages/modelServing/screens/projects/utils';
 import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
-import * as podSpecOptionsModule from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import * as storageConfigModule from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import * as StorageClassSelectModule from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import * as useAssignHardwareProfileModule from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 
 // Mock dependencies
 jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
@@ -63,8 +63,8 @@ jest.mock('#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC', ()
   useNIMPVC: jest.fn(),
 }));
 
-jest.mock('#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState', () => ({
-  useModelServingHardwareProfileState: jest.fn(),
+jest.mock('#~/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+  useAssignHardwareProfile: jest.fn(),
 }));
 
 jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => ({
@@ -135,7 +135,7 @@ jest.mock('../../InferenceServiceModal/ProjectSection', () => ({
   default: jest.fn(() => <div data-testid="project-section">Project Section</div>),
 }));
 
-jest.mock('../../ServingRuntimeModal/ServingRuntimeSizeSection', () => ({
+jest.mock('../../ServingRuntimeModal/DeploymentHardwareProfileSection.tsx', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="serving-runtime-size-section">Size Section</div>),
 }));
@@ -223,11 +223,11 @@ jest.mock('../../kServeModal/EnvironmentVariablesSection', () => ({
 const mockUseCreateInferenceServiceObject = utils.useCreateInferenceServiceObject as jest.Mock;
 const mockUseCreateServingRuntimeObject = utils.useCreateServingRuntimeObject as jest.Mock;
 const mockUseNIMPVC = useNIMPVCModule.useNIMPVC as jest.Mock;
-const mockUseModelServingHardwareProfileState =
-  podSpecOptionsModule.useModelServingHardwareProfileState as jest.Mock;
 const mockUseGetStorageClassConfig = storageConfigModule.useGetStorageClassConfig as jest.Mock;
 const mockStorageClassSelect = StorageClassSelectModule.default as jest.Mock;
 const mockUseDefaultStorageClass = useDefaultStorageClassModule.useDefaultStorageClass as jest.Mock;
+const mockUseInferenceServiceHardwareProfile =
+  useAssignHardwareProfileModule.useAssignHardwareProfile as jest.Mock;
 
 describe('ManageNIMServingModal', () => {
   const mockOnClose = jest.fn();
@@ -287,29 +287,23 @@ describe('ManageNIMServingModal', () => {
     imageName: 'test-image',
   };
 
-  const defaultMockPodSpecOptionsState = {
-    modelSize: {
-      setSelectedSize: jest.fn(),
-      sizes: [
-        {
-          name: 'Custom',
-          resources: {
-            limits: { cpu: '16', memory: '64Gi' },
-            requests: { cpu: '8', memory: '32Gi' },
-          },
+  const defaultMockUseAssignHardwareProfileResult = {
+    podSpecOptionsState: {
+      podSpecOptions: {
+        resources: {
+          limits: { cpu: '16', memory: '64Gi' },
+          requests: { cpu: '8', memory: '32Gi' },
         },
-      ],
-    },
-    podSpecOptions: {
-      resources: {
-        limits: { cpu: '16', memory: '64Gi' },
-        requests: { cpu: '8', memory: '32Gi' },
+      },
+      hardwareProfile: {
+        isFormDataValid: true,
+        resetFormData: jest.fn(),
       },
     },
-    hardwareProfile: {
-      isFormDataValid: true,
-      resetFormData: jest.fn(),
-    },
+    validateHardwareProfileForm: jest.fn(() => true),
+    applyToResource: jest.fn((resource: unknown) => resource),
+    loaded: true,
+    error: undefined,
   };
 
   const defaultMockStorageClassConfig = {
@@ -341,7 +335,9 @@ describe('ManageNIMServingModal', () => {
     ]);
 
     mockUseNIMPVC.mockReturnValue(defaultMockNIMPVC);
-    mockUseModelServingHardwareProfileState.mockReturnValue(defaultMockPodSpecOptionsState);
+    mockUseInferenceServiceHardwareProfile.mockReturnValue(
+      defaultMockUseAssignHardwareProfileResult,
+    );
 
     // Setup default storage class mocks with correct FetchState format
     mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
@@ -680,29 +676,23 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     imageName: 'test-image',
   };
 
-  const defaultMockPodSpecOptionsState = {
-    modelSize: {
-      setSelectedSize: jest.fn(),
-      sizes: [
-        {
-          name: 'Custom',
-          resources: {
-            limits: { cpu: '16', memory: '64Gi' },
-            requests: { cpu: '8', memory: '32Gi' },
-          },
+  const defaultMockUseAssignHardwareProfileResult = {
+    podSpecOptionsState: {
+      podSpecOptions: {
+        resources: {
+          limits: { cpu: '16', memory: '64Gi' },
+          requests: { cpu: '8', memory: '32Gi' },
         },
-      ],
-    },
-    podSpecOptions: {
-      resources: {
-        limits: { cpu: '16', memory: '64Gi' },
-        requests: { cpu: '8', memory: '32Gi' },
+      },
+      hardwareProfile: {
+        isFormDataValid: true,
+        resetFormData: jest.fn(),
       },
     },
-    hardwareProfile: {
-      isFormDataValid: true,
-      resetFormData: jest.fn(),
-    },
+    validateHardwareProfileForm: jest.fn(() => true),
+    applyToResource: jest.fn((resource: unknown) => resource),
+    loaded: true,
+    error: undefined,
   };
 
   const defaultMockNIMPVC = {
@@ -728,7 +718,9 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     ]);
 
     mockUseNIMPVC.mockReturnValue(defaultMockNIMPVC);
-    mockUseModelServingHardwareProfileState.mockReturnValue(defaultMockPodSpecOptionsState);
+    mockUseInferenceServiceHardwareProfile.mockReturnValue(
+      defaultMockUseAssignHardwareProfileResult,
+    );
 
     // Setup default storage class mocks with correct FetchState format
     mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);

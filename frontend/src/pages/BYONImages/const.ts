@@ -1,5 +1,3 @@
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
-
 export enum BYONImagesToolbarFilterOptions {
   name = 'Name',
   provider = 'Provider',
@@ -16,5 +14,3 @@ export const initialBYONImagesFilterData: BYONImagesFilterDataType = {
   [BYONImagesToolbarFilterOptions.name]: '',
   [BYONImagesToolbarFilterOptions.provider]: '',
 };
-
-export const WORKBENCH_VISIBILITY = [HardwareProfileFeatureVisibility.WORKBENCH];
