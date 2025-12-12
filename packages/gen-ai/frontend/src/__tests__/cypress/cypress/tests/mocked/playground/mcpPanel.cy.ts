@@ -335,8 +335,9 @@ describe('Playground - MCP Servers', () => {
     },
   );
 
+  // Skipped because it is flaky
   it.skip(
-    'should auto-unlock server without token when selected in playground',
+    '[Automation Bug: RHOAIENG-41824] should auto-unlock server without token when selected in playground',
     { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock', '@Bug'] },
     () => {
       const namespace = config.defaultNamespace;
