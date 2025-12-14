@@ -159,19 +159,16 @@ func TestSetupMCPEndpoint(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: logger,
 		Ctx:    ctx,
 		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
+	})
 	require.NoError(t, err)
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
+	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, config.EnvConfig{
 		AuthMethod: "user_token",
 	}, logger)
 	require.NoError(t, err)
@@ -249,6 +246,11 @@ func TestSetupMCPEndpoint(t *testing.T) {
 				kubernetesClientFactory: mockK8sFactory,
 				repositories:            tc.repositories,
 			}
+			defer func() {
+				if err := app.Shutdown(); err != nil {
+					t.Errorf("Failed to shutdown app: %v", err)
+				}
+			}()
 
 			testCtx := tc.contextSetup(ctx)
 			identity, k8sClient, err := app.setupMCPEndpoint(testCtx)
@@ -280,19 +282,16 @@ func TestFindMCPServerConfig(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: logger,
 		Ctx:    ctx,
 		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
+	})
 	require.NoError(t, err)
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
+	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, config.EnvConfig{
 		AuthMethod: "user_token",
 	}, logger)
 	require.NoError(t, err)
@@ -307,6 +306,11 @@ func TestFindMCPServerConfig(t *testing.T) {
 		kubernetesClientFactory: mockK8sFactory,
 		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 	}
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	identity := &integrations.RequestIdentity{
 		Token: "FAKE_BEARER_TOKEN",
@@ -598,19 +602,16 @@ func TestMCPHelpersIntegration(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: logger,
 		Ctx:    ctx,
 		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
+	})
 	require.NoError(t, err)
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
+	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, config.EnvConfig{
 		AuthMethod: "user_token",
 	}, logger)
 	require.NoError(t, err)
@@ -626,6 +627,11 @@ func TestMCPHelpersIntegration(t *testing.T) {
 		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 		mcpClientFactory:        mockMCPFactory,
 	}
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	t.Run("complete flow with valid parameters", func(t *testing.T) {
 		// Step 1: Parse parameters
