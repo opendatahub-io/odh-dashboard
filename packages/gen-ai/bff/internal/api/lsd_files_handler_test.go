@@ -57,6 +57,13 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	app, err := NewApp(cfg, logger)
 	assert.NoError(t, err)
+	// Clean up test environment (kube-apiserver processes) when test completes.
+	// Without this, orphaned processes may remain after test execution.
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	// Create test server with full middleware chain
 	server := httptest.NewServer(app.Routes())
@@ -484,6 +491,13 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	app, err := NewApp(cfg, logger)
 	assert.NoError(t, err)
+	// Clean up test environment (kube-apiserver processes) when test completes.
+	// Without this, orphaned processes may remain after test execution.
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	t.Run("should return pending status for newly created job", func(t *testing.T) {
 		// Create a job first
