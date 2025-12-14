@@ -27,21 +27,17 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: logger,
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}()
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
 	// Create mock factory
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, logger)
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, logger)
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
