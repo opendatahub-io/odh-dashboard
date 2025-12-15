@@ -16,6 +16,8 @@ import { getAllConsumedResources } from './utils';
 import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQueue';
 import useClusterQueue from '../../hooks/useClusterQueue';
 import { TrainJobKind } from '../../k8sTypes';
+import { useModelTrainingContext } from '../ModelTrainingContext';
+import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
@@ -30,9 +32,19 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
   canScaleNodes = false,
   onScaleNodes,
 }) => {
-  const { clusterQueueName, loaded: clusterQueueLoaded } = useClusterQueueFromLocalQueue(
-    job.metadata.labels?.['kueue.x-k8s.io/queue-name'],
-    job.metadata.namespace,
+  const { project, projects } = useModelTrainingContext();
+
+  // Use the selected project if available, otherwise find the project for this job's namespace
+  const jobProject = project ?? projects?.find((p) => p.metadata.name === job.metadata.namespace);
+  const isProjectKueueEnabled = jobProject?.metadata.labels?.[KUEUE_MANAGED_LABEL] === 'true';
+
+  const {
+    clusterQueueName,
+    loaded: clusterQueueLoaded,
+    error,
+  } = useClusterQueueFromLocalQueue(
+    isProjectKueueEnabled ? job.metadata.labels?.[KUEUE_QUEUE_LABEL] : undefined,
+    isProjectKueueEnabled ? job.metadata.namespace : undefined,
   );
 
   const { clusterQueue, loaded: clusterQueueDataLoaded } = useClusterQueue(clusterQueueName);
@@ -140,7 +152,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
             </DescriptionListTerm>
             {clusterQueueDataLoaded ? (
               <DescriptionListDescription data-testid="quota-source-value">
-                {quotaSource}
+                {error ? '-' : quotaSource}
               </DescriptionListDescription>
             ) : (
               <Skeleton width="150px" />
