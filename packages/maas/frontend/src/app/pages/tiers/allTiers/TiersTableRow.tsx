@@ -37,8 +37,14 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
       </Td>
       <Td dataLabel={tierColumns[4].label}>
         <Stack>
-          <StackItem>{tier.limits.tokensPerHour.toLocaleString()} tokens/hr</StackItem>
-          <StackItem>{tier.limits.requestsPerMinute.toLocaleString()} requests/min</StackItem>
+          <StackItem>
+            {tier.limits.tokensPerUnit.tokens} tokens/{tier.limits.tokensPerUnit.time}{' '}
+            {tier.limits.tokensPerUnit.unit}
+          </StackItem>
+          <StackItem>
+            {tier.limits.requestsPerUnit.tokens} requests/{tier.limits.requestsPerUnit.time}{' '}
+            {tier.limits.requestsPerUnit.unit}
+          </StackItem>
         </Stack>
       </Td>
       <Td isActionCell>

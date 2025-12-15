@@ -13,8 +13,14 @@ export type Tier = {
 };
 
 export type TierLimits = {
-  tokensPerHour: number;
-  requestsPerMinute: number;
+  tokensPerUnit: RateLimit;
+  requestsPerUnit: RateLimit;
+};
+
+export type RateLimit = {
+  tokens: number;
+  time: number;
+  unit: 'hour' | 'minute' | 'second' | 'millisecond';
 };
 
 /** Mock data for development */
@@ -27,8 +33,16 @@ export const mockTiers: Tier[] = [
     groups: ['all-users'],
     models: ['gpt-3.5', 'llama-7b', 'mistral-7b'],
     limits: {
-      tokensPerHour: 10000,
-      requestsPerMinute: 100,
+      tokensPerUnit: {
+        tokens: 10000,
+        time: 1,
+        unit: 'hour',
+      },
+      requestsPerUnit: {
+        tokens: 100,
+        time: 1,
+        unit: 'minute',
+      },
     },
   },
   {
@@ -39,8 +53,16 @@ export const mockTiers: Tier[] = [
     groups: ['premium-users'],
     models: ['gpt-4', 'llama-70b', 'mistral-7b'],
     limits: {
-      tokensPerHour: 500000,
-      requestsPerMinute: 10000,
+      tokensPerUnit: {
+        tokens: 500000,
+        time: 1,
+        unit: 'hour',
+      },
+      requestsPerUnit: {
+        tokens: 10000,
+        time: 1,
+        unit: 'minute',
+      },
     },
   },
   {
@@ -51,8 +73,23 @@ export const mockTiers: Tier[] = [
     groups: ['enterprise-users', 'enterprise-admins'],
     models: ['gpt-4', 'llama-70b', 'claude-3'],
     limits: {
-      tokensPerHour: 1000000,
-      requestsPerMinute: 10000,
+      tokensPerUnit: {
+        tokens: 1000000,
+        time: 1,
+        unit: 'hour',
+      },
+      requestsPerUnit: {
+        tokens: 10000,
+        time: 1,
+        unit: 'minute',
+      },
     },
   },
+];
+
+export const mockAvailableGroups = [
+  'all-users',
+  'premium-users',
+  'enterprise-users',
+  'enterprise-admins',
 ];
