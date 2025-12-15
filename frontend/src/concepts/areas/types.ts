@@ -94,6 +94,9 @@ export enum SupportedArea {
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
+
+  /* Embed MLflow */
+  EMBED_MLFLOW = 'embed-mlflow',
 }
 
 export type SupportedAreaType = SupportedArea | string;
