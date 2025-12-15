@@ -1,5 +1,6 @@
 import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
+
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 /**
  * `cleanupHardwareProfiles` searches for a HardwareProfile in the specified namespace that contains a provided name.
