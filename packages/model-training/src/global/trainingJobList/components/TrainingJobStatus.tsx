@@ -29,9 +29,9 @@ const TrainingJobStatus = ({
   const trainerStatus = getTrainerStatus(job);
   const progressPercentage = trainerStatus?.progressPercentage;
 
-  // Show progress bar for running jobs that have progress information
+  // Show progress bar for running/paused jobs that have progress information
   const showProgress =
-    status === TrainingJobState.RUNNING &&
+    (status === TrainingJobState.RUNNING || status === TrainingJobState.PAUSED) &&
     progressPercentage != null &&
     progressPercentage >= 0 &&
     progressPercentage <= 100;

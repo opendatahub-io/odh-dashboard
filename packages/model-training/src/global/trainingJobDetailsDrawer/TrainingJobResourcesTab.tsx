@@ -17,7 +17,7 @@ import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQ
 import useClusterQueue from '../../hooks/useClusterQueue';
 import { TrainJobKind } from '../../k8sTypes';
 import { useModelTrainingContext } from '../ModelTrainingContext';
-import { KUEUE_MANAGED_LABEL } from '../../const';
+import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
@@ -43,7 +43,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
     loaded: clusterQueueLoaded,
     error,
   } = useClusterQueueFromLocalQueue(
-    isProjectKueueEnabled ? job.metadata.labels?.['kueue.x-k8s.io/queue-name'] : undefined,
+    isProjectKueueEnabled ? job.metadata.labels?.[KUEUE_QUEUE_LABEL] : undefined,
     isProjectKueueEnabled ? job.metadata.namespace : undefined,
   );
 
