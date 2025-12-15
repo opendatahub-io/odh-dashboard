@@ -175,3 +175,7 @@ mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
 endef
+
+.PHONY: dev-start-federated
+dev-start-federated:
+make run PORT=4000 DEPLOYMENT_MODE=federated
