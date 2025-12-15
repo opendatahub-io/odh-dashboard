@@ -302,8 +302,42 @@ export const getTrainingJobStatus = async (
       return { status: TrainingJobState.SUCCEEDED, isLoading: false };
     }
 
-    // Kueue workload status (for Kueue-enabled jobs)
+    // Check if job has Kueue queue label
+    const hasQueueLabel =
+      job.metadata.labels?.[KUEUE_QUEUE_NAME_LABEL] || job.spec.labels?.[KUEUE_QUEUE_NAME_LABEL];
+
+    // ==============
+    // NON-KUEUE JOBS
+    // ==============
+    if (!hasQueueLabel) {
+      // Failed takes priority (terminal state - cannot be resumed)
+      if (basicStatus === TrainingJobState.FAILED) {
+        return { status: TrainingJobState.FAILED, isLoading: false };
+      }
+
+      // Paused (user action - can be resumed, but checked before RUNNING)
+      if (job.spec.suspend === true) {
+        return { status: TrainingJobState.PAUSED, isLoading: false };
+      }
+
+      // Running (has active jobs)
+      const hasActiveJobs = job.status?.jobsStatus?.some((js) => (js.active ?? 0) > 0);
+      if (hasActiveJobs) {
+        return { status: TrainingJobState.RUNNING, isLoading: false };
+      }
+
+      if (basicStatus === TrainingJobState.CREATED) {
+        return { status: TrainingJobState.CREATED, isLoading: false };
+      }
+
+      return { status: basicStatus, isLoading: false };
+    }
+
+    // ==================
+    // KUEUE-ENABLED JOBS
+    // ==================
     const workload = await getWorkloadForTrainJob(job);
+
     if (workload) {
       const conditions = workload.status?.conditions || [];
       const workloadConditionsMap = extractWorkloadConditions(conditions);
@@ -326,7 +360,7 @@ export const getTrainingJobStatus = async (
         return { status: TrainingJobState.SUCCEEDED, isLoading: false };
       }
 
-      // Paused (user action - checked first like PyTorchJob branch)
+      // Paused (user action - checked before PREEMPTED)
       if (workload.spec.active === false || job.spec.suspend === true) {
         return { status: TrainingJobState.PAUSED, isLoading: false };
       }
@@ -353,33 +387,25 @@ export const getTrainingJobStatus = async (
       return { status: TrainingJobState.QUEUED, isLoading: false };
     }
 
-    // Non-Kueue jobs (no workload exists)
-    if (job.spec.suspend === true) {
-      return { status: TrainingJobState.PAUSED, isLoading: false };
-    }
-
+    // Kueue-enabled but workload not created yet
+    // Failed takes priority (terminal state - cannot be resumed)
     if (basicStatus === TrainingJobState.FAILED) {
       return { status: TrainingJobState.FAILED, isLoading: false };
     }
 
-    // Running: any jobsStatus has active > 0
+    // Paused (user action - can be resumed, but checked before RUNNING)
+    if (job.spec.suspend === true) {
+      return { status: TrainingJobState.PAUSED, isLoading: false };
+    }
+
+    // Running (has active jobs)
     const hasActiveJobs = job.status?.jobsStatus?.some((js) => (js.active ?? 0) > 0);
     if (hasActiveJobs) {
       return { status: TrainingJobState.RUNNING, isLoading: false };
     }
 
-    // Kueue-enabled but no workload yet
-    const hasQueueLabel =
-      job.metadata.labels?.[KUEUE_QUEUE_NAME_LABEL] || job.spec.labels?.[KUEUE_QUEUE_NAME_LABEL];
-    if (hasQueueLabel) {
-      return { status: TrainingJobState.QUEUED, isLoading: false };
-    }
-
-    if (basicStatus === TrainingJobState.CREATED) {
-      return { status: TrainingJobState.CREATED, isLoading: false };
-    }
-
-    return { status: basicStatus, isLoading: false };
+    // Default: Queued (waiting for workload to be created)
+    return { status: TrainingJobState.QUEUED, isLoading: false };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.warn(`Failed to get status for TrainJob ${job.metadata.name}:`, errorMessage);
