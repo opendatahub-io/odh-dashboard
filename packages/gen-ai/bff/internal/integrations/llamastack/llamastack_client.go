@@ -53,7 +53,7 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
 	modelsPage, err := c.client.Models.List(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list models: %w", err)
+		return nil, wrapClientError(err, "ListModels")
 	}
 	return modelsPage.Data, nil
 }
@@ -114,7 +114,7 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 	for {
 		vectorStoresPage, err := c.client.VectorStores.List(ctx, apiParams)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list vector stores: %w", err)
+			return nil, wrapClientError(err, "ListVectorStores", params)
 		}
 
 		allVectorStores = append(allVectorStores, vectorStoresPage.Data...)
@@ -211,7 +211,7 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 
 	vectorStore, err := c.client.VectorStores.New(ctx, openai.VectorStoreNewParams{}, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create vector store: %w", err)
+		return nil, wrapClientError(err, "CreateVectorStore", params)
 	}
 
 	return vectorStore, nil
@@ -301,7 +301,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 
 	uploadedFile, err := c.client.Files.New(ctx, apiParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload file: %w", err)
+		return nil, wrapClientError(err, "UploadFile", params)
 	}
 
 	result := &FileUploadResult{
@@ -333,7 +333,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 
 		vectorStoreFile, err := c.client.VectorStores.Files.New(ctx, params.VectorStoreID, vectorStoreFileParams)
 		if err != nil {
-			return nil, fmt.Errorf("failed to add file to vector store: %w", err)
+			return nil, wrapClientError(err, "UploadFile (add to vector store)", params)
 		}
 
 		result.VectorStoreFile = vectorStoreFile
@@ -530,7 +530,7 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 
 	response, err := c.client.Responses.New(ctx, *apiParams, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create response: %w", err)
+		return nil, wrapClientError(err, "CreateResponse", params)
 	}
 
 	return response, nil
@@ -577,7 +577,7 @@ func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID 
 
 	_, err := c.client.VectorStores.Delete(ctx, vectorStoreID)
 	if err != nil {
-		return fmt.Errorf("failed to delete vector store: %w", err)
+		return wrapClientError(err, "DeleteVectorStore", vectorStoreID)
 	}
 
 	return nil
@@ -591,7 +591,7 @@ func (c *LlamaStackClient) GetResponse(ctx context.Context, responseID string) (
 
 	response, err := c.client.Responses.Get(ctx, responseID, responses.ResponseGetParams{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get response: %w", err)
+		return nil, wrapClientError(err, "GetResponse", responseID)
 	}
 
 	return response, nil
@@ -632,7 +632,7 @@ func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams
 
 	filesPage, err := c.client.Files.List(ctx, apiParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list files: %w", err)
+		return nil, wrapClientError(err, "ListFiles", params)
 	}
 
 	return filesPage.Data, nil
@@ -646,7 +646,7 @@ func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.
 
 	file, err := c.client.Files.Get(ctx, fileID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get file: %w", err)
+		return nil, wrapClientError(err, "GetFile", fileID)
 	}
 
 	return file, nil
@@ -660,7 +660,7 @@ func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error 
 
 	_, err := c.client.Files.Delete(ctx, fileID)
 	if err != nil {
-		return fmt.Errorf("failed to delete file: %w", err)
+		return wrapClientError(err, "DeleteFile", fileID)
 	}
 
 	return nil
@@ -705,7 +705,7 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 
 	filesPage, err := c.client.VectorStores.Files.List(ctx, vectorStoreID, apiParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list vector store files: %w", err)
+		return nil, wrapClientError(err, "ListVectorStoreFiles", vectorStoreID, params)
 	}
 
 	return filesPage.Data, nil
@@ -722,7 +722,7 @@ func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStor
 
 	_, err := c.client.VectorStores.Files.Delete(ctx, vectorStoreID, fileID)
 	if err != nil {
-		return fmt.Errorf("failed to delete file from vector store: %w", err)
+		return wrapClientError(err, "DeleteVectorStoreFile", vectorStoreID, fileID)
 	}
 
 	return nil

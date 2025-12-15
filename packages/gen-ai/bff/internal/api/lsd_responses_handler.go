@@ -307,7 +307,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 				}
 			}
 		}
-		app.handleLlamaStackError(w, r, err, params)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 	defer stream.Close()
@@ -380,7 +380,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
 	llamaResponse, err := app.repositories.Responses.CreateResponse(ctx, params)
 	if err != nil {
-		app.handleLlamaStackError(w, r, err, params)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
