@@ -631,7 +631,7 @@ describe('getSectionStatusesFromJobsStatus', () => {
     ).toBe(TrainingJobState.RUNNING);
   });
 
-  it('should return PENDING when suspended > 0', () => {
+  it('should return PAUSED when suspended > 0', () => {
     const jobsStatus = [
       {
         name: JobSectionName.Node,
@@ -640,7 +640,7 @@ describe('getSectionStatusesFromJobsStatus', () => {
     ];
 
     const result = getSectionStatusesFromJobsStatus(jobsStatus);
-    expect(result.training).toBe(TrainingJobState.PENDING);
+    expect(result.training).toBe(TrainingJobState.PAUSED);
   });
 
   it('should infer SUCCEEDED for all sections when overall job is SUCCEEDED', () => {
@@ -860,6 +860,8 @@ describe('getTrainingJobStatus', () => {
   it('should return QUEUED when quota is not reserved', async () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
+      status: TrainingJobState.CREATED,
+      jobsStatus: [], // No active jobs to avoid RUNNING from jobsStatus check
     });
 
     // Test: Admitted but no quota reserved
@@ -924,6 +926,8 @@ describe('getTrainingJobStatus', () => {
   it('should return PENDING when QuotaReserved is True but no PodsReady', async () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
+      status: TrainingJobState.CREATED,
+      jobsStatus: [], // No active jobs to avoid RUNNING from jobsStatus check
     });
     const workload = createMockWorkload([
       {
@@ -945,6 +949,8 @@ describe('getTrainingJobStatus', () => {
     const job1 = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
       localQueueName: 'test-queue',
+      status: TrainingJobState.CREATED,
+      jobsStatus: [], // No active jobs to avoid RUNNING from jobsStatus check
     });
     mockGetWorkloadForTrainJob.mockResolvedValue(null);
     expect((await getTrainingJobStatus(job1)).status).toBe(TrainingJobState.QUEUED);
