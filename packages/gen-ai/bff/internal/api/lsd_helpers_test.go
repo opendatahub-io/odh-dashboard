@@ -38,8 +38,8 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			expectedBodyContains: "unauthorized",
 		},
 		{
-			name:                 "LlamaStackError with ModelNotFound code",
-			inputError:           llamastack.NewModelNotFoundError("gpt-4"),
+			name:                 "LlamaStackError with NotFound code",
+			inputError:           llamastack.NewNotFoundError("resource not found"),
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: "not_found",
 		},
@@ -94,8 +94,8 @@ func TestGetDefaultStatusCodeForLlamaStackClientError(t *testing.T) {
 			expectedStatusCode: http.StatusUnauthorized,
 		},
 		{
-			name:               "ModelNotFound code returns 404",
-			errorCode:          llamastack.ErrCodeModelNotFound,
+			name:               "NotFound code returns 404",
+			errorCode:          llamastack.ErrCodeNotFound,
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
@@ -165,11 +165,11 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 		},
 		{
 			name:               "not found error",
-			lsErr:              llamastack.NewModelNotFoundError("gpt-4"),
+			lsErr:              llamastack.NewNotFoundError("resource not found"),
 			statusCode:         http.StatusNotFound,
 			expectedCode:       "not_found",
 			expectedStatusCode: http.StatusNotFound,
-			expectedMessage:    "model 'gpt-4' not found or is not available",
+			expectedMessage:    "resource not found",
 		},
 		{
 			name:               "service unavailable error",
@@ -236,17 +236,17 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "input is required")
 	})
 
-	t.Run("should handle LlamaStackError with model not found", func(t *testing.T) {
+	t.Run("should handle LlamaStackError with not found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
-		lsErr := llamastack.NewModelNotFoundError("gpt-4")
+		lsErr := llamastack.NewNotFoundError("resource not found")
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 		assert.Contains(t, rr.Body.String(), `"code": "not_found"`)
-		assert.Contains(t, rr.Body.String(), "gpt-4")
+		assert.Contains(t, rr.Body.String(), "resource not found")
 	})
 
 	t.Run("should fall back to serverErrorResponse for unknown error type", func(t *testing.T) {

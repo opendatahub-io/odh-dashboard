@@ -32,7 +32,7 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 		return http.StatusBadRequest
 	case llamastack.ErrCodeUnauthorized:
 		return http.StatusUnauthorized
-	case llamastack.ErrCodeModelNotFound:
+	case llamastack.ErrCodeNotFound:
 		return http.StatusNotFound
 	case llamastack.ErrCodeConnectionFailed, llamastack.ErrCodeTimeout, llamastack.ErrCodeServerUnavailable:
 		return http.StatusServiceUnavailable

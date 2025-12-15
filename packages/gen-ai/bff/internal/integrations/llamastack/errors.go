@@ -33,7 +33,7 @@ const (
 	ErrCodeServerUnavailable = "SERVER_UNAVAILABLE"
 	ErrCodeUnauthorized      = "UNAUTHORIZED"
 	ErrCodeInvalidRequest    = "INVALID_REQUEST"
-	ErrCodeModelNotFound     = "MODEL_NOT_FOUND"
+	ErrCodeNotFound          = "NOT_FOUND"
 	ErrCodeInternalError     = "INTERNAL_ERROR"
 )
 
@@ -86,9 +86,9 @@ func NewInvalidRequestError(message string) *LlamaStackError {
 	return NewLlamaStackError(ErrCodeInvalidRequest, message, 400)
 }
 
-// NewModelNotFoundError creates a model not found error
-func NewModelNotFoundError(modelName string) *LlamaStackError {
-	return NewLlamaStackError(ErrCodeModelNotFound, fmt.Sprintf("model '%s' not found or is not available", modelName), 404)
+// NewNotFoundError creates a not found error
+func NewNotFoundError(message string) *LlamaStackError {
+	return NewLlamaStackError(ErrCodeNotFound, message, 404)
 }
 
 // wrapClientError wraps errors from the llamastack OpenAI client into our LlamaStackError type for consistent error handling.
@@ -116,7 +116,6 @@ func wrapClientError(err error, operation string, metadata ...interface{}) error
 	// Check for network-level errors (connection refused, timeout, DNS failures, etc.)
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {
-		fmt.Printf("DEBUG wrapClientError: detected *url.Error\n")
 		message := fmt.Sprintf("failed to connect to LlamaStack server while %s: %s", operation, urlErr.Err.Error())
 		lsErr := NewConnectionError("LlamaStack server", message)
 		lsErr.Metadata = meta
@@ -137,7 +136,7 @@ func wrapClientError(err error, operation string, metadata ...interface{}) error
 		case http.StatusUnauthorized:
 			lsErr = NewUnauthorizedError(message)
 		case http.StatusNotFound:
-			lsErr = NewModelNotFoundError(message)
+			lsErr = NewNotFoundError(message)
 		case http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusRequestTimeout:
 			lsErr = NewServerUnavailableError(message)
 		default:
