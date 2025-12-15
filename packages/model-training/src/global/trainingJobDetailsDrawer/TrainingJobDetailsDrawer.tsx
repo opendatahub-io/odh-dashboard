@@ -13,6 +13,7 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Divider,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
@@ -58,6 +59,12 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
     handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
 
+  // Reset pod selection when job changes (e.g., new TrainJob re-created)
+  React.useEffect(() => {
+    setSelectedPodForLogs(null);
+    setSelectedPodNameFromClick(undefined);
+  }, [job?.metadata.uid]);
+
   if (!job) {
     return null;
   }
@@ -73,8 +80,6 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
       setSelectedPodNameFromClick(undefined);
     }
   };
-
-  const description = `Description goes here. TrainJob in ${job.metadata.namespace}.`;
 
   return (
     <DrawerPanelContent
@@ -112,23 +117,22 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                 shouldFocusToggleOnSelect
               >
                 <DropdownList>
-                  <DropdownItem key="delete" onClick={() => onDelete(job)}>
-                    Delete
-                  </DropdownItem>
                   {canScaleNodes && (
                     <DropdownItem key="scale-nodes" onClick={() => setScaleNodesModalOpen(true)}>
                       Edit node count
                     </DropdownItem>
                   )}
+                  {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend */}
+                  <Divider component="li" key="separator" />
+                  <DropdownItem key="delete" onClick={() => onDelete(job)}>
+                    Delete job
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
           </FlexItem>
         </Flex>
-        <div style={{ marginTop: '8px' }}>
-          <p>{description}</p>
-        </div>
       </DrawerHead>
       <DrawerPanelBody>
         <Tabs

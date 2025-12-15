@@ -61,6 +61,11 @@ const ModelTraining = (): React.ReactElement => {
     [selectedJob],
   );
 
+  // Close drawer when project changes
+  React.useEffect(() => {
+    setSelectedJob(undefined);
+  }, [project?.metadata.name]);
+
   // Sync selectedJob with the latest data from trainJobData when it updates
   React.useEffect(() => {
     if (selectedJob) {
