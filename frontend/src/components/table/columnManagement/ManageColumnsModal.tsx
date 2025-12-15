@@ -13,57 +13,57 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
-import { getMetricsColumnsLocalStorageKey } from './utils';
-import { MetricColumnSearchInput } from './MetricColumnSearchInput';
+import { DragDropSort } from '@patternfly/react-drag-drop';
+import { ColumnSearchInput } from './ColumnSearchInput';
+import { ColumnId, ManageableColumn } from './types';
 
-interface CustomMetricsColumnsModalProps {
-  columns: DraggableObject[];
-  experimentId: string | undefined;
+interface ManageColumnsModalProps {
+  columns: ManageableColumn[];
   onClose: () => void;
+  onUpdate: (selectedColumnIds: ColumnId[]) => void;
+  title?: string;
+  description?: React.ReactNode;
+  searchPlaceholder?: string;
+  maxSelections?: number;
+  maxSelectionsTooltip?: string;
 }
 
-export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps> = ({
+export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   onClose,
-  experimentId,
+  onUpdate,
   columns: defaultColumns,
+  title = 'Manage columns',
+  description,
+  searchPlaceholder,
+  maxSelections = 10,
+  maxSelectionsTooltip = 'Maximum columns selected.',
 }) => {
   const [columns, setColumns] = React.useState(defaultColumns);
-  const [filteredColumns, setFilteredColumns] = React.useState<DraggableObject[]>(defaultColumns);
-  const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId);
-  const selectedColumnNames = Object.values(columns).reduce((acc: string[], column) => {
+  const [filteredColumns, setFilteredColumns] = React.useState<ManageableColumn[]>(defaultColumns);
+
+  const selectedColumnIds = Object.values(columns).reduce((acc: ColumnId[], column) => {
     if (column.props.checked) {
       acc.push(String(column.id));
     }
     return acc;
   }, []);
 
-  const onUpdate = React.useCallback(() => {
-    localStorage.removeItem(metricsColumnsLocalStorageKey);
-    localStorage.setItem(metricsColumnsLocalStorageKey, JSON.stringify(selectedColumnNames));
-
+  const handleUpdate = React.useCallback(() => {
+    onUpdate(selectedColumnIds);
     onClose();
-  }, [metricsColumnsLocalStorageKey, onClose, selectedColumnNames]);
+  }, [onUpdate, onClose, selectedColumnIds]);
 
   return (
-    <Modal
-      tabIndex={0}
-      aria-label="Custom metrics columns modal"
-      variant="small"
-      isOpen
-      onClose={onClose}
-    >
+    <Modal tabIndex={0} aria-label="Manage columns modal" variant="small" isOpen onClose={onClose}>
       <ModalHeader
-        title="Customize metrics columns"
+        title={title}
         description={
           <Stack hasGutter className="pf-v6-u-pb-md">
-            <StackItem className="pf-v6-u-mt-sm">
-              Select up to 10 metrics that will display as columns in the table. Drag and drop
-              column names to reorder them.
-            </StackItem>
+            {description && <StackItem className="pf-v6-u-mt-sm">{description}</StackItem>}
 
             <StackItem>
-              <MetricColumnSearchInput
+              <ColumnSearchInput
+                placeholder={searchPlaceholder}
                 onSearch={(searchText) => {
                   let newColumns = defaultColumns;
 
@@ -80,27 +80,27 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
 
             <StackItem>
               <Label>
-                {selectedColumnNames.length} / total {defaultColumns.length} selected
+                {selectedColumnIds.length} / {defaultColumns.length} selected
               </Label>
             </StackItem>
           </Stack>
         }
       />
       <ModalBody
-        aria-label="Metrics column names"
+        aria-label="Column names"
         className="pf-v6-u-pt-0 pf-v6-u-pl-md pf-v6-u-pr-md"
         style={{ maxHeight: '500px' }}
       >
         <DragDropSort
           items={filteredColumns.map(({ id: filteredColumnId }) => {
-            const {
-              id,
-              content,
-              props: { checked },
-            } = columns.find((column) => column.id === filteredColumnId) || {
+            const column = columns.find((col) => col.id === filteredColumnId) || {
               id: filteredColumnId,
+              content: filteredColumnId,
+              props: { checked: false },
             };
-            const isDisabled = selectedColumnNames.length === 10 && !checked;
+            const { id, content, props } = column;
+            const { checked } = props;
+            const isDisabled = selectedColumnIds.length === maxSelections && !checked;
 
             const columnCheckbox = (
               <Checkbox
@@ -132,9 +132,7 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
                   >
                     <FlexItem>
                       {isDisabled ? (
-                        <Tooltip content="Maximum metrics selected. To view values of all metrics, go to the Compare runs page.">
-                          {columnCheckbox}
-                        </Tooltip>
+                        <Tooltip content={maxSelectionsTooltip}>{columnCheckbox}</Tooltip>
                       ) : (
                         columnCheckbox
                       )}
@@ -148,13 +146,16 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
           })}
           variant="default"
           onDrop={(_, newColumns) => {
-            setFilteredColumns(newColumns);
-            setColumns(newColumns);
+            // The items we pass to DragDropSort are ManageableColumn objects, so the returned array is too
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            const managedColumns = newColumns as ManageableColumn[];
+            setFilteredColumns(managedColumns);
+            setColumns(managedColumns);
           }}
         />
       </ModalBody>
       <ModalFooter>
-        <Button key="update" variant="primary" onClick={onUpdate}>
+        <Button key="update" variant="primary" onClick={handleUpdate}>
           Update
         </Button>
         <Button key="cancel" variant="link" onClick={onClose}>

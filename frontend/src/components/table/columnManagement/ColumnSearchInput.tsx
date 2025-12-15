@@ -1,11 +1,15 @@
 import React from 'react';
 import { SearchInput } from '@patternfly/react-core';
 
-interface MetricColumnSearchInputProps {
+interface ColumnSearchInputProps {
   onSearch: (value: string) => void;
+  placeholder?: string;
 }
 
-export const MetricColumnSearchInput: React.FC<MetricColumnSearchInputProps> = ({ onSearch }) => {
+export const ColumnSearchInput: React.FC<ColumnSearchInputProps> = ({
+  onSearch,
+  placeholder = 'Filter by column name',
+}) => {
   const [value, setValue] = React.useState<string>();
 
   const onChange = React.useCallback(
@@ -18,7 +22,7 @@ export const MetricColumnSearchInput: React.FC<MetricColumnSearchInputProps> = (
 
   return (
     <SearchInput
-      placeholder="Filter by metric name"
+      placeholder={placeholder}
       value={value}
       onChange={onChange}
       onClear={() => onChange(null, '')}

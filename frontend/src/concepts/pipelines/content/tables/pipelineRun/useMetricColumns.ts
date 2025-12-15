@@ -6,18 +6,16 @@ import { ArtifactProperty } from '#~/concepts/pipelines/content/pipelinesDetails
 import { RunWithMetrics } from '#~/concepts/pipelines/content/tables/pipelineRun/types';
 import { useMlmdContextsByType } from '#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
 import { MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { useColumnSelection } from '#~/components/table';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 
 export const useMetricColumnNames = (
   metricsNames: Set<string>,
   experimentId?: string,
-): string[] => {
+): { selectedColumns: string[]; updateSelectedColumns: (columnNames: string[]) => void } => {
   const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId);
-  const metricsColumnsLocalStorageItem = localStorage.getItem(metricsColumnsLocalStorageKey) ?? '';
-  const storedMetricsColumnNames: string[] | undefined = metricsColumnsLocalStorageItem
-    ? JSON.parse(metricsColumnsLocalStorageItem)
-    : undefined;
-  const [firstDefaultMetricColumn, secondDefaultMetricColumn] = [...metricsNames];
+  const availableMetrics = React.useMemo(() => [...metricsNames], [metricsNames]);
+  const [firstDefaultMetricColumn, secondDefaultMetricColumn] = availableMetrics;
 
   // Defaults include at least 1 and no more than 2 metrics.
   const defaultMetricsColumnNames = React.useMemo(
@@ -27,24 +25,14 @@ export const useMetricColumnNames = (
     ],
     [firstDefaultMetricColumn, secondDefaultMetricColumn],
   );
-  const metricsColumnNames = storedMetricsColumnNames ?? defaultMetricsColumnNames;
 
-  // Set default metric columns in localStorage when no prior stored
-  // columns exist and at least 1 metric exists to use as a default.
-  React.useEffect(() => {
-    if (
-      metricsColumnsLocalStorageKey &&
-      !storedMetricsColumnNames &&
-      defaultMetricsColumnNames.length
-    ) {
-      localStorage.setItem(
-        metricsColumnsLocalStorageKey,
-        JSON.stringify(defaultMetricsColumnNames),
-      );
-    }
-  }, [defaultMetricsColumnNames, metricsColumnsLocalStorageKey, storedMetricsColumnNames]);
+  const { selectedColumns, updateSelectedColumns } = useColumnSelection({
+    availableColumns: availableMetrics,
+    localStorageKey: metricsColumnsLocalStorageKey,
+    defaultSelectedColumns: defaultMetricsColumnNames,
+  });
 
-  return metricsColumnNames;
+  return { selectedColumns, updateSelectedColumns };
 };
 
 export const useMetricColumns = (
@@ -57,6 +45,7 @@ export const useMetricColumns = (
   contextsError: Error | undefined;
   runArtifactsError: Error | undefined;
   metricsNames: Set<string>;
+  updateMetricsColumnNames: (columnNames: string[]) => void;
 } => {
   const [contexts, , contextsError] = useMlmdContextsByType(MlmdContextTypes.RUN);
   const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(
@@ -85,7 +74,8 @@ export const useMetricColumns = (
     }, []),
   }));
 
-  const metricsColumnNames = useMetricColumnNames(metricsNames, experimentId);
+  const { selectedColumns: metricsColumnNames, updateSelectedColumns: updateMetricsColumnNames } =
+    useMetricColumnNames(metricsNames, experimentId);
 
   return {
     runs: runsWithMetrics,
@@ -94,5 +84,6 @@ export const useMetricColumns = (
     runArtifactsError,
     contextsError,
     metricsNames,
+    updateMetricsColumnNames,
   };
 };
