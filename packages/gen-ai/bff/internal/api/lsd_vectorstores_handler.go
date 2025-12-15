@@ -88,7 +88,7 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 	// Get all vectorstores
 	vectorStores, err := app.repositories.VectorStores.ListVectorStores(ctx, params)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 
 		newVectorStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, createParams)
 		if err != nil {
-			app.serverErrorResponse(w, r, err)
+			app.handleLlamaStackClientError(w, r, err)
 			return
 		}
 
@@ -160,7 +160,7 @@ func (app *App) LlamaStackCreateVectorStoreHandler(w http.ResponseWriter, r *htt
 
 	vectorStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, params)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
@@ -187,7 +187,7 @@ func (app *App) LlamaStackDeleteVectorStoreHandler(w http.ResponseWriter, r *htt
 
 	err := app.repositories.VectorStores.DeleteVectorStore(ctx, vectorStoreID)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
@@ -244,7 +244,7 @@ func (app *App) LlamaStackListVectorStoreFilesHandler(w http.ResponseWriter, r *
 
 	result, err := app.repositories.VectorStores.ListVectorStoreFiles(ctx, vectorStoreID, params)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
@@ -317,7 +317,7 @@ func (app *App) LlamaStackDeleteVectorStoreFileHandler(w http.ResponseWriter, r 
 	// Step 1: Remove file from vectorstore
 	err := app.repositories.VectorStores.DeleteVectorStoreFile(ctx, vectorStoreID, fileID)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
