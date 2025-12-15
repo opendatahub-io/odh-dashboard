@@ -10,6 +10,7 @@ type TrainingJobStatusProps = {
   jobStatus?: TrainingJobState;
   onClick?: () => void;
   isCompact?: boolean;
+  showProgressBar?: boolean;
 };
 
 const TrainingJobStatus = ({
@@ -17,6 +18,7 @@ const TrainingJobStatus = ({
   jobStatus,
   onClick,
   isCompact = true,
+  showProgressBar = true,
 }: TrainingJobStatusProps): React.ReactElement => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const isLoadingStatus = jobStatus === undefined;
@@ -31,6 +33,7 @@ const TrainingJobStatus = ({
 
   // Show progress bar for running/paused jobs that have progress information
   const showProgress =
+    showProgressBar &&
     (status === TrainingJobState.RUNNING || status === TrainingJobState.PAUSED) &&
     progressPercentage != null &&
     progressPercentage >= 0 &&
