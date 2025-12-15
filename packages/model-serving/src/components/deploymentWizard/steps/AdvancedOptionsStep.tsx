@@ -105,7 +105,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            {wizardState.state.modelAvailability.showSaveAsMaaS && (
+            {wizardState.state.modelAvailability.showField && (
               <StackItem>
                 <FormGroup
                   label="Model playground availability"

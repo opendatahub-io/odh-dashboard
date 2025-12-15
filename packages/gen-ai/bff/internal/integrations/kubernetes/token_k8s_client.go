@@ -56,6 +56,12 @@ const (
 
 	// Label for LSD identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
+
+	// Labels for identifying KServe services
+	InferenceServiceName                 = "serving.kserve.io/inferenceservice"
+	LLMInferenceServiceName              = "app.kubernetes.io/name"
+	LLMInferenceServiceComponent         = "app.kubernetes.io/component"
+	LLMInferenceServiceWorkloadComponent = "llminferenceservice-workload"
 )
 
 type TokenKubernetesClient struct {
@@ -1191,7 +1197,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		}
 
 		// Extract endpoint from LLMInferenceService
-		endpointURL, extractErr := kc.extractEndpointFromLLMInferenceService(targetLLMSVC)
+		endpointURL, extractErr := kc.extractEndpointFromLLMInferenceService(ctx, targetLLMSVC)
 		if extractErr != nil {
 			kc.Logger.Error("failed to extract endpoint from LLMInferenceService", "modelID", modelID, "error", extractErr)
 			return nil, fmt.Errorf("failed to extract endpoint from LLMInferenceService for model '%s': %w", modelID, extractErr)
@@ -1240,7 +1246,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	}
 
 	// Find services owned by this InferenceService
-	services, err := kc.findServicesForInferenceService(ctx, namespace, targetISVC)
+	services, err := kc.findServicesForKServeResource(ctx, namespace, targetISVC)
 	if err != nil {
 		kc.Logger.Warn("failed to find services for InferenceService", "name", targetISVC.Name, "error", err)
 	} else if len(services) == 0 {
@@ -1312,12 +1318,13 @@ func (kc *TokenKubernetesClient) getServingPort(ctx context.Context, namespace, 
 	return defaultPort
 }
 
-func (kc *TokenKubernetesClient) findServicesForInferenceService(ctx context.Context, namespace string, isvc metav1.Object) ([]corev1.Service, error) {
+// findServicesForKServeResource finds services associated with a KServe resource (InferenceService or LLMInferenceService)
+func (kc *TokenKubernetesClient) findServicesForKServeResource(ctx context.Context, namespace string, isvc metav1.Object) ([]corev1.Service, error) {
 	var svcList corev1.ServiceList
 
-	// Use label selector to only fetch services with the serving.kserve.io/inferenceservice label
+	// Try InferenceService label first
 	labelSelector := labels.SelectorFromSet(map[string]string{
-		"serving.kserve.io/inferenceservice": isvc.GetName(),
+		InferenceServiceName: isvc.GetName(),
 	})
 
 	listOptions := &client.ListOptions{
@@ -1329,7 +1336,20 @@ func (kc *TokenKubernetesClient) findServicesForInferenceService(ctx context.Con
 		return nil, err
 	}
 
-	// Filter by owner reference to ensure we only get services owned by this InferenceService
+	// If not found, try LLMInferenceService workload service labels
+	if len(svcList.Items) == 0 {
+		labelSelector = labels.SelectorFromSet(map[string]string{
+			LLMInferenceServiceName:      isvc.GetName(),
+			LLMInferenceServiceComponent: LLMInferenceServiceWorkloadComponent,
+		})
+		listOptions.LabelSelector = labelSelector
+
+		if err := kc.Client.List(ctx, &svcList, listOptions); err != nil {
+			return nil, err
+		}
+	}
+
+	// Filter by owner reference to ensure we only get services owned by this InferenceService/LLMInferenceService
 	var services []corev1.Service
 	for _, svc := range svcList.Items {
 		for _, owner := range svc.OwnerReferences {
@@ -1385,31 +1405,40 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
-// extractEndpointFromLLMInferenceService extracts the endpoint URL from LLMInferenceService status.addresses
-func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
-	// Check if status.addresses exists and has at least one address
-	if len(llmSvc.Status.Addresses) == 0 {
-		kc.Logger.Error("LLMInferenceService has no addresses in status", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
-		return "", fmt.Errorf("LLMInferenceService '%s' has no addresses in status - service may not be ready", llmSvc.Name)
+// extractEndpointFromLLMInferenceService extracts the endpoint URL from LLMInferenceService by constructing internal URL from its Service
+func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
+	// Find services owned by this LLMInferenceService
+	services, err := kc.findServicesForKServeResource(ctx, llmSvc.Namespace, llmSvc)
+	if err != nil {
+		kc.Logger.Error("failed to find services for LLMInferenceService", "name", llmSvc.Name, "error", err)
+		return "", fmt.Errorf("failed to find services for LLMInferenceService '%s': %w", llmSvc.Name, err)
+	}
+	if len(services) == 0 {
+		kc.Logger.Error("no services found for LLMInferenceService", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
+		return "", fmt.Errorf("no services found for LLMInferenceService '%s' - service may not be ready", llmSvc.Name)
 	}
 
-	// Get the first address URL
-	firstAddress := llmSvc.Status.Addresses[0]
-	if firstAddress.URL == nil {
-		kc.Logger.Error("LLMInferenceService first address has no URL", "name", llmSvc.Name, "namespace", llmSvc.Namespace)
-		return "", fmt.Errorf("LLMInferenceService '%s' first address has no URL", llmSvc.Name)
+	// Use the first service to construct internal URL
+	svc := services[0]
+	port := kc.getServingPort(ctx, llmSvc.Namespace, svc.Name)
+
+	// Determine scheme based on authentication annotation
+	scheme := "http"
+	if llmSvc.Annotations["security.opendatahub.io/enable-auth"] == "true" {
+		scheme = "https"
 	}
 
-	endpointURL := firstAddress.URL.String()
+	// Construct internal URL from service name with port
+	// LLMInferenceService workload services (KServe headless mode) always require port
+	internalURL := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, svc.Name, llmSvc.Namespace, port)
 
-	// Add /v1 suffix if not present for LLMInferenceService compatibility
-	if !strings.HasSuffix(endpointURL, "/v1") {
-		endpointURL = endpointURL + "/v1"
-	}
+	kc.Logger.Info("constructed internal URL for LLMInferenceService",
+		"llmServiceName", llmSvc.Name,
+		"k8sServiceName", svc.Name,
+		"port", port,
+		"endpoint", internalURL)
 
-	kc.Logger.Info("extracted endpoint from LLMInferenceService", "name", llmSvc.Name, "endpoint", endpointURL)
-
-	return endpointURL, nil
+	return internalURL, nil
 }
 
 func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {

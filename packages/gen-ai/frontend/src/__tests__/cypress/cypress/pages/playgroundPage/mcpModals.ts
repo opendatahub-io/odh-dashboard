@@ -69,7 +69,7 @@ class MCPToolsModal {
   }
 
   findToolCountText(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().contains(/\d+ out of \d+ selected/);
+    return this.find().findByTestId('mcp-tools-selection-count');
   }
 
   findSelectAllCheckbox(): Cypress.Chainable<JQuery<HTMLElement>> {
