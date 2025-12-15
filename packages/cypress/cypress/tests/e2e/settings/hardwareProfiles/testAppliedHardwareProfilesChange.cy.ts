@@ -43,7 +43,7 @@ describe('Verify Hardware Profiles Deletion/Change when applied to a resource', 
 
         // Load Hardware Profile
         cy.log(`Loaded Hardware Profile Name: ${hardwareProfileName}`);
-        cy.log(`Loaded Hardware Profile Name: ${updatedHardwareProfileName}`);
+        cy.log(`Loaded Updated Hardware Profile Name: ${updatedHardwareProfileName}`);
 
         // Cleanup Hardware Profile if it already exists
         return cleanupHardwareProfiles(hardwareProfileName).then(() => {

@@ -1,8 +1,6 @@
 import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
-
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
-
 /**
  * `cleanupHardwareProfiles` searches for a HardwareProfile in the specified namespace that contains a provided name.
  *
@@ -16,7 +14,7 @@ const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 export const cleanupHardwareProfiles = (
   hardwareProfile: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get hardwareprofiles -ojson -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${hardwareProfile}")) | .metadata.name' | tr -d '"'`;
+  const ocCommand = `oc get hardwareprofiles.infrastructure.opendatahub.io -ojson -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${hardwareProfile}")) | .metadata.name' | tr -d '"'`;
   cy.log(`Executing delete hardware profile command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
@@ -24,7 +22,7 @@ export const cleanupHardwareProfiles = (
 
     if (profileName) {
       cy.log(`Hardware Profile found: ${profileName}. Proceeding to delete.`);
-      const deleteCommand = `oc delete hardwareprofiles ${profileName} -n ${applicationNamespace}`;
+      const deleteCommand = `oc delete hardwareprofiles.infrastructure.opendatahub.io ${profileName} -n ${applicationNamespace}`;
       return cy.exec(deleteCommand, { failOnNonZeroExit: false });
     }
     cy.log('No matching profile found, proceeding with the test.');
