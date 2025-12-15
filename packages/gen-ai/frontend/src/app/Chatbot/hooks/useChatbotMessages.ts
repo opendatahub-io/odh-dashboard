@@ -117,6 +117,7 @@ const useChatbotMessages = ({
       const { serverLabel, toolName, toolArguments, toolOutput } = toolCallData;
 
       return {
+        isDefaultExpanded: false,
         toggleContent: `Tool response: ${toolName}`,
         subheading: `${serverLabel}`,
         body: `Here's the summary for your ${toolName} response:`,
@@ -130,6 +131,13 @@ const useChatbotMessages = ({
   const handleStopStreaming = React.useCallback(() => {
     if (abortControllerRef.current) {
       isStoppingStreamRef.current = true;
+
+      // Track stop button click
+      fireMiscTrackingEvent('Playground Query Stopped', {
+        isStreaming: isStreamingEnabled,
+        isRag: isRawUploaded,
+      });
+
       // Clear any pending streaming updates to prevent them from overwriting the stop message
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -138,7 +146,7 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, []);
+  }, [isStreamingEnabled, isRawUploaded]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)
@@ -315,12 +323,37 @@ const useChatbotMessages = ({
           },
         });
 
-        // Final update to ensure all content is displayed
+        // Final update with processed content (file citations replaced with filenames)
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
-        const finalHasContent = completeLines.length > 0 || currentPartialLine.length > 0;
-        updateMessage(true, finalHasContent);
+
+        // Build sources prop for PatternFly SourcesCard if sources exist
+        // Add onClick to prevent link navigation (display only)
+        const sourcesProps = streamingResponse.sources?.length
+          ? {
+              sources: {
+                sources: streamingResponse.sources.map((source) => ({
+                  ...source,
+                  onClick: (e: React.MouseEvent) => e.preventDefault(),
+                })),
+              },
+            }
+          : {};
+
+        // Use the processed content from the response which has file citation tokens replaced
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageId
+              ? {
+                  ...msg,
+                  content: streamingResponse.content,
+                  isLoading: false,
+                  ...sourcesProps,
+                }
+              : msg,
+          ),
+        );
 
         // Add tool response if available from streaming response
         if (streamingResponse.toolCallData) {
@@ -339,6 +372,19 @@ const useChatbotMessages = ({
           ? createToolResponse(response.toolCallData)
           : undefined;
 
+        // Build sources prop for PatternFly SourcesCard if sources exist
+        // Add onClick to prevent link navigation (display only)
+        const sourcesProps = response.sources?.length
+          ? {
+              sources: {
+                sources: response.sources.map((source) => ({
+                  ...source,
+                  onClick: (e: React.MouseEvent) => e.preventDefault(),
+                })),
+              },
+            }
+          : {};
+
         const botMessage: MessageProps = {
           id: getId(),
           role: 'bot',
@@ -347,6 +393,7 @@ const useChatbotMessages = ({
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
+          ...sourcesProps,
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       }

@@ -18,10 +18,13 @@
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.prod.json",
     "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }
 }

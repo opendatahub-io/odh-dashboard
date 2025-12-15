@@ -30,11 +30,8 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	}
 
 	// Get MaaS client from context (attached by AttachMaaSClient middleware)
-	maasClient, ok := ctx.Value(constants.MaaSClientKey).(maas.MaaSClientInterface)
-	if !ok || maasClient == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing MaaS client in context"))
-		return
-	}
+	// MaaS client can be nil if MaaS is disabled in the config - will be validated later if MaaS models are requested
+	maasClient, _ := ctx.Value(constants.MaaSClientKey).(maas.MaaSClientInterface)
 
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -55,6 +52,19 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	// Validate that models list is not empty
 	if len(installRequest.Models) == 0 {
 		app.badRequestResponse(w, r, fmt.Errorf("models list cannot be empty"))
+		return
+	}
+
+	// Validate MaaS client is available if any MaaS models are requested
+	hasMaaSModels := false
+	for _, model := range installRequest.Models {
+		if model.IsMaaSModel {
+			hasMaaSModels = true
+			break
+		}
+	}
+	if hasMaaSModels && maasClient == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("MaaS client not available but MaaS models were requested. Ensure MaaS is enabled and configured"))
 		return
 	}
 

@@ -22,14 +22,12 @@ import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/co
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getModelServingProjects } from '#~/api/k8s/projects';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 export const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
   namespace: string,
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
-  podSpecOptions: ModelServingPodSpecOptions,
   isEditing?: boolean,
 ): ServingRuntimeKind => {
   const {
@@ -65,11 +63,8 @@ export const assembleServingRuntime = (
     annotations['opendatahub.io/serving-runtime-scope'] = scope;
   }
 
-  if (podSpecOptions.selectedAcceleratorProfile?.metadata.namespace === namespace) {
-    annotations['opendatahub.io/accelerator-profile-namespace'] = namespace;
-  } else {
-    annotations['opendatahub.io/accelerator-profile-namespace'] = undefined;
-  }
+  // Hardware profile annotations are now handled in the InferenceService, not ServingRuntime
+  // Legacy accelerator profile support is no longer needed for KServe
 
   // TODO: Enable GRPC
   if (!isEditing) {
@@ -89,8 +84,6 @@ export const assembleServingRuntime = (
         }),
         ...(isCustomServingRuntimesEnabled && {
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
-          'opendatahub.io/accelerator-name':
-            podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
         }),
       },
     };
@@ -99,8 +92,6 @@ export const assembleServingRuntime = (
       ...updatedServingRuntime.metadata,
       annotations: {
         ...annotations,
-        'opendatahub.io/accelerator-name':
-          podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
@@ -218,16 +209,14 @@ export const updateServingRuntime = (options: {
   existingData: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  podSpecOptions: ModelServingPodSpecOptions;
 }): Promise<ServingRuntimeKind> => {
-  const { data, existingData, isCustomServingRuntimesEnabled, opts, podSpecOptions } = options;
+  const { data, existingData, isCustomServingRuntimesEnabled, opts } = options;
 
   const updatedServingRuntime = assembleServingRuntime(
     data,
     existingData.metadata.namespace,
     existingData,
     isCustomServingRuntimesEnabled,
-    podSpecOptions,
     true,
   );
 
@@ -248,16 +237,13 @@ export const createServingRuntime = (options: {
   servingRuntime: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
-  podSpecOptions: ModelServingPodSpecOptions;
 }): Promise<ServingRuntimeKind> => {
-  const { data, namespace, servingRuntime, isCustomServingRuntimesEnabled, opts, podSpecOptions } =
-    options;
+  const { data, namespace, servingRuntime, isCustomServingRuntimesEnabled, opts } = options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
     namespace,
     servingRuntime,
     isCustomServingRuntimesEnabled,
-    podSpecOptions,
     false,
   );
 

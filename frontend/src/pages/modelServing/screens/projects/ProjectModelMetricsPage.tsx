@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import MetricsPage from '#~/pages/modelServing/screens/metrics/MetricsPage';
-import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectModelMetricsOutletContextProps } from './ProjectModelMetricsWrapper';
 
@@ -28,7 +27,6 @@ const ProjectModelMetricsPage: React.FC = () => {
           isActive: true,
         },
       ]}
-      type={PerformanceMetricType.MODEL}
       model={model}
     />
   );

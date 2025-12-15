@@ -1,7 +1,15 @@
 import * as React from 'react';
-import { HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
+import {
+  Button,
+  ClipboardCopy,
+  ClipboardCopyAction,
+  ClipboardCopyVariant,
+  HelperText,
+  HelperTextItem,
+  Skeleton,
+} from '@patternfly/react-core';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import { SecretKind } from '#~/k8sTypes';
-import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 
 type ServingRuntimeTokenDisplayProps = {
   token: SecretKind;
@@ -14,6 +22,8 @@ const ServingRuntimeTokenDisplay: React.FC<ServingRuntimeTokenDisplayProps> = ({
   loaded,
   error,
 }) => {
+  const [isTokenVisible, setIsTokenVisible] = React.useState(false);
+
   if (!loaded) {
     return <Skeleton />;
   }
@@ -26,12 +36,36 @@ const ServingRuntimeTokenDisplay: React.FC<ServingRuntimeTokenDisplayProps> = ({
     );
   }
 
+  const visibleToken = atob(token.data.token);
+  const hiddenToken = '•'.repeat(Math.min(visibleToken.length, 40));
+
+  const toggleAction = (
+    <ClipboardCopyAction>
+      <Button
+        variant="plain"
+        hasNoPadding
+        aria-label={isTokenVisible ? 'Hide token' : 'Show token'}
+        icon={isTokenVisible ? <EyeSlashIcon /> : <EyeIcon />}
+        onClick={() => setIsTokenVisible(!isTokenVisible)}
+      />
+    </ClipboardCopyAction>
+  );
+
   return (
-    <InlineTruncatedClipboardCopy
-      testId="token-secret"
-      textToCopy={atob(token.data.token)}
-      truncatePosition="middle"
-    />
+    <ClipboardCopy
+      variant={ClipboardCopyVariant.inlineCompact}
+      style={isTokenVisible ? { maxWidth: '500px' } : undefined}
+      hoverTip="Copy"
+      clickTip="Copied"
+      data-testid="token-secret"
+      additionalActions={toggleAction}
+      truncation={isTokenVisible ? { position: 'middle' } : undefined}
+      onCopy={() => {
+        navigator.clipboard.writeText(visibleToken);
+      }}
+    >
+      {isTokenVisible ? visibleToken : hiddenToken}
+    </ClipboardCopy>
   );
 };
 

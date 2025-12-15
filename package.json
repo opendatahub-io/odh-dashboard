@@ -19,9 +19,7 @@
     "backend",
     "packages/*",
     "frontend",
-    "frontend/src",
-    "frontend/src/__tests__/cypress",
-    "frontend/packages/*"
+    "frontend/src"
   ],
   "scripts": {
     "build": "run-p -l build:*",
@@ -88,7 +86,7 @@
     "turbo": "^2.4.2"
   },
   "lint-staged": {
-    "**/*.{js,ts,jsx,tsx,yaml,yml,md}": [
+    "**/*.{js,ts,jsx,tsx,md}": [
       "npx eslint --max-warnings 0"
     ]
   },

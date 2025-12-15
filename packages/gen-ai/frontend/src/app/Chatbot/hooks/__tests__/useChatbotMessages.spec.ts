@@ -3,6 +3,13 @@ import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import {
+  mockModelId,
+  mockSourceSettings,
+  mockSuccessResponse,
+  mockNamespace,
+  defaultMcpProps,
+} from './consts';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -32,33 +39,6 @@ const mockCreateResponse = jest.fn<
   Promise<SimplifiedResponseData>,
   [CreateResponseRequest, { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal }?]
 >();
-
-// Test constants
-const mockModelId = 'test-model-id';
-const mockSourceSettings: ChatbotSourceSettings = {
-  vectorStore: 'test-vector-db',
-  embeddingModel: 'test-embedding-model',
-  maxChunkLength: 500,
-  delimiter: '\n\n',
-  chunkOverlap: 50,
-};
-
-const mockSuccessResponse: SimplifiedResponseData = {
-  id: 'resp-123',
-  model: 'test-model-id',
-  status: 'completed',
-  created_at: 0,
-  content: 'This is a bot response',
-};
-
-const mockNamespace = { name: 'test-namespace' };
-
-// Provide default MCP data as props to the hook
-const defaultMcpProps = {
-  mcpServers: [],
-  mcpServerStatuses: new Map(),
-  mcpServerTokens: new Map(),
-};
 
 // Setup function to be called in beforeEach
 const setupMocks = (): void => {
@@ -561,6 +541,67 @@ describe('useChatbotMessages', () => {
         role: 'assistant',
         content: 'This is a bot response',
       });
+    });
+  });
+
+  describe('tool response handling', () => {
+    it('should create tool response with isDefaultExpanded set to false', async () => {
+      const mockResponseWithToolData: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        toolCallData: {
+          serverLabel: 'MCP Server',
+          toolName: 'calculator_tool',
+          toolArguments: '{"operation": "add"}',
+          toolOutput: '{"result": 8}',
+        },
+      };
+
+      mockCreateResponse.mockResolvedValueOnce(mockResponseWithToolData);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Calculate');
+      });
+
+      const botMessage = result.current.messages[2];
+
+      // Verify isDefaultExpanded is set to false (key change)
+      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+    });
+
+    it('should create tool response with isDefaultExpanded false in streaming mode', async () => {
+      const mockStreamingResponseWithToolData: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        toolCallData: {
+          serverLabel: 'Streaming Server',
+          toolName: 'stream_tool',
+          toolArguments: '{"param": "test"}',
+          toolOutput: '{"status": "completed"}',
+        },
+      };
+
+      mockCreateResponse.mockImplementation(
+        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('Streaming content');
+          }
+          return Promise.resolve(mockStreamingResponseWithToolData);
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test streaming');
+      });
+
+      const botMessage = result.current.messages[2];
+
+      // Verify isDefaultExpanded is false in streaming mode too
+      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
     });
   });
 });

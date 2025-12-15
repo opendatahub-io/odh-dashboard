@@ -3,7 +3,7 @@ import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
-import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile.ts';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
@@ -132,10 +132,6 @@ export enum NamespaceApplicationCase {
    */
   DSG_CREATION,
   /**
-   * Upgrade an existing DSG project to work with model mesh.
-   */
-  MODEL_MESH_PROMOTION,
-  /**
    * Upgrade an existing DSG project to work with model kserve.
    */
   KSERVE_PROMOTION,
@@ -144,7 +140,7 @@ export enum NamespaceApplicationCase {
    */
   KSERVE_NIM_PROMOTION,
   /**
-   * Downgrade a project from Modelmesh, Kserve or NIM so the platform can be selected again.
+   * Reset a project's model serving platform configuration so the platform can be selected again.
    */
   RESET_MODEL_SERVING_PLATFORM,
 }

@@ -50,7 +50,7 @@ export const useModelLocationData = (
     existingData,
   );
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
-  const [connections, connectionsLoaded] = useServingConnections(projectName, true, true);
+  const [connections, connectionsLoaded] = useServingConnections(projectName, true, false);
 
   const [isStableState, setIsStableState] = React.useState(
     connectionTypesLoaded && connectionsLoaded,

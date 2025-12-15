@@ -24,11 +24,32 @@ import {
   updateInferenceService,
 } from '#~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '#~/api/models';
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { DeploymentMode, InferenceServiceKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
-import { TolerationEffect, TolerationOperator } from '#~/types';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile.ts';
+import { applyHardwareProfileConfig } from '#~/concepts/hardwareProfiles/utils';
+import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
+
+const createApplyHardwareProfileFn = (
+  options: HardwarePodSpecOptions,
+): ((resource: InferenceServiceKind) => InferenceServiceKind) => {
+  return (resource: InferenceServiceKind): InferenceServiceKind => {
+    const selectedProfile =
+      options.selectedHardwareProfile ||
+      (options.resources ? mockHardwareProfile({ name: 'test-profile' }) : undefined);
+
+    return applyHardwareProfileConfig(
+      resource,
+      {
+        selectedProfile,
+        resources: options.resources,
+        useExistingSettings: false,
+      },
+      INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    );
+  };
+};
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -89,19 +110,6 @@ describe('assembleInferenceService', () => {
     );
   });
 
-  it('should have the right labels when creating for Modelmesh with public route', async () => {
-    const missingExternalRoute = assembleInferenceService(
-      mockInferenceServiceModalData({ externalRoute: true }),
-      undefined,
-      undefined,
-      true,
-    );
-
-    expect(missingExternalRoute.metadata.labels?.['networking.knative.dev/visibility']).toBe(
-      undefined,
-    );
-  });
-
   it('should handle name and display name', async () => {
     const displayName = 'Llama model';
     const resourceName = 'llama-model';
@@ -122,7 +130,6 @@ describe('assembleInferenceService', () => {
       mockInferenceServiceModalData({ name }),
       undefined,
       undefined,
-      true,
       mockInferenceService,
     );
     expect(inferenceService.metadata.annotations).toBeDefined();
@@ -130,43 +137,10 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.metadata.annotations?.['openshift.io/display-name']).toBe(name);
   });
 
-  it('should not add resources and tolerations if modelmesh', async () => {
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
-      resources: {
-        requests: {
-          'nvidia.com/gpu': 1,
-        },
-        limits: {
-          'nvidia.com/gpu': 1,
-        },
-      },
-      tolerations: [
-        {
-          key: 'nvidia.com/gpu',
-          operator: TolerationOperator.EXISTS,
-          effect: TolerationEffect.NO_SCHEDULE,
-        },
-      ],
-    });
-
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-      podSpecOption,
-    );
-
-    expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
-    expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
-  });
-
   it('should provide max and min replicas if provided', async () => {
     const replicaCount = 2;
 
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({});
+    const podSpecOption: HardwarePodSpecOptions = mockModelServingPodSpecOptions({});
     const inferenceService = assembleInferenceService(
       mockInferenceServiceModalData({
         maxReplicas: replicaCount,
@@ -174,31 +148,13 @@ describe('assembleInferenceService', () => {
       }),
       undefined,
       undefined,
-      false,
       undefined,
       undefined,
-      podSpecOption,
+      createApplyHardwareProfileFn(podSpecOption),
     );
 
     expect(inferenceService.spec.predictor.maxReplicas).toBe(replicaCount);
     expect(inferenceService.spec.predictor.minReplicas).toBe(replicaCount);
-  });
-
-  it('should omit replica count for modelmesh', async () => {
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({});
-
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-      podSpecOption,
-    );
-
-    expect(inferenceService.spec.predictor.maxReplicas).toBeUndefined();
-    expect(inferenceService.spec.predictor.minReplicas).toBeUndefined();
   });
 
   it('should provide imagePullSecrets if provided', async () => {
@@ -211,21 +167,8 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.imagePullSecrets).toContainEqual(imagePullSecret);
   });
 
-  it('should omit imagePullSecrets for modelmesh', async () => {
-    const inferenceService = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-    );
-
-    expect(inferenceService.spec.predictor.imagePullSecrets).toBeUndefined();
-  });
-
   it('should add requests on kserve', async () => {
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOption: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
           cpu: '1',
@@ -256,10 +199,9 @@ describe('assembleInferenceService', () => {
       mockInferenceServiceModalData({}),
       undefined,
       undefined,
-      false,
       undefined,
       undefined,
-      podSpecOption,
+      createApplyHardwareProfileFn(podSpecOption),
     );
 
     expect(inferenceService.spec.predictor.model?.resources?.requests?.cpu).toBe(
@@ -274,51 +216,6 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.spec.predictor.model?.resources?.limits?.memory).toBe(
       modelSize.resources.limits?.memory,
     );
-  });
-
-  it('should add requests on kserve but omit on modelmesh', async () => {
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
-      resources: {
-        requests: {
-          cpu: '1',
-          memory: '1Gi',
-        },
-        limits: {
-          cpu: '2',
-          memory: '2Gi',
-        },
-      },
-    });
-
-    // Test with modelmesh
-    const inferenceServiceModelMesh = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-      podSpecOption,
-    );
-
-    expect(inferenceServiceModelMesh.spec.predictor.model?.resources).toBeUndefined();
-
-    // Test with KServe
-    const inferenceServiceKServe = assembleInferenceService(
-      mockInferenceServiceModalData({}),
-      undefined,
-      undefined,
-      false,
-      undefined,
-      undefined,
-      podSpecOption,
-    );
-
-    expect(inferenceServiceKServe.spec.predictor.model?.resources).toBeDefined();
-    expect(inferenceServiceKServe.spec.predictor.model?.resources?.requests?.cpu).toBe('1');
-    expect(inferenceServiceKServe.spec.predictor.model?.resources?.requests?.memory).toBe('1Gi');
-    expect(inferenceServiceKServe.spec.predictor.model?.resources?.limits?.cpu).toBe('2');
-    expect(inferenceServiceKServe.spec.predictor.model?.resources?.limits?.memory).toBe('2Gi');
   });
 
   it('should have base annotations for kserve raw', async () => {
@@ -370,7 +267,7 @@ describe('assembleInferenceService', () => {
   it('should set hardware profile annotation for real profiles', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
     hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleInferenceService(
@@ -380,20 +277,19 @@ describe('assembleInferenceService', () => {
       }),
       undefined,
       undefined,
-      false,
       undefined,
       undefined,
-      podSpecOptions,
+      createApplyHardwareProfileFn(podSpecOptions),
     );
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'real-profile',
     );
   });
 
-  it('should set hardware profile namespace annotation for real profiles if not model mesh', () => {
+  it('should set hardware profile namespace annotation for real profiles', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
     hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleInferenceService(
@@ -403,19 +299,18 @@ describe('assembleInferenceService', () => {
       }),
       undefined,
       undefined,
-      false,
       undefined,
       undefined,
-      podSpecOptions,
+      createApplyHardwareProfileFn(podSpecOptions),
     );
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'real-profile',
     );
   });
 
-  it('should set hardware profile namespace annotation to dashboard namespace when global scoped and not model mesh', () => {
+  it('should set hardware profile namespace annotation to dashboard namespace when global scoped', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
-    const podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleInferenceService(
@@ -425,10 +320,9 @@ describe('assembleInferenceService', () => {
       }),
       undefined,
       undefined,
-      false,
       undefined,
       undefined,
-      podSpecOptions,
+      createApplyHardwareProfileFn(podSpecOptions),
     );
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
       'opendatahub',
@@ -438,26 +332,9 @@ describe('assembleInferenceService', () => {
   it('should not set pod specs like tolerations and nodeSelector for hardware profiles', () => {
     const hardwareProfile = mockHardwareProfile({});
     hardwareProfile.metadata.uid = 'test-uid'; // not a legacy hardware profile
-    const podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
-
-    // Test with modelmesh
-    const resultModelMesh = assembleInferenceService(
-      mockInferenceServiceModalData({
-        externalRoute: true,
-        tokenAuth: true,
-      }),
-      undefined,
-      undefined,
-      true,
-      undefined,
-      undefined,
-      podSpecOptions,
-    );
-
-    expect(resultModelMesh.spec.tolerations).toBeUndefined();
-    expect(resultModelMesh.spec.nodeSelector).toBeUndefined();
 
     // Test with KServe
     const resultKServe = assembleInferenceService(
@@ -467,12 +344,13 @@ describe('assembleInferenceService', () => {
       }),
       undefined,
       undefined,
-      false,
       undefined,
       undefined,
-      podSpecOptions,
+      createApplyHardwareProfileFn(podSpecOptions),
     );
 
+    // applyHardwareProfileConfig does not set tolerations or nodeSelector
+    // those are applied separately by the operator operator
     expect(resultKServe.spec.predictor.tolerations).toBeUndefined();
     expect(resultKServe.spec.predictor.nodeSelector).toBeUndefined();
   });
@@ -517,7 +395,7 @@ describe('listScopedInferenceService', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -544,7 +422,7 @@ describe('listScopedInferenceService', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -569,7 +447,7 @@ describe('listScopedInferenceService', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -588,7 +466,7 @@ describe('listScopedInferenceService', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
   });
@@ -767,7 +645,6 @@ describe('project scoped hardware profile on inference service', () => {
       mockInferenceServiceModalData({}),
       undefined,
       undefined,
-      false,
       existingInferenceService,
     );
 
@@ -797,7 +674,7 @@ describe('project scoped hardware profile on inference service', () => {
     });
 
     // Create pod spec options with the new hardware profile
-    const podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: hardwareProfile,
     });
 
@@ -806,10 +683,9 @@ describe('project scoped hardware profile on inference service', () => {
       mockInferenceServiceModalData({}),
       undefined,
       undefined,
-      false,
       existingInferenceService,
       undefined,
-      podSpecOptions,
+      createApplyHardwareProfileFn(podSpecOptions),
     );
 
     // Verify the hardware profile annotations are updated
@@ -911,7 +787,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
       updateData,
       undefined,
       undefined,
-      false,
       existingInferenceService,
     );
 
@@ -952,7 +827,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
       updateData,
       undefined,
       undefined,
-      false,
       existingInferenceService,
     );
 
@@ -991,7 +865,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
       updateData,
       undefined,
       undefined,
-      false, // KServe mode
       existingInferenceService,
     );
 
@@ -1026,7 +899,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
       updateData,
       undefined,
       undefined,
-      false,
       existingInferenceService,
     );
 
@@ -1057,7 +929,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
       updateData,
       undefined,
       undefined,
-      false,
       existingInferenceService,
     );
 
@@ -1092,7 +963,7 @@ describe('assembleInferenceService - Preservation Tests', () => {
       resources: existingResources,
     });
 
-    const podSpecOptions = mockModelServingPodSpecOptions({
+    const podSpecOptions: HardwarePodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
           cpu: '5000m',
@@ -1117,13 +988,12 @@ describe('assembleInferenceService - Preservation Tests', () => {
       updateData,
       undefined,
       undefined,
-      false,
       existingInferenceService,
       undefined,
-      podSpecOptions,
+      createApplyHardwareProfileFn(podSpecOptions),
     );
 
-    // Should merge existing and new resources
+    // The applyHardwareProfile function sets resources directly from podSpecOptions
     expect(result.spec.predictor.model?.resources).toEqual({
       requests: {
         cpu: '5000m',
@@ -1135,11 +1005,6 @@ describe('assembleInferenceService - Preservation Tests', () => {
         memory: '20Gi',
         'nvidia.com/gpu': 1,
       },
-      claims: [
-        {
-          name: 'existing-claim',
-        },
-      ],
     });
   });
 });

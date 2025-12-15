@@ -6,7 +6,7 @@ import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { FeatureFlag } from '#~/concepts/areas/types';
-import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types.ts';
+import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { FetchStateObject } from './utilities/useFetch';
@@ -114,7 +114,6 @@ export type ClusterSettingsType = {
 
 export type ModelServingPlatformEnabled = {
   kServe: boolean;
-  modelMesh: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -793,7 +792,6 @@ export type DetectedAccelerators = {
 
 export enum ServingRuntimePlatform {
   SINGLE = 'single',
-  MULTI = 'multi',
 }
 
 export enum ServingRuntimeAPIProtocol {
