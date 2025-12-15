@@ -212,7 +212,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                           </StackItem>
                           <StackItem>
                             <Content
-                              className={`${text.fontSizeSm} ${text.textColorSubtle}`}
+                              className={`${text.fontSizeSm} ${text.textColorSubtle} ${text.textWrap}`}
                               style={{
                                 marginTop: '0.25rem',
                                 display: 'block',

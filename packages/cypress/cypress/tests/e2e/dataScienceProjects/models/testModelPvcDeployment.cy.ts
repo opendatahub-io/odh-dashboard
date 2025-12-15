@@ -35,7 +35,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-41299] Verify a model can be deployed from a PVC', () => {
+describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PVC', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
