@@ -371,7 +371,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
-		return false, fmt.Errorf("failed to verify LlamaStackDistribution list permissions: %w", err)
+		return false, wrapK8sSubjectAccessReviewError(err, namespace)
 	}
 
 	return resp.Status.Allowed, nil
