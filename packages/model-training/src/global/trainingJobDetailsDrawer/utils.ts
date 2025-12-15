@@ -145,6 +145,31 @@ export const getTrainerStatus = (job: TrainJobKind): TrainerStatus | null => {
 };
 
 /**
+ * Formats a duration in seconds to a human-readable string.
+ * e.g., 60 -> "1 minute", 3600 -> "1 hour", 5400 -> "1 hour 30 minutes"
+ */
+export const formatDuration = (seconds: number): string => {
+  if (seconds < 0) {
+    return '-';
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  const parts: string[] = [];
+
+  if (hours > 0) {
+    parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+  }
+
+  if (minutes > 0) {
+    parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+  }
+
+  return parts.length > 0 ? parts.join(' ') : '0 minutes';
+};
+
+/**
  * Formats a metric key from snake_case or camelCase to a readable label.
  * e.g., "grad_norm" -> "Grad norm", "learningRate" -> "Learning rate"
  */

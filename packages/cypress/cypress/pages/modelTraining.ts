@@ -521,19 +521,19 @@ class TrainingJobDetailsTab {
   }
 
   findLossValue() {
-    return cy.findByTestId('loss-value');
+    return cy.findByTestId('metric-loss-value');
   }
 
   findAccuracyValue() {
-    return cy.findByTestId('accuracy-value');
+    return cy.findByTestId('metric-accuracy-value');
   }
 
   findTotalBatchesValue() {
-    return cy.findByTestId('total-batches-value');
+    return cy.findByTestId('metric-total_batches-value');
   }
 
   findTotalSamplesValue() {
-    return cy.findByTestId('total-samples-value');
+    return cy.findByTestId('metric-total_samples-value');
   }
 }
 

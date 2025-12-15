@@ -6,6 +6,7 @@ import {
   getAllConsumedResources,
   convertToBaseUnit,
   getDefaultPodContainerName,
+  formatDuration,
   formatMetricLabel,
   formatMetricValue,
 } from '../utils';
@@ -831,6 +832,39 @@ describe('getDefaultPodContainerName', () => {
 
       expect(getDefaultPodContainerName(pod)).toBe('container-1');
     });
+  });
+});
+
+describe('formatDuration', () => {
+  it('should format seconds to minutes', () => {
+    expect(formatDuration(60)).toBe('1 minute');
+    expect(formatDuration(120)).toBe('2 minutes');
+    expect(formatDuration(150)).toBe('2 minutes');
+  });
+
+  it('should format seconds to hours', () => {
+    expect(formatDuration(3600)).toBe('1 hour');
+    expect(formatDuration(7200)).toBe('2 hours');
+  });
+
+  it('should format seconds to hours and minutes', () => {
+    expect(formatDuration(5400)).toBe('1 hour 30 minutes');
+    expect(formatDuration(3660)).toBe('1 hour 1 minute');
+    expect(formatDuration(7320)).toBe('2 hours 2 minutes');
+  });
+
+  it('should return 0 minutes for 0 seconds', () => {
+    expect(formatDuration(0)).toBe('0 minutes');
+  });
+
+  it('should return dash for negative values', () => {
+    expect(formatDuration(-1)).toBe('-');
+    expect(formatDuration(-100)).toBe('-');
+  });
+
+  it('should handle values less than 60 seconds', () => {
+    expect(formatDuration(30)).toBe('0 minutes');
+    expect(formatDuration(59)).toBe('0 minutes');
   });
 });
 
