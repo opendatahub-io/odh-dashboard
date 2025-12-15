@@ -32,10 +32,9 @@ import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServing
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
-  ModelServingSize,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
-import ServingRuntimeSizeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
+import DeploymentHardwareProfileSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeploymentHardwareProfileSection';
 import NIMModelListSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
@@ -60,14 +59,17 @@ import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServi
 import { useNIMPVC } from '#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/useNIMTemplateName';
-import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
-import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
+import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import {
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  MODEL_SERVING_VISIBILITY,
+} from '#~/concepts/hardwareProfiles/const';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -121,10 +123,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     createDataInferenceService.k8sName,
   );
 
-  const podSpecOptionsState = useModelServingHardwareProfileState(
-    editInfo?.servingRuntimeEditInfo?.servingRuntime,
-    editInfo?.inferenceServiceEditInfo,
-  );
+  const { podSpecOptionsState, validateHardwareProfileForm, applyToResource } =
+    useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
+      visibleIn: MODEL_SERVING_VISIBILITY,
+      paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    });
 
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
     SupportedArea.SERVING_RUNTIME_PARAMS,
@@ -188,33 +191,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [currentProjectName, setCreateDataInferenceService]);
 
-  const NIM_CUSTOM_DEFAULTS: ModelServingSize = React.useMemo(
-    () => ({
-      name: 'Custom',
-      resources: {
-        limits: { cpu: '16', memory: '64Gi' },
-        requests: { cpu: '8', memory: '32Gi' },
-      },
-    }),
-    [],
-  );
-
-  const hasSetDefault = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!editInfo && !hasSetDefault.current) {
-      podSpecOptionsState.modelSize.setSelectedSize(NIM_CUSTOM_DEFAULTS);
-      hasSetDefault.current = true;
-    }
-  }, [NIM_CUSTOM_DEFAULTS, podSpecOptionsState.modelSize, editInfo]);
-
   // Serving Runtime Validation
   const isDisabledServingRuntime =
     namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
 
-  const { isValid: isModelServerSizeValid } = useModelServerSizeValidation(podSpecOptionsState);
-
-  const baseInputValueValid = createDataServingRuntime.numReplicas >= 0 && isModelServerSizeValid;
+  const baseInputValueValid = createDataServingRuntime.numReplicas >= 0;
 
   const isExistingPvcValid =
     pvcMode === 'create-new' || (existingPvcName.trim() !== '' && modelPath.trim() !== '');
@@ -225,7 +206,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     createDataInferenceService.project === '' ||
     !translatedName ||
     !baseInputValueValid ||
-    !podSpecOptionsState.hardwareProfile.isFormDataValid ||
+    !validateHardwareProfileForm() ||
     !isExistingPvcValid ||
     createDataInferenceService.servingRuntimeEnvVars?.some(
       (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
@@ -283,7 +264,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     resetDataServingRuntime();
     resetDataInferenceService();
     podSpecOptionsState.hardwareProfile.resetFormData();
-    podSpecOptionsState.modelSize.setSelectedSize(podSpecOptionsState.modelSize.sizes[0]);
     setPvcMode('create-new');
     setExistingPvcName('');
     setModelPath(DEFAULT_MODEL_PATH);
@@ -344,7 +324,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.inferenceServiceEditInfo,
       editInfo?.servingRuntimeEditInfo?.servingRuntime?.metadata.name || servingRuntimeName,
       editInfo?.inferenceServiceEditInfo?.metadata.name || inferenceServiceName,
-      podSpecOptionsState.podSpecOptions,
+      applyToResource,
       allowCreate,
       editInfo?.secrets,
       false,
@@ -478,8 +458,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 server replicas."
               />
             </StackItem>
-            <ServingRuntimeSizeSection
+            <DeploymentHardwareProfileSection
               isEditing={!!editInfo}
+              projectName={namespace}
               servingRuntimeSelected={servingRuntimeSelected}
               podSpecOptionState={podSpecOptionsState}
             />

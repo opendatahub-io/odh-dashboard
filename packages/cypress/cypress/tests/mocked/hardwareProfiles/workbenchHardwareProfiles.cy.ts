@@ -331,6 +331,7 @@ describe('Workbench Hardware Profiles', () => {
         mockK8sResourceList([
           mockNotebookK8sResource({
             hardwareProfileName: 'small-profile',
+            hardwareProfileNamespace: 'test-project',
             displayName: 'Test Notebook',
           }),
         ]),
@@ -413,6 +414,7 @@ describe('Workbench Hardware Profiles', () => {
         mockK8sResourceList([
           mockNotebookK8sResource({
             hardwareProfileName: 'small-profile',
+            hardwareProfileNamespace: 'opendatahub',
             displayName: 'Test Notebook',
           }),
         ]),

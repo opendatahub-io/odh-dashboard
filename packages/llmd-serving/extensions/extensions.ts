@@ -54,6 +54,10 @@ const extensions: (
         import('../src/deployments/model').then((m) => m.extractModelLocationData),
       extractModelServerTemplate: () =>
         import('../src/deployments/server').then((m) => m.extractModelServerTemplate),
+      hardwareProfilePaths: () =>
+        import('../src/deployments/hardware').then(
+          (m) => m.LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+        ),
     },
   },
   {

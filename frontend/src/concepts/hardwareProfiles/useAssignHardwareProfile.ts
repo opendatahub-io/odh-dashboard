@@ -4,8 +4,9 @@ import {
   HardwarePodSpecOptionsState,
   HardwarePodSpecOptions,
   HardwareProfileOptions,
-} from '#~/concepts/hardwareProfiles/types.ts';
-import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils.ts';
+  CrPathConfig,
+} from '#~/concepts/hardwareProfiles/types';
+import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -17,10 +18,14 @@ import {
   getExistingResources,
 } from './utils';
 
+export { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+
 export type UseAssignHardwareProfileResult<T extends K8sResourceCommon> = {
   podSpecOptionsState: HardwarePodSpecOptionsState<HardwarePodSpecOptions>;
-  applyToResource: (resource: T) => T; // apply the current hardware profile configuration to a custom resource
+  applyToResource: <R extends T>(resource: R, runtimePaths?: CrPathConfig) => R; // apply the current hardware profile configuration to a custom resource
   validateHardwareProfileForm: () => boolean;
+  loaded: boolean;
+  error?: Error;
 };
 
 export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
@@ -50,8 +55,12 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
   };
 
   const applyToResource = React.useCallback(
-    (targetResource: T): T => {
-      return applyHardwareProfileConfig(targetResource, hardwareProfileConfig.formData, paths);
+    <R extends T>(targetResource: R, resourcePaths?: CrPathConfig): R => {
+      return applyHardwareProfileConfig(
+        targetResource,
+        hardwareProfileConfig.formData,
+        resourcePaths || paths,
+      );
     },
     [paths, hardwareProfileConfig.formData],
   );
@@ -64,5 +73,7 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
     podSpecOptionsState,
     applyToResource,
     validateHardwareProfileForm,
+    loaded: hardwareProfileConfig.profilesLoaded,
+    error: hardwareProfileConfig.profilesLoadError,
   };
 };
