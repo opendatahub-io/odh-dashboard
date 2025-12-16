@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -168,6 +169,18 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		assert.Contains(t, result, "llama-2-7b-chat")
 		assert.Contains(t, result, "granite-7b-lab")
 		assert.Contains(t, result, "maas-vllm-inference")
+
+		// Verify models are also added to registered_resources
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		assert.NoError(t, err)
+		registered := map[string]bool{}
+		for _, m := range cfg.RegisteredResources.Models {
+			registered[m.ModelID] = true
+		}
+		assert.True(t, registered[constants.DefaultEmbeddingModel.ModelID], "default embedding model should be registered")
+		assert.True(t, registered["llama-2-7b-chat"], "MaaS model should be registered")
+		assert.True(t, registered["granite-7b-lab"], "MaaS model should be registered")
 	})
 
 	t.Run("should fail when MaaS model is not ready", func(t *testing.T) {
