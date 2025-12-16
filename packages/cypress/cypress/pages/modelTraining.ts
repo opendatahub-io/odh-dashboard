@@ -122,6 +122,10 @@ class TrainingJobTableRow extends TableRow {
   findNameLink() {
     return this.findTrainingJobName().find('button');
   }
+
+  findPauseResumeToggle() {
+    return this.find().findByTestId('state-action-toggle');
+  }
 }
 
 class TrainingJobDetailsDrawer {
@@ -499,6 +503,52 @@ class ScaleNodesModal extends Modal {
     return this;
   }
 }
+class PauseTrainingJobModal extends Modal {
+  constructor() {
+    super('Pause training job?');
+  }
+
+  find() {
+    return cy.findByTestId('pause-training-job-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findDontShowAgainCheckbox() {
+    return cy.findByTestId('dont-show-again-checkbox');
+  }
+
+  checkDontShowAgain() {
+    this.findDontShowAgainCheckbox().click();
+    return this;
+  }
+
+  findPauseButton() {
+    return cy.findByRole('button', { name: 'Pause' });
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  pause() {
+    this.findPauseButton().click();
+    return this;
+  }
+
+  cancel() {
+    this.findCancelButton().click();
+    return this;
+  }
+}
+
 class TrainingJobDetailsTab {
   findProgressSection() {
     return cy.findByTestId('progress-section');
@@ -545,4 +595,5 @@ export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
+export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();
