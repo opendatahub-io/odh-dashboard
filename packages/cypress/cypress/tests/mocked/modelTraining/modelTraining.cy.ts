@@ -571,7 +571,7 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.clickKebabMenu();
 
-      trainingJobDetailsDrawer.findKebabMenuItem('Delete').should('exist');
+      trainingJobDetailsDrawer.findKebabMenuItem('Delete job').should('exist');
     });
 
     it('should switch between different jobs in the drawer', () => {

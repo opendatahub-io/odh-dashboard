@@ -6,14 +6,20 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 # This example shows how to configure an assistant using the Llama Stack client.
 # Before using this code, make sure of the following:
 #
-# 1. Llama Stack Server:
+# 1. Required Packages:
+#    - Install the required dependencies using pip:
+#      pip install llama-stack-client
+#    - NOTE: Verify the correct llama-stack-client version for your Llama Stack server instance,
+#      then install that version as needed.
+#
+# 2. Llama Stack Server:
 #    - Your Llama Stack instance must be running and accessible
 #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
 #
-# 2. Model Configuration:
+# 3. Model Configuration:
 #    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment.
 #
-# 3. Tools (MCP Integration):
+# 4. Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
 
 # Configuration adjust as needed:
