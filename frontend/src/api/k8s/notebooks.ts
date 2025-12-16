@@ -47,6 +47,7 @@ export const assembleNotebook = (
     volumeMounts: formVolumeMounts,
     connections,
     hardwareProfileOptions,
+    featureStores,
   } = data;
   const {
     name: notebookName,
@@ -88,6 +89,8 @@ export const assembleNotebook = (
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
     .join(',');
 
+  const feastConfigAnnotation = featureStores?.map((fs) => fs.projectName).join(',');
+
   const baseResource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -97,6 +100,7 @@ export const assembleNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        ...(feastConfigAnnotation && { 'opendatahub.io/feast-integration': 'true' }),
       },
       annotations: {
         'openshift.io/display-name': notebookName.trim(),
@@ -107,6 +111,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
         'opendatahub.io/connections': connectionsAnnotation ?? '',
+        ...(feastConfigAnnotation && { 'opendatahub.io/feast-config': feastConfigAnnotation }),
       },
       name: notebookId,
       namespace: projectName,

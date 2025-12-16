@@ -5,6 +5,7 @@ import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { AwsKeys } from './dataConnections/const';
+import { NotebookFeatureStore } from './screens/spawner/featureStore/utils';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
   propKey: K,
@@ -82,6 +83,7 @@ export type StartNotebookData = {
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
+  featureStores?: NotebookFeatureStore[];
 };
 
 export type SecretRef = {
