@@ -1297,6 +1297,7 @@ export type DashboardCommonConfig = {
   modelAsService?: boolean;
   aiCatalogSettings?: boolean;
   mlflow?: boolean;
+  projectRBAC?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
