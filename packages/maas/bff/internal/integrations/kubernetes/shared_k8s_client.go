@@ -18,3 +18,7 @@ type SharedClientLogic struct {
 func (kc *SharedClientLogic) BearerToken() (string, error) { return kc.Token.Raw(), nil }
 
 func (kc *SharedClientLogic) GetGroups(ctx context.Context) ([]string, error) { return []string{}, nil }
+
+func (kc *SharedClientLogic) GetKubeClient() kubernetes.Interface {
+	return kc.Client
+}

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { PodKind } from '@odh-dashboard/internal/k8sTypes';
-import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetchState';
-import useFetch from '@odh-dashboard/internal/utilities/useFetch';
-import { getPodsForTrainJob } from '../api';
+import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
+import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { TrainJobKind } from '../k8sTypes';
 
 type UseTrainJobPodsResult = {
@@ -30,24 +30,34 @@ const groupPodsByType = (pods: PodKind[]): { initializers: PodKind[]; training: 
 };
 
 /**
- * Hook to fetch pods for a training job and separate them into initializers and training pods
+ * Hook to watch pods for a training job with real-time updates via WebSocket
+ * Separates pods into initializers and training pods
  * @param job - The TrainJob resource
  * @returns Object containing pods data (all, initializers, training), loading state, and error
  */
 const useTrainJobPods = (job: TrainJobKind | undefined): UseTrainJobPodsResult => {
-  const {
-    data: pods,
-    loaded: podsLoaded,
-    error: podsError,
-  } = useFetch<PodKind[]>(
-    React.useCallback(() => {
-      if (!job) {
-        return Promise.reject(new NotReadyError('Missing TrainJob'));
-      }
-      return getPodsForTrainJob(job);
-    }, [job]),
-    [],
-    { initialPromisePurity: true },
+  const selector = React.useMemo(() => {
+    if (!job) {
+      return undefined;
+    }
+
+    return {
+      matchLabels: {
+        'jobset.sigs.k8s.io/jobset-name': job.metadata.name,
+      },
+    };
+  }, [job]);
+
+  const [pods, podsLoaded, podsError] = useK8sWatchResourceList<PodKind[]>(
+    job
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(PodModel),
+          namespace: job.metadata.namespace,
+          selector,
+        }
+      : null,
+    PodModel,
   );
 
   const { initializers, training } = React.useMemo(() => groupPodsByType(pods), [pods]);

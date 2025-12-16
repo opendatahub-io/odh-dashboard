@@ -268,7 +268,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
             <Title headingLevel="h2" size="lg">
               Training Job Status
             </Title>
-            <TrainingJobStatus job={job} jobStatus={status} />
+            <TrainingJobStatus job={job} jobStatus={status} showProgressBar={false} />
           </Flex>
         }
       />
