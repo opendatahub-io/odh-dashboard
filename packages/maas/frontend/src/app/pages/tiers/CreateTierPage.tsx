@@ -16,6 +16,7 @@ const CreateTierPage: React.FC = () => (
         <BreadcrumbItem isActive>Create tier</BreadcrumbItem>
       </Breadcrumb>
     }
+    data-testid="create-tier-page"
   >
     <PageSection isFilled>
       <CreateTierForm />

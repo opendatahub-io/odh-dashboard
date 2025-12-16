@@ -13,12 +13,12 @@ export type Tier = {
 };
 
 export type TierLimits = {
-  tokensPerUnit: RateLimit;
-  requestsPerUnit: RateLimit;
+  tokensPerUnit: RateLimit[];
+  requestsPerUnit: RateLimit[];
 };
 
 export type RateLimit = {
-  tokens: number;
+  count: number;
   time: number;
   unit: 'hour' | 'minute' | 'second' | 'millisecond';
 };
@@ -33,16 +33,20 @@ export const mockTiers: Tier[] = [
     groups: ['all-users'],
     models: ['gpt-3.5', 'llama-7b', 'mistral-7b'],
     limits: {
-      tokensPerUnit: {
-        tokens: 10000,
-        time: 1,
-        unit: 'hour',
-      },
-      requestsPerUnit: {
-        tokens: 100,
-        time: 1,
-        unit: 'minute',
-      },
+      tokensPerUnit: [
+        {
+          count: 10000,
+          time: 1,
+          unit: 'hour',
+        },
+      ],
+      requestsPerUnit: [
+        {
+          count: 100,
+          time: 1,
+          unit: 'minute',
+        },
+      ],
     },
   },
   {
@@ -53,16 +57,20 @@ export const mockTiers: Tier[] = [
     groups: ['premium-users'],
     models: ['gpt-4', 'llama-70b', 'mistral-7b'],
     limits: {
-      tokensPerUnit: {
-        tokens: 500000,
-        time: 1,
-        unit: 'hour',
-      },
-      requestsPerUnit: {
-        tokens: 10000,
-        time: 1,
-        unit: 'minute',
-      },
+      tokensPerUnit: [
+        {
+          count: 500000,
+          time: 1,
+          unit: 'hour',
+        },
+      ],
+      requestsPerUnit: [
+        {
+          count: 10000,
+          time: 1,
+          unit: 'minute',
+        },
+      ],
     },
   },
   {
@@ -73,16 +81,20 @@ export const mockTiers: Tier[] = [
     groups: ['enterprise-users', 'enterprise-admins'],
     models: ['gpt-4', 'llama-70b', 'claude-3'],
     limits: {
-      tokensPerUnit: {
-        tokens: 1000000,
-        time: 1,
-        unit: 'hour',
-      },
-      requestsPerUnit: {
-        tokens: 10000,
-        time: 1,
-        unit: 'minute',
-      },
+      tokensPerUnit: [
+        {
+          count: 1000000,
+          time: 1,
+          unit: 'hour',
+        },
+      ],
+      requestsPerUnit: [
+        {
+          count: 10000,
+          time: 1,
+          unit: 'minute',
+        },
+      ],
     },
   },
 ];

@@ -4,8 +4,13 @@ import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { RateLimit } from '~/app/types/tier';
 
 const rateLimitSchema = z.object({
-  tokens: z.number().min(1, 'Must be greater than 0'),
-  time: z.number().min(1, 'Must be greater than 0'),
+  // eslint-disable-next-line camelcase
+  count: z.number({ invalid_type_error: 'Value is required' }).min(1, 'Must be greater than 0'),
+  time: z
+    // eslint-disable-next-line camelcase
+    .number({ invalid_type_error: 'Value is required' })
+    .min(1, 'Must be greater than 0')
+    .max(99999, 'Must be less than 99999'),
   unit: z.enum(['hour', 'minute', 'second', 'millisecond']),
 });
 
@@ -31,7 +36,11 @@ const rateLimitsSectionSchema = z.discriminatedUnion('enabled', [
 export const createTierFormSchema = z.object({
   // Name validation is handled by K8sNameDescriptionField
   name: z.string(),
-  level: z.number().min(1, 'Level must be at least 1').max(999, 'Level must be at most 999'),
+  level: z
+    // eslint-disable-next-line camelcase
+    .number({ invalid_type_error: 'Level is required' })
+    .min(1, 'Level must be at least 1')
+    .max(999999, 'Level must be at most 999999'),
   groups: z.array(z.string()).min(1, 'At least one group is required'),
   tokenRateLimits: rateLimitsSectionSchema,
   requestRateLimits: rateLimitsSectionSchema,

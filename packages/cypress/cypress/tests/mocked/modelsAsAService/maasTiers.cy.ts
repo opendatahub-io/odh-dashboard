@@ -1,6 +1,6 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { tiersPage } from '../../../pages/modelsAsAService';
+import { createTierPage, tiersPage } from '../../../pages/modelsAsAService';
 
 describe('Tiers Page', () => {
   beforeEach(() => {
@@ -56,5 +56,34 @@ describe('Tiers Page', () => {
     // clear filter
     tiersPage.findFilterResetButton().click();
     tiersPage.findRows().should('have.length', 3);
+  });
+
+  it('should create a new tier', () => {
+    tiersPage.findCreateTierButton().click();
+    createTierPage.findTitle().should('contain.text', 'Create tier');
+    createTierPage
+      .findPageDescription()
+      .should(
+        'contain.text',
+        'Create a new tier to control which models users can access based on their group membership.',
+      );
+
+    createTierPage.findCreateButton().should('exist').should('be.disabled');
+
+    createTierPage.findNameInput().type('Test Tier');
+    createTierPage.findDescriptionInput().type('Test tier description');
+    createTierPage.findLevelInput().type('5');
+    createTierPage.findGroupsSelect().select('test-group');
+    createTierPage.findTokenRateLimitCheckbox().click();
+    createTierPage.findTokenRateLimitCountInput(0).type('500');
+    createTierPage.findTokenRateLimitTimeInput(0).type('5');
+    createTierPage.findTokenRateLimitUnitSelect(0).select('hour');
+    createTierPage.findRequestRateLimitCheckbox().click();
+    createTierPage.findRequestRateLimitCountInput(0).type('200');
+    createTierPage.findRequestRateLimitTimeInput(0).type('3');
+    createTierPage.findRequestRateLimitUnitSelect(0).select('second');
+    createTierPage.findCreateButton().should('exist').should('be.enabled').click();
+
+    tiersPage.findTable().should('exist');
   });
 });

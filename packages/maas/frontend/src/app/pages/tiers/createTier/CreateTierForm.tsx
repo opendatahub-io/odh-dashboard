@@ -9,7 +9,9 @@ import {
   HelperText,
   HelperTextItem,
   NumberInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -24,8 +26,8 @@ import { mockAvailableGroups, RateLimit, Tier } from '~/app/types/tier';
 import { RateLimitCheckbox } from './RateLimitCheckbox';
 import { useCreateTierFormValidation } from './useCreateTierFormValidation';
 
-const DEFAULT_TOKEN_LIMIT: RateLimit = { tokens: 10000, time: 1, unit: 'hour' };
-const DEFAULT_REQUEST_LIMIT: RateLimit = { tokens: 100, time: 1, unit: 'minute' };
+const DEFAULT_TOKEN_LIMIT: RateLimit = { count: 10000, time: 1, unit: 'hour' };
+const DEFAULT_REQUEST_LIMIT: RateLimit = { count: 100, time: 1, unit: 'minute' };
 
 type CreateTierFormProps = {
   tier?: Tier;
@@ -53,14 +55,14 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
   const [groupsTouched, setGroupsTouched] = React.useState(false);
 
   const [tokenLimitEnabled, setTokenLimitEnabled] = React.useState(false);
-  const [tokenLimits, setTokenLimits] = React.useState<RateLimit[]>([
-    tier?.limits.tokensPerUnit ?? DEFAULT_TOKEN_LIMIT,
-  ]);
+  const [tokenLimits, setTokenLimits] = React.useState<RateLimit[]>(
+    tier?.limits.tokensPerUnit ?? [DEFAULT_TOKEN_LIMIT],
+  );
 
   const [requestLimitEnabled, setRequestLimitEnabled] = React.useState(false);
-  const [requestLimits, setRequestLimits] = React.useState<RateLimit[]>([
-    tier?.limits.requestsPerUnit ?? DEFAULT_REQUEST_LIMIT,
-  ]);
+  const [requestLimits, setRequestLimits] = React.useState<RateLimit[]>(
+    tier?.limits.requestsPerUnit ?? [DEFAULT_REQUEST_LIMIT],
+  );
 
   const [level, setLevel] = React.useState(tier?.level ?? 1);
 
@@ -87,23 +89,52 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
         data={data}
         onDataChange={onDataChange}
         dataTestId="tier-name-desc"
-        hideDescription
         nameHelperText='A descriptive name for this tier (e.g., "Premium Tier")'
+        descriptionHelperText="Optional description of this tier's purpose and target users"
       />
       <FormGroup label="Level" fieldId="tier-level" isRequired>
         <NumberInput
-          value={level}
+          value={Number.isNaN(level) ? '' : level}
           min={1}
+          max={999999}
           data-testid="tier-level"
+          validated={
+            getAllValidationIssues(['level']).length > 0
+              ? ValidatedOptions.error
+              : ValidatedOptions.default
+          }
           onChange={(event: React.FormEvent<HTMLInputElement>) => {
-            const newValue = parseInt(event.currentTarget.value, 10);
-            if (!Number.isNaN(newValue)) {
-              setLevel(Math.max(1, newValue));
+            const inputValue = event.currentTarget.value;
+            if (inputValue === '') {
+              // Allow empty field - store as NaN to indicate empty
+              setLevel(NaN);
+            } else {
+              const newValue = parseInt(inputValue, 10);
+              if (!Number.isNaN(newValue)) {
+                setLevel(newValue);
+              }
             }
           }}
-          onMinus={() => setLevel(Math.max(1, level - 1))}
-          onPlus={() => setLevel(Math.max(1, level + 1))}
+          onMinus={() => setLevel(Math.max(1, (level || 1) - 1))}
+          onPlus={() => setLevel((level || 0) + 1)}
         />
+        {getAllValidationIssues(['level']).length > 0 && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                {getAllValidationIssues(['level'])[0].message}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              Higher numbers indicate higher priority. Users with access to multiple tiers will
+              automatically use the highest level tier available to them
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
       </FormGroup>
       <FormGroup label="Groups" fieldId="tier-groups" isRequired>
         <MultiSelection
@@ -137,7 +168,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
               isChecked={tokenLimitEnabled}
               onToggle={setTokenLimitEnabled}
               defaultRateLimit={DEFAULT_TOKEN_LIMIT}
-              validationIssues={getAllValidationIssues(['tokenRateLimits'])}
+              validationIssues={getAllValidationIssues()}
             />
           </FlexItem>
           <FlexItem>
@@ -149,7 +180,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
               isChecked={requestLimitEnabled}
               onToggle={setRequestLimitEnabled}
               defaultRateLimit={DEFAULT_REQUEST_LIMIT}
-              validationIssues={getAllValidationIssues(['requestRateLimits'])}
+              validationIssues={getAllValidationIssues()}
             />
           </FlexItem>
         </Flex>
