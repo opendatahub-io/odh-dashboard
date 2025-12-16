@@ -30,6 +30,7 @@ const ConnectionTypeSectionRemoveModal: React.FC<Props> = ({ field, fields, onCl
           onClick: () => onClose(false, false),
           variant: 'link',
           clickOnEnter: true,
+          dataTestId: 'modal-cancel-button',
         },
       ]}
       contents={
