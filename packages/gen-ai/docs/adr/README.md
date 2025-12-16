@@ -15,8 +15,15 @@ Architectural Decision Records (ADRs) are lightweight documents that capture imp
 | ADR | Title | Date |
 |-----|-------|------|
 | [0001](./0001-record-architecture-decisions.md) | Record Architecture Decisions | 2025-01-25 |
-| [0002](./0002-system-architecture.md) | Gen AI System Architecture | 2025-01-25 |
-| [0003](./0003-core-user-flows.md) | Core User Flows | 2025-01-25 |
+| [0002](./0002-system-architecture.md) | Gen AI System Architecture | 2025-01-25 (Updated: 2025-12-16) |
+| [0003](./0003-core-user-flows.md) | Core User Flows | 2025-01-25 (Updated: 2025-12-16) |
+| [0004](./0004-logging-strategy-and-observability.md) | Logging Strategy and Observability | 2025-12-16 |
+| [0005](./0005-authentication-authorization-architecture.md) | Authentication and Authorization Architecture | 2025-12-16 |
+| [0006](./0006-factory-pattern-client-management.md) | Factory Pattern for Client Management | 2025-12-16 |
+| [0007](./0007-domain-repository-pattern.md) | Domain Repository Pattern | 2025-12-16 |
+| [0008](./0008-caching-strategy.md) | Caching Strategy | 2025-12-16 |
+| [0009](./0009-maas-service-autodiscovery.md) | MaaS Service Autodiscovery | 2025-12-16 |
+| [0010](./0010-kubernetes-client-architecture.md) | Kubernetes Client Architecture | 2025-12-16 |
 
 ## Creating a New ADR
 

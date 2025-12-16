@@ -1,7 +1,7 @@
 # 0003 - Core User Flows
 
 * Date: 2025-07-25
-* Updated: 2025-08-20
+* Updated: 2025-12-16
 * Authors: Matias Schimuneck
 
 ## Context and Problem Statement
@@ -263,10 +263,126 @@ sequenceDiagram
 
 
 
+### Flow 3: MaaS Model Token Management
+
+User authenticates with MaaS models and manages access tokens:
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant UI as Frontend
+    participant BFF as BFF API
+    participant Cache as MemoryStore
+    participant MaaS as MaaS API
+    participant K8s as Kubernetes
+
+    Note over User,K8s: MaaS Model Authentication Flow
+    
+    UI->>BFF: GET /gen-ai/api/v1/maas/models?namespace=user-ns
+    BFF->>K8s: SubjectAccessReview (check permissions)
+    K8s-->>BFF: User authorized
+    BFF->>MaaS: GET /maas-api/models
+    MaaS-->>BFF: List of hosted models
+    BFF-->>UI: Available MaaS models
+    
+    Note over UI,MaaS: User selects MaaS model for chat
+    
+    UI->>BFF: POST /gen-ai/api/v1/responses (with MaaS model)
+    BFF->>Cache: Get cached token (namespace + user + model)
+    Cache-->>BFF: Token not found or expired
+    
+    BFF->>MaaS: POST /maas-api/tokens (issue new token)
+    MaaS-->>BFF: Access token + expiration
+    BFF->>Cache: Store token (15min TTL)
+    
+    BFF->>LS: POST /v1/openai/v1/responses (with MaaS token)
+    LS->>MaaS: Query model (with token)
+    MaaS-->>LS: Model response
+    LS-->>BFF: Formatted response
+    BFF-->>UI: Stream response to user
+    
+    Note over Cache: Background cleanup removes expired tokens
+```
+
+### Flow 4: MCP Tool Discovery and Invocation
+
+User discovers and invokes tools from MCP servers:
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant UI as Frontend
+    participant BFF as BFF API
+    participant MCP as MCP Servers
+    participant K8s as Kubernetes
+
+    Note over User,K8s: MCP Tool Discovery Flow
+    
+    UI->>BFF: GET /gen-ai/api/v1/mcp/servers?namespace=user-ns
+    BFF->>K8s: List ConfigMaps with mcp-server label
+    K8s-->>BFF: MCP server configurations
+    BFF->>MCP: Connect to each server (SSE/HTTP)
+    MCP-->>BFF: Server capabilities
+    BFF-->>UI: Available MCP servers and status
+    
+    UI->>BFF: GET /gen-ai/api/v1/mcp/tools?namespace=user-ns
+    BFF->>MCP: GET /tools (from each server)
+    MCP-->>BFF: Available tools list
+    BFF-->>UI: Aggregated tools from all servers
+    
+    Note over User,MCP: User invokes tool during chat
+    
+    UI->>BFF: POST /gen-ai/api/v1/responses (with tool call)
+    BFF->>MCP: POST /tools/call (invoke tool)
+    MCP-->>BFF: Tool execution result
+    BFF->>LS: POST /v1/openai/v1/responses (with tool result)
+    LS-->>BFF: Response incorporating tool data
+    BFF-->>UI: Stream response with tool usage
+```
+
+### Flow 5: Namespace Selection and RBAC Enforcement
+
+User selects namespace and system enforces RBAC permissions:
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant UI as Frontend
+    participant BFF as BFF API
+    participant K8s as Kubernetes
+
+    Note over User,K8s: Namespace Selection and Permission Check
+    
+    UI->>BFF: GET /gen-ai/api/v1/namespaces
+    Note over BFF: Extract user token from Authorization header
+    BFF->>K8s: Create user-scoped client (token impersonation)
+    BFF->>K8s: List namespaces (as user)
+    K8s-->>BFF: Only namespaces user can access
+    BFF-->>UI: Filtered namespace list
+    
+    User->>UI: Select namespace from dropdown
+    
+    UI->>BFF: GET /gen-ai/api/v1/lsd/status?namespace=user-ns
+    BFF->>K8s: SubjectAccessReview (can list LSD in namespace?)
+    K8s-->>BFF: Permission granted
+    BFF->>K8s: List LlamaStackDistributions in namespace
+    K8s-->>BFF: LSD resources
+    BFF-->>UI: LSD status (installed/not installed)
+    
+    Note over BFF,K8s: Permission denied example
+    UI->>BFF: GET /gen-ai/api/v1/models?namespace=restricted-ns
+    BFF->>K8s: SubjectAccessReview (can access service?)
+    K8s-->>BFF: Permission denied
+    BFF-->>UI: 403 Forbidden (with user-friendly message)
+```
+
 ## Links
 
 * [Related to] ADR-0002 - Gen AI System Architecture
 * [Related to] ADR-0001 - Record Architecture Decisions
+* [Related to] ADR-0005 - Authentication and Authorization Architecture (namespace RBAC)
+* [Related to] ADR-0008 - Caching Strategy (MaaS token caching)
+* [Related to] ADR-0009 - MaaS Service Autodiscovery
 * [External] [Llama Stack API Documentation](https://llama-stack.readthedocs.io/) - RAG tool and chat completion APIs
 * [Related to] [Frontend Implementation](../../frontend/src/app/services/llamaStackService.ts) - API client code
 * [Related to] [BFF Handlers](../../bff/internal/api/) - BFF endpoint implementations 
