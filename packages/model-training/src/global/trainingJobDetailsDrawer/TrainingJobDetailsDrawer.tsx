@@ -71,7 +71,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
 
   const handlePodClick = (podName: string) => {
     setSelectedPodNameFromClick(podName);
-    setActiveTabKey(2);
+    setActiveTabKey(3); // Switch to Logs tab
   };
 
   const handlePodChange = (pod: PodKind | null) => {
