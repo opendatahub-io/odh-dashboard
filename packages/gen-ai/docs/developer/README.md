@@ -4,18 +4,27 @@ This directory contains documentation for developers contributing to the Gen AI 
 
 ## Available Guides
 
+- **[Contributing Guide](../../CONTRIBUTING.md)** - How to contribute to Gen AI (start here!)
 - [BFF Testing Guide](../../bff/README.md) - Comprehensive guide for testing the BFF component
+- [BFF Overview](BFF_OVERVIEW.md) - Detailed BFF architecture and patterns
 
 ## Additional Resources
 
 - [Architectural Decision Records](../adr/) - ADRs documenting key architectural decisions
-- [API Documentation](../bff/openapi/) - OpenAPI specifications for the BFF
+- [API Documentation](../../bff/openapi/src/gen-ai.yaml) - OpenAPI specifications for the BFF
+- [User Documentation](../user/) - End-user guides and admin documentation
 
 ## Contributing
 
+See the [Gen AI Contributing Guide](../../CONTRIBUTING.md) for:
+- Development setup and workflow
+- Testing requirements
+- Coding standards
+- PR process
+
 When adding new developer documentation:
 1. Create a new markdown file in this directory
-2. Use descriptive, kebab-case filenames (e.g., `development-setup.md`, `contributing.md`)
+2. Use descriptive, kebab-case filenames (e.g., `development-setup.md`)
 3. Update this README to include a link to your new documentation
 4. Follow the existing documentation style and format
 
