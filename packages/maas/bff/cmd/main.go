@@ -5,16 +5,15 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"os/signal"
-	"syscall"
-
-	"github.com/opendatahub-io/maas-library/bff/internal/api"
-	"github.com/opendatahub-io/maas-library/bff/internal/config"
-
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/api"
+	"github.com/opendatahub-io/maas-library/bff/internal/config"
 )
 
 func main() {
@@ -49,6 +48,10 @@ func main() {
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
+
+	// MaaS
+	flag.StringVar(&cfg.TiersConfigMapNamespace, "tiers-configmap-namespace", getEnvAsString("TIERS_CONFIGMAP_NS", "maas-api"), "Namespace where the ConfigMap for tiers configuration is located")
+	flag.StringVar(&cfg.TiersConfigMapName, "tiers-configmap-name", getEnvAsString("TIERS_CONFIGMAP_NAME", "tier-to-group-mapping"), "Name of the ConfigMap for tiers configuration")
 
 	flag.Parse()
 
