@@ -53,8 +53,9 @@ const PauseTrainingJobModal: React.FC<PauseTrainingJobModalProps> = ({
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            Pausing <strong>{displayName}</strong> will stop the job and release its resources.
-            Progress will be saved, and you can resume it later.
+            The <strong>{displayName}</strong> job will be temporarily stopped, and its resources
+            will be released. Job progress and state, such as model weights and optimizer state,
+            will be saved. You can resume the job from its last checkpoint at any time.
           </StackItem>
           <StackItem>
             <Checkbox

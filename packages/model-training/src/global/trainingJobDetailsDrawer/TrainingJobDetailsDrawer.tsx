@@ -198,8 +198,8 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
         >
           <Tab
             eventKey={0}
-            title={<TabTitleText>Training details</TabTitleText>}
-            aria-label="Training details"
+            title={<TabTitleText>Training job details</TabTitleText>}
+            aria-label="Training job details"
           >
             <TrainingJobDetailsTab job={job} />
           </Tab>

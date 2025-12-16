@@ -1,6 +1,9 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import { getTrainingJobStatusSync } from './utils';
 import { TrainJobKind } from '../../k8sTypes';
+import { TrainingJobState } from '../../types';
 import { deleteTrainJob } from '../../api';
 
 export type DeleteTrainingJobModalProps = {
@@ -22,12 +25,16 @@ const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
   };
 
   const deleteName = trainingJob.metadata.name;
+  const status = getTrainingJobStatusSync(trainingJob);
+
+  const isTerminalState =
+    status === TrainingJobState.SUCCEEDED || status === TrainingJobState.FAILED;
 
   return (
     <DeleteModal
-      title="Delete training job?"
+      title="Delete job?"
       onClose={() => onBeforeClose(false)}
-      submitButtonLabel="Delete training job"
+      submitButtonLabel="Delete"
       onDelete={() => {
         setIsDeleting(true);
         deleteTrainJob(trainingJob.metadata.name, trainingJob.metadata.namespace)
@@ -43,7 +50,8 @@ const DeleteTrainingJobModal: React.FC<DeleteTrainingJobModalProps> = ({
       error={error}
       deleteName={deleteName}
     >
-      This action cannot be undone. All training data and progress will be lost.
+      The <strong>{deleteName}</strong> job will be deleted.
+      {!isTerminalState && ' Any running pods will be terminated.'}
     </DeleteModal>
   );
 };

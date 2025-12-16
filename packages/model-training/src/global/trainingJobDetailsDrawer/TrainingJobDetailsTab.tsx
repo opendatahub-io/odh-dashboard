@@ -40,24 +40,26 @@ const TrainingJobDetailsTab: React.FC<TrainingJobDetailsTabProps> = ({ job }) =>
       <StackItem className="pf-v6-u-mt-md">
         <DescriptionList isHorizontal>
           <Title headingLevel="h3" size="md" data-testid="progress-section">
-            Progress
+            Job progress
           </Title>
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Estimated time remaining
+              Time remaining
             </DescriptionListTerm>
-            <DescriptionListDescription data-testid="estimated-time-remaining-value">
+            <DescriptionListDescription data-testid="time-remaining-value">
               {estimatedTimeRemaining}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Steps:</DescriptionListTerm>
+            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+              Completed steps
+            </DescriptionListTerm>
             <DescriptionListDescription data-testid="steps-value">
               {typeof currentSteps === 'number' ? currentSteps : '-'} / {totalSteps}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Epochs:</DescriptionListTerm>
+            <DescriptionListTerm style={{ fontWeight: 'normal' }}>Epochs</DescriptionListTerm>
             <DescriptionListDescription data-testid="epochs-value">
               {currentEpochs} / {totalEpochs}
             </DescriptionListDescription>
