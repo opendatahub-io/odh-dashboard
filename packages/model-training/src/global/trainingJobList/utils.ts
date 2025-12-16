@@ -114,12 +114,6 @@ export const getStatusInfo = (
         color: 'grey',
         IconComponent: PauseCircleIcon,
       };
-    case TrainingJobState.RESUMING:
-      return {
-        label: 'Resuming',
-        color: 'blue',
-        IconComponent: InProgressIcon,
-      };
     case TrainingJobState.SUSPENDED:
       return {
         label: 'Suspended',
@@ -464,7 +458,6 @@ export const getStatusFlags = (
   isInadmissible: boolean;
   isPreempted: boolean;
   isPaused: boolean;
-  isResuming: boolean;
   isSuspended: boolean;
   isDeleting: boolean;
   isCreated: boolean;
@@ -482,7 +475,6 @@ export const getStatusFlags = (
     isInadmissible: status === TrainingJobState.INADMISSIBLE,
     isPreempted: status === TrainingJobState.PREEMPTED,
     isPaused: status === TrainingJobState.PAUSED,
-    isResuming: status === TrainingJobState.RESUMING,
     isSuspended: status === TrainingJobState.SUSPENDED,
     isDeleting: status === TrainingJobState.DELETING,
     isCreated: status === TrainingJobState.CREATED,
@@ -495,14 +487,13 @@ export const getStatusFlags = (
     flags.isPending ||
     flags.isQueued ||
     flags.isInadmissible ||
-    flags.isPreempted ||
-    flags.isResuming;
+    flags.isPreempted;
 
   return {
     ...flags,
     inProgress,
     canPauseResume:
-      ((inProgress && !flags.isInadmissible && !flags.isResuming) || flags.isPaused) &&
+      ((inProgress && !flags.isInadmissible) || flags.isPaused) &&
       !flags.isComplete &&
       !flags.isFailed &&
       !flags.isDeleting &&

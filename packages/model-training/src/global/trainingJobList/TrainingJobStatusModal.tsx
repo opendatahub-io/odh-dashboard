@@ -260,7 +260,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <Title headingLevel="h2" size="lg">
-              Model training job progress
+              Training job status
             </Title>
             <TrainingJobStatus job={job} jobStatus={status} showProgressBar={false} />
           </Flex>
