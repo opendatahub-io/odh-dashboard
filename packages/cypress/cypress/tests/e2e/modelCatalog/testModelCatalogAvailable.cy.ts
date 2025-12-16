@@ -9,7 +9,7 @@ describe('Verifies that Model Catalog is available for different users', () => {
   });
 
   it(
-    '[Automation Bug: RHOAIENG-39294] Verifies that Model Catalog is available for an admin user',
+    '[Automation Task: RHOAIENG-39294] Verifies that Model Catalog is available for an admin user',
     { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
     () => {
       cy.step('Login as admin user');
