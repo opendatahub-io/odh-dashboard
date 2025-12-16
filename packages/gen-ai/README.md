@@ -2,6 +2,16 @@
 
 A modern web application with a modular architecture, featuring a React frontend and Go backend for frontend (BFF).
 
+## Contributing
+
+Interested in contributing? See our [Contributing Guide](CONTRIBUTING.md) for:
+- Development setup and quick start
+- Testing requirements and workflows
+- Coding standards and conventions
+- PR process and checklist
+
+For general ODH contribution guidelines, see the main [ODH CONTRIBUTING.md](/CONTRIBUTING.md).
+
 ## Project Overview
 
 This project is a web application built with a modular architecture. It consists of:
