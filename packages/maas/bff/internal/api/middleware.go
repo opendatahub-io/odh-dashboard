@@ -10,9 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/rs/cors"
+
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
-	"github.com/rs/cors"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -32,7 +33,7 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
-		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+ApiPathPrefix) {
+		if !strings.HasPrefix(r.URL.Path, constants.ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+constants.ApiPathPrefix) {
 			next.ServeHTTP(w, r)
 			return
 		}
