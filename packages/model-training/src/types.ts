@@ -7,7 +7,6 @@ export enum TrainingJobState {
   SUCCEEDED = 'Succeeded',
   FAILED = 'Failed',
   PAUSED = 'Paused',
-  RESUMING = 'Resuming',
   SUSPENDED = 'Suspended',
   PREEMPTED = 'Preempted',
   INADMISSIBLE = 'Inadmissible',
