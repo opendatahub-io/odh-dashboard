@@ -1298,6 +1298,7 @@ export type DashboardCommonConfig = {
   aiCatalogSettings?: boolean;
   mlflow?: boolean;
   projectRBAC?: boolean;
+  embedMLflow?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
