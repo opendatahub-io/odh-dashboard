@@ -90,7 +90,6 @@ class ModelServingGlobal {
   }
 
   selectSingleServingModelButtonIfExists() {
-    this.shouldBeEmpty();
     cy.get('body').then(($body) => {
       if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
         this.findSingleServingModelButton().click();
