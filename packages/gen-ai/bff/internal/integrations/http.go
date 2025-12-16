@@ -94,7 +94,6 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	requestId := uuid.NewString()
 
 	fullURL := c.baseURL + url
-	fmt.Println(fullURL)
 	req, err := http.NewRequest("POST", fullURL, body)
 	if err != nil {
 		return nil, err

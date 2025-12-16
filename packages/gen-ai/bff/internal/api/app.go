@@ -158,7 +158,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
-	logger.Info("Initialized shared memory store")
+	logger.Debug("Initialized shared memory store")
 
 	// Cache cluster domain at startup using service account
 	var clusterDomain string
