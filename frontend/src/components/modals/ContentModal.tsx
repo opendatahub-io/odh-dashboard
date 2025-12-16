@@ -22,7 +22,6 @@ type ContentModalProps = {
   onClose: () => void;
   contents: React.ReactNode;
   title: string | React.ReactNode;
-  closeText?: string;
   buttonActions?: ButtonAction[];
   description?: React.ReactNode;
   disableFocusTrap?: boolean;
@@ -52,7 +51,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
 
   const clickEnterButtonLabelText = clickEnterButtonLabel
     ? `Press Enter to activate the ${clickEnterButtonLabel} button.`
-    : '';
+    : undefined;
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
@@ -68,7 +67,7 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
       onKeyDown={handleKeyDown}
       tabIndex={-1}
       role="group"
-      aria-label={clickEnterButtonLabelText}
+      {...(clickEnterButtonLabelText && { 'aria-label': clickEnterButtonLabelText })}
       style={{
         height: '100%',
         display: 'flex',
@@ -101,17 +100,28 @@ const ContentModal: React.FC<ContentModalProps> = ({
   buttonActions,
   description,
   disableFocusTrap,
-  dataTestId = 'pipeline-server-starting-modal',
+  dataTestId = 'content-modal',
   bodyClassName = 'odh-modal__content-height',
   variant = 'medium',
   bodyLabel,
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const enterPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headingId = useId(); // for the aria-labelledby attribute (a11y)
 
   const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
   const hasClickOnEnter = clickOnEnterIndex !== -1;
   const clickOnEnterButtonLabel = buttonActions?.[clickOnEnterIndex]?.label;
+
+  // Clear the enter press timeout on unmount to prevent stale callbacks
+  useEffect(
+    () => () => {
+      if (enterPressTimeoutRef.current !== null) {
+        clearTimeout(enterPressTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const handleEnterPress = () => {
     const button = buttonRefs.current[clickOnEnterIndex];
@@ -119,8 +129,13 @@ const ContentModal: React.FC<ContentModalProps> = ({
       // Focus the button to show visual feedback
       button.focus();
 
+      // Clear any existing timeout before setting a new one
+      if (enterPressTimeoutRef.current !== null) {
+        clearTimeout(enterPressTimeoutRef.current);
+      }
+
       // the timeout allows the user to see the button being pressed; else the modal just closes
-      setTimeout(() => {
+      enterPressTimeoutRef.current = setTimeout(() => {
         buttonActions?.[clickOnEnterIndex]?.onClick();
       }, 200);
     }
