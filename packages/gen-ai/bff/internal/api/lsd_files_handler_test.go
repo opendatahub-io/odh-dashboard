@@ -488,7 +488,8 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 	t.Run("should return pending status for newly created job", func(t *testing.T) {
 		// Create a job first
 		namespace := "test-namespace"
-		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+		jobID, err := app.fileUploadJobTracker.CreateJob(namespace)
+		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, namespace)
@@ -520,8 +521,9 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 
 	t.Run("should return processing status", func(t *testing.T) {
 		namespace := "test-namespace"
-		jobID := app.fileUploadJobTracker.CreateJob(namespace)
-		err := app.fileUploadJobTracker.UpdateJobStatus(namespace, jobID, "processing")
+		jobID, err := app.fileUploadJobTracker.CreateJob(namespace)
+		assert.NoError(t, err)
+		err = app.fileUploadJobTracker.UpdateJobStatus(namespace, jobID, "processing")
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
@@ -547,7 +549,8 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 
 	t.Run("should return completed status with result", func(t *testing.T) {
 		namespace := "test-namespace"
-		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+		jobID, err := app.fileUploadJobTracker.CreateJob(namespace)
+		assert.NoError(t, err)
 
 		// Set job result
 		completedStatus := openai.VectorStoreFileStatusCompleted
@@ -559,7 +562,7 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 				Status:        completedStatus,
 			},
 		}
-		err := app.fileUploadJobTracker.SetJobResult(namespace, jobID, result)
+		err = app.fileUploadJobTracker.SetJobResult(namespace, jobID, result)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
@@ -589,10 +592,11 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 
 	t.Run("should return failed status with error", func(t *testing.T) {
 		namespace := "test-namespace"
-		jobID := app.fileUploadJobTracker.CreateJob(namespace)
+		jobID, err := app.fileUploadJobTracker.CreateJob(namespace)
+		assert.NoError(t, err)
 
 		// Set job error
-		err := app.fileUploadJobTracker.SetJobError(namespace, jobID, errors.New("upload failed: network timeout"))
+		err = app.fileUploadJobTracker.SetJobError(namespace, jobID, errors.New("upload failed: network timeout"))
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace+"&job_id="+jobID, nil)
@@ -657,7 +661,8 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 		namespace2 := "namespace-2"
 
 		// Create job in namespace1
-		jobID := app.fileUploadJobTracker.CreateJob(namespace1)
+		jobID, err := app.fileUploadJobTracker.CreateJob(namespace1)
+		assert.NoError(t, err)
 
 		// Try to access from namespace2
 		req := httptest.NewRequest(http.MethodGet, constants.FilesUploadStatusPath+"?namespace="+namespace2+"&job_id="+jobID, nil)

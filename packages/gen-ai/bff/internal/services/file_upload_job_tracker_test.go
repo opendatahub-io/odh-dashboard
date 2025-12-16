@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -24,10 +25,13 @@ func TestFileUploadJobTracker_CreateJob(t *testing.T) {
 
 	t.Run("should create job with pending status", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		assert.NotEmpty(t, jobID)
-		assert.Contains(t, jobID, "job_")
+		// Job ID should be a valid UUID
+		_, err = uuid.Parse(jobID)
+		assert.NoError(t, err, "job ID should be a valid UUID")
 
 		job, err := tracker.GetJob(userID, jobID)
 		require.NoError(t, err)
@@ -41,19 +45,27 @@ func TestFileUploadJobTracker_CreateJob(t *testing.T) {
 
 	t.Run("should create unique job IDs", func(t *testing.T) {
 		userID := "test-user"
-		jobID1 := tracker.CreateJob(userID)
-		time.Sleep(1 * time.Millisecond) // Ensure different timestamp
-		jobID2 := tracker.CreateJob(userID)
+		jobID1, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
+		jobID2, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		assert.NotEqual(t, jobID1, jobID2)
+		// Both should be valid UUIDs
+		_, err = uuid.Parse(jobID1)
+		assert.NoError(t, err)
+		_, err = uuid.Parse(jobID2)
+		assert.NoError(t, err)
 	})
 
 	t.Run("should isolate jobs by user", func(t *testing.T) {
 		user1 := "user1"
 		user2 := "user2"
 
-		jobID1 := tracker.CreateJob(user1)
-		jobID2 := tracker.CreateJob(user2)
+		jobID1, err := tracker.CreateJob(user1)
+		require.NoError(t, err)
+		jobID2, err := tracker.CreateJob(user2)
+		require.NoError(t, err)
 
 		// User1 can get their job
 		job1, err := tracker.GetJob(user1, jobID1)
@@ -88,7 +100,8 @@ func TestFileUploadJobTracker_GetJob(t *testing.T) {
 
 	t.Run("should retrieve existing job", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		job, err := tracker.GetJob(userID, jobID)
 		require.NoError(t, err)
@@ -104,9 +117,10 @@ func TestFileUploadJobTracker_UpdateJobStatus(t *testing.T) {
 
 	t.Run("should update job status from pending to processing", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
-		err := tracker.UpdateJobStatus(userID, jobID, JobStatusProcessing)
+		err = tracker.UpdateJobStatus(userID, jobID, JobStatusProcessing)
 		require.NoError(t, err)
 
 		job, err := tracker.GetJob(userID, jobID)
@@ -116,13 +130,14 @@ func TestFileUploadJobTracker_UpdateJobStatus(t *testing.T) {
 
 	t.Run("should update timestamp when status changes", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		job1, _ := tracker.GetJob(userID, jobID)
 		originalTime := job1.UpdatedAt
 
 		time.Sleep(10 * time.Millisecond)
-		err := tracker.UpdateJobStatus(userID, jobID, JobStatusProcessing)
+		err = tracker.UpdateJobStatus(userID, jobID, JobStatusProcessing)
 		require.NoError(t, err)
 
 		job2, _ := tracker.GetJob(userID, jobID)
@@ -142,7 +157,8 @@ func TestFileUploadJobTracker_SetJobResult(t *testing.T) {
 
 	t.Run("should set result and mark as completed", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		completedStatus := openai.VectorStoreFileStatusCompleted
 		result := &llamastack.FileUploadResult{
@@ -154,7 +170,7 @@ func TestFileUploadJobTracker_SetJobResult(t *testing.T) {
 			},
 		}
 
-		err := tracker.SetJobResult(userID, jobID, result)
+		err = tracker.SetJobResult(userID, jobID, result)
 		require.NoError(t, err)
 
 		job, err := tracker.GetJob(userID, jobID)
@@ -174,10 +190,11 @@ func TestFileUploadJobTracker_SetJobError(t *testing.T) {
 
 	t.Run("should set error and mark as failed", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		testError := errors.New("upload failed: network timeout")
-		err := tracker.SetJobError(userID, jobID, testError)
+		err = tracker.SetJobError(userID, jobID, testError)
 		require.NoError(t, err)
 
 		job, err := tracker.GetJob(userID, jobID)
@@ -195,7 +212,8 @@ func TestFileUploadJobTracker_ProcessUploadJob(t *testing.T) {
 
 	t.Run("should process upload successfully", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		// Create temp file
 		tempFile, err := os.CreateTemp("", "test-upload-*.txt")
@@ -242,7 +260,8 @@ func TestFileUploadJobTracker_ProcessUploadJob(t *testing.T) {
 
 	t.Run("should handle upload failure", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		// Create temp file
 		tempFile, err := os.CreateTemp("", "test-upload-*.txt")
@@ -279,7 +298,8 @@ func TestFileUploadJobTracker_ProcessUploadJob(t *testing.T) {
 
 	t.Run("should detect vector store file failure", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		// Create temp file
 		tempFile, err := os.CreateTemp("", "test-upload-*.txt")
@@ -326,7 +346,8 @@ func TestFileUploadJobTracker_ProcessUploadJob(t *testing.T) {
 
 	t.Run("should handle missing temp file", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		tempFilePath := "/tmp/non-existent-file.txt"
 
@@ -353,7 +374,8 @@ func TestFileUploadJobTracker_ProcessUploadJob(t *testing.T) {
 
 	t.Run("should preserve context values in background goroutine", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		// Create temp file
 		tempFile, err := os.CreateTemp("", "test-upload-*.txt")
@@ -406,7 +428,8 @@ func TestFileUploadJobTracker_JobExpiration(t *testing.T) {
 
 		// For now, we'll just verify that the TTL is set correctly
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		// Job should exist immediately
 		job, err := tracker.GetJob(userID, jobID)
@@ -433,7 +456,11 @@ func TestFileUploadJobTracker_ConcurrentAccess(t *testing.T) {
 
 		for i := 0; i < numGoroutines; i++ {
 			go func() {
-				jobID := tracker.CreateJob(userID)
+				jobID, err := tracker.CreateJob(userID)
+				if err != nil {
+					t.Errorf("failed to create job: %v", err)
+					return
+				}
 				jobIDs <- jobID
 			}()
 		}
@@ -458,7 +485,8 @@ func TestFileUploadJobTracker_ConcurrentAccess(t *testing.T) {
 
 	t.Run("should handle concurrent updates to same job", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		const numGoroutines = 5
 		done := make(chan bool, numGoroutines)
@@ -491,9 +519,10 @@ func TestFileUploadJobTracker_EdgeCases(t *testing.T) {
 
 	t.Run("should handle empty error message", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
-		err := tracker.SetJobError(userID, jobID, fmt.Errorf(""))
+		err = tracker.SetJobError(userID, jobID, fmt.Errorf(""))
 		require.NoError(t, err)
 
 		job, err := tracker.GetJob(userID, jobID)
@@ -504,9 +533,10 @@ func TestFileUploadJobTracker_EdgeCases(t *testing.T) {
 
 	t.Run("should handle nil result", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
-		err := tracker.SetJobResult(userID, jobID, nil)
+		err = tracker.SetJobResult(userID, jobID, nil)
 		require.NoError(t, err)
 
 		job, err := tracker.GetJob(userID, jobID)
@@ -517,7 +547,8 @@ func TestFileUploadJobTracker_EdgeCases(t *testing.T) {
 
 	t.Run("should handle vector store file with only error code", func(t *testing.T) {
 		userID := "test-user"
-		jobID := tracker.CreateJob(userID)
+		jobID, err := tracker.CreateJob(userID)
+		require.NoError(t, err)
 
 		// Create temp file
 		tempFile, err := os.CreateTemp("", "test-upload-*.txt")

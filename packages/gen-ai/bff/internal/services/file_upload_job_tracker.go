@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -61,8 +62,8 @@ func NewFileUploadJobTracker(store cache.MemoryStore, logger *slog.Logger) *File
 }
 
 // CreateJob creates a new file upload job and returns its ID
-func (t *FileUploadJobTracker) CreateJob(userID string) string {
-	jobID := fmt.Sprintf("job_%d", time.Now().UnixNano())
+func (t *FileUploadJobTracker) CreateJob(userID string) (string, error) {
+	jobID := uuid.New().String()
 	job := &FileUploadJob{
 		ID:        jobID,
 		Status:    JobStatusPending,
@@ -74,11 +75,11 @@ func (t *FileUploadJobTracker) CreateJob(userID string) string {
 	err := t.store.Set(jobNamespace, userID, jobCategory, jobID, job, jobTTL)
 	if err != nil {
 		t.logger.Error("failed to create job", "job_id", jobID, "user_id", userID, "error", err)
-		return ""
+		return "", fmt.Errorf("failed to store job: %w", err)
 	}
 
 	t.logger.Info("created file upload job", "job_id", jobID, "user_id", userID)
-	return jobID
+	return jobID, nil
 }
 
 // GetJob retrieves a job by ID

@@ -103,17 +103,24 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 	tempFile.Close()
 
 	// Create a job for async processing
-	jobID := app.fileUploadJobTracker.CreateJob(namespace)
-	if jobID == "" {
+	jobID, err := app.fileUploadJobTracker.CreateJob(namespace)
+	if err != nil {
 		os.Remove(tempFilePath)
-		app.serverErrorResponse(w, r, errors.New("failed to create upload job"))
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to create upload job: %w", err))
 		return
 	}
 
 	// Process upload in background
 	// Note: The temp file will be cleaned up by ProcessUploadJob when done
+	// Create a detached context that preserves values but isn't cancelled with the request
+	// Extract LlamaStack client from request context to preserve it in background processing
+	llamaStackClient, _ := ctx.Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
+	bgCtx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, namespace)
+	if llamaStackClient != nil {
+		bgCtx = context.WithValue(bgCtx, constants.LlamaStackClientKey, llamaStackClient)
+	}
 	app.fileUploadJobTracker.ProcessUploadJob(
-		ctx,
+		bgCtx,
 		namespace,
 		jobID,
 		func(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
