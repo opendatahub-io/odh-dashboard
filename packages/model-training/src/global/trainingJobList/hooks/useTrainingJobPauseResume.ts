@@ -33,7 +33,7 @@ export const useTrainingJobPauseResume = (
       }
 
       const action = pause ? 'pause' : 'resume';
-      const newStatus = pause ? TrainingJobState.PAUSED : TrainingJobState.RUNNING;
+      const newStatus = pause ? TrainingJobState.PAUSED : TrainingJobState.RESUMING;
 
       setIsToggling(true);
       try {
