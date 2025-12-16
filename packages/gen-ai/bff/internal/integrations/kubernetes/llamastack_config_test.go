@@ -496,9 +496,10 @@ providers:
 	t.Run("should handle YAML with no providers section", func(t *testing.T) {
 		yamlWithoutProviders := `
 version: "2"
-models:
-  - model_id: test-model
-    provider_id: test-provider
+registered_resources:
+  models:
+    - model_id: test-model
+      provider_id: test-provider
 `
 		var config LlamaStackConfig
 		err := config.FromYAML(yamlWithoutProviders)
@@ -512,9 +513,10 @@ models:
 	t.Run("should handle model with provider that doesn't exist in providers section", func(t *testing.T) {
 		yamlWithMissingProvider := `
 version: "2"
-models:
-  - model_id: test-model
-    provider_id: non-existent-provider
+registered_resources:
+  models:
+    - model_id: test-model
+      provider_id: non-existent-provider
 providers:
   inference:
     - provider_id: different-provider
@@ -536,13 +538,14 @@ func TestGetModelProviderInfo_YAMLStructureParsing(t *testing.T) {
 	t.Run("should correctly parse all fields from well-formed YAML", func(t *testing.T) {
 		wellFormedYAML := `
 version: "2"
-models:
-  - model_id: test-model-1
-    provider_id: test-provider-1
-    model_type: llm
-  - model_id: test-model-2
-    provider_id: test-provider-2
-    model_type: embedding
+registered_resources:
+  models:
+    - model_id: test-model-1
+      provider_id: test-provider-1
+      model_type: llm
+    - model_id: test-model-2
+      provider_id: test-provider-2
+      model_type: embedding
 providers:
   inference:
     - provider_id: test-provider-1
@@ -580,9 +583,10 @@ providers:
 	t.Run("should handle provider without URL in config", func(t *testing.T) {
 		yamlWithoutURL := `
 version: "2"
-models:
-  - model_id: local-model
-    provider_id: local-provider
+registered_resources:
+  models:
+    - model_id: local-model
+      provider_id: local-provider
 providers:
   inference:
     - provider_id: local-provider

@@ -8,7 +8,7 @@ type EmbeddingModelConfig struct {
 }
 
 var DefaultEmbeddingModel = EmbeddingModelConfig{
-	ModelID:            "granite-embedding-125m",
+	ModelID:            "sentence-transformers/ibm-granite/granite-embedding-125m-english",
 	ProviderID:         "sentence-transformers",
 	ProviderModelID:    "ibm-granite/granite-embedding-125m-english",
 	EmbeddingDimension: 768,

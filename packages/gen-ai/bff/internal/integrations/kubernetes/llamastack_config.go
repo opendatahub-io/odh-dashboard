@@ -11,20 +11,20 @@ import (
 
 // LlamaStackConfig represents the main configuration structure
 type LlamaStackConfig struct {
-	Version       string        `json:"version" yaml:"version"`
-	ImageName     string        `json:"image_name" yaml:"image_name"`
-	APIs          []string      `json:"apis" yaml:"apis"`
-	Providers     Providers     `json:"providers" yaml:"providers"`
-	MetadataStore MetadataStore `json:"metadata_store" yaml:"metadata_store"`
-	Storage       Storage       `json:"storage" yaml:"storage"`
-	Models        []Model       `json:"models" yaml:"models"`
-	Shields       []Shield      `json:"shields" yaml:"shields"`
-	VectorDBs     []VectorDB    `json:"vector_dbs" yaml:"vector_dbs"`
-	Datasets      []Dataset     `json:"datasets" yaml:"datasets"`
-	ScoringFns    []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks    []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups    []ToolGroup   `json:"tool_groups" yaml:"tool_groups"`
-	Server        Server        `json:"server" yaml:"server"`
+	Version             string              `json:"version" yaml:"version"`
+	ImageName           string              `json:"image_name" yaml:"image_name"`
+	APIs                []string            `json:"apis" yaml:"apis"`
+	Providers           Providers           `json:"providers" yaml:"providers"`
+	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
+	Storage             Storage             `json:"storage" yaml:"storage"`
+	RegisteredResources RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
+	Shields             []Shield            `json:"shields" yaml:"shields"`
+	VectorDBs           []VectorDB          `json:"vector_dbs" yaml:"vector_dbs"`
+	Datasets            []Dataset           `json:"datasets" yaml:"datasets"`
+	ScoringFns          []ScoringFn         `json:"scoring_fns" yaml:"scoring_fns"`
+	Benchmarks          []Benchmark         `json:"benchmarks" yaml:"benchmarks"`
+	ToolGroups          []ToolGroup         `json:"tool_groups" yaml:"tool_groups"`
+	Server              Server              `json:"server" yaml:"server"`
 }
 
 type Providers struct {
@@ -47,6 +47,10 @@ type Provider struct {
 type MetadataStore struct {
 	Type   string `json:"type" yaml:"type"`
 	DBPath string `json:"db_path" yaml:"db_path"`
+}
+
+type RegisteredResources struct {
+	Models []Model `json:"models,omitempty" yaml:"models,omitempty"`
 }
 
 type Storage struct {
@@ -173,6 +177,15 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	}
 }
 
+// RegisterModel adds the given model to the registered resources list.
+func (c *LlamaStackConfig) RegisterModel(model Model) {
+	c.RegisteredResources.Models = append(c.RegisteredResources.Models, model)
+}
+
+func (c *LlamaStackConfig) AddModel(model Model) {
+	c.RegisterModel(model)
+}
+
 // ToYAML converts the config to YAML format
 func (c *LlamaStackConfig) ToYAML() (string, error) {
 	data, err := yaml.Marshal(c)
@@ -247,21 +260,16 @@ func NewLLMModel(modelID, providerID string, displayName string) Model {
 	}
 }
 
-// AddModel adds a new model to the config
-func (c *LlamaStackConfig) AddModel(model Model) {
-	c.Models = append(c.Models, model)
-}
-
 // ParseModels parses a YAML string into a slice of Model
 func ParseModels(yamlStr string) ([]Model, error) {
 	var modelConfig struct {
-		Models []Model `yaml:"models"`
+		RegisteredResources RegisteredResources `yaml:"registered_resources"`
 	}
 	err := yaml.Unmarshal([]byte(yamlStr), &modelConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse models YAML: %w", err)
 	}
-	return modelConfig.Models, nil
+	return modelConfig.RegisteredResources.Models, nil
 }
 
 // NewProvider creates a new Provider instance with the given parameters
@@ -375,6 +383,7 @@ func (c *LlamaStackConfig) AddFilesProvider(provider Provider) {
 // 1. Find the model in the Models section and get its provider_id
 // 2. Find that provider_id in the Providers.Inference section and get provider_type and url
 func (c *LlamaStackConfig) GetModelProviderInfo(modelID string) (*types.ModelProviderInfo, error) {
+	models := c.RegisteredResources.Models
 	// Find model and provider_id
 	// Handle two formats:
 	// 1. Just model_id (e.g., "facebook/opt-125m")
@@ -383,7 +392,7 @@ func (c *LlamaStackConfig) GetModelProviderInfo(modelID string) (*types.ModelPro
 	var actualModelID string
 
 	// First, try exact match with modelID as-is
-	for _, model := range c.Models {
+	for _, model := range models {
 		if model.ModelID == modelID {
 			providerID = model.ProviderID
 			actualModelID = model.ModelID
@@ -394,7 +403,7 @@ func (c *LlamaStackConfig) GetModelProviderInfo(modelID string) (*types.ModelPro
 	// If not found, try matching with provider prefix stripped
 	// Check if modelID matches pattern: provider_id/model_id
 	if providerID == "" {
-		for _, model := range c.Models {
+		for _, model := range models {
 			// Construct the provider-prefixed format and check if it matches
 			providerPrefixedID := model.ProviderID + "/" + model.ModelID
 			if providerPrefixedID == modelID {
