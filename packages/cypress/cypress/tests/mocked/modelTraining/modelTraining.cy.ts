@@ -1376,31 +1376,6 @@ describe('Model Training', () => {
       trainingJobStatusModal.findEventLogs().should('be.visible');
     });
 
-    it('should display pause button for running jobs', () => {
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('image-classification-job');
-      row.findStatus().click();
-
-      trainingJobStatusModal.shouldBeOpen();
-      // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
-      // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-      // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
-    });
-
-    it('should display retry button for failed jobs', () => {
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('failed-training-job');
-      row.findStatus().click();
-
-      trainingJobStatusModal.shouldBeOpen();
-      // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
-      // trainingJobStatusModal.findRetryButton().should('be.visible');
-      // trainingJobStatusModal.findRetryButton().should('contain', 'Retry Job');
-      // trainingJobStatusModal.findPauseResumeButton().should('not.exist');
-    });
-
     it('should display delete button', () => {
       modelTrainingGlobal.visit(projectName);
 
@@ -1409,7 +1384,7 @@ describe('Model Training', () => {
 
       trainingJobStatusModal.shouldBeOpen();
       trainingJobStatusModal.findDeleteButton().should('be.visible');
-      trainingJobStatusModal.findDeleteButton().should('contain', 'Delete Job');
+      trainingJobStatusModal.findDeleteButton().should('contain', 'Delete job');
     });
 
     it('should open delete modal when clicking delete button', () => {

@@ -330,7 +330,7 @@ class TrainingJobStatusModal extends Modal {
   }
 
   findTitle() {
-    return this.findHeader().contains('Training Job Status');
+    return this.findHeader().contains('Model training job progress');
   }
 
   findStatusLabel() {

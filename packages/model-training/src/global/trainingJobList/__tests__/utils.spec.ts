@@ -119,6 +119,12 @@ describe('getStatusInfo', () => {
     expect(result.color).toBe('grey');
   });
 
+  it('should return correct info for RESUMING status', () => {
+    const result = getStatusInfo(TrainingJobState.RESUMING);
+    expect(result.label).toBe('Resuming');
+    expect(result.color).toBe('blue');
+  });
+
   it('should return correct info for DELETING status', () => {
     const result = getStatusInfo(TrainingJobState.DELETING);
     expect(result.label).toBe('Deleting');
@@ -302,6 +308,14 @@ describe('getStatusFlags', () => {
     const flags = getStatusFlags(TrainingJobState.PAUSED);
     expect(flags.isPaused).toBe(true);
     expect(flags.inProgress).toBe(false);
+  });
+
+  it('should return correct flags for RESUMING status', () => {
+    const flags = getStatusFlags(TrainingJobState.RESUMING);
+    expect(flags.isResuming).toBe(true);
+    expect(flags.inProgress).toBe(true);
+    // RESUMING is a transient state, so pause/resume should be disabled
+    expect(flags.canPauseResume).toBe(false);
   });
 
   describe('canPauseResume flag', () => {
