@@ -9,8 +9,8 @@ describe('Verifies that Model Catalog is available for different users', () => {
   });
 
   it(
-    'Verifies that Model Catalog is available for an admin user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
+    '[Automation Bug: RHOAIENG-39294] Verifies that Model Catalog is available for an admin user',
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
     () => {
       cy.step('Login as admin user');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -24,8 +24,8 @@ describe('Verifies that Model Catalog is available for different users', () => {
   );
 
   it(
-    'Verifies that Model Catalog is available for a regular user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
+    '[Automation Bug: RHOAIENG-39294]Verifies that Model Catalog is available for a regular user',
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
     () => {
       cy.step('Login as LDAP user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

@@ -17,7 +17,7 @@ const uuid = generateTestUUID();
 
 // TODO: Update this to check for model readiness once vLLM CPU works: https://issues.redhat.com/browse/RHAIRFE-28
 // and make it RHOAI-specific, unless the vLLM CPU image works on ODH at that time
-describe('[Product Bug: RHOAIENG-40654] Verify a model can be deployed from model catalog', () => {
+describe('[Automation Bug: RHOAIENG-39294] Verify a model can be deployed from model catalog', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/modelCatalog/testModelCatalog.yaml').then(
@@ -44,7 +44,7 @@ describe('[Product Bug: RHOAIENG-40654] Verify a model can be deployed from mode
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@Bug'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@Maintain'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
