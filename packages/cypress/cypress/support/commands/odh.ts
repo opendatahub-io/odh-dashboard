@@ -847,15 +847,13 @@ declare global {
         ((
           type: 'GET /api/featurestores/workbench-integration',
           response: OdhResponse<{
-            clientConfigs: Array<{
-              namespace: string;
-              configName: string;
-              configMap: ConfigMapKind | null;
-              hasAccessToFeatureStore: boolean;
-            }>;
             namespaces: Array<{
               namespace: string;
-              clientConfigs: string[];
+              clientConfigs: Array<{
+                configName: string;
+                projectName: string;
+                hasAccessToFeatureStore: boolean;
+              }>;
             }>;
           }>,
         ) => Cypress.Chainable<null>) &
