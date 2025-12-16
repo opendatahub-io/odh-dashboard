@@ -3,11 +3,10 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
-  k8sListResource,
   k8sPatchResource,
+  k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
@@ -27,18 +26,18 @@ import {
 } from '#~/concepts/roleBinding/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  k8sListResource: jest.fn(),
   k8sGetResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
   k8sPatchResource: jest.fn(),
+  k8sListResourceItems: jest.fn(),
 }));
 
-const k8sListResourceMock = jest.mocked(k8sListResource<RoleBindingKind>);
 const k8sGetResourceMock = jest.mocked(k8sGetResource);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<RoleBindingKind, K8sStatus>);
 const k8sPatchResourceMock = jest.mocked(k8sPatchResource<RoleBindingKind>);
+const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<RoleBindingKind>);
 
 const roleBindingMock = mockRoleBindingK8sResource({});
 const namespace = 'namespace';
@@ -222,32 +221,32 @@ describe('generateRoleBindingPermissions', () => {
 
 describe('listRoleBindings', () => {
   it('should list role bindings without namespace and label selector', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([roleBindingMock]));
+    k8sListResourceItemsMock.mockResolvedValue([roleBindingMock]);
     const result = await listRoleBindings();
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
+    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
       model: RoleBindingModel,
       queryOptions: {},
     });
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual([roleBindingMock]);
   });
 
   it('should list role bindings with namespace and label selector', async () => {
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([roleBindingMock]));
+    k8sListResourceItemsMock.mockResolvedValue([roleBindingMock]);
     const result = await listRoleBindings(namespace, 'labelSelector');
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
+    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
       model: RoleBindingModel,
       queryOptions: { ns: namespace, queryParams: { labelSelector: 'labelSelector' } },
     });
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual([roleBindingMock]);
   });
 
   it('should handle errors and rethrow', async () => {
-    k8sListResourceMock.mockRejectedValue(new Error('error1'));
+    k8sListResourceItemsMock.mockRejectedValue(new Error('error1'));
     await expect(listRoleBindings()).rejects.toThrow('error1');
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sListResourceMock).toHaveBeenCalledWith({
+    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
+    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
       model: RoleBindingModel,
       queryOptions: {},
     });

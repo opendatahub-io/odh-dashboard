@@ -13,6 +13,7 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Divider,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
@@ -21,6 +22,7 @@ import { PodKind } from '@odh-dashboard/internal/k8sTypes';
 import TrainingJobResourcesTab from './TrainingJobResourcesTab';
 import TrainingJobPodsTab from './TrainingJobPodsTab';
 import TrainingJobLogsTab from './TrainingJobLogsTab';
+import TrainingJobDetailsTab from './TrainingJobDetailsTab';
 import ScaleNodesModal from '../trainingJobList/ScaleNodesModal';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
@@ -57,13 +59,19 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
     handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
 
+  // Reset pod selection when job changes (e.g., new TrainJob re-created)
+  React.useEffect(() => {
+    setSelectedPodForLogs(null);
+    setSelectedPodNameFromClick(undefined);
+  }, [job?.metadata.uid]);
+
   if (!job) {
     return null;
   }
 
   const handlePodClick = (podName: string) => {
     setSelectedPodNameFromClick(podName);
-    setActiveTabKey(2);
+    setActiveTabKey(3); // Switch to Logs tab
   };
 
   const handlePodChange = (pod: PodKind | null) => {
@@ -72,8 +80,6 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
       setSelectedPodNameFromClick(undefined);
     }
   };
-
-  const description = `Description goes here. TrainJob in ${job.metadata.namespace}.`;
 
   return (
     <DrawerPanelContent
@@ -111,23 +117,22 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                 shouldFocusToggleOnSelect
               >
                 <DropdownList>
-                  <DropdownItem key="delete" onClick={() => onDelete(job)}>
-                    Delete
-                  </DropdownItem>
                   {canScaleNodes && (
                     <DropdownItem key="scale-nodes" onClick={() => setScaleNodesModalOpen(true)}>
                       Edit node count
                     </DropdownItem>
                   )}
+                  {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend */}
+                  {canScaleNodes && <Divider component="li" key="separator" />}
+                  <DropdownItem key="delete" onClick={() => onDelete(job)}>
+                    Delete job
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
           </FlexItem>
         </Flex>
-        <div style={{ marginTop: '8px' }}>
-          <p>{description}</p>
-        </div>
       </DrawerHead>
       <DrawerPanelBody>
         <Tabs
@@ -136,15 +141,14 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
           aria-label="Training job details tabs"
           role="region"
         >
-          {/* TODO: RHOAIENG-38270	 Uncomment this when training details are implemented */}
-          {/* <Tab
+          <Tab
             eventKey={0}
             title={<TabTitleText>Training details</TabTitleText>}
             aria-label="Training details"
           >
-            <div style={{ padding: '16px 0' }}>Training details content</div>
-          </Tab> */}
-          <Tab eventKey={0} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
+            <TrainingJobDetailsTab job={job} />
+          </Tab>
+          <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
             <TrainingJobResourcesTab
               job={job}
               nodesCount={nodesCount}
@@ -152,10 +156,11 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
               onScaleNodes={() => setScaleNodesModalOpen(true)}
             />
           </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
+
+          <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
             <TrainingJobPodsTab job={job} onPodClick={handlePodClick} />
           </Tab>
-          <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
+          <Tab eventKey={3} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
             <TrainingJobLogsTab
               job={job}
               selectedPod={selectedPodForLogs}

@@ -29,6 +29,7 @@ import {
   trainingJobLogsTab,
   trainingJobStatusModal,
   scaleNodesModal,
+  trainingJobDetailsTab,
 } from '../../../pages/modelTraining';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { tablePagination } from '../../../pages/components/Pagination';
@@ -417,8 +418,16 @@ const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
-      mockProjectK8sResource({ k8sName: projectName, displayName: projectDisplayName }),
-      mockProjectK8sResource({ k8sName: 'other-project', displayName: 'Other Project' }),
+      mockProjectK8sResource({
+        k8sName: projectName,
+        displayName: projectDisplayName,
+        enableKueue: true,
+      }),
+      mockProjectK8sResource({
+        k8sName: 'other-project',
+        displayName: 'Other Project',
+        enableKueue: false,
+      }),
     ]),
   );
 
@@ -524,9 +533,13 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
+      trainingJobDetailsDrawer.findTab('Training details').should('exist');
       trainingJobDetailsDrawer.findTab('Resources').should('exist');
       trainingJobDetailsDrawer.findTab('Pods').should('exist');
       trainingJobDetailsDrawer.findTab('Logs').should('exist');
+
+      trainingJobDetailsDrawer.selectTab('Training details');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Progress');
 
       trainingJobDetailsDrawer.selectTab('Resources');
       trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Node configurations');
@@ -558,7 +571,7 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.clickKebabMenu();
 
-      trainingJobDetailsDrawer.findKebabMenuItem('Delete').should('exist');
+      trainingJobDetailsDrawer.findKebabMenuItem('Delete job').should('exist');
     });
 
     it('should switch between different jobs in the drawer', () => {
@@ -574,6 +587,155 @@ describe('Model Training', () => {
       secondRow.findNameLink().click();
 
       trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
+    });
+
+    it('should display progress bar for running job with progress percentage', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findStatusProgressBar().should('exist');
+      row.findStatusProgressBar().should('contain', '64%');
+    });
+  });
+
+  describe('Training Details Tab', () => {
+    it('should display all sections in Training details tab', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      // Verify all sections are present
+      trainingJobDetailsTab.findProgressSection().should('exist');
+      trainingJobDetailsTab.findMetricsSection().should('exist');
+    });
+
+    it('should display progress information', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('image-classification-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      // Check progress section
+      trainingJobDetailsTab.findProgressSection().should('contain', 'Progress');
+      trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '30 minutes');
+      trainingJobDetailsTab.findStepsValue().should('contain', '3000 / 4690');
+      trainingJobDetailsTab.findEpochsValue().should('contain', '3 / 5');
+    });
+
+    it('should display metrics information', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('nlp-model-training');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      // Check metrics section
+      trainingJobDetailsTab.findMetricsSection().should('contain', 'Metrics');
+      trainingJobDetailsTab.findLossValue().should('contain', '0.2344');
+      trainingJobDetailsTab.findAccuracyValue().should('contain', '0.8993774');
+      trainingJobDetailsTab.findTotalBatchesValue().should('contain', '854');
+      trainingJobDetailsTab.findTotalSamplesValue().should('contain', '4000');
+    });
+
+    it('should update Training details tab when switching between jobs', () => {
+      initIntercepts();
+
+      // Create jobs with different trainerStatus values
+      const jobsWithDifferentStatus = mockTrainJobK8sResourceList([
+        {
+          name: 'early-job',
+          namespace: projectName,
+          status: TrainingJobState.RUNNING,
+          numNodes: 2,
+          localQueueName: 'default-queue',
+          creationTimestamp: '2024-01-15T10:30:00Z',
+          trainerStatus: {
+            estimatedRemainingSeconds: 3600,
+            currentStep: 100,
+            totalSteps: 1000,
+            currentEpoch: 1,
+            totalEpochs: 10,
+            trainMetrics: {
+              loss: 0.9,
+              accuracy: 0.5,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_batches: 50,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_samples: 500,
+            },
+            lastUpdatedTime: '2024-01-15T10:45:00Z',
+          },
+        },
+        {
+          name: 'late-job',
+          namespace: projectName,
+          status: TrainingJobState.RUNNING,
+          numNodes: 3,
+          localQueueName: 'default-queue',
+          creationTimestamp: '2024-01-14T08:15:00Z',
+          trainerStatus: {
+            estimatedRemainingSeconds: 600,
+            currentStep: 9000,
+            totalSteps: 10000,
+            currentEpoch: 9,
+            totalEpochs: 10,
+            trainMetrics: {
+              loss: 0.1,
+              accuracy: 0.99,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_batches: 5000,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              total_samples: 50000,
+            },
+            lastUpdatedTime: '2024-01-15T10:45:00Z',
+          },
+        },
+      ]);
+
+      cy.interceptK8sList(
+        {
+          model: TrainJobModel,
+          ns: projectName,
+        },
+        mockK8sResourceList(jobsWithDifferentStatus),
+      );
+
+      modelTrainingGlobal.visit(projectName);
+
+      // Check first job
+      const firstRow = trainingJobTable.getTableRow('early-job');
+      firstRow.findNameLink().click();
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.selectTab('Training details');
+
+      trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '1 hour');
+      trainingJobDetailsTab.findStepsValue().should('contain', '100 / 1000');
+      trainingJobDetailsTab.findEpochsValue().should('contain', '1 / 10');
+      trainingJobDetailsTab.findLossValue().should('contain', '0.9');
+      trainingJobDetailsTab.findAccuracyValue().should('contain', '0.5');
+
+      // Switch to second job
+      const secondRow = trainingJobTable.getTableRow('late-job');
+      secondRow.findNameLink().click();
+
+      trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '10 minutes');
+      trainingJobDetailsTab.findStepsValue().should('contain', '9000 / 10000');
+      trainingJobDetailsTab.findEpochsValue().should('contain', '9 / 10');
+      trainingJobDetailsTab.findLossValue().should('contain', '0.1');
+      trainingJobDetailsTab.findAccuracyValue().should('contain', '0.99');
     });
   });
 
@@ -608,6 +770,7 @@ describe('Model Training', () => {
       trainingJobResourcesTab.findNodesValue().should('contain', '4');
       trainingJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
       trainingJobResourcesTab.findNodesEditButton().should('exist');
+      trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
     });
 
     it('should display correct resource values', () => {

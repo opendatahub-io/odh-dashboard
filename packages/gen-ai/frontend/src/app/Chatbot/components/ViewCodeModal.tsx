@@ -22,6 +22,7 @@ interface ViewCodeModalProps {
   model: string;
   systemInstruction?: string;
   files: FileModel[];
+  isRagEnabled?: boolean;
   selectedMcpServerIds?: string[];
   mcpServers?: MCPServerFromAPI[];
   mcpServerTokens?: Map<string, TokenInfo>;
@@ -39,6 +40,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   model,
   systemInstruction,
   files,
+  isRagEnabled = false,
   selectedMcpServerIds = EMPTY_ARRAY,
   mcpServers = EMPTY_MCP_SERVERS,
   mcpServerTokens = EMPTY_TOKEN_MAP,
@@ -89,6 +91,11 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
           provider_id: vectorStores[0].metadata.provider_id,
         },
         files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
+        // Include file_search tool when files are present and RAG is enabled
+        ...(files.length > 0 &&
+          isRagEnabled && {
+            tools: [{ type: 'file_search', vector_store_ids: [vectorStores[0].id] }],
+          }),
       };
       /* eslint-enable camelcase */
 
@@ -108,6 +115,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
     systemInstruction,
     mcpServersToUse,
     files,
+    isRagEnabled,
     api,
     mcpServerTokens,
   ]);

@@ -125,33 +125,28 @@ storage:
     conversations:
       table_name: openai_conversations
       backend: sql_default
-models:
-  - metadata:
-      embedding_dimension: 768
-    model_id: granite-embedding-125m
-    provider_id: sentence-transformers
-    provider_model_id: ibm-granite/granite-embedding-125m-english
-    model_type: embedding
-  -
-    metadata:
-      display_name: llama-32-3b-instruct
-
-    model_id: llama-32-3b-instruct
-    provider_id: vllm-inference-1
-    model_type: llm
-  -
-    metadata:
-      display_name: granite-3.1-8b-instruct
-
-    model_id: granite-3.1-8b-instruct
-    provider_id: maas-watsonx
-    model_type: llm
-  -
-    metadata: {}
-    model_id: facebook/opt-125m
-    provider_id: maas-vllm-inference-1
-    model_type: llm
-
+registered_resources:
+  models:
+    - metadata:
+        embedding_dimension: 768
+      model_id: granite-embedding-125m
+      provider_id: sentence-transformers
+      provider_model_id: ibm-granite/granite-embedding-125m-english
+      model_type: embedding
+    - metadata:
+        display_name: llama-32-3b-instruct
+      model_id: llama-32-3b-instruct
+      provider_id: vllm-inference-1
+      model_type: llm
+    - metadata:
+        display_name: granite-3.1-8b-instruct
+      model_id: granite-3.1-8b-instruct
+      provider_id: maas-watsonx
+      model_type: llm
+    - metadata: {}
+      model_id: facebook/opt-125m
+      provider_id: maas-vllm-inference-1
+      model_type: llm
 shields: []
 vector_dbs: []
 datasets: []

@@ -8,9 +8,8 @@ import {
   TimestampTooltipVariant,
   Button,
   Tooltip,
-  Icon,
 } from '@patternfly/react-core';
-import { CubesIcon, EditIcon } from '@patternfly/react-icons';
+import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
@@ -61,9 +60,6 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const { isPaused } = getStatusFlags(status);
-
-  // const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -95,17 +91,13 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
     }
   };
 
-  // Build kebab menu actions with enhanced scaling option
+  const { isPaused } = getStatusFlags(status);
+
+  // Build kebab menu actions
   const actions = React.useMemo(() => {
-    const items = [];
+    const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
-    // Add delete action
-    items.push({
-      title: 'Delete',
-      onClick: () => onDelete(job),
-    });
-
-    // Add scale nodes action only when allowed
+    // 1. Edit node count (only when allowed)
     if (canScaleNodes) {
       items.push({
         title: 'Edit node count',
@@ -113,8 +105,34 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
       });
     }
 
+    // TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend
+    // 2. Pause/Resume job (only when allowed)
+    // if (canPauseResume) {
+    //   items.push({
+    //     title: isPaused ? 'Resume job' : 'Pause job',
+    //     onClick: () => setHibernationModalOpen(true),
+    //   });
+    // }
+
+    // 3. View more details
+    items.push({
+      title: 'View more details',
+      onClick: () => onSelectJob(job),
+    });
+
+    // Separator before delete
+    items.push({
+      isSeparator: true,
+    });
+
+    // 4. Delete job
+    items.push({
+      title: 'Delete job',
+      onClick: () => onDelete(job),
+    });
+
     return items;
-  }, [canScaleNodes, job, onDelete, setScaleNodesModalOpen]);
+  }, [canScaleNodes, job, onDelete, onSelectJob, setScaleNodesModalOpen]);
 
   return (
     <>
@@ -152,11 +170,10 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                     onClick={() => setScaleNodesModalOpen(true)}
                     className="pf-u-p-0 pf-u-color-200"
                     aria-label="Scale nodes"
-                  >
-                    <Icon size="sm" className="pf-u-color-100">
-                      <EditIcon />
-                    </Icon>
-                  </Button>
+                    icon={<PencilAltIcon />}
+                    style={{ fontSize: 'inherit', padding: 0 }}
+                    isDisabled={!canScaleNodes}
+                  />
                 </Tooltip>
               </FlexItem>
             )}

@@ -229,4 +229,61 @@ describe('ViewCodeModal', () => {
       expect(mockExportCode).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('includes file_search tool when RAG is enabled and files are present', async () => {
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} isRagEnabled />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tools: [{ type: 'file_search', vector_store_ids: ['vs-1'] }],
+          files: [{ file: 'document.pdf', purpose: 'assistants' }],
+        }),
+      );
+    });
+  });
+
+  it('does not include tools when RAG is disabled even with files present', async () => {
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} isRagEnabled={false} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [{ file: 'document.pdf', purpose: 'assistants' }],
+        }),
+      );
+    });
+
+    // Verify that tools was not included in the request
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.tools).toBeUndefined();
+  });
+
+  it('does not include tools when RAG is enabled but no files are present', async () => {
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} files={[]} isRagEnabled />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [],
+        }),
+      );
+    });
+
+    // Verify that tools was not included in the request
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.tools).toBeUndefined();
+  });
 });

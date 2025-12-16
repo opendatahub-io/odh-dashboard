@@ -3,7 +3,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import TrainingJobTable from './TrainingJobTable';
 import TrainingJobToolbar from './TrainingJobToolbar';
 import { initialTrainingJobFilterData, TrainingJobFilterDataType } from './const';
-import { getTrainingJobStatusSync } from './utils';
+import { getStatusInfo, getTrainingJobStatusSync } from './utils';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 
@@ -43,7 +43,8 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
         if (statusFilter) {
           const jobId = job.metadata.uid || job.metadata.name;
           const jobStatus = jobStatuses.get(jobId) || getTrainingJobStatusSync(job);
-          if (!jobStatus.toLowerCase().includes(statusFilter)) {
+          const statusLabel = getStatusInfo(jobStatus).label;
+          if (!statusLabel.toLowerCase().includes(statusFilter)) {
             return false;
           }
         }

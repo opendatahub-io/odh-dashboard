@@ -1,16 +1,23 @@
 package repositories
 
+import (
+	"github.com/opendatahub-io/maas-library/bff/internal/config"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+)
+
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
 	HealthCheck *HealthCheckRepository
 	User        *UserRepository
 	Namespace   *NamespaceRepository
+	Tiers       *TiersRepository
 }
 
-func NewRepositories() *Repositories {
+func NewRepositories(k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) *Repositories {
 	return &Repositories{
 		HealthCheck: NewHealthCheckRepository(),
 		User:        NewUserRepository(),
 		Namespace:   NewNamespaceRepository(),
+		Tiers:       NewTiersRepository(k8sFactory, config.TiersConfigMapNamespace, config.TiersConfigMapName),
 	}
 }

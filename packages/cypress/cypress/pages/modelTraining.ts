@@ -115,6 +115,10 @@ class TrainingJobTableRow extends TableRow {
     return this.find().find('[data-label="Status"]').findByTestId('training-job-status');
   }
 
+  findStatusProgressBar() {
+    return this.find().find('[data-label="Status"]').findByTestId('training-job-progress-bar');
+  }
+
   findNameLink() {
     return this.findTrainingJobName().find('button');
   }
@@ -495,6 +499,43 @@ class ScaleNodesModal extends Modal {
     return this;
   }
 }
+class TrainingJobDetailsTab {
+  findProgressSection() {
+    return cy.findByTestId('progress-section');
+  }
+
+  findMetricsSection() {
+    return cy.findByTestId('metrics-section');
+  }
+
+  findEstimatedTimeRemainingValue() {
+    return cy.findByTestId('estimated-time-remaining-value');
+  }
+
+  findStepsValue() {
+    return cy.findByTestId('steps-value');
+  }
+
+  findEpochsValue() {
+    return cy.findByTestId('epochs-value');
+  }
+
+  findLossValue() {
+    return cy.findByTestId('metric-loss-value');
+  }
+
+  findAccuracyValue() {
+    return cy.findByTestId('metric-accuracy-value');
+  }
+
+  findTotalBatchesValue() {
+    return cy.findByTestId('metric-total_batches-value');
+  }
+
+  findTotalSamplesValue() {
+    return cy.findByTestId('metric-total_samples-value');
+  }
+}
 
 export const modelTrainingGlobal = new ModelTrainingGlobal();
 export const trainingJobTable = new TrainingJobTable();
@@ -504,3 +545,4 @@ export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
+export const trainingJobDetailsTab = new TrainingJobDetailsTab();
