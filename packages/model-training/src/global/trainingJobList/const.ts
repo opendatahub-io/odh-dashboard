@@ -60,11 +60,15 @@ export const columns: SortableData<TrainJobKind>[] = [
     width: 15,
     sortable: (a: TrainJobKind, b: TrainJobKind): number => {
       // For sorting, we use the sync version for performance
-      // The actual hibernation status will be shown in the UI
       const aState = getTrainingJobStatusSync(a);
       const bState = getTrainingJobStatusSync(b);
       return aState.localeCompare(bState);
     },
+  },
+  {
+    field: 'pauseResume',
+    label: '',
+    sortable: false,
   },
   {
     field: 'kebab',

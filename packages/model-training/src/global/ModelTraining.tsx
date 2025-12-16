@@ -102,6 +102,7 @@ const ModelTraining = (): React.ReactElement => {
       jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
       onDelete={handleDelete}
+      onStatusUpdate={handleStatusUpdate}
     />
   );
 

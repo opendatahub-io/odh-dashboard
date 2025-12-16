@@ -5,7 +5,7 @@ import { TrainJobKind } from '../../../k8sTypes';
 import { TrainingJobState } from '../../../types';
 
 /**
- * Custom hook to manage training job statuses with hibernation support
+ * Custom hook to manage training job statuses with pause/resume support
  * @param jobs - Array of TrainJobs to get statuses for
  * @returns Object with status map and update functions
  */
