@@ -25,7 +25,7 @@ const ConnectionTypeDataFieldRemoveModal: React.FC<Props> = ({ field, onClose })
         onClick: () => onClose(false),
         variant: 'link',
         clickOnEnter: true,
-        dataTestid: 'connection-cancel-button',
+        dataTestId: 'connection-cancel-button',
       },
     ]}
     contents={
