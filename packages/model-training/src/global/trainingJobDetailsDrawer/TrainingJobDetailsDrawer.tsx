@@ -123,7 +123,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                     </DropdownItem>
                   )}
                   {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend */}
-                  <Divider component="li" key="separator" />
+                  {canScaleNodes && <Divider component="li" key="separator" />}
                   <DropdownItem key="delete" onClick={() => onDelete(job)}>
                     Delete job
                   </DropdownItem>
