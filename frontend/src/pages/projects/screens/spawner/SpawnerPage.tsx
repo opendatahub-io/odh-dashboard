@@ -165,6 +165,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
     WorkbenchFeatureStoreConfig[]
   >([]);
+  const hasUserInteractedRef = React.useRef<boolean>(false);
   const notebookIdRef = React.useRef<string | undefined>();
 
   React.useEffect(() => {
@@ -172,19 +173,22 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     const notebookChanged = notebookIdRef.current !== currentNotebookId;
 
     if (existingNotebook && availableFeatureStores.length > 0) {
-      if (notebookChanged || selectedFeatureStores.length === 0) {
+      if (notebookChanged || !hasUserInteractedRef.current) {
         const featureStores = getFeatureStoresFromNotebook(
           existingNotebook,
           availableFeatureStores,
         );
         setSelectedFeatureStores(featureStores);
         notebookIdRef.current = currentNotebookId;
+        if (notebookChanged) {
+          hasUserInteractedRef.current = false;
+        }
       }
     } else if (!existingNotebook) {
       setSelectedFeatureStores([]);
       notebookIdRef.current = undefined;
+      hasUserInteractedRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingNotebook, availableFeatureStores]);
 
   const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
@@ -407,7 +411,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             />
             <FeatureStoreFormSection
               selectedFeatureStores={selectedFeatureStores}
-              onSelect={setSelectedFeatureStores}
+              onSelect={(featureStores) => {
+                setSelectedFeatureStores(featureStores);
+                hasUserInteractedRef.current = true;
+              }}
               availableFeatureStores={availableFeatureStores}
               loaded={featureStoresLoaded}
               error={featureStoresError}
