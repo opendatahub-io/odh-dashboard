@@ -1,19 +1,29 @@
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
+import { appChrome } from './appChrome';
 
 class ModelTrainingGlobal {
-  visit(projectName?: string) {
-    const baseUrl = projectName
+  visit(projectName?: string, wait = true) {
+    const url = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
-    const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue`;
     cy.visitWithLogin(url);
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   private wait() {
     this.findAppPage();
     cy.testA11y();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem({ name: 'Training jobs', rootSection: 'Develop & train' });
+  }
+
+  shouldNotFoundPage() {
+    return cy.findByTestId('not-found-page').should('exist');
   }
 
   findAppPage() {
