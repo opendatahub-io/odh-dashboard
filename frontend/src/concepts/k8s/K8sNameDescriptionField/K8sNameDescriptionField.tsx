@@ -42,6 +42,7 @@ type K8sNameDescriptionFieldProps = {
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
+  descriptionHelperText?: React.ReactNode;
   maxLength?: number;
   maxLengthDesc?: number;
 };
@@ -62,6 +63,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   hideDescription,
   maxLength,
   maxLengthDesc,
+  descriptionHelperText,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
@@ -146,6 +148,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
                 Cannot exceed {maxLengthDesc} characters ({maxLengthDesc - description.length}{' '}
                 remaining)
               </HelperTextItem>
+            </HelperText>
+          )}
+          {descriptionHelperText && (
+            <HelperText>
+              <HelperTextItem>{descriptionHelperText}</HelperTextItem>
             </HelperText>
           )}
         </FormGroup>
