@@ -167,7 +167,7 @@ describe('useSourceManagement', () => {
       expect(result.current.filesWithSettings[1].status).toBe('pending');
     });
 
-    it('should open source settings modal after delay when files are dropped', async () => {
+    it('should open source settings modal immediately when files are dropped', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -179,14 +179,7 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
-      expect(result.current.isSourceSettingsOpen).toBe(false);
-      expect(result.current.currentFileForSettings).toBeNull();
-
-      // Fast-forward the timer
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
+      // The modal should open immediately via useEffect when pending files are detected
       expect(result.current.isSourceSettingsOpen).toBe(true);
       expect(result.current.currentFileForSettings).toEqual(mockFile);
     });
@@ -321,8 +314,8 @@ describe('useSourceManagement', () => {
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
 
-      // Check that file status was updated to failed
-      expect(result.current.filesWithSettings[0].status).toBe('failed');
+      // When upload fails, the file is removed from filesWithSettings (not marked as 'failed')
+      expect(result.current.filesWithSettings).toHaveLength(0);
       consoleErrorSpy.mockRestore();
     });
 
