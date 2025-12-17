@@ -3,10 +3,9 @@ import { Modal } from './components/Modal';
 
 class ModelTrainingGlobal {
   visit(projectName?: string) {
-    const baseUrl = projectName
+    const url = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
-    const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue`;
     cy.visitWithLogin(url);
     this.wait();
   }
