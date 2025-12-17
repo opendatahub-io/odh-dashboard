@@ -1,12 +1,11 @@
 import { DataScienceClusterKindStatus, K8sCondition } from '#~/k8sTypes';
-import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];
   conditions?: K8sCondition[];
   phase?: string;
-  installedComponents?: DataScienceClusterKindStatus['installedComponents'];
   release?: {
     name: string;
     version: string;
@@ -15,6 +14,14 @@ export type MockDscStatus = {
 
 export const mockDscStatus = ({
   components = {
+    // Dynamically create all components with default 'Managed' state
+    ...Object.fromEntries(
+      Object.values(DataScienceStackComponent).map((component) => [
+        component,
+        { managementState: 'Managed' },
+      ]),
+    ),
+    // Override specific components with additional fields
     [DataScienceStackComponent.MODEL_REGISTRY]: {
       managementState: 'Managed',
       registriesNamespace: 'odh-model-registries',
@@ -37,14 +44,10 @@ export const mockDscStatus = ({
       ],
     },
     [DataScienceStackComponent.WORKBENCHES]: {
-      workbenchNamespace: 'openshift-ai-notebooks',
       managementState: 'Managed',
+      workbenchNamespace: 'openshift-ai-notebooks',
     },
   },
-  installedComponents = Object.values(StackComponent).reduce(
-    (acc, component) => ({ ...acc, [component]: true }),
-    {},
-  ),
   conditions = [],
   phase = 'Ready',
   release = { name: 'Open Data Hub', version: '2.28.0' },
@@ -125,14 +128,6 @@ export const mockDscStatus = ({
         type: 'kserveReady',
       },
       {
-        lastHeartbeatTime: '2023-10-20T11:45:04Z',
-        lastTransitionTime: '2023-10-20T11:45:04Z',
-        message: 'Component reconciled successfully',
-        reason: 'ReconcileCompleted',
-        status: 'True',
-        type: 'model-meshReady',
-      },
-      {
         lastHeartbeatTime: '2023-10-20T11:45:06Z',
         lastTransitionTime: '2023-10-20T11:45:06Z',
         message: 'Component is disabled',
@@ -143,13 +138,6 @@ export const mockDscStatus = ({
     ],
     ...conditions,
   ],
-  installedComponents: Object.values(StackComponent).reduce(
-    (acc, component) => ({
-      ...acc,
-      [component]: installedComponents[component] ?? false,
-    }),
-    {},
-  ),
   phase,
   release,
 });

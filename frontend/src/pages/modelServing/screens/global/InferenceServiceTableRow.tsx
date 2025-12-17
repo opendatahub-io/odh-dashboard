@@ -5,7 +5,7 @@ import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { isModelMesh } from '#~/pages/modelServing/utils';
+
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -22,9 +22,9 @@ import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
 import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
-import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 import { ColumnField } from './data';
 import InferenceServiceLastDeployed from './InferenceServiceLastDeployed';
+import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -55,10 +55,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
 
-  const modelMesh = isModelMesh(inferenceService);
-  const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
-  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
+  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
   const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
@@ -67,7 +65,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { watchDeployment } = useModelDeploymentNotification(
     inferenceService.metadata.namespace,
     inferenceService.metadata.name,
-    !modelMesh, // isKserve
   );
 
   const onStart = React.useCallback(() => {
@@ -94,7 +91,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {!isStarting && !isFailed && (modelMeshMetricsSupported || kserveMetricsSupported) ? (
+          {!isStarting && !isFailed && kserveMetricsSupported ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
               to={
@@ -127,7 +124,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
-          isKserve={!modelMesh}
+          isKserve={true} // Always KServe
           modelState={{
             isStarting,
             isStopping,
@@ -142,7 +139,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <Td dataLabel="API protocol">
           <InferenceServiceAPIProtocol
             servingRuntime={servingRuntime}
-            isMultiModel={modelMeshMetricsSupported}
+            isMultiModel={false} // Always KServe (single model)
           />
         </Td>
       )}
@@ -156,7 +153,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       <Td dataLabel="Status">
         <InferenceServiceStatus
           inferenceService={inferenceService}
-          isKserve={!modelMesh}
           stoppedStates={{
             isStarting,
             isStopping,
@@ -166,19 +162,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td>
-        {!modelMesh && (
-          <StateActionToggle
-            currentState={{
-              isRunning,
-              isStopped,
-              isStarting,
-              isStopping,
-            }}
-            onStart={onStart}
-            onStop={onStop}
-            isDisabledWhileStarting={false}
-          />
-        )}
+        <StateActionToggle
+          currentState={{
+            isRunning,
+            isStopped,
+            isStarting,
+            isStopping,
+          }}
+          onStart={onStart}
+          onStop={onStop}
+          isDisabledWhileStarting={false}
+        />
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (

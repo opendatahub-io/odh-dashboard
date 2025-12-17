@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
+import { CatalogFilterOptionsList } from '../app/modelCatalogTypes';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -8,7 +8,7 @@ import {
   ModelCatalogTask,
   AllLanguageCode,
   UseCaseOptionValue,
-} from '~/concepts/modelCatalog/const';
+} from '../concepts/modelCatalog/const';
 
 export const mockCatalogFilterOptionsList = (
   partial?: Partial<CatalogFilterOptionsList>,
@@ -70,14 +70,11 @@ export const mockCatalogFilterOptionsList = (
         max: 300,
       },
     },
-    [ModelCatalogNumberFilterKey.MAX_LATENCY]: {
-      type: 'number',
-      range: {
-        min: 20,
-        max: 893,
-      },
+    // All latency metric combinations for dropdown options
+    ttft_mean: {
+      type: 'number' as const,
+      range: { min: 20, max: 893 },
     },
-    // All latency metric combinations for dropdown options (ttft_mean already exists as MAX_LATENCY)
     ttft_p90: {
       type: 'number' as const,
       range: { min: 25, max: 600 },

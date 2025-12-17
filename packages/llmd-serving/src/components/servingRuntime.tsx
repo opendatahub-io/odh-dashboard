@@ -1,5 +1,5 @@
 import React from 'react';
 
-const DeploymentServingDetails: React.FC = () => 'Distributed Inference Server with llm-d';
+const DeploymentServingDetails: React.FC = () => 'Distributed inference with llm-d';
 
 export default DeploymentServingDetails;

@@ -6,14 +6,20 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 # This example shows how to configure an assistant using the Llama Stack client.
 # Before using this code, make sure of the following:
 #
-# 1. Llama Stack Server:
+# 1. Required Packages:
+#    - Install the required dependencies using pip:
+#      pip install llama-stack-client
+#    - NOTE: Verify the correct llama-stack-client version for your Llama Stack server instance,
+#      then install that version as needed.
+#
+# 2. Llama Stack Server:
 #    - Your Llama Stack instance must be running and accessible
 #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
 #
-# 2. Model Configuration:
+# 3. Model Configuration:
 #    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment.
 #
-# 3. Tools (MCP Integration):
+# 4. Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
 
 # Configuration adjust as needed:
@@ -31,7 +37,7 @@ temperature = {{.Temperature}}
 stream_enabled = True
 {{- end }}
 {{- if .Instructions }}
-system_instructions = "{{.Instructions}}"
+system_instructions = """{{.Instructions}}"""
 {{- end }}
 {{- if .Files }}
 files_to_upload = [
@@ -50,10 +56,21 @@ client = LlamaStackClient(base_url=LLAMA_STACK_URL)
 
 # Create vector store
 vector_store = client.vector_stores.create(
-    name=vector_store_name{{- if .VectorStore.EmbeddingModel }},
-    embedding_model="{{.VectorStore.EmbeddingModel}}"{{- end }}{{- if .VectorStore.EmbeddingDimension }},
-    embedding_dimension={{.VectorStore.EmbeddingDimension}}{{- end }}{{- if .VectorStore.ProviderID }},
-    provider_id="{{.VectorStore.ProviderID}}"{{- end }}
+    name=vector_store_name{{- if or .VectorStore.EmbeddingModel .VectorStore.EmbeddingDimension .VectorStore.ProviderID }},{{- end }}
+    {{- if or .VectorStore.EmbeddingModel .VectorStore.EmbeddingDimension .VectorStore.ProviderID }}
+    extra_body={
+        {{- if .VectorStore.ProviderID }}
+        "provider_id": "{{.VectorStore.ProviderID}}"{{- if or .VectorStore.EmbeddingModel .VectorStore.EmbeddingDimension }},
+        {{- end }}
+        {{- end }}
+        {{- if .VectorStore.EmbeddingModel }}
+        "embedding_model": "{{.VectorStore.EmbeddingModel}}"{{- if .VectorStore.EmbeddingDimension }},
+        {{- end }}
+        {{- end }}
+        {{- if .VectorStore.EmbeddingDimension }}
+        "embedding_dimension": {{.VectorStore.EmbeddingDimension}}
+        {{- end }}
+    }{{- end }}
 )
 {{- end }}{{- if or .Tools .MCPServers }}
 tools = [
@@ -81,7 +98,12 @@ tools = [
         {{- range $key, $value := .Headers }}
         "{{$key}}": "{{$value}}",
         {{- end }}
-      }{{- end }}
+      }{{- end }}{{- if ne .AllowedTools nil }},
+      "allowed_tools": [
+        {{- range $i, $tool := .AllowedTools }}
+        {{- if $i }},{{ end }}
+        "{{$tool}}"{{- end }}
+      ]{{- end }}
     },
   {{- end }}
   {{- end }}
@@ -94,7 +116,7 @@ for file_info in files_to_upload:
     with open(os.path.join(FILES_BASE_PATH, file_info["file"]), 'rb') as file:
         uploaded_file = client.files.create(file=file, purpose=file_info["purpose"])
         client.vector_stores.files.create(
-            vector_store_id=vector_store.id, 
+            vector_store_id=vector_store.id,
             file_id=uploaded_file.id
         )
 {{- end }}

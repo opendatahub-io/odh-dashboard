@@ -5,21 +5,34 @@ import type {
   ModelServingDeploymentFormDataExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
+  ModelServingDeploymentTransformExtension,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { LLMdDeployment } from '../src/types';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
 const extensions: (
+  | AreaExtension
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
   | DeployedModelServingDetails<LLMdDeployment>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
   | DeploymentWizardFieldExtension<LLMdDeployment>
+  | ModelServingDeploymentTransformExtension<LLMdDeployment>
+  | ModelServingStartStopAction<LLMdDeployment>
 )[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: LLMD_SERVING_ID,
+      reliantAreas: [SupportedArea.K_SERVE],
+    },
+  },
   {
     type: 'model-serving.platform/watch-deployments',
     properties: {
@@ -27,12 +40,18 @@ const extensions: (
       watch: () =>
         import('../src/deployments/useWatchDeployments').then((m) => m.useWatchDeployments),
     },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
   },
   {
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: LLMD_SERVING_ID,
       ServingDetailsComponent: () => import('../src/components/servingRuntime'),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -52,15 +71,27 @@ const extensions: (
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('../src/deployments/model').then((m) => m.extractModelLocationData),
+      extractModelServerTemplate: () =>
+        import('../src/deployments/server').then((m) => m.extractModelServerTemplate),
+      hardwareProfilePaths: () =>
+        import('../src/deployments/hardware').then(
+          (m) => m.LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
     type: 'model-serving.platform/delete-deployment',
     properties: {
       platform: LLMD_SERVING_ID,
-      onDelete: () => import('../src/deployments').then((m) => m.deleteDeployment),
+      onDelete: () => import('../src/api/LLMdDeployment').then((m) => m.deleteDeployment),
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -68,8 +99,12 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       priority: 100,
-      isActive: () => import('../src/deployments/deploy').then((m) => m.isLLMdDeployActive),
+      supportsOverwrite: true,
+      isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -77,6 +112,9 @@ const extensions: (
     properties: {
       platform: LLMD_SERVING_ID,
       field: () => import('../src/wizardFields/modelServerField').then((m) => m.modelServerField),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
     },
   },
   {
@@ -87,7 +125,7 @@ const extensions: (
         import('../src/wizardFields/modelAvailability').then((m) => m.modelAvailabilityField),
     },
     flags: {
-      required: [SupportedArea.MODEL_AS_SERVICE],
+      required: ['model-as-service', LLMD_SERVING_ID],
     },
   },
   {
@@ -97,6 +135,9 @@ const extensions: (
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.externalRouteField),
     },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
   },
   {
     type: 'model-serving.deployment/wizard-field',
@@ -104,6 +145,28 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       field: () =>
         import('../src/wizardFields/advancedOptionsFields').then((m) => m.tokenAuthField),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/advancedOptionsFields').then((m) => m.deploymentStrategyField),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
 ];

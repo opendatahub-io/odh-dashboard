@@ -168,6 +168,19 @@ const extensions: NavExtension[] = [
       path: '/develop-train/experiments/*',
     },
   },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW, SupportedArea.EMBED_MLFLOW],
+    },
+    properties: {
+      id: 'experiments-mlflow',
+      title: 'Experiments (MLflow)',
+      href: '/develop-train/experiments-mlflow',
+      section: 'develop-and-train',
+      path: '/develop-train/experiments-mlflow/*',
+    },
+  },
 
   {
     type: 'app.navigation/section',
@@ -360,6 +373,7 @@ const extensions: NavExtension[] = [
       href: '/settings/model-resources-operations/serving-runtimes',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/serving-runtimes/*',
+      group: '1_model-resources',
     },
   },
   {
@@ -369,10 +383,11 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'settings-model-registry',
-      title: 'Model registry settings',
+      title: 'AI registry settings',
       href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/model-registry/*',
+      group: '3_model-resources',
     },
   },
 

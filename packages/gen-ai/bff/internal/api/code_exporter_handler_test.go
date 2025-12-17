@@ -501,4 +501,95 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "https://localhost:3000/sse")
 		assert.NotContains(t, code, "headers:")
 	})
+
+	t.Run("should generate Python code with MCP server and allowed_tools", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel: "slack",
+					ServerURL:   "http://127.0.0.1:13080/sse",
+					Headers: map[string]string{
+						"Authorization": "Bearer token",
+					},
+					AllowedTools: []string{"send_message", "get_channel_history"},
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "slack")
+		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
+		assert.Contains(t, code, "allowed_tools")
+		assert.Contains(t, code, "send_message")
+		assert.Contains(t, code, "get_channel_history")
+	})
+
+	t.Run("should generate Python code with MCP server and empty allowed_tools (no tools allowed)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:  "slack",
+					ServerURL:    "http://127.0.0.1:13080/sse",
+					AllowedTools: []string{}, // Empty array means no tools allowed
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "slack")
+		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
+		// Empty array should still render allowed_tools field with empty brackets
+		assert.Contains(t, code, `"allowed_tools": [`)
+	})
+
+	t.Run("should NOT include allowed_tools when AllowedTools is nil (all tools allowed)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:  "slack",
+					ServerURL:    "http://127.0.0.1:13080/sse",
+					AllowedTools: nil, // nil means field not set, all tools allowed
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "slack")
+		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
+		// When AllowedTools is nil, the field should NOT be present
+		assert.NotContains(t, code, "allowed_tools")
+	})
 }

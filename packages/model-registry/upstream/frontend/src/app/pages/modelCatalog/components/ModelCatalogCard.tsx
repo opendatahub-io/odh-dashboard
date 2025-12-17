@@ -9,6 +9,7 @@ import {
   Flex,
   FlexItem,
   Label,
+  Popover,
   Skeleton,
   Truncate,
 } from '@patternfly/react-core';
@@ -17,6 +18,7 @@ import { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
 import { catalogModelDetailsFromModel } from '~/app/routes/modelCatalog/catalogModel';
 import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
 import { isModelValidated, getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
 
@@ -29,7 +31,6 @@ type ModelCatalogCardProps = {
 const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, truncate = false }) => {
   // Extract labels from customProperties and check for validated label
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
-  const validatedLabels = allLabels.includes('validated') ? ['validated'] : [];
   const isValidated = isModelValidated(model);
 
   return (
@@ -49,7 +50,11 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, trun
             )}
             <FlexItem align={{ default: 'alignRight' }}>
               {isValidated ? (
-                <Label color="purple">Validated</Label>
+                <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
+                  <Label color="purple" isClickable>
+                    Validated
+                  </Label>
+                </Popover>
               ) : (
                 source && <Label>{source.name}</Label>
               )}
@@ -87,9 +92,8 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, trun
       <CardFooter>
         <ModelCatalogLabels
           tasks={model.tasks ?? []}
-          license={model.license}
           provider={model.provider}
-          labels={validatedLabels}
+          labels={allLabels.filter((label) => label !== 'validated')}
           numLabels={isValidated ? 2 : 3}
         />
       </CardFooter>

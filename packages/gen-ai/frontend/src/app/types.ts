@@ -1,3 +1,7 @@
+import { APIOptions } from 'mod-arch-core';
+import { MCPToolsStatus } from './types';
+import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
+
 export type LlamaModelType = 'llm' | 'embedding';
 
 export type LlamaModelResponse = {
@@ -80,6 +84,7 @@ export type MCPServerConfig = {
   server_label: string;
   server_url: string;
   headers: Record<string, string>;
+  allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
 export type CreateResponseRequest = {
@@ -99,10 +104,27 @@ export type SimplifiedUsage = {
   total_tokens: number;
 };
 
+// File citation annotation from RAG responses
+export type FileCitationAnnotation = {
+  type: 'file_citation';
+  file_id: string;
+  filename: string;
+  start_index?: number;
+  end_index?: number;
+  index?: number;
+  title?: string;
+  url?: string;
+  container_id?: string;
+};
+
+// Generic annotation type (could be file_citation or other types from API)
+export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: string]: unknown };
+
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
   text: string;
+  annotations?: ContentAnnotation[];
 };
 
 export type OutputItem = {
@@ -130,6 +152,13 @@ export type MCPToolCallData = {
   toolOutput?: string;
 };
 
+// Source item for PatternFly Chatbot SourcesCard
+export type SourceItem = {
+  title: string;
+  link: string;
+  hasShowMore?: boolean;
+};
+
 // Frontend-friendly response type (flattened)
 export type SimplifiedResponseData = {
   id: string;
@@ -139,6 +168,7 @@ export type SimplifiedResponseData = {
   content: string;
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
+  sources?: SourceItem[]; // Optional - file sources from RAG annotations
 };
 
 export type FileError = {
@@ -174,6 +204,20 @@ export type VectorStoreFile = {
 export type FileUploadResult = {
   file_id: string;
   vector_store_file: VectorStoreFile;
+};
+
+export type FileUploadJobResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+};
+
+export type FileUploadStatusResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: FileUploadResult;
+  error?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type FileModel = {
@@ -241,10 +285,6 @@ export type CodeExportData = {
   code: string;
 };
 
-export type CodeExportResponse = {
-  data: CodeExportData;
-};
-
 export type LlamaStackDistributionModel = {
   name: string;
   phase: 'Initializing' | 'Ready' | 'Failed' | 'Terminating' | 'Pending';
@@ -263,6 +303,10 @@ export type LlamaStackDistributionModel = {
     }>;
     availableDistributions: Record<string, string>;
   };
+};
+
+export type BFFConfig = {
+  isCustomLSD: boolean;
 };
 
 export interface AAModelResponse {
@@ -302,9 +346,9 @@ export interface MaaSModel {
   url: string;
 }
 
-export interface MaaSTokenRequest {
-  expiration?: string;
-}
+export type MaaSTokenRequest = {
+  expiration?: string; // Optional - only present when expiration is provided
+};
 
 export interface MaaSTokenResponse {
   token: string;
@@ -331,3 +375,73 @@ export type {
 } from './types/mcp';
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
+
+export type InstallLSDRequest = {
+  models: LSDInstallModel[];
+};
+
+export type DeleteLSDRequest = {
+  name: string;
+};
+
+export type CreateVectorStoreRequest = {
+  name: string;
+};
+
+export type GenAiAPIs = {
+  listVectorStores: ListVectorStores;
+  listVectorStoreFiles: ListVectorStoreFiles;
+  deleteVectorStoreFile: DeleteVectorStoreFile;
+  createVectorStore: CreateVectorStore;
+  uploadSource: UploadSource;
+  getFileUploadStatus: GetFileUploadStatus;
+  createResponse: CreateResponse;
+  getLSDModels: GetLSDModels;
+  exportCode: ExportCode;
+  getLSDStatus: GetLSDStatus;
+  installLSD: InstallLSD;
+  deleteLSD: DeleteLSD;
+  getAAModels: GetAAModels;
+  getMaaSModels: GetMaaSModels;
+  generateMaaSToken: GenerateMaaSToken;
+  getMCPServerTools: GetMCPServerTools;
+  getMCPServers: GetMCPServers;
+  getMCPServerStatus: GetMCPServerStatus;
+  getBFFConfig: GetBFFConfig;
+};
+
+export type ModArchRestGET<T> = (
+  queryParams?: Record<string, unknown>,
+  opts?: APIOptions,
+) => Promise<T>;
+
+export type ModArchRestCREATE<T, D> = (data: D, opts?: APIOptions) => Promise<T>;
+
+export type ModArchRestDELETE<T, D> = (
+  data: D,
+  queryParams?: Record<string, unknown>,
+  opts?: APIOptions,
+) => Promise<T>;
+
+type ListVectorStores = ModArchRestGET<VectorStore[]>;
+type ListVectorStoreFiles = ModArchRestGET<VectorStoreFile[]>;
+type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest>;
+type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
+type GetLSDModels = ModArchRestGET<LlamaModel[]>;
+type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
+type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
+type CreateResponse = (
+  data: CreateResponseRequest,
+  opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
+) => Promise<SimplifiedResponseData>;
+type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
+type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
+type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDRequest>;
+type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
+type GetAAModels = ModArchRestGET<AAModelResponse[]>;
+type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
+type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
+type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
+type GetMCPServers = ModArchRestGET<MCPServersResponse>;
+type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
+type GetBFFConfig = ModArchRestGET<BFFConfig>;

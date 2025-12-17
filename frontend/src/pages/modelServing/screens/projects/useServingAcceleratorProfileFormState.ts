@@ -4,6 +4,10 @@ import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
 } from '#~/utilities/useAcceleratorProfileFormState';
 
+/**
+ * @deprecated modelmesh
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
 const useServingAcceleratorProfileFormState = (
   servingRuntime?: ServingRuntimeKind | null,
   inferenceService?: InferenceServiceKind | null,

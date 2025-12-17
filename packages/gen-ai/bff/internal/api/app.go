@@ -29,6 +29,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/services"
 )
 
 type App struct {
@@ -43,6 +44,8 @@ type App struct {
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
+	clusterDomain           string
+	fileUploadJobTracker    *services.FileUploadJobTracker
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -159,6 +162,21 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	memStore := cache.NewMemoryStore()
 	logger.Info("Initialized shared memory store")
 
+	// Initialize file upload job tracker with memory store and logger
+	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
+	logger.Info("Initialized file upload job tracker")
+
+	// Cache cluster domain at startup using service account
+	var clusterDomain string
+	if !cfg.MockK8sClient {
+		if domain, err := k8s.GetClusterDomainUsingServiceAccount(context.Background(), logger); err != nil {
+			logger.Error("Failed to get cluster domain at startup, MaaS autodiscovery will be unavailable", "error", err)
+		} else {
+			clusterDomain = domain
+			logger.Info("Cached cluster domain for MaaS autodiscovery", "domain", clusterDomain)
+		}
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -171,6 +189,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
+		clusterDomain:           clusterDomain,
+		fileUploadJobTracker:    fileUploadJobTracker,
 	}
 	return app, nil
 }
@@ -219,6 +239,7 @@ func (app *App) Routes() http.Handler {
 	// Files (LlamaStack)
 	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
+	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackFileUploadStatusHandler)))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
@@ -235,10 +256,13 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.RequireNamespaceListAccess(app.GetNamespaceHandler)))
+	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
 
 	// Identity
 	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
+
+	// BFF Configuration endpoint
+	apiRouter.GET(constants.ConfigPath, app.RequireAccessToService(app.BFFConfigHandler))
 
 	// Llama Stack Distribution status endpoint
 	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))

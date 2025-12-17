@@ -21,6 +21,7 @@ import {
   ImageInfo,
   ImageTag,
   ImageTagInfo,
+  Notebook,
   NotebookState,
   Secret,
   VariableRow,
@@ -45,11 +46,12 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
+import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -78,7 +80,10 @@ const SpawnerPage: React.FC = () => {
     image: undefined,
     tag: undefined,
   });
-  const podSpecOptionsState = useNotebookPodSpecOptionsState(currentUserNotebook ?? undefined);
+  const hardwareProfileOptions: UseAssignHardwareProfileResult<Notebook> =
+    useNotebookHardwareProfile(currentUserNotebook);
+  const isHardwareProfileValid = hardwareProfileOptions.validateHardwareProfileForm();
+  const { podSpecOptionsState } = hardwareProfileOptions;
 
   const [variableRows, setVariableRows] = React.useState<VariableRow[]>([]);
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
@@ -93,7 +98,7 @@ const SpawnerPage: React.FC = () => {
         variables.find((variable) => !variable.name || variable.name === EMPTY_KEY),
     ) ||
     !defaultStorageClassLoaded ||
-    !podSpecOptionsState.hardwareProfile.isFormDataValid;
+    !isHardwareProfileValid;
 
   React.useEffect(() => {
     const setFirstValidImage = () => {
@@ -250,8 +255,6 @@ const SpawnerPage: React.FC = () => {
     fireFormTrackingEvent('Notebook Server Started', {
       outcome: TrackingOutcome.submit,
       podSpecOptions: JSON.stringify({
-        notebookSize: podSpecOptionsState.notebooksSize.selectedSize,
-        acceleratorProfile: podSpecOptionsState.acceleratorProfile.formData.profile?.metadata.name,
         hardwareProfile:
           podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
         resources: podSpecOptionsState.podSpecOptions.resources,
@@ -346,7 +349,7 @@ const SpawnerPage: React.FC = () => {
             <HardwareProfileFormSection
               podSpecOptionsState={podSpecOptionsState}
               isEditing={!!currentUserNotebook}
-              visibleIn={[HardwareProfileFeatureVisibility.WORKBENCH]}
+              visibleIn={WORKBENCH_VISIBILITY}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

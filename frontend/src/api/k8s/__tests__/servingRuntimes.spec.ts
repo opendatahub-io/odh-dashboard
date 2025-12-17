@@ -8,7 +8,6 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { mockModelServingPodSpecOptions } from '#~/__mocks__/mockModelServingPodSpecOptions';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeModalData } from '#~/__mocks__/mockServingRuntimeModalData';
@@ -25,8 +24,6 @@ import {
   updateServingRuntime,
 } from '#~/api/k8s/servingRuntimes';
 import { ProjectModel, ServingRuntimeModel } from '#~/api/models';
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { TolerationOperator, TolerationEffect } from '#~/types';
 import { ProjectKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
@@ -54,7 +51,6 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeTemplateK8sResource({}).objects[0] as ServingRuntimeKind,
       false,
-      mockModelServingPodSpecOptions({}),
       false, // isEditing
     );
 
@@ -72,7 +68,6 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: true, route: true }),
       false,
-      mockModelServingPodSpecOptions({}),
       true, // isEditing
     );
 
@@ -90,7 +85,6 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeTemplateK8sResource({}).objects[0] as ServingRuntimeKind,
       false,
-      mockModelServingPodSpecOptions({}),
       false, // isEditing
     );
 
@@ -108,7 +102,6 @@ describe('assembleServingRuntime', () => {
       'test',
       mockServingRuntimeK8sResource({ auth: false, route: false }),
       false,
-      mockModelServingPodSpecOptions({}),
       true, // isEditing
     );
 
@@ -117,225 +110,17 @@ describe('assembleServingRuntime', () => {
     expect(servingRuntime.metadata.annotations?.['enable-route']).toBe('true');
   });
 
-  it('should add tolerations and gpu on modelmesh', async () => {
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = undefined;
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
-      resources: {
-        requests: {
-          'nvidia.com/gpu': 1,
-        },
-        limits: {
-          'nvidia.com/gpu': 1,
-        },
-      },
-      tolerations: [
-        {
-          key: 'nvidia.com/gpu',
-          operator: TolerationOperator.EXISTS,
-          effect: TolerationEffect.NO_SCHEDULE,
-        },
-      ],
-      selectedHardwareProfile: hardwareProfile,
-    });
-    const servingRuntime = assembleServingRuntime(
-      mockServingRuntimeModalData({
-        externalRoute: true,
-        tokenAuth: true,
-      }),
-      'test',
-      mockServingRuntimeK8sResource({ auth: false, route: false }),
-      true,
-      podSpecOption,
-      false,
-      true,
-    );
-
-    expect(servingRuntime.spec.tolerations).toBeDefined();
-    expect(servingRuntime.spec.containers[0].resources?.limits?.['nvidia.com/gpu']).toBe(1);
-    expect(servingRuntime.spec.containers[0].resources?.requests?.['nvidia.com/gpu']).toBe(1);
-  });
-
-  it('should not add tolerations and gpu on kserve', async () => {
-    const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
-      resources: {
-        requests: {
-          'nvidia.com/gpu': 1,
-        },
-        limits: {
-          'nvidia.com/gpu': 1,
-        },
-      },
-      tolerations: [
-        {
-          key: 'nvidia.com/gpu',
-          operator: TolerationOperator.EXISTS,
-          effect: TolerationEffect.NO_SCHEDULE,
-        },
-      ],
-    });
-
-    const servingRuntime = assembleServingRuntime(
-      mockServingRuntimeModalData({
-        externalRoute: true,
-        tokenAuth: true,
-      }),
-      'test',
-      mockServingRuntimeK8sResource({ auth: false, route: false }),
-      true,
-      podSpecOption,
-      false,
-      false,
-    );
-
-    expect(servingRuntime.spec.tolerations).toBeUndefined();
-    expect(servingRuntime.spec.containers[0].resources?.limits?.['nvidia.com/gpu']).toBeUndefined();
-    expect(
-      servingRuntime.spec.containers[0].resources?.requests?.['nvidia.com/gpu'],
-    ).toBeUndefined();
-  });
-
-  it('should have replica count on modelmesh', async () => {
-    const replicaCount = 2;
-    const servingRuntime = assembleServingRuntime(
-      mockServingRuntimeModalData({
-        externalRoute: true,
-        tokenAuth: true,
-        numReplicas: replicaCount,
-      }),
-      'test',
-      mockServingRuntimeK8sResource({ auth: false, route: false }),
-      true,
-      mockModelServingPodSpecOptions({}),
-      false,
-      true,
-    );
-
-    expect(servingRuntime.spec.replicas).toBe(replicaCount);
-  });
-
-  it('should have replica count on modelmesh', async () => {
-    const servingRuntime = assembleServingRuntime(
-      mockServingRuntimeModalData({
-        externalRoute: true,
-        tokenAuth: true,
-      }),
-      'test',
-      mockServingRuntimeK8sResource({ auth: false, route: false }),
-      true,
-      mockModelServingPodSpecOptions({}),
-      false,
-      false,
-    );
-
-    expect(servingRuntime.spec.replicas).toBeUndefined();
-  });
-
   it('should not set hardware profile annotation for real profiles', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
     hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-    });
     const result = assembleServingRuntime(
       mockServingRuntimeModalData({}),
       'test-ns',
       mockServingRuntimeK8sResource({}),
       true,
-      podSpecOptions,
       false,
-      true,
     );
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
-  });
-
-  it('should not set pod specs like tolerations and nodeSelector for legacy and non-legacy hardware profiles', () => {
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = 'uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-    });
-    const result = assembleServingRuntime(
-      mockServingRuntimeModalData({}),
-      'test-ns',
-      mockServingRuntimeK8sResource({}),
-      true,
-      podSpecOptions,
-      false,
-      true,
-    );
-    expect(result.spec.tolerations).toEqual([]);
-    expect(result.spec.nodeSelector).toEqual({});
-  });
-
-  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles on modelmesh', () => {
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-    });
-    const result = assembleServingRuntime(
-      mockServingRuntimeModalData({}),
-      'test-ns',
-      mockServingRuntimeK8sResource({}),
-      true,
-      podSpecOptions,
-      false,
-      true,
-    );
-    expect(result.spec.tolerations).toEqual([]);
-    expect(result.spec.nodeSelector).toEqual({});
-  });
-
-  it('should not set annotations for hardware profiles, resources, nodeSelectors, and tolerations when isModelMesh is false', () => {
-    const hardwareProfile = mockHardwareProfile({ name: 'test-profile' });
-    hardwareProfile.metadata.uid = 'test-uid';
-    const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: hardwareProfile,
-      resources: {
-        requests: {
-          'nvidia.com/gpu': 1,
-        },
-        limits: {
-          'nvidia.com/gpu': 1,
-        },
-      },
-      nodeSelector: {
-        'test-key': 'test-value',
-      },
-      tolerations: [
-        {
-          key: 'nvidia.com/gpu',
-          operator: TolerationOperator.EXISTS,
-          effect: TolerationEffect.NO_SCHEDULE,
-        },
-      ],
-    });
-    const result = assembleServingRuntime(
-      mockServingRuntimeModalData({}),
-      'test-ns',
-      mockServingRuntimeK8sResource({}),
-      true,
-      podSpecOptions,
-      false,
-      false, // isModelMesh is false
-    );
-
-    // Verify annotations for hardware profiles are set
-    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
-    expect(
-      result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
-    ).toBeUndefined();
-
-    // Verify resources are not set
-    expect(result.spec.containers[0].resources?.limits?.['nvidia.com/gpu']).toBeUndefined();
-    expect(result.spec.containers[0].resources?.requests?.['nvidia.com/gpu']).toBeUndefined();
-
-    // Verify nodeSelector is not set
-    expect(result.spec.nodeSelector).toBeUndefined();
-
-    // Verify tolerations are not set
-    expect(result.spec.tolerations).toBeUndefined();
   });
 });
 
@@ -390,7 +175,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -412,7 +197,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -433,7 +218,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -452,7 +237,7 @@ describe('listScopedServingRuntimes', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
   });
@@ -483,7 +268,7 @@ describe('getServingRuntimeContext', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -504,7 +289,7 @@ describe('getServingRuntimeContext', () => {
       fetchOptions: { requestInit: {} },
       model: ProjectModel,
       queryOptions: {
-        queryParams: { labelSelector: 'opendatahub.io/dashboard=true,modelmesh-enabled' },
+        queryParams: { labelSelector: 'opendatahub.io/dashboard=true' },
       },
     });
     expect(k8sListResourceMock).toHaveBeenNthCalledWith(2, {
@@ -557,8 +342,6 @@ describe('updateServingRuntime', () => {
     'test',
     mockServingRuntimeK8sResource({}),
     true,
-    mockModelServingPodSpecOptions({}),
-    false,
     false,
   );
   it('should update serving runtimes when isCustomServingRuntimesEnabled is false', async () => {
@@ -566,7 +349,6 @@ describe('updateServingRuntime', () => {
       data: mockServingRuntimeModalData({}),
       existingData,
       isCustomServingRuntimesEnabled: false,
-      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sUpdateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await updateServingRuntime(option);
@@ -585,7 +367,6 @@ describe('updateServingRuntime', () => {
       data: mockServingRuntimeModalData({}),
       existingData,
       isCustomServingRuntimesEnabled: true,
-      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sUpdateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await updateServingRuntime(option);
@@ -604,7 +385,6 @@ describe('updateServingRuntime', () => {
       data: mockServingRuntimeModalData({}),
       existingData,
       isCustomServingRuntimesEnabled: true,
-      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sUpdateResourceMock.mockRejectedValue(new Error('error1'));
     await expect(updateServingRuntime(option)).rejects.toThrow('error1');
@@ -630,8 +410,6 @@ describe('createServingRuntime', () => {
     'test',
     MocksevingRuntime,
     true,
-    mockModelServingPodSpecOptions({}),
-    false,
     false,
   );
   it('should create serving runtimes when isCustomServingRuntimesEnabled is false', async () => {
@@ -640,7 +418,6 @@ describe('createServingRuntime', () => {
       namespace: 'test',
       servingRuntime: existingData,
       isCustomServingRuntimesEnabled: false,
-      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sCreateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await createServingRuntime(option);
@@ -663,7 +440,6 @@ describe('createServingRuntime', () => {
       namespace: 'test',
       servingRuntime: existingData,
       isCustomServingRuntimesEnabled: true,
-      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sCreateResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
     const result = await createServingRuntime(option);
@@ -682,7 +458,6 @@ describe('createServingRuntime', () => {
       namespace: 'test',
       servingRuntime: existingData,
       isCustomServingRuntimesEnabled: true,
-      podSpecOptions: mockModelServingPodSpecOptions({}),
     };
     k8sCreateResourceMock.mockRejectedValue(new Error('error1'));
     await expect(createServingRuntime(option)).rejects.toThrow('error1');

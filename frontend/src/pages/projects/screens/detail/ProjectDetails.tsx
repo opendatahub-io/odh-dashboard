@@ -19,6 +19,7 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
+import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
@@ -31,7 +32,6 @@ import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import FeatureStoreIntegration from '#~/pages/projects/featureStoreConfig/FeatureStoreIntegration';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -39,7 +39,6 @@ import StorageList from './storage/StorageList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
-import RagChatbot from './chatbot/RagChatbot';
 
 import './ProjectDetails.scss';
 
@@ -50,6 +49,7 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
+  const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -57,7 +57,6 @@ const ProjectDetails: React.FC = () => {
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
-  const chatBotEnabled = useIsAreaAvailable(SupportedArea.LLAMA_STACK_CHAT_BOT).status;
 
   useCheckLogoutParams();
 
@@ -148,15 +147,6 @@ const ProjectDetails: React.FC = () => {
         sections={React.useMemo(
           () => [
             { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
-            ...(chatBotEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.CHATBOT,
-                    title: 'Chatbot',
-                    component: <RagChatbot />,
-                  },
-                ]
-              : []),
             ...(workbenchEnabled
               ? [
                   {
@@ -186,19 +176,23 @@ const ProjectDetails: React.FC = () => {
               title: 'Connections',
               component: <ConnectionsList />,
             },
-            {
-              id: ProjectSectionID.FEATURE_STORE,
-              title: 'Feature store integration',
-              component: <FeatureStoreIntegration />,
-            },
             ...(projectSharingEnabled && allowCreate
-              ? [
-                  {
-                    id: ProjectSectionID.PERMISSIONS,
-                    title: 'Permissions',
-                    component: <ProjectSharing />,
-                  },
-                ]
+              ? projectRBACEnabled
+                ? [
+                    {
+                      id: ProjectSectionID.PERMISSIONS,
+                      title: 'Permissions',
+                      component: <ProjectPermissions />,
+                      label: 'Tech preview',
+                    },
+                  ]
+                : [
+                    {
+                      id: ProjectSectionID.PERMISSIONS,
+                      title: 'Permissions',
+                      component: <ProjectSharing />,
+                    },
+                  ]
               : []),
             ...(biasMetricsAreaAvailable && allowCreate
               ? [
@@ -217,7 +211,6 @@ const ProjectDetails: React.FC = () => {
             projectSharingEnabled,
             workbenchEnabled,
             deploymentsTab,
-            chatBotEnabled,
           ],
         )}
       />

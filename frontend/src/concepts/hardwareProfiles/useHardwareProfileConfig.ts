@@ -1,17 +1,17 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
+import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import {
   filterProfilesByKueue,
   useKueueConfiguration,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -110,32 +110,32 @@ export const useHardwareProfileConfig = (
   tolerations?: Toleration[],
   nodeSelector?: NodeSelector,
   visibleIn?: HardwareProfileFeatureVisibility[],
-  namespace?: string,
+  resourceNamespace?: string,
   hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
-  const [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError] =
-    useHardwareProfilesByFeatureVisibility(visibleIn);
-  const [projectScopedProfiles, projectScopedProfilesLoaded, projectScopedProfilesLoadError] =
-    useHardwareProfilesByFeatureVisibility(visibleIn, namespace);
+  const { dashboardNamespace } = useDashboardNamespace();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+
+  const {
+    globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
+    projectProfiles: [
+      projectScopedProfiles,
+      projectScopedProfilesLoaded,
+      projectScopedProfilesLoadError,
+    ],
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace);
+
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
   });
 
-  let profiles = dashboardProfiles;
-  let profilesLoaded = dashboardProfilesLoaded;
-  let profilesLoadError = dashboardProfilesLoadError;
-  if (namespace) {
-    profiles = [...dashboardProfiles, ...projectScopedProfiles];
-    profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
-    profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
-  }
+  const profiles = [...dashboardProfiles, ...projectScopedProfiles];
+  const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
+  const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
-
-  const { dashboardNamespace } = useDashboardNamespace();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
   React.useEffect(() => {
@@ -149,16 +149,16 @@ export const useHardwareProfileConfig = (
       // if editing, try to select existing profile
       if (resources) {
         // try to match to existing profile
-        if (existingHardwareProfileName) {
-          if (hardwareProfileNamespace && hardwareProfileNamespace !== dashboardNamespace) {
+        if (existingHardwareProfileName && hardwareProfileNamespace) {
+          if (hardwareProfileNamespace === dashboardNamespace) {
+            selectedProfile = dashboardProfiles.find(
+              (profile) => profile.metadata.name === existingHardwareProfileName,
+            );
+          } else {
             selectedProfile = projectScopedProfiles.find(
               (profile) =>
                 profile.metadata.name === existingHardwareProfileName &&
                 profile.metadata.namespace === hardwareProfileNamespace,
-            );
-          } else {
-            selectedProfile = dashboardProfiles.find(
-              (profile) => profile.metadata.name === existingHardwareProfileName,
             );
           }
         } else {

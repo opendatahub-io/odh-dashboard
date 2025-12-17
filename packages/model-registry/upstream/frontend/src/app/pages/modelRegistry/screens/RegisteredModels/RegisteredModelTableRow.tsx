@@ -69,13 +69,16 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         );
       },
     },
-    {
+  ];
+
+  if (!isArchiveRow) {
+    baseActions.push({
       title: 'Deployments',
       onClick: () => {
         navigate(`${rmUrl}/deployments`);
       },
-    },
-  ];
+    });
+  }
 
   const latestVersionActionsHeader: IAction[] = [
     { isSeparator: true },

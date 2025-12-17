@@ -2,17 +2,17 @@ import React from 'react';
 import {
   AccessReviewResourceAttributes,
   K8sDSGResource,
-  ProjectKind,
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { Form, Stack, StackItem, Alert, FormGroup, FormSection } from '@patternfly/react-core';
-import { useAccessReview } from '../../../../../../frontend/src/api';
+import { useAccessReview } from '@odh-dashboard/internal/api/index';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
+import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
@@ -25,27 +25,40 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 
 type AdvancedSettingsStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  project: ProjectKind;
+  projectName?: string;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
   wizardState,
-  project,
+  projectName,
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
   const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
-  const selectedModelServer =
-    wizardState.state.modelFormatState.templatesFilteredForModelType?.find(
-      (template) =>
-        template.metadata.name === wizardState.state.modelServer.data?.name &&
-        template.metadata.namespace === wizardState.state.modelServer.data.namespace,
-    )?.objects[0];
+  const selectedModelServer = React.useMemo(() => {
+    const templates = wizardState.state.modelFormatState.templatesFilteredForModelType;
+    const modelServerData = wizardState.state.modelServer.data;
+    if (!modelServerData || !templates || templates.length === 0) {
+      return undefined;
+    }
+    const template = templates.find((tmpl) => tmpl.metadata.name === modelServerData.name);
 
-  const getKServeContainer = (servingRuntime?: ServingRuntimeKind): ServingContainer | undefined =>
-    servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container');
+    return template?.objects[0];
+  }, [
+    wizardState.state.modelFormatState.templatesFilteredForModelType,
+    wizardState.state.modelServer.data,
+  ]);
+
+  const getKServeContainer = (
+    servingRuntime?: ServingRuntimeKind,
+  ): ServingContainer | undefined => {
+    return (
+      servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container') ||
+      servingRuntime?.spec.containers.find((container) => container.name === 'main')
+    );
+  };
 
   // will return `undefined` if no kserve container, force empty array if there is kserve with no args
   const getKServeContainerArgs = (servingRuntime?: K8sDSGResource): string[] | undefined => {
@@ -70,7 +83,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 
   const [allowCreate] = useAccessReview({
     ...accessReviewResource,
-    namespace: project.metadata.name,
+    namespace: projectName,
   });
 
   const handleExternalRouteChange = (checked: boolean) => {
@@ -179,6 +192,20 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </Stack>
               </FormGroup>
             </StackItem>
+            {wizardState.state.deploymentStrategy.isVisible && (
+              <StackItem>
+                <FormGroup
+                  label="Deployment strategy"
+                  data-testid="deployment-strategy-section"
+                  fieldId="deployment-strategy"
+                >
+                  <DeploymentStrategyField
+                    value={wizardState.state.deploymentStrategy.data}
+                    onChange={wizardState.state.deploymentStrategy.setData}
+                  />
+                </FormGroup>
+              </StackItem>
+            )}
           </Stack>
         </FormSection>
       </Form>

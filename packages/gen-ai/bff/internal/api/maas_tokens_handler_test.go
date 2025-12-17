@@ -47,13 +47,12 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		var response models.MaaSTokenResponse
-		err = json.Unmarshal(body, &response)
+		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
+		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-
-		assert.NotEmpty(t, response.Token)
-		assert.NotEmpty(t, response.ExpiresAt)
-		assert.Contains(t, response.Token, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9") // JWT header
+		assert.NotEmpty(t, responseEnvelope.Data.Token)
+		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
+		assert.Contains(t, responseEnvelope.Data.Token, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9") // JWT header
 	})
 
 	t.Run("should issue token with custom TTL when provided", func(t *testing.T) {
@@ -79,12 +78,12 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		var response models.MaaSTokenResponse
-		err = json.Unmarshal(body, &response)
+		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
+		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-
-		assert.NotEmpty(t, response.Token)
-		assert.NotEmpty(t, response.ExpiresAt)
+		assert.NotEmpty(t, responseEnvelope.Data.Token)
+		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
+		assert.Contains(t, responseEnvelope.Data.Token, "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9") // JWT header
 	})
 
 	t.Run("should return error for invalid JSON", func(t *testing.T) {
@@ -122,13 +121,13 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		var response models.MaaSTokenResponse
-		err = json.Unmarshal(body, &response)
+		var responseEnvelope Envelope[models.MaaSTokenResponse, None]
+		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
 
 		// Verify required fields are present
-		assert.NotEmpty(t, response.Token, "Token should not be empty")
-		assert.NotEmpty(t, response.ExpiresAt, "ExpiresAt should not be empty")
+		assert.NotEmpty(t, responseEnvelope.Data.Token, "Token should not be empty")
+		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt, "ExpiresAt should not be empty")
 	})
 }
 

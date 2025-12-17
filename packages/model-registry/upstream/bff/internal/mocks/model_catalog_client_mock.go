@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/httpclient"
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+
+	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/httpclient"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -167,11 +168,11 @@ func (m *ModelCatalogClientMock) GetAllCatalogSources(client httpclient.HTTPClie
 	return &catalogSourceList, nil
 }
 
-func (m *ModelCatalogClientMock) GetCatalogModelArtifacts(client httpclient.HTTPClientInterface, sourceId string, modelName string) (*models.CatalogModelArtifactList, error) {
+func (m *ModelCatalogClientMock) GetCatalogSourceModelArtifacts(client httpclient.HTTPClientInterface, sourceId string, modelName string, pageValues url.Values) (*models.CatalogModelArtifactList, error) {
 	var allMockModelArtifacts models.CatalogModelArtifactList
 
 	if sourceId == "sample-source" && modelName == "repo1%2Fgranite-8b-code-instruct" {
-		performanceArtifacts := GetCatalogPerformanceMetricsArtifactListMock(3)
+		performanceArtifacts := GetCatalogPerformanceMetricsArtifactListMock(4)
 		accuracyArtifacts := GetCatalogAccuracyMetricsArtifactListMock()
 		modelArtifacts := GetCatalogModelArtifactListMock()
 		combinedItems := append(performanceArtifacts.Items, accuracyArtifacts.Items...)
@@ -201,8 +202,20 @@ func (m *ModelCatalogClientMock) GetCatalogModelArtifacts(client httpclient.HTTP
 	return &allMockModelArtifacts, nil
 }
 
+func (m *ModelCatalogClientMock) GetCatalogModelPerformanceArtifacts(client httpclient.HTTPClientInterface, sourceId string, modelName string, pageValues url.Values) (*models.CatalogModelArtifactList, error) {
+	allMockModelPerformanceArtifacts := GetCatalogPerformanceMetricsArtifactListMock(4)
+	return &allMockModelPerformanceArtifacts, nil
+
+}
+
 func (m *ModelCatalogClientMock) GetCatalogFilterOptions(client httpclient.HTTPClientInterface) (*models.FilterOptionsList, error) {
 	filterOptions := GetFilterOptionsListMock()
 
 	return &filterOptions, nil
+}
+
+func (m *ModelCatalogClientMock) CreateCatalogSourcePreview(client httpclient.HTTPClientInterface, sourcePreviewPaylod models.CatalogSourcePreviewRequest) (*models.CatalogSourcePreviewResult, error) {
+	catalogSourcePreview := CreateCatalogSourcePreviewMock()
+
+	return &catalogSourcePreview, nil
 }

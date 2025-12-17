@@ -5,11 +5,7 @@ import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
 import { errorHandler, isKubeFastifyInstance } from '../utils';
 import { DEV_MODE } from '../utils/constants';
-import {
-  cleanupGPU,
-  cleanupKserveRoleBindings,
-  initializeWatchedResources,
-} from '../utils/resourceUtils';
+import { cleanupKserveRoleBindings, initializeWatchedResources } from '../utils/resourceUtils';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
@@ -84,14 +80,6 @@ export default fp(async (fastify: FastifyInstance) => {
   // Initialize the watching of resources
   if (isKubeFastifyInstance(fastify)) {
     initializeWatchedResources(fastify);
-
-    cleanupGPU(fastify).catch((e) =>
-      fastify.log.error(
-        `Unable to fully convert GPU to use accelerator profiles. ${
-          e.response?.body?.message || e.message || e
-        }`,
-      ),
-    );
 
     cleanupKserveRoleBindings(fastify).catch((e) =>
       fastify.log.error(

@@ -1,4 +1,4 @@
-import { ProjectKind, ServingRuntimeKind, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { ServingRuntimeKind, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
@@ -18,19 +18,8 @@ import {
 import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
-export const getDeploymentWizardRoute = (currentpath: string, deploymentName?: string): string => {
-  if (deploymentName) {
-    return `${currentpath}/deploy/edit/${deploymentName}`;
-  }
-  return `${currentpath}/deploy/create`;
-};
-
-export const getDeploymentWizardExitRoute = (currentPath: string): string => {
-  let basePath = currentPath.substring(0, currentPath.lastIndexOf('deploy'));
-  if (basePath.includes('projects')) {
-    basePath += '?section=model-server';
-  }
-  return basePath;
+export const getDeploymentWizardRoute = (): string => {
+  return '/ai-hub/deployments/deploy';
 };
 
 export const getModelTypeFromDeployment = (
@@ -76,7 +65,6 @@ export const getTokenAuthenticationFromDeployment = (
 
 export const deployModel = async (
   wizardState: WizardFormData,
-  project: ProjectKind,
   secretName: string,
   exitWizard: () => void,
   deployMethod?: (
@@ -96,11 +84,15 @@ export const deployModel = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
 ): Promise<void> => {
+  const { projectName } = wizardState.state.project;
+  if (!projectName) {
+    throw new Error('Project is required');
+  }
   // Dry runs
   const [dryRunSecret] = await Promise.all([
     handleConnectionCreation(
       wizardState.state.createConnectionData.data,
-      project.metadata.name,
+      projectName,
       wizardState.state.modelLocationData.data,
       secretName,
       true,
@@ -110,7 +102,7 @@ export const deployModel = async (
       ? [
           deployMethod?.(
             wizardState.state,
-            project.metadata.name,
+            projectName,
             existingDeployment,
             serverResource,
             serverResourceTemplateName,
@@ -130,7 +122,7 @@ export const deployModel = async (
   // Create secret
   const newSecret = await handleConnectionCreation(
     wizardState.state.createConnectionData.data,
-    project.metadata.name,
+    projectName,
     wizardState.state.modelLocationData.data,
     realSecretName,
     false,
@@ -143,7 +135,7 @@ export const deployModel = async (
   // Create deployment
   const deploymentResult = await deployMethod?.(
     wizardState.state,
-    project.metadata.name,
+    projectName,
     existingDeployment,
     serverResource,
     serverResourceTemplateName,

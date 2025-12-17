@@ -82,7 +82,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-codestral-22b",
 				ModelID:        "llm-d-codestral-22b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Mistral Codestral 22B model optimized for code generation with llm-d prefill/decode separation",
@@ -97,7 +97,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-deepseek-coder-33b",
 				ModelID:        "llm-d-deepseek-coder-33b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "DeepSeek Coder 33B model with llm-d architecture for high-performance code completion",
@@ -192,7 +192,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-llama-3.1-70b",
 				ModelID:        "llm-d-llama-3.1-70b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Meta Llama 3.1 70B model served with llm-d disaggregated architecture for high throughput",
@@ -207,7 +207,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-mixtral-8x7b",
 				ModelID:        "llm-d-mixtral-8x7b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Mistral Mixtral 8x7B MoE model with llm-d prefill/decode separation for optimal performance",
@@ -222,7 +222,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 			{
 				ModelName:      "llm-d-qwen2.5-72b",
 				ModelID:        "llm-d-qwen2.5-72b",
-				ServingRuntime: "Distributed Inference Server with llm-d",
+				ServingRuntime: "Distributed inference with llm-d",
 				APIProtocol:    "REST",
 				Version:        "",
 				Description:    "Alibaba Qwen 2.5 72B model optimized with llm-d architecture for enterprise workloads",
@@ -400,10 +400,9 @@ providers:
     provider_type: inline::milvus
     config:
       db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
-      kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/milvus_registry.db
+      persistence:
+        namespace: vector_io::milvus
+        backend: kv_default
   safety: []
   eval: []
   files:
@@ -412,16 +411,15 @@ providers:
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
-        type: sqlite
-        db_path: /opt/app-root/src/.llama/distributions/rh/files_metadata.db
+        table_name: files_metadata
+        backend: sql_default
   datasetio:
   - provider_id: huggingface
     provider_type: remote::huggingface
     config:
       kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/huggingface_datasetio.db
+        namespace: datasetio::huggingface
+        backend: kv_default
   scoring:
   - provider_id: basic
     provider_type: inline::basic
@@ -449,6 +447,24 @@ metadata_store:
   db_path: /opt/app-root/src/.llama/distributions/rh/registry.db
   type: sqlite
   db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/sql_store.db
+  stores:
+    metadata:
+      namespace: registry
+      backend: kv_default
+    inference:
+      table_name: inference_store
+      backend: sql_default
+    conversations:
+      table_name: openai_conversations
+      backend: sql_default
 models:
   - metadata:
       embedding_dimension: 768

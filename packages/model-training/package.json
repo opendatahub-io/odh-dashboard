@@ -8,13 +8,20 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./types": "./src/types.ts",
+    "./k8sTypes": "./src/k8sTypes.ts",
+    "./__mocks__/*": [
+      "./src/__mocks__/*",
+      "./src/__mocks__/*.ts"
+    ]
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*"
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

@@ -1,13 +1,9 @@
 import * as React from 'react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import {
-  deleteVectorStoreFile,
-  getVectorStores,
-  listVectorStoreFiles,
-} from '~/app/services/llamaStackService';
 import { FileModel, VectorStoreFile } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 export interface UseFileManagementReturn {
   files: FileModel[];
@@ -50,9 +46,10 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [currentVectorStoreId, setCurrentVectorStoreId] = React.useState<string | null>(null);
+  const { api, apiAvailable } = useGenAiAPI();
 
   const refreshFiles = React.useCallback(async () => {
-    if (!namespace?.name) {
+    if (!apiAvailable) {
       return;
     }
 
@@ -61,7 +58,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
 
     try {
       // First, get the list of vector stores
-      const vectorStores = await getVectorStores(namespace.name);
+      const vectorStores = await api.listVectorStores();
 
       if (vectorStores.length === 0) {
         // No vector stores available, set empty files list
@@ -74,13 +71,13 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       setCurrentVectorStoreId(firstVectorStoreId);
 
       // Get files from the first vector store
-      const vectorStoreFiles = await listVectorStoreFiles(
-        namespace.name,
-        firstVectorStoreId,
-        50,
-        'desc',
-        'completed',
-      );
+      const vectorStoreFiles = await api.listVectorStoreFiles({
+        // eslint-disable-next-line camelcase
+        vector_store_id: firstVectorStoreId,
+        limit: 50,
+        order: 'desc',
+        filter: 'completed',
+      });
 
       // Convert vector store files to FileModel format
       const convertedFiles = vectorStoreFiles.map(convertVectorStoreFileToFileModel);
@@ -92,11 +89,11 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     } finally {
       setIsLoading(false);
     }
-  }, [namespace, onShowErrorAlert]);
+  }, [onShowErrorAlert, api, apiAvailable]);
 
   const deleteFileById = React.useCallback(
     async (fileId: string) => {
-      if (!namespace?.name || !currentVectorStoreId) {
+      if (!apiAvailable || !currentVectorStoreId) {
         return;
       }
 
@@ -104,7 +101,15 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       setError(null);
 
       try {
-        await deleteVectorStoreFile(namespace.name, currentVectorStoreId, fileId);
+        await api.deleteVectorStoreFile(
+          {},
+          {
+            /* eslint-disable camelcase */
+            vector_store_id: currentVectorStoreId,
+            file_id: fileId,
+            /* eslint-enable camelcase */
+          },
+        );
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
         fireFormTrackingEvent(DELETE_EVENT_NAME, {
@@ -125,7 +130,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         setIsDeleting(false);
       }
     },
-    [namespace, currentVectorStoreId, onShowDeleteSuccessAlert, onShowErrorAlert],
+    [currentVectorStoreId, onShowDeleteSuccessAlert, onShowErrorAlert, api, apiAvailable],
   );
 
   // Load files on mount and when namespace changes

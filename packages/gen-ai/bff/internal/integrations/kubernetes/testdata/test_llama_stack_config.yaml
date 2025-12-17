@@ -28,15 +28,21 @@ providers:
     config:
       url: https://us-south.ml.cloud.ibm.com/ml/v1
       api_key: ${env.WATSONX_API_KEY:=fake-key}
+  - provider_id: maas-vllm-inference-1
+    provider_type: remote::vllm
+    config:
+      url: http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1
+      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+      api_token: ${env.VLLM_API_TOKEN_1:=fake}
+      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   vector_io:
   - provider_id: milvus
     provider_type: inline::milvus
     config:
       db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
-      kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/milvus_registry.db
+      persistence:
+        namespace: vector_io::milvus
+        backend: kv_default
   safety:
   - provider_id: trustyai_fms
     provider_type: remote::trustyai_fms
@@ -49,13 +55,13 @@ providers:
   - provider_id: meta-reference
     provider_type: inline::meta-reference
     config:
-      persistence_store:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/agents_store.db
-      responses_store:
-        type: sqlite
-        db_path: /opt/app-root/src/.llama/distributions/rh/responses_store.db
+      persistence:
+        agent_state:
+          namespace: agents
+          backend: kv_default
+        responses:
+          table_name: responses
+          backend: sql_default
   eval: []
   files:
   - provider_id: meta-reference-files
@@ -63,16 +69,15 @@ providers:
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
-        type: sqlite
-        db_path: /opt/app-root/src/.llama/distributions/rh/files_metadata.db
+        table_name: files_metadata
+        backend: sql_default
   datasetio:
   - provider_id: huggingface
     provider_type: remote::huggingface
     config:
       kvstore:
-        type: sqlite
-        namespace: null
-        db_path: /opt/app-root/src/.llama/distributions/rh/huggingface_datasetio.db
+        namespace: datasetio::huggingface
+        backend: kv_default
   scoring:
   - provider_id: basic
     provider_type: inline::basic
@@ -102,28 +107,46 @@ providers:
 metadata_store:
   type: sqlite
   db_path: /opt/app-root/src/.llama/distributions/rh/registry.db
-models:
-  - metadata:
-      embedding_dimension: 768
-    model_id: granite-embedding-125m
-    provider_id: sentence-transformers
-    provider_model_id: ibm-granite/granite-embedding-125m-english
-    model_type: embedding
-  -
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/sql_store.db
+  stores:
     metadata:
-      display_name: llama-32-3b-instruct
-
-    model_id: llama-32-3b-instruct
-    provider_id: vllm-inference-1
-    model_type: llm
-  -
-    metadata:
-      display_name: granite-3.1-8b-instruct
-
-    model_id: granite-3.1-8b-instruct
-    provider_id: maas-watsonx
-    model_type: llm
-
+      namespace: registry
+      backend: kv_default
+    inference:
+      table_name: inference_store
+      backend: sql_default
+    conversations:
+      table_name: openai_conversations
+      backend: sql_default
+registered_resources:
+  models:
+    - metadata:
+        embedding_dimension: 768
+      model_id: granite-embedding-125m
+      provider_id: sentence-transformers
+      provider_model_id: ibm-granite/granite-embedding-125m-english
+      model_type: embedding
+    - metadata:
+        display_name: llama-32-3b-instruct
+      model_id: llama-32-3b-instruct
+      provider_id: vllm-inference-1
+      model_type: llm
+    - metadata:
+        display_name: granite-3.1-8b-instruct
+      model_id: granite-3.1-8b-instruct
+      provider_id: maas-watsonx
+      model_type: llm
+    - metadata: {}
+      model_id: facebook/opt-125m
+      provider_id: maas-vllm-inference-1
+      model_type: llm
 shields: []
 vector_dbs: []
 datasets: []

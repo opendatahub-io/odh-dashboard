@@ -20,6 +20,7 @@ const (
 	ResponsesPath                     = ApiPathPrefix + "/lsd/responses"
 	FilesListPath                     = ApiPathPrefix + "/lsd/files"
 	FilesUploadPath                   = ApiPathPrefix + "/lsd/files/upload"
+	FilesUploadStatusPath             = ApiPathPrefix + "/lsd/files/upload/status"
 	FilesDeletePath                   = ApiPathPrefix + "/lsd/files/delete"
 	VectorStoreFilesListPath          = ApiPathPrefix + "/lsd/vectorstores/files"
 	VectorStoreFilesUploadPath        = ApiPathPrefix + "/lsd/vectorstores/files/upload"
@@ -32,6 +33,7 @@ const (
 	CodeExporterPath = ApiPathPrefix + "/code-exporter"
 	NamespacesPath   = ApiPathPrefix + "/namespaces"
 	UserPath         = ApiPathPrefix + "/user"
+	ConfigPath       = ApiPathPrefix + "/config"
 
 	// MCP (Model Context Protocol) endpoint paths
 	MCPToolsPath  = ApiPathPrefix + "/mcp/tools"

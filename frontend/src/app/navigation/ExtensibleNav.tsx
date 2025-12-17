@@ -3,7 +3,7 @@ import { Nav, NavList } from '@patternfly/react-core';
 import { isNavExtension, NavExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { NavItem } from './NavItem';
-import { compareNavItemGroups } from './utils';
+import { getTopLevelExtensions } from './utils';
 
 type Props = {
   label: string;
@@ -11,10 +11,7 @@ type Props = {
 
 export const ExtensibleNav: React.FC<Props> = ({ label }) => {
   const extensions = useExtensions<NavExtension>(isNavExtension);
-  const topLevelExtensions = React.useMemo(
-    () => extensions.filter((e) => !e.properties.section).toSorted(compareNavItemGroups),
-    [extensions],
-  );
+  const topLevelExtensions = React.useMemo(() => getTopLevelExtensions(extensions), [extensions]);
 
   return (
     <Nav aria-label={label}>

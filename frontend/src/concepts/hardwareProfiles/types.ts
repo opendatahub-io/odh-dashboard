@@ -1,5 +1,9 @@
 import { AlertProps } from '@patternfly/react-core';
-import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import {
+  AcceleratorProfileKind,
+  HardwareProfileFeatureVisibility,
+  HardwareProfileKind,
+} from '#~/k8sTypes';
 import { ContainerResources, Toleration, NodeSelector } from '#~/types';
 import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { HardwareProfileBindingState } from '#~/concepts/hardwareProfiles/const';
@@ -29,8 +33,25 @@ export type PodSpecOptions = {
   selectedHardwareProfile?: HardwareProfileKind;
 };
 
-export type PodSpecOptionsState<T extends PodSpecOptions> = {
+export type HardwarePodSpecOptions = {
+  resources?: ContainerResources;
+  tolerations?: Toleration[];
+  nodeSelector?: NodeSelector;
+  selectedHardwareProfile?: HardwareProfileKind;
+};
+
+/**
+ * @deprecated
+ * only in modelmesh deprecation path
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
+export type PodSpecOptionsAcceleratorState<T extends PodSpecOptions> = {
   acceleratorProfile: ReturnType<typeof useAcceleratorProfileFormState>;
+  hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
+  podSpecOptions: T;
+};
+
+export type HardwarePodSpecOptionsState<T extends HardwarePodSpecOptions> = {
   hardwareProfile: ReturnType<typeof useHardwareProfileConfig>;
   podSpecOptions: T;
 };
@@ -53,4 +74,15 @@ export type HardwareProfileBindingConfig = {
     isRunning: boolean;
     name?: string;
   }) => string;
+};
+
+export type CrPathConfig = {
+  containerResourcesPath: string;
+  tolerationsPath: string;
+  nodeSelectorPath: string;
+};
+
+export type HardwareProfileOptions = {
+  visibleIn: HardwareProfileFeatureVisibility[];
+  paths?: CrPathConfig;
 };

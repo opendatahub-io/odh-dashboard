@@ -20,7 +20,8 @@ import * as _ from 'lodash-es';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
-import type { TokenAuthField } from '../types';
+import { isTokenAuthField } from '../types';
+import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 
 // Schema
 const tokenSchema = z.object({
@@ -50,21 +51,16 @@ export type TokenAuthenticationFieldHook = {
 
 export const useTokenAuthenticationField = (
   existingData?: TokenAuthenticationFieldData,
-  tokenAuthFields?: TokenAuthField[],
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
 ): TokenAuthenticationFieldHook => {
+  const tokenAuthExtension = useWizardFieldFromExtension(isTokenAuthField, {
+    modelType: { data: modelType?.data },
+    modelServer: { data: modelServer?.data },
+  });
   const shouldAutoCheck = React.useMemo(() => {
-    if (!modelType || !tokenAuthFields) return false;
-
-    const activeField = tokenAuthFields.find((field) =>
-      field.isActive({
-        modelType,
-        modelServer,
-      }),
-    );
-    return activeField?.initialValue ?? false;
-  }, [tokenAuthFields, modelType, modelServer]);
+    return tokenAuthExtension?.initialValue ?? false;
+  }, [tokenAuthExtension]);
 
   const initialData = React.useMemo(() => {
     // only auto check on create
@@ -162,7 +158,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               >
                 {newToken.error
                   ? newToken.error
-                  : 'Enter the service account name for which the token will be generated'}
+                  : 'Enter the name of the service account for which the token will be generated'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

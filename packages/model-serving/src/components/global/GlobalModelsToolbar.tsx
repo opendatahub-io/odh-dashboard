@@ -9,7 +9,6 @@ import {
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useParams } from 'react-router';
 import { DeployButton } from '../deploy/DeployButton';
-import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 type GlobalModelsToolbarProps = {
   filterData: ModelServingFilterDataType;
@@ -54,14 +53,7 @@ const GlobalModelsToolbar: React.FC<GlobalModelsToolbarProps> = ({
       {!hideDeployButton && (
         <ToolbarGroup>
           <ToolbarItem>
-            <DeployButton
-              project={currentProject ?? null}
-              createRoute={
-                currentProject?.metadata.name
-                  ? getDeploymentWizardRoute(`/ai-hub/deployments/${currentProject.metadata.name}`)
-                  : undefined
-              }
-            />
+            <DeployButton project={currentProject ?? null} />
           </ToolbarItem>
         </ToolbarGroup>
       )}

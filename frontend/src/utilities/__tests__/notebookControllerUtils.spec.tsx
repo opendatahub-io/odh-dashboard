@@ -3,8 +3,7 @@ import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
-import { getRoute } from '#~/services/routeService';
-import { Notebook, Route } from '#~/types';
+import { Notebook } from '#~/types';
 import { useNotebookRedirectLink, usernameTranslate } from '#~/utilities/notebookControllerUtils';
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
@@ -126,12 +125,6 @@ jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
   dashboardNamespace: 'opendatahub',
 }));
 
-jest.mock('#~/services/routeService', () => ({
-  getRoute: jest.fn(),
-}));
-
-const getRouteMock = getRoute as jest.Mock;
-
 describe('useNotebookRedirectLink', () => {
   it('should return successful with current notebook link', async () => {
     const renderResult = renderHook(() => useNotebookRedirectLink(), {
@@ -169,15 +162,8 @@ describe('useNotebookRedirectLink', () => {
       ),
     });
 
-    getRouteMock.mockReturnValue(Promise.resolve({ spec: { host: 'test-host' } } as Route));
-
     expect(await renderResult.result.current()).toBe(
-      `https://test-host/notebook/${mockNotebook.metadata.namespace}/${mockNotebook.metadata.name}`,
-    );
-
-    expect(getRouteMock).toHaveBeenCalledWith(
-      mockNotebook.metadata.namespace,
-      mockNotebook.metadata.name,
+      `/notebook/${mockNotebook.metadata.namespace}/${mockNotebook.metadata.name}`,
     );
   });
 });

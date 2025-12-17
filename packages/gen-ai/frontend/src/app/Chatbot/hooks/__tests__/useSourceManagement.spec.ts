@@ -1,64 +1,71 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
 import * as React from 'react';
-import { DropEvent } from '@patternfly/react-core';
 import useSourceManagement from '~/app/Chatbot/hooks/useSourceManagement';
 import { uploadSource } from '~/app/services/llamaStackService';
-import { ChatbotSourceSettings, FileUploadResult } from '~/app/types';
+import { ChatbotSourceSettings } from '~/app/types';
+import {
+  mockNamespace,
+  mockSourceSettings,
+  mockFile,
+  mockDropEvent,
+  mockUploadResult,
+} from './useSourceManagement.test-utils';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
+jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/Chatbot/hooks/useFileUploadWithPolling');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
 }));
 
-const mockUploadSource = uploadSource as jest.MockedFunction<typeof uploadSource>;
+const mockUploadSource = uploadSource as jest.Mock;
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+
+// Import after mocking
+const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+
+const { default: useFileUploadWithPolling } = jest.requireMock(
+  '~/app/Chatbot/hooks/useFileUploadWithPolling',
+);
+const mockUseFileUploadWithPolling = useFileUploadWithPolling as jest.Mock;
 
 describe('useSourceManagement', () => {
   const mockOnShowSuccessAlert = jest.fn();
   const mockOnShowErrorAlert = jest.fn();
-  const mockNamespace = { name: 'test-namespace' };
-
-  const mockSourceSettings: ChatbotSourceSettings = {
-    vectorStore: 'test-vector-store',
-    embeddingModel: 'test-embedding-model',
-    maxChunkLength: 1000,
-    chunkOverlap: 100,
-    delimiter: '\n\n',
-  };
-
-  const mockFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
-  const mockDropEvent = {} as DropEvent;
-
-  const mockUploadResult: FileUploadResult = {
-    file_id: 'file-123',
-    vector_store_file: {
-      id: 'vs-file-123',
-      object: 'vector_store.file',
-      created_at: 1234567890,
-      vector_store_id: 'test-vector-store',
-      status: 'completed',
-      usage_bytes: 1024,
-      chunking_strategy: {
-        type: 'static',
-        static: {
-          max_chunk_size_tokens: 1000,
-          chunk_overlap_tokens: 100,
-        },
-      },
-      attributes: {
-        description: 'Test file',
-      },
-    },
-  };
+  let mockUploadFile: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
     mockUploadSource.mockResolvedValue(mockUploadResult);
+
+    const mockGetFileUploadStatus = jest.fn().mockResolvedValue({
+      status: 'completed',
+      job_id: 'test-job-id',
+    });
+
+    // Mock useGenAiAPI to return the API object with mocked functions
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: {
+        uploadSource: mockUploadSource,
+        getFileUploadStatus: mockGetFileUploadStatus,
+      },
+    });
+
+    // Mock useFileUploadWithPolling to return a simple mock that resolves immediately
+    mockUploadFile = jest.fn().mockResolvedValue({ success: true });
+    mockUseFileUploadWithPolling.mockReturnValue({
+      uploadFile: mockUploadFile,
+      uploadState: { fileName: '', status: 'idle' },
+      isUploading: false,
+      cancelUpload: jest.fn(),
+    });
   });
 
   afterEach(() => {
@@ -160,7 +167,7 @@ describe('useSourceManagement', () => {
       expect(result.current.filesWithSettings[1].status).toBe('pending');
     });
 
-    it('should open source settings modal after delay when files are dropped', async () => {
+    it('should open source settings modal immediately when files are dropped', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -172,14 +179,7 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
-      expect(result.current.isSourceSettingsOpen).toBe(false);
-      expect(result.current.currentFileForSettings).toBeNull();
-
-      // Fast-forward the timer
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
+      // The modal should open immediately via useEffect when pending files are detected
       expect(result.current.isSourceSettingsOpen).toBe(true);
       expect(result.current.currentFileForSettings).toEqual(mockFile);
     });
@@ -243,21 +243,6 @@ describe('useSourceManagement', () => {
   });
 
   describe('handleSourceSettingsSubmit', () => {
-    beforeEach(async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      return { result };
-    });
-
     it('should upload source successfully with valid settings and namespace', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
@@ -282,7 +267,9 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).toHaveBeenCalledWith(mockFile, mockSourceSettings, 'test-namespace');
+      // Check that uploadFile was called (from useFileUploadWithPolling)
+      expect(mockUploadFile).toHaveBeenCalledWith(mockFile, mockSourceSettings);
+
       expect(result.current.selectedSourceSettings).toEqual(mockSourceSettings);
       expect(result.current.isSourceSettingsOpen).toBe(false);
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
@@ -295,7 +282,11 @@ describe('useSourceManagement', () => {
     it('should handle upload failure and show error alert', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      mockUploadSource.mockRejectedValue(new Error('Upload failed'));
+      // Mock uploadFile to fail
+      mockUploadFile.mockResolvedValue({
+        success: false,
+        error: 'Upload failed',
+      });
 
       const { result } = renderHook(() =>
         useSourceManagement({
@@ -318,17 +309,23 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).toHaveBeenCalledWith(mockFile, mockSourceSettings, 'test-namespace');
+      // Check that uploadFile was called
+      expect(mockUploadFile).toHaveBeenCalledWith(mockFile, mockSourceSettings);
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
 
-      // Check that file status was updated to failed
-      expect(result.current.filesWithSettings[0].status).toBe('failed');
+      // When upload fails, the file is removed from filesWithSettings (not marked as 'failed')
+      expect(result.current.filesWithSettings).toHaveLength(0);
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle error when namespace is missing', async () => {
-      mockUseContext.mockReturnValue({ namespace: undefined });
+    it('should handle error when API is not available', async () => {
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: false,
+        api: {
+          uploadSource: mockUploadSource,
+        },
+      });
 
       const { result } = renderHook(() =>
         useSourceManagement({
@@ -351,36 +348,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).not.toHaveBeenCalled();
-      expect(mockOnShowErrorAlert).toHaveBeenCalled();
-      expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
-    });
-
-    it('should handle error when namespace name is empty', async () => {
-      mockUseContext.mockReturnValue({ namespace: { name: '' } });
-
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      // Set up file first
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Fast-forward timer to set current file
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      await act(async () => {
-        await result.current.handleSourceSettingsSubmit(mockSourceSettings);
-      });
-
-      expect(mockUploadSource).not.toHaveBeenCalled();
+      // When API is not available, uploadFile should not be called
+      expect(mockUploadFile).not.toHaveBeenCalled();
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
     });
@@ -413,7 +382,7 @@ describe('useSourceManagement', () => {
       expect(result.current.filesWithSettings).toHaveLength(0);
       expect(result.current.selectedSourceSettings).toBeNull();
       expect(result.current.isSourceSettingsOpen).toBe(false);
-      expect(mockUploadSource).not.toHaveBeenCalled();
+      expect(mockUploadFile).not.toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
     });
@@ -433,14 +402,14 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).not.toHaveBeenCalled();
+      expect(mockUploadFile).not.toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
     });
   });
 
-  describe('timer behavior', () => {
-    it('should not open modal when no files are pending', () => {
+  describe('additional behaviors', () => {
+    it('should not open modal when no files are pending after timer', () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -448,74 +417,14 @@ describe('useSourceManagement', () => {
         }),
       );
 
-      expect(result.current.isSourceSettingsOpen).toBe(false);
-
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
+      act(() => jest.advanceTimersByTime(100));
       expect(result.current.isSourceSettingsOpen).toBe(false);
     });
 
-    it('should process multiple files sequentially', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
-
-      // Add multiple files
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile, mockFile2]);
-      });
-
-      expect(result.current.filesWithSettings).toHaveLength(2);
-
-      // Fast-forward timer to process first file
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      expect(result.current.isSourceSettingsOpen).toBe(true);
-      expect(result.current.currentFileForSettings).toEqual(mockFile);
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle uploadSource with network timeout', async () => {
-      mockUploadSource.mockRejectedValue(new Error('Network timeout'));
-
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Fast-forward timer to set current file
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      await act(async () => {
-        await result.current.handleSourceSettingsSubmit(mockSourceSettings);
-      });
-
-      expect(mockOnShowErrorAlert).toHaveBeenCalled();
-    });
-
-    it('should handle partial source settings', async () => {
+    it('should handle partial source settings without optional fields', async () => {
       const partialSettings: ChatbotSourceSettings = {
         vectorStore: 'test-vector-store',
         embeddingModel: 'test-embedding-model',
-        // Missing optional fields
       };
 
       const { result } = renderHook(() =>
@@ -527,10 +436,6 @@ describe('useSourceManagement', () => {
 
       await act(async () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      // Fast-forward timer to set current file
-      act(() => {
         jest.advanceTimersByTime(100);
       });
 
@@ -538,31 +443,9 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(partialSettings);
       });
 
-      expect(mockUploadSource).toHaveBeenCalledWith(mockFile, partialSettings, 'test-namespace');
+      // Check that uploadFile was called with partial settings
+      expect(mockUploadFile).toHaveBeenCalledWith(mockFile, partialSettings);
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
-    });
-
-    it('should handle rapid successive file drops', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      const file1 = new File(['content1'], 'file1.txt', { type: 'text/plain' });
-      const file2 = new File(['content2'], 'file2.txt', { type: 'text/plain' });
-
-      // Drop files in rapid succession
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [file1]);
-        await result.current.handleSourceDrop(mockDropEvent, [file2]);
-      });
-
-      // Should accumulate all files
-      expect(result.current.filesWithSettings).toHaveLength(2);
-      expect(result.current.filesWithSettings[0].file).toEqual(file1);
-      expect(result.current.filesWithSettings[1].file).toEqual(file2);
     });
   });
 });

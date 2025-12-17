@@ -1,4 +1,3 @@
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
 
@@ -13,7 +12,6 @@ export type ModelRegistryDeployModalExtension = Extension<
           loaded: boolean;
           error: Error | undefined;
         };
-        onSubmit: () => void;
         onClose: () => void;
       }>
     >;

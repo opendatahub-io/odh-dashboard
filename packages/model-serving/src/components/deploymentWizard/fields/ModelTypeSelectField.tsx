@@ -5,6 +5,7 @@ import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ModelTypeLabel } from '../types';
 
 // Schema
 
@@ -43,9 +44,11 @@ type ModelTypeSelectFieldProps = {
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
   isEditing?: boolean;
+  isDisabled?: boolean;
 };
 export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   modelType,
+  isDisabled,
   setModelType,
   validationProps,
   validationIssues = [],
@@ -56,11 +59,11 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       options={[
         {
           key: ServingRuntimeModelType.PREDICTIVE,
-          label: 'Predictive model',
+          label: ModelTypeLabel.PREDICTIVE,
         },
         {
           key: ServingRuntimeModelType.GENERATIVE,
-          label: 'Generative AI model (e.g. LLM)',
+          label: ModelTypeLabel.GENERATIVE,
         },
       ]}
       onChange={(key) => {
@@ -71,9 +74,9 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       onBlur={validationProps?.onBlur}
       placeholder="Select model type"
       value={modelType}
-      toggleProps={{ style: { minWidth: '250px' } }}
+      toggleProps={{ style: { minWidth: '300px' } }}
       dataTestId="model-type-select"
-      isDisabled={isEditing}
+      isDisabled={isEditing || isDisabled}
     />
     <ZodErrorHelperText zodIssue={validationIssues} />
   </FormGroup>

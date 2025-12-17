@@ -87,7 +87,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
       const adminDescription = (
         <>
           No model registries are available to users in your organization. Create a model registry
-          from the <b>Model registry settings</b> page.
+          from the <b>AI registry settings</b> page.
         </>
       );
 
@@ -114,7 +114,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
                 <WhosMyAdministrator />
               ) : (
                 <Link to={modelRegistrySettingsRoute()}>
-                  Go to <b>Model registry settings</b>
+                  Go to <b>AI registry settings</b>
                 </Link>
               )
             }

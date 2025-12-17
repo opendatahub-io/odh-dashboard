@@ -1,10 +1,17 @@
 import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '#~/types';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
-import { NotebookPodSpecOptions } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { AwsKeys } from './dataConnections/const';
+import { NotebookFeatureStore } from './screens/spawner/featureStore/utils';
+
+export type FeastData = {
+  featureStores: NotebookFeatureStore[];
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
+};
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
   propKey: K,
@@ -76,12 +83,13 @@ export type StartNotebookData = {
   projectName: string;
   notebookData: K8sNameDescriptionFieldData;
   image: ImageStreamAndVersion;
-  podSpecOptions: NotebookPodSpecOptions;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
   dashboardNamespace?: string;
   connections?: Connection[];
+  hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
+  feastData?: FeastData;
 };
 
 export type SecretRef = {
@@ -132,10 +140,6 @@ export enum NamespaceApplicationCase {
    */
   DSG_CREATION,
   /**
-   * Upgrade an existing DSG project to work with model mesh.
-   */
-  MODEL_MESH_PROMOTION,
-  /**
    * Upgrade an existing DSG project to work with model kserve.
    */
   KSERVE_PROMOTION,
@@ -144,7 +148,7 @@ export enum NamespaceApplicationCase {
    */
   KSERVE_NIM_PROMOTION,
   /**
-   * Downgrade a project from Modelmesh, Kserve or NIM so the platform can be selected again.
+   * Reset a project's model serving platform configuration so the platform can be selected again.
    */
   RESET_MODEL_SERVING_PLATFORM,
 }

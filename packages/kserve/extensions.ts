@@ -15,12 +15,17 @@ import type {
   ModelServingDeploy,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
+import {
+  DataScienceStackComponent,
+  SupportedArea,
+} from '@odh-dashboard/internal/concepts/areas/index';
+import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
 
 const extensions: (
+  | AreaExtension
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
@@ -32,6 +37,15 @@ const extensions: (
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
 )[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: SupportedArea.K_SERVE,
+      featureFlags: ['disableKServe'],
+      requiredComponents: [DataScienceStackComponent.K_SERVE],
+      reliantAreas: [SupportedArea.MODEL_SERVING],
+    },
+  },
   {
     type: 'model-serving.platform',
     properties: {
@@ -70,6 +84,9 @@ const extensions: (
       platform: KSERVE_ID,
       watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.platform/delete-deployment',
@@ -79,6 +96,9 @@ const extensions: (
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.metrics',
@@ -86,7 +106,7 @@ const extensions: (
       platform: KSERVE_ID,
     },
     flags: {
-      required: [SupportedArea.K_SERVE_METRICS],
+      required: [SupportedArea.K_SERVE, SupportedArea.K_SERVE_METRICS],
     },
   },
   {
@@ -94,6 +114,9 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       ServingDetailsComponent: () => import('./src/components/deploymentServingDetails'),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -103,12 +126,18 @@ const extensions: (
       patchDeploymentStoppedStatus: () =>
         import('./src/deploymentStatus').then((m) => m.patchDeploymentStoppedStatus),
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.platform/fetch-deployment-status',
     properties: {
       platform: KSERVE_ID,
       fetch: () => import('./src/deployments').then((m) => m.fetchDeploymentStatus),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -126,6 +155,15 @@ const extensions: (
         import('./src/aiAssets').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>
         import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
+      extractDeploymentStrategy: () =>
+        import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
+      extractModelServerTemplate: () =>
+        import('./src/deployServer').then((m) => m.extractModelServerTemplate),
+      hardwareProfilePaths: () =>
+        import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -136,6 +174,9 @@ const extensions: (
       priority: 0,
       supportsOverwrite: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
 ];

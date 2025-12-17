@@ -17,7 +17,12 @@ const CustomServingRuntimeModelTypeSelector: React.FC<
   CustomServingRuntimeModelTypeSelectorProps
 > = ({ selectedModelTypes, setSelectedModelTypes }) => {
   const modelTypeOptions = React.useMemo<CheckboxSelectOption[]>(
-    () => Options.map((o) => ({ ...o, selected: selectedModelTypes.includes(o.value) })),
+    () =>
+      Options.map((o) => ({
+        ...o,
+        selected: selectedModelTypes.includes(o.value),
+        'data-testid': `model-type-option-${o.value.toLowerCase()}`,
+      })),
     [selectedModelTypes],
   );
 
@@ -27,23 +32,27 @@ const CustomServingRuntimeModelTypeSelector: React.FC<
       id="custom-serving-model-type-selection"
       isRequired
     >
-      <CheckboxSelect
-        toggleContent="Select model types"
-        initialOptions={modelTypeOptions}
-        onSelect={(_ev, value) => {
-          if (
-            typeof value === 'string' &&
-            (value === ServingRuntimeModelType.PREDICTIVE ||
-              value === ServingRuntimeModelType.GENERATIVE)
-          ) {
-            const val = value;
-            const newSelected = selectedModelTypes.includes(val)
-              ? selectedModelTypes.filter((item) => item !== val)
-              : [...selectedModelTypes, val];
-            setSelectedModelTypes(newSelected);
-          }
-        }}
-      />
+      {/* For some reason data-testid is not working on the CheckboxSelect component */}
+      {/* so we wrap it in a div with data-testid */}
+      <div data-testid="custom-serving-model-type-selection">
+        <CheckboxSelect
+          toggleContent="Select model types"
+          initialOptions={modelTypeOptions}
+          onSelect={(_ev, value) => {
+            if (
+              typeof value === 'string' &&
+              (value === ServingRuntimeModelType.PREDICTIVE ||
+                value === ServingRuntimeModelType.GENERATIVE)
+            ) {
+              const val = value;
+              const newSelected = selectedModelTypes.includes(val)
+                ? selectedModelTypes.filter((item) => item !== val)
+                : [...selectedModelTypes, val];
+              setSelectedModelTypes(newSelected);
+            }
+          }}
+        />
+      </div>
     </FormGroup>
   );
 };

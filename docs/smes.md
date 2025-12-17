@@ -41,7 +41,7 @@ Below there will be some terms like “previous” and “backup”, these are f
 - Data Science Projects
     - Feature lead: `Andrew` ([andrewballantyne])
     - UX: `Kyle` ([kywalker-rh]) **and** `Kun` ([xianli123])
-- Data Science Pipelines
+- Pipelines
     - Feature lead: `Andrew` ([andrewballantyne])
     - UX: `Yan` ([yannnz])
         - Previous: `Kyle` ([kywalker-rh])

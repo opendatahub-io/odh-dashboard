@@ -20,13 +20,23 @@
   },
   "exports": {
     "./extensions": "./plugins/extensions/index.ts",
+    "./app/AppContext": "./app/AppContext.ts",
+    "./app/AppLauncher": "./app/AppLauncher.tsx",
+    "./app/ThemeContext": "./app/ThemeContext.tsx",
+    "./app/*": null,
+    "./plugin/*": null,
+    "./third_party/*": null,
     "./*": [
       "./*",
       "./*.ts",
-      "./*.tsx"
+      "./*.d.ts",
+      "./*.tsx",
+      "./*/index.ts",
+      "./*/index.tsx"
     ]
   },
   "dependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {

@@ -13,6 +13,7 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '#~/__mocks__/mockUseAssignHardwareProfileResult';
 
 import {
   assembleNotebook,
@@ -215,7 +216,7 @@ describe('assembleNotebook', () => {
           },
         },
       },
-      podSpecOptions: {},
+      hardwareProfileOptions: mockStartNotebookData({}).hardwareProfileOptions,
     };
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection']).toBe(
@@ -299,31 +300,65 @@ describe('assembleNotebook', () => {
   });
 
   it('should set hardware profile annotation for real profiles', () => {
-    const notebookData = mockStartNotebookData({});
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
-    hardwareProfile.metadata.uid = 'test-uid';
-    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const notebookData = mockStartNotebookData({});
+    notebookData.hardwareProfileOptions = mockUseAssignHardwareProfileResult({
+      selectedHardwareProfile: hardwareProfile,
+    });
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'real-profile',
     );
   });
 
-  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles', () => {
+  it('should apply hardware profile annotations even without scheduling config', () => {
     const notebookData = mockStartNotebookData({});
-    const hardwareProfile = mockHardwareProfile({});
-    hardwareProfile.metadata.uid = 'test-uid';
-    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const hardwareProfile = mockHardwareProfile({
+      schedulingType: '',
+      name: 'no-scheduling-profile',
+    });
+    notebookData.hardwareProfileOptions = mockUseAssignHardwareProfileResult({
+      selectedHardwareProfile: hardwareProfile,
+    });
+
     const result = assembleNotebook(notebookData, 'test-user');
+
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'no-scheduling-profile',
+    );
+
+    expect(result.spec.template.spec.containers[0].resources).toEqual({
+      requests: {
+        memory: '2Gi',
+        cpu: '500m',
+      },
+      limits: {
+        memory: '2Gi',
+        cpu: '500m',
+      },
+    });
+    // the following should be injected by the operator's mutating webhook
     expect(result.spec.template.spec.tolerations).toBeUndefined();
     expect(result.spec.template.spec.nodeSelector).toBeUndefined();
   });
 
   it('should set hardware profile namespace annotation to dashboard namespace when global scoped', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile', namespace: 'opendatahub' });
     const notebookData = mockStartNotebookData({});
-    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
-    hardwareProfile.metadata.uid = 'test-uid';
-    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    notebookData.hardwareProfileOptions = mockUseAssignHardwareProfileResult({
+      selectedHardwareProfile: hardwareProfile,
+      resources: {
+        requests: {
+          memory: '2Gi',
+          cpu: '500m',
+        },
+        limits: {
+          memory: '2Gi',
+          cpu: '500m',
+        },
+      },
+    });
+
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
       'opendatahub',

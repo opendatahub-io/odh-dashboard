@@ -1,0 +1,208 @@
+{
+  "data": {
+    "server_url": "https://kubernetes-mcp-server.local/mcp",
+    "status": "success",
+    "message": "Successfully retrieved 10 tools",
+    "last_checked": 1762270224,
+    "server_info": {
+      "name": "kubernetes-mcp-server",
+      "version": "1.0.0",
+      "protocol_version": "2025-06-18"
+    },
+    "tools_count": 10,
+    "tools": [
+      {
+        "name": "list_pods",
+        "description": "List all pods in a namespace or across all namespaces",
+        "input_schema": {
+          "properties": {
+            "namespace": {
+              "description": "Kubernetes namespace (optional, defaults to 'default')",
+              "type": "string"
+            },
+            "all_namespaces": {
+              "description": "List pods across all namespaces",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      {
+        "name": "get_pod",
+        "description": "Get detailed information about a specific pod",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Pod name",
+              "type": "string"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "required": ["name", "namespace"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "create_deployment",
+        "description": "Create a new Kubernetes deployment",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Deployment name",
+              "type": "string"
+            },
+            "image": {
+              "description": "Container image",
+              "type": "string"
+            },
+            "replicas": {
+              "description": "Number of replicas",
+              "type": "integer"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "required": ["name", "image"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "delete_deployment",
+        "description": "Delete a Kubernetes deployment",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Deployment name",
+              "type": "string"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "required": ["name", "namespace"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "scale_deployment",
+        "description": "Scale a deployment to specified number of replicas",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Deployment name",
+              "type": "string"
+            },
+            "replicas": {
+              "description": "Target number of replicas",
+              "type": "integer"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "required": ["name", "replicas", "namespace"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "get_logs",
+        "description": "Get logs from a pod",
+        "input_schema": {
+          "properties": {
+            "pod_name": {
+              "description": "Pod name",
+              "type": "string"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            },
+            "container": {
+              "description": "Container name (optional)",
+              "type": "string"
+            },
+            "tail": {
+              "description": "Number of lines to tail",
+              "type": "integer"
+            }
+          },
+          "required": ["pod_name", "namespace"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "list_services",
+        "description": "List all services in a namespace",
+        "input_schema": {
+          "properties": {
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      {
+        "name": "create_service",
+        "description": "Create a new Kubernetes service",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Service name",
+              "type": "string"
+            },
+            "selector": {
+              "description": "Pod selector labels",
+              "type": "object"
+            },
+            "port": {
+              "description": "Service port",
+              "type": "integer"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "required": ["name", "port", "namespace"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "delete_service",
+        "description": "Delete a Kubernetes service",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Service name",
+              "type": "string"
+            },
+            "namespace": {
+              "description": "Kubernetes namespace",
+              "type": "string"
+            }
+          },
+          "required": ["name", "namespace"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "get_cluster_info",
+        "description": "Get Kubernetes cluster information",
+        "input_schema": {
+          "properties": {},
+          "type": "object"
+        }
+      }
+    ]
+  }
+}

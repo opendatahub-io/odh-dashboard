@@ -27,7 +27,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     aiModelsError,
     maasModels,
     maasModelsLoaded,
-    maasModelsError,
     models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
@@ -37,6 +36,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = React.useState(false);
 
   // Check if there are any models available (either AI assets or MaaS models)
   const hasModels = aiModels.length > 0 || maasModels.length > 0;
@@ -95,7 +95,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || (aiModelsError && maasModelsError)}
+        loadError={lsdStatusError || aiModelsError}
         headerAction={
           <ChatbotHeaderActions
             onViewCode={() => {
@@ -104,6 +104,10 @@ const ChatbotMain: React.FunctionComponent = () => {
             }}
             onConfigurePlayground={() => setConfigurationModalOpen(true)}
             onDeletePlayground={() => setDeleteModalOpen(true)}
+            onNewChat={() => {
+              setIsNewChatModalOpen(true);
+              fireSimpleTrackingEvent('Playground New Chat Selected');
+            }}
           />
         }
       >
@@ -111,6 +115,8 @@ const ChatbotMain: React.FunctionComponent = () => {
           <ChatbotPlayground
             isViewCodeModalOpen={isViewCodeModalOpen}
             setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+            isNewChatModalOpen={isNewChatModalOpen}
+            setIsNewChatModalOpen={setIsNewChatModalOpen}
           />
         ) : lsdStatus?.phase === 'Failed' ? (
           <EmptyState

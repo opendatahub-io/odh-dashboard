@@ -9,9 +9,7 @@ resources:
   - auth-delegator.clusterrolebinding.yaml
   - cluster-monitoring-role-binding.yaml
   - deployment.yaml
-  - routes.yaml
   - service.yaml
-  - oauth.secret.yaml
   - fetch-builds-and-images.rbac.yaml
   - image-puller.clusterrolebinding.yaml
   - model-serving-role.yaml
@@ -19,3 +17,6 @@ resources:
   - fetch-hardwares.rbac.yaml
   - fetch-nim-account.rbac.yaml
   - aggregate-permissions.rbac.yaml
+  - gen-ai-aa-mcp-servers.rbac.yaml
+  - kube-rbac-proxy-config.yaml
+  - httproute.yaml

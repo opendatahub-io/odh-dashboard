@@ -1,6 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import httpProxy from '@fastify/http-proxy';
-import { FastifyReplyFromHooks } from '@fastify/reply-from';
+import httpProxy, { FastifyHttpProxyOptions } from '@fastify/http-proxy';
 import { K8sResourceCommon, KubeFastifyInstance, ServiceAddressAnnotation } from '../types';
 import { isK8sStatus, passThroughResource } from './pass-through';
 import { DEV_MODE } from './constants';
@@ -203,7 +202,7 @@ export const registerProxy = async (
     onError,
   }: {
     prefix: string;
-    rewritePrefix: string;
+    rewritePrefix?: string;
     authorize?: boolean;
     tls?: boolean;
     service: {
@@ -215,17 +214,17 @@ export const registerProxy = async (
       host?: string;
       port?: number | string;
     };
-    onError?: FastifyReplyFromHooks['onError'];
+    onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
   },
 ): Promise<void> => {
-  const scheme = tls ? 'https' : 'http';
+  const scheme = tls === false ? 'http' : 'https';
   const upstream = DEV_MODE
     ? `${scheme}://${local?.host || 'localhost'}:${local?.port ?? service.port}`
     : `${scheme}://${service.name}.${service.namespace}.svc.cluster.local:${service.port}`;
-  fastify.log.info(`Proxy setup for: ${prefix} -> ${upstream}`);
+  fastify.log.info(`Proxy setup for: ${prefix} -> ${upstream}, rewritePrefix: ${rewritePrefix}`);
   return fastify.register(httpProxy, {
     prefix,
-    rewritePrefix,
+    rewritePrefix: rewritePrefix ?? '',
     upstream,
     replyOptions: {
       getUpstream: () => upstream,
