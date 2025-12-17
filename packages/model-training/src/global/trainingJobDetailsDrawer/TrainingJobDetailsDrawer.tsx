@@ -16,6 +16,7 @@ import {
   Divider,
   Flex,
   FlexItem,
+  Spinner,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { PodKind } from '@odh-dashboard/internal/k8sTypes';
@@ -38,6 +39,7 @@ type TrainingJobDetailsDrawerProps = {
   onClose: () => void;
   onDelete: (job: TrainJobKind) => void;
   onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
+  onTogglingChange?: (jobId: string | undefined) => void;
 };
 
 const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
@@ -47,6 +49,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
   onClose,
   onDelete,
   onStatusUpdate,
+  onTogglingChange,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
@@ -76,6 +79,20 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
   } = useTrainingJobPauseResume(job, onStatusUpdate);
 
   const { isPaused, canPauseResume } = getStatusFlags(jobStatus || TrainingJobState.UNKNOWN);
+
+  // Track previous isToggling value to close dropdown when action completes
+  // and notify parent of toggling state changes
+  const wasTogglingRef = React.useRef(false);
+  React.useEffect(() => {
+    if (wasTogglingRef.current && !isToggling) {
+      setIsKebabOpen(false);
+    }
+    wasTogglingRef.current = isToggling;
+
+    // Notify parent of toggling state change
+    const jobId = job?.metadata.uid || job?.metadata.name;
+    onTogglingChange?.(isToggling ? jobId : undefined);
+  }, [isToggling, job?.metadata.uid, job?.metadata.name, onTogglingChange]);
 
   // Reset pod selection when job changes (e.g., new TrainJob re-created)
   React.useEffect(() => {
@@ -118,7 +135,6 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
             <DrawerActions>
               <Dropdown
                 isOpen={isKebabOpen}
-                onSelect={() => setIsKebabOpen(false)}
                 onOpenChange={(isOpen: boolean) => setIsKebabOpen(isOpen)}
                 popperProps={{ position: 'right' }}
                 toggle={(toggleRef) => (
@@ -136,7 +152,13 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
               >
                 <DropdownList>
                   {canScaleNodes && (
-                    <DropdownItem key="scale-nodes" onClick={() => setScaleNodesModalOpen(true)}>
+                    <DropdownItem
+                      key="scale-nodes"
+                      onClick={() => {
+                        setIsKebabOpen(false);
+                        setScaleNodesModalOpen(true);
+                      }}
+                    >
                       Edit node count
                     </DropdownItem>
                   )}
@@ -145,12 +167,19 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                       key="pause-resume"
                       onClick={isPaused ? handleResume : onPauseClick}
                       isDisabled={isToggling}
+                      icon={isToggling ? <Spinner size="sm" /> : undefined}
                     >
                       {isPaused ? 'Resume job' : 'Pause job'}
                     </DropdownItem>
                   )}
                   {(canScaleNodes || canPauseResume) && <Divider component="li" key="separator" />}
-                  <DropdownItem key="delete" onClick={() => onDelete(job)}>
+                  <DropdownItem
+                    key="delete"
+                    onClick={() => {
+                      setIsKebabOpen(false);
+                      onDelete(job);
+                    }}
+                  >
                     Delete job
                   </DropdownItem>
                 </DropdownList>

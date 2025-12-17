@@ -30,6 +30,7 @@ type TrainingJobTableRowProps = {
   onDelete: (job: TrainJobKind) => void;
   onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: TrainJobKind) => void;
+  isExternallyToggling?: boolean;
 };
 
 const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
@@ -38,6 +39,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   onDelete,
   onStatusUpdate,
   onSelectJob,
+  isExternallyToggling = false,
 }) => {
   const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
@@ -199,7 +201,7 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
               isPaused={isPaused}
               onPause={onPauseClick}
               onResume={handleResume}
-              isLoading={isToggling}
+              isLoading={isToggling || isExternallyToggling}
             />
           )}
         </Td>
