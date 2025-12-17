@@ -12,7 +12,7 @@ export const tierColumns: SortableData<Tier>[] = [
     field: 'level',
     label: 'Level',
     width: 10,
-    sortable: (a: Tier, b: Tier): number => a.level - b.level,
+    sortable: (a: Tier, b: Tier): number => (a.level ?? 0) - (b.level ?? 0),
   },
   {
     field: 'groups',
