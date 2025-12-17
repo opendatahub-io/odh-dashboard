@@ -1,6 +1,6 @@
 import { NotebookKind } from '#~/k8sTypes';
 import { SelectionOptions } from '#~/components/MultiSelection';
-import { WorkbenchFeatureStoreConfig } from './FeatureStoreSelector';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 
 export type NotebookFeatureStore = {
   namespace: string;

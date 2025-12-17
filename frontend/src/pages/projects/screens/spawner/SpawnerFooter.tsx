@@ -36,7 +36,7 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
-import { WorkbenchFeatureStoreConfig } from './featureStore/FeatureStoreSelector';
+import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { generateFeastMetadata } from './featureStore/utils';
 
 type SpawnerFooterProps = {

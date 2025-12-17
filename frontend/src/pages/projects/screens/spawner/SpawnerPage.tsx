@@ -70,7 +70,7 @@ import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
 import { FeatureStoreFormSection } from './featureStore/FeatureStoreFormSection';
-import { WorkbenchFeatureStoreConfig } from './featureStore/FeatureStoreSelector';
+import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { useWorkbenchFeatureStores } from './featureStore/useWorkbenchFeatureStores';
 import { getFeatureStoresFromNotebook } from './featureStore/utils';
 

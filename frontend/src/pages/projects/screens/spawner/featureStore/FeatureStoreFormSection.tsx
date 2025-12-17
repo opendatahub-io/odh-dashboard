@@ -4,7 +4,8 @@ import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/cons
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import FeatureStoreSelector, { WorkbenchFeatureStoreConfig } from './FeatureStoreSelector';
+import FeatureStoreSelector from './FeatureStoreSelector';
+import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import FeatureStoreCodeBlock from './FeatureStoreCodeBlock';
 import {
   FEATURE_STORE_CODE_HELP,

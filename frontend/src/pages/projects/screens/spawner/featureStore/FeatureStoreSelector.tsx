@@ -14,8 +14,6 @@ const FEATURE_STORE_SELECTION_HELP =
 const NO_FEATURE_STORES_TOOLTIP =
   'The project this workbench belongs to has not been granted permission to use any feature store repository. Contact your admin to grant permission.';
 
-export type { WorkbenchFeatureStoreConfig };
-
 type FeatureStoreSelectorProps = {
   selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
   onSelect: (featureStores: WorkbenchFeatureStoreConfig[]) => void;
