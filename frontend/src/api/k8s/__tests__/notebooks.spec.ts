@@ -1361,8 +1361,7 @@ describe('updateNotebook', () => {
     const existingNotebook = mockNotebookK8sResource({ uid });
 
     // Add volumes that would cause corruption if merged by index with lodash
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (existingNotebook.spec.template.spec as any).volumes = [
+    existingNotebook.spec.template.spec.volumes = [
       { name: 'storage-1', persistentVolumeClaim: { claimName: 'storage-1' } },
       { name: 'storage-2', persistentVolumeClaim: { claimName: 'storage-2' } },
       { name: 'shm', emptyDir: { medium: 'Memory' } },
@@ -1396,26 +1395,23 @@ describe('updateNotebook', () => {
     const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
 
     // Verify volumes are clean (no duplicates, no multiple source types per volume)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, prefer-destructuring
-    const volumes = (mergedNotebook.spec.template.spec as any).volumes;
+    const volumes = mergedNotebook.spec.template.spec.volumes;
     expect(volumes).toBeDefined();
 
     // Check that shm volume was added and is clean (only has emptyDir, not merged with PVC)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const shmVolume = volumes.find((v: any) => v.name === 'shm');
+    const shmVolume = volumes?.find((v) => v.name === 'shm');
     expect(shmVolume).toBeDefined();
     expect(shmVolume).toEqual({
       name: 'shm',
       emptyDir: { medium: 'Memory' },
     });
     // Verify no corruption - should not have both emptyDir and persistentVolumeClaim
-    expect(shmVolume.persistentVolumeClaim).toBeUndefined();
-    expect(shmVolume.secret).toBeUndefined();
-    expect(shmVolume.configMap).toBeUndefined();
+    expect(shmVolume?.persistentVolumeClaim).toBeUndefined();
+    expect(shmVolume?.secret).toBeUndefined();
+    expect(shmVolume?.configMap).toBeUndefined();
 
     // Verify no duplicate volume names
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const volumeNames = volumes.map((v: any) => v.name);
+    const volumeNames = volumes?.map((v) => v.name) || [];
     const uniqueVolumeNames = new Set(volumeNames);
     expect(volumeNames.length).toBe(uniqueVolumeNames.size);
 
@@ -1423,14 +1419,12 @@ describe('updateNotebook', () => {
     const volumeMounts = mergedNotebook.spec.template.spec.containers[0].volumeMounts || [];
 
     // Verify no duplicate mount paths
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mountPaths = volumeMounts.map((m: any) => m.mountPath);
+    const mountPaths = volumeMounts.map((m) => m.mountPath);
     const uniqueMountPaths = new Set(mountPaths);
     expect(mountPaths.length).toBe(uniqueMountPaths.size);
 
     // Verify shm volumeMount exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const shmMount = volumeMounts.find((m: any) => m.name === 'shm');
+    const shmMount = volumeMounts.find((m) => m.name === 'shm');
     expect(shmMount).toBeDefined();
     expect(shmMount?.mountPath).toBe('/dev/shm');
   });

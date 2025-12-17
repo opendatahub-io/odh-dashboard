@@ -632,6 +632,11 @@ export type Volume = {
     secretName: string;
     optional?: boolean;
   };
+  configMap?: {
+    name: string;
+    optional?: boolean;
+    defaultMode?: number;
+  };
 };
 
 export type VolumeMount = { mountPath: string; name: string; subPath?: string };
