@@ -7,6 +7,12 @@ import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/use
 import { AwsKeys } from './dataConnections/const';
 import { NotebookFeatureStore } from './screens/spawner/featureStore/utils';
 
+export type FeastData = {
+  featureStores: NotebookFeatureStore[];
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
+};
+
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
   propKey: K,
   propValue: T[K],
@@ -83,7 +89,7 @@ export type StartNotebookData = {
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
-  featureStores?: NotebookFeatureStore[];
+  feastData?: FeastData;
 };
 
 export type SecretRef = {

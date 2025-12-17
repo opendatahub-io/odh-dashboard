@@ -8,12 +8,6 @@ export type NotebookFeatureStore = {
   projectName: string;
 };
 
-type FeatureStoreLike = {
-  namespace: string;
-  configName: string;
-  projectName: string;
-};
-
 export const FEATURE_STORE_CODE_HELP =
   'Example code showing how to connect to the selected feature stores using the Feast SDK. The feature store configuration files are automatically mounted in your notebook.';
 
@@ -92,7 +86,7 @@ export const getSelectedFeatureStoresFromSelections = (
     .filter((config): config is WorkbenchFeatureStoreConfig => config !== undefined);
 };
 
-export const mapFeatureStoresForNotebook = <T extends FeatureStoreLike>(
+export const mapFeatureStoresForNotebook = <T extends NotebookFeatureStore>(
   selectedFeatureStores: T[],
 ): NotebookFeatureStore[] => {
   return selectedFeatureStores.map((fs) => ({
@@ -100,4 +94,44 @@ export const mapFeatureStoresForNotebook = <T extends FeatureStoreLike>(
     configName: fs.configName,
     projectName: fs.projectName,
   }));
+};
+
+export const generateFeastMetadata = (
+  selectedFeatureStores: WorkbenchFeatureStoreConfig[],
+  existingNotebook?: NotebookKind,
+  isUpdate = false,
+): {
+  featureStores: NotebookFeatureStore[];
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
+} => {
+  const featureStores = mapFeatureStoresForNotebook(selectedFeatureStores);
+  const hasFeatureStores = featureStores.length > 0;
+  const feastConfigAnnotation = hasFeatureStores
+    ? featureStores.map((fs) => fs.projectName).join(',')
+    : null;
+
+  const labels: Record<string, string> = {};
+  const annotations: Record<string, string> = {};
+
+  if (hasFeatureStores) {
+    labels['opendatahub.io/feast-integration'] = 'true';
+    if (feastConfigAnnotation) {
+      annotations['opendatahub.io/feast-config'] = feastConfigAnnotation;
+    }
+  } else if (isUpdate && existingNotebook) {
+    // Keep the label as 'true' if it exists, even when no feature stores are selected
+    if (existingNotebook.metadata.labels?.['opendatahub.io/feast-integration']) {
+      labels['opendatahub.io/feast-integration'] = 'true';
+    }
+    if (existingNotebook.metadata.annotations?.['opendatahub.io/feast-config']) {
+      annotations['opendatahub.io/feast-config'] = '';
+    }
+  }
+
+  return {
+    featureStores,
+    ...(Object.keys(annotations).length > 0 && { annotations }),
+    ...(Object.keys(labels).length > 0 && { labels }),
+  };
 };

@@ -6,8 +6,9 @@ import {
   convertFeatureStoresToSelectionOptions,
   getSelectedFeatureStoresFromSelections,
   mapFeatureStoresForNotebook,
+  generateFeastMetadata,
 } from '#~/pages/projects/screens/spawner/featureStore/utils';
-import { WorkbenchFeatureStoreConfig } from '#~/pages/projects/screens/spawner/featureStore/FeatureStoreSelector';
+import { WorkbenchFeatureStoreConfig } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 
 const PROJECT_NAME_CREDIT_SCORING = 'credit_scoring_local';
 const PROJECT_NAME_BANKING = 'banking';
@@ -302,5 +303,167 @@ describe('mapFeatureStoresForNotebook', () => {
     const result = mapFeatureStoresForNotebook([]);
 
     expect(result).toHaveLength(0);
+  });
+});
+
+describe('generateFeastMetadata', () => {
+  describe('create scenario', () => {
+    it('should return feature stores with annotations and labels when feature stores are selected', () => {
+      const result = generateFeastMetadata(MOCK_FEATURE_STORES, undefined, false);
+
+      expect(result.featureStores).toHaveLength(3);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': `${PROJECT_NAME_CREDIT_SCORING},${PROJECT_NAME_BANKING},${PROJECT_NAME_FRAUD_DETECT}`,
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+
+    it('should return only feature stores without annotations/labels when no feature stores selected', () => {
+      const result = generateFeastMetadata([], undefined, false);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toBeUndefined();
+      expect(result.labels).toBeUndefined();
+    });
+
+    it('should return single feature store with correct annotation format', () => {
+      const result = generateFeastMetadata([MOCK_CREDIT_SCORING_FEATURE_STORE], undefined, false);
+
+      expect(result.featureStores).toHaveLength(1);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': PROJECT_NAME_CREDIT_SCORING,
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+  });
+
+  describe('update scenario', () => {
+    it('should add annotations and labels when feature stores are selected', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {},
+            annotations: {},
+          },
+        },
+      });
+      const result = generateFeastMetadata(MOCK_FEATURE_STORES, existingNotebook, true);
+
+      expect(result.featureStores).toHaveLength(3);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': `${PROJECT_NAME_CREDIT_SCORING},${PROJECT_NAME_BANKING},${PROJECT_NAME_FRAUD_DETECT}`,
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+
+    it('should clear annotations but keep label as true when no feature stores selected and they exist', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/feast-integration': 'true',
+            },
+            annotations: {
+              'opendatahub.io/feast-config': `${PROJECT_NAME_CREDIT_SCORING},${PROJECT_NAME_BANKING}`,
+            },
+          },
+        },
+      });
+      const result = generateFeastMetadata([], existingNotebook, true);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': '',
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+
+    it('should not include annotations/labels when no feature stores and they do not exist', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {},
+            annotations: {},
+          },
+        },
+      });
+      const result = generateFeastMetadata([], existingNotebook, true);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toBeUndefined();
+      expect(result.labels).toBeUndefined();
+    });
+
+    it('should replace existing annotations when feature stores change', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/feast-integration': 'true',
+            },
+            annotations: {
+              'opendatahub.io/feast-config': PROJECT_NAME_CREDIT_SCORING,
+            },
+          },
+        },
+      });
+      const result = generateFeastMetadata([MOCK_BANKING_FEATURE_STORE], existingNotebook, true);
+
+      expect(result.featureStores).toHaveLength(1);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': PROJECT_NAME_BANKING,
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+
+    it('should keep label as true when annotation does not exist', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/feast-integration': 'true',
+            },
+            annotations: {},
+          },
+        },
+      });
+      const result = generateFeastMetadata([], existingNotebook, true);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toBeUndefined();
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+
+    it('should clear only annotation when label does not exist', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {},
+            annotations: {
+              'opendatahub.io/feast-config': PROJECT_NAME_CREDIT_SCORING,
+            },
+          },
+        },
+      });
+      const result = generateFeastMetadata([], existingNotebook, true);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': '',
+      });
+      expect(result.labels).toBeUndefined();
+    });
   });
 });
