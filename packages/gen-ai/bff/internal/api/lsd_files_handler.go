@@ -1,18 +1,24 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/services"
 )
 
 type FileUploadResponse = llamastack.APIResponse
 
 // LlamaStackUploadFileHandler handles POST /gen-ai/api/v1/files/upload.
+// Returns 202 Accepted with a job ID, then processes the upload asynchronously.
 func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -70,28 +76,76 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	// Use direct streaming - no temp file needed!
-	uploadParams := llamastack.UploadFileParams{
-		Reader:           file,
-		Filename:         header.Filename,
-		ContentType:      header.Header.Get("Content-Type"),
-		Purpose:          purpose,
-		VectorStoreID:    vectorStoreID,
-		ChunkingStrategy: chunkingStrategy,
-	}
-
-	result, err := app.repositories.Files.UploadFile(ctx, uploadParams)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
+	// Get namespace from context to use as user identifier
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.serverErrorResponse(w, r, errors.New("namespace not found in context"))
 		return
 	}
 
-	// Use envelope pattern for consistent response structure
-	response := FileUploadResponse{
-		Data: result,
+	// Write file to temp location for background processing
+	// Using temp file instead of io.ReadAll to avoid loading entire file into memory
+	tempFile, err := os.CreateTemp("", "upload-*-"+header.Filename)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to create temp file: %w", err))
+		return
+	}
+	tempFilePath := tempFile.Name()
+
+	// Copy file content to temp file
+	_, err = io.Copy(tempFile, file)
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFilePath)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to write temp file: %w", err))
+		return
+	}
+	tempFile.Close()
+
+	// Create a job for async processing
+	jobID, err := app.fileUploadJobTracker.CreateJob(namespace)
+	if err != nil {
+		os.Remove(tempFilePath)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to create upload job: %w", err))
+		return
 	}
 
-	err = app.WriteJSON(w, http.StatusCreated, response, nil)
+	// Process upload in background
+	// Note: The temp file will be cleaned up by ProcessUploadJob when done
+	// Create a detached context that preserves values but isn't cancelled with the request
+	// Extract LlamaStack client from request context to preserve it in background processing
+	llamaStackClient, _ := ctx.Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
+	bgCtx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, namespace)
+	if llamaStackClient != nil {
+		bgCtx = context.WithValue(bgCtx, constants.LlamaStackClientKey, llamaStackClient)
+	}
+	app.fileUploadJobTracker.ProcessUploadJob(
+		bgCtx,
+		namespace,
+		jobID,
+		func(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
+			return app.repositories.Files.UploadFile(ctx, params)
+		},
+		llamastack.UploadFileParams{
+			Reader:           nil, // Will be set in background goroutine from temp file
+			Filename:         header.Filename,
+			ContentType:      header.Header.Get("Content-Type"),
+			Purpose:          purpose,
+			VectorStoreID:    vectorStoreID,
+			ChunkingStrategy: chunkingStrategy,
+		},
+		tempFilePath,
+	)
+
+	// Return 202 Accepted with job ID
+	response := llamastack.APIResponse{
+		Data: map[string]interface{}{
+			"job_id": jobID,
+			"status": "pending",
+		},
+	}
+
+	err = app.WriteJSON(w, http.StatusAccepted, response, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -170,6 +224,57 @@ func (app *App) LlamaStackDeleteFileHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, response, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+type FileUploadStatusResponse struct {
+	JobID     string                       `json:"job_id"`
+	Status    services.FileUploadJobStatus `json:"status"`
+	Result    *llamastack.FileUploadResult `json:"result,omitempty"`
+	Error     string                       `json:"error,omitempty"`
+	CreatedAt string                       `json:"created_at"`
+	UpdatedAt string                       `json:"updated_at"`
+}
+
+// LlamaStackFileUploadStatusHandler handles GET /gen-ai/api/v1/files/upload/status.
+func (app *App) LlamaStackFileUploadStatusHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	// Get namespace from context
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.serverErrorResponse(w, r, errors.New("namespace not found in context"))
+		return
+	}
+
+	jobID := r.URL.Query().Get("job_id")
+	if jobID == "" {
+		app.badRequestResponse(w, r, errors.New("job_id query parameter is required"))
+		return
+	}
+
+	job, err := app.fileUploadJobTracker.GetJob(namespace, jobID)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	response := FileUploadStatusResponse{
+		JobID:     job.ID,
+		Status:    job.Status,
+		Result:    job.Result,
+		Error:     job.Error,
+		CreatedAt: job.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt: job.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	apiResponse := llamastack.APIResponse{
+		Data: response,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, apiResponse, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

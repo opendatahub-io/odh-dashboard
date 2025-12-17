@@ -15,6 +15,7 @@ import {
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/Chatbot/hooks/useFileUploadWithPolling');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
@@ -27,9 +28,15 @@ const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useC
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
+const { default: useFileUploadWithPolling } = jest.requireMock(
+  '~/app/Chatbot/hooks/useFileUploadWithPolling',
+);
+const mockUseFileUploadWithPolling = useFileUploadWithPolling as jest.Mock;
+
 describe('useSourceManagement', () => {
   const mockOnShowSuccessAlert = jest.fn();
   const mockOnShowErrorAlert = jest.fn();
+  let mockUploadFile: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,12 +44,27 @@ describe('useSourceManagement', () => {
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
     mockUploadSource.mockResolvedValue(mockUploadResult);
 
+    const mockGetFileUploadStatus = jest.fn().mockResolvedValue({
+      status: 'completed',
+      job_id: 'test-job-id',
+    });
+
     // Mock useGenAiAPI to return the API object with mocked functions
     mockUseGenAiAPI.mockReturnValue({
       apiAvailable: true,
       api: {
         uploadSource: mockUploadSource,
+        getFileUploadStatus: mockGetFileUploadStatus,
       },
+    });
+
+    // Mock useFileUploadWithPolling to return a simple mock that resolves immediately
+    mockUploadFile = jest.fn().mockResolvedValue({ success: true });
+    mockUseFileUploadWithPolling.mockReturnValue({
+      uploadFile: mockUploadFile,
+      uploadState: { fileName: '', status: 'idle' },
+      isUploading: false,
+      cancelUpload: jest.fn(),
     });
   });
 
@@ -145,7 +167,7 @@ describe('useSourceManagement', () => {
       expect(result.current.filesWithSettings[1].status).toBe('pending');
     });
 
-    it('should open source settings modal after delay when files are dropped', async () => {
+    it('should open source settings modal immediately when files are dropped', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
           onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -157,14 +179,7 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
       });
 
-      expect(result.current.isSourceSettingsOpen).toBe(false);
-      expect(result.current.currentFileForSettings).toBeNull();
-
-      // Fast-forward the timer
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
+      // The modal should open immediately via useEffect when pending files are detected
       expect(result.current.isSourceSettingsOpen).toBe(true);
       expect(result.current.currentFileForSettings).toEqual(mockFile);
     });
@@ -228,21 +243,6 @@ describe('useSourceManagement', () => {
   });
 
   describe('handleSourceSettingsSubmit', () => {
-    beforeEach(async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
-      });
-
-      return { result };
-    });
-
     it('should upload source successfully with valid settings and namespace', async () => {
       const { result } = renderHook(() =>
         useSourceManagement({
@@ -267,15 +267,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      // Check that uploadSource was called with FormData
-      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
-
-      // Verify FormData contents
-      const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;
-      expect(formDataCall.get('file')).toBe(mockFile);
-      expect(formDataCall.get('chunk_overlap_tokens')).toBe('100');
-      expect(formDataCall.get('max_chunk_size_tokens')).toBe('1000');
-      expect(formDataCall.get('vector_store_id')).toBe('test-vector-store');
+      // Check that uploadFile was called (from useFileUploadWithPolling)
+      expect(mockUploadFile).toHaveBeenCalledWith(mockFile, mockSourceSettings);
 
       expect(result.current.selectedSourceSettings).toEqual(mockSourceSettings);
       expect(result.current.isSourceSettingsOpen).toBe(false);
@@ -289,7 +282,11 @@ describe('useSourceManagement', () => {
     it('should handle upload failure and show error alert', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      mockUploadSource.mockRejectedValue(new Error('Upload failed'));
+      // Mock uploadFile to fail
+      mockUploadFile.mockResolvedValue({
+        success: false,
+        error: 'Upload failed',
+      });
 
       const { result } = renderHook(() =>
         useSourceManagement({
@@ -312,13 +309,13 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      // Check that uploadSource was called with FormData
-      expect(mockUploadSource).toHaveBeenCalledWith(expect.any(FormData));
+      // Check that uploadFile was called
+      expect(mockUploadFile).toHaveBeenCalledWith(mockFile, mockSourceSettings);
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
 
-      // Check that file status was updated to failed
-      expect(result.current.filesWithSettings[0].status).toBe('failed');
+      // When upload fails, the file is removed from filesWithSettings (not marked as 'failed')
+      expect(result.current.filesWithSettings).toHaveLength(0);
       consoleErrorSpy.mockRestore();
     });
 
@@ -351,7 +348,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).not.toHaveBeenCalled();
+      // When API is not available, uploadFile should not be called
+      expect(mockUploadFile).not.toHaveBeenCalled();
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
     });
@@ -384,7 +382,7 @@ describe('useSourceManagement', () => {
       expect(result.current.filesWithSettings).toHaveLength(0);
       expect(result.current.selectedSourceSettings).toBeNull();
       expect(result.current.isSourceSettingsOpen).toBe(false);
-      expect(mockUploadSource).not.toHaveBeenCalled();
+      expect(mockUploadFile).not.toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
     });
@@ -404,7 +402,7 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(mockSourceSettings);
       });
 
-      expect(mockUploadSource).not.toHaveBeenCalled();
+      expect(mockUploadFile).not.toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
     });
@@ -445,8 +443,8 @@ describe('useSourceManagement', () => {
         await result.current.handleSourceSettingsSubmit(partialSettings);
       });
 
-      const formDataCall = mockUploadSource.mock.calls[0][0] as FormData;
-      expect(formDataCall.get('chunk_overlap_tokens')).toBeNull();
+      // Check that uploadFile was called with partial settings
+      expect(mockUploadFile).toHaveBeenCalledWith(mockFile, partialSettings);
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
     });
   });
