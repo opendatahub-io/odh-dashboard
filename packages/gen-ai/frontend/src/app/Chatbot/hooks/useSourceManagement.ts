@@ -234,17 +234,16 @@ const useSourceManagement = ({
 
           const result = await uploadFile(file, settings);
 
-          // Update final status based on result
-          const finalStatus: FileStatus = result.success ? 'uploaded' : 'failed';
-          setFilesWithSettings((prev) =>
-            prev.map((fileWithSettings) =>
-              fileWithSettings.file.name === file.name
-                ? { ...fileWithSettings, status: finalStatus }
-                : fileWithSettings,
-            ),
-          );
-
+          // Update state based on result
           if (result.success) {
+            // Mark as uploaded - will be auto-removed after 5 seconds by UploadedFileItem
+            setFilesWithSettings((prev) =>
+              prev.map((fileWithSettings) =>
+                fileWithSettings.file.name === file.name
+                  ? { ...fileWithSettings, status: 'uploaded' }
+                  : fileWithSettings,
+              ),
+            );
             fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
               outcome: TrackingOutcome.submit,
               success: true,
@@ -254,6 +253,10 @@ const useSourceManagement = ({
             });
             successCount++;
           } else {
+            // Remove failed file immediately from tracking array
+            setFilesWithSettings((prev) =>
+              prev.filter((fileWithSettings) => fileWithSettings.file.name !== file.name),
+            );
             fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
               outcome: TrackingOutcome.submit,
               success: false,
