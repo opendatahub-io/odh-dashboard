@@ -251,6 +251,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         model={selectedModel}
         systemInstruction={systemInstruction}
         files={fileManagement.files}
+        isRagEnabled={sourceManagement.isRawUploaded}
         selectedMcpServerIds={selectedMcpServerIds}
         mcpServers={mcpServers}
         mcpServerTokens={mcpServerTokens}
