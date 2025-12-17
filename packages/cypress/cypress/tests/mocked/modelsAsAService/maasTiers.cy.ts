@@ -1,6 +1,6 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { createTierPage, tiersPage } from '../../../pages/modelsAsAService';
+import { createTierPage, deleteTierModal, tiersPage } from '../../../pages/modelsAsAService';
 
 describe('Tiers Page', () => {
   beforeEach(() => {
@@ -85,5 +85,11 @@ describe('Tiers Page', () => {
     createTierPage.findCreateButton().should('exist').should('be.enabled').click();
 
     tiersPage.findTable().should('exist');
+  });
+
+  it('should delete a tier', () => {
+    tiersPage.getRow('Free Tier').findDeleteButton().click();
+    deleteTierModal.findInput().type('free-tier');
+    deleteTierModal.findSubmitButton().click();
   });
 });

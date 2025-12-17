@@ -1,3 +1,4 @@
+import { DeleteModal } from './components/DeleteModal';
 import { TableRow } from './components/table';
 
 class TierTableRow extends TableRow {
@@ -19,6 +20,10 @@ class TierTableRow extends TableRow {
 
   findLimits(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Limits"]');
+  }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Delete tier');
   }
 }
 
@@ -190,5 +195,12 @@ class CreateTierPage {
   }
 }
 
+class DeleteTierModal extends DeleteModal {
+  constructor() {
+    super('Delete tier?');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
+export const deleteTierModal = new DeleteTierModal();
