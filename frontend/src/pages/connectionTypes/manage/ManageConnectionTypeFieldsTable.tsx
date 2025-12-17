@@ -34,10 +34,18 @@ const EmptyFieldsTable: React.FC<EmptyFieldsTableProps> = ({ onAddSection, onAdd
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Button variant="secondary" onClick={onAddSection}>
+          <Button
+            variant="secondary"
+            onClick={onAddSection}
+            data-testid="add-section-heading-button-empty-state"
+          >
             Add section heading
           </Button>
-          <Button variant="secondary" onClick={onAddField}>
+          <Button
+            variant="secondary"
+            onClick={onAddField}
+            data-testid="add-field-button-empty-state"
+          >
             Add field
           </Button>
         </EmptyStateActions>
@@ -145,6 +153,7 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
             <ActionListItem>
               <Button
                 variant="secondary"
+                data-testid="add-section-heading-button"
                 onClick={() =>
                   setModalField({ field: { type: ConnectionTypeFieldType.Section, name: '' } })
                 }
@@ -153,7 +162,11 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
               </Button>
             </ActionListItem>
             <ActionListItem>
-              <Button variant="secondary" onClick={() => setModalField({})}>
+              <Button
+                variant="secondary"
+                onClick={() => setModalField({})}
+                data-testid="add-field-button"
+              >
                 Add field
               </Button>
             </ActionListItem>

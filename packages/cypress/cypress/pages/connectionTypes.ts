@@ -93,6 +93,14 @@ class CreateConnectionTypePage {
     return cy.findByTestId('submit-button');
   }
 
+  findAddSectionHeading() {
+    return cy.findByTestId('add-section-heading-button');
+  }
+
+  findAddFieldButton() {
+    return cy.findByTestId('add-field-button');
+  }
+
   shouldHaveTableRowNames(rowNames: string[]) {
     rowNames.map((name, index) =>
       this.getFieldsTableRow(index).findName().should('contain.text', name),
@@ -114,6 +122,12 @@ class CreateConnectionTypePage {
 
   findModelServingCompatibleTypeDropdown() {
     return cy.findByTestId('select-model-serving-compatible-type');
+  }
+
+  findModelServingCompatibleTypeOption(name: string) {
+    return this.findModelServingCompatibleTypeDropdown().findByRole('menuitem', {
+      name: new RegExp(name),
+    });
   }
 }
 
@@ -146,7 +160,7 @@ class CategorySection extends Contextual<HTMLElement> {
 class ConnectionTypesTableToolbar extends TableToolbar {}
 class ConnectionTypeRow extends TableRow {
   findConnectionTypeName() {
-    return this.find().findByTestId('connection-type-name');
+    return this.find().findByTestId('table-row-title');
   }
 
   shouldHaveName(name: string) {
@@ -241,6 +255,10 @@ class ConnectionTypesPage {
     return this;
   }
 
+  findCreateConnectionTypeButton() {
+    return cy.findByTestId('create-new-connection-type');
+  }
+
   shouldReturnNotFound() {
     cy.findByTestId('not-found-page').should('exist');
     return this;
@@ -272,6 +290,10 @@ class ConnectionTypesPage {
   getTableToolbar() {
     return new ConnectionTypesTableToolbar(() => cy.findByTestId('connection-types-table-toolbar'));
   }
+
+  findPreviewConnectionTypeModal() {
+    return cy.findByTestId('connection-type-preview-modal');
+  }
 }
 
 class ConnectionTypePreviewModal extends Modal {
@@ -280,6 +302,53 @@ class ConnectionTypePreviewModal extends Modal {
   }
 }
 
+class ConnectionTypeSectionModal extends Modal {
+  constructor() {
+    super('Add section heading');
+  }
+
+  findAddSectionHeadingName() {
+    return cy.findByTestId('section-name');
+  }
+
+  findAddSectionHeadingDesc() {
+    return cy.findByTestId('section-description');
+  }
+
+  findAddSectionHeadingSubmitButton() {
+    return cy.findByTestId('modal-submit-button');
+  }
+
+  findAddFieldName() {
+    return cy.findByTestId('field-name-input');
+  }
+
+  findAddFieldDesc() {
+    return cy.findByTestId('field-description-input');
+  }
+
+  findAddFieldEnvVar() {
+    return cy.findByTestId('field-env-var-input');
+  }
+
+  findAddFieldType() {
+    return cy.findByTestId('field-type-select');
+  }
+
+  findAddFieldRequired() {
+    return cy.findByTestId('field-required-checkbox');
+  }
+
+  findAddFieldDefaultValue() {
+    return cy.findByTestId('field-default-value');
+  }
+
+  findAddFieldSubmitButton() {
+    return cy.findByTestId('modal-submit-button');
+  }
+}
+
 export const connectionTypesPage = new ConnectionTypesPage();
 export const createConnectionTypePage = new CreateConnectionTypePage();
 export const connectionTypePreviewModal = new ConnectionTypePreviewModal();
+export const connectionTypeSectionModal = new ConnectionTypeSectionModal();

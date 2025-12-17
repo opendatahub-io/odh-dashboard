@@ -310,6 +310,17 @@ export type OOTBConnectionTypesData = {
   s3: OOTBConnectionTypes.s3;
   uri: OOTBConnectionTypes.uri;
   oci: OOTBConnectionTypes.oci;
+  projectResourceName: string;
+  connectionTypeName: string;
+  connectionTypeDescription: string;
+  connectionTypeCategory: string[];
+  connectionTypeModelServingCompatibleType: string[];
+  connectionTypeSectionHeading: string;
+  connectionTypeSectionHeadingDescription: string;
+  connectionTypeAddFieldName: string;
+  connectionTypeAddFieldDescription: string;
+  connectionTypeAddFieldType: string;
+  connectionTypeAddFieldDefaultValue: string;
 };
 
 export type WorkloadMetricsTestData = {
