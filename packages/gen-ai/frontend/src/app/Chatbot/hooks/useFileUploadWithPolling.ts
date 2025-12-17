@@ -59,20 +59,70 @@ const useFileUploadWithPolling = (
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const timeoutIdsRef = React.useRef<NodeJS.Timeout[]>([]);
 
-  const cancelUpload = React.useCallback(() => {
+  /**
+   * Cleans up all resources: aborts controller and clears all timeouts
+   */
+  const cleanup = React.useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    // Clear all pending timeouts
     timeoutIdsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
     timeoutIdsRef.current = [];
+  }, []);
+
+  /**
+   * Sets error state and returns error result
+   */
+  const handleError = React.useCallback((fileName: string, error: string) => {
+    setUploadState({
+      fileName,
+      status: 'failed',
+      error,
+    });
+    return { success: false, error };
+  }, []);
+
+  /**
+   * Waits for poll interval with proper timeout tracking and abort handling
+   */
+  const waitForPollInterval = React.useCallback(
+    (signal: AbortSignal, interval: number): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new Error('Upload cancelled'));
+          return;
+        }
+
+        const timeoutId = setTimeout(() => {
+          // Remove timeout from tracking array when it completes
+          timeoutIdsRef.current = timeoutIdsRef.current.filter((id) => id !== timeoutId);
+          resolve();
+        }, interval);
+
+        // Track timeout for cleanup
+        timeoutIdsRef.current.push(timeoutId);
+
+        // Handle abort - clear timeout and remove from tracking
+        const abortHandler = () => {
+          clearTimeout(timeoutId);
+          timeoutIdsRef.current = timeoutIdsRef.current.filter((id) => id !== timeoutId);
+          reject(new Error('Upload cancelled'));
+        };
+
+        signal.addEventListener('abort', abortHandler, { once: true });
+      }),
+    [],
+  );
+
+  const cancelUpload = React.useCallback(() => {
+    cleanup();
     setUploadState((prev) => ({
       ...prev,
       status: 'failed',
       error: 'Upload cancelled by user',
     }));
-  }, []);
+  }, [cleanup]);
 
   const uploadFile = React.useCallback(
     async (
@@ -80,14 +130,11 @@ const useFileUploadWithPolling = (
       settings: ChatbotSourceSettings,
     ): Promise<{ success: boolean; error?: string }> => {
       if (!apiAvailable) {
-        const error = 'API is not available';
-        setUploadState({
-          fileName: file.name,
-          status: 'failed',
-          error,
-        });
-        return { success: false, error };
+        return handleError(file.name, 'API is not available');
       }
+
+      // Clean up any previous upload before starting a new one
+      cleanup();
 
       // Reset state for new upload
       setUploadState({
@@ -124,17 +171,8 @@ const useFileUploadWithPolling = (
         const startTime = Date.now();
 
         while (Date.now() - startTime < maxPollTime) {
-          // Wait for poll interval
-          await new Promise<void>((resolve, reject) => {
-            const timeoutId = setTimeout(resolve, pollInterval);
-            timeoutIdsRef.current.push(timeoutId);
-
-            // Handle abort
-            if (signal.aborted) {
-              clearTimeout(timeoutId);
-              reject(new Error('Upload cancelled'));
-            }
-          });
+          // Wait for poll interval with proper timeout tracking
+          await waitForPollInterval(signal, pollInterval);
 
           try {
             const statusResponse = await api.getFileUploadStatus({ job_id: jobId });
@@ -144,23 +182,14 @@ const useFileUploadWithPolling = (
                 fileName: file.name,
                 status: 'uploaded',
               });
-              // Clean up
-              abortControllerRef.current = null;
-              timeoutIdsRef.current = [];
+              cleanup();
               return { success: true };
             }
 
             if (statusResponse.status === 'failed') {
               const error = statusResponse.error || 'Upload failed';
-              setUploadState({
-                fileName: file.name,
-                status: 'failed',
-                error,
-              });
-              // Clean up
-              abortControllerRef.current = null;
-              timeoutIdsRef.current = [];
-              return { success: false, error };
+              cleanup();
+              return handleError(file.name, error);
             }
 
             // Status is 'pending' or 'processing' - continue polling
@@ -169,57 +198,27 @@ const useFileUploadWithPolling = (
             if (Date.now() - startTime >= maxPollTime) {
               const error =
                 pollError instanceof Error ? pollError.message : 'Failed to check upload status';
-              setUploadState({
-                fileName: file.name,
-                status: 'failed',
-                error,
-              });
-              // Clean up
-              abortControllerRef.current = null;
-              timeoutIdsRef.current = [];
-              return { success: false, error };
+              cleanup();
+              return handleError(file.name, error);
             }
             // Continue polling after network error
           }
         }
 
         // Polling timed out
-        const error = 'Upload timed out';
-        setUploadState({
-          fileName: file.name,
-          status: 'failed',
-          error,
-        });
-        // Clean up
-        abortControllerRef.current = null;
-        timeoutIdsRef.current = [];
-        return { success: false, error };
+        cleanup();
+        return handleError(file.name, 'Upload timed out');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        setUploadState({
-          fileName: file.name,
-          status: 'failed',
-          error: errorMessage,
-        });
-        // Clean up
-        abortControllerRef.current = null;
-        timeoutIdsRef.current = [];
-        return { success: false, error: errorMessage };
+        cleanup();
+        return handleError(file.name, errorMessage);
       }
     },
-    [api, apiAvailable, pollInterval, maxPollTime],
+    [api, apiAvailable, pollInterval, maxPollTime, cleanup, handleError, waitForPollInterval],
   );
 
   // Cleanup on unmount
-  React.useEffect(
-    () => () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      timeoutIdsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
-    },
-    [],
-  );
+  React.useEffect(() => () => cleanup(), [cleanup]);
 
   return {
     uploadFile,
