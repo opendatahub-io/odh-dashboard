@@ -106,8 +106,18 @@ class CreateTierPage {
   }
 
   // Groups MultiSelection
-  findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findGroupsSelectButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('tier-groups');
+  }
+
+  findGroupsOption(name: string) {
+    return cy.findByRole('option', { name });
+  }
+
+  selectGroupsOption(name: string) {
+    this.findGroupsSelectButton().click();
+    this.findGroupsOption(name).click();
+    this.findGroupsSelectButton().click();
   }
 
   // Token rate limit checkbox and controls
@@ -129,6 +139,11 @@ class CreateTierPage {
 
   findTokenRateLimitUnitSelect(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`tier-token-rate-limit-${index}-unit`);
+  }
+
+  selectTokenRateLimitUnit(index: number, unit: string) {
+    this.findTokenRateLimitUnitSelect(index).click();
+    cy.findByRole('menuitem', { name: unit }).click();
   }
 
   findTokenRateLimitRemoveButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -154,6 +169,11 @@ class CreateTierPage {
 
   findRequestRateLimitUnitSelect(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`tier-request-rate-limit-${index}-unit`);
+  }
+
+  selectRequestRateLimitUnit(index: number, unit: string) {
+    this.findRequestRateLimitUnitSelect(index).click();
+    cy.findByRole('menuitem', { name: unit }).click();
   }
 
   findRequestRateLimitRemoveButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -32,8 +32,8 @@ describe('Tiers Page', () => {
     freeTierRow.findLevel().should('contain.text', '1');
     freeTierRow.findGroups().should('contain.text', '1 Group');
     freeTierRow.findModels().should('contain.text', '3 Models');
-    freeTierRow.findLimits().should('contain.text', '10,000 tokens/hr');
-    freeTierRow.findLimits().should('contain.text', '100 requests/min');
+    freeTierRow.findLimits().should('contain.text', '10,000 tokens/1 hour');
+    freeTierRow.findLimits().should('contain.text', '100 requests/1 minute');
 
     // filter by tier name
     tiersPage.findFilterInput().type('Premium');
@@ -73,15 +73,15 @@ describe('Tiers Page', () => {
     createTierPage.findNameInput().type('Test Tier');
     createTierPage.findDescriptionInput().type('Test tier description');
     createTierPage.findLevelInput().type('5');
-    createTierPage.findGroupsSelect().select('test-group');
+    createTierPage.selectGroupsOption('premium-users');
     createTierPage.findTokenRateLimitCheckbox().click();
     createTierPage.findTokenRateLimitCountInput(0).type('500');
     createTierPage.findTokenRateLimitTimeInput(0).type('5');
-    createTierPage.findTokenRateLimitUnitSelect(0).select('hour');
+    createTierPage.selectTokenRateLimitUnit(0, 'hour');
     createTierPage.findRequestRateLimitCheckbox().click();
     createTierPage.findRequestRateLimitCountInput(0).type('200');
     createTierPage.findRequestRateLimitTimeInput(0).type('3');
-    createTierPage.findRequestRateLimitUnitSelect(0).select('second');
+    createTierPage.selectRequestRateLimitUnit(0, 'second');
     createTierPage.findCreateButton().should('exist').should('be.enabled').click();
 
     tiersPage.findTable().should('exist');
