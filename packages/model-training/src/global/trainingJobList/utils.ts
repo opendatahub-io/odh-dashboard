@@ -14,7 +14,7 @@ import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
-import { getWorkloadForTrainJob, resumeTrainJob } from '../../api';
+import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../api';
 
 export enum TrainJobConditionType {
   Succeeded = 'Succeeded',
@@ -244,7 +244,7 @@ const getBasicJobStatus = (job: TrainJobKind): TrainingJobState => {
 };
 
 /**
- * Get training job status with hibernation support (async)
+ * Get training job status with pause/resume support (async)
  *
  * Status determination follows this priority order (higher priority checked first):
  *
@@ -278,10 +278,10 @@ const getBasicJobStatus = (job: TrainJobKind): TrainingJobState => {
 export const getTrainingJobStatus = async (
   job: TrainJobKind,
   options: {
-    skipHibernationCheck?: boolean;
+    skipPauseCheck?: boolean;
   } = {},
 ): Promise<{ status: TrainingJobState; isLoading: boolean; error?: string }> => {
-  const { skipHibernationCheck = false } = options;
+  const { skipPauseCheck = false } = options;
 
   try {
     // Terminal states (checked first)
@@ -291,7 +291,7 @@ export const getTrainingJobStatus = async (
 
     const basicStatus = getBasicJobStatus(job);
 
-    if (skipHibernationCheck) {
+    if (skipPauseCheck) {
       if (basicStatus === TrainingJobState.SUCCEEDED) {
         return { status: TrainingJobState.SUCCEEDED, isLoading: false };
       }
@@ -433,7 +433,7 @@ export const getTrainingJobStatusSync = (job: TrainJobKind): TrainingJobState =>
 
   const basicStatus = getBasicJobStatus(job);
 
-  // Skip hibernation check for terminal states
+  // Skip pause check for terminal states
   if (basicStatus === TrainingJobState.SUCCEEDED || basicStatus === TrainingJobState.FAILED) {
     return basicStatus;
   }
@@ -817,7 +817,7 @@ export const handlePauseResume = async (
 ): Promise<void> => {
   try {
     if (isPaused) {
-      const result = await resumeTrainJob(job);
+      const result = await setTrainJobPauseState(job, false);
       if (!result.success) {
         throw new Error(result.error || 'Failed to resume job');
       }

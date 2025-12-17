@@ -8,6 +8,7 @@ export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {
   [SpawnerPageSectionID.ENVIRONMENT_VARIABLES]: 'Environment variables',
   [SpawnerPageSectionID.CLUSTER_STORAGE]: 'Cluster storage',
   [SpawnerPageSectionID.CONNECTIONS]: 'Connections',
+  [SpawnerPageSectionID.FEATURE_STORE]: 'Feature stores',
 };
 
 export const ScrollableSelectorID = 'workbench-spawner-page';

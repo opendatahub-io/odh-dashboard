@@ -11,7 +11,7 @@ describe('Verify a Jupyter Notebook can be launched directly from the Project Li
 
   it(
     'Verify User Can Access Jupyter Launcher From Project Page',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1877', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1877', '@Dashboard', '@NonConcurrent'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

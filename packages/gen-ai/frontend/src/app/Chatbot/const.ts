@@ -53,6 +53,14 @@ export const FILE_UPLOAD_CONFIG = {
   ACCEPTED_EXTENSIONS: '.pdf,.csv,.txt',
 } as const;
 
+// Job polling constants
+export const JOB_POLLING_CONFIG = {
+  INITIAL_DELAY: 1000, // 1 second
+  MAX_DELAY: 10000, // 10 seconds
+  BACKOFF_MULTIPLIER: 1.5,
+  MAX_POLL_TIME: 10 * 60 * 1000, // 10 minutes
+} as const;
+
 // Error handling constants
 export const ERROR_MESSAGES = {
   NO_MODEL_OR_SOURCE: 'No model or source settings selected',

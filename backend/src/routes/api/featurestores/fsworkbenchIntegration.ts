@@ -3,30 +3,23 @@ import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { getAccessToken, getDirectCallOptions } from '../../../utils/directCallUtils';
 import { secureRoute } from '../../../utils/route-security';
 import { getNamespaces } from '../../../utils/notebookUtils';
-import { orderBy } from 'lodash';
 import {
   parseNamespacesData,
   getClientConfigs,
   fetchFromRegistry,
   fetchConfigMap,
-  batchFetchConfigMapsByNamespace,
   type ClientConfigInfo,
   handleError,
 } from './featureStoreUtils';
-import { V1ConfigMap } from '@kubernetes/client-node';
-
-interface WorkbenchFeatureStoreConfig {
-  namespace: string;
-  configName: string;
-  configMap: V1ConfigMap | null;
-  hasAccessToFeatureStore: boolean;
-}
 
 interface WorkbenchResponse {
-  clientConfigs: WorkbenchFeatureStoreConfig[];
   namespaces: Array<{
     namespace: string;
-    clientConfigs: string[];
+    clientConfigs: Array<{
+      configName: string;
+      projectName: string;
+      hasAccessToFeatureStore: boolean;
+    }>;
   }>;
 }
 
@@ -38,7 +31,10 @@ async function checkFeatureStoreAccess(
 ): Promise<boolean> {
   try {
     const projects = await fetchFromRegistry(fastify, registryUrl, userToken);
-    const hasAccess = projects && projects.length > 0;
+    if (!projects || projects.length === 0) {
+      return false;
+    }
+    const hasAccess = projects.some((p) => p.name === projectName || p.project === projectName);
     return hasAccess;
   } catch (error) {
     fastify.log.info(
@@ -74,32 +70,6 @@ async function checkMultipleFeatureStoreAccess(
   return accessResults;
 }
 
-async function processNamespaceConfigs(
-  fastify: KubeFastifyInstance,
-  namespace: string,
-  clientConfigs: string[],
-  token?: string,
-): Promise<WorkbenchFeatureStoreConfig[]> {
-  const clientConfigsData = await getClientConfigs(fastify, { [namespace]: clientConfigs });
-
-  if (clientConfigsData.length === 0) {
-    return [];
-  }
-
-  const accessResults = await checkMultipleFeatureStoreAccess(fastify, clientConfigsData, token);
-
-  const configMapMap = await batchFetchConfigMapsByNamespace(fastify, clientConfigsData);
-
-  const configsWithAccess = clientConfigsData.map((config) => ({
-    namespace: config.namespace,
-    configName: config.configName,
-    configMap: configMapMap.get(`${config.namespace}/${config.configName}`) || null,
-    hasAccessToFeatureStore: accessResults.get(config.projectName) || false,
-  }));
-
-  return orderBy(configsWithAccess, ['hasAccessToFeatureStore'], ['desc']);
-}
-
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/workbench-integration',
@@ -114,7 +84,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         if (!feastConfig || !feastConfig.data?.namespaces) {
           return reply.send({
-            clientConfigs: [],
             namespaces: [],
           });
         }
@@ -129,20 +98,38 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         const token = await getAccessToken(await getDirectCallOptions(fastify, req, ''));
 
-        const namespacePromises = namespaces.map(({ namespace: ns, clientConfigs }) =>
-          processNamespaceConfigs(fastify, ns, clientConfigs, token),
+        const allClientConfigsData = await getClientConfigs(
+          fastify,
+          Object.fromEntries(
+            namespaces.map(({ namespace, clientConfigs }) => [namespace, clientConfigs]),
+          ),
         );
 
-        const namespaceResults = await Promise.all(namespacePromises);
-        const allClientConfigs = orderBy(
-          namespaceResults.flat(),
-          ['hasAccessToFeatureStore'],
-          ['desc'],
+        const accessResults = await checkMultipleFeatureStoreAccess(
+          fastify,
+          allClientConfigsData,
+          token,
         );
+
+        const namespaceResults = namespaces.map(({ namespace }) => {
+          const namespaceConfigs = allClientConfigsData.filter(
+            (config) => config.namespace === namespace,
+          );
+          const accessibleConfigs = namespaceConfigs
+            .filter((config) => accessResults.get(config.projectName))
+            .map((config) => ({
+              configName: config.configName,
+              projectName: config.projectName,
+              hasAccessToFeatureStore: accessResults.get(config.projectName) ?? false,
+            }));
+          return {
+            namespace,
+            clientConfigs: accessibleConfigs,
+          };
+        });
 
         const response: WorkbenchResponse = {
-          clientConfigs: allClientConfigs,
-          namespaces,
+          namespaces: namespaceResults.filter((ns) => ns.clientConfigs.length > 0),
         };
 
         return reply.send(response);

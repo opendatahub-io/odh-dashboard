@@ -26,7 +26,7 @@ import { TrainingJobState } from '../types';
 
 const title = 'Training jobs';
 const description =
-  'Select a project to view its training jobs. Monitor training progress and manage distributed training workloads across your data science projects.';
+  'Monitor the progress of model training jobs and manage distributed training workloads.';
 
 const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();
@@ -34,6 +34,7 @@ const ModelTraining = (): React.ReactElement => {
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
   const [deleteTrainingJob, setDeleteTrainingJob] = useState<TrainJobKind | undefined>(undefined);
+  const [togglingJobId, setTogglingJobId] = useState<string | undefined>(undefined);
   const drawerRef = useRef<HTMLDivElement>(undefined);
 
   // Manage job statuses at this level so they can be shared with drawer and list
@@ -60,6 +61,11 @@ const ModelTraining = (): React.ReactElement => {
     },
     [selectedJob],
   );
+
+  // Close drawer when project changes
+  React.useEffect(() => {
+    setSelectedJob(undefined);
+  }, [project?.metadata.name]);
 
   // Sync selectedJob with the latest data from trainJobData when it updates
   React.useEffect(() => {
@@ -97,6 +103,8 @@ const ModelTraining = (): React.ReactElement => {
       jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
       onDelete={handleDelete}
+      onStatusUpdate={handleStatusUpdate}
+      onTogglingChange={setTogglingJobId}
     />
   );
 
@@ -143,6 +151,7 @@ const ModelTraining = (): React.ReactElement => {
               jobStatuses={jobStatuses}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}
+              togglingJobId={togglingJobId}
             />
           </ApplicationsPage>
         </DrawerContentBody>
