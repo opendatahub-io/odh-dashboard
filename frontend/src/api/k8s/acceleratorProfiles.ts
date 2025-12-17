@@ -1,16 +1,20 @@
-import {
-  k8sGetResource,
-  k8sListResource,
-  k8sDeleteResource,
-  K8sStatus,
-  k8sCreateResource,
-  k8sUpdateResource,
-} from '@openshift/dynamic-plugin-sdk-utils';
-import { AcceleratorProfileKind, K8sAPIOptions } from '#~/k8sTypes';
+import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { AcceleratorProfileModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
-import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 
+/**
+ * @deprecated
+ * only in deprecation paths
+ * used by *both* modelmesh and finetuning:
+ * fine-tuning: useIlabPodSpecOptionsState
+ * modelmesh: useServingAcceleratorProfileFormState
+ *
+ * remove this when they are *both* gone
+ *
+ * modelmesh: RHOAIENG-34917, finetuning: RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ *
+ */
 export const listAcceleratorProfiles = async (
   namespace: string,
 ): Promise<AcceleratorProfileKind[]> =>
@@ -20,94 +24,3 @@ export const listAcceleratorProfiles = async (
       ns: namespace,
     },
   }).then((listResource) => listResource.items);
-
-export const getAcceleratorProfile = (
-  name: string,
-  namespace: string,
-): Promise<AcceleratorProfileKind> =>
-  k8sGetResource<AcceleratorProfileKind>({
-    model: AcceleratorProfileModel,
-    queryOptions: { name, ns: namespace },
-  });
-
-const assembleAcceleratorProfile = (
-  spec: AcceleratorProfileKind['spec'],
-  namespace: string,
-  name?: string,
-): AcceleratorProfileKind => ({
-  apiVersion: kindApiVersion(AcceleratorProfileModel),
-  kind: AcceleratorProfileModel.kind,
-  metadata: {
-    name: name || translateDisplayNameForK8s(spec.displayName),
-    namespace,
-    annotations: {
-      'opendatahub.io/modified-date': new Date().toISOString(),
-    },
-  },
-  spec,
-});
-
-export const createAcceleratorProfile = (
-  acceleratorProfile: { name?: string } & AcceleratorProfileKind['spec'],
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<AcceleratorProfileKind> => {
-  const { name, ...spec } = acceleratorProfile;
-  const resource: AcceleratorProfileKind = assembleAcceleratorProfile(spec, namespace, name);
-  return k8sCreateResource<AcceleratorProfileKind>(
-    applyK8sAPIOptions(
-      {
-        model: AcceleratorProfileModel,
-        resource,
-      },
-      opts,
-    ),
-  );
-};
-
-export const updateAcceleratorProfile = async (
-  name: string,
-  namespace: string,
-  spec: Partial<AcceleratorProfileKind['spec']>,
-  opts?: K8sAPIOptions,
-): Promise<AcceleratorProfileKind> => {
-  const oldAcceleratorProfile = await getAcceleratorProfile(name, namespace);
-  const resource = {
-    ...oldAcceleratorProfile,
-    metadata: {
-      ...oldAcceleratorProfile.metadata,
-      annotations: {
-        ...oldAcceleratorProfile.metadata.annotations,
-        'opendatahub.io/modified-date': new Date().toISOString(),
-      },
-    },
-    spec: {
-      ...oldAcceleratorProfile.spec,
-      ...spec,
-    },
-  };
-  return k8sUpdateResource<AcceleratorProfileKind>(
-    applyK8sAPIOptions(
-      {
-        model: AcceleratorProfileModel,
-        resource,
-      },
-      opts,
-    ),
-  );
-};
-
-export const deleteAcceleratorProfile = (
-  name: string,
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<K8sStatus> =>
-  k8sDeleteResource<AcceleratorProfileKind, K8sStatus>(
-    applyK8sAPIOptions(
-      {
-        model: AcceleratorProfileModel,
-        queryOptions: { name, ns: namespace },
-      },
-      opts,
-    ),
-  );

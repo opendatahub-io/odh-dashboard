@@ -28,7 +28,7 @@ filters:
       - area/manifests
 
   # Cypress tests
-  'frontend/src/__tests__/cypress/.*':
+  'packages/cypress/.*':
     approvers:
       - quality-e2e-testing-approvers
     reviewers:
@@ -112,3 +112,12 @@ filters:
       - workbenches-reviewers
     labels:
       - 'area/workbenches'
+
+  # Gen AI
+  'packages/gen-ai/.*':
+    approvers:
+      - gen-ai-approvers
+    reviewers:
+      - gen-ai-reviewers
+    labels:
+      - 'area/gen-ai'

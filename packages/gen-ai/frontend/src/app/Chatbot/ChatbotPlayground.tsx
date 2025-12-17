@@ -13,7 +13,13 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelStatus } from '~/app/utilities';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import { isLlamaModelEnabled } from '~/app/utilities';
+import { TokenInfo } from '~/app/types';
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
+import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -27,26 +33,36 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
+import NewChatModal from './components/NewChatModal';
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
   setIsViewCodeModalOpen: (isOpen: boolean) => void;
+  isNewChatModalOpen: boolean;
+  setIsNewChatModalOpen: (isOpen: boolean) => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   isViewCodeModalOpen,
   setIsViewCodeModalOpen,
+  isNewChatModalOpen,
+  setIsNewChatModalOpen,
 }) => {
   const { username } = useUserContext();
+  const { namespace } = React.useContext(GenAiContext);
+  const { getToolSelections } = useMCPToolSelections();
   const {
     models,
     modelsLoaded,
     aiModels,
+    maasModels,
     selectedModel,
     setSelectedModel,
     lastInput,
     setLastInput,
   } = React.useContext(ChatbotContext);
+
+  const { data: bffConfig } = useFetchBFFConfig();
 
   const [systemInstruction, setSystemInstruction] = React.useState<string>(
     DEFAULT_SYSTEM_INSTRUCTIONS,
@@ -57,24 +73,75 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const location = useLocation();
   const selectedAAModel = location.state?.model;
+  const mcpServersFromRoute = React.useMemo(() => {
+    const servers = location.state?.mcpServers;
+    return Array.isArray(servers) ? servers : [];
+  }, [location.state?.mcpServers]);
+
+  const mcpServerStatusesFromRoute = React.useMemo(() => {
+    const statuses = location.state?.mcpServerStatuses;
+    return statuses ? new Map(Object.entries(statuses)) : new Map();
+  }, [location.state?.mcpServerStatuses]);
+
+  // Handle router state for MCP servers - initialize state with router value
+  const [selectedMcpServerIds, setSelectedMcpServerIds] =
+    React.useState<string[]>(mcpServersFromRoute);
+
+  // MCP hooks - fetch servers and manage statuses
+  const {
+    data: mcpServers = [],
+    loaded: mcpServersLoaded,
+    error: mcpServersLoadError,
+  } = useFetchMCPServers();
+  const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
+    useMCPServerStatuses(mcpServers, mcpServersLoaded);
+
+  const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
+
+  const shouldClearRouterState = React.useMemo(
+    () =>
+      Boolean(
+        location.state &&
+          (location.state.mcpServers || location.state.model || location.state.mcpServerStatuses),
+      ),
+    [location.state],
+  );
+
+  // Clear router state after a brief delay to ensure child components have consumed it
+  React.useEffect(() => {
+    if (shouldClearRouterState) {
+      const timeoutId = setTimeout(() => {
+        window.history.replaceState({}, '');
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+    return undefined;
+  }, [shouldClearRouterState]);
 
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !selectedModel) {
       if (selectedAAModel) {
         setSelectedModel(selectedAAModel);
-        // Clear the location state after setting the selected model
-        // so that when refreshing the page, the selected model is not passed again
-        window.history.replaceState({}, '');
       } else {
-        const availableModels = models.filter(
-          (model) => getLlamaModelStatus(model.id, aiModels) === 'Running',
+        const availableModels = models.filter((model) =>
+          isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
         );
         if (availableModels.length > 0) {
           setSelectedModel(availableModels[0].id);
         }
       }
     }
-  }, [modelsLoaded, models, selectedModel, setSelectedModel, aiModels, selectedAAModel]);
+  }, [
+    modelsLoaded,
+    models,
+    selectedModel,
+    setSelectedModel,
+    aiModels,
+    maasModels,
+    bffConfig,
+    selectedAAModel,
+    mcpServersFromRoute,
+  ]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
@@ -93,6 +160,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       fileManagement.refreshFiles();
     },
     uploadedFiles: fileManagement.files,
+    isFilesLoading: fileManagement.isLoading,
   });
 
   const chatbotMessages = useChatbotMessages({
@@ -104,6 +172,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isStreamingEnabled,
     temperature,
     currentVectorStoreId: fileManagement.currentVectorStoreId,
+    selectedServerIds: selectedMcpServerIds,
+    mcpServers,
+    mcpServerStatuses,
+    mcpServerTokens,
+    toolSelections: getToolSelections,
+    namespace: namespace?.name,
   });
 
   // Create alert components
@@ -147,6 +221,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       onStreamingToggle={setIsStreamingEnabled}
       temperature={temperature}
       onTemperatureChange={setTemperature}
+      onMcpServersChange={setSelectedMcpServerIds}
+      initialSelectedServerIds={mcpServersFromRoute}
+      initialServerStatuses={mcpServerStatusesFromRoute}
+      selectedServersCount={selectedMcpServerIds.length}
+      mcpServers={mcpServers}
+      mcpServersLoaded={mcpServersLoaded}
+      mcpServersLoadError={mcpServersLoadError}
+      mcpServerTokens={mcpServerTokens}
+      onMcpServerTokensChange={setMcpServerTokens}
+      checkMcpServerStatus={checkMcpServerStatus}
     />
   );
 
@@ -167,6 +251,22 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         model={selectedModel}
         systemInstruction={systemInstruction}
         files={fileManagement.files}
+        isRagEnabled={sourceManagement.isRawUploaded}
+        selectedMcpServerIds={selectedMcpServerIds}
+        mcpServers={mcpServers}
+        mcpServerTokens={mcpServerTokens}
+        toolSelections={getToolSelections}
+        namespace={namespace?.name}
+      />
+      <NewChatModal
+        isOpen={isNewChatModalOpen}
+        onClose={() => {
+          setIsNewChatModalOpen(false);
+        }}
+        onConfirm={() => {
+          chatbotMessages.clearConversation();
+          setIsNewChatModalOpen(false);
+        }}
       />
       <Drawer isExpanded isInline position="right">
         <Divider />
@@ -184,6 +284,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
                     description="Welcome to the model playground."
+                    data-testid="chatbot-welcome-prompt"
                   />
                   <ChatbotMessages
                     messageList={chatbotMessages.messages}
@@ -217,8 +318,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                         setLastInput(message);
                       }
                     }}
+                    handleStopButton={chatbotMessages.handleStopStreaming}
                     hasAttachButton={false}
                     isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
+                    hasStopButton={chatbotMessages.isLoading}
                     data-testid="chatbot-message-bar"
                     onAttach={async (acceptedFiles, fileRejections, event) => {
                       try {
@@ -266,6 +369,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                       attach: {
                         tooltipContent: `Upload files (${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}, max ${FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)`,
                         inputTestId: 'chatbot-attach-input',
+                      },
+                      send: {
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        props: {
+                          'data-testid': 'chatbot-send-button',
+                        } as React.ComponentProps<'button'>,
                       },
                     }}
                   />

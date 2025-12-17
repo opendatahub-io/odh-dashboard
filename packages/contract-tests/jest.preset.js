@@ -7,7 +7,15 @@ module.exports = {
   testMatch: ['**/contract-tests/**/?(*.)+(spec|test).ts'],
   testPathIgnorePatterns: ['/node_modules/', '/upstream/'],
   transform: {
-    '^.+\\.ts$': ['ts-jest'],
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        isolatedModules: true,
+        tsconfig: {
+          types: ['jest', 'node'],
+        },
+      },
+    ],
   },
   testTimeout: 5000,
   verbose: true,

@@ -1,16 +1,11 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import { DeploymentRow } from './row/DeploymentsTableRow';
-import { EditModelServingModal } from '../deploy/EditModelServingModal';
 import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
 import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
-import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const expandedInfoColumn: SortableData<Deployment> = {
   field: 'expand',
@@ -34,11 +29,6 @@ const genericColumns: SortableData<Deployment>[] = [
   {
     label: 'Inference endpoints',
     field: 'inferenceEndpoint',
-    sortable: false,
-  },
-  {
-    label: 'API protocol',
-    field: 'apiProtocol',
     sortable: false,
   },
   {
@@ -84,13 +74,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   alertContent,
   ...tableProps
 }) => {
-  const navigate = useNavigate();
-  const currentPath = useLocation().pathname;
-
-  const deploymentWizardAvailable = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
-
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
-  const [editDeployment, setEditDeployment] = React.useState<Deployment | undefined>(undefined);
   const allColumns: SortableData<Deployment>[] = React.useMemo(
     () => [
       ...(showExpandedToggleColumn ? [expandedInfoColumn] : []),
@@ -100,13 +84,16 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
     ],
     [platformColumns, showExpandedToggleColumn],
   );
+  const lastDeployedColumnIndex = React.useMemo(() => {
+    return allColumns.findIndex((column) => column.field === 'lastDeployed');
+  }, [allColumns]);
 
   return (
     <>
       <Table
         data-testid="inference-service-table" // legacy testid
         columns={allColumns}
-        defaultSortColumn={showExpandedToggleColumn ? 1 : 0}
+        defaultSortColumn={lastDeployedColumnIndex}
         data={deployments}
         disableRowRenderSupport={showExpandedToggleColumn}
         rowRenderer={(row: Deployment, rowIndex: number) => (
@@ -116,13 +103,6 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
             deployment={row}
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
-            onEdit={() => {
-              if (deploymentWizardAvailable) {
-                navigate(getDeploymentWizardRoute(currentPath, row.model.metadata.name));
-              } else {
-                setEditDeployment(row);
-              }
-            }}
             showExpandedToggle={showExpandedToggleColumn}
           />
         )}
@@ -139,14 +119,6 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
               type: 'single',
             });
             setDeleteDeployment(undefined);
-          }}
-        />
-      )}
-      {editDeployment && (
-        <EditModelServingModal
-          deployment={editDeployment}
-          onClose={() => {
-            setEditDeployment(undefined);
           }}
         />
       )}

@@ -13,11 +13,20 @@
   "exports": {
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
-    "./types/form-data": "./src/components/deploymentWizard/types.ts"
+    "./components/*": [
+      "./src/components/*",
+      "./src/components/*.ts",
+      "./src/components/*.d.ts",
+      "./src/components/*.tsx"
+    ],
+    "./types/form-data": "./src/components/deploymentWizard/types.ts",
+    "./concepts/auth": "./src/concepts/auth.ts",
+    "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/model-registry": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

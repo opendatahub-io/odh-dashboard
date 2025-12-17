@@ -5,7 +5,7 @@ import { rolloutDeployment } from '../../../utils/deployment';
 import { KubeFastifyInstance, ClusterSettings } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { setDashboardConfig } from '../config/configUtils';
-import { checkJupyterEnabled } from '../../../utils/componentUtils';
+import { checkJupyterEnabled } from '../../../utils/resourceUtils';
 
 const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';
@@ -19,7 +19,6 @@ const DEFAULT_CLUSTER_SETTINGS = {
   userTrackingEnabled: false,
   modelServingPlatformEnabled: {
     kServe: true,
-    modelMesh: false,
   },
 } satisfies ClusterSettings;
 
@@ -35,15 +34,11 @@ export const updateClusterSettings = async (
   const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
-    if (
-      modelServingPlatformEnabled.kServe !== !dashConfig.spec.dashboardConfig.disableKServe ||
-      modelServingPlatformEnabled.modelMesh !== !dashConfig.spec.dashboardConfig.disableModelMesh
-    ) {
+    if (modelServingPlatformEnabled.kServe !== !dashConfig.spec.dashboardConfig.disableKServe) {
       await setDashboardConfig(fastify, {
         spec: {
           dashboardConfig: {
             disableKServe: !modelServingPlatformEnabled.kServe,
-            disableModelMesh: !modelServingPlatformEnabled.modelMesh,
           },
         },
       });
@@ -121,7 +116,6 @@ export const getClusterSettings = async (
     ...DEFAULT_CLUSTER_SETTINGS,
     modelServingPlatformEnabled: {
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
-      modelMesh: !dashConfig.spec.dashboardConfig.disableModelMesh,
     },
   };
 

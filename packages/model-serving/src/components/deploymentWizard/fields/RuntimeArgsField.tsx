@@ -64,7 +64,7 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
   };
 
   const handleTextAreaChange = (_e: React.FormEvent<HTMLTextAreaElement>, textValue: string) => {
-    const newData = { ...data, args: textValue.split('\n').filter((arg) => arg.trim() !== '') };
+    const newData = { ...data, args: textValue.split('\n') };
     onChange?.(newData);
   };
 
@@ -97,10 +97,10 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
           headerContent="Predefined arguments of the selected serving runtime"
           bodyContent={
             <List isPlain data-testid="predefined-args-list">
-              {predefinedArgs?.length === 0 ? (
+              {!predefinedArgs || predefinedArgs.length === 0 ? (
                 <ListItem key="0">No predefined arguments</ListItem>
               ) : (
-                predefinedArgs?.map((arg: string, index: number) => (
+                predefinedArgs.map((arg: string, index: number) => (
                   <ListItem key={index}>{arg}</ListItem>
                 ))
               )}

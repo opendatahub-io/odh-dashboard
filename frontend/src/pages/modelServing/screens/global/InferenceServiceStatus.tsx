@@ -10,19 +10,16 @@ import { useModelStatus } from './useModelStatus';
 
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
-  isKserve: boolean;
   stoppedStates: ToggleState;
 };
 
 const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   inferenceService,
-  isKserve,
   stoppedStates,
 }) => {
   const [modelPodStatus] = useModelStatus(
     inferenceService.metadata.namespace,
     inferenceService.spec.predictor.model?.runtime ?? '',
-    isKserve,
   );
 
   const state = getInferenceServiceModelState(inferenceService, modelPodStatus);

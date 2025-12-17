@@ -6,3 +6,17 @@ export const NotebookModel: K8sModelCommon = {
   kind: 'Notebook',
   plural: 'notebooks',
 };
+
+export const TrainJobModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'trainer.kubeflow.org',
+  kind: 'TrainJob',
+  plural: 'trainjobs',
+};
+
+export const ClusterTrainingRuntimeModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'trainer.kubeflow.org',
+  kind: 'ClusterTrainingRuntime',
+  plural: 'clustertrainingruntimes',
+};

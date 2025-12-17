@@ -206,6 +206,16 @@ const extensions: RouteExtension[] = [
   },
   {
     type: 'app.route',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW, SupportedArea.EMBED_MLFLOW],
+    },
+    properties: {
+      path: '/develop-train/experiments-mlflow/*',
+      component: () => import('#~/pages/pipelines/GlobalMLflowExperimentsRoutes'),
+    },
+  },
+  {
+    type: 'app.route',
     properties: {
       path: '/develop-train/pipelines/artifacts/*',
       component: () => import('#~/pages/pipelines/GlobalArtifactsRoutes'),

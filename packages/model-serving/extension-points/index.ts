@@ -9,18 +9,20 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import type {
   WizardFormData,
   DeploymentWizardField,
   ModelLocationData,
   InitialWizardFormData,
 } from '../src/components/deploymentWizard/types';
+import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -124,9 +126,9 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
       platform: D['modelServingPlatformId'];
       watch: CodeRef<
         (
-          project?: ProjectKind,
+          project: ProjectKind,
           labelSelectors?: { [key: string]: string },
-          mrName?: string,
+          filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,
         ) => [D[] | undefined, boolean, Error | undefined]
       >;
@@ -141,6 +143,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
     >;
@@ -154,6 +157,12 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => { saveAsAiAsset: boolean; saveAsMaaS?: boolean; useCase?: string } | null
     >;
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
+    extractDeploymentStrategy?: CodeRef<
+      (deployment: D) => WizardFormData['state']['deploymentStrategy']['data'] | null
+    >;
+    extractModelServerTemplate: CodeRef<
+      (deployment: D, dashboardNamespace?: string) => ModelServerOption | null
+    >;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
@@ -297,3 +306,15 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension: Extension,
 ): extension is DeploymentWizardFieldExtension<D> =>
   extension.type === 'model-serving.deployment/wizard-field';
+
+export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/transform',
+  {
+    platform: D['modelServingPlatformId'];
+    transform: CodeRef<(deployment: D, initialWizardData: InitialWizardFormData) => D>;
+  }
+>;
+export const isModelServingDeploymentTransformExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentTransformExtension<D> =>
+  extension.type === 'model-serving.deployment/transform';

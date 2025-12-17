@@ -14,6 +14,8 @@ export const DEV_OAUTH_PREFIX = process.env.DEV_OAUTH_PREFIX || 'oauth-openshift
 export const APP_ENV = process.env.APP_ENV;
 
 export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
+export const KUBE_RBAC_USER_HEADER = 'x-auth-request-user';
+export const KUBE_RBAC_GROUPS_HEADER = 'x-auth-request-groups';
 
 export const yamlRegExp = /\.ya?ml$/;
 export const mdRegExp = /\.md$/;
@@ -68,7 +70,6 @@ export const blankDashboardCR: DashboardConfig = {
       disableKServeAuth: false,
       disableKServeMetrics: false,
       disableKServeRaw: false,
-      disableModelMesh: false,
       disableDistributedWorkloads: false,
       disableModelCatalog: false,
       disableModelRegistry: false,
@@ -79,9 +80,13 @@ export const blankDashboardCR: DashboardConfig = {
       disableNIMModelServing: false,
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
+      genAiStudio: false,
+      modelAsService: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
+      mlflow: false,
+      trainingJobs: false,
     },
     notebookController: {
       enabled: true,

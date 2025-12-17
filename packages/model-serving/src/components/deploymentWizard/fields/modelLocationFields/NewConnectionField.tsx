@@ -103,6 +103,7 @@ const NewConnectionField: React.FC<Props> = ({
       <ConnectionTypeFormFields
         fields={fields}
         isPreview={false}
+        isDisabled={modelLocationData?.disableInputFields}
         onChange={handleFieldChange}
         connectionValues={connectionValues}
       />

@@ -15,8 +15,8 @@ export type IsAreaAvailableStatus = {
   devFlags: { [key in string]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
   featureFlags: { [key in FeatureFlag]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
   reliantAreas: { [key in SupportedAreaType]?: boolean } | null; // only needs 1 to be true
-  requiredComponents: { [key in StackComponent]?: boolean } | null;
   requiredCapabilities: { [key in StackCapability]?: boolean } | null;
+  requiredComponents: { [key in DataScienceStackComponent]?: boolean } | null;
   customCondition: (conditionFunc: CustomConditionFunction) => boolean;
 };
 
@@ -53,13 +53,11 @@ export enum SupportedArea {
   K_SERVE_AUTH = 'kserve-auth',
   K_SERVE_METRICS = 'kserve-metrics',
   K_SERVE_RAW = 'kserve-raw',
-  MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
-  DEPLOYMENT_WIZARD = 'deployment-wizard',
   MODEL_AS_SERVICE = 'model-as-service',
 
   /* Distributed Workloads areas */
@@ -87,50 +85,45 @@ export enum SupportedArea {
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
+
+  /* AI Catalog Settings */
+  AI_CATALOG_SETTINGS = 'ai-catalog-settings',
+
+  /* MLflow */
+  MLFLOW = 'mlflow-application',
+
+  /* Project RBAC Settings */
+  PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
+
+  /* Embed MLflow */
+  EMBED_MLFLOW = 'embed-mlflow',
 }
 
 export type SupportedAreaType = SupportedArea | string;
-/** Components deployed by the Operator. Part of the DSC Status. */
-export enum StackComponent {
-  CODE_FLARE = 'codeflare',
-  DS_PIPELINES = 'data-science-pipelines-operator',
-  K_SERVE = 'kserve',
-  MODEL_MESH = 'model-mesh',
-  // Bug: https://github.com/opendatahub-io/opendatahub-operator/issues/641
-  DASHBOARD = 'odh-dashboard',
-  RAY = 'ray',
-  WORKBENCHES = 'workbenches',
-  TRUSTY_AI = 'trustyai',
-  KUEUE = 'kueue',
-  TRAINING_OPERATOR = 'trainingoperator',
-  MODEL_REGISTRY = 'model-registry-operator',
-  FEAST_OPERATOR = 'feastoperator',
-  LLAMA_STACK_OPERATOR = 'llamastackoperator',
-}
 
-/** The possible component names that are used as keys in the `components` object of the DSC Status.
- * Each component's key (e.g., 'codeflare', 'dashboard', etc.) maps to a specific component status.
+/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
+ * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
  **/
 export enum DataScienceStackComponent {
-  CODE_FLARE = 'codeflare',
   DASHBOARD = 'dashboard',
   DS_PIPELINES = 'aipipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
-  MODEL_MESH_SERVING = 'modelmeshserving',
   MODEL_REGISTRY = 'modelregistry',
   FEAST_OPERATOR = 'feastoperator',
   RAY = 'ray',
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
+  LLAMA_STACK_OPERATOR = 'llamastackoperator',
+  TRAINER = 'trainer',
 }
 
-/** Capabilities of the Operator. Part of the DSCI Status. */
-export enum StackCapability {
-  SERVICE_MESH = 'CapabilityServiceMesh',
-  SERVICE_MESH_AUTHZ = 'CapabilityServiceMeshAuthorization',
-}
+/**
+ * Capabilities of the Operator. Part of the DSCI Status.
+ * Preserved as string type for future capabilities.
+ */
+export type StackCapability = string;
 
 /**
  * Optional function to check for a condition that is not covered by other checks.
@@ -153,7 +146,7 @@ export type SupportedComponentFlagValue = {
   /**
    * An area can be reliant on another area being enabled. The list is "OR"-ed together.
    *
-   * Example, Model Serving is a shell for either KServe or ModelMesh. It has no value on its own.
+   * Example, Model Serving is a shell for KServe. It has no value on its own.
    * It can also be a chain of reliance... example, Custom Runtimes is a Model Serving feature.
    *
    * TODO: support AND -- maybe double array?
@@ -190,7 +183,7 @@ export type SupportedComponentFlagValue = {
        * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
        * component.
        */
-      requiredComponents: StackComponent[];
+      requiredComponents: DataScienceStackComponent[];
     }
   >
 >;

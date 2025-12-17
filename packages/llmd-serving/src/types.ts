@@ -7,8 +7,11 @@ import type {
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
 import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
+import { LLMD_SERVING_ID } from '../extensions/extensions';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
+
+export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
 
 export type LLMInferenceServiceKind = K8sResourceCommon & {
   kind: 'LLMInferenceService';
@@ -63,6 +66,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
 };
 
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind>;
+
+export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
+  deployment.modelServingPlatformId === LLMD_SERVING_ID;
 
 export const LLMInferenceServiceModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',

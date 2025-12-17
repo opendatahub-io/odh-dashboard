@@ -1,7 +1,10 @@
 import { NotebookKind } from '#~/k8sTypes';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
-import { NotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import {
+  HardwarePodSpecOptionsState,
+  HardwarePodSpecOptions,
+} from '#~/concepts/hardwareProfiles/types.ts';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
   !!(
@@ -49,13 +52,11 @@ export const getNotebookPVCMountPathMap = (
 export const fireNotebookTrackingEvent = (
   action: 'started' | 'stopped',
   notebook: NotebookKind,
-  podSpecOptionsState: NotebookPodSpecOptionsState,
+  podSpecOptionsState: HardwarePodSpecOptionsState<HardwarePodSpecOptions>,
 ): void => {
   fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
     outcome: TrackingOutcome.submit,
     podSpecOptions: JSON.stringify({
-      notebookSize: podSpecOptionsState.notebooksSize.selectedSize,
-      acceleratorProfile: podSpecOptionsState.acceleratorProfile.formData.profile?.metadata.name,
       hardwareProfile: podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
       resources: podSpecOptionsState.podSpecOptions.resources,
       tolerations: podSpecOptionsState.podSpecOptions.tolerations,

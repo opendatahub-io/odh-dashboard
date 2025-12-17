@@ -34,6 +34,7 @@ const recommended = {
         extends: [
           '@odh-dashboard/eslint-config/base',
           '@odh-dashboard/eslint-config/node',
+          '@odh-dashboard/eslint-config/package-restrictions',
           '@odh-dashboard/eslint-config/markdown',
           // '@odh-dashboard/eslint-config/yaml',
           '@odh-dashboard/eslint-config/prettier',
@@ -48,6 +49,7 @@ const recommended = {
         extends: [
           '@odh-dashboard/eslint-config/base',
           '@odh-dashboard/eslint-config/node',
+          '@odh-dashboard/eslint-config/package-restrictions',
           '@odh-dashboard/eslint-config/typescript',
           '@odh-dashboard/eslint-config/markdown',
           // '@odh-dashboard/eslint-config/yaml',
@@ -64,6 +66,7 @@ const recommended = {
           '@odh-dashboard/eslint-config/base',
           '@odh-dashboard/eslint-config/node',
           '@odh-dashboard/eslint-config/react',
+          '@odh-dashboard/eslint-config/package-restrictions',
           '@odh-dashboard/eslint-config/typescript',
           '@odh-dashboard/eslint-config/markdown',
           // '@odh-dashboard/eslint-config/yaml',

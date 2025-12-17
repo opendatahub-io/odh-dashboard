@@ -13,13 +13,14 @@ import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
+import { deploymentStrategyRolling } from '../components/deploymentWizard/fields/DeploymentStrategyField';
 
 export const mockModelServingPlatform = ({
   id = 'kserve',
   namespaceApplicationCase = NamespaceApplicationCase.KSERVE_PROMOTION,
   enabledProjectMetadata = {
     labels: {
-      'enable-modelmesh': 'false',
+      'modelmesh-enabled': 'false',
     },
   },
   title = 'KServe',
@@ -128,6 +129,11 @@ export const mockDeploymentWizardState = (
     {
       initialData: undefined,
       state: {
+        project: {
+          initialProjectName: 'test-project',
+          projectName: 'test-project',
+          setProjectName: jest.fn(),
+        },
         modelType: {
           data: ServingRuntimeModelType.GENERATIVE,
           setData: jest.fn(),
@@ -143,6 +149,7 @@ export const mockDeploymentWizardState = (
           connectionsLoaded: true,
           connectionTypes: [],
           connectionTypesLoaded: true,
+          disableInputFields: false,
         },
         createConnectionData: {
           data: {
@@ -210,12 +217,17 @@ export const mockDeploymentWizardState = (
         modelServer: {
           data: undefined,
           setData: jest.fn(),
+          isAutoSelectChecked: undefined,
+          setIsAutoSelectChecked: jest.fn(),
+          suggestion: undefined,
           options: [],
+          isDirty: false,
         },
-      },
-      fieldExtensions: {
-        externalRouteFields: [],
-        tokenAuthFields: [],
+        deploymentStrategy: {
+          data: deploymentStrategyRolling,
+          setData: jest.fn(),
+          isVisible: true,
+        },
       },
       loaded: {
         modelSourceLoaded: true,

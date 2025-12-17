@@ -39,8 +39,12 @@ export const isAreaAvailable = (
     flagState: getFlags(dashboardConfigSpec),
   },
 ): IsAreaAvailableStatus => {
+  // Check if area exists in the internal state map
+  const hasAreaConfig = !!(area in options.internalStateMap);
+
+  // If area doesn't exist, use empty config to avoid errors
   const { devFlags, featureFlags, requiredComponents, reliantAreas, requiredCapabilities } =
-    options.internalStateMap[area];
+    hasAreaConfig ? options.internalStateMap[area] : {};
 
   const reliantAreasState = reliantAreas
     ? reliantAreas.reduce<IsAreaAvailableStatus['reliantAreas']>(
@@ -80,7 +84,12 @@ export const isAreaAvailable = (
   const requiredComponentsState =
     requiredComponents && dscStatus
       ? requiredComponents.reduce<IsAreaAvailableStatus['requiredComponents']>(
-          (acc, component) => ({ ...acc, [component]: dscStatus.installedComponents?.[component] }),
+          (acc, component) => ({
+            ...acc,
+            [component]:
+              dscStatus.components?.[component]?.managementState === 'Managed' ||
+              dscStatus.components?.[component]?.managementState === 'Unmanaged',
+          }),
           {},
         )
       : null;
@@ -108,6 +117,7 @@ export const isAreaAvailable = (
 
   return {
     status:
+      hasAreaConfig &&
       hasMetReliantAreas &&
       hasMetFeatureFlags &&
       hasMetRequiredComponents &&

@@ -23,8 +23,8 @@ import {
 
 import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
-import { createVectorStore } from '~/app/services/llamaStackService';
-import { GenAiContext } from '~/app/context/GenAiContext';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { DEFAULT_SOURCE_SETTINGS } from './utils';
 
 type ChatbotSourceSettingsModalProps = {
   isOpen: boolean;
@@ -33,14 +33,6 @@ type ChatbotSourceSettingsModalProps = {
   pendingFiles?: File[];
   isUploading?: boolean;
   uploadProgress?: { current: number; total: number };
-};
-
-const DEFAULT_SOURCE_SETTINGS: ChatbotSourceSettings = {
-  embeddingModel: '',
-  vectorStore: '',
-  delimiter: '',
-  maxChunkLength: 500,
-  chunkOverlap: 50,
 };
 
 const DEFAULT_VECTOR_STORE_FORM = {
@@ -56,14 +48,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   uploadProgress = { current: 0, total: 0 },
 }) => {
   const [fields, setFields] = React.useState<ChatbotSourceSettings>(DEFAULT_SOURCE_SETTINGS);
-  const { namespace } = React.useContext(GenAiContext);
-
+  const { api, apiAvailable } = useGenAiAPI();
   const maxChunkLengthLabelHelpRef = React.useRef(null);
   const vectorDatabaseLabelHelpRef = React.useRef(null);
   const chunkOverlapLabelHelpRef = React.useRef(null);
   const delimiterLabelHelpRef = React.useRef(null);
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
-    useFetchVectorStores(namespace?.name);
+    useFetchVectorStores();
 
   // Auto-select the first vector database when vector stores are loaded
   React.useEffect(() => {
@@ -110,13 +101,13 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   };
 
   const onSubmitVectorStoreCreation = async () => {
-    if (!vectorStoreForm.vectorName.trim() || !namespace?.name) {
+    if (!vectorStoreForm.vectorName.trim() || !apiAvailable) {
       return;
     }
 
     try {
       setIsCreatingVectorStore(true);
-      const newVectorStore = await createVectorStore(vectorStoreForm.vectorName, namespace.name);
+      const newVectorStore = await api.createVectorStore({ name: vectorStoreForm.vectorName });
 
       // Refresh the vector stores list to include the newly created one
       await refreshVectorStores();

@@ -42,8 +42,6 @@ jest.mock('#~/pages/modelServing/screens/projects/nimUtils', () => ({
 const getMockServingPlatformStatuses = ({
   kServeEnabled = true,
   kServeInstalled = true,
-  modelMeshEnabled = true,
-  modelMeshInstalled = true,
   nimEnabled = false,
   nimInstalled = false,
 }): ServingPlatformStatuses => ({
@@ -55,90 +53,66 @@ const getMockServingPlatformStatuses = ({
     enabled: nimEnabled,
     installed: nimInstalled,
   },
-  modelMesh: {
-    enabled: modelMeshEnabled,
-    installed: modelMeshInstalled,
-  },
-  platformEnabledCount: [kServeEnabled, nimEnabled, modelMeshEnabled].filter(Boolean).length,
+  platformEnabledCount: [kServeEnabled, nimEnabled].filter(Boolean).length,
   refreshNIMAvailability: async () => true,
 });
 
 describe('getProjectModelServingPlatform', () => {
-  it('should return undefined if both KServe and ModelMesh are disabled, and project has no platform label', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({}),
-        getMockServingPlatformStatuses({ kServeEnabled: false, modelMeshEnabled: false }),
-      ),
-    ).toStrictEqual({});
-  });
-  it('should return undefined if both KServe and ModelMesh are enabled, and project has no platform label', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({}),
-        getMockServingPlatformStatuses({}),
-      ),
-    ).toStrictEqual({});
-  });
-  it('should return Single Platform if has platform label set to false and KServe is installed', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({ enableModelMesh: false }),
-        getMockServingPlatformStatuses({}),
-      ),
-    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({ enableModelMesh: false }),
-        getMockServingPlatformStatuses({ kServeEnabled: false }),
-      ),
-    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
-  });
-  it('should give error if has platform label set to false and KServe is not installed', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({ enableModelMesh: false }),
-        getMockServingPlatformStatuses({ kServeEnabled: false, kServeInstalled: false }),
-      ).error,
-    ).not.toBeUndefined();
-  });
-  it('should return Multi Platform if has platform label set to true and ModelMesh is installed', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({ enableModelMesh: true }),
-        getMockServingPlatformStatuses({}),
-      ),
-    ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI, error: undefined });
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({ enableModelMesh: true }),
-        getMockServingPlatformStatuses({ modelMeshEnabled: false }),
-      ),
-    ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI, error: undefined });
-  });
-  it('should give error if has platform label set to true and ModelMesh is not installed', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({ enableModelMesh: true }),
-        getMockServingPlatformStatuses({ modelMeshEnabled: false, modelMeshInstalled: false }),
-      ).error,
-    ).not.toBeUndefined();
-  });
-  it('should return Single Platform if only KServe is enabled, and project has no platform label', () => {
-    expect(
-      getProjectModelServingPlatform(
-        mockProjectK8sResource({}),
-        getMockServingPlatformStatuses({ modelMeshEnabled: false }),
-      ),
-    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE });
-  });
-  it('should return Multi Platform if only ModelMesh is enabled, and project has no platform label', () => {
+  it('should return empty object when KServe is disabled and project has no platform label', () => {
     expect(
       getProjectModelServingPlatform(
         mockProjectK8sResource({}),
         getMockServingPlatformStatuses({ kServeEnabled: false }),
       ),
-    ).toStrictEqual({ platform: ServingRuntimePlatform.MULTI });
+    ).toStrictEqual({});
+  });
+  it('should return Single Platform when KServe is enabled', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({}),
+        getMockServingPlatformStatuses({}),
+      ),
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
+  });
+  it('should return empty object when no platforms are enabled', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({}),
+        getMockServingPlatformStatuses({ kServeEnabled: false, nimEnabled: false }),
+      ),
+    ).toStrictEqual({});
+  });
+  it('should return error when KServe is enabled but not installed', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({}),
+        getMockServingPlatformStatuses({ kServeEnabled: true, kServeInstalled: false }),
+      ).error,
+    ).not.toBeUndefined();
+  });
+  it('should return Single Platform when NIM is enabled', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({}),
+        getMockServingPlatformStatuses({ kServeEnabled: false, nimEnabled: true }),
+      ),
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
+  });
+  it('should return empty object when both KServe and NIM are enabled but no platform is selected', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({}),
+        getMockServingPlatformStatuses({ kServeEnabled: true, nimEnabled: true }),
+      ),
+    ).toStrictEqual({});
+  });
+  it('should return Single Platform when project has NIM annotation', () => {
+    expect(
+      getProjectModelServingPlatform(
+        mockProjectK8sResource({ enableNIM: true }),
+        getMockServingPlatformStatuses({ kServeEnabled: true, nimEnabled: true }),
+      ),
+    ).toStrictEqual({ platform: ServingRuntimePlatform.SINGLE, error: undefined });
   });
 });
 
@@ -426,6 +400,10 @@ describe('createNIMPVC', () => {
       projectName,
       { dryRun },
       true,
+      undefined,
+      {
+        'opendatahub.io/managed': 'true',
+      },
     );
     expect(result).toEqual(pvcMock);
   });
@@ -444,6 +422,10 @@ describe('createNIMPVC', () => {
       projectName,
       { dryRun: dryRunFlag },
       true,
+      undefined,
+      {
+        'opendatahub.io/managed': 'true',
+      },
     );
   });
 });
@@ -531,7 +513,6 @@ describe('isCurrentServingPlatformEnabled', () => {
   const baseStatuses = {
     kServe: { enabled: true, installed: true },
     kServeNIM: { enabled: false, installed: false },
-    modelMesh: { enabled: true, installed: true },
     platformEnabledCount: 2,
     refreshNIMAvailability: async () => true,
   };
@@ -543,15 +524,6 @@ describe('isCurrentServingPlatformEnabled', () => {
   it('returns false if currentPlatform is single and kServe is disabled', () => {
     const statuses = { ...baseStatuses, kServe: { enabled: false, installed: true } };
     expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.SINGLE, statuses)).toBe(false);
-  });
-
-  it('returns true if currentPlatform is multi and modelMesh is enabled', () => {
-    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.MULTI, baseStatuses)).toBe(true);
-  });
-
-  it('returns false if currentPlatform is multi and modelMesh is disabled', () => {
-    const statuses = { ...baseStatuses, modelMesh: { enabled: false, installed: true } };
-    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.MULTI, statuses)).toBe(false);
   });
 
   it('returns false if currentPlatform is undefined', () => {

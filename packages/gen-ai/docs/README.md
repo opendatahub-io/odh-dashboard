@@ -5,7 +5,25 @@ This directory contains documentation for the Gen AI package.
 ## Structure
 
 - `adr/` - Architectural Decision Records (ADRs) documenting key architectural decisions
+- `user/` - User and operator documentation (configuration, deployment, operations)
+- `developer/` - Developer documentation (testing, development setup, contributing)
 - API documentation is maintained in `bff/openapi/` directory
+
+## Documentation Categories
+
+### User Documentation
+
+Documentation for users, operators, and administrators:
+
+- [Logging Configuration](./user/admin/logging/README.md) - Configure and enable logging across gen-ai components
+
+### Developer Documentation
+
+Documentation for developers contributing to the project:
+
+- [Developer Documentation Index](./developer/README.md) - Overview of developer resources
+- [BFF Testing Guide](../bff/README.md) - Comprehensive testing guide
+- [Architectural Decision Records](./adr/) - Key architectural decisions
 
 ## Architectural Decision Records (ADRs)
 

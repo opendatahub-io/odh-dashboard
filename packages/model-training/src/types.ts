@@ -1,0 +1,15 @@
+export enum TrainingJobState {
+  CREATED = 'Created',
+  PENDING = 'Pending',
+  QUEUED = 'Queued',
+  RUNNING = 'Running',
+  RESTARTING = 'Restarting',
+  SUCCEEDED = 'Succeeded',
+  FAILED = 'Failed',
+  PAUSED = 'Paused',
+  SUSPENDED = 'Suspended',
+  PREEMPTED = 'Preempted',
+  INADMISSIBLE = 'Inadmissible',
+  DELETING = 'Deleting',
+  UNKNOWN = 'Unknown',
+}

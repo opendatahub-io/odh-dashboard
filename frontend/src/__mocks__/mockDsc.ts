@@ -1,5 +1,5 @@
-import { StackCapability } from '#~/concepts/areas/types';
 import { DataScienceClusterKind, K8sCondition } from '#~/k8sTypes';
+import { StackCapability } from '#~/concepts/areas/types';
 
 export type MockDsc = {
   conditions?: K8sCondition[];
@@ -23,7 +23,6 @@ export const mockDsc = ({
         managementState: 'Managed',
       },
       kserve: {
-        defaultDeploymentMode: 'Severless',
         managementState: 'Managed',
         nim: {
           managementState: 'Managed',
@@ -47,24 +46,22 @@ export const mockDsc = ({
   },
   status: {
     conditions: [
-      ...[
-        {
-          lastHeartbeatTime: '2023-10-20T11:45:04Z',
-          lastTransitionTime: '2023-10-20T11:45:04Z',
-          message: 'Reconcile completed successfully',
-          reason: 'ReconcileCompleted',
-          status: 'True',
-          type: 'ReconcileComplete',
-        },
-        ...requiredCapabilities.map((capability) => ({
-          lastHeartbeatTime: '2023-10-20T11:45:04Z',
-          lastTransitionTime: '2023-10-20T11:45:04Z',
-          message: `Capability ${capability} installed`,
-          reason: 'ReconcileCompleted',
-          status: 'True',
-          type: capability,
-        })),
-      ],
+      {
+        lastHeartbeatTime: '2023-10-20T11:45:04Z',
+        lastTransitionTime: '2023-10-20T11:45:04Z',
+        message: 'Reconcile completed successfully',
+        reason: 'ReconcileCompleted',
+        status: 'True',
+        type: 'ReconcileComplete',
+      },
+      ...requiredCapabilities.map((capability) => ({
+        lastHeartbeatTime: '2023-10-20T11:45:04Z',
+        lastTransitionTime: '2023-10-20T11:45:04Z',
+        message: `Capability ${capability} installed`,
+        reason: 'ReconcileCompleted',
+        status: 'True',
+        type: capability,
+      })),
       ...conditions,
     ],
     phase,

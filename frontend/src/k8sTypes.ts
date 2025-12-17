@@ -1,7 +1,7 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
-import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import type { DataScienceStackComponent } from '#~/concepts/areas/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import {
   ContainerResourceAttributes,
@@ -18,6 +18,7 @@ import {
   Volume,
   VolumeMount,
   HardwareProfileAnnotations,
+  HardwareProfileBindingAnnotations,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
@@ -121,24 +122,19 @@ export type NotebookAnnotations = Partial<{
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
-  'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
-  'opendatahub.io/accelerator-name': string; // the accelerator attached to the notebook
-  'opendatahub.io/hardware-profile-name': string; // the hardware profile attached to the notebook
   'opendatahub.io/image-display-name': string; // the display name of the image
   'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
-  'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
   'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
-  'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
   'opendatahub.io/connections': string | undefined; // the connections attached to the notebook
-  'opendatahub.io/hardware-profile-resource-version': string; // resource version of hardware profile when assigned
-}>;
+}> &
+  Partial<HardwareProfileBindingAnnotations>;
 
 export type DashboardLabels = {
   [KnownLabels.DASHBOARD_RESOURCE]: 'true' | 'false';
 };
 
 export type ModelServingProjectLabels = {
-  [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
+  [KnownLabels.MODEL_SERVING_PROJECT]: 'false';
 };
 
 export type K8sCondition = {
@@ -172,7 +168,6 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
-  'modelmesh-enabled': 'true' | 'false';
 }>;
 
 export type BuildConfigKind = K8sResourceCommon & {
@@ -500,7 +495,6 @@ export type SupportedModelFormats = {
 };
 
 export enum DeploymentMode {
-  ModelMesh = 'ModelMesh',
   RawDeployment = 'RawDeployment',
 }
 
@@ -537,6 +531,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      deploymentStrategy?: {
+        type: 'RollingUpdate' | 'Recreate';
+      };
       model?: {
         modelFormat?: {
           name: string;
@@ -1123,7 +1120,14 @@ export type WorkloadCondition = {
   observedGeneration?: number;
   reason: string;
   status: 'True' | 'False' | 'Unknown';
-  type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
+  type:
+    | 'QuotaReserved'
+    | 'Admitted'
+    | 'PodsReady'
+    | 'Finished'
+    | 'Evicted'
+    | 'Preempted'
+    | 'Failed';
 };
 
 export type WorkloadPriorityClassKind = K8sResourceCommon & {
@@ -1276,7 +1280,6 @@ export type DashboardCommonConfig = {
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
-  disableModelMesh: boolean;
   disableDistributedWorkloads: boolean;
   disableModelCatalog: boolean;
   disableModelRegistry: boolean;
@@ -1286,13 +1289,16 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
-  disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disableModelTraining: boolean;
-  disableDeploymentWizard: boolean;
-  disableModelAsService: boolean;
+  trainingJobs: boolean;
   disableFeatureStore?: boolean;
+  genAiStudio?: boolean;
+  modelAsService?: boolean;
+  aiCatalogSettings?: boolean;
+  mlflow?: boolean;
+  projectRBAC?: boolean;
+  embedMLflow?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
@@ -1302,8 +1308,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
     dashboardConfig: DashboardCommonConfig;
     // Intentionally disjointed from the CRD [1]
     // groupsConfig?: {
-    notebookSizes?: NotebookSize[];
-    modelServerSizes?: ModelServingSize[];
+    notebookSizes?: NotebookSize[]; // deprecated
+    modelServerSizes?: ModelServingSize[]; // deprecated
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
@@ -1316,9 +1322,19 @@ export type DashboardConfigKind = K8sResourceCommon & {
     templateOrder?: string[];
     templateDisablement?: string[];
     hardwareProfileOrder?: string[];
+    modelServing?: {
+      deploymentStrategy?: string;
+      isLLMdDefault?: boolean;
+    };
   };
 };
-
+/**
+ * @deprecated -- accelerator profiles are going away; only in deprecation paths
+ * used by *both* modelmesh and finetuning
+ *
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -1402,13 +1418,15 @@ export type K8sResourceListResult<TResource extends Partial<K8sResourceCommon>> 
   };
 };
 
+export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
+
 /** Represents a component in the DataScienceCluster. */
 export type DataScienceClusterComponent = {
   /**
    * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: 'Managed' | 'Removed';
+  managementState?: ManagementState;
 };
 
 /** Defines a DataScienceCluster with various components. */
@@ -1422,7 +1440,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
     } & {
       /** KServe and ModelRegistry components, including further specific configuration. */
       [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
-        defaultDeploymentMode?: string;
         nim: {
           managementState: string;
         };
@@ -1454,7 +1471,7 @@ export type DataScienceClusterComponentStatus = {
    * The management state of the component (e.g., Managed, Removed).
    * Indicates whether the component is being actively managed or not.
    */
-  managementState?: 'Managed' | 'Removed';
+  managementState?: ManagementState;
 
   /**
    * List of releases for the component.
@@ -1475,16 +1492,11 @@ export type DataScienceClusterKindStatus = {
    * This field maps each component of the Data Science Cluster to its corresponding status.
    * The majority of components use `DataScienceClusterComponentStatus`, which includes
    * management state and release details. However, some components require additional
-   * specialized fields, such as `kserve` and `modelregistry`.
+   * specialized fields, such as `modelregistry` and `workbenches`.
    */
   components?: {
     [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
   } & {
-    /** Status of KServe, including deployment mode and serverless configuration. */
-    [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponentStatus & {
-      defaultDeploymentMode?: string;
-      serverlessMode?: string;
-    };
     /** Status of Model Registry, including its namespace configuration. */
     [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
@@ -1494,7 +1506,6 @@ export type DataScienceClusterKindStatus = {
     };
   };
   conditions: K8sCondition[];
-  installedComponents?: { [key in StackComponent]?: boolean };
   phase?: string;
   release?: {
     name: string;
@@ -1521,7 +1532,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
   spec: {
     grpc: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
     rest: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
-    oauthProxy: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
+    kubeRBACProxy: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
   } & EitherNotBoth<
     {
       mysql?: {

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash-es';
 import {
   Alert,
   Content,
@@ -11,21 +10,20 @@ import {
   ExpandableSection,
   Spinner,
 } from '@patternfly/react-core';
-import { PodContainer } from '#~/types';
+import { Notebook, PodContainer } from '#~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
 } from '#~/utilities/imageUtils';
-import { useAppContext } from '#~/app/AppContext';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { formatMemory } from '#~/utilities/valueUnits';
-import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
-import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
-import { getNotebookSizes } from './usePreferredNotebookSize';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
+import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 
 const NotebookServerDetails: React.FC = () => {
   const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
@@ -33,8 +31,11 @@ const NotebookServerDetails: React.FC = () => {
   const [imageStreams, loaded] = useImageStreams(dashboardNamespace, { enabled: true });
   const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
   const [isExpanded, setExpanded] = React.useState(false);
-  const { dashboardConfig } = useAppContext();
-  const { hardwareProfile } = useNotebookPodSpecOptionsState(notebook ?? undefined);
+  const hardwareProfileOptions: UseAssignHardwareProfileResult<Notebook> =
+    useNotebookHardwareProfile(notebook);
+  const {
+    podSpecOptionsState: { hardwareProfile },
+  } = hardwareProfileOptions;
 
   const container: PodContainer | undefined = notebook?.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
@@ -52,10 +53,6 @@ const NotebookServerDetails: React.FC = () => {
 
   const tagSoftware = getDescriptionForTag(tag);
   const tagDependencies = tag?.content.dependencies ?? [];
-  const sizes = getNotebookSizes(dashboardConfig);
-  const size = sizes.find((currentSize) =>
-    _.isEqual(currentSize.resources.limits, container.resources?.limits),
-  );
 
   const onToggle = (expanded: boolean) => setExpanded(expanded);
 
@@ -101,10 +98,6 @@ const NotebookServerDetails: React.FC = () => {
 
       <p className="odh-notebook-controller__server-details-title">Deployment size</p>
       <DescriptionList isCompact>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Container size</DescriptionListTerm>
-          <DescriptionListDescription>{size ? size.name : 'Unknown'}</DescriptionListDescription>
-        </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Limits</DescriptionListTerm>
           <DescriptionListDescription>

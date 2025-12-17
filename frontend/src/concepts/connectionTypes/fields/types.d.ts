@@ -9,4 +9,5 @@ export type FieldProps<T extends ConnectionTypeDataField> = {
   value?: T['properties']['defaultValue'];
   onValidate?: (error: boolean | string, value: T['properties']['defaultValue']) => void;
   error?: string | boolean;
+  isDisabled?: boolean;
 };

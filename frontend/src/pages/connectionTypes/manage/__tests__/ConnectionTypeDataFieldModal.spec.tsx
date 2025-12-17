@@ -264,6 +264,36 @@ describe('ConnectionTypeDataFieldModal', () => {
     expect(screen.queryByTestId('envvar-conflict-warning')).not.toBeInTheDocument();
   });
 
+  it('should display environment variable compatibility warning when environment variable is not model serving compatible', () => {
+    render(
+      <ConnectionTypeDataFieldModal
+        onClose={onClose}
+        onSubmit={onSubmit}
+        field={{
+          type: 'short-text',
+          name: 'test',
+          envVar: 'AWS_ACCESS_KEY_ID',
+          properties: {},
+        }}
+      />,
+    );
+    const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
+
+    // testing an different env var should show the warning
+    fireEvent.change(fieldEnvVarInput, {
+      target: { value: 'not-a-model-serving-compatible-env-var' },
+    });
+    expect(screen.getByTestId('envvar-compatibility-warning')).toBeVisible();
+
+    // reentering the same env var should hide the warning
+    fireEvent.change(fieldEnvVarInput, { target: { value: 'AWS_ACCESS_KEY_ID' } });
+    expect(screen.queryByTestId('envvar-compatibility-warning')).not.toBeInTheDocument();
+
+    // testing a valid model serving compatible env var but not the one we entered the modal with
+    fireEvent.change(fieldEnvVarInput, { target: { value: 'URI' } });
+    expect(screen.getByTestId('envvar-compatibility-warning')).toBeVisible();
+  });
+
   it('should not be able to submit until form is dirty', () => {
     const field: ShortTextField = {
       type: 'short-text',

@@ -7,7 +7,7 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const webpack = require('webpack');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
-const { moduleFederationConfig, moduleFederationPlugins } = require('./moduleFederation');
+const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -20,6 +20,7 @@ const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
+const MF_DEV = process.env.MF_DEV;
 
 let COMMIT_HASH_DIRECT;
 
@@ -83,6 +84,7 @@ module.exports = (env) => ({
           path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
           path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
           path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@fontsource'),
         ],
         use: {
           loader: 'file-loader',
@@ -185,6 +187,16 @@ module.exports = (env) => ({
         ],
       },
       {
+        test: /\.css$/i,
+        exclude: /node_modules\/monaco-editor|@patternfly/,
+        use: [
+          // Creates `style` nodes from JS strings
+          'style-loader',
+          // Translates CSS into CommonJS
+          'css-loader',
+        ],
+      },
+      {
         test: /\.ya?ml$/,
         use: 'js-yaml-loader',
       },
@@ -252,12 +264,18 @@ module.exports = (env) => ({
     new MonacoWebpackPlugin({
       languages: ['yaml'],
     }),
-    new webpack.EnvironmentPlugin({
-      MF_CONFIG: JSON.stringify(moduleFederationConfig),
-    }),
     new webpack.DefinePlugin({
       __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
     }),
+    env === 'development' || MF_DEV
+      ? new webpack.EnvironmentPlugin({
+          MF_REMOTES: JSON.stringify(
+            moduleFederationConfig
+              .filter((c) => !!c.backend)
+              .map((c) => ({ name: c.name, remoteEntry: c.backend.remoteEntry })),
+          ),
+        })
+      : undefined,
     ...moduleFederationPlugins,
   ],
   resolve: {

@@ -4,10 +4,10 @@ import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useFileUploadWithPolling from './useFileUploadWithPolling';
 
 export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
 
@@ -36,11 +36,12 @@ export interface UseSourceManagementReturn {
   setSelectedSourceSettings: (settings: ChatbotSourceSettings | null) => void;
 }
 
-interface UseSourceManagementProps {
+export interface UseSourceManagementProps {
   onShowSuccessAlert: () => void;
   onShowErrorAlert: (message?: string, title?: string) => void;
   onFileUploadComplete?: () => void;
   uploadedFiles?: FileModel[];
+  isFilesLoading?: boolean;
 }
 
 const UPLOAD_EVENT_NAME = 'Playground RAG Upload File';
@@ -50,8 +51,10 @@ const useSourceManagement = ({
   onShowErrorAlert,
   onFileUploadComplete,
   uploadedFiles = [],
+  isFilesLoading = false,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
-  const { namespace } = React.useContext(GenAiContext);
+  const { apiAvailable } = useGenAiAPI();
+  const { uploadFile } = useFileUploadWithPolling();
 
   // Use constants from shared configuration
   const { MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE } = FILE_UPLOAD_CONFIG;
@@ -64,30 +67,57 @@ const useSourceManagement = ({
   const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState({ current: 0, total: 0 });
+  // Track if the page initially loaded with no files
+  const [hadNoFilesInitially, setHadNoFilesInitially] = React.useState<boolean | null>(null);
+  // Track if we've already auto-enabled RAG (so we only do it once)
+  const [hasAutoEnabledRag, setHasAutoEnabledRag] = React.useState(false);
+  // Track the previous loading state to detect when loading completes
+  const prevIsLoadingRef = React.useRef<boolean | null>(null);
+  // Track if we should skip processing (e.g., during upload)
+  const skipProcessingRef = React.useRef(false);
+
+  // Track the initial file state on first load
+  React.useEffect(() => {
+    const wasLoading = prevIsLoadingRef.current;
+    const isNowLoaded = wasLoading === true && !isFilesLoading;
+
+    // Update the ref for next render
+    prevIsLoadingRef.current = isFilesLoading;
+
+    // Only set initial state when we've just completed the first load (transition from loading to loaded)
+    if (hadNoFilesInitially === null && isNowLoaded) {
+      const noFilesExist = uploadedFiles.length === 0;
+      setHadNoFilesInitially(noFilesExist);
+    }
+  }, [uploadedFiles, hadNoFilesInitially, isFilesLoading]);
 
   // Helper function to find all pending files
-  const findPendingFiles = React.useCallback((files: FileWithSettings[]): File[] => {
-    return files
-      .filter((fileWithSettings) => fileWithSettings.status === 'pending')
-      .map((fileWithSettings) => fileWithSettings.file);
-  }, []);
+  const findPendingFiles = React.useCallback(
+    (files: FileWithSettings[]): File[] =>
+      files
+        .filter((fileWithSettings) => fileWithSettings.status === 'pending')
+        .map((fileWithSettings) => fileWithSettings.file),
+    [],
+  );
 
-  // Helper function to process pending files
-  const processPendingFiles = React.useCallback(() => {
-    setFilesWithSettings((currentFiles) => {
-      const pendingFilesList = findPendingFiles(currentFiles);
-      if (pendingFilesList.length > 0) {
-        setPendingFiles(pendingFilesList);
-        setCurrentFileForSettings(pendingFilesList[0]); // Set first file for display purposes
-        setIsSourceSettingsOpen(true);
-      } else {
-        setPendingFiles([]);
-        setCurrentFileForSettings(null);
-        setIsSourceSettingsOpen(false);
-      }
-      return currentFiles;
-    });
-  }, [findPendingFiles]);
+  // Process pending files whenever filesWithSettings changes
+  // Inlined directly in useEffect to avoid dependency loop issues
+  React.useEffect(() => {
+    if (skipProcessingRef.current) {
+      return;
+    }
+
+    const pendingFilesList = findPendingFiles(filesWithSettings);
+    if (pendingFilesList.length > 0) {
+      setPendingFiles(pendingFilesList);
+      setCurrentFileForSettings(pendingFilesList[0]);
+      setIsSourceSettingsOpen(true);
+    } else {
+      setPendingFiles([]);
+      setCurrentFileForSettings(null);
+      setIsSourceSettingsOpen(false);
+    }
+  }, [filesWithSettings, findPendingFiles]);
 
   const handleSourceDrop = React.useCallback(
     async (event: DropEvent, source: File[]) => {
@@ -115,7 +145,6 @@ const useSourceManagement = ({
       const skippedCount = validSizeFiles.length - filesToUpload.length;
 
       if (skippedCount > 0) {
-        // const remainingSlots = availableSlots;
         onShowErrorAlert(
           'The maximum file number of 10 has been reached. Some files might not have been uploaded.',
           'File limit met',
@@ -130,25 +159,10 @@ const useSourceManagement = ({
         status: 'pending',
       }));
 
-      setFilesWithSettings((prev) => {
-        return [...prev, ...newFilesWithSettings];
-      });
-
-      // Process all pending files
-      if (filesToUpload.length > 0) {
-        // Small delay to allow state to update before processing
-        setTimeout(() => {
-          processPendingFiles();
-        }, 100);
-      }
+      setFilesWithSettings((prev) => [...prev, ...newFilesWithSettings]);
+      // processPendingFiles will be called automatically via useEffect when filesWithSettings updates
     },
-    [
-      uploadedFiles,
-      MAX_FILE_SIZE,
-      MAX_FILES_IN_VECTOR_STORE,
-      onShowErrorAlert,
-      processPendingFiles,
-    ],
+    [uploadedFiles, MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE, onShowErrorAlert],
   );
 
   const removeUploadedSource = React.useCallback(
@@ -162,13 +176,9 @@ const useSourceManagement = ({
         setCurrentFileForSettings(null);
         setIsSourceSettingsOpen(false);
       }
-
-      // Process remaining pending files after state update
-      setTimeout(() => {
-        processPendingFiles();
-      }, 100);
+      // processPendingFiles will be called automatically via useEffect when filesWithSettings updates
     },
-    [currentFileForSettings, processPendingFiles],
+    [currentFileForSettings],
   );
 
   const handleSourceSettingsSubmit = React.useCallback(
@@ -177,88 +187,108 @@ const useSourceManagement = ({
       setIsSourceSettingsOpen(false);
 
       if (settings && pendingFiles.length > 0) {
-        if (!namespace?.name) {
-          onShowErrorAlert('Namespace is required for file upload', 'File Upload Error');
+        if (!apiAvailable) {
+          onShowErrorAlert('API is not available', 'File Upload Error');
           return;
         }
 
+        // Skip processing while uploading to prevent modal from reopening
+        skipProcessingRef.current = true;
         setIsUploading(true);
         setUploadProgress({ current: 0, total: pendingFiles.length });
-
-        // Update all pending files status to uploading
-        setFilesWithSettings((prev) =>
-          prev.map((fileWithSettings) =>
-            pendingFiles.some((pendingFile) => pendingFile.name === fileWithSettings.file.name)
-              ? { ...fileWithSettings, settings, status: 'uploading' }
-              : fileWithSettings,
-          ),
-        );
 
         // Upload files sequentially to avoid API overload
         let successCount = 0;
         let failureCount = 0;
         const errors: string[] = [];
 
-        for (let i = 0; i < pendingFiles.length; i++) {
-          const file = pendingFiles[i];
-          setUploadProgress({ current: i + 1, total: pendingFiles.length });
-
-          try {
-            await uploadSource(file, settings, namespace.name);
-
-            // Update this specific file status to uploaded
-            setFilesWithSettings((prev) =>
-              prev.map((fileWithSettings) =>
-                fileWithSettings.file.name === file.name
-                  ? { ...fileWithSettings, status: 'uploaded' }
-                  : fileWithSettings,
-              ),
-            );
-            fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
-              outcome: TrackingOutcome.submit,
-              success: true,
-              chunkSize: settings.maxChunkLength,
-              chunkOverlap: settings.chunkOverlap,
-              delimiter: settings.delimiter,
-            });
-            successCount++;
-          } catch (error) {
-            // Update this specific file status to failed
-            setFilesWithSettings((prev) =>
-              prev.map((fileWithSettings) =>
-                fileWithSettings.file.name === file.name
-                  ? { ...fileWithSettings, status: 'failed' }
-                  : fileWithSettings,
-              ),
-            );
-            failureCount++;
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
-              outcome: TrackingOutcome.submit,
-              success: false,
-              error: errorMessage,
-            });
-            errors.push(`${file.name}: ${errorMessage}`);
-          }
-        }
-
-        setIsUploading(false);
-        setUploadProgress({ current: 0, total: 0 });
-
-        // Show appropriate success/error messages
-        if (successCount > 0 && failureCount === 0) {
-          onShowSuccessAlert();
-        } else if (successCount > 0 && failureCount > 0) {
-          onShowErrorAlert(
-            `${successCount} file(s) uploaded successfully, ${failureCount} failed. Errors: ${errors.join('; ')}`,
-            'File Upload Error',
+        try {
+          // Update all pending files status to uploading
+          setFilesWithSettings((prev) =>
+            prev.map((fileWithSettings) =>
+              pendingFiles.some((pendingFile) => pendingFile.name === fileWithSettings.file.name)
+                ? { ...fileWithSettings, settings, status: 'uploading' }
+                : fileWithSettings,
+            ),
           );
-        } else {
-          onShowErrorAlert(`All uploads failed. Errors: ${errors.join('; ')}`, 'File Upload Error');
-        }
 
-        // Refresh the uploaded files list
-        onFileUploadComplete?.();
+          for (let i = 0; i < pendingFiles.length; i++) {
+            const file = pendingFiles[i];
+            setUploadProgress({ current: i + 1, total: pendingFiles.length });
+
+            // Update status to uploading before starting
+            setFilesWithSettings((prev) =>
+              prev.map((fileWithSettings) =>
+                fileWithSettings.file.name === file.name
+                  ? { ...fileWithSettings, status: 'uploading' }
+                  : fileWithSettings,
+              ),
+            );
+
+            const result = await uploadFile(file, settings);
+
+            // Update state based on result
+            if (result.success) {
+              // Mark as uploaded - will be auto-removed after 5 seconds by UploadedFileItem
+              setFilesWithSettings((prev) =>
+                prev.map((fileWithSettings) =>
+                  fileWithSettings.file.name === file.name
+                    ? { ...fileWithSettings, status: 'uploaded' }
+                    : fileWithSettings,
+                ),
+              );
+              fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+                outcome: TrackingOutcome.submit,
+                success: true,
+                chunkSize: settings.maxChunkLength,
+                chunkOverlap: settings.chunkOverlap,
+                delimiter: settings.delimiter,
+              });
+              successCount++;
+            } else {
+              // Remove failed file immediately from tracking array
+              setFilesWithSettings((prev) =>
+                prev.filter((fileWithSettings) => fileWithSettings.file.name !== file.name),
+              );
+              fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+                outcome: TrackingOutcome.submit,
+                success: false,
+                error: result.error,
+              });
+              errors.push(`${file.name}: ${result.error}`);
+              failureCount++;
+            }
+          }
+
+          // Show appropriate success/error messages
+          if (successCount > 0 && failureCount === 0) {
+            onShowSuccessAlert();
+          } else if (successCount > 0 && failureCount > 0) {
+            onShowErrorAlert(
+              `${successCount} file(s) uploaded successfully, ${failureCount} failed. Errors: ${errors.join('; ')}`,
+              'File Upload Error',
+            );
+          } else {
+            onShowErrorAlert(
+              `All uploads failed. Errors: ${errors.join('; ')}`,
+              'File Upload Error',
+            );
+          }
+
+          // Auto-enable RAG toggle only once, on first successful upload, if page initially had no files
+          if (successCount > 0 && hadNoFilesInitially === true && !hasAutoEnabledRag) {
+            setIsRawUploaded(true);
+            setHasAutoEnabledRag(true);
+          }
+
+          // Refresh the uploaded files list
+          onFileUploadComplete?.();
+        } finally {
+          setIsUploading(false);
+          setUploadProgress({ current: 0, total: 0 });
+          // Re-enable processing after upload completes (even on error)
+          skipProcessingRef.current = false;
+        }
       } else if (!settings) {
         // User cancelled - remove all pending files
         pendingFiles.forEach((file) => {
@@ -266,27 +296,25 @@ const useSourceManagement = ({
         });
       }
 
-      // Clear pending files and process any remaining
+      // Clear pending files - processPendingFiles will be called automatically via useEffect
       setPendingFiles([]);
-      setTimeout(() => {
-        processPendingFiles();
-      }, 100);
     },
     [
       pendingFiles,
-      onShowSuccessAlert,
-      onShowErrorAlert,
+      apiAvailable,
       onFileUploadComplete,
-      namespace?.name,
+      onShowErrorAlert,
+      uploadFile,
+      onShowSuccessAlert,
       removeUploadedSource,
-      processPendingFiles,
+      hadNoFilesInitially,
+      hasAutoEnabledRag,
     ],
   );
 
   const handleModalClose = React.useCallback(() => {
-    // Remove all pending files if user closes modal without submitting
+    // Remove pending/configured files if user closes modal without submitting
     if (pendingFiles.length > 0) {
-      // Only remove files that haven't been uploaded yet (pending/configured status)
       pendingFiles.forEach((file) => {
         const fileWithSettings = filesWithSettings.find(
           (fileWithSettingsItem) => fileWithSettingsItem.file.name === file.name,
@@ -308,12 +336,8 @@ const useSourceManagement = ({
     setIsSourceSettingsOpen(false);
     setCurrentFileForSettings(null);
     setPendingFiles([]);
-
-    // Process any remaining pending files
-    setTimeout(() => {
-      processPendingFiles();
-    }, 100);
-  }, [pendingFiles, filesWithSettings, removeUploadedSource, processPendingFiles]);
+    // processPendingFiles will be called automatically via useEffect when filesWithSettings updates
+  }, [pendingFiles, filesWithSettings, removeUploadedSource]);
 
   return {
     selectedSourceSettings,

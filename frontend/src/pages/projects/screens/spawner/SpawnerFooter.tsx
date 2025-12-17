@@ -29,7 +29,6 @@ import {
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -37,6 +36,8 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
+import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
+import { generateFeastMetadata } from './featureStore/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -44,6 +45,7 @@ type SpawnerFooterProps = {
   envVariables: EnvVariable[];
   connections: Connection[];
   canEnablePipelines: boolean;
+  selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -52,6 +54,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   envVariables,
   connections = [],
   canEnablePipelines,
+  selectedFeatureStores = [],
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -69,11 +72,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState(false);
-  const isHardwareProfileValid = isHardwareProfileConfigValid({
-    selectedProfile: startNotebookData.podSpecOptions.selectedHardwareProfile,
-    useExistingSettings: false, // does not matter for validation
-    resources: startNotebookData.podSpecOptions.resources,
-  });
+  const isHardwareProfileValid =
+    startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
@@ -84,7 +84,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
-    const { image, podSpecOptions } = startNotebookData;
+    const {
+      image,
+      hardwareProfileOptions: {
+        podSpecOptionsState: { podSpecOptions },
+      },
+    } = startNotebookData;
     const tep: FormTrackingEventProperties = {
       containerResources: Object.entries(podSpecOptions.resources || {})
         .map(([key, value]) =>
@@ -180,12 +185,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
+    const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom,
       connections,
+      feastData,
     };
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
@@ -223,6 +230,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
+    const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
     const newStartData: StartNotebookData = {
       ...startNotebookData,
@@ -230,6 +238,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumeMounts,
       envFrom: [...envFrom],
       connections,
+      feastData,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };

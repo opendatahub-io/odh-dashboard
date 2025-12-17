@@ -8,10 +8,9 @@ type MockResourceConfigType = {
   namespace?: string;
   displayName?: string;
   description?: string;
-  modelName?: string;
+  runtimeName?: string;
   secretName?: string;
   deleted?: boolean;
-  isModelMesh?: boolean;
   missingStatus?: boolean;
   activeModelState?: string;
   targetModelState?: string;
@@ -90,10 +89,9 @@ export const mockInferenceServiceK8sResource = ({
   namespace = 'test-project',
   displayName = 'Test Inference Service',
   description = undefined,
-  modelName = 'test-model',
+  runtimeName = 'test-model',
   secretName,
   deleted = false,
-  isModelMesh = false,
   missingStatus = false,
   activeModelState = 'Loaded',
   targetModelState = 'Loaded',
@@ -131,9 +129,7 @@ export const mockInferenceServiceK8sResource = ({
     annotations: {
       'openshift.io/display-name': displayName,
       ...(description && { 'openshift.io/description': description }),
-      'serving.kserve.io/deploymentMode': isModelMesh
-        ? DeploymentMode.ModelMesh
-        : DeploymentMode.RawDeployment,
+      'serving.kserve.io/deploymentMode': DeploymentMode.RawDeployment,
       ...(hardwareProfileName && {
         [`opendatahub.io/hardware-profile-name`]: hardwareProfileName,
       }),
@@ -186,7 +182,7 @@ export const mockInferenceServiceK8sResource = ({
             }
           : {}),
         ...(resources && { resources }),
-        runtime: modelName,
+        runtime: runtimeName,
         ...(storageUri
           ? { storageUri }
           : {

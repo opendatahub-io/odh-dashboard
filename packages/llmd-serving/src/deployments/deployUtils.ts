@@ -9,13 +9,19 @@ import { assembleServiceAccount } from '@odh-dashboard/internal/api/k8s/serviceA
 import { generateRoleBindingServiceAccount } from '@odh-dashboard/internal/api/k8s/roleBindings';
 import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
 import { SecretKind, K8sAPIOptions, RoleKind, KnownLabels } from '@odh-dashboard/internal/k8sTypes';
-import { getTokenNames } from '@odh-dashboard/internal/pages/modelServing/utils';
+import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import {
   createServiceAccountIfMissing,
   createRoleIfMissing,
   createRoleBindingIfMissing,
 } from '@odh-dashboard/kserve/deployUtils';
+import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { LLMInferenceServiceKind } from '../types';
+import { LLMD_SERVING_ID } from '../../extensions/extensions';
+
+export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
+  return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
+};
 
 export const generateRoleLLMInferenceService = (
   roleName: string,

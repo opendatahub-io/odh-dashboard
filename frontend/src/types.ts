@@ -6,9 +6,9 @@ import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { FeatureFlag } from '#~/concepts/areas/types';
+import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
-import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
 export type FeatureFlagProps = {
@@ -108,11 +108,12 @@ export type ClusterSettingsType = {
   pvcSize: number;
   cullerTimeout: number;
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
+  useDistributedInferencing?: boolean;
+  defaultDeploymentStrategy?: string;
 };
 
 export type ModelServingPlatformEnabled = {
   kServe: boolean;
-  modelMesh: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -304,6 +305,12 @@ export type HardwareProfileAnnotations = Partial<{
   'opendatahub.io/disabled': string;
 }>;
 
+export type HardwareProfileBindingAnnotations = {
+  'opendatahub.io/hardware-profile-name': string;
+  'opendatahub.io/hardware-profile-namespace': string | null;
+  'opendatahub.io/hardware-profile-resource-version': string;
+};
+
 export type HardwareProfileScheduling = {
   type: SchedulingType;
   kueue?: {
@@ -414,7 +421,6 @@ export type NotebookRunningState = {
   notebook: Notebook | null;
   isRunning: boolean;
   podUID: string;
-  notebookLink: string;
 };
 
 export type Route = {
@@ -628,7 +634,7 @@ export type Volume = {
   };
 };
 
-export type VolumeMount = { mountPath: string; name: string };
+export type VolumeMount = { mountPath: string; name: string; subPath?: string };
 
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,
@@ -742,7 +748,7 @@ export type NotebookProgressStep = {
 export type NotebookData = {
   imageName: string;
   imageTagName: string;
-  podSpecOptions: NotebookPodSpecOptions;
+  podSpecOptions: HardwarePodSpecOptions;
   envVars: EnvVarReducedTypeKeyValues;
   state: NotebookState;
   // only used for admin calls, regular users cannot use this field
@@ -786,7 +792,6 @@ export type DetectedAccelerators = {
 
 export enum ServingRuntimePlatform {
   SINGLE = 'single',
-  MULTI = 'multi',
 }
 
 export enum ServingRuntimeAPIProtocol {

@@ -1,0 +1,16 @@
+export const CATALOG_SETTINGS_PAGE_TITLE = 'AI catalog settings';
+export const CATALOG_SETTINGS_DESCRIPTION = 'Manage model catalog sources for your organization.';
+
+export const ADD_SOURCE_TITLE = 'Add a source';
+export const ADD_SOURCE_DESCRIPTION = 'Add a new model catalog source to your organization.';
+
+export const MANAGE_SOURCE_TITLE = 'Manage source';
+export const MANAGE_SOURCE_DESCRIPTION = 'Manage the selected model catalog source.';
+
+export const catalogSettingsUrl = (): string =>
+  '/settings/model-resources-operations/model-catalog';
+
+export const addSourceUrl = (): string => `${catalogSettingsUrl()}/add-source`;
+
+export const manageSourceUrl = (catalogSourceId: string): string =>
+  `${catalogSettingsUrl()}/manage-source/${encodeURIComponent(catalogSourceId)}`;

@@ -1,0 +1,76 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/observability",
+  "description": "Observability plugin for monitoring AI workloads and infrastructure using Perses dashboards.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "module-federation": {
+    "name": "perses",
+    "proxyService": [
+      {
+        "authorize": true,
+        "path": "/perses/api",
+        "pathRewrite": "",
+        "tls": false,
+        "service": {
+          "name": "data-science-perses",
+          "port": 8080
+        },
+        "localService": {
+          "host": "localhost",
+          "port": 9005
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@hookform/resolvers": "^3.9.1",
+    "@mui/material": "^6.1.10",
+    "marked": "^15.0.4",
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@perses-dev/bar-chart-plugin": "^0.9.0",
+    "@perses-dev/components": "^0.52.0",
+    "@perses-dev/core": "^0.52.0",
+    "@perses-dev/dashboards": "^0.52.0",
+    "@perses-dev/datasource-variable-plugin": "^0.3.2",
+    "@perses-dev/explore": "^0.52.0",
+    "@perses-dev/flame-chart-plugin": "^0.3.0",
+    "@perses-dev/gauge-chart-plugin": "^0.9.0",
+    "@perses-dev/heatmap-chart-plugin": "^0.2.1",
+    "@perses-dev/histogram-chart-plugin": "^0.9.0",
+    "@perses-dev/loki-plugin": "^0.1.1",
+    "@perses-dev/markdown-plugin": "^0.9.0",
+    "@perses-dev/pie-chart-plugin": "^0.9.0",
+    "@perses-dev/plugin-system": "^0.52.0",
+    "@perses-dev/prometheus-plugin": "^0.53.3",
+    "@perses-dev/pyroscope-plugin": "^0.3.1",
+    "@perses-dev/scatter-chart-plugin": "^0.8.0",
+    "@perses-dev/stat-chart-plugin": "^0.9.0",
+    "@perses-dev/static-list-variable-plugin": "^0.5.1",
+    "@perses-dev/status-history-chart-plugin": "^0.9.0",
+    "@perses-dev/table-plugin": "^0.8.0",
+    "@perses-dev/tempo-plugin": "^0.53.1",
+    "@perses-dev/timeseries-chart-plugin": "^0.10.1",
+    "@perses-dev/timeseries-table-plugin": "^0.9.0",
+    "@perses-dev/trace-table-plugin": "^0.8.1",
+    "@perses-dev/tracing-gantt-chart-plugin": "^0.9.2",
+    "@tanstack/react-query": "^4.36.1",
+    "use-query-params": "^2.2.1"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

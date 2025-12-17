@@ -1,0 +1,294 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: dashboard-1-model
+spec:
+  display:
+    name: Model
+  duration: 1h
+  variables:
+    - kind: TextVariable
+      spec:
+        name: namespace
+        value: ".*"
+        display:
+          name: Namespace
+          hidden: true
+  panels:
+    # Performance Metrics - Line Charts
+    requestQueueLength:
+      kind: Panel
+      spec:
+        display:
+          name: Request queue length
+          description: Number of requests waiting in queue per model
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (model_name) (vllm:num_requests_waiting{namespace=~"$namespace"})
+                  seriesNameFormat: "{{model_name}}"
+    replicaCount:
+      kind: Panel
+      spec:
+        display:
+          name: Replica count
+          description: Number of replicas per model deployment
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (deployment) (kube_deployment_status_replicas_available{namespace=~"$namespace"})
+                  seriesNameFormat: "{{deployment}}"
+    requestLatency:
+      kind: Panel
+      spec:
+        display:
+          name: Request latency
+          description: P90 request latency per model (ms)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: histogram_quantile(0.90, sum by (model_name, le) (rate(vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace"}[5m]))) * 1000
+                  seriesNameFormat: "{{model_name}}"
+    timeToFirstToken:
+      kind: Panel
+      spec:
+        display:
+          name: Time to First Token (TTFT)
+          description: Time to first token latency per model (ms)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: histogram_quantile(0.90, sum by (model_name, le) (rate(vllm:time_to_first_token_seconds_bucket{namespace=~"$namespace"}[5m]))) * 1000
+                  seriesNameFormat: "{{model_name}}"
+    tokenGenerationRate:
+      kind: Panel
+      spec:
+        display:
+          name: Token Generation Rate
+          description: Token generation rate per model (tok/s)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (model_name) (rate(vllm:generation_tokens_total{namespace=~"$namespace"}[5m]))
+                  seriesNameFormat: "{{model_name}}"
+    throughput:
+      kind: Panel
+      spec:
+        display:
+          name: Throughput (requests/sec)
+          description: Request throughput per model
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (model_name) (rate(vllm:request_success_total{namespace=~"$namespace"}[5m]))
+                  seriesNameFormat: "{{model_name}}"
+    responseTimeDistribution:
+      kind: Panel
+      spec:
+        display:
+          name: Response Time Distribution
+          description: Distribution of response times (ms)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 1
+              connectNulls: false
+              display: line
+              lineWidth: 0.25
+              stack: all
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (le) (increase(vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace"}[1h]))
+                  seriesNameFormat: "{{le}}"
+  layouts:
+    # Performance Metrics Section
+    - kind: Grid
+      spec:
+        display:
+          title: Performance metrics
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/requestQueueLength'
+          - x: 12
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/replicaCount'
+          - x: 0
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/requestLatency'
+          - x: 12
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/timeToFirstToken'
+          - x: 0
+            'y': 16
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/tokenGenerationRate'
+          - x: 12
+            'y': 16
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/throughput'
+          - x: 0
+            'y': 24
+            width: 24
+            height: 10
+            content:
+              '$ref': '#/spec/panels/responseTimeDistribution'

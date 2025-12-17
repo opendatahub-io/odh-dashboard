@@ -1,9 +1,7 @@
 import * as React from 'react';
 import {
   ConfigMapKind,
-  DeploymentMode,
   InferenceServiceKind,
-  KnownLabels,
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
@@ -20,7 +18,6 @@ import {
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
-import { platformKeyMap } from '#~/pages/modelServing/screens/const';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -39,11 +36,11 @@ import {
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
+import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
@@ -61,14 +58,6 @@ export const isInferenceServiceRouteEnabled = (inferenceService: InferenceServic
 
 export const isGpuDisabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['opendatahub.io/disable-gpu'] === 'true';
-
-/** @deprecated -- model mesh is removed */
-export const getInferenceServiceDeploymentMode = (modelMesh: boolean): DeploymentMode => {
-  if (modelMesh) {
-    return DeploymentMode.ModelMesh;
-  }
-  return DeploymentMode.RawDeployment;
-};
 
 export const getInferenceServiceFromServingRuntime = (
   inferenceServices: InferenceServiceKind[],
@@ -276,8 +265,6 @@ export const getProjectModelServingPlatform = (
   const {
     kServe: { enabled: kServeEnabled, installed: kServeInstalled },
     kServeNIM: { enabled: nimEnabled },
-    modelMesh: { enabled: modelMeshEnabled, installed: modelMeshInstalled },
-    platformEnabledCount,
   } = platformStatuses;
 
   if (!project) {
@@ -285,43 +272,38 @@ export const getProjectModelServingPlatform = (
     return {};
   }
 
-  if (project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] === undefined) {
-    // Auto-select logic
-    if (platformEnabledCount !== 1) {
-      return {};
-    }
-    if (modelMeshEnabled) {
-      return { platform: ServingRuntimePlatform.MULTI };
-    }
-    if (kServeEnabled) {
-      return { platform: ServingRuntimePlatform.SINGLE };
-    }
-    if (nimEnabled) {
-      // TODO: this is weird, it relies on KServe today... so it's never "only installed"
-      return { platform: ServingRuntimePlatform.SINGLE };
-    }
+  // Check if NIM is already selected on the project
+  const hasNIMAnnotation = project.metadata.annotations?.['opendatahub.io/nim-support'] === 'true';
 
-    // TODO: unreachable code unless adding a new platform? probably should throw an error
-  } else if (project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'true') {
-    // Model mesh logic
+  if (hasNIMAnnotation) {
+    // NIM platform is already selected
     return {
-      platform: ServingRuntimePlatform.MULTI,
-      error: modelMeshInstalled ? undefined : new Error('Multi-model platform is not installed'),
+      platform: ServingRuntimePlatform.SINGLE,
+      error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
     };
   }
 
-  // KServe logic
-  return {
-    platform: ServingRuntimePlatform.SINGLE,
-    error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
-  };
+  // If both platforms are available and no platform is selected, let user choose
+  if (kServeEnabled && nimEnabled) {
+    return {};
+  }
+
+  // If only one platform is available, auto-select it
+  if (kServeEnabled || nimEnabled) {
+    return {
+      platform: ServingRuntimePlatform.SINGLE,
+      error: kServeInstalled ? undefined : new Error('Single-model platform is not installed'),
+    };
+  }
+
+  // No platforms available
+  return {};
 };
 
 const createInferenceServiceAndDataConnection = async (
   inferenceServiceData: CreatingInferenceServiceObject,
   editInfo?: InferenceServiceKind,
-  isModelMesh?: boolean,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
   dryRun = false,
   isStorageNeeded?: boolean,
   connection?: Connection,
@@ -368,8 +350,7 @@ const createInferenceServiceAndDataConnection = async (
       },
       editInfo,
       secret?.metadata.name,
-      isModelMesh,
-      podSpecOptions,
+      applyHardwareProfile,
       dryRun,
       isStorageNeeded,
     );
@@ -384,8 +365,7 @@ const createInferenceServiceAndDataConnection = async (
         imagePullSecrets,
       },
       secret?.metadata.name,
-      isModelMesh,
-      podSpecOptions,
+      applyHardwareProfile,
       dryRun,
       isStorageNeeded,
     );
@@ -398,8 +378,7 @@ export const getSubmitInferenceServiceResourceFn = (
   editInfo: InferenceServiceKind | undefined,
   servingRuntimeName: string,
   inferenceServiceName: string,
-  isModelMesh?: boolean,
-  podSpecOptions?: ModelServingPodSpecOptions,
+  applyHardwareProfile?: (resource: InferenceServiceKind) => InferenceServiceKind,
   allowCreate?: boolean,
   secrets?: SecretKind[],
   isStorageNeeded?: boolean,
@@ -422,27 +401,22 @@ export const getSubmitInferenceServiceResourceFn = (
     createInferenceServiceAndDataConnection(
       inferenceServiceData,
       editInfo,
-      isModelMesh,
-      podSpecOptions,
+      applyHardwareProfile,
       dryRun,
       isStorageNeeded,
       connection,
     ).then((inferenceService) => {
-      if (!isModelMesh) {
-        return setUpTokenAuth(
-          createData,
-          inferenceServiceName,
-          createData.project,
-          createTokenAuth,
-          inferenceService,
-          isModelMesh,
-          secrets || [],
-          {
-            dryRun,
-          },
-        );
-      }
-      return Promise.resolve();
+      return setUpTokenAuth(
+        createData,
+        inferenceServiceName,
+        createData.project,
+        createTokenAuth,
+        inferenceService,
+        secrets || [],
+        {
+          dryRun,
+        },
+      );
     });
 };
 
@@ -461,11 +435,10 @@ export const getSubmitServingRuntimeResourcesFn = (
   namespace: string,
   editInfo: ServingRuntimeEditInfo | undefined,
   allowCreate: boolean,
-  podSpecOptions: ModelServingPodSpecOptions,
+  podSpecOptions: HardwarePodSpecOptions,
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
-  isModelMesh?: boolean,
 ): ((opts: { dryRun?: boolean }) => Promise<void | (string | void | ServingRuntimeKind)[]>) => {
   if (!servingRuntimeSelected) {
     return () =>
@@ -481,8 +454,6 @@ export const getSubmitServingRuntimeResourcesFn = (
     ...(name !== undefined && { name }),
   };
 
-  const createTokenAuth = servingRuntimeData.tokenAuth && allowCreate;
-
   if (!editInfo && !currentProject) {
     // This should be impossible to hit on resource creation, current project is undefined only on edit
     return () => Promise.reject(new Error('Cannot update project with no project selected'));
@@ -490,7 +461,9 @@ export const getSubmitServingRuntimeResourcesFn = (
 
   return ({ dryRun = false }) =>
     Promise.all([
-      ...(currentProject && currentProject.metadata.labels?.['modelmesh-enabled'] === undefined
+      ...(currentProject &&
+      currentProject.metadata.labels?.['modelmesh-enabled'] === undefined &&
+      currentProject.metadata.annotations?.['opendatahub.io/nim-support'] === undefined
         ? [
             addSupportServingPlatformProject(
               currentProject.metadata.name,
@@ -506,25 +479,7 @@ export const getSubmitServingRuntimeResourcesFn = (
               existingData: editInfo.servingRuntime,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
-              podSpecOptions,
-              isModelMesh,
             }),
-            ...(isModelMesh
-              ? [
-                  setUpTokenAuth(
-                    servingRuntimeData,
-                    createData.k8sName,
-                    namespace,
-                    createTokenAuth,
-                    editInfo.servingRuntime,
-                    isModelMesh,
-                    editInfo.secrets,
-                    {
-                      dryRun,
-                    },
-                  ),
-                ]
-              : []),
           ]
         : [
             createServingRuntime({
@@ -533,24 +488,6 @@ export const getSubmitServingRuntimeResourcesFn = (
               servingRuntime: servingRuntimeSelected,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
-              podSpecOptions,
-              isModelMesh,
-            }).then((servingRuntime) => {
-              if (isModelMesh) {
-                return setUpTokenAuth(
-                  servingRuntimeData,
-                  createData.k8sName,
-                  namespace,
-                  createTokenAuth,
-                  servingRuntime,
-                  isModelMesh,
-                  [],
-                  {
-                    dryRun,
-                  },
-                );
-              }
-              return Promise.resolve();
             }),
           ]),
     ]);
@@ -651,10 +588,12 @@ export const createNIMPVC = (
       storageClassName,
     },
     projectName,
-    {
-      dryRun,
-    },
+    { dryRun },
     true,
+    undefined,
+    {
+      'opendatahub.io/managed': 'true',
+    },
   );
 
 export const getCreateInferenceServiceLabels = (
@@ -718,11 +657,8 @@ export function isCurrentServingPlatformEnabled(
   currentPlatform: ServingRuntimePlatform | undefined,
   statuses: ServingPlatformStatuses,
 ): boolean {
-  if (!currentPlatform) {
-    return false;
-  }
-  const mappedKey = platformKeyMap[currentPlatform];
-  return statuses[mappedKey].enabled;
+  // Only single-model serving (KServe) is supported
+  return !!currentPlatform && statuses.kServe.enabled;
 }
 
 export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;

@@ -38,6 +38,7 @@ export const initialBotMessage = (): MessageProps => ({
   content: 'Send a message to test your configuration',
   name: 'Bot',
   avatar: botAvatar,
+  timestamp: new Date().toLocaleString(),
 });
 
 // File upload constants
@@ -46,11 +47,18 @@ export const FILE_UPLOAD_CONFIG = {
   MAX_FILES_IN_VECTOR_STORE: 10, // Maximum number of files allowed in vector store
   ALLOWED_FILE_TYPES: {
     'application/pdf': ['.pdf'],
-    'application/msword': ['.doc'],
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     'text/csv': ['.csv'],
+    'text/plain': ['.txt'],
   },
-  ACCEPTED_EXTENSIONS: '.pdf,.doc,.docx,.csv',
+  ACCEPTED_EXTENSIONS: '.pdf,.csv,.txt',
+} as const;
+
+// Job polling constants
+export const JOB_POLLING_CONFIG = {
+  INITIAL_DELAY: 1000, // 1 second
+  MAX_DELAY: 10000, // 10 seconds
+  BACKOFF_MULTIPLIER: 1.5,
+  MAX_POLL_TIME: 10 * 60 * 1000, // 10 minutes
 } as const;
 
 // Error handling constants

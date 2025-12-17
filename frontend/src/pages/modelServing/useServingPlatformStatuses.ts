@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StackComponent, SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { DataScienceStackComponent, SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { useIsNIMAvailable } from '#~/pages/modelServing/screens/projects/useIsNIMAvailable';
 
@@ -7,11 +7,8 @@ const useServingPlatformStatuses = (
   shouldRefreshNimAvailability = false,
 ): ServingPlatformStatuses => {
   const kServeStatus = useIsAreaAvailable(SupportedArea.K_SERVE);
-  const modelMeshStatus = useIsAreaAvailable(SupportedArea.MODEL_MESH);
   const kServeEnabled = kServeStatus.status;
-  const modelMeshEnabled = modelMeshStatus.status;
-  const kServeInstalled = !!kServeStatus.requiredComponents?.[StackComponent.K_SERVE];
-  const modelMeshInstalled = !!modelMeshStatus.requiredComponents?.[StackComponent.MODEL_MESH];
+  const kServeInstalled = !!kServeStatus.requiredComponents?.[DataScienceStackComponent.K_SERVE];
   const [isNIMAvailable, , , refreshNIMAvailability] = useIsNIMAvailable();
 
   React.useEffect(() => {
@@ -32,11 +29,7 @@ const useServingPlatformStatuses = (
       enabled: isNIMAvailable,
       installed: kServeInstalled,
     },
-    modelMesh: {
-      enabled: modelMeshEnabled,
-      installed: modelMeshInstalled,
-    },
-    platformEnabledCount: [kServeEnabled, isNIMAvailable, modelMeshEnabled].filter(Boolean).length,
+    platformEnabledCount: [kServeEnabled, isNIMAvailable].filter(Boolean).length,
     refreshNIMAvailability,
   };
 };

@@ -2,14 +2,14 @@ import React from 'react';
 import { Button, EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 
-type NoDataProps = {
+type ModelsEmptyStateProps = {
   title: string;
   description: React.ReactNode;
   actionButtonText?: React.ReactNode;
   handleActionButtonClick?: () => void;
 };
 
-const NoData: React.FC<NoDataProps> = ({
+const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   title,
   description,
   actionButtonText,
@@ -20,12 +20,17 @@ const NoData: React.FC<NoDataProps> = ({
     icon={() => <img src={emptyStateImage} alt="Chat Playground Infrastructure" />}
     variant="lg"
     isFullHeight
+    data-testid="empty-state"
   >
-    <EmptyStateBody>
+    <EmptyStateBody data-testid="empty-state-message">
       {description}
       {actionButtonText && handleActionButtonClick && (
         <EmptyStateFooter>
-          <Button variant="primary" onClick={handleActionButtonClick}>
+          <Button
+            variant="primary"
+            onClick={handleActionButtonClick}
+            data-testid="empty-state-action-button"
+          >
             {actionButtonText}
           </Button>
         </EmptyStateFooter>
@@ -34,4 +39,4 @@ const NoData: React.FC<NoDataProps> = ({
   </EmptyState>
 );
 
-export default NoData;
+export default ModelsEmptyState;

@@ -2,9 +2,10 @@ package models
 
 // MCPServer represents MCP server configuration
 type MCPServer struct {
-	ServerLabel string            `json:"server_label"`
-	ServerURL   string            `json:"server_url"`
-	Headers     map[string]string `json:"headers"`
+	ServerLabel  string            `json:"server_label"`
+	ServerURL    string            `json:"server_url"`
+	Headers      map[string]string `json:"headers"`
+	AllowedTools []string          `json:"allowed_tools,omitempty"`
 }
 
 // Tool represents a tool configuration

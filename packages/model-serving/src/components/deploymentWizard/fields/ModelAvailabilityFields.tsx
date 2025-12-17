@@ -13,6 +13,8 @@ import {
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
+import { ModelServerSelectFieldData, isModelAvailabilityField } from '../types';
+import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
@@ -39,7 +41,12 @@ export const modelAvailabilityFieldsSchema = z.custom<ModelAvailabilityFieldsDat
 export const useModelAvailabilityFields = (
   existingData?: ModelAvailabilityFieldsData,
   modelType?: ModelTypeFieldData,
+  modelServer?: ModelServerSelectFieldData,
 ): ModelAvailabilityFields => {
+  const modelAvailabilityExtension = useWizardFieldFromExtension(isModelAvailabilityField, {
+    modelType: { data: modelType },
+    modelServer: { data: modelServer },
+  });
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
@@ -63,6 +70,7 @@ export const useModelAvailabilityFields = (
     data: AiAssetData,
     setData,
     showField: modelType === ServingRuntimeModelType.GENERATIVE,
+    showSaveAsMaaS: modelAvailabilityExtension?.showSaveAsMaaS,
   };
 };
 
@@ -97,7 +105,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             data-testid="save-as-ai-asset-checkbox"
             label={
               <>
-                <div className="pf-v6-c-form__label-text">Add AI asset endpoint</div>
+                <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
                 <Flex>
                   <FlexItem>
                     Enable users in your namespace to test this model in the playground by adding

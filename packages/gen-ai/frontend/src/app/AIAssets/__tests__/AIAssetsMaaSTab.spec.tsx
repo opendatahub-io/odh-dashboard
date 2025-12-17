@@ -8,6 +8,7 @@ import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import AIAssetsMaaSTab from '~/app/AIAssets/AIAssetsMaaSTab';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/hooks/useFetchMaaSModels', () => ({
   __esModule: true,
@@ -58,17 +59,6 @@ const mockUseFetchMaaSModels = jest.mocked(useFetchMaaSModels);
 const mockUseFetchLlamaModels = jest.mocked(useFetchLlamaModels);
 const mockUseFetchLSDStatus = jest.mocked(useFetchLSDStatus);
 const mockUseFetchAIModels = jest.mocked(useFetchAIModels);
-
-const mockGenAiContextValue = {
-  namespace: { name: 'test-namespace' },
-  nsModel: undefined,
-  loaded: true,
-  error: undefined,
-  refresh: jest.fn(),
-  isConfigured: true,
-  configuration: undefined,
-  crossProjectEnabledNamespaces: [],
-};
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>

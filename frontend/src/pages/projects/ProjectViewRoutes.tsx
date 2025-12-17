@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import ProjectModelMetricsWrapper from '#~/pages/modelServing/screens/projects/ProjectModelMetricsWrapper';
-import ProjectServerMetricsWrapper from '#~/pages/modelServing/screens/projects/ProjectServerMetricsWrapper';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ProjectModelMetricsConfigurationPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
@@ -17,9 +16,6 @@ import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
-  const performanceMetricsAreaAvailable = useIsAreaAvailable(
-    SupportedArea.PERFORMANCE_METRICS,
-  ).status;
 
   return (
     <ProjectsRoutes>
@@ -40,12 +36,6 @@ const ProjectViewRoutes: React.FC = () => {
               </Route>
               <Route path="*" element={<Navigate to="." />} />
             </Route>
-            {performanceMetricsAreaAvailable && (
-              <Route
-                path="metrics/server/:servingRuntime"
-                element={<ProjectServerMetricsWrapper />}
-              />
-            )}
           </>
         )}
         <Route path="*" element={<Navigate to="." />} />

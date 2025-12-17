@@ -1,5 +1,4 @@
 export { default as MCPServersPanel } from './MCPServersPanel';
-export { default as MCPServersPanelWithContext } from './MCPServersPanelWithContext';
 export { default as MCPServerPanelRow } from './MCPServerPanelRow';
 export { default as MCPServerConfigModal } from './MCPServerConfigModal';
 export { default as MCPServerToolsModal } from './MCPServerToolsModal';

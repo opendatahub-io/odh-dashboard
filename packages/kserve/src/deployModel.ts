@@ -4,11 +4,21 @@ import {
   type InferenceServiceKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-
 import {
+  DeploymentStrategyFieldData,
   type ModelLocationData,
   ModelLocationType,
 } from '@odh-dashboard/model-serving/types/form-data';
+import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
+import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
+import type { ExternalRouteFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ExternalRouteField';
+import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/NumReplicasField';
+import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
+import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
+import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
+import * as _ from 'lodash-es';
+import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -19,20 +29,15 @@ import {
   applyDashboardResourceLabel,
   applyDisplayNameDesc,
   applyModelType,
+  applyDeploymentStrategy,
 } from './deployUtils';
-import { applyHardwareProfileToDeployment, applyReplicas } from './hardware';
+import { applyReplicas } from './hardware';
 import {
   createInferenceService,
   patchInferenceService,
   updateInferenceService,
 } from './api/inferenceService';
-import type { ModelAvailabilityFieldsData } from '../../model-serving/src/components/deploymentWizard/fields/ModelAvailabilityFields';
-import type { EnvironmentVariablesFieldData } from '../../model-serving/src/components/deploymentWizard/fields/EnvironmentVariablesField';
-import type { ExternalRouteFieldData } from '../../model-serving/src/components/deploymentWizard/fields/ExternalRouteField';
-import type { NumReplicasFieldData } from '../../model-serving/src/components/deploymentWizard/fields/NumReplicasField';
-import type { RuntimeArgsFieldData } from '../../model-serving/src/components/deploymentWizard/fields/RuntimeArgsField';
-import type { TokenAuthenticationFieldData } from '../../model-serving/src/components/deploymentWizard/fields/TokenAuthenticationField';
-import { CreateConnectionData } from '../../model-serving/src/components/deploymentWizard/fields/CreateConnectionInputFields';
+import { applyModelRuntime } from './deployServer';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -50,6 +55,7 @@ export type CreatingInferenceServiceObject = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
+  deploymentStrategy?: DeploymentStrategyFieldData;
 };
 
 const assembleInferenceService = (
@@ -57,6 +63,7 @@ const assembleInferenceService = (
   existingInferenceService?: InferenceServiceKind,
   dryRun?: boolean,
   secretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): InferenceServiceKind => {
   const {
     project,
@@ -74,6 +81,7 @@ const assembleInferenceService = (
     tokenAuth,
     runtimeArgs,
     environmentVariables,
+    deploymentStrategy,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -85,22 +93,20 @@ const assembleInferenceService = (
           namespace: project,
         },
         spec: {
-          predictor: {
-            model: {
-              runtime: k8sName,
-            },
-          },
+          predictor: {},
         },
       };
 
   inferenceService = applyDisplayNameDesc(inferenceService, name, description);
   inferenceService = applyDashboardResourceLabel(inferenceService);
+
   inferenceService = applyModelType(
     inferenceService,
     modelType ?? ServingRuntimeModelType.GENERATIVE,
   );
 
   inferenceService = applyModelFormat(inferenceService, modelFormat);
+  inferenceService = applyModelRuntime(inferenceService, k8sName);
 
   inferenceService = applyConnectionData(
     inferenceService,
@@ -114,7 +120,11 @@ const assembleInferenceService = (
     secretName,
   );
 
-  inferenceService = applyHardwareProfileToDeployment(inferenceService, hardwareProfile);
+  inferenceService = applyHardwareProfileConfig(
+    inferenceService,
+    hardwareProfile,
+    INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  );
 
   inferenceService = applyAuth(
     inferenceService,
@@ -142,6 +152,10 @@ const assembleInferenceService = (
     environmentVariables ?? { variables: [], enabled: false },
   );
 
+  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
+
+  inferenceService = _.merge(inferenceService, transformData);
+
   return inferenceService;
 };
 
@@ -153,6 +167,7 @@ export const deployInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
   connectionSecretName?: string,
+  transformData?: { metadata?: { labels?: Record<string, string> } },
   opts?: {
     dryRun?: boolean;
     overwrite?: boolean;
@@ -163,6 +178,7 @@ export const deployInferenceService = (
     existingInferenceService,
     opts?.dryRun,
     connectionSecretName,
+    transformData,
   );
 
   if (!existingInferenceService) {

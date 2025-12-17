@@ -1,0 +1,53 @@
+{
+  "data": {
+    "server_url": "https://api.githubcopilot.com/mcp",
+    "status": "success",
+    "message": "Successfully retrieved 40 tools",
+    "last_checked": 1762270224,
+    "server_info": {
+      "name": "github-mcp-server",
+      "version": "github-mcp-server/remote-c37f8ccadee3f2cab67a6162bd608efa478dfcd1",
+      "protocol_version": "2025-06-18"
+    },
+    "tools_count": 40,
+    "tools": [
+      {
+        "name": "create_repository",
+        "description": "Create a new GitHub repository in your account or specified organization",
+        "input_schema": {
+          "properties": {
+            "name": {
+              "description": "Repository name",
+              "type": "string"
+            },
+            "description": {
+              "description": "Repository description",
+              "type": "string"
+            },
+            "private": {
+              "description": "Whether repo should be private",
+              "type": "boolean"
+            }
+          },
+          "required": ["name"],
+          "type": "object"
+        }
+      },
+      {
+        "name": "search_code",
+        "description": "Fast and precise code search across ALL GitHub repositories",
+        "input_schema": {
+          "properties": {
+            "query": {
+              "description": "Search query using GitHub code search syntax",
+              "type": "string"
+            }
+          },
+          "required": ["query"],
+          "type": "object"
+        }
+      }
+    ]
+  }
+}
+

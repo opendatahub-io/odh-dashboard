@@ -15,6 +15,7 @@ import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
+import EmptyModelServingPlatformSection from './NoProjectServingEnabledSection';
 import {
   useProjectServingPlatform,
   type ModelServingPlatform,
@@ -22,7 +23,6 @@ import {
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
-import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -40,6 +40,10 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
     projectPlatformError,
     clearProjectPlatformError,
   } = useProjectServingPlatform(currentProject, platforms);
+
+  if (platforms.length === 0 && !activePlatform) {
+    return <EmptyModelServingPlatformSection />;
+  }
 
   // If no platform is selected -
   if (!activePlatform) {
@@ -122,11 +126,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         </CardBody>
         <CardFooter>
           <Flex gap={{ default: 'gapMd' }}>
-            <DeployButton
-              project={currentProject}
-              variant="link"
-              createRoute={getDeploymentWizardRoute(`/projects/${currentProject.metadata.name}`)}
-            />
+            <DeployButton project={currentProject} variant="link" />
             <NavigateBackToRegistryButton isInline />
           </Flex>
         </CardFooter>

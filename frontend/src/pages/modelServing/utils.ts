@@ -31,7 +31,6 @@ import {
   ServiceAccountKind,
   RoleKind,
   ServingContainer,
-  DeploymentMode,
   PersistentVolumeClaimKind,
 } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
@@ -44,7 +43,7 @@ import {
   ServingRuntimeToken,
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {
@@ -80,7 +79,6 @@ export const setUpTokenAuth = async (
   namespace: string,
   createTokenAuth: boolean,
   owner: ServingRuntimeKind | InferenceServiceKind,
-  isModelMesh?: boolean,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
@@ -94,27 +92,19 @@ export const setUpTokenAuth = async (
     owner,
   );
 
-  // We only need the inferenceservice view role for KServe, not ModelMesh
-  const role = !isModelMesh
-    ? addOwnerReference(generateRoleInferenceService(roleName, deployedModelName, namespace), owner)
-    : null;
+  const role = addOwnerReference(
+    generateRoleInferenceService(roleName, deployedModelName, namespace),
+    owner,
+  );
 
   const roleBinding = addOwnerReference(
     generateRoleBindingServiceAccount(
       roleBindingName,
       serviceAccountName,
-      role
-        ? {
-            kind: 'Role',
-            name: roleName,
-          }
-        : {
-            // Fallback to insecure ClusterRole for ModelMesh
-            // This is a security issue we will not fix for now, this may change in the future.
-            // See https://issues.redhat.com/browse/RHOAIENG-12314
-            kind: 'ClusterRole',
-            name: 'view',
-          },
+      {
+        kind: 'Role',
+        name: roleName,
+      },
       namespace,
     ),
     owner,
@@ -123,7 +113,7 @@ export const setUpTokenAuth = async (
     createTokenAuth
       ? Promise.all([
           createServiceAccountIfMissing(serviceAccount, namespace, opts),
-          ...(role ? [createRoleIfMissing(role, namespace, opts)] : []),
+          createRoleIfMissing(role, namespace, opts),
         ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
   )
@@ -363,10 +353,6 @@ export const isModelServerEditInfoChanged = (
           createData.tokens.map((token) => token.name).toSorted(),
         ))
     : true;
-
-export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
-  DeploymentMode.ModelMesh;
 
 export const isModelServingStopped = (inferenceService?: InferenceServiceKind): boolean =>
   inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';

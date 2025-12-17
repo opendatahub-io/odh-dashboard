@@ -26,6 +26,7 @@ const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ deployment, stopped
     <DeploymentEndpointsPopupButton
       endpoints={deployment.endpoints}
       loading={stoppedStates?.isStarting ?? false}
+      apiProtocol={deployment.apiProtocol}
     />
   );
 };

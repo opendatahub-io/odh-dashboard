@@ -12,6 +12,7 @@ export const useFeatureStoreSearch = (): {
     category: string;
     type: string;
     project: string;
+    featureView?: string;
   }>;
   isSearching: boolean;
   isLoadingMore: boolean;
@@ -54,6 +55,7 @@ export const useFeatureStoreSearch = (): {
       category: FEATURE_STORE_TYPE_TO_CATEGORY[result.type] || result.type,
       type: result.type,
       project: result.project,
+      featureView: result.featureView,
     }));
     return converted;
   }, [allResults]);

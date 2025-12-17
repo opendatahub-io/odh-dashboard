@@ -23,25 +23,25 @@ const MCPServerStatus: React.FC<MCPServerStatusProps> = ({
     switch (status) {
       case 'connected':
         return (
-          <Label color="green" href="#filled" icon={<CheckCircleIcon />}>
+          <Label color="green" icon={<CheckCircleIcon />}>
             Active
           </Label>
         );
       case 'auth_required':
         return (
-          <Label color="yellow" href="#filled" icon={<InfoCircleIcon />}>
+          <Label color="yellow" icon={<InfoCircleIcon />}>
             Token Required
           </Label>
         );
       case 'unreachable':
         return (
-          <Label color="red" href="#filled" icon={<ExclamationCircleIcon />}>
+          <Label color="red" icon={<ExclamationCircleIcon />}>
             Error
           </Label>
         );
       default:
         return (
-          <Label color="grey" href="#filled" icon={<QuestionCircleIcon />}>
+          <Label color="grey" icon={<QuestionCircleIcon />}>
             Unknown
           </Label>
         );
@@ -51,7 +51,12 @@ const MCPServerStatus: React.FC<MCPServerStatusProps> = ({
   if (isLoading || status === 'checking') {
     return (
       <Tooltip content="Checking connection status...">
-        <Label color="teal" variant="outline" href="#filled" icon={<Spinner size="sm" />}>
+        <Label
+          color="teal"
+          variant="outline"
+          icon={<Spinner size="sm" />}
+          data-testid="mcp-server-status-badge"
+        >
           Loading
         </Label>
       </Tooltip>
@@ -60,7 +65,7 @@ const MCPServerStatus: React.FC<MCPServerStatusProps> = ({
 
   return (
     <Tooltip content={message}>
-      <span>{statusLabel}</span>
+      <span data-testid="mcp-server-status-badge">{statusLabel}</span>
     </Tooltip>
   );
 };

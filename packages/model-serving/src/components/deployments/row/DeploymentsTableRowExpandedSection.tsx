@@ -9,22 +9,23 @@ import {
   Stack,
   ListItem,
   List,
+  Truncate,
 } from '@patternfly/react-core';
 import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
 import type { ContainerResources } from '@odh-dashboard/internal/types';
-import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
-import { useDeepCompareMemoize } from '@odh-dashboard/internal/utilities/useDeepCompareMemoize';
-import { getModelServingSizes } from '@odh-dashboard/internal/concepts/modelServing/modelServingSizesUtils';
-import { getResourceSize } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
-import { useResolvedDeploymentExtension } from '../../../../src/concepts/extensionUtils';
+import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   isModelServingDeploymentFormDataExtension,
   type Deployment,
 } from '../../../../extension-points';
+import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
@@ -50,21 +51,13 @@ const ReplicasItem = ({ replicas }: { replicas?: number | null }) => {
 };
 
 const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
-  const { dashboardConfig } = useAppContext();
-  const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
-  const existingSizeName = useDeepCompareMemoize(
-    resources ? getResourceSize(sizes, resources).name : undefined,
-  );
-
   const { requests, limits } = resources || {};
-
   return (
     <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
       <DescriptionListGroup>
         <DescriptionListTerm>Model server size</DescriptionListTerm>
         <DescriptionListDescription>
           <List isPlain>
-            <ListItem>{existingSizeName || 'Custom'}</ListItem>
             <ListItem>
               {requests?.cpu ?? 'Unknown'} CPUs, {formatMemory(requests?.memory ?? 'Unknown')}{' '}
               Memory requested
@@ -106,10 +99,60 @@ const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => 
   );
 };
 
+const ModelAvailabilityItem = ({
+  modelAvailability,
+}: {
+  modelAvailability: ModelAvailabilityFieldsData;
+}) => {
+  const availabilityTypes = [];
+  if (modelAvailability.saveAsAiAsset) {
+    availabilityTypes.push('AI asset endpoint');
+  }
+  if (modelAvailability.saveAsMaaS) {
+    availabilityTypes.push('Model-as-a-Service (MaaS)');
+  }
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Model availability</DescriptionListTerm>
+        <DescriptionListDescription>
+          {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'No model availability'}
+        </DescriptionListDescription>
+        {availabilityTypes.length > 0 ? (
+          <>
+            <DescriptionListTerm>Use case</DescriptionListTerm>
+            <DescriptionListDescription>
+              <Truncate content={modelAvailability.useCase ?? 'No use case'} />
+            </DescriptionListDescription>
+          </>
+        ) : null}
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const DescriptionItem = ({ description }: { description: string }) => {
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Description</DescriptionListTerm>
+        <DescriptionListDescription>
+          <Truncate content={description} />
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
 export const DeploymentRowExpandedSection: React.FC<{
   deployment: Deployment;
   isVisible: boolean;
-}> = ({ deployment, isVisible }) => {
+  hardwareProfilePaths: CrPathConfig;
+}> = ({ deployment, isVisible, hardwareProfilePaths }) => {
+  const hardwareProfileOptions = useAssignHardwareProfile(deployment.model, {
+    visibleIn: MODEL_SERVING_VISIBILITY,
+    paths: hardwareProfilePaths,
+  });
   const [formDataExtension] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
     deployment,
@@ -125,8 +168,13 @@ export const DeploymentRowExpandedSection: React.FC<{
     () => formDataExtension?.properties.extractReplicas(deployment),
     [formDataExtension, deployment],
   );
-  const hardwareProfileConfig = React.useMemo(
-    () => formDataExtension?.properties.extractHardwareProfileConfig(deployment),
+  const description = React.useMemo(
+    () => deployment.model.metadata.annotations?.['openshift.io/description'],
+    [deployment],
+  );
+
+  const modelAvailability = React.useMemo(
+    () => formDataExtension?.properties.extractModelAvailabilityData(deployment),
     [formDataExtension, deployment],
   );
 
@@ -140,15 +188,17 @@ export const DeploymentRowExpandedSection: React.FC<{
       <Td dataLabel="Information" colSpan={5}>
         <ExpandableRowContent>
           <Stack hasGutter>
+            {description && <DescriptionItem description={description} />}
             {modelFormat && <FrameworkItem framework={modelFormat} />}
             <ReplicasItem replicas={replicas} />
-            <ModelSizeItem resources={hardwareProfileConfig?.[1]} />
-            {hardwareProfileConfig && (
-              <HardwareProfileNameValue
-                project={deployment.model.metadata.namespace}
-                hardwareProfileConfig={hardwareProfileConfig}
-              />
-            )}
+            <ModelSizeItem
+              resources={hardwareProfileOptions.podSpecOptionsState.podSpecOptions.resources}
+            />
+            <HardwareProfileNameValue
+              project={deployment.model.metadata.namespace}
+              hardwareProfile={hardwareProfileOptions}
+            />
+            {modelAvailability && <ModelAvailabilityItem modelAvailability={modelAvailability} />}
             <TokenAuthenticationItem deployment={deployment} />
           </Stack>
         </ExpandableRowContent>
