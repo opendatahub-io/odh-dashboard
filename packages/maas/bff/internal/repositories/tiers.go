@@ -93,6 +93,9 @@ func (t *TiersRepository) updateTiersConfigMap(ctx context.Context, tiersConfigM
 	if err != nil {
 		return err
 	}
+	if tiersConfigMap.Data == nil {
+		tiersConfigMap.Data = make(map[string]string)
+	}
 	tiersConfigMap.Data["tiers"] = string(yamlData)
 
 	client, err := t.k8sFactory.GetClient(ctx)
@@ -204,7 +207,7 @@ func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) erro
 	}
 
 	if levelConflict {
-		return ErrTierExists
+		return ErrTierLevelConflict
 	}
 
 	parsedTiers[tierIdx] = tierConfigMapData{

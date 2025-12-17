@@ -51,7 +51,7 @@ func GetTierHandler(app *App, w http.ResponseWriter, r *http.Request, params htt
 	ctx := r.Context()
 	tierName := params.ByName("name")
 	if len(tierName) == 0 {
-		app.serverErrorResponse(w, r, errors.New("tier id is required"))
+		app.badRequestResponse(w, r, errors.New("tier name is required"))
 		return
 	}
 
@@ -81,7 +81,7 @@ func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 
 	var tier models.Tier
 	if err := json.NewDecoder(r.Body).Decode(&tier); err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -115,15 +115,13 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 	ctx := r.Context()
 	tierName := params.ByName("name")
 	if len(tierName) == 0 {
-		// TODO: Replace all instances of this serverError, with a client error.
-		app.serverErrorResponse(w, r, errors.New("tier id is required"))
+		app.badRequestResponse(w, r, errors.New("tier name is required"))
 		return
 	}
 
 	var tier models.Tier
 	if err := json.NewDecoder(r.Body).Decode(&tier); err != nil {
-		// TODO: Replace serverError with client error: a JSON parse error is typically a client error
-		app.serverErrorResponse(w, r, err)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -159,7 +157,7 @@ func DeleteTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 	ctx := r.Context()
 	tierName := params.ByName("name")
 	if len(tierName) == 0 {
-		app.serverErrorResponse(w, r, errors.New("tier id is required"))
+		app.badRequestResponse(w, r, errors.New("tier name is required"))
 		return
 	}
 
