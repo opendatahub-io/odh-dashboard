@@ -174,6 +174,8 @@ Cypress tests require a frontend server to be running.
 
 Using the webpack development server allows for auto rebuilding the dashboard frontend as code changes are made.
 
+To have turbo run a cypress server for the frontend folder and all federated modules run the following from the root of the repository:
+
 ```bash
 npm run cypress:server:dev
 ```
@@ -185,10 +187,11 @@ npm run cypress:server:build
 npm run cypress:server
 ```
 
-There are two commands to run Cypress mock tests (always use the `:mock` variants).
+Once you have Cypress server running in a terminal, there are two commands to run the Cypress mock tests in a separate terminal (always use the `:mock` variants).
 
 - `open`: Open the Cypress GUI
   ```bash
+  cd frontend
   npm run cypress:open:mock
   ```
 - `run`: Run all Cypress tests or a specific test headless
