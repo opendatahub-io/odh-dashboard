@@ -631,6 +631,7 @@ export type Volume = {
   secret?: {
     secretName: string;
     optional?: boolean;
+    defaultMode?: number;
   };
   configMap?: {
     name: string;

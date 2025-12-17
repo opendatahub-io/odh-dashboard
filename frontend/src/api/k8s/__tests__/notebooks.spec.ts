@@ -1395,7 +1395,7 @@ describe('updateNotebook', () => {
     const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
 
     // Verify volumes are clean (no duplicates, no multiple source types per volume)
-    const volumes = mergedNotebook.spec.template.spec.volumes;
+    const { volumes } = mergedNotebook.spec.template.spec;
     expect(volumes).toBeDefined();
 
     // Check that shm volume was added and is clean (only has emptyDir, not merged with PVC)
