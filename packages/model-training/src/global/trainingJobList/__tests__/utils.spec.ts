@@ -17,16 +17,16 @@ import {
   ConditionStatus,
   JobSectionName,
 } from '../utils';
-import { getWorkloadForTrainJob, resumeTrainJob } from '../../../api';
+import { getWorkloadForTrainJob, setTrainJobPauseState } from '../../../api';
 
 // Mock the API functions
 jest.mock('../../../api', () => ({
   getWorkloadForTrainJob: jest.fn(),
-  resumeTrainJob: jest.fn(),
+  setTrainJobPauseState: jest.fn(),
 }));
 
 const mockGetWorkloadForTrainJob = jest.mocked(getWorkloadForTrainJob);
-const mockResumeTrainJob = jest.mocked(resumeTrainJob);
+const mockSetTrainJobPauseState = jest.mocked(setTrainJobPauseState);
 
 // Test constants
 const TEST_JOB_NAME = 'test-job';
@@ -1044,7 +1044,7 @@ describe('getTrainingJobStatus', () => {
     consoleWarnSpy.mockRestore();
   });
 
-  it('should respect skipHibernationCheck option', async () => {
+  it('should respect skipPauseCheck option', async () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
       conditions: [
@@ -1056,7 +1056,7 @@ describe('getTrainingJobStatus', () => {
       ],
     });
 
-    const result = await getTrainingJobStatus(job, { skipHibernationCheck: true });
+    const result = await getTrainingJobStatus(job, { skipPauseCheck: true });
     expect(result.status).toBe(TrainingJobState.SUCCEEDED);
     expect(mockGetWorkloadForTrainJob).not.toHaveBeenCalled();
   });
@@ -1107,11 +1107,11 @@ describe('handlePauseResume', () => {
     const onSuccess = jest.fn();
     const onError = jest.fn();
 
-    mockResumeTrainJob.mockResolvedValue({ success: true });
+    mockSetTrainJobPauseState.mockResolvedValue({ success: true });
 
     await handlePauseResume(job, true, pauseJob, onSuccess, onError);
 
-    expect(mockResumeTrainJob).toHaveBeenCalledWith(job);
+    expect(mockSetTrainJobPauseState).toHaveBeenCalledWith(job, false);
     expect(pauseJob).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
@@ -1125,7 +1125,7 @@ describe('handlePauseResume', () => {
 
     await handlePauseResume(job, false, pauseJob, onSuccess, onError);
 
-    expect(mockResumeTrainJob).not.toHaveBeenCalled();
+    expect(mockSetTrainJobPauseState).not.toHaveBeenCalled();
     expect(pauseJob).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
@@ -1137,7 +1137,7 @@ describe('handlePauseResume', () => {
     const onSuccess = jest.fn();
     const onError = jest.fn();
 
-    mockResumeTrainJob.mockResolvedValue({ success: false, error: 'Resume failed' });
+    mockSetTrainJobPauseState.mockResolvedValue({ success: false, error: 'Resume failed' });
 
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -1173,10 +1173,10 @@ describe('handlePauseResume', () => {
     const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
     const pauseJob = jest.fn().mockResolvedValue(undefined);
 
-    mockResumeTrainJob.mockResolvedValue({ success: true });
+    mockSetTrainJobPauseState.mockResolvedValue({ success: true });
 
     await handlePauseResume(job, true, pauseJob);
-    expect(mockResumeTrainJob).toHaveBeenCalledWith(job);
+    expect(mockSetTrainJobPauseState).toHaveBeenCalledWith(job, false);
   });
 });
 
