@@ -497,6 +497,65 @@ describe('Model Serving LLMD', () => {
         expect(interceptions).to.have.length(2);
       });
     });
+    it('should stop/start an LLMD deployment', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-llmd-model',
+            displayName: 'Test LLM Inference Service',
+            replicas: 2,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+            isStopped: true,
+          }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-llmd-model-2',
+            displayName: 'Test LLM Inference Service 2',
+            replicas: 2,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+            isStopped: false,
+          }),
+        ],
+      });
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/llminferenceservices/test-llmd-model',
+        (req) => {
+          req.reply({
+            statusCode: 200,
+            body: { llmInferenceService: mockLLMInferenceServiceK8sResource({ isStopped: false }) },
+          });
+        },
+      ).as('startLLMInferenceService1');
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/llminferenceservices/test-llmd-model-2',
+        (req) => {
+          req.reply({
+            statusCode: 200,
+            body: { llmInferenceService: mockLLMInferenceServiceK8sResource({ isStopped: true }) },
+          });
+        },
+      ).as('stopLLMInferenceService2');
+
+      modelServingSection.visit('test-project');
+      const row1 = modelServingSection.getKServeRow('Test LLM Inference Service');
+      const row2 = modelServingSection.getKServeRow('Test LLM Inference Service 2');
+      const startButton = row1.findStateActionToggle();
+      startButton.should('have.text', 'Start').click();
+
+      cy.wait('@startLLMInferenceService1');
+      cy.get('@startLLMInferenceService1.all').should('have.length', 1);
+
+      const stopButton = row2.findStateActionToggle();
+      stopButton.should('have.text', 'Stop').click();
+      row2.findConfirmStopModalButton().should('exist');
+      row2.findConfirmStopModalCheckbox().click();
+      row2.findConfirmStopModalCheckbox().should('be.checked');
+      row2.findConfirmStopModalButton().click();
+
+      cy.wait('@stopLLMInferenceService2');
+      cy.get('@stopLLMInferenceService2.all').should('have.length', 1);
+    });
   });
 
   describe('Deploy LLMD with MaaS enabled', () => {

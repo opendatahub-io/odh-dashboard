@@ -56,10 +56,21 @@ client = LlamaStackClient(base_url=LLAMA_STACK_URL)
 
 # Create vector store
 vector_store = client.vector_stores.create(
-    name=vector_store_name{{- if .VectorStore.EmbeddingModel }},
-    embedding_model="{{.VectorStore.EmbeddingModel}}"{{- end }}{{- if .VectorStore.EmbeddingDimension }},
-    embedding_dimension={{.VectorStore.EmbeddingDimension}}{{- end }}{{- if .VectorStore.ProviderID }},
-    provider_id="{{.VectorStore.ProviderID}}"{{- end }}
+    name=vector_store_name{{- if or .VectorStore.EmbeddingModel .VectorStore.EmbeddingDimension .VectorStore.ProviderID }},{{- end }}
+    {{- if or .VectorStore.EmbeddingModel .VectorStore.EmbeddingDimension .VectorStore.ProviderID }}
+    extra_body={
+        {{- if .VectorStore.ProviderID }}
+        "provider_id": "{{.VectorStore.ProviderID}}"{{- if or .VectorStore.EmbeddingModel .VectorStore.EmbeddingDimension }},
+        {{- end }}
+        {{- end }}
+        {{- if .VectorStore.EmbeddingModel }}
+        "embedding_model": "{{.VectorStore.EmbeddingModel}}"{{- if .VectorStore.EmbeddingDimension }},
+        {{- end }}
+        {{- end }}
+        {{- if .VectorStore.EmbeddingDimension }}
+        "embedding_dimension": {{.VectorStore.EmbeddingDimension}}
+        {{- end }}
+    }{{- end }}
 )
 {{- end }}{{- if or .Tools .MCPServers }}
 tools = [
@@ -87,7 +98,7 @@ tools = [
         {{- range $key, $value := .Headers }}
         "{{$key}}": "{{$value}}",
         {{- end }}
-      }{{- end }}{{- if .AllowedTools }},
+      }{{- end }}{{- if ne .AllowedTools nil }},
       "allowed_tools": [
         {{- range $i, $tool := .AllowedTools }}
         {{- if $i }},{{ end }}

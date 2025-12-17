@@ -1,19 +1,29 @@
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
+import { appChrome } from './appChrome';
 
 class ModelTrainingGlobal {
-  visit(projectName?: string) {
-    const baseUrl = projectName
+  visit(projectName?: string, wait = true) {
+    const url = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
-    const url = `${baseUrl}?devFeatureFlags=Model+Training+Plugin%3Dtrue`;
     cy.visitWithLogin(url);
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   private wait() {
     this.findAppPage();
     cy.testA11y();
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem({ name: 'Training jobs', rootSection: 'Develop & train' });
+  }
+
+  shouldNotFoundPage() {
+    return cy.findByTestId('not-found-page').should('exist');
   }
 
   findAppPage() {
@@ -121,6 +131,10 @@ class TrainingJobTableRow extends TableRow {
 
   findNameLink() {
     return this.findTrainingJobName().find('button');
+  }
+
+  findPauseResumeToggle() {
+    return this.find().findByTestId('state-action-toggle');
   }
 }
 
@@ -326,7 +340,7 @@ class TrainingJobStatusModal extends Modal {
   }
 
   findTitle() {
-    return this.findHeader().contains('Training Job Status');
+    return this.findHeader().contains('Training job status');
   }
 
   findStatusLabel() {
@@ -499,6 +513,52 @@ class ScaleNodesModal extends Modal {
     return this;
   }
 }
+class PauseTrainingJobModal extends Modal {
+  constructor() {
+    super('Pause training job?');
+  }
+
+  find() {
+    return cy.findByTestId('pause-training-job-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+    return this;
+  }
+
+  findDontShowAgainCheckbox() {
+    return cy.findByTestId('dont-show-again-checkbox');
+  }
+
+  checkDontShowAgain() {
+    this.findDontShowAgainCheckbox().click();
+    return this;
+  }
+
+  findPauseButton() {
+    return cy.findByRole('button', { name: 'Pause' });
+  }
+
+  findCancelButton() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  pause() {
+    this.findPauseButton().click();
+    return this;
+  }
+
+  cancel() {
+    this.findCancelButton().click();
+    return this;
+  }
+}
+
 class TrainingJobDetailsTab {
   findProgressSection() {
     return cy.findByTestId('progress-section');
@@ -509,7 +569,7 @@ class TrainingJobDetailsTab {
   }
 
   findEstimatedTimeRemainingValue() {
-    return cy.findByTestId('estimated-time-remaining-value');
+    return cy.findByTestId('time-remaining-value');
   }
 
   findStepsValue() {
@@ -545,4 +605,5 @@ export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
 export const scaleNodesModal = new ScaleNodesModal();
+export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();

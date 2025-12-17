@@ -16,6 +16,7 @@ import {
   Divider,
   Flex,
   FlexItem,
+  Spinner,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { PodKind } from '@odh-dashboard/internal/k8sTypes';
@@ -24,6 +25,9 @@ import TrainingJobPodsTab from './TrainingJobPodsTab';
 import TrainingJobLogsTab from './TrainingJobLogsTab';
 import TrainingJobDetailsTab from './TrainingJobDetailsTab';
 import ScaleNodesModal from '../trainingJobList/ScaleNodesModal';
+import PauseTrainingJobModal from '../trainingJobList/PauseTrainingJobModal';
+import { useTrainingJobPauseResume } from '../trainingJobList/hooks/useTrainingJobPauseResume';
+import { getStatusFlags } from '../trainingJobList/utils';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
@@ -34,6 +38,8 @@ type TrainingJobDetailsDrawerProps = {
   jobStatus?: TrainingJobState;
   onClose: () => void;
   onDelete: (job: TrainJobKind) => void;
+  onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
+  onTogglingChange?: (jobId: string | undefined) => void;
 };
 
 const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
@@ -42,6 +48,8 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
   jobStatus,
   onClose,
   onDelete,
+  onStatusUpdate,
+  onTogglingChange,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
@@ -58,6 +66,33 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
     setScaleNodesModalOpen,
     handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
+
+  const {
+    isToggling,
+    pauseModalOpen,
+    closePauseModal,
+    onPauseClick,
+    handlePause,
+    handleResume,
+    dontShowModalValue,
+    setDontShowModalValue,
+  } = useTrainingJobPauseResume(job, onStatusUpdate);
+
+  const { isPaused, canPauseResume } = getStatusFlags(jobStatus || TrainingJobState.UNKNOWN);
+
+  // Track previous isToggling value to close dropdown when action completes
+  // and notify parent of toggling state changes
+  const wasTogglingRef = React.useRef(false);
+  React.useEffect(() => {
+    if (wasTogglingRef.current && !isToggling) {
+      setIsKebabOpen(false);
+    }
+    wasTogglingRef.current = isToggling;
+
+    // Notify parent of toggling state change
+    const jobId = job?.metadata.uid || job?.metadata.name;
+    onTogglingChange?.(isToggling ? jobId : undefined);
+  }, [isToggling, job?.metadata.uid, job?.metadata.name, onTogglingChange]);
 
   // Reset pod selection when job changes (e.g., new TrainJob re-created)
   React.useEffect(() => {
@@ -100,7 +135,6 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
             <DrawerActions>
               <Dropdown
                 isOpen={isKebabOpen}
-                onSelect={() => setIsKebabOpen(false)}
                 onOpenChange={(isOpen: boolean) => setIsKebabOpen(isOpen)}
                 popperProps={{ position: 'right' }}
                 toggle={(toggleRef) => (
@@ -118,13 +152,34 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
               >
                 <DropdownList>
                   {canScaleNodes && (
-                    <DropdownItem key="scale-nodes" onClick={() => setScaleNodesModalOpen(true)}>
+                    <DropdownItem
+                      key="scale-nodes"
+                      onClick={() => {
+                        setIsKebabOpen(false);
+                        setScaleNodesModalOpen(true);
+                      }}
+                    >
                       Edit node count
                     </DropdownItem>
                   )}
-                  {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend */}
-                  {canScaleNodes && <Divider component="li" key="separator" />}
-                  <DropdownItem key="delete" onClick={() => onDelete(job)}>
+                  {canPauseResume && (
+                    <DropdownItem
+                      key="pause-resume"
+                      onClick={isPaused ? handleResume : onPauseClick}
+                      isDisabled={isToggling}
+                      icon={isToggling ? <Spinner size="sm" /> : undefined}
+                    >
+                      {isPaused ? 'Resume job' : 'Pause job'}
+                    </DropdownItem>
+                  )}
+                  {(canScaleNodes || canPauseResume) && <Divider component="li" key="separator" />}
+                  <DropdownItem
+                    key="delete"
+                    onClick={() => {
+                      setIsKebabOpen(false);
+                      onDelete(job);
+                    }}
+                  >
                     Delete job
                   </DropdownItem>
                 </DropdownList>
@@ -143,8 +198,8 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
         >
           <Tab
             eventKey={0}
-            title={<TabTitleText>Training details</TabTitleText>}
-            aria-label="Training details"
+            title={<TabTitleText>Training job details</TabTitleText>}
+            aria-label="Training job details"
           >
             <TrainingJobDetailsTab job={job} />
           </Tab>
@@ -171,13 +226,26 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
         </Tabs>
       </DrawerPanelBody>
 
-      <ScaleNodesModal
-        job={scaleNodesModalOpen ? job : undefined}
-        currentNodeCount={nodesCount}
-        isScaling={isScaling}
-        onClose={() => setScaleNodesModalOpen(false)}
-        onConfirm={handleScaleNodes}
-      />
+      {scaleNodesModalOpen && (
+        <ScaleNodesModal
+          job={job}
+          currentNodeCount={nodesCount}
+          isScaling={isScaling}
+          onClose={() => setScaleNodesModalOpen(false)}
+          onConfirm={handleScaleNodes}
+        />
+      )}
+
+      {pauseModalOpen && (
+        <PauseTrainingJobModal
+          job={job}
+          isPausing={isToggling}
+          onClose={closePauseModal}
+          onConfirm={handlePause}
+          dontShowModalValue={dontShowModalValue}
+          setDontShowModalValue={setDontShowModalValue}
+        />
+      )}
     </DrawerPanelContent>
   );
 };

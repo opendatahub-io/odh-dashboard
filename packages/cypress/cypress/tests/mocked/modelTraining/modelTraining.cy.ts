@@ -3,6 +3,7 @@ import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__moc
 import { createMockEventsForTrainJob } from '@odh-dashboard/model-training/__mocks__/mockEventK8sResource';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockPodLogs } from '@odh-dashboard/internal/__mocks__/mockPodLogs';
@@ -19,6 +20,7 @@ import {
 } from '@odh-dashboard/internal/api/models';
 import { ContainerResourceAttributes } from '@odh-dashboard/internal/types';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
   modelTrainingGlobal,
@@ -481,6 +483,116 @@ const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
   }
 };
 
+describe('Model Training Feature Availability', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+  });
+
+  it('Does not exist if Training Operator is not installed', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Removed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+        }),
+      ]),
+    );
+
+    modelTrainingGlobal.visit(projectName, false);
+    modelTrainingGlobal.findNavItem().should('not.exist');
+    modelTrainingGlobal.shouldNotFoundPage();
+  });
+
+  it('Does not exist if feature flag is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: false,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+        }),
+      ]),
+    );
+
+    modelTrainingGlobal.visit(projectName, false);
+    modelTrainingGlobal.findNavItem().should('not.exist');
+    modelTrainingGlobal.shouldNotFoundPage();
+  });
+
+  it('Exists if Training Operator is installed and feature flag is enabled', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+          enableKueue: true,
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      {
+        model: TrainJobModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      {
+        model: LocalQueueModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([]),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    modelTrainingGlobal.findNavItem().should('exist');
+  });
+});
+
 describe('Model Training', () => {
   beforeEach(() => {
     asClusterAdminUser();
@@ -533,13 +645,13 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
-      trainingJobDetailsDrawer.findTab('Training details').should('exist');
+      trainingJobDetailsDrawer.findTab('Training job details').should('exist');
       trainingJobDetailsDrawer.findTab('Resources').should('exist');
       trainingJobDetailsDrawer.findTab('Pods').should('exist');
       trainingJobDetailsDrawer.findTab('Logs').should('exist');
 
-      trainingJobDetailsDrawer.selectTab('Training details');
-      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Progress');
+      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Job progress');
 
       trainingJobDetailsDrawer.selectTab('Resources');
       trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Node configurations');
@@ -608,7 +720,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training details');
+      trainingJobDetailsDrawer.selectTab('Training job details');
 
       // Verify all sections are present
       trainingJobDetailsTab.findProgressSection().should('exist');
@@ -623,10 +735,10 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training details');
+      trainingJobDetailsDrawer.selectTab('Training job details');
 
       // Check progress section
-      trainingJobDetailsTab.findProgressSection().should('contain', 'Progress');
+      trainingJobDetailsTab.findProgressSection().should('contain', 'Job progress');
       trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '30 minutes');
       trainingJobDetailsTab.findStepsValue().should('contain', '3000 / 4690');
       trainingJobDetailsTab.findEpochsValue().should('contain', '3 / 5');
@@ -640,7 +752,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training details');
+      trainingJobDetailsDrawer.selectTab('Training job details');
 
       // Check metrics section
       trainingJobDetailsTab.findMetricsSection().should('contain', 'Metrics');
@@ -719,7 +831,7 @@ describe('Model Training', () => {
       const firstRow = trainingJobTable.getTableRow('early-job');
       firstRow.findNameLink().click();
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training details');
+      trainingJobDetailsDrawer.selectTab('Training job details');
 
       trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '1 hour');
       trainingJobDetailsTab.findStepsValue().should('contain', '100 / 1000');
@@ -1376,31 +1488,6 @@ describe('Model Training', () => {
       trainingJobStatusModal.findEventLogs().should('be.visible');
     });
 
-    it('should display pause button for running jobs', () => {
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('image-classification-job');
-      row.findStatus().click();
-
-      trainingJobStatusModal.shouldBeOpen();
-      // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
-      // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-      // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');
-    });
-
-    it('should display retry button for failed jobs', () => {
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('failed-training-job');
-      row.findStatus().click();
-
-      trainingJobStatusModal.shouldBeOpen();
-      // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
-      // trainingJobStatusModal.findRetryButton().should('be.visible');
-      // trainingJobStatusModal.findRetryButton().should('contain', 'Retry Job');
-      // trainingJobStatusModal.findPauseResumeButton().should('not.exist');
-    });
-
     it('should display delete button', () => {
       modelTrainingGlobal.visit(projectName);
 
@@ -1409,7 +1496,7 @@ describe('Model Training', () => {
 
       trainingJobStatusModal.shouldBeOpen();
       trainingJobStatusModal.findDeleteButton().should('be.visible');
-      trainingJobStatusModal.findDeleteButton().should('contain', 'Delete Job');
+      trainingJobStatusModal.findDeleteButton().should('contain', 'Delete job');
     });
 
     it('should open delete modal when clicking delete button', () => {

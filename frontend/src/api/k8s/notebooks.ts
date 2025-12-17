@@ -47,6 +47,7 @@ export const assembleNotebook = (
     volumeMounts: formVolumeMounts,
     connections,
     hardwareProfileOptions,
+    feastData,
   } = data;
   const {
     name: notebookName,
@@ -97,6 +98,7 @@ export const assembleNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        ...(feastData?.labels || {}),
       },
       annotations: {
         'openshift.io/display-name': notebookName.trim(),
@@ -107,6 +109,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
         'opendatahub.io/connections': connectionsAnnotation ?? '',
+        ...(feastData?.annotations || {}),
       },
       name: notebookId,
       namespace: projectName,

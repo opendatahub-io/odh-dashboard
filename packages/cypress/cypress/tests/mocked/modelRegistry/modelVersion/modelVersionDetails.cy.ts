@@ -153,6 +153,8 @@ const initIntercepts = (
       disableModelRegistry: false,
       disableFineTuning: false,
       disableModelCatalog: !modelCatalogAvailable,
+      disableModelServing: false, // Enable model serving to see deployed model versions in the registered deployments tab
+      disableKServe: false, // Enable the KServe plugin so model serving knows how to fetch InferenceServices
     }),
   );
 
@@ -161,6 +163,7 @@ const initIntercepts = (
     mockDscStatus({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
     }),
   );

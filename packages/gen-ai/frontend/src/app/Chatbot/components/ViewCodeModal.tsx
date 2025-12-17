@@ -26,6 +26,8 @@ interface ViewCodeModalProps {
   selectedMcpServerIds?: string[];
   mcpServers?: MCPServerFromAPI[];
   mcpServerTokens?: Map<string, TokenInfo>;
+  toolSelections?: (ns: string, url: string) => string[] | undefined;
+  namespace?: string;
 }
 
 // Stable default values to prevent unnecessary re-renders
@@ -44,6 +46,8 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   selectedMcpServerIds = EMPTY_ARRAY,
   mcpServers = EMPTY_MCP_SERVERS,
   mcpServerTokens = EMPTY_TOKEN_MAP,
+  toolSelections,
+  namespace,
 }) => {
   const [code, setCode] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -79,10 +83,16 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         model,
         instructions: systemInstruction,
         stream: false,
-        // TODO: Add allowed_tools support once backend code-exporter endpoint is updated
-        mcp_servers: mcpServersToUse.map((server) =>
-          generateMCPServerConfig(server, mcpServerTokens),
-        ),
+        mcp_servers: mcpServersToUse.map((server) => {
+          const config = generateMCPServerConfig(server, mcpServerTokens);
+          if (namespace && toolSelections) {
+            const savedTools = toolSelections(namespace, server.url);
+            if (savedTools !== undefined) {
+              config.allowed_tools = savedTools;
+            }
+          }
+          return config;
+        }),
         vector_store: {
           name: vectorStores[0].name,
           // TODO: Get embedding model and dimension from vector store, it's optional
@@ -118,6 +128,8 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
     isRagEnabled,
     api,
     mcpServerTokens,
+    namespace,
+    toolSelections,
   ]);
 
   React.useEffect(() => {

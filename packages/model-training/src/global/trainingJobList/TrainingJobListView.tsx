@@ -12,6 +12,7 @@ type TrainingJobListViewProps = {
   jobStatuses: Map<string, TrainingJobState>;
   onStatusUpdate: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: TrainJobKind) => void;
+  togglingJobId?: string;
 };
 
 const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
@@ -19,6 +20,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   jobStatuses,
   onStatusUpdate,
   onSelectJob,
+  togglingJobId,
 }) => {
   const [filterData, setFilterData] = React.useState<TrainingJobFilterDataType>(
     initialTrainingJobFilterData,
@@ -80,6 +82,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
       toolbarContent={
         <TrainingJobToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
       }
+      togglingJobId={togglingJobId}
     />
   );
 };

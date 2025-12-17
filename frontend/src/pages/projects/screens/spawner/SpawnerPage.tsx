@@ -48,6 +48,7 @@ import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -68,6 +69,10 @@ import { defaultClusterStorage } from './storage/constants';
 import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
+import { FeatureStoreFormSection } from './featureStore/FeatureStoreFormSection';
+import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
+import { useWorkbenchFeatureStores } from './featureStore/useWorkbenchFeatureStores';
+import { getFeatureStoresFromNotebook } from './featureStore/utils';
 
 type SpawnerPageProps = {
   existingNotebook?: NotebookKind;
@@ -152,6 +157,40 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],
   );
 
+  const {
+    featureStores: availableFeatureStores = [],
+    loaded: featureStoresLoaded,
+    error: featureStoresError,
+  } = useWorkbenchFeatureStores();
+  const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
+    WorkbenchFeatureStoreConfig[]
+  >([]);
+  const hasUserInteractedRef = React.useRef<boolean>(false);
+  const notebookIdRef = React.useRef<string | undefined>();
+
+  React.useEffect(() => {
+    const currentNotebookId = existingNotebook?.metadata.uid;
+    const notebookChanged = notebookIdRef.current !== currentNotebookId;
+
+    if (existingNotebook && availableFeatureStores.length > 0) {
+      if (notebookChanged || !hasUserInteractedRef.current) {
+        const featureStores = getFeatureStoresFromNotebook(
+          existingNotebook,
+          availableFeatureStores,
+        );
+        setSelectedFeatureStores(featureStores);
+        notebookIdRef.current = currentNotebookId;
+        if (notebookChanged) {
+          hasUserInteractedRef.current = false;
+        }
+      }
+    } else if (!existingNotebook) {
+      setSelectedFeatureStores([]);
+      notebookIdRef.current = undefined;
+      hasUserInteractedRef.current = false;
+    }
+  }, [existingNotebook, availableFeatureStores]);
+
   const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
@@ -194,7 +233,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     ? getDisplayNameFromK8sResource(existingNotebook)
     : '';
 
-  const sectionIDs = Object.values(SpawnerPageSectionID);
+  const featureStoreStatus = useIsAreaAvailable(SupportedArea.FEATURE_STORE);
+  const isFeastOperatorAvailable = featureStoreStatus.status;
+
+  const sectionIDs = React.useMemo(
+    () =>
+      Object.values(SpawnerPageSectionID).filter(
+        (sectionId) => isFeastOperatorAvailable || sectionId !== SpawnerPageSectionID.FEATURE_STORE,
+      ),
+    [isFeastOperatorAvailable],
+  );
 
   const hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind> =
     useNotebookHardwareProfile(existingNotebook);
@@ -361,6 +409,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               selectedConnections={notebookConnections}
               setSelectedConnections={setNotebookConnections}
             />
+            <FeatureStoreFormSection
+              selectedFeatureStores={selectedFeatureStores}
+              onSelect={(featureStores) => {
+                setSelectedFeatureStores(featureStores);
+                hasUserInteractedRef.current = true;
+              }}
+              availableFeatureStores={availableFeatureStores}
+              loaded={featureStoresLoaded}
+              error={featureStoresError}
+            />
           </Form>
         </GenericSidebar>
       </PageSection>
@@ -388,6 +446,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   envVariables={envVariables}
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
+                  selectedFeatureStores={selectedFeatureStores}
                 />
               )}
             </CanEnableElyraPipelinesCheck>
