@@ -34,6 +34,7 @@ const ModelTraining = (): React.ReactElement => {
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
   const [deleteTrainingJob, setDeleteTrainingJob] = useState<TrainJobKind | undefined>(undefined);
+  const [togglingJobId, setTogglingJobId] = useState<string | undefined>(undefined);
   const drawerRef = useRef<HTMLDivElement>(undefined);
 
   // Manage job statuses at this level so they can be shared with drawer and list
@@ -102,6 +103,8 @@ const ModelTraining = (): React.ReactElement => {
       jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
       onDelete={handleDelete}
+      onStatusUpdate={handleStatusUpdate}
+      onTogglingChange={setTogglingJobId}
     />
   );
 
@@ -148,6 +151,7 @@ const ModelTraining = (): React.ReactElement => {
               jobStatuses={jobStatuses}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}
+              togglingJobId={togglingJobId}
             />
           </ApplicationsPage>
         </DrawerContentBody>
