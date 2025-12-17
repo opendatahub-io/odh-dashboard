@@ -96,4 +96,17 @@ describe('Tiers Page', () => {
     deleteTierModal.findInput().type('free');
     deleteTierModal.findSubmitButton().click();
   });
+
+  it('should display the tier details page', () => {
+    tiersPage.findKebab('Free Tier').click();
+    tiersPage.findViewDetailsButton().click();
+
+    tiersPage.findTitle().should('contain.text', 'Free Tier');
+    tiersPage.findLevel().should('contain.text', '1');
+    tiersPage.findGroups().should('contain.text', 'all-users');
+    tiersPage.findLimits('10,000 tokens per 1 hour').should('exist');
+    tiersPage.findLimits('100 requests per 1 minute').should('exist');
+
+    tiersPage.findActionsButton().click();
+  });
 });

@@ -46,6 +46,18 @@ class TiersPage {
     return cy.findByTestId('app-page-description');
   }
 
+  findLevel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level-value');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-groups-value');
+  }
+
+  findLimits(name: string) {
+    return cy.findByText(name);
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('tiers-table');
   }
@@ -74,6 +86,18 @@ class TiersPage {
 
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findKebab(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(name).findKebab();
+  }
+
+  findViewDetailsButton() {
+    return cy.findByRole('menuitem', { name: 'View details' });
+  }
+
+  findActionsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-actions');
   }
 }
 

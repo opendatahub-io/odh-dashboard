@@ -1,4 +1,6 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,14 +18,12 @@ import {
   Label,
   MenuToggle,
   PageSection,
-  Popover,
   Stack,
   StackItem,
   Tab,
   Tabs,
   TabTitleText,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -65,15 +65,19 @@ const ViewTierPage: React.FC = () => {
   const tier = tiers.find((t) => t.name === tierName);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
 
+  if (!tier) {
+    return <NotFound />;
+  }
+
   return (
     <ApplicationsPage
-      title={tier?.displayName}
+      title={tier.displayName}
       empty={false}
       loaded
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/maas/tiers">Tiers</Link>} />
-          <BreadcrumbItem isActive>{tier?.displayName}</BreadcrumbItem>
+          <BreadcrumbItem isActive>{tier.displayName}</BreadcrumbItem>
         </Breadcrumb>
       }
       headerAction={
@@ -117,14 +121,14 @@ const ViewTierPage: React.FC = () => {
     >
       <Tabs activeKey="details" aria-label="Tier details tabs">
         <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>} aria-label="Details">
-          <PageSection>
+          <PageSection aria-label="Details">
             <Stack hasGutter>
               <SectionHeader title="Details" />
               <StackItem>
                 <Flex gap={{ default: 'gap2xl' }}>
                   <FlexItem style={{ minWidth: '600px' }}>
                     <DescriptionList>
-                      <DetailsItem label="Name" value={tier?.displayName} testId="tier-name" />
+                      <DetailsItem label="Name" value={tier.displayName} testId="tier-name" />
                     </DescriptionList>
                   </FlexItem>
                   <FlexItem>
@@ -132,9 +136,8 @@ const ViewTierPage: React.FC = () => {
                       <DescriptionListGroup>
                         <DescriptionListTerm data-testid="tier-level-label">
                           Level{' '}
-                          <Popover
-                            headerContent="Tier level"
-                            bodyContent={
+                          <DashboardHelpTooltip
+                            content={
                               <Stack hasGutter>
                                 <StackItem>Higher numbers indicate higher tiers.</StackItem>
                                 <StackItem>
@@ -146,12 +149,12 @@ const ViewTierPage: React.FC = () => {
                                 </StackItem>
                               </Stack>
                             }
-                          >
-                            <OutlinedQuestionCircleIcon style={{ cursor: 'pointer' }} />
-                          </Popover>
+                          />
                         </DescriptionListTerm>
                         <DescriptionListDescription data-testid="tier-level-value">
-                          <Label isCompact>{tier?.level}</Label>
+                          <Label isCompact style={{ position: 'relative', top: '-10px' }}>
+                            {tier.level}
+                          </Label>
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     </DescriptionList>
@@ -162,7 +165,7 @@ const ViewTierPage: React.FC = () => {
                 <DescriptionList>
                   <DetailsItem
                     label="Description"
-                    value={tier?.description}
+                    value={tier.description}
                     testId="tier-description"
                   />
                 </DescriptionList>
@@ -172,7 +175,7 @@ const ViewTierPage: React.FC = () => {
 
           <Divider />
 
-          <PageSection>
+          <PageSection aria-label="Groups">
             <Stack hasGutter>
               <SectionHeader
                 title="Groups"
@@ -183,12 +186,10 @@ const ViewTierPage: React.FC = () => {
                   <DetailsItem
                     label="Groups"
                     value={
-                      tier?.groups &&
                       tier.groups.length > 0 && (
                         <Stack>
                           {tier.groups.map((group) => (
                             <StackItem key={group}>{group}</StackItem>
-                            // Note: Originally supposed to link to the group section in the Openshift console, but we are stearing away from external links to the console.
                           ))}
                         </Stack>
                       )
@@ -202,30 +203,7 @@ const ViewTierPage: React.FC = () => {
 
           <Divider />
 
-          <PageSection>
-            <Stack hasGutter>
-              <SectionHeader
-                title="Models"
-                description="These models will be available to users who can access this tier."
-              />
-              <StackItem>
-                <Content className="pf-v6-u-font-weight-bold">Available models</Content>
-              </StackItem>
-              <StackItem>
-                {tier?.models && tier.models.length > 0 && (
-                  <Stack>
-                    {tier.models.map((model) => (
-                      <StackItem key={model}>{model}</StackItem>
-                    ))}
-                  </Stack>
-                )}
-              </StackItem>
-            </Stack>
-          </PageSection>
-
-          <Divider />
-
-          <PageSection>
+          <PageSection aria-label="Limits">
             <Stack hasGutter>
               <SectionHeader
                 title="Limits"
@@ -235,18 +213,30 @@ const ViewTierPage: React.FC = () => {
                 <Content className="pf-v6-u-font-weight-bold">Configured limits</Content>
               </StackItem>
               <StackItem>
-                <Stack>
+                <Stack hasGutter>
                   <StackItem>
-                    <Content className="pf-v6-u-font-weight-bold">Token limits:</Content>
-                    <Content>
-                      {tier?.limits.tokensPerHour.toLocaleString()} tokens per 1 hour
-                    </Content>
+                    <Stack>
+                      <StackItem>
+                        <Content className="pf-v6-u-font-weight-bold">Token limits:</Content>
+                      </StackItem>
+                      <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
+                        <Content>
+                          {`${tier.limits.tokensPerUnit[0].count.toLocaleString()} tokens per ${tier.limits.tokensPerUnit[0].time} ${tier.limits.tokensPerUnit[0].unit}`}
+                        </Content>
+                      </StackItem>
+                    </Stack>
                   </StackItem>
                   <StackItem>
-                    <Content className="pf-v6-u-font-weight-bold">Request rate limits:</Content>
-                    <Content>
-                      {tier?.limits.requestsPerMinute.toLocaleString()} requests per 1 minute
-                    </Content>
+                    <Stack>
+                      <StackItem>
+                        <Content className="pf-v6-u-font-weight-bold">Request rate limits:</Content>
+                      </StackItem>
+                      <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
+                        <Content>
+                          {`${tier.limits.requestsPerUnit[0].count.toLocaleString()} requests per ${tier.limits.requestsPerUnit[0].time} ${tier.limits.requestsPerUnit[0].unit}`}
+                        </Content>
+                      </StackItem>
+                    </Stack>
                   </StackItem>
                 </Stack>
               </StackItem>
