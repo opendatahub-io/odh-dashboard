@@ -206,6 +206,20 @@ export type FileUploadResult = {
   vector_store_file: VectorStoreFile;
 };
 
+export type FileUploadJobResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+};
+
+export type FileUploadStatusResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: FileUploadResult;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type FileModel = {
   id: string;
   object: string;
@@ -380,6 +394,7 @@ export type GenAiAPIs = {
   deleteVectorStoreFile: DeleteVectorStoreFile;
   createVectorStore: CreateVectorStore;
   uploadSource: UploadSource;
+  getFileUploadStatus: GetFileUploadStatus;
   createResponse: CreateResponse;
   getLSDModels: GetLSDModels;
   exportCode: ExportCode;
@@ -413,7 +428,8 @@ type ListVectorStoreFiles = ModArchRestGET<VectorStoreFile[]>;
 type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest>;
 type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
 type GetLSDModels = ModArchRestGET<LlamaModel[]>;
-type UploadSource = ModArchRestCREATE<FileUploadResult, FormData>;
+type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
+type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
