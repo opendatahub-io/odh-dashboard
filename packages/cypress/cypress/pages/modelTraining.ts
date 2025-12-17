@@ -559,7 +559,7 @@ class TrainingJobDetailsTab {
   }
 
   findEstimatedTimeRemainingValue() {
-    return cy.findByTestId('estimated-time-remaining-value');
+    return cy.findByTestId('time-remaining-value');
   }
 
   findStepsValue() {

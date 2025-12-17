@@ -36,6 +36,8 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
+import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
+import { generateFeastMetadata } from './featureStore/utils';
 
 type SpawnerFooterProps = {
   startNotebookData: StartNotebookData;
@@ -43,6 +45,7 @@ type SpawnerFooterProps = {
   envVariables: EnvVariable[];
   connections: Connection[];
   canEnablePipelines: boolean;
+  selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -51,6 +54,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   envVariables,
   connections = [],
   canEnablePipelines,
+  selectedFeatureStores = [],
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -181,12 +185,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
+    const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom,
       connections,
+      feastData,
     };
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
@@ -224,6 +230,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     );
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
+    const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
     const newStartData: StartNotebookData = {
       ...startNotebookData,
@@ -231,6 +238,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumeMounts,
       envFrom: [...envFrom],
       connections,
+      feastData,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };

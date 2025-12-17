@@ -26,7 +26,7 @@ import { TrainingJobState } from '../types';
 
 const title = 'Training jobs';
 const description =
-  'Select a project to view its training jobs. Monitor training progress and manage distributed training workloads across your data science projects.';
+  'Monitor the progress of model training jobs and manage distributed training workloads.';
 
 const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();

@@ -175,7 +175,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
           name: (
             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>{getStatusIcon(sectionStatuses.dataInitializer)}</FlexItem>
-              <FlexItem data-testid="data-initializer-section">Data Initializer</FlexItem>
+              <FlexItem data-testid="data-initializer-section">Initializing data</FlexItem>
             </Flex>
           ),
         });
@@ -187,7 +187,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
           name: (
             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>{getStatusIcon(sectionStatuses.modelInitializer)}</FlexItem>
-              <FlexItem data-testid="model-initializer-section">Model Initializer</FlexItem>
+              <FlexItem data-testid="model-initializer-section">Initializing model</FlexItem>
             </Flex>
           ),
         });

@@ -8,6 +8,7 @@ export enum SpawnerPageSectionID {
   ENVIRONMENT_VARIABLES = 'environment-variables',
   CLUSTER_STORAGE = 'cluster-storage',
   CONNECTIONS = 'connections',
+  FEATURE_STORE = 'feature-store',
 }
 
 export type SpawnerPageSectionTitlesType = {
