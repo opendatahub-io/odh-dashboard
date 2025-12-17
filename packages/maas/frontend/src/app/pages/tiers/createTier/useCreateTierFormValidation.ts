@@ -25,7 +25,8 @@ const rateLimitsEnabledSchema = z.object({
 
 const rateLimitsDisabledSchema = z.object({
   enabled: z.literal(false),
-  rateLimits: z.array(rateLimitSchema),
+  // When disabled, don't validate rate limit values - they can be invalid
+  rateLimits: z.array(z.any()),
 });
 
 const rateLimitsSectionSchema = z.discriminatedUnion('enabled', [
@@ -40,7 +41,7 @@ export const createTierFormSchema = z.object({
     // eslint-disable-next-line camelcase
     .number({ invalid_type_error: 'Level is required' })
     .min(1, 'Level must be at least 1')
-    .max(999999, 'Level must be at most 999999'),
+    .max(999999, 'Level cannot exceed 999999'),
   groups: z.array(z.string()).min(1, 'At least one group is required'),
   tokenRateLimits: rateLimitsSectionSchema,
   requestRateLimits: rateLimitsSectionSchema,
