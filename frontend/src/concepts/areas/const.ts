@@ -193,6 +193,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
+    requiredComponents: [DataScienceStackComponent.TRAINER],
   },
   [SupportedArea.AI_CATALOG_SETTINGS]: {
     featureFlags: ['aiCatalogSettings'],
@@ -220,4 +221,5 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
+  [DataScienceStackComponent.TRAINER]: 'Trainer',
 };
