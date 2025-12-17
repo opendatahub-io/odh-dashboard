@@ -3,12 +3,18 @@ package repositories
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"regexp"
 	"slices"
+	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -24,9 +30,12 @@ type tierConfigMapData struct {
 }
 
 type TiersRepository struct {
+	logger                  *slog.Logger
 	k8sFactory              kubernetes.KubernetesClientFactory
 	tiersConfigMapNamespace string
 	tiersConfigMapName      string
+	gatewayNamespace        string
+	gatewayName             string
 }
 
 var (
@@ -36,11 +45,14 @@ var (
 	ErrUpdateConflict    = errors.New("another user has updated tier data at the same time")
 )
 
-func NewTiersRepository(k8sFactory kubernetes.KubernetesClientFactory, configMapNamespace, configMapName string) *TiersRepository {
+func NewTiersRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, configMapNamespace, configMapName, gatewayNamespace, gatewayName string) *TiersRepository {
 	return &TiersRepository{
+		logger:                  logger,
 		k8sFactory:              k8sFactory,
 		tiersConfigMapNamespace: configMapNamespace,
 		tiersConfigMapName:      configMapName,
+		gatewayNamespace:        gatewayNamespace,
+		gatewayName:             gatewayName,
 	}
 }
 
@@ -115,6 +127,167 @@ func (t *TiersRepository) updateTiersConfigMap(ctx context.Context, tiersConfigM
 	return nil
 }
 
+func parseTierLimits(policies *unstructured.UnstructuredList, gatewayName string) (map[string][]models.RateLimit, error) {
+	tiersLimits := make(map[string][]models.RateLimit)
+	for _, policy := range policies.Items {
+		policyContent := policy.UnstructuredContent()
+		targetRef, targetRefOk, policyErr := unstructured.NestedMap(policyContent, "spec", "targetRef")
+		if policyErr != nil {
+			return nil, policyErr
+		}
+		if !targetRefOk {
+			continue
+		}
+
+		targetRefGroup, targetRefGroupOk := targetRef["group"].(string)
+		targetRefKind, targetRefKindOk := targetRef["kind"].(string)
+		targetRefName, targetRefNameOk := targetRef["name"].(string)
+
+		if !targetRefGroupOk || !targetRefKindOk || !targetRefNameOk {
+			continue
+		}
+		if targetRefGroup != "gateway.networking.k8s.io" || targetRefKind != "Gateway" || targetRefName != gatewayName {
+			continue
+		}
+
+		policyLimits, policyLimitsOk, policyErr := unstructured.NestedMap(policyContent, "spec", "limits")
+		if policyErr != nil {
+			return nil, policyErr
+		}
+		if !policyLimitsOk {
+			continue
+		}
+
+		for limitKey, _ := range policyLimits {
+			predicateList, predicateListOk, predicateListErr := unstructured.NestedSlice(policyLimits, limitKey, "when")
+			if predicateListErr != nil {
+				return nil, predicateListErr
+			}
+			if !predicateListOk {
+				continue
+			}
+			if len(predicateList) != 1 {
+				continue
+			}
+			predicate := predicateList[0].(map[string]interface{})["predicate"].(string)
+
+			predicate = strings.TrimSpace(predicate)
+			r, regexErr := regexp.Compile("^auth.identity.tier == \"(.*)\"$")
+			if regexErr != nil {
+				return nil, regexErr
+			}
+
+			matches := r.FindStringSubmatch(predicate)
+			if len(matches) != 2 {
+				continue
+			}
+			tierName := matches[1]
+
+			rates, ratesOk, ratesErr := unstructured.NestedSlice(policyLimits, limitKey, "rates")
+			if ratesErr != nil {
+				return nil, ratesErr
+			}
+			if !ratesOk {
+				continue
+			}
+
+			var rateLimits []models.RateLimit
+			for _, rate := range rates {
+				rateMap := rate.(map[string]interface{})
+				count := rateMap["limit"].(int64)
+				window := rateMap["window"].(string)
+				parsedWindow, parseWindowErr := time.ParseDuration(window)
+				if parseWindowErr != nil {
+					return nil, parseWindowErr
+				}
+
+				windowDuration := int64(parsedWindow.Hours())
+				windowUnit := models.GEP_2257_HOUR
+
+				if windowDuration <= 0 {
+					windowDuration = int64(parsedWindow.Minutes())
+					windowUnit = models.GEP_2257_MINUTE
+				}
+
+				if windowDuration <= 0 {
+					windowDuration = int64(parsedWindow.Seconds())
+					windowUnit = models.GEP_2257_SECOND
+				}
+
+				if windowDuration <= 0 {
+					windowDuration = parsedWindow.Milliseconds()
+					windowUnit = models.GEP_2257_MILLISECOND
+				}
+
+				rateLimits = append(rateLimits, models.RateLimit{
+					Count: count,
+					Time:  windowDuration,
+					Unit:  windowUnit,
+				})
+			}
+
+			tiersLimits[tierName] = append(tiersLimits[tierName], rateLimits...)
+		}
+	}
+
+	return tiersLimits, nil
+}
+
+func (t *TiersRepository) fetchTierLimits(ctx context.Context, tiers models.TiersList) error {
+	client, err := t.k8sFactory.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	kubeClient := client.GetDynamicClient()
+
+	// TokenRateLimitPolicy
+	tokenPolicyGvr := schema.GroupVersionResource{
+		Group:    "kuadrant.io",
+		Version:  "v1alpha1",
+		Resource: "tokenratelimitpolicies",
+	}
+
+	tokenPoliciesList, err := kubeClient.Resource(tokenPolicyGvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	tokenLimits, err := parseTierLimits(tokenPoliciesList, t.gatewayName)
+	if err != nil {
+		return err
+	}
+
+	// RateLimitPolicy
+	ratePolicyGvr := schema.GroupVersionResource{
+		Group:    "kuadrant.io",
+		Version:  "v1",
+		Resource: "ratelimitpolicies",
+	}
+
+	ratePoliciesList, err := kubeClient.Resource(ratePolicyGvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	rateLimits, err := parseTierLimits(ratePoliciesList, t.gatewayName)
+	if err != nil {
+		return err
+	}
+
+	for idx := range tiers {
+		tierName := tiers[idx].Name
+		if limits, ok := tokenLimits[tierName]; ok {
+			tiers[idx].Limits.TokensPerUnit = limits
+		}
+		if limits, ok := rateLimits[tierName]; ok {
+			tiers[idx].Limits.RequestsPerUnit = limits
+		}
+	}
+
+	return nil
+}
+
 func (t *TiersRepository) GetTiersList(ctx context.Context) (models.TiersList, error) {
 	_, tierData, err := t.fetchParsedTiersConfigMap(ctx)
 	if err != nil {
@@ -128,12 +301,11 @@ func (t *TiersRepository) GetTiersList(ctx context.Context) (models.TiersList, e
 		tiersList[idx].Description = tier.Description
 		tiersList[idx].Groups = tier.Groups
 		tiersList[idx].Level = tier.Level
+		if err = t.fetchTierLimits(ctx, tiersList); err != nil {
+			return nil, err
+		}
 
 		// TODO: Remove fake data
-		tiersList[idx].Limits = models.TierLimits{
-			TokensPerUnit:   []models.RateLimit{{Count: 100, Time: 1, Unit: "hour"}},
-			RequestsPerUnit: []models.RateLimit{{Count: 10, Time: 1, Unit: "minute"}},
-		}
 		tiersList[idx].Models = []string{"ns1-llama", "n2-granite"}
 	}
 

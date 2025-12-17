@@ -18,7 +18,16 @@ type TierLimits struct {
 }
 
 type RateLimit struct {
-	Count int    `json:"count,omitempty"`
-	Time  int    `json:"time,omitempty"`
-	Unit  string `json:"unit,omitempty"`
+	Count int64       `json:"count,omitempty"`
+	Time  int64       `json:"time,omitempty"`
+	Unit  Gep2257Unit `json:"unit,omitempty"`
 }
+
+type Gep2257Unit string
+
+const (
+	GEP_2257_HOUR        Gep2257Unit = "hour"
+	GEP_2257_MINUTE      Gep2257Unit = "minute"
+	GEP_2257_SECOND      Gep2257Unit = "second"
+	GEP_2257_MILLISECOND Gep2257Unit = "millisecond"
+)
