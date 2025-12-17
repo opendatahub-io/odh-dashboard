@@ -1101,6 +1101,11 @@ declare global {
           type: 'DELETE /maas/api/v1/tier/:name',
           options: { path: { name: string } },
           response: { data: null },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/tier/:name',
+          options: { path: { name: string } },
+          response: { data: OdhResponse<Tier> },
         ) => Cypress.Chainable<null>);
     }
   }
