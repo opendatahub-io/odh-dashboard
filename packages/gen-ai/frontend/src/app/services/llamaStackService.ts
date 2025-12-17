@@ -13,7 +13,8 @@ import {
   CodeExportRequest,
   CreateResponseRequest,
   FileCitationAnnotation,
-  FileUploadResult,
+  FileUploadJobResponse,
+  FileUploadStatusResponse,
   LlamaModel,
   LlamaStackDistributionModel,
   MaaSModel,
@@ -459,7 +460,20 @@ export const listVectorStoreFiles = modArchRestGET<VectorStoreFile[]>('/lsd/vect
 export const deleteVectorStoreFile = modArchRestDELETE<string, Record<string, never>>(
   '/lsd/vectorstores/files/delete',
 );
-export const uploadSource = modArchRestCREATE<FileUploadResult, FormData>('/lsd/files/upload');
+// File upload - returns 202 with job_id for async processing
+export const uploadSource = (
+  hostPath: string,
+  baseQueryParams: Record<string, unknown> = {},
+): ModArchRestCREATE<FileUploadJobResponse, FormData> =>
+  modArchRestCREATE<FileUploadJobResponse, FormData>('/lsd/files/upload')(
+    hostPath,
+    baseQueryParams,
+  );
+
+// File upload status polling
+export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
+  '/lsd/files/upload/status',
+);
 
 // LSD Models
 export const getLSDModels = modArchRestGET<LlamaModel[]>('/lsd/models');

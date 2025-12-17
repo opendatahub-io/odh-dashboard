@@ -5,12 +5,15 @@ import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useNavigate, useParams } from 'react-router-dom';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
 import NoProjectsPage from './NoProjectsPage';
 import GlobalModelsLoading from './GlobalModelsLoading';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
+import { isModelServingPlatformExtension } from '../../../extension-points';
+import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatform';
 
 type GlobalDeploymentsViewProps = {
   projects: ProjectKind[];
@@ -24,10 +27,13 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
 
+  const allPlatforms = useExtensions(isModelServingPlatformExtension);
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const hasDeployments = deployments && deployments.length > 0;
   const isLoading = !deploymentsLoaded || !projectsLoaded;
-  const isEmpty = projects.length === 0 || (!isLoading && !hasDeployments);
+  const isEmpty =
+    projects.length === 0 || (!isLoading && !hasDeployments) || allPlatforms.length === 0;
+
   const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
   const currentProject = modelProjects?.find(byName(modelNamespace));
@@ -52,6 +58,8 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
       emptyStatePage={
         projects.length === 0 ? (
           <NoProjectsPage />
+        ) : allPlatforms.length === 0 ? (
+          <EmptyModelServingPlatform />
         ) : (
           <GlobalNoModelsView project={currentProject ?? undefined} />
         )

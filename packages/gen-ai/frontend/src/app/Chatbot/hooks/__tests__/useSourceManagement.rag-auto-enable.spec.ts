@@ -20,6 +20,7 @@ import {
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/Chatbot/hooks/useFileUploadWithPolling');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
@@ -30,18 +31,42 @@ const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useC
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
+const { default: useFileUploadWithPolling } = jest.requireMock(
+  '~/app/Chatbot/hooks/useFileUploadWithPolling',
+);
+const mockUseFileUploadWithPolling = useFileUploadWithPolling as jest.Mock;
+
 describe('useSourceManagement - RAG Auto-Enable', () => {
   const mockOnShowSuccessAlert = jest.fn();
   const mockOnShowErrorAlert = jest.fn();
+  let mockUploadFile: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
     mockUploadSource.mockResolvedValue(mockUploadResult);
+
+    const mockGetFileUploadStatus = jest.fn().mockResolvedValue({
+      status: 'completed',
+      job_id: 'test-job-id',
+    });
+
     mockUseGenAiAPI.mockReturnValue({
       apiAvailable: true,
-      api: { uploadSource: mockUploadSource },
+      api: {
+        uploadSource: mockUploadSource,
+        getFileUploadStatus: mockGetFileUploadStatus,
+      },
+    });
+
+    // Mock useFileUploadWithPolling to return a simple mock that resolves immediately
+    mockUploadFile = jest.fn().mockResolvedValue({ success: true });
+    mockUseFileUploadWithPolling.mockReturnValue({
+      uploadFile: mockUploadFile,
+      uploadState: { fileName: '', status: 'idle' },
+      isUploading: false,
+      cancelUpload: jest.fn(),
     });
   });
 
@@ -131,7 +156,11 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
   });
 
   it('should not auto-enable RAG if upload fails', async () => {
-    mockUploadSource.mockRejectedValue(new Error('Upload failed'));
+    // Mock uploadFile to fail
+    mockUploadFile.mockResolvedValue({
+      success: false,
+      error: 'Upload failed',
+    });
 
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
