@@ -28,6 +28,8 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTiers } from '~/app/api/tiers';
+import { Tier } from '~/app/types/tier';
+import DeleteTierModal from '~/app/pages/tiers/components/DeleteTierModal';
 
 type DetailsItemProps = {
   label: string;
@@ -64,6 +66,7 @@ const ViewTierPage: React.FC = () => {
   const tiers = useTiers();
   const tier = tiers.find((t) => t.name === tierName);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
+  const [deleteTier, setDeleteTier] = React.useState<Tier | undefined>(undefined);
 
   if (!tier) {
     return <NotFound />;
@@ -107,12 +110,7 @@ const ViewTierPage: React.FC = () => {
               Edit tier
             </DropdownItem>
             <Divider />
-            <DropdownItem
-              data-testid="delete-tier-action"
-              onClick={() => {
-                // TODO: Implement delete tier functionality
-              }}
-            >
+            <DropdownItem data-testid="delete-tier-action" onClick={() => setDeleteTier(tier)}>
               Delete tier
             </DropdownItem>
           </DropdownList>
@@ -220,9 +218,15 @@ const ViewTierPage: React.FC = () => {
                         <Content className="pf-v6-u-font-weight-bold">Token limits:</Content>
                       </StackItem>
                       <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
-                        <Content>
-                          {`${tier.limits.tokensPerUnit[0].count.toLocaleString()} tokens per ${tier.limits.tokensPerUnit[0].time} ${tier.limits.tokensPerUnit[0].unit}`}
-                        </Content>
+                        <Stack>
+                          {tier.limits.tokensPerUnit.map((limit, index) => (
+                            <StackItem key={index}>
+                              <Content>
+                                {`${limit.count.toLocaleString()} tokens per ${limit.time} ${limit.unit}`}
+                              </Content>
+                            </StackItem>
+                          ))}
+                        </Stack>
                       </StackItem>
                     </Stack>
                   </StackItem>
@@ -232,9 +236,15 @@ const ViewTierPage: React.FC = () => {
                         <Content className="pf-v6-u-font-weight-bold">Request rate limits:</Content>
                       </StackItem>
                       <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
-                        <Content>
-                          {`${tier.limits.requestsPerUnit[0].count.toLocaleString()} requests per ${tier.limits.requestsPerUnit[0].time} ${tier.limits.requestsPerUnit[0].unit}`}
-                        </Content>
+                        <Stack>
+                          {tier.limits.requestsPerUnit.map((limit, index) => (
+                            <StackItem key={index}>
+                              <Content>
+                                {`${limit.count.toLocaleString()} requests per ${limit.time} ${limit.unit}`}
+                              </Content>
+                            </StackItem>
+                          ))}
+                        </Stack>
                       </StackItem>
                     </Stack>
                   </StackItem>
@@ -244,6 +254,17 @@ const ViewTierPage: React.FC = () => {
           </PageSection>
         </Tab>
       </Tabs>
+      {deleteTier && (
+        <DeleteTierModal
+          tier={deleteTier}
+          onClose={(deleted) => {
+            setDeleteTier(undefined);
+            if (deleted) {
+              navigate('/maas/tiers');
+            }
+          }}
+        />
+      )}
     </ApplicationsPage>
   );
 };

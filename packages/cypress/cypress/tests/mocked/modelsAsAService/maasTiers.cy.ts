@@ -1,6 +1,11 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { createTierPage, deleteTierModal, tiersPage } from '../../../pages/modelsAsAService';
+import {
+  createTierPage,
+  deleteTierModal,
+  tierDetailsPage,
+  tiersPage,
+} from '../../../pages/modelsAsAService';
 import { mockTiers } from '../../../utils/maasUtils';
 
 describe('Tiers Page', () => {
@@ -102,11 +107,11 @@ describe('Tiers Page', () => {
     tiersPage.findViewDetailsButton().click();
 
     tiersPage.findTitle().should('contain.text', 'Free Tier');
-    tiersPage.findLevel().should('contain.text', '1');
-    tiersPage.findGroups().should('contain.text', 'all-users');
-    tiersPage.findLimits('10,000 tokens per 1 hour').should('exist');
-    tiersPage.findLimits('100 requests per 1 minute').should('exist');
+    tierDetailsPage.findLevel().should('contain.text', '1');
+    tierDetailsPage.findGroups().should('contain.text', 'all-users');
+    tierDetailsPage.findLimits('10,000 tokens per 1 hour').should('exist');
+    tierDetailsPage.findLimits('100 requests per 1 minute').should('exist');
 
-    tiersPage.findActionsButton().click();
+    tierDetailsPage.findActionsButton().click();
   });
 });
