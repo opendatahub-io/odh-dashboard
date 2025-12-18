@@ -2015,7 +2015,7 @@ describe('Workbench page', () => {
       workbenchPage.findCreateButton().click();
 
       createSpawnerPage.findFeatureStoreSection().should('exist');
-      cy.findByText('Feature store selection').should('exist');
+      createSpawnerPage.findFeatureStoreLabel().should('exist');
     });
 
     it('should not display feature store section when Feast operator is not available', () => {
@@ -2042,11 +2042,11 @@ describe('Workbench page', () => {
       workbenchPage.findCreateButton().click();
 
       createSpawnerPage.findFeatureStoreSelector().should('exist').click();
-      cy.findByTestId('feature-store-typeahead-list').within(() => {
-        cy.findByText('credit_scoring_local').should('exist');
-        cy.findByText('banking').should('exist');
-        cy.findByText('fraud_detect').should('exist');
-      });
+      createSpawnerPage.shouldHaveFeatureStoreOptionsInList([
+        'credit_scoring_local',
+        'banking',
+        'fraud_detect',
+      ]);
     });
 
     it('should allow selecting multiple feature stores', () => {
@@ -2079,7 +2079,7 @@ describe('Workbench page', () => {
       createSpawnerPage.selectFeatureStore('credit_scoring_local');
 
       createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-      cy.findByText(/Modify and run this example code/).should('exist');
+      createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
     });
 
     it('should not display code block when no feature stores are selected', () => {
@@ -2091,8 +2091,6 @@ describe('Workbench page', () => {
 
       workbenchPage.visit('test-project');
       workbenchPage.findCreateButton().click();
-
-      // Code block should not exist initially
       createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
     });
 
@@ -2113,10 +2111,8 @@ describe('Workbench page', () => {
         .closest('span')
         .trigger('mouseenter', { force: true });
 
-      cy.findByRole('tooltip', { timeout: 5000 }).should('be.visible');
-      cy.findByText(
-        'The project this workbench belongs to has not been granted permission to use any feature store repository. Contact your admin to grant permission.',
-      ).should('exist');
+      createSpawnerPage.findFeatureStoreTooltip().should('be.visible');
+      createSpawnerPage.findFeatureStoreTooltipText().should('exist');
     });
 
     it('should display error alert when feature stores fail to load', () => {
@@ -2179,6 +2175,43 @@ describe('Workbench page', () => {
       editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
     });
 
+    it('should pre-fill feature stores from notebook annotations in edit mode', () => {
+      const notebookWithFeatureStores = mockNotebookK8sResource({
+        name: 'test-notebook-with-feature-stores',
+        opts: {
+          metadata: {
+            name: 'test-notebook-with-feature-stores',
+            annotations: {
+              'opendatahub.io/feast-config': 'credit_scoring_local,banking,fraud_detect',
+            },
+            labels: {
+              'opendatahub.io/feast-integration': 'true',
+            },
+          },
+        },
+      });
+
+      initIntercepts({
+        isEmpty: false,
+        notebooks: [notebookWithFeatureStores],
+      });
+
+      initFeatureStoreIntercepts(mockFeatureStoresResponse);
+      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+
+      editSpawnerPage.visit('test-notebook-with-feature-stores');
+      editSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
+      editSpawnerPage.shouldHaveFeatureStoreSelected('banking');
+      editSpawnerPage.shouldHaveFeatureStoreSelected('fraud_detect');
+      editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
+      editSpawnerPage.findFeatureStoreSelector().click();
+      editSpawnerPage.shouldHaveFeatureStoreOptionsInList([
+        'credit_scoring_local',
+        'banking',
+        'fraud_detect',
+      ]);
+    });
+
     it('should allow deselecting all feature stores in edit mode', () => {
       const notebookWithFeatureStores = mockNotebookK8sResource({
         name: 'test-notebook',
@@ -2208,46 +2241,6 @@ describe('Workbench page', () => {
       editSpawnerPage.deselectFeatureStore('credit_scoring_local');
       editSpawnerPage.shouldNotHaveFeatureStoreSelected('credit_scoring_local');
       editSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
-    });
-
-    it('should pre-fill feature stores from notebook annotations in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook-with-feature-stores',
-        opts: {
-          metadata: {
-            name: 'test-notebook-with-feature-stores',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local,banking,fraud_detect',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
-      });
-
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
-
-      editSpawnerPage.visit('test-notebook-with-feature-stores');
-
-      editSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('banking');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('fraud_detect');
-
-      editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-
-      editSpawnerPage.findFeatureStoreSelector().click();
-      cy.findByTestId('feature-store-typeahead-list').within(() => {
-        cy.findByText('credit_scoring_local').should('exist');
-        cy.findByText('banking').should('exist');
-        cy.findByText('fraud_detect').should('exist');
-      });
     });
   });
 });

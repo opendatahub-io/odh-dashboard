@@ -666,15 +666,19 @@ class CreateSpawnerPage {
     return cy.findByTestId('feature-store-select-input');
   }
 
+  findFeatureStoreTypeaheadList() {
+    return cy.findByTestId('feature-store-typeahead-list');
+  }
+
   selectFeatureStore(projectName: string) {
     this.findFeatureStoreSelector().click();
-    cy.findByTestId('feature-store-typeahead-list').findByText(projectName).click();
+    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
     return this;
   }
 
   deselectFeatureStore(projectName: string) {
     this.findFeatureStoreSelector().click();
-    cy.findByTestId('feature-store-typeahead-list').findByText(projectName).click();
+    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
     return this;
   }
 
@@ -692,14 +696,49 @@ class CreateSpawnerPage {
     return cy.findByTestId('feature-store-code-block');
   }
 
+  findFeatureStoreCodeBlockInstructionText() {
+    return cy.findByText(/Modify and run this example code/);
+  }
+
+  findFeatureStoreLabel() {
+    return cy.findByText('Feature store selection');
+  }
+
+  findFeatureStoreOptionInList(projectName: string) {
+    return this.findFeatureStoreTypeaheadList().findByText(projectName);
+  }
+
+  shouldHaveFeatureStoreOptionsInList(projectNames: string[]) {
+    this.findFeatureStoreTypeaheadList().within(() => {
+      projectNames.forEach((name) => {
+        cy.findByText(name).should('exist');
+      });
+    });
+    return this;
+  }
+
+  findFeatureStoreTooltip() {
+    return cy.findByRole('tooltip', { timeout: 5000 });
+  }
+
+  findFeatureStoreTooltipText() {
+    return cy.findByText(
+      'The project this workbench belongs to has not been granted permission to use any feature store repository. Contact your admin to grant permission.',
+    );
+  }
+
+  findFeatureStoreCodeBlockTitle() {
+    return cy.findByText('Example code');
+  }
+
   shouldHaveFeatureStoreCodeBlock() {
-    cy.findByText('Example code').should('exist');
+    this.findFeatureStoreCodeBlockTitle().should('exist');
     this.findFeatureStoreCodeBlock().should('exist');
     return this;
   }
 
   shouldNotHaveFeatureStoreCodeBlock() {
-    cy.findByText('Example code').should('not.exist');
+    this.findFeatureStoreCodeBlockTitle().should('not.exist');
     this.findFeatureStoreCodeBlock().should('not.exist');
     return this;
   }
