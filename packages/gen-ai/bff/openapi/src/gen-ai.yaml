@@ -1406,7 +1406,6 @@ components:
       type: object
       required:
         - name
-        - provider_id
       properties:
         name:
           type: string
@@ -1414,10 +1413,6 @@ components:
           maxLength: 256
           example: 'Customer Support FAQ'
           description: Required name for the vector store (1-256 characters)
-        provider_id:
-          type: string
-          example: 'milvus'
-          description: The ID of the provider to use for this vector store
         embedding_model:
           type: string
           example: 'sentence-transformers/all-MiniLM-L6-v2'
