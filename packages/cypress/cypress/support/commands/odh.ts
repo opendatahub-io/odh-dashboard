@@ -858,7 +858,7 @@ declare global {
           }>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/namespaces/*/featurestores',
+          type: 'GET /api/k8s/apis/feast.dev/v1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };
           },

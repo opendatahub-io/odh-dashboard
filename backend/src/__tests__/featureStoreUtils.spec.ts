@@ -90,7 +90,7 @@ const createClientConfigInfo = (overrides: Partial<ClientConfigInfo> = {}): Clie
 });
 
 const createFeatureStoreCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCRD => ({
-  apiVersion: 'feast.dev/v1alpha1',
+  apiVersion: 'feast.dev/v1',
   kind: 'FeatureStore',
   metadata: {
     name: PROJECT.BANKING,

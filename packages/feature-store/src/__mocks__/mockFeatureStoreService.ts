@@ -35,7 +35,7 @@ export const mockFeatureStoreService = ({
     },
     ownerReferences: [
       {
-        apiVersion: 'feast.dev/v1alpha1',
+        apiVersion: 'feast.dev/v1',
         kind: 'FeatureStore',
         name: featureStoreName,
         uid: 'bf7d217f-4f10-4b67-b188-3d9478fc93ed',
