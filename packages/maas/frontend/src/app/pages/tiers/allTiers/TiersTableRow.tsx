@@ -24,7 +24,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
         />
       </Td>
       <Td dataLabel={tierColumns[1].label}>
-        <Label>{tier.level ?? '-'}</Label>
+        <Label>{tier.level ?? 0}</Label>
       </Td>
       <Td dataLabel={tierColumns[2].label}>
         <Label>

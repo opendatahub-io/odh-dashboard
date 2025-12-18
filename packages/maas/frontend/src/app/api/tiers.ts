@@ -56,7 +56,7 @@ export const createTier =
       throw new Error('Invalid response format');
     });
 
-/** PUT /api/v1/tier/:name - Update a tier */
+/** PATCH /api/v1/tier/:name - Update a tier */
 export const updateTier =
   (hostPath = '') =>
   (opts: APIOptions, tierName: string, tier: Tier): Promise<void> =>
