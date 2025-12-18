@@ -1,21 +1,35 @@
 import * as React from 'react';
 import { PageSection } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { useTiers } from '~/app/api/tiers';
+import { useFetchTiers } from '~/app/hooks/useFetchTiers';
+import { Tier } from '~/app/types/tier';
 import TiersTable from './allTiers/TiersTable';
+import DeleteTierModal from './components/DeleteTierModal';
 
 const AllTiersPage: React.FC = () => {
-  const tiers = useTiers();
+  const [tiers, loaded, error] = useFetchTiers();
+
+  const [deleteTier, setDeleteTier] = React.useState<Tier | undefined>(undefined);
+
   return (
     <ApplicationsPage
       title="Tiers"
       description="Tiers control which AI asset model endpoints users can access based on their group membership."
-      loaded
-      empty={false}
+      loaded={loaded}
+      loadError={error}
+      empty={loaded && !tiers.length}
     >
       <PageSection isFilled>
-        <TiersTable tiers={tiers} />
+        <TiersTable tiers={tiers} onDeleteTier={(tier) => setDeleteTier(tier)} />
       </PageSection>
+      {deleteTier && (
+        <DeleteTierModal
+          tier={deleteTier}
+          onClose={() => {
+            setDeleteTier(undefined);
+          }}
+        />
+      )}
     </ApplicationsPage>
   );
 };

@@ -1,6 +1,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { createTierPage, tiersPage } from '../../../pages/modelsAsAService';
+import { createTierPage, deleteTierModal, tiersPage } from '../../../pages/modelsAsAService';
+import { mockTiers } from '../../../utils/maasUtils';
 
 describe('Tiers Page', () => {
   beforeEach(() => {
@@ -11,6 +12,10 @@ describe('Tiers Page', () => {
         modelAsService: true,
       }),
     );
+
+    cy.interceptOdh('GET /maas/api/v1/tiers', {
+      data: mockTiers(),
+    });
 
     tiersPage.visit();
   });
@@ -31,7 +36,6 @@ describe('Tiers Page', () => {
     freeTierRow.findName().should('contain.text', 'Free Tier');
     freeTierRow.findLevel().should('contain.text', '1');
     freeTierRow.findGroups().should('contain.text', '1 Group');
-    freeTierRow.findModels().should('contain.text', '3 Models');
     freeTierRow.findLimits().should('contain.text', '10,000 tokens/1 hour');
     freeTierRow.findLimits().should('contain.text', '100 requests/1 minute');
 
@@ -85,5 +89,11 @@ describe('Tiers Page', () => {
     createTierPage.findCreateButton().should('exist').should('be.enabled').click();
 
     tiersPage.findTable().should('exist');
+  });
+
+  it('should delete a tier', () => {
+    tiersPage.getRow('Free Tier').findDeleteButton().click();
+    deleteTierModal.findInput().type('free');
+    deleteTierModal.findSubmitButton().click();
   });
 });

@@ -128,8 +128,8 @@ func (t *TiersRepository) GetTiersList(ctx context.Context) (models.TiersList, e
 
 		// TODO: Remove fake data
 		tiersList[idx].Limits = models.TierLimits{
-			TokensPerHour:     100,
-			RequestsPerMinute: 10,
+			TokensPerUnit:   []models.RateLimit{{Count: 100, Time: 1, Unit: "hour"}},
+			RequestsPerUnit: []models.RateLimit{{Count: 10, Time: 1, Unit: "minute"}},
 		}
 		tiersList[idx].Models = []string{"ns1-llama", "n2-granite"}
 	}

@@ -23,6 +23,7 @@ import {
   getModelName,
   hasModelArtifacts,
   isModelValidated,
+  isRedHatModel,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -151,6 +152,13 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
                         <Label color="purple" isClickable>
                           Validated
+                        </Label>
+                      </Popover>
+                    )}
+                    {isRedHatModel(model) && (
+                      <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
+                        <Label color="grey" isClickable>
+                          Red Hat
                         </Label>
                       </Popover>
                     )}
