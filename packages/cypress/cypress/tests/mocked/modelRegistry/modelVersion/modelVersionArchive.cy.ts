@@ -81,6 +81,7 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
     }),
   );
@@ -89,6 +90,8 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
+      disableModelServing: false, // Used for checking deployment resources before archiving
+      disableKServe: false, // Enable the KServe plugin so model serving knows how to fetch InferenceServices
     }),
   );
 

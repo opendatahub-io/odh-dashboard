@@ -7,11 +7,13 @@ export const techPreviewFlags = {
   modelAsService: false,
   aiCatalogSettings: false,
   mlflow: false,
+  projectRBAC: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  embedMLflow: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -191,12 +193,19 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
+    requiredComponents: [DataScienceStackComponent.TRAINER],
   },
   [SupportedArea.AI_CATALOG_SETTINGS]: {
     featureFlags: ['aiCatalogSettings'],
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
+  },
+  [SupportedArea.PROJECT_RBAC_SETTINGS]: {
+    featureFlags: ['projectRBAC'],
+  },
+  [SupportedArea.EMBED_MLFLOW]: {
+    featureFlags: ['embedMLflow'],
   },
 };
 
@@ -212,4 +221,5 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
+  [DataScienceStackComponent.TRAINER]: 'Trainer',
 };

@@ -105,6 +105,9 @@ const ModelAvailabilityItem = ({
   modelAvailability: ModelAvailabilityFieldsData;
 }) => {
   const availabilityTypes = [];
+  if (modelAvailability.saveAsAiAsset) {
+    availabilityTypes.push('AI asset endpoint');
+  }
   if (modelAvailability.saveAsMaaS) {
     availabilityTypes.push('Model-as-a-Service (MaaS)');
   }

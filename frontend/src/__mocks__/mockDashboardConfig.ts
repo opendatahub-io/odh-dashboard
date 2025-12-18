@@ -46,10 +46,14 @@ export type MockDashboardConfigType = {
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  projectRBAC?: boolean;
+  embedMLflow?: boolean;
 };
 
 export const mockDashboardConfig = ({
   mlflow = false,
+  projectRBAC = false,
+  embedMLflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -209,6 +213,8 @@ export const mockDashboardConfig = ({
   spec: {
     dashboardConfig: {
       mlflow,
+      projectRBAC,
+      embedMLflow,
       enablement: true,
       disableInfo,
       disableSupport,

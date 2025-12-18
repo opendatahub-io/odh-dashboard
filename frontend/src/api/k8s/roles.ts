@@ -1,4 +1,8 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sCreateResource,
+  k8sGetResource,
+  k8sListResourceItems,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, KnownLabels, RoleKind } from '#~/k8sTypes';
 import { RoleModel } from '#~/api/models';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
@@ -38,3 +42,14 @@ export const getRole = (namespace: string, roleName: string): Promise<RoleKind> 
 
 export const createRole = (data: RoleKind, opts?: K8sAPIOptions): Promise<RoleKind> =>
   k8sCreateResource(applyK8sAPIOptions({ model: RoleModel, resource: data }, opts));
+
+export const listRoles = (namespace?: string, labelSelector?: string): Promise<RoleKind[]> => {
+  const queryOptions = {
+    ...(namespace && { ns: namespace }),
+    ...(labelSelector && { queryParams: { labelSelector } }),
+  };
+  return k8sListResourceItems<RoleKind>({
+    model: RoleModel,
+    queryOptions,
+  });
+};

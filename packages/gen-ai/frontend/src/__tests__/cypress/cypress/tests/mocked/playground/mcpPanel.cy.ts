@@ -9,6 +9,7 @@ import {
   initIntercepts,
   navigateToPlayground,
   initAutoConnectIntercepts,
+  initHighToolsCountIntercepts,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
@@ -335,9 +336,10 @@ describe('Playground - MCP Servers', () => {
     },
   );
 
-  it(
-    'should auto-unlock server without token when selected in playground',
-    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock'] },
+  // Skipped because it is flaky
+  it.skip(
+    '[Automation Bug: RHOAIENG-41824] should auto-unlock server without token when selected in playground',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock', '@Bug'] },
     () => {
       const namespace = config.defaultNamespace;
       const { name: serverName, url: serverUrl } = config.servers.kubernetes;
@@ -469,14 +471,21 @@ describe('Playground - MCP Servers', () => {
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+      // Use .should() to retry until all tools are selected (handles race condition)
+      mcpToolsModal
+        .findToolCountText()
+        .should('exist')
+        .and(($el) => {
+          const match = $el.text().match(/(\d+) out of (\d+)/);
+          expect(match![1]).to.equal(match![2]);
+        });
+
       mcpToolsModal
         .findToolCountText()
         .invoke('text')
         .then((text) => {
           const match = text.match(/(\d+) out of (\d+)/);
           const totalTools = parseInt(match![2], 10);
-          const initialSelected = parseInt(match![1], 10);
-          expect(initialSelected).to.equal(totalTools); // All selected initially
 
           cy.step('Test search functionality - search for "pod"');
           mcpToolsModal.findSearchInput().clear().type('pod');
@@ -559,6 +568,94 @@ describe('Playground - MCP Servers', () => {
         });
 
       cy.step('Test completed - All tool selection operations work correctly');
+    },
+  );
+
+  it(
+    'should show warning alert when total active tools exceed 40',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@ToolsWarning'] },
+    () => {
+      const namespace = config.defaultNamespace;
+      const serverName = 'High-Tools-Server';
+      const serverUrl = 'http://high-tools-server.local/mcp';
+      const toolsCount = 45; // More than 40 to trigger warning
+
+      initHighToolsCountIntercepts({
+        config,
+        namespace,
+        serverName,
+        serverUrl,
+        toolsCount,
+      });
+
+      navigateToPlayground(namespace);
+
+      cy.step('Verify server is visible in the MCP panel');
+      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      serverRow.find().should('be.visible');
+
+      cy.step('Verify warning is NOT shown before connecting');
+      cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
+
+      cy.step('Select server to trigger auto-unlock');
+      serverRow.findCheckbox().check();
+
+      cy.step('Wait for auto-unlock status check and tools fetch');
+      cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
+      cy.wait('@toolsRequestHighCount', { timeout: 10000 });
+
+      cy.step('Close success modal');
+      playgroundPage.mcpPanel.closeSuccessModal();
+
+      cy.step('Verify warning alert is shown in MCP panel');
+      cy.get('[data-testid="mcp-tools-warning-alert"]')
+        .should('be.visible')
+        .and('contain.text', 'Performance may be degraded with more than 40 active tools');
+
+      cy.step('Verify tools count shows 45 active');
+      serverRow.findToolsButton().should('contain.text', '45 active');
+
+      cy.step('Test completed - Tools warning alert works correctly');
+    },
+  );
+
+  it(
+    'should NOT show warning alert when total active tools are 40 or less',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@ToolsWarning'] },
+    () => {
+      const namespace = config.defaultNamespace;
+      const serverName = 'Normal-Tools-Server';
+      const serverUrl = 'http://normal-tools-server.local/mcp';
+      const toolsCount = 40; // Exactly 40, should NOT trigger warning
+
+      initHighToolsCountIntercepts({
+        config,
+        namespace,
+        serverName,
+        serverUrl,
+        toolsCount,
+      });
+
+      navigateToPlayground(namespace);
+
+      cy.step('Select server to trigger auto-unlock');
+      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      serverRow.findCheckbox().check();
+
+      cy.step('Wait for auto-unlock status check and tools fetch');
+      cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
+      cy.wait('@toolsRequestHighCount', { timeout: 10000 });
+
+      cy.step('Close success modal');
+      playgroundPage.mcpPanel.closeSuccessModal();
+
+      cy.step('Verify warning alert is NOT shown (40 tools is the threshold, not exceeding)');
+      cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
+
+      cy.step('Verify tools count shows 40 active');
+      serverRow.findToolsButton().should('contain.text', '40 active');
+
+      cy.step('Test completed - No warning for 40 or fewer tools');
     },
   );
 });

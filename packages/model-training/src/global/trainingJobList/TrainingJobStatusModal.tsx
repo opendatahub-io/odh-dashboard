@@ -1,4 +1,3 @@
-/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/
 import * as React from 'react';
 import {
   Alert,
@@ -47,12 +46,14 @@ type TrainingJobStatusModalProps = {
   job: TrainJobKind;
   jobStatus?: TrainingJobState;
   onClose?: () => void;
-  // onPause?: () => void;
   onDelete?: () => void;
+  onPauseClick?: () => void;
+  onResumeClick?: () => void;
+  isToggling?: boolean;
 };
 
 const PROGRESS_TAB = 'Progress';
-const EVENT_LOG_TAB = 'Events log';
+const EVENT_LOG_TAB = 'Event log';
 
 const getStatusIcon = (sectionStatus: TrainingJobState) => {
   if (sectionStatus === TrainingJobState.UNKNOWN) {
@@ -75,6 +76,9 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   jobStatus,
   onClose,
   onDelete,
+  onPauseClick,
+  onResumeClick,
+  isToggling = false,
 }) => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const [workloads, workloadLoaded] = useWorkloadForTrainJob(job);
@@ -90,9 +94,6 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     workload?.metadata?.name,
   );
 
-  // const { pauseJob, isPausing } = usePauseTrainJob(job);
-  // const { retryJob, isRetrying } = useRetryTrainJob(job);
-
   const sectionStatuses = React.useMemo(() => {
     return getSectionStatusesFromJobsStatus(job.status?.jobsStatus, status);
   }, [status, job.status?.jobsStatus]);
@@ -102,21 +103,14 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   }, [job.status?.jobsStatus]);
 
   const statusFlags = React.useMemo(() => getStatusFlags(status), [status]);
-  const { isFailed } = statusFlags;
+  const { isFailed, isPaused, inProgress, isComplete, isInadmissible } = statusFlags;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
-  // const handlePauseResume = React.useCallback(async () => {
-  //   await handlePauseResumeUtil(job, isPaused, pauseJob, () => {
-  //     onPause?.();
-  //     onClose?.();
-  //   });
-  // }, [job, isPaused, pauseJob, onPause, onClose]);
-
-  // const handleRetry = React.useCallback(async () => {
-  //   await handleRetryUtil(retryJob, () => {
-  //     onClose?.();
-  //   });
-  // }, [retryJob, onClose]);
+  // Close status modal and trigger pause action
+  const handlePauseClick = React.useCallback(() => {
+    onClose?.();
+    onPauseClick?.();
+  }, [onClose, onPauseClick]);
 
   const statusMessage = React.useMemo(
     () => getStatusAlert(status, workloadConditions, job.status?.conditions, events),
@@ -181,7 +175,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
           name: (
             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>{getStatusIcon(sectionStatuses.dataInitializer)}</FlexItem>
-              <FlexItem data-testid="data-initializer-section">Data Initializer</FlexItem>
+              <FlexItem data-testid="data-initializer-section">Initializing data</FlexItem>
             </Flex>
           ),
         });
@@ -193,7 +187,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
           name: (
             <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>{getStatusIcon(sectionStatuses.modelInitializer)}</FlexItem>
-              <FlexItem data-testid="model-initializer-section">Model Initializer</FlexItem>
+              <FlexItem data-testid="model-initializer-section">Initializing model</FlexItem>
             </Flex>
           ),
         });
@@ -266,9 +260,9 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <Title headingLevel="h2" size="lg">
-              Training Job Status
+              Training job status
             </Title>
-            <TrainingJobStatus job={job} jobStatus={status} />
+            <TrainingJobStatus job={job} jobStatus={status} showProgressBar={false} />
           </Flex>
         }
       />
@@ -303,37 +297,26 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         </Stack>
       </ModalBody>
       <ModalFooter>
-        {/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/}
-        {/* {isFailed ? (
+        {(inProgress || isPaused) && !isComplete && !isInadmissible ? (
           <Button
             variant="primary"
-            onClick={handleRetry}
-            isDisabled={isRetrying}
-            isLoading={isRetrying}
-            data-testid="retry-job-button"
-          >
-            Retry Job
-          </Button>
-        ) : (inProgress || isPaused) && !isComplete && !isInadmissible ? (
-          <Button
-            variant="primary"
-            onClick={handlePauseResume}
-            isDisabled={isPausing}
-            isLoading={isPausing}
+            onClick={isPaused ? onResumeClick : handlePauseClick}
+            isDisabled={isToggling}
+            isLoading={isToggling}
             data-testid="pause-resume-job-button"
           >
-            {isPaused ? 'Resume Job' : 'Pause Job'}
+            {isPaused ? 'Resume job' : 'Pause job'}
           </Button>
-        ) : null} */}
+        ) : null}
         <Button
           variant="secondary"
           onClick={() => {
             onDelete?.();
           }}
-          // isDisabled={isPausing || isRetrying}
+          isDisabled={isToggling}
           data-testid="delete-job-button"
         >
-          Delete Job
+          Delete job
         </Button>
         <Button variant="link" onClick={onClose} data-testid="close-status-modal-button">
           Close

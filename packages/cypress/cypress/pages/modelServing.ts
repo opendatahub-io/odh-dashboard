@@ -1122,6 +1122,32 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('prefill-alert');
   }
 
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
+  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
+    const dropdown = this.findHardProfileSelection();
+
+    dropdown.then(($el) => {
+      if ($el.prop('disabled')) {
+        // If disabled, verify it contains the base profile name
+        const nameToCheck = profileDisplayName;
+        cy.wrap($el).contains(nameToCheck).should('exist');
+        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+      } else {
+        // If enabled, proceed with selection as before using the full display name
+        dropdown.click();
+        cy.findByTestId(`${profileDisplayName}`).click();
+      }
+    });
+  }
+
   findExternalRouteCheckbox() {
     return cy.findByTestId('model-access-checkbox');
   }
@@ -1202,6 +1228,10 @@ class ModelServingWizard extends Wizard {
 
   findEnvVariableValue(value: string) {
     return cy.findByTestId(`env-var-value-${value}`);
+  }
+
+  findSaveAiAssetCheckbox() {
+    return cy.findByTestId('save-as-ai-asset-checkbox');
   }
 
   findSaveAsMaaSCheckbox() {

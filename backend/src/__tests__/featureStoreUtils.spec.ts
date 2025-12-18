@@ -15,6 +15,7 @@ const NAMESPACE = {
   DEFAULT: 'default',
   TEST_NS: 'test-ns',
   NAMESPACE_WITH_DASH: 'namespace-with-dash',
+  TEST_FEAST_BANKING: 'test-feast-banking',
 } as const;
 
 const PROJECT = {
@@ -23,11 +24,15 @@ const PROJECT = {
   TEST: 'test',
   ENABLED_2: 'enabled-2',
   NO_LABELS: 'no-labels',
+  FRAUD_DETECT: 'fraud_detect',
+  CREDIT_SCORING_LOCAL: 'credit_scoring_local',
 } as const;
 
 const CONFIG_NAME = {
   BANKING: 'banking-config',
   RETAIL: 'retail-config',
+  FRAUD_DETECT: 'feast-fraud-detect-client',
+  CREDIT_SCORING_LOCAL: 'feast-sample-git-client',
 } as const;
 
 const SERVICE_NAME = {
@@ -35,6 +40,8 @@ const SERVICE_NAME = {
   RETAIL_REST: 'feast-retail-registry-rest',
   TEST_REST: 'feast-test-registry-rest',
   COMPLEX_REST: 'feast-my-complex-name-registry-rest',
+  FRAUD_DETECT_REST: 'feast-fraud-detect-registry-rest',
+  CREDIT_SCORING_REST: 'feast-sample-git-registry-rest',
 } as const;
 
 const REGISTRY_URL = {
@@ -44,6 +51,8 @@ const REGISTRY_URL = {
   RETAIL_HTTPS: 'https://feast-retail-registry.default.svc.cluster.local',
   TEST_NO_PROTOCOL: 'feast-test-registry.test-ns.svc.cluster.local',
   COMPLEX_NAME: 'feast-my-complex-name-registry.namespace-with-dash.svc.cluster.local',
+  FRAUD_DETECT_HTTPS: 'https://feast-fraud-detect-registry.test-feast-banking.svc.cluster.local',
+  CREDIT_SCORING_HTTPS: 'https://feast-sample-git-registry.credit-namespace.svc.cluster.local',
   INVALID: 'invalid-url-format',
 } as const;
 
@@ -81,7 +90,7 @@ const createClientConfigInfo = (overrides: Partial<ClientConfigInfo> = {}): Clie
 });
 
 const createFeatureStoreCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCRD => ({
-  apiVersion: 'feast.dev/v1alpha1',
+  apiVersion: 'feast.dev/v1',
   kind: 'FeatureStore',
   metadata: {
     name: PROJECT.BANKING,

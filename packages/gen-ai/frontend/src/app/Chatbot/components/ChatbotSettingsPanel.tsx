@@ -14,7 +14,10 @@ import {
   AlertGroup,
   Flex,
   FlexItem,
+  Icon,
+  Tooltip,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
@@ -85,6 +88,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 }) => {
   const accordionState = useAccordionState();
   const isDarkMode = useDarkMode();
+  const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
 
   const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
   const DEFAULT_WIDTH = '460px';
@@ -295,7 +299,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   : 'var(--pf-t--global--background--color--100)',
               }}
             >
-              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
                   <Title headingLevel="h2" size="lg" data-testid="mcp-servers-section-title">
                     MCP servers
@@ -306,6 +310,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     <Label key={1} color="blue">
                       {selectedServersCount}
                     </Label>
+                  </FlexItem>
+                )}
+                {showMcpToolsWarning && (
+                  <FlexItem>
+                    <Tooltip content="Performance may be degraded with more than 40 active tools">
+                      <Icon status="warning" data-testid="mcp-tools-warning-icon">
+                        <ExclamationTriangleIcon />
+                      </Icon>
+                    </Tooltip>
                   </FlexItem>
                 )}
               </Flex>
@@ -329,6 +342,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 onSelectionChange={onMcpServersChange}
                 initialSelectedServerIds={initialSelectedServerIds}
                 initialServerStatuses={initialServerStatuses}
+                onToolsWarningChange={setShowMcpToolsWarning}
               />
             </AccordionContent>
           </AccordionItem>

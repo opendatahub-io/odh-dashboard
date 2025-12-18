@@ -39,6 +39,7 @@ const initIntercepts = () => {
     'GET /api/config',
     mockDashboardConfig({
       mlflow: true,
+      embedMLflow: true,
     }),
   );
 };

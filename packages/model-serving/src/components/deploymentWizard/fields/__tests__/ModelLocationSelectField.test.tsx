@@ -168,6 +168,40 @@ const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
       ],
     },
   },
+  // disabled connection type to check it doesn't show up
+  {
+    apiVersion: 'v1',
+    kind: 'ConfigMap',
+    metadata: {
+      name: 'custom-uri-disabled',
+      labels: {
+        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        'opendatahub.io/connection-type': 'true',
+      },
+      annotations: {
+        'openshift.io/display-name': 'Custom URI disabled',
+        'opendatahub.io/disabled': 'true',
+      },
+    },
+    data: {
+      fields: [
+        {
+          envVar: 'URI',
+          name: 'URI',
+          required: true,
+          type: 'uri',
+          properties: {},
+        },
+        {
+          envVar: 'CUSTOM_URI_FIELD',
+          name: 'CUSTOM_URI_FIELD',
+          required: true,
+          type: 'short-text',
+          properties: {},
+        },
+      ],
+    },
+  },
 ];
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
@@ -577,8 +611,10 @@ describe('ModelLocationSelectField', () => {
 
       const customURIOption = screen.getByRole('option', { name: 'Custom URI' });
       const uriV1Option = screen.getByRole('option', { name: 'URI - v1' });
+      const uriOptionDisabled = screen.queryByRole('option', { name: 'Custom URI disabled' });
       expect(customURIOption).toBeInTheDocument();
       expect(uriV1Option).toBeInTheDocument();
+      expect(uriOptionDisabled).not.toBeInTheDocument();
       await act(async () => {
         fireEvent.click(customURIOption);
       });
