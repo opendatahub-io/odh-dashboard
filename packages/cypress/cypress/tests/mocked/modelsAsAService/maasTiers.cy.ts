@@ -94,7 +94,7 @@ describe('Tiers Page', () => {
 
   it('should delete a tier', () => {
     tiersPage.getRow('Free Tier').findDeleteButton().click();
-    deleteTierModal.findInput().type('free-tier');
+    deleteTierModal.findInput().type('free');
     deleteTierModal.findSubmitButton().click();
   });
 });
