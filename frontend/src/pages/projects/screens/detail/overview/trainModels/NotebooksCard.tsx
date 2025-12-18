@@ -12,12 +12,13 @@ import {
   Content,
   Tooltip,
 } from '@patternfly/react-core';
-import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ArrowRightIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
 import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
+import ErrorOverviewCard from '#~/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
 
@@ -48,30 +49,24 @@ const NotebooksCard: React.FC = () => {
     [notebooks],
   );
 
+  if (error) {
+    return (
+      <ErrorOverviewCard
+        id="section-notebooks"
+        objectType={ProjectObjectType.notebook}
+        sectionType={SectionType.training}
+        title="Notebooks"
+        popoverHeaderContent="About notebooks"
+        popoverBodyContent="Notebooks are isolated areas where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and configure cluster storage in your notebook."
+        error={error}
+      />
+    );
+  }
+
   if (!loaded) {
     return (
       <EmptyState headingLevel="h3" icon={() => <Spinner size="lg" />} variant="xs">
         <EmptyStateBody>Loading...</EmptyStateBody>
-      </EmptyState>
-    );
-  }
-
-  if (error) {
-    return (
-      <EmptyState
-        headingLevel="h3"
-        icon={() => (
-          <ExclamationCircleIcon
-            style={{
-              color: 'var(--pf-t--global--icon--color--status--danger--default)',
-              width: '32px',
-              height: '32px',
-            }}
-          />
-        )}
-        variant="xs"
-      >
-        <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
     );
   }

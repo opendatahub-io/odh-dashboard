@@ -22,12 +22,13 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
   overrideTimeout = false,
   ...pageProps
 }) => {
-  const { pipelinesServer } = usePipelinesAPI();
+  const { pipelinesServer, pipelineLoadError } = usePipelinesAPI();
 
   return (
     <ApplicationsPage
       {...pageProps}
       loaded={!pipelinesServer.initializing}
+      loadError={pipelineLoadError}
       empty={!pipelinesServer.installed}
       emptyStatePage={<NoPipelineServer variant={ButtonVariant.primary} />}
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
