@@ -61,7 +61,11 @@ const FeatureStoreSelector: React.FC<FeatureStoreSelectorProps> = ({
       <Stack hasGutter data-testid="feature-store-section">
         <StackItem>
           <FormGroup label="Feature store selection" fieldId="feature-store-select">
-            <Alert title="Failed to load feature stores" variant="danger">
+            <Alert
+              title="Failed to load feature stores"
+              variant="danger"
+              data-testid="feature-store-error-alert-message"
+            >
               {error.message || 'An error occurred while loading feature stores'}
             </Alert>
           </FormGroup>
@@ -84,6 +88,7 @@ const FeatureStoreSelector: React.FC<FeatureStoreSelectorProps> = ({
 
   const multiSelection = (
     <MultiSelection
+      data-testid="feature-store-typeahead"
       key={`feature-store-${selectedFeatureStoreOptionsKey}`}
       id="feature-store-select"
       ariaLabel="Select feature stores"
