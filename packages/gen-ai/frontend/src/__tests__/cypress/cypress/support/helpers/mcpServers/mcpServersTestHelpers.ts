@@ -13,6 +13,7 @@ import {
   mockMCPStatusError,
   mockMCPStatusAutoConnect,
   mockMCPToolsAutoConnect,
+  mockMCPToolsAutoConnectWithCount,
 } from '~/__tests__/cypress/cypress/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
@@ -237,4 +238,45 @@ export const navigateFromAIAssetsToPlayground = (namespace: string): void => {
 
   cy.step('Switch to MCP Servers tab');
   aiAssetsPage.switchToMCPServersTab();
+};
+
+/**
+ * Initialize intercepts for testing high tools count warning
+ * Creates a server with configurable number of tools
+ *
+ * @param config - Test configuration
+ * @param namespace - Namespace to use
+ * @param serverName - Name of the server
+ * @param serverUrl - URL of the server
+ * @param toolsCount - Number of tools to simulate
+ */
+export const initHighToolsCountIntercepts = ({
+  config,
+  namespace,
+  serverName,
+  serverUrl,
+  toolsCount,
+}: {
+  config: MCPTestConfig;
+  namespace: string;
+  serverName: string;
+  serverUrl: string;
+  toolsCount: number;
+}): void => {
+  setupBaseMCPServerMocks(config, { lsdStatus: 'Ready', includeLsdModel: true });
+
+  // Mock the MCP servers list to include the high-tools server
+  const mcpServers = [
+    mockMCPServer({
+      name: serverName,
+      status: 'Active',
+      url: serverUrl,
+    }),
+  ];
+
+  cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers(mcpServers));
+
+  // Mock auto-connect status and tools with high count
+  mockMCPStatusAutoConnect(serverUrl);
+  mockMCPToolsAutoConnectWithCount(serverUrl, toolsCount);
 };

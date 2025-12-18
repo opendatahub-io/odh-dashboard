@@ -8,7 +8,7 @@ stringData:
   AWS_SECRET_ACCESS_KEY: ${awsSecretKey}
   AWS_DEFAULT_REGION: ${awsDefaultRegion}
 ---
-apiVersion: feast.dev/v1alpha1
+apiVersion: feast.dev/v1
 kind: FeatureStore
 metadata:
   name: test-s3
