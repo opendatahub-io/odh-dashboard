@@ -14,8 +14,8 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
@@ -242,13 +242,7 @@ func (t *TiersRepository) fetchTierLimits(ctx context.Context, tiers models.Tier
 	kubeClient := client.GetDynamicClient()
 
 	// TokenRateLimitPolicy
-	tokenPolicyGvr := schema.GroupVersionResource{
-		Group:    "kuadrant.io",
-		Version:  "v1alpha1",
-		Resource: "tokenratelimitpolicies",
-	}
-
-	tokenPoliciesList, err := kubeClient.Resource(tokenPolicyGvr).List(ctx, metav1.ListOptions{})
+	tokenPoliciesList, err := kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -259,13 +253,7 @@ func (t *TiersRepository) fetchTierLimits(ctx context.Context, tiers models.Tier
 	}
 
 	// RateLimitPolicy
-	ratePolicyGvr := schema.GroupVersionResource{
-		Group:    "kuadrant.io",
-		Version:  "v1",
-		Resource: "ratelimitpolicies",
-	}
-
-	ratePoliciesList, err := kubeClient.Resource(ratePolicyGvr).List(ctx, metav1.ListOptions{})
+	ratePoliciesList, err := kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

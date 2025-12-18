@@ -1,0 +1,19 @@
+apiVersion: kuadrant.io/v1
+kind: RateLimitPolicy
+metadata:
+  name: gateway-rate-limits
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: maas-default-gateway
+  limits:
+    free:
+      rates:
+        - limit: 5
+          window: 2m
+      when:
+        - predicate: |
+            auth.identity.tier == "tier0"
+      counters:
+        - expression: auth.identity.userid
