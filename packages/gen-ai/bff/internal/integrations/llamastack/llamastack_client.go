@@ -114,7 +114,7 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 	for {
 		vectorStoresPage, err := c.client.VectorStores.List(ctx, apiParams)
 		if err != nil {
-			return nil, wrapClientError(err, "ListVectorStores", params)
+			return nil, wrapClientError(err, "ListVectorStores")
 		}
 
 		allVectorStores = append(allVectorStores, vectorStoresPage.Data...)
@@ -211,7 +211,7 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 
 	vectorStore, err := c.client.VectorStores.New(ctx, openai.VectorStoreNewParams{}, opts...)
 	if err != nil {
-		return nil, wrapClientError(err, "CreateVectorStore", params)
+		return nil, wrapClientError(err, "CreateVectorStore")
 	}
 
 	return vectorStore, nil
@@ -301,7 +301,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 
 	uploadedFile, err := c.client.Files.New(ctx, apiParams)
 	if err != nil {
-		return nil, wrapClientError(err, "UploadFile", params)
+		return nil, wrapClientError(err, "UploadFile")
 	}
 
 	result := &FileUploadResult{
@@ -333,7 +333,7 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 
 		vectorStoreFile, err := c.client.VectorStores.Files.New(ctx, params.VectorStoreID, vectorStoreFileParams)
 		if err != nil {
-			return nil, wrapClientError(err, "UploadFile (add to vector store)", params)
+			return nil, wrapClientError(err, "UploadFile (add to vector store)")
 		}
 
 		result.VectorStoreFile = vectorStoreFile
@@ -530,7 +530,7 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 
 	response, err := c.client.Responses.New(ctx, *apiParams, opts...)
 	if err != nil {
-		return nil, wrapClientError(err, "CreateResponse", params)
+		return nil, wrapClientError(err, "CreateResponse")
 	}
 
 	return response, nil
@@ -577,7 +577,7 @@ func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID 
 
 	_, err := c.client.VectorStores.Delete(ctx, vectorStoreID)
 	if err != nil {
-		return wrapClientError(err, "DeleteVectorStore", vectorStoreID)
+		return wrapClientError(err, "DeleteVectorStore")
 	}
 
 	return nil
@@ -591,7 +591,7 @@ func (c *LlamaStackClient) GetResponse(ctx context.Context, responseID string) (
 
 	response, err := c.client.Responses.Get(ctx, responseID, responses.ResponseGetParams{})
 	if err != nil {
-		return nil, wrapClientError(err, "GetResponse", responseID)
+		return nil, wrapClientError(err, "GetResponse")
 	}
 
 	return response, nil
@@ -632,7 +632,7 @@ func (c *LlamaStackClient) ListFiles(ctx context.Context, params ListFilesParams
 
 	filesPage, err := c.client.Files.List(ctx, apiParams)
 	if err != nil {
-		return nil, wrapClientError(err, "ListFiles", params)
+		return nil, wrapClientError(err, "ListFiles")
 	}
 
 	return filesPage.Data, nil
@@ -646,7 +646,7 @@ func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.
 
 	file, err := c.client.Files.Get(ctx, fileID)
 	if err != nil {
-		return nil, wrapClientError(err, "GetFile", fileID)
+		return nil, wrapClientError(err, "GetFile")
 	}
 
 	return file, nil
@@ -660,7 +660,7 @@ func (c *LlamaStackClient) DeleteFile(ctx context.Context, fileID string) error 
 
 	_, err := c.client.Files.Delete(ctx, fileID)
 	if err != nil {
-		return wrapClientError(err, "DeleteFile", fileID)
+		return wrapClientError(err, "DeleteFile")
 	}
 
 	return nil
@@ -705,7 +705,7 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 
 	filesPage, err := c.client.VectorStores.Files.List(ctx, vectorStoreID, apiParams)
 	if err != nil {
-		return nil, wrapClientError(err, "ListVectorStoreFiles", vectorStoreID, params)
+		return nil, wrapClientError(err, "ListVectorStoreFiles")
 	}
 
 	return filesPage.Data, nil
@@ -722,7 +722,7 @@ func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStor
 
 	_, err := c.client.VectorStores.Files.Delete(ctx, vectorStoreID, fileID)
 	if err != nil {
-		return wrapClientError(err, "DeleteVectorStoreFile", vectorStoreID, fileID)
+		return wrapClientError(err, "DeleteVectorStoreFile")
 	}
 
 	return nil
