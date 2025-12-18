@@ -8,7 +8,6 @@ export type Tier = {
   description: string;
   level?: number;
   groups: string[];
-  models: string[];
   limits: TierLimits;
 };
 

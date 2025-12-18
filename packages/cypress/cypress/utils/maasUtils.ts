@@ -8,7 +8,6 @@ export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
     description: 'Basic access with limited usage',
     level: 1,
     groups: ['all-users'],
-    models: ['granite-7b', 'llama-3-8b'],
     limits: {
       tokensPerUnit: [{ count: 10000, time: 1, unit: 'hour' }],
       requestsPerUnit: [{ count: 100, time: 1, unit: 'minute' }],
@@ -20,7 +19,6 @@ export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
     description: 'Enhanced access with higher limits',
     level: 2,
     groups: ['premium-users'],
-    models: ['granite-7b', 'llama-3-8b', 'granite-20b', 'mistral-7b'],
     limits: {
       tokensPerUnit: [{ count: 50000, time: 1, unit: 'hour' }],
       requestsPerUnit: [{ count: 500, time: 1, unit: 'minute' }],
@@ -32,7 +30,6 @@ export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
     description: 'Unlimited enterprise access',
     level: 3,
     groups: ['enterprise-users'],
-    models: ['granite-7b', 'llama-3-8b', 'granite-20b', 'mistral-7b', 'llama-3-70b'],
     limits: {
       tokensPerUnit: [{ count: 1000000, time: 1, unit: 'hour' }],
       requestsPerUnit: [{ count: 10000, time: 1, unit: 'minute' }],
@@ -48,7 +45,6 @@ export const mockTier = ({
   description,
   level = 1,
   groups = ['all-users'],
-  models = ['model-1', 'model-2', 'model-3'],
   limits = {
     tokensPerUnit: [{ count: 10000, time: 1, unit: 'hour' }],
     requestsPerUnit: [{ count: 100, time: 1, unit: 'minute' }],
@@ -59,7 +55,6 @@ export const mockTier = ({
   description?: string;
   level?: number;
   groups?: string[];
-  models?: string[];
   limits?: TierLimits;
 }): Tier => {
   return {
@@ -68,7 +63,6 @@ export const mockTier = ({
     description: description ?? `${name} tier description`,
     level,
     groups,
-    models,
     limits,
   };
 };

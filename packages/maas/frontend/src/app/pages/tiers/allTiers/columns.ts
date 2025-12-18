@@ -21,12 +21,6 @@ export const tierColumns: SortableData<Tier>[] = [
     sortable: false,
   },
   {
-    field: 'models',
-    label: 'Models',
-    width: 15,
-    sortable: false,
-  },
-  {
     field: 'limits',
     label: 'Limits',
     width: 20,

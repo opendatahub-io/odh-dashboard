@@ -36,7 +36,6 @@ describe('Tiers Page', () => {
     freeTierRow.findName().should('contain.text', 'Free Tier');
     freeTierRow.findLevel().should('contain.text', '1');
     freeTierRow.findGroups().should('contain.text', '1 Group');
-    freeTierRow.findModels().should('contain.text', '2 Models');
     freeTierRow.findLimits().should('contain.text', '10,000 tokens/1 hour');
     freeTierRow.findLimits().should('contain.text', '100 requests/1 minute');
 
