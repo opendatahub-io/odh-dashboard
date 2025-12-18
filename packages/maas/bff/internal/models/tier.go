@@ -13,6 +13,12 @@ type Tier struct {
 }
 
 type TierLimits struct {
-	TokensPerHour     int `json:"tokensPerHour,omitempty"`
-	RequestsPerMinute int `json:"requestsPerMinute,omitempty"`
+	TokensPerUnit   []RateLimit `json:"tokensPerUnit,omitempty"`
+	RequestsPerUnit []RateLimit `json:"requestsPerUnit,omitempty"`
+}
+
+type RateLimit struct {
+	Count int    `json:"count,omitempty"`
+	Time  int    `json:"time,omitempty"`
+	Unit  string `json:"unit,omitempty"`
 }

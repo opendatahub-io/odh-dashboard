@@ -8,9 +8,10 @@ import { tierColumns } from './columns';
 
 type TiersTableRowProps = {
   tier: Tier;
+  onDeleteTier: (tier: Tier) => void;
 };
 
-const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
+const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => {
   const navigate = useNavigate();
 
   return (
@@ -23,7 +24,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
         />
       </Td>
       <Td dataLabel={tierColumns[1].label}>
-        <Label>{tier.level}</Label>
+        <Label>{tier.level ?? 0}</Label>
       </Td>
       <Td dataLabel={tierColumns[2].label}>
         <Label>
@@ -31,11 +32,6 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
         </Label>
       </Td>
       <Td dataLabel={tierColumns[3].label}>
-        <Label>
-          {tier.models.length} Model{tier.models.length !== 1 ? 's' : ''}
-        </Label>
-      </Td>
-      <Td dataLabel={tierColumns[4].label}>
         <Stack>
           {tier.limits.tokensPerUnit.map((limit, index) => (
             <StackItem key={`token-${index}`}>
@@ -62,7 +58,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
             },
             {
               title: 'Delete tier',
-              // TODO: Add delete tier functionality
+              onClick: () => onDeleteTier(tier),
             },
           ]}
         />
