@@ -27,7 +27,7 @@ import {
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useTiers } from '~/app/api/tiers';
+import { useFetchTiers } from '~/app/hooks/useFetchTiers';
 import { Tier } from '~/app/types/tier';
 import DeleteTierModal from '~/app/pages/tiers/components/DeleteTierModal';
 
@@ -63,7 +63,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ title, description }) => 
 const ViewTierPage: React.FC = () => {
   const { tierName } = useParams<{ tierName: string }>();
   const navigate = useNavigate();
-  const tiers = useTiers();
+  const [tiers] = useFetchTiers();
   const tier = tiers.find((t) => t.name === tierName);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [deleteTier, setDeleteTier] = React.useState<Tier | undefined>(undefined);
@@ -184,12 +184,14 @@ const ViewTierPage: React.FC = () => {
                   <DetailsItem
                     label="Groups"
                     value={
-                      tier.groups.length > 0 && (
+                      tier.groups.length > 0 ? (
                         <Stack>
                           {tier.groups.map((group) => (
                             <StackItem key={group}>{group}</StackItem>
                           ))}
                         </Stack>
+                      ) : (
+                        '-'
                       )
                     }
                     testId="tier-groups"
@@ -219,13 +221,19 @@ const ViewTierPage: React.FC = () => {
                       </StackItem>
                       <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
                         <Stack>
-                          {tier.limits.tokensPerUnit.map((limit, index) => (
-                            <StackItem key={index}>
-                              <Content>
-                                {`${limit.count.toLocaleString()} tokens per ${limit.time} ${limit.unit}`}
-                              </Content>
+                          {tier.limits.tokensPerUnit.length > 0 ? (
+                            tier.limits.tokensPerUnit.map((limit, index) => (
+                              <StackItem key={index}>
+                                <Content>
+                                  {`${limit.count.toLocaleString()} tokens per ${limit.time} ${limit.unit}`}
+                                </Content>
+                              </StackItem>
+                            ))
+                          ) : (
+                            <StackItem>
+                              <Content>-</Content>
                             </StackItem>
-                          ))}
+                          )}
                         </Stack>
                       </StackItem>
                     </Stack>
@@ -237,13 +245,19 @@ const ViewTierPage: React.FC = () => {
                       </StackItem>
                       <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
                         <Stack>
-                          {tier.limits.requestsPerUnit.map((limit, index) => (
-                            <StackItem key={index}>
-                              <Content>
-                                {`${limit.count.toLocaleString()} requests per ${limit.time} ${limit.unit}`}
-                              </Content>
+                          {tier.limits.requestsPerUnit.length > 0 ? (
+                            tier.limits.requestsPerUnit.map((limit, index) => (
+                              <StackItem key={index}>
+                                <Content>
+                                  {`${limit.count.toLocaleString()} requests per ${limit.time} ${limit.unit}`}
+                                </Content>
+                              </StackItem>
+                            ))
+                          ) : (
+                            <StackItem>
+                              <Content>-</Content>
                             </StackItem>
-                          ))}
+                          )}
                         </Stack>
                       </StackItem>
                     </Stack>
