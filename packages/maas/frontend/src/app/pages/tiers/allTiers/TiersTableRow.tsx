@@ -8,9 +8,10 @@ import { tierColumns } from './columns';
 
 type TiersTableRowProps = {
   tier: Tier;
+  onDeleteTier: (tier: Tier) => void;
 };
 
-const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
+const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => {
   const navigate = useNavigate();
 
   return (
@@ -62,7 +63,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier }) => {
             },
             {
               title: 'Delete tier',
-              // TODO: Add delete tier functionality
+              onClick: () => onDeleteTier(tier),
             },
           ]}
         />
