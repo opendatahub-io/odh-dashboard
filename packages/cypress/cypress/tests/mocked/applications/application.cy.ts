@@ -3,7 +3,11 @@ import {
   mockDscStatus,
   dataScienceStackComponentMap,
 } from '@odh-dashboard/internal/__mocks__';
-import { mockConsoleLinks } from '@odh-dashboard/internal/__mocks__/mockConsoleLinks';
+import {
+  mockConsoleLinks,
+  mockMLflowLink,
+  mockOpenDataHubConsoleLink,
+} from '@odh-dashboard/internal/__mocks__/mockConsoleLinks';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { OdhPlatformType } from '@odh-dashboard/internal/types';
 import { appChrome } from '../../../pages/appChrome';
@@ -48,7 +52,23 @@ describe('Application', () => {
   });
 
   it('Validate clicking on App Launcher opens menu', () => {
-    cy.interceptOdh('GET /api/console-links', mockConsoleLinks());
+    cy.interceptOdh(
+      'GET /api/console-links',
+      mockConsoleLinks([
+        mockOpenDataHubConsoleLink,
+        mockMLflowLink,
+        {
+          ...mockMLflowLink,
+          metadata: {
+            name: 'mlflow-1234',
+          },
+          spec: {
+            ...mockMLflowLink.spec,
+            text: 'MLflow test 1234',
+          },
+        },
+      ]),
+    );
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
     appChrome.visit();
     const applicationLauncher = appChrome.getApplicationLauncher();
@@ -60,6 +80,7 @@ describe('Application', () => {
 
     // Have the MLflow link
     applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem('MLflow');
+    applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem('MLflow test 1234');
 
     applicationLauncherMenuGroupStatic
       .findApplicationLauncherItem('MLflow')
