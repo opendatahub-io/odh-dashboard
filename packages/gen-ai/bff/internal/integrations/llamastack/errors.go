@@ -11,11 +11,10 @@ import (
 
 // LlamaStackError represents LlamaStack-specific errors
 type LlamaStackError struct {
-	Code       string      `json:"code"`
-	Message    string      `json:"message"`
-	ServiceURL string      `json:"service_url,omitempty"`
-	StatusCode int         `json:"-"`
-	Metadata   interface{} `json:"-"` // Optional metadata for debugging (params, context, etc.)
+	Code       string `json:"code"`
+	Message    string `json:"message"`
+	ServiceURL string `json:"service_url,omitempty"`
+	StatusCode int    `json:"-"`
 }
 
 func (e *LlamaStackError) Error() string {
