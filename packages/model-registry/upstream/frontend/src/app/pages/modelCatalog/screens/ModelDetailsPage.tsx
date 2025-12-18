@@ -156,9 +156,9 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                       </Popover>
                     )}
                     {isRedHatModel(model) && (
-                      <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT_AI}>
-                        <Label color="blue" isClickable>
-                          Red Hat AI
+                      <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
+                        <Label color="grey" isClickable>
+                          Red Hat
                         </Label>
                       </Popover>
                     )}
