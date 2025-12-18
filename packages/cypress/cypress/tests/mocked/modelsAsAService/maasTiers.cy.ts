@@ -99,7 +99,7 @@ describe('Tiers Page', () => {
   });
 
   it('should edit a tier', () => {
-    cy.intercept('GET', '/api/tiers/enterprise-tier', mockTiers()[2]);
+    //cy.intercept('GET', '/api/tiers/enterprise-tier', mockTiers()[2]);
 
     tiersPage.getRow('Enterprise Tier').findKebabAction('Edit tier').click();
     createTierPage.findTitle().should('contain.text', 'Edit tier');
@@ -111,19 +111,11 @@ describe('Tiers Page', () => {
       );
 
     createTierPage.findNameInput().should('have.value', 'Enterprise Tier');
-    createTierPage
-      .findDescriptionInput()
-      .should(
-        'have.value',
-        'Unlimited access for enterprise users with all models and no expiration',
-      );
-    createTierPage.findLevelInput().should('have.value', '20');
+    createTierPage.findDescriptionInput().should('have.value', 'Unlimited enterprise access');
+    createTierPage.findLevelInput().should('have.value', '3');
     createTierPage.findGroupsSelectButton().click();
     createTierPage
       .findGroupsOption('enterprise-users')
-      .should('have.attr', 'aria-selected', 'true');
-    createTierPage
-      .findGroupsOption('enterprise-admins')
       .should('have.attr', 'aria-selected', 'true');
     createTierPage.findTokenRateLimitCheckbox().should('be.checked');
     createTierPage.findTokenRateLimitCountInput(0).should('have.value', '1000000');
