@@ -24,7 +24,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
         />
       </Td>
       <Td dataLabel={tierColumns[1].label}>
-        <Label>{tier.level}</Label>
+        <Label>{tier.level ?? 0}</Label>
       </Td>
       <Td dataLabel={tierColumns[2].label}>
         <Label>
@@ -32,11 +32,6 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
         </Label>
       </Td>
       <Td dataLabel={tierColumns[3].label}>
-        <Label>
-          {tier.models.length} Model{tier.models.length !== 1 ? 's' : ''}
-        </Label>
-      </Td>
-      <Td dataLabel={tierColumns[4].label}>
         <Stack>
           {tier.limits.tokensPerUnit.map((limit, index) => (
             <StackItem key={`token-${index}`}>

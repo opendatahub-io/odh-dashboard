@@ -77,7 +77,7 @@ const AppLauncher: React.FC = () => {
         (link) =>
           link.spec.location === 'ApplicationMenu' &&
           !appConsoleLinkNames.includes(link.metadata?.name ?? '') &&
-          (isMLflowEnabled || link.metadata?.name !== 'mlflowlink'),
+          (isMLflowEnabled || !(link.metadata?.name && link.metadata.name.startsWith('mlflow'))),
       )
       .toSorted((a, b) => a.spec.text.localeCompare(b.spec.text));
 
