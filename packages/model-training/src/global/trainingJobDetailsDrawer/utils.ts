@@ -5,6 +5,8 @@ import {
   splitValueUnit,
   UnitOption,
 } from '@odh-dashboard/internal/utilities/valueUnits';
+import { TrainJobKind, TrainerStatus } from '../../k8sTypes';
+import { TRAINER_STATUS_ANNOTATION } from '../../const';
 
 /**
  * Converts a value string (e.g., "8Gi") to a numeric value in the base unit
@@ -123,4 +125,69 @@ export const getDefaultPodContainerName = (pod: PodKind | null): string => {
     pod.metadata.annotations?.['kubectl.kubernetes.io/default-container'];
 
   return podContainers.find((c) => c.name === defaultContainerName)?.name || podContainers[0].name;
+};
+
+/**
+ * Parse the trainerStatus from the TrainJob annotation.
+ * The trainerStatus is stored as a JSON string in the annotation.
+ */
+export const getTrainerStatus = (job: TrainJobKind): TrainerStatus | null => {
+  const annotation = job.metadata.annotations?.[TRAINER_STATUS_ANNOTATION];
+  if (!annotation) {
+    return null;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return JSON.parse(annotation) as TrainerStatus;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Formats a duration in seconds to a human-readable string.
+ * e.g., 60 -> "1 minute", 3600 -> "1 hour", 5400 -> "1 hour 30 minutes"
+ */
+export const formatDuration = (seconds: number): string => {
+  if (seconds < 0) {
+    return '-';
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  const parts: string[] = [];
+
+  if (hours > 0) {
+    parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+  }
+
+  if (minutes > 0) {
+    parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+  }
+
+  return parts.length > 0 ? parts.join(' ') : '0 minutes';
+};
+
+/**
+ * Formats a metric key from snake_case or camelCase to a readable label.
+ * e.g., "grad_norm" -> "Grad norm", "learningRate" -> "Learning rate"
+ */
+export const formatMetricLabel = (key: string): string => {
+  const words = key
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/**
+ * Formats a metric value for display.
+ * Handles null, undefined, numbers, and strings.
+ */
+export const formatMetricValue = (value: string | number | null | undefined): string => {
+  if (value == null) {
+    return '-';
+  }
+  return String(value);
 };

@@ -847,20 +847,18 @@ declare global {
         ((
           type: 'GET /api/featurestores/workbench-integration',
           response: OdhResponse<{
-            clientConfigs: Array<{
-              namespace: string;
-              configName: string;
-              configMap: ConfigMapKind | null;
-              hasAccessToFeatureStore: boolean;
-            }>;
             namespaces: Array<{
               namespace: string;
-              clientConfigs: string[];
+              clientConfigs: Array<{
+                configName: string;
+                projectName: string;
+                hasAccessToFeatureStore: boolean;
+              }>;
             }>;
           }>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/namespaces/*/featurestores',
+          type: 'GET /api/k8s/apis/feast.dev/v1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };
           },

@@ -1,4 +1,3 @@
-/* TODO: RHOAIENG-37577 Retry and Pause/Resume actions are currently blocked by backend*/
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
 import {
@@ -8,22 +7,21 @@ import {
   TimestampTooltipVariant,
   Button,
   Tooltip,
-  Icon,
 } from '@patternfly/react-core';
-import { CubesIcon, EditIcon } from '@patternfly/react-icons';
+import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import TrainingJobProject from './TrainingJobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
-import HibernationToggleModal from './HibernationToggleModal';
+import PauseTrainingJobModal from './PauseTrainingJobModal';
 import ScaleNodesModal from './ScaleNodesModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import TrainingJobStatusModal from './TrainingJobStatusModal';
+import StateActionToggle from './StateActionToggle';
+import { useTrainingJobPauseResume } from './hooks/useTrainingJobPauseResume';
 import { TrainJobKind } from '../../k8sTypes';
 import { TrainingJobState } from '../../types';
-import { toggleTrainJobHibernation } from '../../api';
 import { useTrainingJobNodeScaling } from '../../hooks/useTrainingJobNodeScaling';
 
 type TrainingJobTableRowProps = {
@@ -32,6 +30,7 @@ type TrainingJobTableRowProps = {
   onDelete: (job: TrainJobKind) => void;
   onStatusUpdate?: (jobId: string, newStatus: TrainingJobState) => void;
   onSelectJob: (job: TrainJobKind) => void;
+  isExternallyToggling?: boolean;
 };
 
 const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
@@ -40,10 +39,8 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
   onDelete,
   onStatusUpdate,
   onSelectJob,
+  isExternallyToggling = false,
 }) => {
-  const notification = useNotification();
-  const [hibernationModalOpen, setHibernationModalOpen] = React.useState(false);
-  const [isToggling, setIsToggling] = React.useState(false);
   const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const displayName = getDisplayNameFromK8sResource(job);
@@ -58,54 +55,29 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
     handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
 
+  // Use custom hook for pause/resume functionality
+  const {
+    isToggling,
+    pauseModalOpen,
+    closePauseModal,
+    onPauseClick,
+    handlePause,
+    handleResume,
+    dontShowModalValue,
+    setDontShowModalValue,
+  } = useTrainingJobPauseResume(job, onStatusUpdate);
+
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const { isPaused } = getStatusFlags(status);
 
-  // const canPauseResume = jobStatus !== undefined && canPauseResumeFromFlags;
+  const { isPaused, canPauseResume } = getStatusFlags(status);
 
-  const handleHibernationToggle = async () => {
-    setIsToggling(true);
-    try {
-      const result = await toggleTrainJobHibernation(job);
-      if (result.success) {
-        // Update status optimistically based on current state
-        const newStatus = isPaused ? TrainingJobState.RUNNING : TrainingJobState.PAUSED;
-        const jobId = job.metadata.uid || job.metadata.name;
-        onStatusUpdate?.(jobId, newStatus);
-      } else {
-        console.error('Failed to toggle hibernation:', result.error);
-        //Show error notification
-        notification.error(
-          'Failed to toggle hibernation',
-          result.error || 'Unknown error occurred',
-        );
-      }
-    } catch (error) {
-      console.error('Error toggling hibernation:', error);
-      //Show error notification
-      notification.error(
-        'Failed to toggle hibernation',
-        error instanceof Error ? error.message : 'Unknown error occurred',
-      );
-    } finally {
-      setIsToggling(false);
-      setHibernationModalOpen(false);
-    }
-  };
-
-  // Build kebab menu actions with enhanced scaling option
+  // Build kebab menu actions
   const actions = React.useMemo(() => {
-    const items = [];
+    const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
-    // Add delete action
-    items.push({
-      title: 'Delete',
-      onClick: () => onDelete(job),
-    });
-
-    // Add scale nodes action only when allowed
+    // 1. Edit node count (only when allowed)
     if (canScaleNodes) {
       items.push({
         title: 'Edit node count',
@@ -113,8 +85,43 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
       });
     }
 
+    // 2. Pause/Resume job (only when allowed)
+    if (canPauseResume) {
+      items.push({
+        title: isPaused ? 'Resume job' : 'Pause job',
+        onClick: isPaused ? handleResume : onPauseClick,
+      });
+    }
+
+    // 3. View more details
+    items.push({
+      title: 'View job details',
+      onClick: () => onSelectJob(job),
+    });
+
+    // Separator before delete
+    items.push({
+      isSeparator: true,
+    });
+
+    // 4. Delete job
+    items.push({
+      title: 'Delete job',
+      onClick: () => onDelete(job),
+    });
+
     return items;
-  }, [canScaleNodes, job, onDelete, setScaleNodesModalOpen]);
+  }, [
+    canScaleNodes,
+    canPauseResume,
+    isPaused,
+    job,
+    onDelete,
+    onSelectJob,
+    setScaleNodesModalOpen,
+    handleResume,
+    onPauseClick,
+  ]);
 
   return (
     <>
@@ -152,11 +159,10 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
                     onClick={() => setScaleNodesModalOpen(true)}
                     className="pf-u-p-0 pf-u-color-200"
                     aria-label="Scale nodes"
-                  >
-                    <Icon size="sm" className="pf-u-color-100">
-                      <EditIcon />
-                    </Icon>
-                  </Button>
+                    icon={<PencilAltIcon />}
+                    style={{ fontSize: 'inherit', padding: 0 }}
+                    isDisabled={!canScaleNodes}
+                  />
                 </Tooltip>
               </FlexItem>
             )}
@@ -189,52 +195,55 @@ const TrainingJobTableRow: React.FC<TrainingJobTableRowProps> = ({
             onClick={() => setStatusModalOpen(true)}
           />
         </Td>
-        {/* TODO: RHOAIENG-37577 Pause/Resume action is currently blocked by backend*/}
-        {/* <Td>
+        <Td>
           {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
-              onPause={() => setHibernationModalOpen(true)}
-              onResume={() => setHibernationModalOpen(true)}
-              isLoading={isToggling}
+              onPause={onPauseClick}
+              onResume={handleResume}
+              isLoading={isToggling || isExternallyToggling}
             />
           )}
-        </Td> */}
+        </Td>
         <Td isActionCell>
           <ActionsColumn items={actions} />
         </Td>
       </Tr>
 
-      <HibernationToggleModal
-        job={hibernationModalOpen ? job : undefined}
-        isPaused={isPaused}
-        isToggling={isToggling}
-        onClose={() => setHibernationModalOpen(false)}
-        onConfirm={handleHibernationToggle}
-      />
+      {pauseModalOpen && (
+        <PauseTrainingJobModal
+          job={job}
+          isPausing={isToggling}
+          onClose={closePauseModal}
+          onConfirm={handlePause}
+          dontShowModalValue={dontShowModalValue}
+          setDontShowModalValue={setDontShowModalValue}
+        />
+      )}
       {statusModalOpen && (
         <TrainingJobStatusModal
           job={job}
           jobStatus={jobStatus}
           onClose={() => setStatusModalOpen(false)}
-          // onPause={() => {
-          //   setStatusModalOpen(false);
-          //   setHibernationModalOpen(true);
-          // }}
           onDelete={() => {
             setStatusModalOpen(false);
             onDelete(job);
           }}
+          onPauseClick={onPauseClick}
+          onResumeClick={handleResume}
+          isToggling={isToggling}
         />
       )}
 
-      <ScaleNodesModal
-        job={scaleNodesModalOpen ? job : undefined}
-        currentNodeCount={nodesCount}
-        isScaling={isScaling}
-        onClose={() => setScaleNodesModalOpen(false)}
-        onConfirm={handleScaleNodes}
-      />
+      {scaleNodesModalOpen && (
+        <ScaleNodesModal
+          job={job}
+          currentNodeCount={nodesCount}
+          isScaling={isScaling}
+          onClose={() => setScaleNodesModalOpen(false)}
+          onConfirm={handleScaleNodes}
+        />
+      )}
     </>
   );
 };

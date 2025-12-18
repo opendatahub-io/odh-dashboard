@@ -1,6 +1,7 @@
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types.ts';
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
@@ -17,6 +18,7 @@ type MockLLMInferenceServiceConfigType = {
   additionalLabels?: Record<string, string>;
   isNonDashboardItem?: boolean;
   modelType?: ServingRuntimeModelType;
+  isStopped?: boolean;
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -31,6 +33,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = true,
   url,
+  isStopped = false,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceService',
@@ -40,6 +43,7 @@ export const mockLLMInferenceServiceK8sResource = ({
       'opendatahub.io/hardware-profile-name': 'small-profile',
       'opendatahub.io/hardware-profile-namespace': 'opendatahub',
       'opendatahub.io/model-type': ServingRuntimeModelType.GENERATIVE,
+      ...(isStopped ? { [ModelAnnotation.STOPPED_ANNOTATION]: 'true' } : {}),
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),

@@ -124,102 +124,57 @@ func (m *MockMCPClient) getToolsForServer(serverURL string) []models.Tool {
 			},
 		}
 	case "https://api.githubcopilot.com/mcp":
-		return []models.Tool{
-			{
-				Name:        "kubectl_get_pods",
-				Description: "List pods in a Kubernetes namespace",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"namespace": map[string]interface{}{
-							"type":        "string",
-							"description": "Kubernetes namespace to list pods from",
-						},
-						"label_selector": map[string]interface{}{
-							"type":        "string",
-							"description": "Optional label selector to filter pods",
-						},
-					},
-					"required": []string{"namespace"},
-				},
-			},
-			{
-				Name:        "kubectl_get_services",
-				Description: "List services in a Kubernetes namespace",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"namespace": map[string]interface{}{
-							"type":        "string",
-							"description": "Kubernetes namespace to list services from",
-						},
-					},
-					"required": []string{"namespace"},
-				},
-			},
-			{
-				Name:        "kubectl_get_deployments",
-				Description: "List deployments in a Kubernetes namespace",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"namespace": map[string]interface{}{
-							"type":        "string",
-							"description": "Kubernetes namespace to list deployments from",
-						},
-					},
-					"required": []string{"namespace"},
-				},
-			},
-			{
-				Name:        "kubectl_describe_resource",
-				Description: "Describe a specific Kubernetes resource",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"resource_type": map[string]interface{}{
-							"type":        "string",
-							"description": "Type of Kubernetes resource (pod, service, deployment, etc.)",
-						},
-						"resource_name": map[string]interface{}{
-							"type":        "string",
-							"description": "Name of the resource",
-						},
-						"namespace": map[string]interface{}{
-							"type":        "string",
-							"description": "Kubernetes namespace",
-						},
-					},
-					"required": []string{"resource_type", "resource_name", "namespace"},
-				},
-			},
-			{
-				Name:        "kubectl_get_logs",
-				Description: "Get logs from a pod",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"pod_name": map[string]interface{}{
-							"type":        "string",
-							"description": "Name of the pod",
-						},
-						"namespace": map[string]interface{}{
-							"type":        "string",
-							"description": "Kubernetes namespace",
-						},
-						"container": map[string]interface{}{
-							"type":        "string",
-							"description": "Optional container name",
-						},
-						"tail": map[string]interface{}{
-							"type":        "number",
-							"description": "Number of lines to show from the end of the logs",
-						},
-					},
-					"required": []string{"pod_name", "namespace"},
-				},
-			},
+		// Generate 40 tools for GitHub Copilot mock
+		githubToolNames := []string{
+			"create_repository", "search_code", "get_file_contents", "push_files",
+			"create_issue", "list_issues", "update_issue", "add_issue_comment",
+			"create_pull_request", "list_pull_requests", "merge_pull_request", "get_pull_request",
+			"list_commits", "get_commit", "compare_commits", "create_branch",
+			"list_branches", "delete_branch", "create_release", "list_releases",
+			"search_repositories", "get_repository", "fork_repository", "list_forks",
+			"create_gist", "list_gists", "get_user", "list_user_repos",
+			"create_webhook", "list_webhooks", "delete_webhook", "get_rate_limit",
+			"list_notifications", "mark_notification_read", "list_starred", "star_repository",
+			"list_collaborators", "add_collaborator", "remove_collaborator", "check_collaborator",
 		}
+		tools := make([]models.Tool, 40)
+		for i := 0; i < 40; i++ {
+			tools[i] = models.Tool{
+				Name:        githubToolNames[i],
+				Description: fmt.Sprintf("GitHub Copilot tool: %s", githubToolNames[i]),
+				InputSchema: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"input": map[string]interface{}{
+							"type":        "string",
+							"description": fmt.Sprintf("Input for %s", githubToolNames[i]),
+						},
+					},
+					"required": []string{"input"},
+				},
+			}
+		}
+		return tools
+	case "http://localhost:9094/high-tools":
+		// Generate 5 tools (combined with GitHub's 40 = 45 total, triggering >40 warning)
+		tools := make([]models.Tool, 5)
+		for i := 0; i < 5; i++ {
+			tools[i] = models.Tool{
+				Name:        fmt.Sprintf("high_tools_operation_%d", i+1),
+				Description: fmt.Sprintf("High tools server operation %d for testing >40 tools warning", i+1),
+				InputSchema: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"input": map[string]interface{}{
+							"type":        "string",
+							"description": fmt.Sprintf("Input for operation %d", i+1),
+						},
+					},
+					"required": []string{"input"},
+				},
+			}
+		}
+		return tools
 	default:
 		return []models.Tool{
 			{
@@ -380,6 +335,24 @@ func (m *MockMCPClient) CheckConnectionStatus(ctx context.Context, identity *int
 			},
 			PingResponseTimeMs: &pingMs,
 		}, nil
+	case "http://localhost:9094/high-tools":
+		pingMs := int64(15)
+		return &models.ConnectionStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "connected",
+			Message:     "Connection successful",
+			LastChecked: timestamp,
+			ServerInfo: struct {
+				Name            string `json:"name"`
+				Version         string `json:"version"`
+				ProtocolVersion string `json:"protocol_version"`
+			}{
+				Name:            "high-tools-server",
+				Version:         "1.0.0",
+				ProtocolVersion: "2024-11-05",
+			},
+			PingResponseTimeMs: &pingMs,
+		}, nil
 	default:
 		pingMs := int64(42)
 		return &models.ConnectionStatus{
@@ -533,6 +506,27 @@ func (m *MockMCPClient) ListToolsWithStatus(ctx context.Context, identity *integ
 			}{
 				Name:            "invalid-transport-server",
 				Version:         "0.9.5",
+				ProtocolVersion: "2024-11-05",
+			},
+			ToolsCount: &toolsCount,
+			Tools:      mockTools,
+		}, nil
+
+	case "http://localhost:9094/high-tools":
+		mockTools := m.getToolsForServer(serverConfig.URL)
+		toolsCount := len(mockTools)
+		return &models.ToolsStatus{
+			ServerURL:   serverConfig.URL,
+			Status:      "success",
+			Message:     fmt.Sprintf("Successfully retrieved %d tools", toolsCount),
+			LastChecked: timestamp,
+			ServerInfo: struct {
+				Name            string `json:"name"`
+				Version         string `json:"version"`
+				ProtocolVersion string `json:"protocol_version"`
+			}{
+				Name:            "high-tools-server",
+				Version:         "1.0.0",
 				ProtocolVersion: "2024-11-05",
 			},
 			ToolsCount: &toolsCount,

@@ -123,7 +123,7 @@ func TestMCPToolsHandler(t *testing.T) {
 			name:               "successful tools retrieval from github copilot server",
 			serverURL:          "https://api.githubcopilot.com/mcp",
 			expectedStatus:     "success",
-			expectedToolsCount: 5,
+			expectedToolsCount: 40,
 			expectedServerName: "generic-mcp-server",
 			expectedStatusCode: 200,
 		},

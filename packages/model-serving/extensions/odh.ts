@@ -7,12 +7,7 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import {
-  DataScienceStackComponent,
-  SupportedArea,
-} from '@odh-dashboard/internal/concepts/areas/types';
-
-const PLUGIN_MODEL_SERVING = SupportedArea.K_SERVE;
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
@@ -29,10 +24,8 @@ const extensions: (
   {
     type: 'app.area',
     properties: {
-      id: PLUGIN_MODEL_SERVING,
-      featureFlags: ['disableKServe'],
-      requiredComponents: [DataScienceStackComponent.K_SERVE],
-      reliantAreas: [SupportedArea.MODEL_SERVING],
+      id: SupportedArea.MODEL_SERVING,
+      featureFlags: ['disableModelServing'],
     },
   },
   {
@@ -43,7 +36,7 @@ const extensions: (
       component: () => import('../src/ModelsProjectDetailsTab'),
     },
     flags: {
-      required: [PLUGIN_MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING],
     },
   },
   {
@@ -54,13 +47,13 @@ const extensions: (
       component: () => import('../src/ServeModelsSection'),
     },
     flags: {
-      required: [PLUGIN_MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING],
     },
     properties: {
       id: 'modelServing',
@@ -77,7 +70,7 @@ const extensions: (
       component: () => import('../src/ModelDeploymentWizardRoutes'),
     },
     flags: {
-      required: [PLUGIN_MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING],
     },
   },
   {
@@ -87,7 +80,7 @@ const extensions: (
       component: () => import('../src/GlobalModelsRoutes'),
     },
     flags: {
-      required: [PLUGIN_MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING],
     },
   },
   {
@@ -100,7 +93,7 @@ const extensions: (
       }),
     },
     flags: {
-      required: [PLUGIN_MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING],
     },
   },
 ];

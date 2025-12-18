@@ -625,6 +625,10 @@ func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *
   "description": "GitHub Copilot MCP server with advanced kubectl tools.",
 			"logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
 		}`,
+			"high-tools-server": `{
+  "url": "http://localhost:9094/high-tools",
+  "description": "Server with 5 tools for testing"
+}`,
 		},
 	}, nil
 }

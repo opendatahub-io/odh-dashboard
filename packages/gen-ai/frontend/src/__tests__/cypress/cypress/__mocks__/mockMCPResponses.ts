@@ -142,3 +142,67 @@ export const mockMCPToolsAutoConnect = (serverUrl: string): Cypress.Chainable<nu
     })
     .as('toolsRequestAutoConnect');
 };
+
+/**
+ * Generate mock tools array with specified count
+ *
+ * @param count - Number of tools to generate
+ * @returns Array of mock tool objects
+ */
+export const generateMockTools = (
+  count: number,
+): Array<{ name: string; description: string; input_schema: object }> => {
+  return Array.from({ length: count }, (_, i) => ({
+    name: `mock_tool_${i + 1}`,
+    description: `Mock tool ${i + 1} for testing`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        input: {
+          type: 'string',
+          description: `Input for tool ${i + 1}`,
+        },
+      },
+      required: ['input'],
+    },
+  }));
+};
+
+/**
+ * Mock MCP tools endpoint with custom tools count for auto-connectable servers
+ * Used for testing tools warning threshold
+ *
+ * @param serverUrl - MCP server URL to include in response
+ * @param toolsCount - Number of tools to return
+ * @param alias - Optional alias for the intercept (defaults to 'toolsRequestHighCount')
+ * @returns Cypress chainable for the intercept
+ */
+export const mockMCPToolsAutoConnectWithCount = (
+  serverUrl: string,
+  toolsCount: number,
+  alias = 'toolsRequestHighCount',
+): Cypress.Chainable<null> => {
+  const encodedServerUrl = encodeURIComponent(serverUrl);
+  const mockTools = generateMockTools(toolsCount);
+
+  return cy
+    .intercept('GET', `**/mcp/tools*server_url=${encodedServerUrl}*`, (req) => {
+      const response = {
+        data: {
+          server_url: serverUrl,
+          status: 'success',
+          message: `Successfully retrieved ${toolsCount} tools`,
+          last_checked: Date.now(),
+          server_info: {
+            name: 'high-tools-server',
+            version: '1.0.0',
+            protocol_version: '2025-06-18',
+          },
+          tools_count: toolsCount,
+          tools: mockTools,
+        },
+      };
+      req.reply({ statusCode: 200, body: response });
+    })
+    .as(alias);
+};

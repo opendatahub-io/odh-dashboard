@@ -136,7 +136,7 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			// This ensures users have proper permissions to access any service in the namespace
 			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
 			if err != nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to check LlamaStackDistribution permissions: %w", err))
+				app.handleK8sClientError(w, r, err)
 				return
 			}
 

@@ -91,6 +91,12 @@ export enum SupportedArea {
 
   /* MLflow */
   MLFLOW = 'mlflow-application',
+
+  /* Project RBAC Settings */
+  PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
+
+  /* Embed MLflow */
+  EMBED_MLFLOW = 'embed-mlflow',
 }
 
 export type SupportedAreaType = SupportedArea | string;
@@ -110,6 +116,7 @@ export enum DataScienceStackComponent {
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
+  TRAINER = 'trainer',
 }
 
 /**
