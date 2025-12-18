@@ -321,6 +321,7 @@ export type OOTBConnectionTypesData = {
   connectionTypeAddFieldDescription: string;
   connectionTypeAddFieldType: string;
   connectionTypeAddFieldDefaultValue: string;
+  modelLocation: string;
 };
 
 export type WorkloadMetricsTestData = {

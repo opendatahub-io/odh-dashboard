@@ -1,4 +1,4 @@
-# testProjectEditing.cy.ts Test Data #
+# testCreateConnectionTypes.cy.ts Test Data #
 projectResourceName: "cypress-test-connection-type"
 connectionTypeName: "test-connection-type"
 connectionTypeDescription: "Test connection type created via E2E test"
@@ -11,3 +11,4 @@ connectionTypeAddFieldDescription: "Test Add new numeric field"
 connectionTypeAddFieldType: "Numeric"
 connectionTypeAddFieldDefaultValue: 12
 s3: 'S3 compatible object storage - v1'
+modelLocation: "S3 object storage"

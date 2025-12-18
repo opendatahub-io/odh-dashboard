@@ -300,6 +300,14 @@ class ConnectionTypePreviewModal extends Modal {
   constructor() {
     super('Preview connection');
   }
+
+  findPreviewNumericField() {
+    return cy.findByTestId('field-group numeric NUMERIC_FIELD');
+  }
+
+  findPreviewConnectionTypeName() {
+    return cy.findByTestId('typeahead-menu-toggle').find('input');
+  }
 }
 
 class ConnectionTypeSectionModal extends Modal {

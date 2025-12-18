@@ -15,6 +15,7 @@ import { createCleanProject } from '../../../../utils/projectChecker';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { deleteConnectionTypeByName } from '../../../../utils/oc_commands/connectionTypes';
+import { modelServingWizard, modelServingGlobal } from '../../../../pages/modelServing';
 
 describe('Verify Connection Type Creation', () => {
   let testData: OOTBConnectionTypesData;
@@ -32,7 +33,7 @@ describe('Verify Connection Type Creation', () => {
   let connectionTypeAddFieldDescription: string;
   let connectionTypeAddFieldType: string;
   let connectionTypeAddFieldDefaultValue: string;
-
+  let modelLocation: string;
   retryableBefore(() => {
     cy.log('Loading test data');
     return (
@@ -54,7 +55,7 @@ describe('Verify Connection Type Creation', () => {
       connectionTypeAddFieldDescription = testData.connectionTypeAddFieldDescription;
       connectionTypeAddFieldType = testData.connectionTypeAddFieldType;
       connectionTypeAddFieldDefaultValue = testData.connectionTypeAddFieldDefaultValue;
-
+      modelLocation = testData.modelLocation;
       if (!projectName) {
         throw new Error('Project name is undefined or empty in the loaded fixture');
       }
@@ -144,7 +145,7 @@ describe('Verify Connection Type Creation', () => {
       connectionTypesPage.shouldHaveConnectionTypes();
 
       cy.step('Verify the created connection type appears in the list');
-      const createdRow = connectionTypesPage.getConnectionTypeRow(connectionTypeName);
+      let createdRow = connectionTypesPage.getConnectionTypeRow(connectionTypeName);
       createdRow.shouldHaveName(connectionTypeName);
       createdRow.shouldHaveDescription(connectionTypeDescription);
 
@@ -156,13 +157,19 @@ describe('Verify Connection Type Creation', () => {
 
       cy.step('Preview connection type.');
       createdRow.findKebab().click();
-      createdRow.findKebabAction('Delete').click();
+      createdRow.findKebabAction('Preview').click();
       connectionTypePreviewModal.shouldBeOpen();
+      // Verify the new fields are displayed in the preview modal
+      // Validate the connection type name in the preview
+      connectionTypePreviewModal
+        .findPreviewConnectionTypeName()
+        .should('have.value', connectionTypeName);
+      connectionTypePreviewModal.findPreviewNumericField().should('exist');
       connectionTypePreviewModal.findCloseButton().click();
       connectionTypePreviewModal.shouldBeOpen(false);
 
       // Project navigation
-      cy.step(`Navigate to the Project list tab and validate the connection type is available`);
+      cy.step(`Navigate to the Connections tab and validate the connection type is available`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -177,12 +184,23 @@ describe('Verify Connection Type Creation', () => {
         'Navigate to connection type page and Delete the new created Connection type, verify deletion',
       );
       connectionTypesPage.navigate();
+      createdRow = connectionTypesPage.getConnectionTypeRow(connectionTypeName);
       createdRow.findKebab().click();
       createdRow.findKebabAction('Delete').click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(connectionTypeName);
       deleteModal.findSubmitButton().should('be.enabled').click();
-      connectionsPage.findDataConnectionName().should('not.exist');
+      connectionTypesPage.findTable().contains(connectionTypeName).should('not.exist');
+
+      cy.step(`Navigate to the Connections tab and validate the connection type is not available`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('connections').click();
+      connectionsPage.findCreateConnectionButton().click();
+      addConnectionModal.findConnectionTypeDropdown().click();
+      addConnectionModal.findConnectionTypeOption(connectionTypeName).should('not.exist');
+      addConnectionModal.findCloseButton().click();
     },
   );
 
@@ -199,17 +217,18 @@ describe('Verify Connection Type Creation', () => {
       connectionTypesPage.navigate();
 
       cy.step('Duplicate the Connection type');
-      const createdRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
-      createdRow.findKebab().click();
-      createdRow.findKebabAction('Duplicate').click();
+      const exisitngRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
+      exisitngRow.findKebab().click();
+      exisitngRow.findKebabAction('Duplicate').click();
       createConnectionTypePage
         .findConnectionTypeName()
         .should('have.value', duplicateConnectionTypeName);
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Edit the Connection type');
-      createdRow.findKebab().click();
-      createdRow.findKebabAction('Edit').click();
+      let duplicateRow = connectionTypesPage.getConnectionTypeRow(duplicateConnectionTypeName);
+      duplicateRow.findKebab().click();
+      duplicateRow.findKebabAction('Edit').click();
       createConnectionTypePage
         .findModelServingCompatibleTypeDropdown()
         .findDropdownItem('URI')
@@ -217,27 +236,46 @@ describe('Verify Connection Type Creation', () => {
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
       // Project navigation
-      cy.step(`Navigate to the Project list tab and validate the connection type is available`);
+      cy.step(`Navigate to the Deploymets tab and validate the connection type is available`);
       projectListPage.visit();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab('connections').click();
-      connectionsPage.findCreateConnectionButton().click();
-      addConnectionModal.findConnectionTypeDropdown().click();
-      addConnectionModal.findConnectionTypeOption(duplicateConnectionTypeName).should('exist');
-      addConnectionModal.findCloseButton().click();
+      projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+      modelServingWizard.findModelLocationSelectOption(modelLocation).click();
+      modelServingWizard
+        .findCustomModelLocationSelectOption(duplicateConnectionTypeName)
+        .should('exist');
+      modelServingWizard.findCancelButton().click();
+      modelServingWizard.findDiscardButton().click();
 
       // Delete the Connection type and confirm that the deletion was successful
       cy.step(
         'Navigate to connection type page and Delete the new created Connection type, verify deletion',
       );
       connectionTypesPage.navigate();
-      createdRow.findKebab().click();
-      createdRow.findKebabAction('Delete').click();
+      duplicateRow = connectionTypesPage.getConnectionTypeRow(duplicateConnectionTypeName);
+      duplicateRow.findKebab().click();
+      duplicateRow.findKebabAction('Delete').click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(duplicateConnectionTypeName);
       deleteModal.findSubmitButton().should('be.enabled').click();
-      connectionsPage.findDataConnectionName().should('not.exist');
+      connectionTypesPage.findTable().contains(duplicateConnectionTypeName).should('not.exist');
+
+      cy.step(`Navigate to the Deploymets tab and validate the connection type is not available`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+      modelServingWizard.findModelLocationSelectOption(modelLocation).click();
+      modelServingWizard
+        .findCustomModelLocationSelectOption(duplicateConnectionTypeName)
+        .should('not.exist');
+      modelServingWizard.findCancelButton().click();
+      modelServingWizard.findDiscardButton().click();
     },
   );
 });
