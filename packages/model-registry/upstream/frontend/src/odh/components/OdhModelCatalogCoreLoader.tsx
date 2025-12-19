@@ -2,9 +2,9 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Bullseye } from '@patternfly/react-core';
 import { WhosMyAdministrator } from 'mod-arch-shared';
-import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import ModelCatalogCoreLoader from '~/app/pages/modelCatalog/ModelCatalogCoreLoader';
-import { isAdminCheckExtension, isCatalogSettingsUrlExtension } from '~/odh/extension-points';
+import { isAdminCheckExtension } from '~/odh/extension-points';
 import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
@@ -19,31 +19,13 @@ import {
 const OdhModelCatalogCoreLoader: React.FC = () => {
   const [adminCheckExtensions, adminCheckExtensionsLoaded] =
     useResolvedExtensions(isAdminCheckExtension);
-  const catalogSettingsUrlExtensions = useExtensions(isCatalogSettingsUrlExtension);
-
-  // Get the catalog settings URL from the extension, with a fallback
-  const getCatalogSettingsUrl = (): string => {
-    if (catalogSettingsUrlExtensions.length > 0) {
-      return catalogSettingsUrlExtensions[0].properties.getUrl();
-    }
-    // Fallback to the default URL
-    return catalogSettingsUrl();
-  };
-
-  // Get the catalog settings title from the extension, with a fallback
-  const getCatalogSettingsTitle = (): string => {
-    if (catalogSettingsUrlExtensions.length > 0) {
-      return catalogSettingsUrlExtensions[0].properties.title;
-    }
-    return CATALOG_SETTINGS_PAGE_TITLE;
-  };
 
   // Create the custom action based on admin status
   const getCustomAction = (isAdmin: boolean): React.ReactNode => {
     if (isAdmin) {
       return (
-        <Link to={getCatalogSettingsUrl()}>
-          Go to <b>{getCatalogSettingsTitle()}</b>
+        <Link to={catalogSettingsUrl()}>
+          Go to <b>{CATALOG_SETTINGS_PAGE_TITLE}</b>
         </Link>
       );
     }
