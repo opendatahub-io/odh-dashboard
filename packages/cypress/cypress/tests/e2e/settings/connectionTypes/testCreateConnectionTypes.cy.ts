@@ -217,9 +217,9 @@ describe('Verify Connection Type Creation', () => {
       connectionTypesPage.navigate();
 
       cy.step('Duplicate the Connection type');
-      const exisitngRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
-      exisitngRow.findKebab().click();
-      exisitngRow.findKebabAction('Duplicate').click();
+      const exisitingRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
+      exisitingRow.findKebab().click();
+      exisitingRow.findKebabAction('Duplicate').click();
       createConnectionTypePage
         .findConnectionTypeName()
         .should('have.value', duplicateConnectionTypeName);
@@ -236,7 +236,7 @@ describe('Verify Connection Type Creation', () => {
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
       // Project navigation
-      cy.step(`Navigate to the Deploymets tab and validate the connection type is available`);
+      cy.step(`Navigate to the Deployments tab and validate the connection type is available`);
       projectListPage.visit();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -263,7 +263,7 @@ describe('Verify Connection Type Creation', () => {
       deleteModal.findSubmitButton().should('be.enabled').click();
       connectionTypesPage.findTable().contains(duplicateConnectionTypeName).should('not.exist');
 
-      cy.step(`Navigate to the Deploymets tab and validate the connection type is not available`);
+      cy.step(`Navigate to the Deployments tab and validate the connection type is not available`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -271,11 +271,7 @@ describe('Verify Connection Type Creation', () => {
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
       modelServingWizard.findModelLocationSelectOption(modelLocation).click();
-      modelServingWizard
-        .findCustomModelLocationSelectOption(duplicateConnectionTypeName)
-        .should('not.exist');
-      modelServingWizard.findCancelButton().click();
-      modelServingWizard.findDiscardButton().click();
+      modelServingWizard.findCustomModelLocationSelect().should('not.exist');
     },
   );
 });
