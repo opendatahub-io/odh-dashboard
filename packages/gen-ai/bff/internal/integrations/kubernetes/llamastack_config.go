@@ -18,12 +18,6 @@ type LlamaStackConfig struct {
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
 	Storage             Storage             `json:"storage" yaml:"storage"`
 	RegisteredResources RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
-	Shields             []Shield            `json:"shields" yaml:"shields"`
-	VectorDBs           []VectorDB          `json:"vector_dbs" yaml:"vector_dbs"`
-	Datasets            []Dataset           `json:"datasets" yaml:"datasets"`
-	ScoringFns          []ScoringFn         `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks          []Benchmark         `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups          []ToolGroup         `json:"tool_groups" yaml:"tool_groups"`
 	Server              Server              `json:"server" yaml:"server"`
 }
 
@@ -50,7 +44,13 @@ type MetadataStore struct {
 }
 
 type RegisteredResources struct {
-	Models []Model `json:"models,omitempty" yaml:"models,omitempty"`
+	Models     []Model     `json:"models" yaml:"models"`
+	Shields    []Shield    `json:"shields" yaml:"shields"`
+	VectorDBs  []VectorDB  `json:"vector_dbs" yaml:"vector_dbs"`
+	Datasets   []Dataset   `json:"datasets" yaml:"datasets"`
+	ScoringFns []ScoringFn `json:"scoring_fns" yaml:"scoring_fns"`
+	Benchmarks []Benchmark `json:"benchmarks" yaml:"benchmarks"`
+	ToolGroups []ToolGroup `json:"tool_groups" yaml:"tool_groups"`
 }
 
 type Storage struct {
@@ -135,10 +135,19 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				NewProvider("model-context-protocol", "remote::model-context-protocol", EmptyConfig()),
 			},
 		},
-		ToolGroups: []ToolGroup{
-			{
-				ToolGroupID: "builtin::rag",
-				ProviderID:  "rag-runtime",
+		RegisteredResources: RegisteredResources{
+			// Ensure these serialize as `[]` (not `null`) when no values exist.
+			Models:     []Model{},
+			Shields:    []Shield{},
+			VectorDBs:  []VectorDB{},
+			Datasets:   []Dataset{},
+			ScoringFns: []ScoringFn{},
+			Benchmarks: []Benchmark{},
+			ToolGroups: []ToolGroup{
+				{
+					ToolGroupID: "builtin::rag",
+					ProviderID:  "rag-runtime",
+				},
 			},
 		},
 		MetadataStore: MetadataStore{

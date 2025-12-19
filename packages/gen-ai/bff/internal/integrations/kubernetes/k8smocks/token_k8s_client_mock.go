@@ -465,25 +465,26 @@ storage:
     conversations:
       table_name: openai_conversations
       backend: sql_default
-models:
-  - metadata:
-      embedding_dimension: 768
-    model_id: granite-embedding-125m
-    provider_id: sentence-transformers
-    provider_model_id: ibm-granite/granite-embedding-125m-english
-    model_type: embedding
-  - metadata: {}
-    model_id: mock-model
-    provider_id: vllm-inference-1
-    model_type: llm
-shields: []
-vector_dbs: []
-datasets: []
-scoring_fns: []
-benchmarks: []
-tool_groups:
-- toolgroup_id: builtin::rag
-  provider_id: rag-runtime
+registered_resources:
+  models:
+    - metadata:
+        embedding_dimension: 768
+      model_id: granite-embedding-125m
+      provider_id: sentence-transformers
+      provider_model_id: ibm-granite/granite-embedding-125m-english
+      model_type: embedding
+    - metadata: {}
+      model_id: mock-model
+      provider_id: vllm-inference-1
+      model_type: llm
+  shields: []
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+    - toolgroup_id: builtin::rag
+      provider_id: rag-runtime
 server:
   port: 8321`,
 		},
