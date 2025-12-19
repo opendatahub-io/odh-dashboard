@@ -39,8 +39,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'notebooks-kf-workspacekinds',
       title: 'Workspace Kinds',
       href: '/notebooks/workspacekinds',
-      section: 'notebooks',
+      section: 'ai-hub',
       path: '/notebooks/workspacekinds/*',
+      group: '1_aihub',
     },
   },
   {

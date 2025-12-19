@@ -15,6 +15,7 @@ import {
   BFF_API_VERSION,
   STYLE_THEME,
   MANDATORY_NAMESPACE,
+  ROUTES_PREFIX,
 } from './shared/utilities/const';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
@@ -28,7 +29,7 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router>
+    <Router basename={ROUTES_PREFIX}>
       <ModularArchContextProvider config={modularArchConfig}>
         <ThemeProvider theme={STYLE_THEME}>
           <BrowserStorageContextProvider>

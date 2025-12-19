@@ -218,7 +218,7 @@ if enable_frontend:
     k8s_resource(
         "workspaces-frontend",
         port_forwards=[
-          "9000:8080", # frontend - use host port 9000 to avoid conflict with controller
+          "9105:8080", # frontend - use host port 9000 to avoid conflict with controller
         ],
         # wait for backend to be ready to avoid 504 errors on initial page load
         resource_deps=["workspaces-backend"],
