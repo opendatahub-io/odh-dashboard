@@ -61,8 +61,14 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
       }
       // Don't capture Enter for buttons - let them handle it natively
       // This ensures that when a button is focused, Enter activates it
+      // Exception: If it's a tab that's already selected, capture Enter since
+      // pressing Enter on an already-selected tab is a no-op
       if (event.target instanceof HTMLButtonElement) {
-        return;
+        const isTab = event.target.getAttribute('role') === 'tab';
+        const isAlreadySelected = event.target.getAttribute('aria-selected') === 'true';
+        if (!isTab || !isAlreadySelected) {
+          return;
+        }
       }
       // Don't capture Enter for links - let them navigate
       if (event.target instanceof HTMLAnchorElement) {
