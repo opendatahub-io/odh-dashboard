@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/openai/openai-go/v2"
 )
 
 type Envelope[D any, M any] struct {
@@ -126,18 +124,4 @@ func (app *App) WritePlain(w http.ResponseWriter, status int, data string, heade
 	}
 
 	return nil
-}
-
-// ModelNotFoundError checks if the error indicates a model was not found
-func ModelNotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	var apiErr *openai.Error
-	if errors.As(err, &apiErr) {
-		return apiErr.StatusCode == http.StatusNotFound
-	}
-
-	return false
 }

@@ -182,7 +182,7 @@ func (app *App) LlamaStackListFilesHandler(w http.ResponseWriter, r *http.Reques
 
 	result, err := app.repositories.Files.ListFiles(ctx, params)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
@@ -210,7 +210,7 @@ func (app *App) LlamaStackDeleteFileHandler(w http.ResponseWriter, r *http.Reque
 
 	err := app.repositories.Files.DeleteFile(ctx, fileID)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
