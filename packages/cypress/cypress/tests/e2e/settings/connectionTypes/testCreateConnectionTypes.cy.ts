@@ -9,7 +9,7 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
-import { loadDSPFixture } from '../../../../utils/dataLoader';
+import { loadOOTBConnectionTypesFixture } from '../../../../utils/dataLoader';
 import type { OOTBConnectionTypesData } from '../../../../types';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -34,12 +34,10 @@ describe('Verify Connection Type Creation', () => {
   let connectionTypeAddFieldType: string;
   let connectionTypeAddFieldDefaultValue: string;
   let modelLocation: string;
-  retryableBefore(() => {
-    cy.log('Loading test data');
-    return (
-      loadDSPFixture(
-        'e2e/settings/connectionTypes/testCreateConnectionTypes.yaml',
-      ) as unknown as Cypress.Chainable<OOTBConnectionTypesData>
+
+  retryableBefore(() =>
+    loadOOTBConnectionTypesFixture(
+      'e2e/settings/connectionTypes/testCreateConnectionTypes.yaml',
     ).then((fixtureData: OOTBConnectionTypesData) => {
       testData = fixtureData;
       projectName = `${testData.projectResourceName}-${uuid}`;
@@ -61,16 +59,14 @@ describe('Verify Connection Type Creation', () => {
       }
       cy.log(`Loaded project name: ${projectName}`);
       createCleanProject(projectName);
-    });
-  });
+    }),
+  );
 
   after(() => {
     // Delete createdconfigmaps in this e2e test
+    deleteConnectionTypeByName(`ct-${connectionTypeName.toLowerCase().replace(/[\s-]+/g, '-')}`);
     deleteConnectionTypeByName(
-      `ct-${connectionTypeName.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-')}`,
-    );
-    deleteConnectionTypeByName(
-      `ct-${duplicateConnectionTypeName.toLowerCase().replace(/\s+/g, '-').replace(/-+/g, '-')}`,
+      `ct-${duplicateConnectionTypeName.toLowerCase().replace(/[\s-]+/g, '-')}`,
     );
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
