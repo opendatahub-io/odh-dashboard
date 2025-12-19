@@ -159,3 +159,21 @@ func ValidateKubernetesAnnotations(path *field.Path, annotations map[string]stri
 func ValidateKubernetesLabels(path *field.Path, labels map[string]string) field.ErrorList {
 	return v1validation.ValidateLabels(labels, path)
 }
+
+// ValidateFieldIsConfigMapKey validates a field contains a valid key name.
+// USED FOR:
+//   - keys of: Secrets, ConfigMaps
+func ValidateFieldIsConfigMapKey(path *field.Path, value string) field.ErrorList {
+	var errs field.ErrorList
+
+	if value == "" {
+		errs = append(errs, field.Required(path, ""))
+	} else {
+		failures := validation.IsConfigMapKey(value)
+		if len(failures) > 0 {
+			errs = append(errs, field.Invalid(path, value, strings.Join(failures, "; ")))
+		}
+	}
+
+	return errs
+}
