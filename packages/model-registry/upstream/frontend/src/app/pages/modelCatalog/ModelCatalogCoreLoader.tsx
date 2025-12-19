@@ -14,7 +14,11 @@ import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogCont
 import EmptyModelCatalogState from './EmptyModelCatalogState';
 import { hasSourcesWithModels } from './utils/modelCatalogUtils';
 
-const ModelCatalogCoreLoader: React.FC = () => {
+type ModelCatalogCoreLoaderProps = {
+  customAction?: React.ReactNode;
+};
+
+const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({ customAction }) => {
   const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError } =
     React.useContext(ModelCatalogContext);
 
@@ -53,6 +57,9 @@ const ModelCatalogCoreLoader: React.FC = () => {
   }
   // Show empty state if there are no sources, or if all sources have no models (e.g., disabled)
   if (catalogSources?.items?.length === 0 || !hasSourcesWithModels(catalogSources)) {
+    // Determine the default action based on theme
+    const defaultAction = isMUITheme ? <KubeflowDocs /> : <WhosMyAdministrator />;
+
     return (
       <ApplicationsPage
         title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
@@ -70,7 +77,7 @@ const ModelCatalogCoreLoader: React.FC = () => {
             headerIcon={() => (
               <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />
             )}
-            customAction={isMUITheme ? <KubeflowDocs /> : <WhosMyAdministrator />}
+            customAction={customAction ?? defaultAction}
           />
         }
         headerContent={null}
