@@ -1821,6 +1821,7 @@ describe('Model Serving Deploy Wizard', () => {
         displayName: 'Saved S3 Model',
         secretName: 'saved-s3-secret',
         modelType: ServingRuntimeModelType.PREDICTIVE,
+        path: 'path/to/model',
         predictorAnnotations: {
           'opendatahub.io/connection-path': 'test-model/',
         },
