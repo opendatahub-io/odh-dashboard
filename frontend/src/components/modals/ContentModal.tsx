@@ -55,6 +55,19 @@ const FocusableDiv: React.FC<FocusableDivProps> = ({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
+      // Don't capture Enter for textareas (they need it for newlines)
+      if (event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      // Don't capture Enter for buttons - let them handle it natively
+      // This ensures that when a button is focused, Enter activates it
+      if (event.target instanceof HTMLButtonElement) {
+        return;
+      }
+      // Don't capture Enter for links - let them navigate
+      if (event.target instanceof HTMLAnchorElement) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       onEnterPress();
