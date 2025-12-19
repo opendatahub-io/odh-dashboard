@@ -1,7 +1,7 @@
 import React from 'react';
 import { Checkbox, Flex, FlexItem, Label, Stack, StackItem, Tooltip } from '@patternfly/react-core';
 import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 import { MetricColumnSearchInput } from './MetricColumnSearchInput';
 
@@ -33,17 +33,17 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
     onClose();
   }, [metricsColumnsLocalStorageKey, onClose, selectedColumnNames]);
 
-  const buttonActions = [
+  const buttonActions: ButtonAction[] = [
     {
       label: 'Update',
       onClick: onUpdate,
-      variant: 'primary' as const,
+      variant: 'primary',
       dataTestId: 'metrics-columns-update-button',
     },
     {
       label: 'Cancel',
       onClick: onClose,
-      variant: 'link' as const,
+      variant: 'link',
       dataTestId: 'metrics-columns-cancel-button',
       clickOnEnter: true,
     },

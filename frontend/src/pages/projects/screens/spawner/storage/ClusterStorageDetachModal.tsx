@@ -1,5 +1,5 @@
 import React from 'react';
-import ContentModal from '#~/components/modals/ContentModal.tsx';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 
 interface ClusterStorageDetachModalProps {
   storageName: string;
@@ -12,17 +12,17 @@ export const ClusterStorageDetachModal: React.FC<ClusterStorageDetachModalProps>
   onConfirm,
   onClose,
 }) => {
-  const buttonActions = [
+  const buttonActions: ButtonAction[] = [
     {
       label: 'Detach',
       onClick: onConfirm,
-      variant: 'primary' as const,
+      variant: 'primary',
       dataTestId: 'detach-storage-modal-button',
     },
     {
       label: 'Cancel',
       onClick: onClose,
-      variant: 'link' as const,
+      variant: 'link',
       dataTestId: 'cancel-storage-modal-button',
       clickOnEnter: true,
     },

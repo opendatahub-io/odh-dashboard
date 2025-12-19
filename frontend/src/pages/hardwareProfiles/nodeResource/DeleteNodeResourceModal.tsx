@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import { Identifier } from '#~/types';
 import { CPU_MEMORY_MISSING_WARNING } from '#~/pages/hardwareProfiles/const';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 
 type DeleteNodeResourceModalProps = {
   identifier: Identifier;
@@ -19,17 +19,17 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
 
   const deleteTitle = `Delete resource: ${identifier.displayName}`;
 
-  const buttonActions = [
+  const buttonActions: ButtonAction[] = [
     {
       label: 'Delete',
       onClick: () => onBeforeClose(true),
-      variant: 'primary' as const,
+      variant: 'primary',
       dataTestId: 'delete-node-resource-modal-delete-btn',
     },
     {
       label: 'Cancel',
       onClick: () => onBeforeClose(false),
-      variant: 'link' as const,
+      variant: 'link',
       dataTestId: 'delete-node-resource-modal-cancel-btn',
       clickOnEnter: true,
     },

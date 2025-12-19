@@ -24,7 +24,7 @@ import PipelineComponentStatusIcon, {
 import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes';
 import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
-import ContentModal from '#~/components/modals/ContentModal.tsx';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
 const PROGRESS_TAB = 'Progress';
@@ -196,17 +196,17 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
     </Stack>
   );
 
-  const buttonActions = [
+  const buttonActions: ButtonAction[] = [
     {
       label: 'Delete pipeline server',
       onClick: onDelete,
-      variant: 'primary' as const,
+      variant: 'primary',
       dataTestId: 'pipeline-delete-from-modal',
     },
     {
       label: 'Close',
       onClick: onClose,
-      variant: 'link' as const,
+      variant: 'link',
       dataTestId: 'pipeline-close-status-modal',
       clickOnEnter: true,
     },

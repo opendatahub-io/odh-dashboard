@@ -10,7 +10,7 @@ import {
   modelServingFlags,
   advancedAIMLFlags,
 } from '#~/concepts/areas/const';
-import ContentModal from '#~/components/modals/ContentModal.tsx';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 
 type Props = FeatureFlagLauncherProps & { onClose: () => void };
 
@@ -56,17 +56,17 @@ const FeatureFlagModal: React.FC<Props> = ({
     </Grid>
   );
 
-  const buttonActions = [
+  const buttonActions: ButtonAction[] = [
     {
       label: 'Reset to defaults',
       onClick: () => resetDevFeatureFlags(false),
-      variant: 'primary' as const,
+      variant: 'primary',
       dataTestId: 'reset-feature-flags-modal-button',
     },
     {
       label: 'Close',
       onClick: onClose,
-      variant: 'link' as const,
+      variant: 'link',
       dataTestId: 'feature-flags-close-status-modal',
       clickOnEnter: true,
     },

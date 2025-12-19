@@ -6,14 +6,15 @@ import {
   ModalHeader,
   ModalFooter,
   Button,
+  ButtonProps,
   ModalProps,
 } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
-type ButtonAction = {
+export type ButtonAction = {
   label: string;
   onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'link';
+  variant?: ButtonProps['variant'];
   clickOnEnter?: boolean;
   dataTestId?: string;
 };

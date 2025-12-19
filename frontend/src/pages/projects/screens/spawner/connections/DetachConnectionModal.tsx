@@ -1,7 +1,7 @@
 import React from 'react';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import ContentModal from '#~/components/modals/ContentModal.tsx';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 
 type Props = {
   connection: Connection;
@@ -31,17 +31,17 @@ export const DetachConnectionModal: React.FC<Props> = ({
     </div>
   );
 
-  const buttonActions = [
+  const buttonActions: ButtonAction[] = [
     {
       label: 'Detach',
       onClick: onDetach,
-      variant: isRunning ? ('danger' as const) : ('primary' as const),
+      variant: isRunning ? 'danger' : 'primary',
       dataTestId: 'detach-connection-modal-button',
     },
     {
       label: 'Cancel',
       onClick: onClose,
-      variant: 'link' as const,
+      variant: 'link',
       dataTestId: 'cancel-connection-modal-button',
       clickOnEnter: true,
     },
