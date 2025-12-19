@@ -55,6 +55,7 @@ export const DetachConnectionModal: React.FC<Props> = ({
       buttonActions={buttonActions}
       dataTestId="detach-connection-modal"
       variant="medium"
+      titleIconVariant={isRunning ? 'warning' : undefined}
     />
   );
 };

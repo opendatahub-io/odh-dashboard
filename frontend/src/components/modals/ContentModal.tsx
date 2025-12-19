@@ -8,6 +8,7 @@ import {
   Button,
   ButtonProps,
   ModalProps,
+  ModalHeaderProps,
 } from '@patternfly/react-core';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -30,6 +31,7 @@ type ContentModalProps = {
   bodyClassName?: string;
   variant?: ModalProps['variant'];
   bodyLabel?: string;
+  titleIconVariant?: ModalHeaderProps['titleIconVariant'];
 };
 
 type FocusableDivProps = {
@@ -124,6 +126,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
   bodyClassName = 'odh-modal__content-height',
   variant = 'medium',
   bodyLabel,
+  titleIconVariant,
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const enterPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -176,7 +179,6 @@ const ContentModal: React.FC<ContentModalProps> = ({
       isOpen
       variant={variant}
       onClose={onClose}
-      title={typeof title === 'string' ? title : 'Modal'}
       disableFocusTrap={disableFocusTrap}
       aria-label={typeof title === 'string' ? title : undefined}
       aria-labelledby={typeof title !== 'string' ? headingId : undefined}
@@ -184,6 +186,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
       <ModalHeader
         title={typeof title === 'string' ? title : undefined}
         description={typeof title === 'string' ? description : undefined}
+        titleIconVariant={titleIconVariant}
         data-testid="generic-modal-header"
       >
         {typeof title !== 'string' ? (
