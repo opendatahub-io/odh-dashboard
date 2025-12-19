@@ -147,14 +147,14 @@ registered_resources:
       model_id: facebook/opt-125m
       provider_id: maas-vllm-inference-1
       model_type: llm
-shields: []
-vector_dbs: []
-datasets: []
-scoring_fns: []
-benchmarks: []
-tool_groups:
-- toolgroup_id: builtin::rag
-  provider_id: rag-runtime
+  shields: []
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+    - toolgroup_id: builtin::rag
+      provider_id: rag-runtime
 external_providers_dir: /opt/app-root/.llama/providers.d
 server:
   port: 8321
