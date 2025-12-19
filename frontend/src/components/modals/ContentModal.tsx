@@ -189,12 +189,12 @@ const ContentModal: React.FC<ContentModalProps> = ({
         titleIconVariant={titleIconVariant}
         data-testid="generic-modal-header"
       >
-        {typeof title !== 'string' ? (
+        {typeof title !== 'string' && (
           <>
             <span id={headingId}>{title}</span>
             {description && <div style={{ marginTop: '8px' }}>{description}</div>}
           </>
-        ) : null}
+        )}
       </ModalHeader>
       <ModalBody className={bodyClassName} aria-label={bodyLabel}>
         {modalContents}
