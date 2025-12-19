@@ -32,6 +32,7 @@ import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { PermissionsContextProvider } from '#~/concepts/permissions/PermissionsContext';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -182,7 +183,11 @@ const ProjectDetails: React.FC = () => {
                     {
                       id: ProjectSectionID.PERMISSIONS,
                       title: 'Permissions',
-                      component: <ProjectPermissions />,
+                      component: (
+                        <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                          <ProjectPermissions />
+                        </PermissionsContextProvider>
+                      ),
                       label: 'Tech preview',
                     },
                   ]
