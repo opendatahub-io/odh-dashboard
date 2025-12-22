@@ -7,13 +7,15 @@ import (
 	"strings"
 	"time"
 
-	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 )
 
 type TokenKubernetesClient struct {
@@ -77,10 +79,17 @@ func newTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dynClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		logger.Error("failed to create token-based Kubernetes dynamic client", "error", err)
+		return nil, fmt.Errorf("failed to create Kubernetes dynamic client: %w", err)
+	}
+
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
+			Client:        clientset,
+			DynamicClient: dynClient,
+			Logger:        logger,
 			// Token is retained for follow-up calls; do not log it.
 			Token: NewBearerToken(token),
 		},
