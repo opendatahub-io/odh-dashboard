@@ -172,7 +172,6 @@ const ContentModal: React.FC<ContentModalProps> = ({
     contents
   );
 
-  // todo; test that a button *without* a variant is rendered properly
   return (
     <Modal
       data-testid={dataTestId}
