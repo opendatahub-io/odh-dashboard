@@ -507,7 +507,7 @@ func (t *TiersRepository) createOrUpdateRateLimitPolicies(ctx context.Context, t
 				existingPolicy, getErr := kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Get(ctx, rateLimitPolicy.GetName(), metav1.GetOptions{})
 				if getErr != nil {
 					t.logger.Warn("Failed to update consolidated RateLimitPolicy", "tier", tierName, "error", getErr)
-					errs = append(errs, createErr)
+					errs = append(errs, getErr)
 				} else {
 					existingPolicy.Object["spec"] = rateLimitPolicy.Object["spec"]
 					_, updateErr := kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Update(ctx, existingPolicy, metav1.UpdateOptions{})
