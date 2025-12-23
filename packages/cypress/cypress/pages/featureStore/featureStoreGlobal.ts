@@ -297,6 +297,10 @@ class FeatureStoreGlobal {
     return cy.findByTestId(testId);
   }
 
+  findGlobalSearchMatchedTag(key: string) {
+    return cy.findByTestId(`global-search-matched-tag-${key}`);
+  }
+
   findPaginationToggle() {
     return cy.get('#table-pagination-top-toggle');
   }

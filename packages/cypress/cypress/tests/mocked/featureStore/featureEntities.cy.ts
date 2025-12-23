@@ -630,4 +630,80 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchInput().clear();
     featureStoreGlobal.findGlobalSearchMenu().should('not.exist');
   });
+
+  it('should display matched tags in search results', () => {
+    const searchResponseWithMatchedTags = mockComprehensiveSearchResponse('risk', fsProjectName);
+    const featureViewIndex = searchResponseWithMatchedTags.results.findIndex(
+      (result) => result.type === 'featureView',
+    );
+    if (featureViewIndex !== -1) {
+      searchResponseWithMatchedTags.results[featureViewIndex] = {
+        ...searchResponseWithMatchedTags.results[featureViewIndex],
+        matched_tag: {
+          computation: 'derived',
+        },
+      };
+    }
+
+    cy.intercept(
+      'GET',
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponseWithMatchedTags,
+    ).as('globalSearchWithTags');
+
+    featureStoreGlobal.visitEntities();
+    featureStoreGlobal.findGlobalSearchInput().clear().type('risk');
+    cy.wait('@globalSearchWithTags');
+
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchItem('featureView', 'risk_features').should('be.visible');
+
+    featureStoreGlobal.findGlobalSearchMatchedTag('computation').should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('computation')
+      .should('contain.text', 'computation=derived');
+  });
+
+  it('should display multiple matched tags in search results', () => {
+    const searchResponseWithMultipleTags = mockComprehensiveSearchResponse('risk', fsProjectName);
+    const featureViewIndex = searchResponseWithMultipleTags.results.findIndex(
+      (result) => result.type === 'featureView',
+    );
+    if (featureViewIndex !== -1) {
+      searchResponseWithMultipleTags.results[featureViewIndex] = {
+        ...searchResponseWithMultipleTags.results[featureViewIndex],
+        matched_tag: {
+          computation: 'derived',
+          source: 'external',
+          category: 'risk',
+        },
+      };
+    }
+
+    cy.intercept(
+      'GET',
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponseWithMultipleTags,
+    ).as('globalSearchWithMultipleTags');
+
+    featureStoreGlobal.visitEntities();
+    featureStoreGlobal.findGlobalSearchInput().clear().type('risk');
+    cy.wait('@globalSearchWithMultipleTags');
+
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchItem('featureView', 'risk_features').should('be.visible');
+
+    featureStoreGlobal.findGlobalSearchMatchedTag('computation').should('be.visible');
+    featureStoreGlobal.findGlobalSearchMatchedTag('source').should('be.visible');
+    featureStoreGlobal.findGlobalSearchMatchedTag('category').should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('computation')
+      .should('contain.text', 'computation=derived');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('source')
+      .should('contain.text', 'source=external');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('category')
+      .should('contain.text', 'category=risk');
+  });
 });

@@ -195,32 +195,54 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                           .toLowerCase()
                           .replace(/\s+/g, '-')}`}
                       >
-                        <Stack hasGutter={false}>
+                        <Stack hasGutter>
                           <StackItem>
-                            <Flex
-                              direction={{ default: 'row' }}
-                              alignItems={{ default: 'alignItemsCenter' }}
-                              gap={{ default: 'gapMd' }}
-                            >
-                              <Content className={text.textColorRegular}>
-                                {highlightText(item.title, searchState.searchValue)}
-                              </Content>
-                              <FeatureStoreLabels color="blue" isCompact variant="outline">
-                                {item.project}
-                              </FeatureStoreLabels>
-                            </Flex>
+                            <Stack hasGutter={false}>
+                              <StackItem>
+                                <Flex
+                                  direction={{ default: 'row' }}
+                                  alignItems={{ default: 'alignItemsCenter' }}
+                                  gap={{ default: 'gapMd' }}
+                                >
+                                  <Content className={text.textColorRegular}>
+                                    {highlightText(item.title, searchState.searchValue)}
+                                  </Content>
+                                  <FeatureStoreLabels color="blue" isCompact variant="outline">
+                                    {item.project}
+                                  </FeatureStoreLabels>
+                                </Flex>
+                              </StackItem>
+                              <StackItem>
+                                <Content
+                                  className={`${text.fontSizeSm} ${text.textColorSubtle} ${text.textWrap}`}
+                                >
+                                  {highlightText(item.description, searchState.searchValue)}
+                                </Content>
+                              </StackItem>
+                            </Stack>
                           </StackItem>
-                          <StackItem>
-                            <Content
-                              className={`${text.fontSizeSm} ${text.textColorSubtle} ${text.textWrap}`}
-                              style={{
-                                marginTop: '0.25rem',
-                                display: 'block',
-                              }}
-                            >
-                              {highlightText(item.description, searchState.searchValue)}
-                            </Content>
-                          </StackItem>
+                          {item.matched_tag && Object.keys(item.matched_tag).length > 0 && (
+                            <StackItem>
+                              <Flex
+                                direction={{ default: 'row' }}
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                gap={{ default: 'gapSm' }}
+                                flexWrap={{ default: 'wrap' }}
+                              >
+                                {Object.entries(item.matched_tag).map(([key, value]) => (
+                                  <FeatureStoreLabels
+                                    key={key}
+                                    color="blue"
+                                    isCompact
+                                    variant="filled"
+                                    dataTestId={`global-search-matched-tag-${key}`}
+                                  >
+                                    {key}={value}
+                                  </FeatureStoreLabels>
+                                ))}
+                              </Flex>
+                            </StackItem>
+                          )}
                         </Stack>
                       </MenuItem>
                     ))}
