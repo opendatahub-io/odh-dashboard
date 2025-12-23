@@ -130,7 +130,8 @@ const ContentModal: React.FC<ContentModalProps> = ({
 }) => {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const enterPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const headingId = useId(); // for the aria-labelledby attribute (a11y)
+  const headingId = useId(); // used for aria-labelledby (a11y)
+  const descriptionId = useId(); // used for aria-describedby (a11y)
 
   const clickOnEnterIndex = buttonActions?.findIndex((action) => action.clickOnEnter) ?? -1;
   const hasClickOnEnter = clickOnEnterIndex !== -1;
@@ -179,22 +180,16 @@ const ContentModal: React.FC<ContentModalProps> = ({
       variant={variant}
       onClose={onClose}
       disableFocusTrap={disableFocusTrap}
-      aria-label={typeof title === 'string' ? title : undefined}
-      aria-labelledby={typeof title !== 'string' ? headingId : undefined}
+      aria-labelledby={headingId}
+      aria-describedby={description ? descriptionId : undefined}
     >
       <ModalHeader
-        title={typeof title === 'string' ? title : undefined}
-        description={typeof title === 'string' ? description : undefined}
+        title={title}
+        labelId={headingId}
+        description={description ? <div id={descriptionId}>{description}</div> : undefined}
         titleIconVariant={titleIconVariant}
         data-testid="generic-modal-header"
-      >
-        {typeof title !== 'string' && (
-          <>
-            <span id={headingId}>{title}</span>
-            {description && <div style={{ marginTop: '8px' }}>{description}</div>}
-          </>
-        )}
-      </ModalHeader>
+      />
       <ModalBody className={bodyClassName} aria-label={bodyLabel}>
         {modalContents}
       </ModalBody>
