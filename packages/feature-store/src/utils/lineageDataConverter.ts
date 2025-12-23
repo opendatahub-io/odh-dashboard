@@ -263,12 +263,19 @@ export const convertFeatureViewLineageToVisualizationData = (
     const sourceKey = `${relationship.source.type}-${relationship.source.name}`;
     const targetKey = `${relationship.target.type}-${relationship.target.name}`;
 
-    uniqueObjects.set(sourceKey, relationship.source);
-    uniqueObjects.set(targetKey, relationship.target);
+    if (relationship.source.name && !uniqueObjects.has(sourceKey)) {
+      uniqueObjects.set(sourceKey, relationship.source);
+    }
+    if (relationship.target.name && !uniqueObjects.has(targetKey)) {
+      uniqueObjects.set(targetKey, relationship.target);
+    }
   });
 
   // Create nodes for each unique object
   uniqueObjects.forEach((obj, key) => {
+    if (obj.type === 'feature') {
+      return;
+    }
     const isCurrentFeatureView = obj.type.includes('featureView') && obj.name === featureViewName;
     const layer = getObjectLayer(obj.type, isCurrentFeatureView);
 
@@ -288,6 +295,9 @@ export const convertFeatureViewLineageToVisualizationData = (
   // Create edges from relationships
   featureViewLineage.relationships.forEach(
     (relationship: FeatureStoreRelationship, index: number) => {
+      if (relationship.source.type === 'feature' || relationship.target.type === 'feature') {
+        return;
+      }
       const sourceId = mapObjectToNodeId(relationship.source);
       const targetId = mapObjectToNodeId(relationship.target);
 

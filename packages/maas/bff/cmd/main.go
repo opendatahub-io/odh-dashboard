@@ -52,6 +52,8 @@ func main() {
 	// MaaS
 	flag.StringVar(&cfg.TiersConfigMapNamespace, "tiers-configmap-namespace", getEnvAsString("TIERS_CONFIGMAP_NS", "maas-api"), "Namespace where the ConfigMap for tiers configuration is located")
 	flag.StringVar(&cfg.TiersConfigMapName, "tiers-configmap-name", getEnvAsString("TIERS_CONFIGMAP_NAME", "tier-to-group-mapping"), "Name of the ConfigMap for tiers configuration")
+	flag.StringVar(&cfg.GatewayNamespace, "gateway-namespace", getEnvAsString("GATEWAY_NAMESPACE", "openshift-ingress"), "Namespace where the MaaS Gateway is deployed in")
+	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsString("GATEWAY_NAME", "maas-default-gateway"), "The names of the MaaS Gateway")
 
 	flag.Parse()
 

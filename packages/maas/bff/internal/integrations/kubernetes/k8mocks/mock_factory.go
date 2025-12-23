@@ -7,22 +7,24 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/opendatahub-io/maas-library/bff/internal/config"
-	"github.com/opendatahub-io/maas-library/bff/internal/constants"
-	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/config"
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 )
 
 type MockedKubernetesClientFactory interface {
 	k8s.KubernetesClientFactory
 }
 
-func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, dynamicClient dynamic.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodInternal:
-		k8sFactory, err := NewStaticClientFactory(clientset, logger)
+		k8sFactory, err := NewStaticClientFactory(clientset, dynamicClient, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create static client factory: %w", err)
 		}
@@ -45,18 +47,20 @@ type MockedStaticClientFactory struct {
 	logger                       *slog.Logger
 	serviceAccountMockedK8client k8s.KubernetesClientInterface
 	clientset                    kubernetes.Interface
+	dynamicClient                dynamic.Interface
 	initErr                      error
 	initLock                     sync.Mutex
 	realFactoryWithoutClient     k8s.StaticClientFactory
 }
 
-func NewStaticClientFactory(clientset kubernetes.Interface, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+func NewStaticClientFactory(clientset kubernetes.Interface, dynamicClient dynamic.Interface, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	realFactoryWithoutClient := k8s.StaticClientFactory{
 		Logger: logger,
 	}
 	return &MockedStaticClientFactory{
 		logger:                   logger,
 		clientset:                clientset,
+		dynamicClient:            dynamicClient,
 		realFactoryWithoutClient: realFactoryWithoutClient,
 	}, nil
 }
@@ -70,7 +74,7 @@ func (f *MockedStaticClientFactory) GetClient(_ context.Context) (k8s.Kubernetes
 	}
 
 	f.logger.Info("Initializing mocked service account client")
-	client := newMockedInternalKubernetesClientFromClientset(f.clientset, f.logger)
+	client := newMockedInternalKubernetesClientFromClientset(f.clientset, f.dynamicClient, f.logger)
 	if client == nil {
 		f.initErr = fmt.Errorf("failed to create mocked service account client")
 		return nil, f.initErr

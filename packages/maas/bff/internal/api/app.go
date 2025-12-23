@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -89,8 +90,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockK8Client {
 		//mock all k8s calls with 'env test'
 		var clientset kubernetes.Interface
+		var dynamicClient dynamic.Interface
 		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+		testEnv, clientset, dynamicClient, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
 			Logger: logger,
 			Ctx:    ctx,
 			Cancel: cancel,
@@ -99,7 +101,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
 		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, dynamicClient, testEnv, cfg, logger)
 
 	} else {
 		//create kubernetes client factory
@@ -114,7 +116,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(k8sFactory, cfg),
+		repositories:            repositories.NewRepositories(logger, k8sFactory, cfg),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 	}

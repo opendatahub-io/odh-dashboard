@@ -134,11 +134,11 @@ describe('Permissions tab', () => {
     groupTable.findRows().should('have.length', 1);
 
     // Verify the valid users are displayed correctly
-    userTable.getTableRow('user-1').should('exist');
-    userTable.getTableRow('test-user').should('exist');
+    userTable.getTableRow('user-1').find().should('exist');
+    userTable.getTableRow('test-user').find().should('exist');
 
     // Verify the valid group is displayed correctly
-    groupTable.getTableRow('group-1').should('exist');
+    groupTable.getTableRow('group-1').find().should('exist');
 
     // The add buttons should still be enabled
     permissions.findAddUserButton().should('be.enabled');

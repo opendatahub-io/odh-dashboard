@@ -110,6 +110,12 @@ export const MODEL_CATALOG_POPOVER_MESSAGES = {
   RED_HAT: 'Red Hat AI models are provided and supported by Red Hat.',
 } as const;
 
+export enum CatalogModelCustomPropertyKey {
+  VALIDATED_ON = 'validated_on',
+  TENSOR_TYPE = 'tensor_type',
+  SIZE = 'size',
+}
+
 export enum ModelCatalogLicense {
   APACHE_2_0 = 'apache-2.0',
   GEMMA = 'gemma',

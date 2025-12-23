@@ -8,12 +8,17 @@ import (
 	"path/filepath"
 	"runtime"
 
-	kubernetes2 "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	"go.yaml.in/yaml/v3"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	kubernetes2 "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 )
 
 var DefaultTestUsers = []TestUser{
@@ -47,7 +52,7 @@ type TestEnvInput struct {
 	Cancel context.CancelFunc
 }
 
-func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
+func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, dynamic.Interface, error) {
 	projectRoot, err := getProjectRoot()
 	if err != nil {
 		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
@@ -57,6 +62,9 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 
 	testEnv := &envtest.Environment{
 		BinaryAssetsDirectory: filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		CRDDirectoryPaths: []string{
+			filepath.Join("internal", "testdata", "crd"),
+		},
 	}
 
 	cfg, err := testEnv.Start()
@@ -73,18 +81,25 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 		os.Exit(1)
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		input.Logger.Error("failed to create dynamic client", slog.String("error", err.Error()))
+		input.Cancel()
+		os.Exit(1)
+	}
+
 	// bootstrap resources
-	err = setupMock(clientset, input.Ctx)
+	err = setupMock(clientset, dynamicClient, input.Ctx)
 	if err != nil {
 		input.Logger.Error("failed to setup mock data", slog.String("error", err.Error()))
 		input.Cancel()
 		os.Exit(1)
 	}
 
-	return testEnv, clientset, nil
+	return testEnv, clientset, dynamicClient, nil
 }
 
-func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
+func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Interface, ctx context.Context) error {
 
 	err := createNamespace(mockK8sClient, ctx, "kubeflow")
 	if err != nil {
@@ -102,6 +117,26 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 	}
 
 	err = createNamespace(mockK8sClient, ctx, "bento-namespace")
+	if err != nil {
+		return err
+	}
+
+	err = createNamespace(mockK8sClient, ctx, "maas-api")
+	if err != nil {
+		return err
+	}
+
+	err = createNamespace(mockK8sClient, ctx, "openshift-ingress")
+	if err != nil {
+		return err
+	}
+
+	err = createMaaSTiersConfigMap(mockK8sClient, ctx, "maas-api", "tier-to-group-mapping")
+	if err != nil {
+		return err
+	}
+
+	err = createMaaSLimitPolicies(mockDynamicClient, ctx, "openshift-ingress")
 	if err != nil {
 		return err
 	}
@@ -388,6 +423,71 @@ func createService(k8sClient kubernetes.Interface, ctx context.Context, name str
 	_, err := k8sClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
+	}
+
+	return nil
+}
+
+func createMaaSTiersConfigMap(k8sClient kubernetes.Interface, ctx context.Context, namespace, cmName string) error {
+	cmTiers := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      cmName,
+		},
+		Data: map[string]string{
+			"tiers": `
+- name: tier0
+  groups:
+    - tier0-users
+    - system:authenticated
+  level: 0
+- name: tier1
+  groups:
+    - tier1-users
+    - tier1-group
+  level: 1`,
+		},
+	}
+
+	_, err := k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, cmTiers, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create tiers ConfigMap %s: %w", namespace, err)
+	}
+
+	return nil
+}
+
+func createMaaSLimitPolicies(k8sClient dynamic.Interface, ctx context.Context, namespace string) error {
+	rateLimitYaml, err := os.ReadFile("internal/testdata/rate-limit-policy.yaml")
+	if err != nil {
+		return err
+	}
+
+	var rateLimit map[string]interface{}
+	err = yaml.Unmarshal(rateLimitYaml, &rateLimit)
+	if err != nil {
+		return err
+	}
+
+	_, err = k8sClient.Resource(constants.RatePolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: rateLimit}, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	tokenLimitYaml, err := os.ReadFile("internal/testdata/token-limit-policy.yaml")
+	if err != nil {
+		return err
+	}
+
+	var tokenLimit map[string]interface{}
+	err = yaml.Unmarshal(tokenLimitYaml, &tokenLimit)
+	if err != nil {
+		return err
+	}
+
+	_, err = k8sClient.Resource(constants.TokenPolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: tokenLimit}, metav1.CreateOptions{})
+	if err != nil {
+		return err
 	}
 
 	return nil

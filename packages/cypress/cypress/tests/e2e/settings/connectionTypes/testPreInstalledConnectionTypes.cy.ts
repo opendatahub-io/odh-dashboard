@@ -8,11 +8,11 @@ describe('Verify OOTB Connection Types', () => {
   let testData: OOTBConnectionTypesData;
 
   retryableBefore(() =>
-    loadOOTBConnectionTypesFixture('e2e/connectionTypes/testOOTBConnectionType.yaml').then(
-      (fixtureData: OOTBConnectionTypesData) => {
-        testData = fixtureData;
-      },
-    ),
+    loadOOTBConnectionTypesFixture(
+      'e2e/settings/connectionTypes/testPreInstalledConnectionTypes.yaml',
+    ).then((fixtureData: OOTBConnectionTypesData) => {
+      testData = fixtureData;
+    }),
   );
 
   it(

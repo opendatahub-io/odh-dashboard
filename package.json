@@ -59,7 +59,7 @@
     "type-check": "turbo run type-check",
     "test-unit": "turbo run test-unit",
     "test-unit-coverage": "turbo run test-unit-coverage && node scripts/unit-test-coverage-aggregator.js",
-    "test:contract": "turbo run test:contract",
+    "test:contract": "turbo run test:contract --concurrency=1",
     "cypress:server": "turbo run cypress:server",
     "cypress:server:dev": "turbo run cypress:server:dev",
     "cypress:server:build": "turbo run cypress:server:build",
