@@ -55,31 +55,23 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
             mutations.forEach((mutation) => {
               mutation.addedNodes.forEach((node) => {
                 if (isElementNode(node)) {
+                  // Check if the node itself matches our selectors
+                  if (node.matches(removeQuery)) {
+                    applyHiddenStylesToElement(node);
+                  } else if (node.matches('main') && isHTMLElement(node)) {
+                    applyOverrideStylesToMainElement(node);
+                  }
+                  // Also check children within the node
                   hideElements(node);
                   overrideMainElementStyles(node);
                 }
               });
-
-              if (
-                mutation.type === 'attributes' &&
-                mutation.attributeName === 'style' &&
-                isElementNode(mutation.target)
-              ) {
-                const element = mutation.target;
-                if (element.matches(removeQuery)) {
-                  applyHiddenStylesToElement(element);
-                } else if (element.matches('main') && isHTMLElement(element)) {
-                  applyOverrideStylesToMainElement(element);
-                }
-              }
             });
           });
 
           observer.observe(doc.body, {
             childList: true,
             subtree: true,
-            attributes: true,
-            attributeFilter: ['style'],
           });
         }
       } catch (error) {
