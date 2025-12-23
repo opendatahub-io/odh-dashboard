@@ -6,12 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	"log/slog"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -26,25 +25,17 @@ import (
 )
 
 func TestLlamaStackDistributionStatusHandler(t *testing.T) {
-	// Setup test environment (takes ~1-2 seconds)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: slog.Default(),
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}() // Cleanup happens automatically
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	// Create mock factory (instant)
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -154,25 +145,17 @@ func TestLlamaStackDistributionStatusHandler(t *testing.T) {
 }
 
 func TestLlamaStackDistributionInstallHandler(t *testing.T) {
-	// Setup test environment (takes ~1-2 seconds)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: slog.Default(),
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}() // Cleanup happens automatically
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	// Create mock factory (instant)
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -357,25 +340,17 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 }
 
 func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
-	// Setup test environment (takes ~1-2 seconds)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: slog.Default(),
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}()
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	// Create mock factory (instant)
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -497,25 +472,17 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 }
 
 func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
-	// Setup test environment (takes ~1-2 seconds)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: slog.Default(),
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}() // Cleanup happens automatically
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	// Create mock factory (instant)
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
