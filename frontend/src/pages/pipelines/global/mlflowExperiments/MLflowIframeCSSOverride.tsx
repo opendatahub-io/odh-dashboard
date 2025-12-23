@@ -17,20 +17,28 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
   useEffect(() => {
     let observer: MutationObserver | null = null;
 
+    const applyHiddenStylesToElement = (element: Element) => {
+      if (isHTMLElement(element)) {
+        element.style.setProperty('display', 'none', 'important');
+      }
+    };
+
     const hideElements = (doc: Document | Element) => {
       const elementsToHide = doc.querySelectorAll(removeQuery);
       elementsToHide.forEach((element) => {
-        if (isHTMLElement(element)) {
-          element.style.setProperty('display', 'none', 'important');
-        }
+        applyHiddenStylesToElement(element);
       });
+    };
+
+    const applyOverrideStylesToMainElement = (mainElement: HTMLElement) => {
+      mainElement.style.setProperty('margin', '0', 'important');
+      mainElement.style.setProperty('border-radius', '0', 'important');
     };
 
     const overrideMainElementStyles = (doc: Document | Element) => {
       const mainElement = doc.querySelector('main');
       if (mainElement) {
-        mainElement.style.setProperty('margin', '0', 'important');
-        mainElement.style.setProperty('border-radius', '0', 'important');
+        applyOverrideStylesToMainElement(mainElement);
       }
     };
 
@@ -59,8 +67,9 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
               ) {
                 const element = mutation.target;
                 if (element.matches(removeQuery)) {
-                  hideElements(element);
-                  overrideMainElementStyles(element);
+                  applyHiddenStylesToElement(element);
+                } else if (element.matches('main') && isHTMLElement(element)) {
+                  applyOverrideStylesToMainElement(element);
                 }
               }
             });
