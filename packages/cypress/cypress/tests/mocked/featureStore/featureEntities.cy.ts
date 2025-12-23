@@ -531,7 +531,11 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchInput().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchInput()
-      .should('have.attr', 'placeholder', 'Search resources by name or description.');
+      .should(
+        'have.attr',
+        'placeholder',
+        'Search by name, description, or tag (Example: team=platform)',
+      );
   });
 
   it('should perform global search and display results', () => {
@@ -705,5 +709,56 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal
       .findGlobalSearchMatchedTag('category')
       .should('contain.text', 'category=risk');
+  });
+
+  describe('Global Search Tooltip functionality', () => {
+    it('should display tooltip on hover when search input is empty', () => {
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+
+      featureStoreGlobal.findGlobalSearchInput().clear();
+      featureStoreGlobal.findGlobalSearchContainer().trigger('mouseenter');
+      featureStoreGlobal
+        .findGlobalSearchTooltip()
+        .should('be.visible')
+        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+    });
+
+    it('should display tooltip on click when search input is empty', () => {
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+      featureStoreGlobal.findGlobalSearchInput().clear();
+      featureStoreGlobal.findGlobalSearchContainer().click();
+      featureStoreGlobal
+        .findGlobalSearchTooltip()
+        .should('be.visible')
+        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+    });
+
+    it('should hide tooltip when user starts typing', () => {
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+      featureStoreGlobal.findGlobalSearchInput().clear();
+      featureStoreGlobal.findGlobalSearchContainer().trigger('mouseenter');
+      featureStoreGlobal.findGlobalSearchTooltip().should('be.visible');
+      featureStoreGlobal.findGlobalSearchInput().type('test');
+      featureStoreGlobal.findGlobalSearchTooltip().should('not.exist');
+    });
+
+    it('should not show tooltip when search input has value', () => {
+      const searchResponse = mockComprehensiveSearchResponse('user', fsProjectName);
+
+      cy.intercept(
+        'GET',
+        `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
+        searchResponse,
+      ).as('globalSearch');
+
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().clear().type('user');
+      cy.wait('@globalSearch');
+      featureStoreGlobal.findGlobalSearchContainer().trigger('mouseenter');
+      featureStoreGlobal.findGlobalSearchTooltip().should('not.exist');
+    });
   });
 });
