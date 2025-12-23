@@ -9,14 +9,21 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
 
   const isElementNode = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
 
+  const isHTMLElement = (element: Element): element is HTMLElement =>
+    'style' in element && typeof element.style === 'object';
+
   const removeQuery = '.du-bois-light-breadcrumb, .du-bois-dark-breadcrumb, header, aside';
 
   useEffect(() => {
     let observer: MutationObserver | null = null;
 
-    const removeElements = (doc: Document | Element) => {
-      const elementsToRemove = doc.querySelectorAll(removeQuery);
-      elementsToRemove.forEach((element) => element.remove());
+    const hideElements = (doc: Document | Element) => {
+      const elementsToHide = doc.querySelectorAll(removeQuery);
+      elementsToHide.forEach((element) => {
+        if (isHTMLElement(element)) {
+          element.style.setProperty('display', 'none', 'important');
+        }
+      });
     };
 
     const overrideMainElementStyles = (doc: Document | Element) => {
@@ -33,18 +40,14 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
         if (iframe?.contentDocument) {
           const doc = iframe.contentDocument;
 
-          removeElements(doc);
+          hideElements(doc);
           overrideMainElementStyles(doc);
 
           observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
               mutation.addedNodes.forEach((node) => {
                 if (isElementNode(node)) {
-                  if (node.matches(removeQuery)) {
-                    node.remove();
-                  } else {
-                    removeElements(node);
-                  }
+                  hideElements(node);
                   overrideMainElementStyles(node);
                 }
               });

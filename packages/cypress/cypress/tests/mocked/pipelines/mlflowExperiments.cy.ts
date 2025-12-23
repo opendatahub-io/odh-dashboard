@@ -68,9 +68,9 @@ describe('MLflow Experiments', () => {
         const doc = iframe.contentDocument;
         expect(doc).to.not.be.null;
 
-        expect(doc?.querySelector('.du-bois-light-breadcrumb')).to.be.null;
-        expect(doc?.querySelector('header')).to.be.null;
-        expect(doc?.querySelector('aside')).to.be.null;
+        expect(doc?.querySelector('.du-bois-light-breadcrumb')).to.have.css('display', 'none');
+        expect(doc?.querySelector('header')).to.have.css('display', 'none');
+        expect(doc?.querySelector('aside')).to.have.css('display', 'none');
 
         const main = doc?.querySelector('main');
         expect(main).to.not.be.null;
