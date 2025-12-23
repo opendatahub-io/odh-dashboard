@@ -161,6 +161,13 @@ show_usage() {
   echo "  --commit=SHA       Optional. Specific commit to update to (default: latest)"
   echo "  --continue         Continue from a previous conflict resolution"
   echo ""
+  echo "Package.json subtree configuration:"
+  echo "  repo               Required. The upstream repository URL"
+  echo "  branch             Optional. Target branch to sync from (default: repository default branch)"
+  echo "  src                Optional. Subdirectory within the upstream repo to sync"
+  echo "  target             Required. Target directory within the package"
+  echo "  commit             The current synced commit (managed by this script)"
+  echo ""
   echo "Examples:"
   echo "  $0 --package=@odh-dashboard/model-registry"
   echo "  $0 --package=@odh-dashboard/model-registry --commit=abc123"
@@ -238,6 +245,7 @@ cd "$MONOREPO_ROOT"
 
 # Read config from package.json (needed for both modes)
 UPSTREAM_REPO=$(jq -r '.subtree.repo' "$PACKAGE_JSON")
+UPSTREAM_BRANCH=$(jq -r '.subtree.branch // ""' "$PACKAGE_JSON")
 UPSTREAM_SUBDIR=$(jq -r '.subtree.src // ""' "$PACKAGE_JSON")
 TARGET_RELATIVE=$(jq -r '.subtree.target' "$PACKAGE_JSON")
 CURRENT_COMMIT=$(jq -r '.subtree.commit // ""' "$PACKAGE_JSON")
@@ -301,7 +309,11 @@ if [ "$CONTINUE_MODE" = true ]; then
   trap 'cd "$MONOREPO_ROOT"; rm -rf "$TMP_DIR"' EXIT
   
   # Clone repository to determine commit information
-  git clone -q "$UPSTREAM_REPO" "$TMP_DIR/repo"
+  if [ -n "$UPSTREAM_BRANCH" ]; then
+    git clone -q --branch "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
+  else
+    git clone -q "$UPSTREAM_REPO" "$TMP_DIR/repo"
+  fi
   cd "$TMP_DIR/repo"
   
   # Get target commit SHA
@@ -371,14 +383,22 @@ fi
 # Derive target path (relative to workspace directory)
 TARGET_DIR="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE"
 
-progress_msg "Syncing $PACKAGE_NAME from $UPSTREAM_REPO"
+if [ -n "$UPSTREAM_BRANCH" ]; then
+  progress_msg "Syncing $PACKAGE_NAME from $UPSTREAM_REPO (branch: $UPSTREAM_BRANCH)"
+else
+  progress_msg "Syncing $PACKAGE_NAME from $UPSTREAM_REPO"
+fi
 
 # Set up temp directory
 TMP_DIR=$(mktemp -d)
 trap 'cd "$MONOREPO_ROOT"; rm -rf "$TMP_DIR"' EXIT
 
-# Clone repository
-git clone -q "$UPSTREAM_REPO" "$TMP_DIR/repo"
+# Clone repository (use specified branch if configured)
+if [ -n "$UPSTREAM_BRANCH" ]; then
+  git clone -q --branch "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
+else
+  git clone -q "$UPSTREAM_REPO" "$TMP_DIR/repo"
+fi
 cd "$TMP_DIR/repo"
 
 # Get target commit SHA
