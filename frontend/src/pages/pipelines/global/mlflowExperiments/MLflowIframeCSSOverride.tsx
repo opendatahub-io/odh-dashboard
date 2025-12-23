@@ -51,12 +51,26 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
                   overrideMainElementStyles(node);
                 }
               });
+
+              if (
+                mutation.type === 'attributes' &&
+                mutation.attributeName === 'style' &&
+                isElementNode(mutation.target)
+              ) {
+                const element = mutation.target;
+                if (element.matches(removeQuery)) {
+                  hideElements(element);
+                  overrideMainElementStyles(element);
+                }
+              }
             });
           });
 
           observer.observe(doc.body, {
             childList: true,
             subtree: true,
+            attributes: true,
+            attributeFilter: ['style'],
           });
         }
       } catch (error) {
