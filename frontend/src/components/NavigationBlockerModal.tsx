@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useBlocker, Location } from 'react-router-dom';
-import { Button } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import ContentModal from '#~/components/modals/ContentModal';
 
 interface NavigationBlockerModalProps {
   hasUnsavedChanges: boolean;
@@ -76,33 +75,28 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
   }
 
   return (
-    <Modal
-      variant={ModalVariant.small}
+    <ContentModal
       title="Discard unsaved changes?"
-      isOpen
       onClose={handleCancel}
-      actions={[
-        <Button
-          key="confirm"
-          variant="primary"
-          onClick={handleConfirm}
-          data-testid="confirm-discard-changes"
-        >
-          Discard
-        </Button>,
-        <Button
-          key="cancel"
-          variant="link"
-          onClick={handleCancel}
-          data-testid="cancel-discard-changes"
-        >
-          Cancel
-        </Button>,
+      variant="small"
+      dataTestId="navigation-blocker-modal"
+      contents="One or more of your changes on this page are not saved yet. Discard your changes and leave this page, or cancel to continue editing."
+      buttonActions={[
+        {
+          label: 'Discard',
+          onClick: handleConfirm,
+          variant: 'primary',
+          dataTestId: 'confirm-discard-changes',
+        },
+        {
+          label: 'Cancel',
+          onClick: handleCancel,
+          variant: 'link',
+          dataTestId: 'cancel-discard-changes',
+          clickOnEnter: true,
+        },
       ]}
-    >
-      One or more of your changes on this page are not saved yet. Discard your changes and leave
-      this page, or cancel to continue editing.
-    </Modal>
+    />
   );
 };
 
