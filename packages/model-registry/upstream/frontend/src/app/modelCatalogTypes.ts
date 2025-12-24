@@ -8,6 +8,7 @@ import {
   ModelCatalogNumberFilterKey,
   LatencyMetricFieldName,
   UseCaseOptionValue,
+  ModelCatalogFilterKey,
 } from '../concepts/modelCatalog/const';
 import {
   ModelRegistryCustomProperties,
@@ -78,9 +79,9 @@ export enum CatalogSourceType {
 }
 
 export type CatalogArtifactBase = {
-  createTimeSinceEpoch: string;
-  lastUpdateTimeSinceEpoch: string;
-  customProperties: ModelRegistryCustomProperties;
+  createTimeSinceEpoch?: string;
+  lastUpdateTimeSinceEpoch?: string;
+  customProperties?: ModelRegistryCustomProperties;
 };
 
 export type CatalogModelArtifact = CatalogArtifactBase & {
@@ -122,13 +123,13 @@ export type AccuracyMetricsCustomProperties = {
 export type CatalogPerformanceMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
   artifactType: CatalogArtifactType.metricsArtifact;
   metricsType: MetricsType.performanceMetrics;
-  customProperties: PerformanceMetricsCustomProperties;
+  customProperties?: PerformanceMetricsCustomProperties;
 };
 
 export type CatalogAccuracyMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
   artifactType: CatalogArtifactType.metricsArtifact;
   metricsType: MetricsType.accuracyMetrics;
-  customProperties: AccuracyMetricsCustomProperties;
+  customProperties?: AccuracyMetricsCustomProperties;
 };
 
 export type CatalogMetricsArtifact =
@@ -141,15 +142,15 @@ export type CatalogArtifactList = ModelCatalogListParams & { items: CatalogArtif
 
 export type CatalogFilterNumberOption = {
   type: 'number';
-  range: {
-    max: number;
-    min: number;
+  range?: {
+    max?: number;
+    min?: number;
   };
 };
 
 export type CatalogFilterStringOption<T extends string> = {
   type: 'string';
-  values: T[];
+  values?: T[];
 };
 
 export type GetCatalogModelsBySource = (
@@ -187,6 +188,8 @@ export type GetPerformanceArtifacts = (
   sourceId: string,
   modelName: string,
   params?: PerformanceArtifactsParams,
+  filterData?: ModelCatalogFilterStates,
+  filterOptions?: CatalogFilterOptionsList | null,
 ) => Promise<CatalogArtifactList>;
 
 export type GetArtifactFilterOptions = (
@@ -203,6 +206,7 @@ export type ModelCatalogAPIs = {
   getCatalogModel: GetCatalogModel;
   getListCatalogModelArtifacts: GetListCatalogModelArtifacts;
   getCatalogFilterOptionList: GetCatalogFilterOptionList;
+  getPerformanceArtifacts: GetPerformanceArtifacts;
 };
 
 export type CatalogModelDetailsParams = {
@@ -210,10 +214,7 @@ export type CatalogModelDetailsParams = {
   modelName?: string;
 };
 
-export type ModelCatalogFilterKey =
-  | ModelCatalogStringFilterKey
-  | ModelCatalogNumberFilterKey
-  | LatencyMetricFieldName;
+export type { ModelCatalogFilterKey };
 
 // Not used for a run time value, just for mapping other types
 export type ModelCatalogStringFilterValueType = {
@@ -226,13 +227,13 @@ export type ModelCatalogStringFilterValueType = {
 };
 
 export type ModelCatalogStringFilterOptions = {
-  [key in ModelCatalogStringFilterKey]: CatalogFilterStringOption<
+  [key in ModelCatalogStringFilterKey]?: CatalogFilterStringOption<
     ModelCatalogStringFilterValueType[key]
   >;
 };
 
 export type CatalogFilterOptions = ModelCatalogStringFilterOptions & {
-  [key in ModelCatalogNumberFilterKey]: CatalogFilterNumberOption;
+  [key in ModelCatalogNumberFilterKey]?: CatalogFilterNumberOption;
 } & {
   // Allow additional latency metric field names
   [key in LatencyMetricFieldName]?: CatalogFilterNumberOption;
@@ -258,7 +259,7 @@ export type FieldFilter = {
 export type NamedQuery = Record<string, FieldFilter>;
 
 export type CatalogFilterOptionsList = {
-  filters: CatalogFilterOptions;
+  filters?: CatalogFilterOptions;
   namedQueries?: Record<string, NamedQuery>;
 };
 
