@@ -81,4 +81,134 @@ describe('MLflow Experiments', () => {
       });
     });
   });
+
+  it('should properly encode and decode MLflow paths in parent URL', () => {
+    initIntercepts();
+    const testPath = '/experiments/123/runs';
+    const encodedPath = encodeURIComponent(testPath);
+    mlflowExperimentsPage.visit(testPath);
+    mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', `/mlflow/#${testPath}`);
+    mlflowExperimentsPage.getEncodedPathParam().should('equal', encodedPath);
+    mlflowExperimentsPage.getPathParam().should('equal', testPath);
+  });
+
+  it('should sync parent URL when iframe navigates internally', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
+      const iframe = $iframe[0];
+      if (!isIframeElement(iframe)) {
+        throw new Error('Expected element to be an iframe');
+      }
+      cy.window().then((win) => {
+        const initialLength = win.history.length;
+        cy.wrap(iframe).should(() => {
+          expect(iframe.contentWindow).to.not.be.null;
+          iframe.contentWindow?.history.pushState({}, '', '#/experiments/3/runs');
+        });
+        cy.url().should('include', 'path=');
+        mlflowExperimentsPage.getPathParam().should('equal', '/experiments/3/runs');
+
+        cy.wrap(iframe).should(() => {
+          iframe.contentWindow?.history.replaceState(
+            {},
+            '',
+            '#/experiments/3/runs/11d8a63b60df4a3fa17d4ebbc8a5110c/artifacts',
+          );
+        });
+        mlflowExperimentsPage
+          .getPathParam()
+          .should('equal', '/experiments/3/runs/11d8a63b60df4a3fa17d4ebbc8a5110c/artifacts');
+
+        cy.wrap(iframe).should(() => {
+          iframe.contentWindow?.history.pushState({}, '', '#/experiments');
+        });
+        cy.url().should('not.include', 'path=');
+        cy.window().should((w) => {
+          expect(w.history.length).to.be.at.most(initialLength + 1);
+        });
+      });
+    });
+  });
+
+  it('should sync iframe content with parent URL changes', () => {
+    initIntercepts();
+    const deepPath = '/experiments/2/runs/11d8a63b60df4a3fa17d4ebbc8a5110c';
+    mlflowExperimentsPage.visit(deepPath);
+    mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', `/mlflow/#${deepPath}`);
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', mlflowIframeUrl);
+  });
+
+  it('should handle navbar clicks with replaceWhenActive behavior', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
+      const iframe = $iframe[0];
+      if (!isIframeElement(iframe)) {
+        throw new Error('Expected element to be an iframe');
+      }
+
+      cy.wrap(iframe).should(() => {
+        iframe.contentWindow?.history.pushState({}, '', '#/experiments/3/runs');
+      });
+
+      cy.url().should('include', 'path=');
+
+      cy.window().then((win) => {
+        const historyLengthBefore = win.history.length;
+
+        mlflowExperimentsPage.findNavItem().click();
+
+        cy.window().should((w) => {
+          expect(w.history.length).to.equal(historyLengthBefore);
+        });
+        cy.url().should('not.include', 'path=');
+        mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', mlflowIframeUrl);
+      });
+    });
+  });
+
+  it('should isolate iframe history from browser history', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    cy.window().then((win) => {
+      const initialLength = win.history.length;
+
+      mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
+        const iframe = $iframe[0];
+        if (!isIframeElement(iframe)) {
+          throw new Error('Expected element to be an iframe');
+        }
+
+        cy.wrap(iframe).should(() => {
+          iframe.contentWindow?.history.pushState({}, '', '#/experiments/1');
+          iframe.contentWindow?.history.pushState({}, '', '#/experiments/2');
+          iframe.contentWindow?.history.pushState({}, '', '#/experiments/3');
+          iframe.contentWindow?.history.pushState({}, '', '#/experiments/4/runs');
+          iframe.contentWindow?.history.pushState(
+            {},
+            '',
+            '#/experiments/5/runs/11d8a63b60df4a3fa17d4ebbc8a5110c/artifacts',
+          );
+        });
+
+        // History length should not have increased significantly
+        // (pushState converted to replaceState in patchIframeHistory)
+        cy.window().should((w) => {
+          expect(w.history.length).to.be.at.most(initialLength + 1);
+        });
+
+        mlflowExperimentsPage
+          .getPathParam()
+          .should('equal', '/experiments/5/runs/11d8a63b60df4a3fa17d4ebbc8a5110c/artifacts');
+      });
+    });
+  });
 });

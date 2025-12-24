@@ -21,6 +21,11 @@ export type HrefNavItemExtension = Extension<
      * A successful match will highlight the item as active.
      */
     path?: string;
+    /**
+     * If true, clicking this link while already on this page will use replace
+     * instead of push. Useful for preventing history pollution.
+     */
+    replaceWhenActive?: boolean;
   }
 >;
 
