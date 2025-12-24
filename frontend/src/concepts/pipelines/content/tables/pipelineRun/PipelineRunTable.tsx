@@ -5,7 +5,12 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import {
+  ManageColumnsModal,
+  TableBase,
+  getTableColumnSort,
+  useCheckboxTable,
+} from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
@@ -28,7 +33,6 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
-import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
 
@@ -72,6 +76,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     runArtifactsError,
     runArtifactsLoaded,
     metricsNames,
+    updateMetricsColumnNames,
   } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
   const {
     selections: selectedIds,
@@ -346,15 +351,20 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         />
       )}
       {isCustomColModalOpen && (
-        <CustomMetricsColumnsModal
+        <ManageColumnsModal
           key={metricsNames.size}
-          experimentId={experiment?.experiment_id}
+          title="Customize metrics columns"
+          description="Select up to 10 metrics that will display as columns in the table. Drag and drop column names to reorder them."
+          searchPlaceholder="Filter by metric name"
+          maxSelections={10}
+          maxSelectionsTooltip="Maximum metrics selected. To view values of all metrics, go to the Compare runs page."
           columns={[...new Set([...metricsColumnNames, ...metricsNames])].map((metricName) => ({
             id: metricName,
             content: metricName,
             props: { checked: metricsColumnNames.includes(metricName) },
           }))}
           onClose={() => setIsCustomColModalOpen(false)}
+          onUpdate={updateMetricsColumnNames}
         />
       )}
     </>
