@@ -31,7 +31,7 @@ jobs:
         run: make clean
 
       - name: Run lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.1.0
           working-directory: packages/gen-ai/bff
