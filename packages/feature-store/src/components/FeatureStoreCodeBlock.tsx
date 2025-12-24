@@ -49,7 +49,6 @@ const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
         </Title>
         <Popover
           maxWidth="400px"
-          headerContent={`How to use this ${featureStoreType ?? 'resource'} definition?`}
           bodyContent={`This code shows the definition used to create the ${id} ${
             featureStoreType ?? 'resource'
           }. You can copy and modify it to define similar resources in code.`}
