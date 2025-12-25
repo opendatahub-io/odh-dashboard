@@ -1,0 +1,139 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainingRuntime
+metadata:
+  name: ${trainingRuntimeName}
+  namespace: ${namespace}
+spec:
+  mlPolicy:
+    numNodes: 1
+  template:
+    spec:
+      replicatedJobs:
+        - name: node
+          template:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: node
+                      image: registry.access.redhat.com/ubi9/python-311:latest
+                      command: ["python3"]
+                      args:
+                        - "-c"
+                        - |
+                          import time, json, random
+                          from http.server import HTTPServer, BaseHTTPRequestHandler
+                          from threading import Thread
+                          from datetime import datetime
+                          
+                          # Metrics state (this is what the UI reads)
+                          metrics_state = {
+                              "progressPercentage": 0,
+                              "currentStep": 0,
+                              "totalSteps": 100,
+                              "currentEpoch": 0,
+                              "totalEpochs": 5,
+                              "estimatedRemainingSeconds": 100,
+                              "trainMetrics": {"train_loss": 5.0},
+                              "lastUpdatedTime": datetime.utcnow().isoformat() + "Z"
+                          }
+                          
+                          # HTTP server for Training Operator to poll
+                          class MetricsHandler(BaseHTTPRequestHandler):
+                              def do_GET(self):
+                                  self.send_response(200)
+                                  self.send_header('Content-type', 'application/json')
+                                  self.end_headers()
+                                  self.wfile.write(json.dumps(metrics_state).encode())
+                              def log_message(self, *args): 
+                                  pass  # Suppress HTTP logs
+                          
+                          # Start metrics server on port 28080
+                          server = HTTPServer(('0.0.0.0', 28080), MetricsHandler)
+                          server_thread = Thread(target=server.serve_forever, daemon=True)
+                          server_thread.start()
+                          print("=" * 60)
+                          print("[OK] Metrics server started on port 28080")
+                          print("   Training Operator will poll every 7 seconds")
+                          print("=" * 60)
+                          
+                          time.sleep(2)  # Let server fully start
+                          
+                          # Training simulation with progression tracking
+                          num_epochs = 5
+                          steps_per_epoch = 20
+                          total_steps = num_epochs * steps_per_epoch
+                          initial_loss = 5.0
+                          
+                          print("\n" + "=" * 60)
+                          print("Starting Training with Progression Tracking")
+                          print("=" * 60)
+                          
+                          for epoch in range(1, num_epochs + 1):
+                              print(f"\n{'='*60}")
+                              print(f"Epoch {epoch}/{num_epochs}")
+                              print(f"{'='*60}")
+                              
+                              for step in range(1, steps_per_epoch + 1):
+                                  # Calculate current progress
+                                  current_step = (epoch - 1) * steps_per_epoch + step
+                                  progress_pct = int((current_step / total_steps) * 100)
+                                  remaining_steps = total_steps - current_step
+                                  estimated_seconds = remaining_steps * 1
+                                  
+                                  # Simulate loss decrease
+                                  loss = initial_loss / (1 + epoch * 0.3 + step * 0.02)
+                                  loss += random.uniform(-0.1, 0.1)
+                                  
+                                  # Update metrics state (Training Operator reads this!)
+                                  metrics_state.update({
+                                      "progressPercentage": progress_pct,
+                                      "currentStep": current_step,
+                                      "totalSteps": total_steps,
+                                      "currentEpoch": epoch,
+                                      "totalEpochs": num_epochs,
+                                      "estimatedRemainingSeconds": estimated_seconds,
+                                      "trainMetrics": {"train_loss": round(loss, 4)},
+                                      "lastUpdatedTime": datetime.utcnow().isoformat() + "Z"
+                                  })
+                                  
+                                  # Print training progress
+                                  print(f"  [{current_step:3d}/{total_steps:3d}] "
+                                        f"Step {step:2d}/{steps_per_epoch} | "
+                                        f"Loss: {loss:.4f} | "
+                                        f"Progress: {progress_pct:3d}% | "
+                                        f"ETA: {estimated_seconds}s")
+                                  
+                                  time.sleep(1)
+                              
+                              print(f"\n[OK] Epoch {epoch} completed!")
+                          
+                          # Final update
+                          metrics_state.update({
+                              "progressPercentage": 100,
+                              "currentStep": total_steps,
+                              "estimatedRemainingSeconds": 0
+                          })
+                          
+                          print("\n" + "=" * 60)
+                          print("[OK] Training Completed Successfully!")
+                          print("=" * 60)
+                          print(f"Final Loss: {metrics_state['trainMetrics']['train_loss']}")
+                          print("=" * 60)
+                          
+                          # Keep server alive for final poll
+                          time.sleep(10)
+                      ports:
+                        - containerPort: 28080
+                          name: metrics
+                          protocol: TCP
+                      resources:
+                        requests:
+                          cpu: "500m"
+                          memory: 1Gi
+                        limits:
+                          cpu: "1"
+                          memory: 2Gi
+                  restartPolicy: OnFailure
+
+

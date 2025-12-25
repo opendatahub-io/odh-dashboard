@@ -4,13 +4,30 @@ import { appChrome } from './appChrome';
 
 class ModelTrainingGlobal {
   visit(projectName?: string, wait = true) {
-    const url = projectName
+    const baseUrl = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
+    // Enable both Model Training Plugin and Training Jobs feature flags
+    const url = `${baseUrl}?devFeatureFlags=trainingJobs%3Dtrue`;
     cy.visitWithLogin(url);
     if (wait) {
       this.wait();
     }
+  }
+
+  navigate() {
+    // Wait for the sidebar to be visible and ready
+    cy.get('#page-sidebar').should('be.visible');
+    cy.get('#dashboard-page-main').should('be.visible');
+
+    appChrome
+      .findNavItem({
+        name: 'Training jobs',
+        rootSection: 'Develop & train',
+      })
+      .click();
+
+    this.wait();
   }
 
   private wait() {
@@ -35,7 +52,7 @@ class ModelTrainingGlobal {
   }
 
   findProjectSelectorToggle() {
-    return cy.findByTestId('project-selector-dropdown-toggle');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   selectProject(projectName: string) {

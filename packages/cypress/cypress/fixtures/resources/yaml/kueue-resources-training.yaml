@@ -1,0 +1,42 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: ${flavorName}
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: ${clusterQueueName}
+spec:
+  namespaceSelector:
+    matchLabels:
+      kueue.openshift.io/managed: 'true'
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+  - coveredResources:
+    - cpu
+    - memory
+    - nvidia.com/gpu
+    flavors:
+    - name: ${flavorName}
+      resources:
+      - name: cpu
+        nominalQuota: '${cpuQuota}'
+      - name: memory
+        nominalQuota: ${memoryQuota}Gi
+      - name: nvidia.com/gpu
+        nominalQuota: '${gpuQuota}'
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: ${localQueueName}
+  namespace: ${namespace}
+spec:
+  clusterQueue: ${clusterQueueName}
+  stopPolicy: None
+
+
+
+
+
