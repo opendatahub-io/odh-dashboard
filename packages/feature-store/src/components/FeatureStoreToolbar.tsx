@@ -32,24 +32,32 @@ const TagMultiInput: React.FC<{
   onChange: (value?: string, label?: string) => void;
   value?: string;
 }> = ({ tagFilters = [], onTagFilterAdd, onChange, value }) => {
+  const [localValue, setLocalValue] = React.useState(value || '');
+  React.useEffect(() => {
+    if (value === undefined || value === '') {
+      setLocalValue('');
+    }
+  }, [value]);
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && value?.trim()) {
+    if (event.key === 'Enter' && localValue.trim()) {
       event.preventDefault();
-      const newTag = value.trim();
+      const newTag = localValue.trim();
       if (!tagFilters.includes(newTag)) {
         onTagFilterAdd?.(newTag);
-        onChange(''); // Clear the input after adding tag
+        setLocalValue('');
+        onChange('');
       }
     }
   };
 
   const handleInputChange = (_event: React.FormEvent<HTMLInputElement>, newValue: string) => {
-    onChange(newValue);
+    setLocalValue(newValue);
   };
 
   return (
     <SearchInput
-      value={value || ''}
+      value={localValue}
       onChange={handleInputChange}
       onKeyDown={handleKeyDown}
       placeholder="Filter tags or press enter to add tag"

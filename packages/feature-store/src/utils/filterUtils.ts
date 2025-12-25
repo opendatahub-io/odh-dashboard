@@ -346,22 +346,36 @@ export const createFeatureStoreFilterUtils = <
   new FeatureStoreFilterUtils<T, R>(filterKeyMapping, namePath, tagsPath);
 
 /**
- * Applies tag filters to a list of items that have a spec.tags property
+ * Applies tag filters to a list of items
  *
  * @param items - Array of items to filter
  * @param tagFilters - Array of tag filters in format "key=value"
+ * @param getTags - Optional function to extract tags from an item. Defaults to extracting from item.spec.tags
  * @returns Filtered array of items that match all tag filters
  */
-export const applyTagFilters = <T extends { spec: { tags?: Record<string, string> } }>(
+export const applyTagFilters = <T>(
   items: T[],
   tagFilters: string[],
+  getTags?: (item: T) => Record<string, string> | undefined,
 ): T[] => {
   if (tagFilters.length === 0) {
     return items;
   }
 
+  const extractTags =
+    getTags ??
+    ((item: T): Record<string, string> | undefined => {
+      if (item && isRecord(item)) {
+        const tagsValue = getNestedValue(item, 'spec.tags');
+        if (tagsValue && isRecordOfStrings(tagsValue)) {
+          return tagsValue;
+        }
+      }
+      return undefined;
+    });
+
   return items.filter((item) => {
-    const itemTags = item.spec.tags || {};
+    const itemTags = extractTags(item) || {};
     return tagFilters.every((tagFilter) => {
       const tagEntries = Object.entries(itemTags);
       return tagEntries.some(([key, value]) => `${key}=${value}` === tagFilter);

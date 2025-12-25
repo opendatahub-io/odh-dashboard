@@ -755,4 +755,178 @@ describe('applyTagFilters', () => {
     const result = applyTagFilters([itemWithoutTags], ['environment=production']);
     expect(result).toHaveLength(0);
   });
+
+  describe('with custom getTags function', () => {
+    interface FeatureItem {
+      name: string;
+      tags?: Record<string, string>;
+    }
+
+    const featureItems: FeatureItem[] = [
+      {
+        name: 'feature-1',
+        tags: {
+          environment: 'production',
+          team: 'ml',
+        },
+      },
+      {
+        name: 'feature-2',
+        tags: {
+          environment: 'staging',
+          team: 'data',
+        },
+      },
+      {
+        name: 'feature-3',
+        tags: {
+          environment: 'production',
+          team: 'ml',
+        },
+      },
+    ];
+
+    it('should use custom getTags function to extract tags from direct property', () => {
+      const result = applyTagFilters(
+        featureItems,
+        ['environment=production'],
+        (feature) => feature.tags,
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('feature-1');
+      expect(result[1].name).toBe('feature-3');
+    });
+
+    it('should filter Features by multiple tags using custom extractor', () => {
+      const result = applyTagFilters(
+        featureItems,
+        ['environment=production', 'team=ml'],
+        (feature) => feature.tags,
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('feature-1');
+      expect(result[1].name).toBe('feature-3');
+    });
+
+    it('should handle Features with undefined tags using custom extractor', () => {
+      const featuresWithUndefined: FeatureItem[] = [
+        {
+          name: 'feature-no-tags',
+        },
+        {
+          name: 'feature-with-tags',
+          tags: {
+            environment: 'production',
+          },
+        },
+      ];
+
+      const result = applyTagFilters(
+        featuresWithUndefined,
+        ['environment=production'],
+        (feature) => feature.tags,
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('feature-with-tags');
+    });
+
+    it('should handle Features with empty tags object using custom extractor', () => {
+      const featuresWithEmptyTags: FeatureItem[] = [
+        {
+          name: 'feature-empty-tags',
+          tags: {},
+        },
+        {
+          name: 'feature-with-tags',
+          tags: {
+            environment: 'production',
+          },
+        },
+      ];
+
+      const result = applyTagFilters(
+        featuresWithEmptyTags,
+        ['environment=production'],
+        (feature) => feature.tags,
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('feature-with-tags');
+    });
+
+    it('should work with custom extractor that returns undefined', () => {
+      const customExtractor = (item: FeatureItem): Record<string, string> | undefined => {
+        // Custom logic: only return tags if name starts with 'feature-'
+        if (item.name.startsWith('feature-')) {
+          return item.tags;
+        }
+        return undefined;
+      };
+
+      const mixedItems: FeatureItem[] = [
+        { name: 'feature-1', tags: { env: 'prod' } },
+        { name: 'other-1', tags: { env: 'prod' } },
+      ];
+
+      const result = applyTagFilters(mixedItems, ['env=prod'], customExtractor);
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('feature-1');
+    });
+
+    it('should work with custom extractor that accesses nested properties', () => {
+      interface NestedItem {
+        metadata: {
+          labels: {
+            tags?: Record<string, string>;
+          };
+        };
+      }
+
+      const nestedItems: NestedItem[] = [
+        {
+          metadata: {
+            labels: {
+              tags: {
+                environment: 'production',
+              },
+            },
+          },
+        },
+      ];
+
+      const customExtractor = (item: NestedItem): Record<string, string> | undefined => {
+        return item.metadata.labels.tags;
+      };
+
+      const result = applyTagFilters(nestedItems, ['environment=production'], customExtractor);
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('backward compatibility', () => {
+    it('should maintain backward compatibility with default spec.tags extraction', () => {
+      // All existing tests should still work without passing getTags parameter
+      const result = applyTagFilters(mockItemsWithTags, ['environment=production']);
+      expect(result).toHaveLength(2);
+      expect(result[0].spec.name).toBe('item-1');
+      expect(result[1].spec.name).toBe('item-3');
+    });
+
+    it('should work with items that have spec.tags when getTags is not provided', () => {
+      const itemsWithSpecTags = [
+        {
+          spec: {
+            name: 'test-item',
+            tags: {
+              environment: 'production',
+              team: 'ml',
+            },
+          },
+        },
+      ];
+
+      const result = applyTagFilters(itemsWithSpecTags, ['environment=production']);
+      expect(result).toHaveLength(1);
+      expect(result[0].spec.name).toBe('test-item');
+    });
+  });
 });
