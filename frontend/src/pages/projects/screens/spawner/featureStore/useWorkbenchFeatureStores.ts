@@ -26,15 +26,19 @@ export const useWorkbenchFeatureStores = (): UseWorkbenchFeatureStoresReturn => 
     FetchStateCallbackPromise<WorkbenchFeatureStoreConfig[]>
   >(async () => {
     const data: WorkbenchFeatureStoreResponse = await getWorkbenchFeatureStores();
-    // Convert namespaces array to WorkbenchFeatureStoreConfig array
+    if (!Array.isArray(data.namespaces)) {
+      throw new Error('Failed to load feature stores');
+    }
     const configs: WorkbenchFeatureStoreConfig[] = data.namespaces.flatMap((ns) =>
-      ns.clientConfigs.map((config) => ({
-        namespace: ns.namespace,
-        configName: config.configName,
-        projectName: config.projectName,
-        configMap: null,
-        hasAccessToFeatureStore: config.hasAccessToFeatureStore,
-      })),
+      Array.isArray(ns.clientConfigs)
+        ? ns.clientConfigs.map((config) => ({
+            namespace: ns.namespace,
+            configName: config.configName,
+            projectName: config.projectName,
+            configMap: null,
+            hasAccessToFeatureStore: config.hasAccessToFeatureStore,
+          }))
+        : [],
     );
     return configs;
   }, []);
