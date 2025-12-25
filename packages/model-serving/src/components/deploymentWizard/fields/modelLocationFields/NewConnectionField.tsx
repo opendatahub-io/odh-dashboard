@@ -4,6 +4,7 @@ import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeDataField,
   ConnectionTypeValueType,
+  Connection,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   ModelServingCompatibleTypes,
@@ -18,13 +19,15 @@ import { ModelLocationData } from '../../types';
 type Props = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   modelLocationData?: ModelLocationData;
-  connectionType: ConnectionTypeConfigMapObj;
+  connectionType?: ConnectionTypeConfigMapObj;
+  connections?: Connection[];
 };
 
 const NewConnectionField: React.FC<Props> = ({
   setModelLocationData,
   modelLocationData,
   connectionType,
+  connections,
 }) => {
   const connectionValues = React.useMemo(() => {
     if (!modelLocationData) return {};
@@ -42,6 +45,9 @@ const NewConnectionField: React.FC<Props> = ({
     });
   };
   const renderAdditionalFields = () => {
+    if (!connectionType) {
+      return null;
+    }
     if (isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)) {
       return (
         <ConnectionS3FolderPathField
@@ -83,6 +89,9 @@ const NewConnectionField: React.FC<Props> = ({
     return null;
   };
   const fields = React.useMemo(() => {
+    if (!connectionType) {
+      return [];
+    }
     if (isModelServingCompatible(connectionType, ModelServingCompatibleTypes.S3ObjectStorage)) {
       return connectionType.data?.fields?.map((field) => {
         // Force bucket field to be required
@@ -96,7 +105,7 @@ const NewConnectionField: React.FC<Props> = ({
       });
     }
     return connectionType.data?.fields;
-  }, [connectionType]);
+  }, [connectionType, connections, modelLocationData?.connection]);
 
   return (
     <FormGroup>
