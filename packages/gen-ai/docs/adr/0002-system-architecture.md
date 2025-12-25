@@ -1,7 +1,7 @@
 # 0002 - Gen AI System Architecture
 
 * Date: 2025-07-25
-* Updated: 2025-08-20
+* Updated: 2025-12-16
 * Authors: Matias Schimuneck
 
 ## Context and Problem Statement
@@ -80,20 +80,25 @@ The system is implemented using a multi-container architecture with modern web t
 - **Static Assets**: Serves built frontend files from `/static` directory with SPA fallback
 - **API Endpoints**: RESTful APIs under `/gen-ai/api/v1/*` with comprehensive OpenAPI documentation
 - **OpenAI SDK Integration**: Uses official OpenAI Go SDK v2.1.0 for Llama Stack communication
-- **Middleware**: CORS, authentication, logging, panic recovery, and telemetry
-- **Configuration**: Environment-based config with OAuth 2.0/OIDC support
-- **Mock System**: Complete mock implementations for development and testing
+- **Middleware**: CORS, authentication, logging, panic recovery, telemetry, namespace injection, and client attachment
+- **Configuration**: Environment-based config with OAuth 2.0/OIDC support and structured logging (slog)
+- **Mock System**: Complete mock implementations for all external services (LlamaStack, MaaS, K8s, MCP)
+- **Caching Layer**: In-memory cache (MemoryStore) for MaaS access tokens with TTL-based expiration
 - **Documentation**: Comprehensive OpenAPI specification with Swagger UI
 
 ### Integration Architecture
-- **Domain-Specific Repository Pattern**: Separate repositories for Models, VectorStores, Files, and Responses operations
-- **Factory Pattern**: LlamaStackClientFactory with RealClientFactory and MockClientFactory implementations
+- **Domain-Specific Repository Pattern**: Separate repositories for Models, Vector Stores, Files, Responses, MaaS Models, AA Models, MCP Clients, Namespaces, and Llama Stack Distributions
+- **Factory Pattern**: Multiple client factories (LlamaStack, MaaS, MCP, Kubernetes) with Real and Mock implementations
 - **Envelope Pattern**: Consistent `{data, metadata}` API response structure across all endpoints
 - **OpenAI SDK Client**: Official SDK for robust Llama Stack API communication with direct streaming support
-- **Interface-based Design**: Clean abstractions enabling easy mocking and testing
-- **Authentication**: OAuth 2.0 token validation with browser storage persistence
-- **Error Handling**: Comprehensive error transformation and user-friendly messaging
-- **Development Mode**: Configurable mock client with factory-based creation
+- **MaaS Integration**: Model-as-a-Service client with autodiscovery, token management, and caching
+- **MCP Integration**: Model Context Protocol client for tool discovery and invocation with SSE and streamable-HTTP transports
+- **Kubernetes Integration**: Token-based K8s client with user impersonation, RBAC checks, and namespace filtering
+- **Caching Strategy**: In-memory hierarchical cache for MaaS tokens (15min TTL) with background cleanup
+- **Interface-based Design**: Clean abstractions enabling easy mocking and testing across all service integrations
+- **Authentication**: OAuth 2.0 token-based authentication with RequestIdentity pattern and RBAC via SubjectAccessReview
+- **Error Handling**: Comprehensive error transformation and user-friendly messaging with proper HTTP status codes
+- **Development Mode**: Configurable mock clients for all services with factory-based creation
 
 ### Modular UI Deployment (ODH Dashboard Integration)
 - **Module Federation**: Deployed as a federated module within ODH Dashboard using Webpack 5 Module Federation
@@ -155,7 +160,9 @@ graph TB
         subgraph ExternalServices["External Services"]
             LlamaStackAPI["Llama Stack API<br/>(HTTP/REST)<br/>Model management & inference"]
             VLLM["vLLM<br/>(High-performance inference)<br/>Large language model serving"]
-            MaaS["MaaS<br/>(Model as a Service)<br/>Hosted LLM inference"]
+            MaaS["MaaS<br/>(Model as a Service)<br/>Hosted LLM inference & tokens"]
+            MCP["MCP Servers<br/>(Model Context Protocol)<br/>Tool discovery & invocation"]
+            K8sAPI["Kubernetes API<br/>(REST/gRPC)<br/>Resource management & RBAC"]
             VectorDB["Vector Databases<br/>(ChromaDB, FAISS)<br/>Document embeddings storage"]
         end
     end
@@ -164,6 +171,9 @@ graph TB
     Frontend -->|"Loads from (HTTPS)"| StaticAssets
     Frontend -->|"API calls (JSON/HTTPS)"| BFF
     BFF -->|"Orchestrates calls (JSON/HTTP)"| LlamaStackAPI
+    BFF -->|"Token management (HTTP/REST)"| MaaS
+    BFF -->|"Tool invocation (SSE/HTTP)"| MCP
+    BFF -->|"Resource queries (REST/gRPC)"| K8sAPI
     LlamaStackAPI -->|"Queries models (HTTP/gRPC)"| VLLM
     LlamaStackAPI -->|"Queries hosted models (HTTP/REST)"| MaaS
     LlamaStackAPI -->|"Manages embeddings (Native protocols)"| VectorDB
@@ -182,6 +192,7 @@ graph TB
     class StaticAssets assetsStyle
     class LlamaStackAPI llamaStyle
     class VLLM,MaaS inferenceStyle
+    class MCP,K8sAPI inferenceStyle
     class VectorDB storageStyle
 ```
 
@@ -297,96 +308,78 @@ graph TB
 
 #### BFF API Components
 
-Shows the simplified internal structure of the Backend-for-Frontend API with visual grouping:
+Shows the internal structure of the Backend-for-Frontend API with all service integrations:
 
 ```mermaid
 graph TB
     subgraph BFF["BFF API Container"]
         subgraph RoutingLayer["Routing & Middleware Layer"]
             Router["HTTP Router<br/>(httprouter)"]
-            Middleware["Middleware Chain<br/>(CORS, Auth, Logging, Recovery)"]
+            Middleware["Middleware Chain<br/>(CORS, Auth, Logging, Recovery,<br/>Telemetry, Namespace, Client Attachment)"]
             StaticServer["Static File Server<br/>(Frontend Assets)"]
         end
         
-        subgraph LlamaStackHandlers["LlamaStack API Handlers (/gen-ai/api/v1/)"]
-            ModelsHandler["models_handler<br/>(GET /gen-ai/api/v1/models)"]
-            VectorStoresHandler["vectorstores_handler<br/>(GET/POST /gen-ai/api/v1/vectorstores)"]
-            FilesHandler["files_handler<br/>(POST /gen-ai/api/v1/files/upload)"]
-            ResponsesHandler["responses_handler<br/>(POST /gen-ai/api/v1/responses)"]
+        subgraph Handlers["API Handlers (/gen-ai/api/v1/)"]
+            LlamaHandlers["LlamaStack Handlers<br/>(models, vectorstores, files, responses)"]
+            MaaSHandlers["MaaS Handlers<br/>(models, tokens)"]
+            MCPHandlers["MCP Handlers<br/>(tools, status, servers)"]
+            K8sHandlers["K8s Handlers<br/>(namespaces, user, aa-models, lsd)"]
+            SupportHandlers["Support Handlers<br/>(health, openapi, config)"]
         end
         
-        subgraph SupportHandlers["Support Handlers"]
-            OpenAPIHandler["openapi_handler<br/>(Swagger UI & Docs)"]
-            HealthHandler["healthcheck_handler<br/>(Service Health)"]
+        subgraph RepositoryLayer["Domain-Specific Repository Layer"]
+            LlamaRepos["LlamaStack Repos<br/>(Models, VectorStores,<br/>Files, Responses)"]
+            MaaSRepos["MaaS Repos<br/>(MaaSModels)"]
+            K8sRepos["K8s Repos<br/>(AAModels, Namespace,<br/>LlamaStackDistribution)"]
+            MCPRepos["MCP Repos<br/>(MCPClient)"]
+            SharedRepos["Shared Repos<br/>(HealthCheck, Template)"]
         end
         
-        subgraph BusinessLogic["Domain-Specific Repository Layer"]
-            ModelsRepo["ModelsRepository<br/>(Model Operations & Transformations)"]
-            VectorStoresRepo["VectorStoresRepository<br/>(Vector Store Operations)"]
-            FilesRepo["FilesRepository<br/>(File Upload Operations)"]
-            ResponsesRepo["ResponsesRepository<br/>(AI Response Operations)"]
-            HealthRepo["HealthCheckRepository<br/>(Health Operations)"]
+        subgraph CacheLayer["Caching Layer"]
+            MemoryStore["MemoryStore<br/>(In-memory cache)<br/>MaaS tokens, 15min TTL"]
         end
         
         subgraph ClientLayer["Client Integration Layer"]
-            ClientFactory["LlamaStackClientFactory<br/>(Factory Pattern Interface)"]
-            RealFactory["RealClientFactory<br/>(Production Client Creation)"]
-            MockFactory["MockClientFactory<br/>(Testing Client Creation)"]
-            LlamaClient["LlamaStackClient<br/>(OpenAI SDK v2.1.0)"]
-            MockClient["MockLlamaStackClient<br/>(Development & Testing)"]
-            ClientInterface["LlamaStackClientInterface<br/>(Client Abstraction)"]
+            LlamaFactory["LlamaStackClientFactory<br/>(Real/Mock)"]
+            MaaSFactory["MaaSClientFactory<br/>(Real/Mock)"]
+            MCPFactory["MCPClientFactory<br/>(Real/Mock)"]
+            K8sFactory["KubernetesClientFactory<br/>(Real/Mock)"]
         end
     end
     
-    subgraph Config["Configuration & Specs"]
-        EnvConfig["Environment Config<br/>(Runtime Settings)"]
-        OpenAPISpec["OpenAPI Specification<br/>(YAML Documentation)"]
+    subgraph ExternalServices["External Services"]
+        LlamaStackAPI["Llama Stack API<br/>(Models & RAG)"]
+        MaaSAPI["MaaS API<br/>(Hosted Models)"]
+        MCPAPI["MCP Servers<br/>(Tools & Context)"]
+        K8sAPI["Kubernetes API<br/>(Resources & RBAC)"]
     end
-    
-    LlamaStackAPI["Llama Stack API<br/>(External LLM Service)"]
     
     Router --> Middleware
     Middleware --> StaticServer
-    Middleware --> LlamaStackHandlers
-    Middleware --> SupportHandlers
+    Middleware --> Handlers
     
-    ModelsHandler --> ModelsRepo
-    VectorStoresHandler --> VectorStoresRepo
-    FilesHandler --> FilesRepo
-    ResponsesHandler --> ResponsesRepo
-    HealthHandler --> HealthRepo
+    Handlers --> RepositoryLayer
+    RepositoryLayer --> CacheLayer
+    RepositoryLayer --> ClientLayer
     
-    ModelsRepo --> ClientInterface
-    VectorStoresRepo --> ClientInterface
-    FilesRepo --> ClientInterface
-    ResponsesRepo --> ClientInterface
-    
-    ClientFactory --> RealFactory
-    ClientFactory --> MockFactory
-    RealFactory --> LlamaClient
-    MockFactory --> MockClient
-    
-    ClientInterface --> LlamaClient
-    ClientInterface --> MockClient
-    
-    LlamaClient --> LlamaStackAPI
-    OpenAPIHandler --> OpenAPISpec
+    LlamaFactory --> LlamaStackAPI
+    MaaSFactory --> MaaSAPI
+    MCPFactory --> MCPAPI
+    K8sFactory --> K8sAPI
     
     classDef routing fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#fff
     classDef handlers fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#fff
-    classDef support fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#fff
-    classDef business fill:#e91e63,stroke:#ad1457,stroke-width:2px,color:#fff
+    classDef repos fill:#e91e63,stroke:#ad1457,stroke-width:2px,color:#fff
+    classDef cache fill:#ff9800,stroke:#f57c00,stroke-width:2px,color:#fff
     classDef factory fill:#9c27b0,stroke:#6a1b99,stroke-width:2px,color:#fff
-    classDef client fill:#673ab7,stroke:#4527a0,stroke-width:2px,color:#fff
-    classDef config fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
+    classDef external fill:#757575,stroke:#424242,stroke-width:2px,color:#fff
     
     class Router,Middleware,StaticServer routing
-    class ModelsHandler,VectorStoresHandler,FilesHandler,ResponsesHandler handlers
-    class OpenAPIHandler,HealthHandler support
-    class ModelsRepo,VectorStoresRepo,FilesRepo,ResponsesRepo,HealthRepo business
-    class ClientFactory,RealFactory,MockFactory factory
-    class LlamaClient,MockClient,ClientInterface client
-    class EnvConfig,OpenAPISpec config
+    class LlamaHandlers,MaaSHandlers,MCPHandlers,K8sHandlers,SupportHandlers handlers
+    class LlamaRepos,MaaSRepos,K8sRepos,MCPRepos,SharedRepos repos
+    class MemoryStore cache
+    class LlamaFactory,MaaSFactory,MCPFactory,K8sFactory factory
+    class LlamaStackAPI,MaaSAPI,MCPAPI,K8sAPI external
 ```
 
 ### Level 4: Deployment Diagram
