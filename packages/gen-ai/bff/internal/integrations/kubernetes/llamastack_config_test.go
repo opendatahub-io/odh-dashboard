@@ -27,12 +27,16 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, yamlStr, "version: \"2\"")
 	assert.Contains(t, yamlStr, "image_name: rh")
+	assert.Contains(t, yamlStr, "vector_stores:")
+	assert.Contains(t, yamlStr, "default_provider_id: milvus")
 
 	// Test JSON conversion
 	jsonStr, err := config.ToJSON()
 	assert.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
 	assert.Contains(t, jsonStr, "\"image_name\":\"rh\"")
+	assert.Contains(t, jsonStr, "\"vector_stores\"")
+	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
 
 	// Test parsing YAML
 	var parsedConfig LlamaStackConfig
@@ -40,6 +44,9 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
 	assert.Equal(t, config.ImageName, parsedConfig.ImageName)
+	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
+	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 
 	// Test parsing JSON
 	var parsedJSONConfig LlamaStackConfig
@@ -47,6 +54,9 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
 	assert.Equal(t, config.ImageName, parsedJSONConfig.ImageName)
+	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
+	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 }
 
 func TestProviderCreationUtilities(t *testing.T) {

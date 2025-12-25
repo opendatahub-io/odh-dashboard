@@ -17,8 +17,21 @@ type LlamaStackConfig struct {
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
 	Storage             Storage             `json:"storage" yaml:"storage"`
+	VectorStores        VectorStores        `json:"vector_stores" yaml:"vector_stores"`
 	RegisteredResources RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
 	Server              Server              `json:"server" yaml:"server"`
+}
+
+// VectorStores configures the default vector store behavior for Llama Stack.
+type VectorStores struct {
+	DefaultProviderID     string                    `json:"default_provider_id" yaml:"default_provider_id"`
+	DefaultEmbeddingModel VectorStoreModelReference `json:"default_embedding_model" yaml:"default_embedding_model"`
+}
+
+// VectorStoreModelReference references an embedding model by provider and model ID.
+type VectorStoreModelReference struct {
+	ProviderID string `json:"provider_id" yaml:"provider_id"`
+	ModelID    string `json:"model_id" yaml:"model_id"`
 }
 
 type Providers struct {
@@ -178,6 +191,13 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					"table_name": "openai_conversations",
 					"backend":    "sql_default",
 				},
+			},
+		},
+		VectorStores: VectorStores{
+			DefaultProviderID: "milvus",
+			DefaultEmbeddingModel: VectorStoreModelReference{
+				ProviderID: "sentence-transformers",
+				ModelID:    "ibm-granite/granite-embedding-125m-english",
 			},
 		},
 		Server: Server{
