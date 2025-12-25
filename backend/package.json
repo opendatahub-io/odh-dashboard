@@ -43,7 +43,7 @@
     "@fastify/autoload": "^5.7.1",
     "@fastify/http-proxy": "^9.5.0",
     "@fastify/sensible": "^5.2.0",
-    "@fastify/static": "^6.10.2",
+    "@fastify/static": "^9.0.0",
     "@fastify/websocket": "^8.3.1",
     "@kubernetes/client-node": "^0.12.2",
     "dotenv": "^16.4.7",
