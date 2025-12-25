@@ -37,8 +37,8 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
     return cy.findByTestId('data-source-batch-data-source-value');
   }
 
-  findInteractiveExample() {
-    return cy.findByTestId('data-source-interactive-example');
+  findDefinitionTitle() {
+    return cy.findByTestId('definition-title');
   }
 
   findBreadcrumbLink() {

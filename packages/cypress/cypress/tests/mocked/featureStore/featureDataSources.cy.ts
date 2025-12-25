@@ -317,7 +317,7 @@ describe('Feature Data Sources for all projects', () => {
       )
       .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
-    featureDataSourceDetails.findInteractiveExample().should('be.visible');
+    featureDataSourceDetails.findDefinitionTitle().should('be.visible');
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
     featureDataSourceDetails.findBreadcrumbItem().should('contain.text', 'loan_data');
   });
@@ -337,7 +337,7 @@ describe('Feature Data Sources for all projects', () => {
       )
       .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
-    featureDataSourceDetails.findInteractiveExample().should('be.visible');
+    featureDataSourceDetails.findDefinitionTitle().should('be.visible');
 
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
     featureDataSourceDetails.findBreadcrumbItem().should('contain.text', 'loan_data');

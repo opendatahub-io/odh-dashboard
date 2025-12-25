@@ -8,7 +8,6 @@ import {
   Flex,
   FlexItem,
   PageSection,
-  Title,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { Link } from 'react-router-dom';
@@ -146,18 +145,15 @@ const DataSourceDetailsView: React.FC<DataSourceDetailsViewProps> = ({ dataSourc
             )}
           </DescriptionList>
         </FlexItem>
-        <FlexItem>
-          <Title
-            headingLevel="h3"
-            data-testid="data-source-interactive-example"
-            style={{ margin: '1em 0' }}
-          >
-            Interactive example
-          </Title>
-          {dataSource.featureDefinition && (
-            <FeatureStoreCodeBlock content={dataSource.featureDefinition} id={dataSource.name} />
-          )}
-        </FlexItem>
+        {dataSource.featureDefinition && hasContent(dataSource.featureDefinition) && (
+          <FlexItem>
+            <FeatureStoreCodeBlock
+              content={dataSource.featureDefinition}
+              id={dataSource.name}
+              featureStoreType="data source"
+            />
+          </FlexItem>
+        )}
       </Flex>
     </PageSection>
   );

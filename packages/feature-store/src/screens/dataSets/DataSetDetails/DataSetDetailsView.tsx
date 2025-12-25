@@ -17,6 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import IndentSection from '@odh-dashboard/internal/pages/projects/components/IndentSection';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
@@ -242,18 +243,15 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
           )}
         </FlexItem>
         <FlexItem>
-          <Title
-            headingLevel="h3"
-            data-testid="data-set-interactive-example-title"
-            style={{ margin: '1em 0' }}
-          >
-            Interactive example
-          </Title>
-          {dataSet.featureDefinition ? (
-            <FeatureStoreCodeBlock content={dataSet.featureDefinition} id={dataSet.spec.name} />
+          {dataSet.featureDefinition && hasContent(dataSet.featureDefinition) ? (
+            <FeatureStoreCodeBlock
+              content={dataSet.featureDefinition}
+              id={dataSet.spec.name}
+              featureStoreType="data set"
+            />
           ) : (
             <Content component="p" className={text.textColorDisabled}>
-              No interactive example
+              No code snippet
             </Content>
           )}
         </FlexItem>

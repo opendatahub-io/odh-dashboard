@@ -89,25 +89,13 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
                   </FlexItem>
                 </Flex>
               </FlexItem>
-              {feature.featureDefinition && (
+              {feature.featureDefinition && hasContent(feature.featureDefinition) && (
                 <FlexItem>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-                    <FlexItem>
-                      <Title headingLevel="h3" data-testid="feature-interactive-example">
-                        {FeatureStoreSections.INTERACTIVE_EXAMPLE}
-                      </Title>
-                    </FlexItem>
-                    <FlexItem>
-                      {hasContent(feature.featureDefinition) ? (
-                        <FeatureStoreCodeBlock
-                          content={feature.featureDefinition}
-                          id={feature.name}
-                        />
-                      ) : (
-                        <Content>{`No ${FeatureStoreSections.INTERACTIVE_EXAMPLE.toLowerCase()}`}</Content>
-                      )}
-                    </FlexItem>
-                  </Flex>
+                  <FeatureStoreCodeBlock
+                    content={feature.featureDefinition}
+                    id={feature.name}
+                    featureStoreType="feature"
+                  />
                 </FlexItem>
               )}
             </Flex>

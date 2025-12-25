@@ -33,8 +33,8 @@ class FeatureDetails extends Contextual<HTMLElement> {
     return cy.findByTestId('feature-tags');
   }
 
-  findFeatureInteractiveExample() {
-    return cy.findByTestId('feature-interactive-example');
+  findDefinitionTitle() {
+    return cy.findByTestId('definition-title');
   }
 
   findBackButton() {
@@ -74,8 +74,8 @@ class FeatureDetails extends Contextual<HTMLElement> {
     return this;
   }
 
-  shouldHaveFeatureInteractiveExample() {
-    this.findFeatureInteractiveExample().should('be.visible');
+  shouldHaveDefinitionTitle() {
+    this.findDefinitionTitle().should('be.visible');
     return this;
   }
 
