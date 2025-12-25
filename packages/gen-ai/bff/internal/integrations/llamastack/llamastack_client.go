@@ -141,8 +141,6 @@ func (c *LlamaStackClient) ListVectorStores(ctx context.Context, params ListVect
 type CreateVectorStoreParams struct {
 	// Name is the required name for the vector store (1-256 characters).
 	Name string
-	// ProviderID is the required identifier for the vector store provider.
-	ProviderID string
 	// EmbeddingModel is the optional embedding model to use for this vector store.
 	EmbeddingModel string
 	// EmbeddingDimension is the optional dimension of the embedding vectors (default: 384).
@@ -156,9 +154,6 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 	// Validate required fields first
 	if strings.TrimSpace(params.Name) == "" {
 		return nil, fmt.Errorf("name is required")
-	}
-	if strings.TrimSpace(params.ProviderID) == "" {
-		return nil, fmt.Errorf("provider_id is required")
 	}
 
 	// Validate metadata if provided
@@ -176,7 +171,6 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 			}
 		}
 	}
-
 	// Use default embedding model and dimension if not specified
 	embeddingModel := params.EmbeddingModel
 	if embeddingModel == "" {
@@ -193,7 +187,6 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 	requestBody := map[string]interface{}{
 		"name":                params.Name,
 		"metadata":            params.Metadata,
-		"provider_id":         params.ProviderID,
 		"embedding_model":     embeddingModel,
 		"embedding_dimension": *embeddingDimension,
 	}
