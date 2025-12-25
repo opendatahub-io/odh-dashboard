@@ -33,12 +33,30 @@ describe('useResponsiveSearch', () => {
       });
     });
 
-    it('should return 25ch width for large screens', () => {
+    it('should return 28ch width for large screens (default)', () => {
       const { result } = renderHook(() => useResponsiveSearch(false, mockContainerRef));
 
       expect(result.current.searchInputStyle).toEqual({
-        width: '25ch',
-        maxWidth: '25ch',
+        width: '28ch',
+        maxWidth: '28ch',
+      });
+    });
+
+    it('should return 48ch width for large screens on details page', () => {
+      const { result } = renderHook(() => useResponsiveSearch(false, mockContainerRef, true));
+
+      expect(result.current.searchInputStyle).toEqual({
+        width: '48ch',
+        maxWidth: '48ch',
+      });
+    });
+
+    it('should return 100% width for small screens even on details page', () => {
+      const { result } = renderHook(() => useResponsiveSearch(true, mockContainerRef, true));
+
+      expect(result.current.searchInputStyle).toEqual({
+        width: '100%',
+        maxWidth: '100%',
       });
     });
 
@@ -50,7 +68,18 @@ describe('useResponsiveSearch', () => {
 
       expect(result.current.searchInputStyle.width).toBe('100%');
       rerender({ isSmallScreen: false });
-      expect(result.current.searchInputStyle.width).toBe('25ch');
+      expect(result.current.searchInputStyle.width).toBe('28ch');
+    });
+
+    it('should update when isDetailsPage changes', () => {
+      const { result, rerender } = renderHook(
+        ({ isDetailsPage }) => useResponsiveSearch(false, mockContainerRef, isDetailsPage),
+        { initialProps: { isDetailsPage: false } },
+      );
+
+      expect(result.current.searchInputStyle.width).toBe('28ch');
+      rerender({ isDetailsPage: true });
+      expect(result.current.searchInputStyle.width).toBe('48ch');
     });
   });
 

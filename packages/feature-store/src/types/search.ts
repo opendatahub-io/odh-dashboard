@@ -7,6 +7,7 @@ export type GlobalSearchResult = {
   project: string;
   match_score: number;
   featureView?: string;
+  matched_tag?: Record<string, string>;
 };
 
 export type GlobalSearchPagination = {
