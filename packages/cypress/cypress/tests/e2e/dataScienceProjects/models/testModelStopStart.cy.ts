@@ -25,7 +25,7 @@ let modelName: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', () => {
+describe('A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -114,7 +114,6 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
       checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-      cy.reload();
       //Stop the model with the modal
       cy.step('Stop the model');
       //Ensure the modal is shown
@@ -127,7 +126,6 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
       kServeRow.findConfirmStopModalCheckbox().click();
       kServeRow.findConfirmStopModalCheckbox().should('be.checked');
       kServeRow.findConfirmStopModalButton().click();
-      cy.reload();
       kServeRow
         .findStatusLabel()
         .invoke('text')
@@ -145,7 +143,6 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
       //Restart the model
       cy.step('Restart the model');
       kServeRow.findStateActionToggle().should('have.text', 'Start').click();
-      cy.reload();
       kServeRow.findStatusLabel('Starting').should('exist');
 
       //Verify the model is running again

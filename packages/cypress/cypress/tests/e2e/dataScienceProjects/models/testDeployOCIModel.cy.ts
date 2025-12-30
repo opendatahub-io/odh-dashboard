@@ -42,7 +42,7 @@ const updateSecretDetailsFile = (
 };
 
 describe(
-  '[Automation Task: RHOAIENG-42003] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -137,7 +137,6 @@ describe(
         cy.step('Verify that the Model is running');
         // Verify model deployment is ready
         checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });
-        cy.reload();
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );
