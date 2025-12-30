@@ -4,6 +4,7 @@
 export * from './k8s/nimAccounts';
 export * from './k8s/auth';
 export * from './k8s/builds';
+export * from './k8s/clusterRoles';
 export * from './k8s/configMaps';
 export * from './k8s/events';
 export * from './k8s/inferenceServices';

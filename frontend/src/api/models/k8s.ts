@@ -58,6 +58,13 @@ export const RoleBindingModel: K8sModelCommon = {
   plural: 'rolebindings',
 };
 
+export const ClusterRoleModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'rbac.authorization.k8s.io',
+  kind: 'ClusterRole',
+  plural: 'clusterroles',
+};
+
 export const SecretModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Secret',

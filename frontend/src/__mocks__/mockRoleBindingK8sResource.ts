@@ -7,6 +7,7 @@ type MockResourceConfigType = {
   /** Set to undefined to simulate a RoleBinding without subjects (valid per K8s API spec) */
   subjects?: RoleBindingSubject[];
   roleRefName?: string;
+  roleRefKind?: 'Role' | 'ClusterRole';
   uid?: string;
   modelRegistryName?: string;
   isProjectSubject?: boolean;
@@ -25,6 +26,7 @@ export const mockRoleBindingK8sResource = ({
   namespace = 'test-project',
   subjects = defaultSubjects,
   roleRefName = 'view',
+  roleRefKind,
   uid = genUID('rolebinding'),
   isProjectSubject = false,
   modelRegistryName = '',
@@ -58,7 +60,7 @@ export const mockRoleBindingK8sResource = ({
     subjects,
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
-      kind: modelRegistryName ? 'Role' : 'ClusterRole',
+      kind: roleRefKind ?? (modelRegistryName ? 'Role' : 'ClusterRole'),
       name: roleRefName,
     },
   };

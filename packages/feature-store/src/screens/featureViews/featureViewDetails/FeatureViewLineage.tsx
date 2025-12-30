@@ -14,6 +14,7 @@ const FeatureViewLineage: React.FC<FeatureViewLineageProps> = ({ featureView }) 
     <FeatureStoreLineageComponent
       project={currentProject}
       featureViewName={featureView.spec.name}
+      featureViewType={featureView.type}
       height="100%"
     />
   );
