@@ -19,6 +19,7 @@ type Repositories struct {
 	Namespace              *NamespaceRepository
 	LlamaStackDistribution *LlamaStackDistributionRepository
 	MCPClient              *MCPClientRepository
+	Guardrails             *GuardrailsRepository
 }
 
 // NewRepositories creates domain-specific repositories.
@@ -35,6 +36,7 @@ func NewRepositories() *Repositories {
 		Namespace:              NewNamespaceRepository(),
 		LlamaStackDistribution: NewLlamaStackDistributionRepository(),
 		MCPClient:              nil, // Will be initialized separately with MCP client factory
+		Guardrails:             nil, // Will be initialized separately with logger
 	}
 }
 
@@ -42,5 +44,6 @@ func NewRepositories() *Repositories {
 func NewRepositoriesWithMCP(mcpClientFactory mcp.MCPClientFactory, logger *slog.Logger) *Repositories {
 	repos := NewRepositories()
 	repos.MCPClient = NewMCPClientRepository(mcpClientFactory, logger)
+	repos.Guardrails = NewGuardrailsRepository(logger)
 	return repos
 }

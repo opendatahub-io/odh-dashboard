@@ -467,6 +467,14 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
+// GetGuardrailsOrchestratorStatus fetches the status of the GuardrailsOrchestrator CR
+// Real implementation not yet available - returns error
+func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
+	// Real implementation not yet available
+	// Use MOCK_K8S_CLIENT=true to test with mock data
+	return nil, fmt.Errorf("GuardrailsOrchestrator %q not found in namespace %q", constants.GuardrailsOrchestratorName, namespace)
+}
+
 func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()

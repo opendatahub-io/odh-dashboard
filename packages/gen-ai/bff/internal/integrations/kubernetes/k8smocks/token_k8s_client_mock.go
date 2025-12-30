@@ -693,3 +693,48 @@ func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, ident
 	// In real scenarios, this would perform a SubjectAccessReview for cluster-scoped namespace access
 	return true, nil
 }
+
+// GetGuardrailsOrchestratorStatus returns mock GuardrailsOrchestrator status for testing
+func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
+	// Mock data - simulating the "custom-guardrails" CR status
+	return &models.GuardrailsStatus{
+		Phase: "Ready",
+		Conditions: []models.GuardrailsCondition{
+			{
+				Type:               "Progressing",
+				Status:             "True",
+				Reason:             "ReconcileInit",
+				Message:            "Initializing GuardrailsOrchestrator resource",
+				LastTransitionTime: "2025-12-24T06:40:07Z",
+			},
+			{
+				Type:               "InferenceServiceReady",
+				Status:             "False",
+				Reason:             "InferenceServiceNotReady",
+				Message:            "Inference service is not ready",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+			{
+				Type:               "DeploymentReady",
+				Status:             "True",
+				Reason:             "DeploymentReady",
+				Message:            "Deployment is ready",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+			{
+				Type:               "RouteReady",
+				Status:             "False",
+				Reason:             "RouteNotReady",
+				Message:            "Route is not ready",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+			{
+				Type:               "ReconcileComplete",
+				Status:             "False",
+				Reason:             "ReconcileFailed",
+				Message:            "Reconcile failed",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+		},
+	}, nil
+}
