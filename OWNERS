@@ -138,3 +138,12 @@ filters:
       - gen-ai-reviewers
     labels:
       - 'area/gen-ai'
+
+  # Notebooks
+  'packages/notebooks/.*':
+    approvers:
+      - notebooks-approvers
+    reviewers:
+      - notebooks-reviewers
+    labels:
+      - 'area/notebooks'
