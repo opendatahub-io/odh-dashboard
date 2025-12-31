@@ -31,6 +31,20 @@ This project is a web application built with a modular architecture. It consists
 
 ## Development Setup
 
+### Environment Configuration
+
+For local development, you need to create a `.env.local` file in `/packages/gen-ai`:
+
+1. Copy the example file:
+
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+2. You may need to update values in the copied `.env.local` according to your local setup needs.
+
+Note that `.env.local` is gitignored and should never be committed. Use `.env.local.example` as a reference for required variables.
+
 ### Frontend
 
 ```bash
