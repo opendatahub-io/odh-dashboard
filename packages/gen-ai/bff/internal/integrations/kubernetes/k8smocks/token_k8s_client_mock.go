@@ -343,7 +343,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailModel *models.GuardrailModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
@@ -365,6 +365,57 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
+	// Build safety section based on guardrailModel
+	safetySection := "  safety: []"
+	shieldsSection := "  shields: []"
+
+	if guardrailModel != nil && guardrailModel.ModelName != "" {
+		// GuardrailModel is provided - add TrustyAI safety provider
+		guardrailModelURL := guardrailModel.ModelURL
+		if guardrailModelURL == "" {
+			// Default URL if not provided
+			guardrailModelURL = "http://guardrail-model-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
+		}
+
+		safetySection = `  safety:
+  - provider_id: trustyai_fms
+    provider_type: remote::trustyai_fms
+    config:
+      shields:
+        trustyai_input:
+          type: content
+          detector_url: "https://custom-guardrails-service:8480"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "${VLLM_TOKEN}"
+          detector_params:
+            custom:
+              input_guardrail:
+                input_policies: [jailbreak, content-moderation, pii]
+                guardrail_model: ` + guardrailModel.ModelName + `
+                guardrail_model_token: "${VLLM_TOKEN}"
+                guardrail_model_url: "` + guardrailModelURL + `"
+        trustyai_output:
+          type: content
+          detector_url: "https://custom-guardrails-service:8480"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "${VLLM_TOKEN}"
+          detector_params:
+            custom:
+              output_guardrail:
+                output_policies: [jailbreak, content-moderation, pii]
+                guardrail_model: ` + guardrailModel.ModelName + `
+                guardrail_model_token: "${VLLM_TOKEN}"
+                guardrail_model_url: "` + guardrailModelURL + `"`
+
+		shieldsSection = `  shields:
+    - shield_id: trustyai_input
+      provider_id: trustyai_fms
+    - shield_id: trustyai_output
+      provider_id: trustyai_fms`
+	}
+
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -379,6 +430,7 @@ apis:
 - datasetio
 - files
 - inference
+- safety
 - scoring
 - telemetry
 - tool_runtime
@@ -403,7 +455,7 @@ providers:
       persistence:
         namespace: vector_io::milvus
         backend: kv_default
-  safety: []
+` + safetySection + `
   eval: []
   files:
   - provider_id: meta-reference-files
@@ -477,7 +529,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-  shields: []
+` + shieldsSection + `
   vector_dbs: []
   datasets: []
   scoring_fns: []
