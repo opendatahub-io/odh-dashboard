@@ -23,4 +23,3 @@ const (
 	GuardrailsPhaseFailed      = "Failed"
 	GuardrailsPhaseNotDeployed = "NotDeployed" // CR not found in cluster
 )
-

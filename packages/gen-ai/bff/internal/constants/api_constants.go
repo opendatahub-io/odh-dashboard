@@ -50,4 +50,8 @@ const (
 	// Guardrails endpoint (fetched from dashboard namespace like MCP servers)
 	// Returns status of the "custom-guardrails" CR
 	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
+
+	// LSD Safety Config endpoint - returns configured guardrail models and shields
+	// Parsed from llama-stack-config ConfigMap
+	LSDSafetyConfigPath = ApiPathPrefix + "/lsd/safety/config"
 )

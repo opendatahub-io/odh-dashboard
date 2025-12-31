@@ -36,7 +36,7 @@ func NewRepositories() *Repositories {
 		Namespace:              NewNamespaceRepository(),
 		LlamaStackDistribution: NewLlamaStackDistributionRepository(),
 		MCPClient:              nil, // Will be initialized separately with MCP client factory
-		Guardrails:             nil, // Will be initialized separately with logger
+		Guardrails:             NewGuardrailsRepository(nil),
 	}
 }
 

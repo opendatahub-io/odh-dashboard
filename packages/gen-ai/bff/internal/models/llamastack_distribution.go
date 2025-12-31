@@ -27,9 +27,9 @@ type InstallModel struct {
 
 // GuardrailModel represents the guardrail model configuration for safety
 type GuardrailModel struct {
-	ModelName   string `json:"model_name"`             // e.g., "vllm/qwen3"
-	IsMaaSModel bool   `json:"is_maas_model"`          // Whether this is a MaaS model
-	ModelURL    string `json:"model_url,omitempty"`    // Optional: model endpoint URL
+	ModelName   string `json:"model_name"`          // e.g., "vllm/qwen3"
+	IsMaaSModel bool   `json:"is_maas_model"`       // Whether this is a MaaS model
+	ModelURL    string `json:"model_url,omitempty"` // Optional: model endpoint URL
 }
 
 type LlamaStackDistributionInstallModel struct {

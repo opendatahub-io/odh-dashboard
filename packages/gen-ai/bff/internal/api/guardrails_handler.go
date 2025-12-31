@@ -28,7 +28,7 @@ func (app *App) setupGuardrailsEndpoint(ctx context.Context) (*integrations.Requ
 	}
 
 	if app.repositories.Guardrails == nil {
-		return nil, nil, fmt.Errorf("Guardrails repository not initialized")
+		return nil, nil, fmt.Errorf("guardrails repository not initialized")
 	}
 
 	return identity, k8sClient, nil

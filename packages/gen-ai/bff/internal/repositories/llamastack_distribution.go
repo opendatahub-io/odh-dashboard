@@ -105,3 +105,14 @@ func (r *LlamaStackDistributionRepository) DeleteLlamaStackDistribution(
 
 	return deleteModel, nil
 }
+
+// GetSafetyConfig retrieves safety configuration from llama-stack-config ConfigMap
+// Returns configured guardrail models and their shield IDs for use in the playground
+func (r *LlamaStackDistributionRepository) GetSafetyConfig(
+	client kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+) (*models.SafetyConfigResponse, error) {
+	return client.GetSafetyConfig(ctx, identity, namespace)
+}

@@ -38,4 +38,7 @@ type KubernetesClientInterface interface {
 
 	// Guardrails operations
 	GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error)
+
+	// Safety Config - parses llama-stack-config ConfigMap and returns guardrail models/shields
+	GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error)
 }

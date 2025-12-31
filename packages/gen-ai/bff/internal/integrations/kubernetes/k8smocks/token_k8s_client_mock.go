@@ -790,3 +790,22 @@ func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.
 		},
 	}, nil
 }
+
+// GetSafetyConfig returns mock safety configuration for testing
+// Returns hardcoded mock data simulating guardrails configuration
+func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
+	// Return hardcoded mock data for testing
+	return &models.SafetyConfigResponse{
+		Enabled: true,
+		GuardrailModels: []models.GuardrailModelConfig{
+			{
+				ModelName:      "llama-guard-3",
+				DisplayName:    "Llama Guard 3",
+				InputShieldID:  "trustyai_input",
+				OutputShieldID: "trustyai_output",
+				InputPolicies:  []string{"jailbreak", "content-moderation", "pii"},
+				OutputPolicies: []string{"jailbreak", "content-moderation", "pii"},
+			},
+		},
+	}, nil
+}

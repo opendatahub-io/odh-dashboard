@@ -472,7 +472,7 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
 	// Real implementation not yet available
 	// Use MOCK_K8S_CLIENT=true to test with mock data
-	return nil, fmt.Errorf("GuardrailsOrchestrator %q not found in namespace %q", constants.GuardrailsOrchestratorName, namespace)
+	return nil, fmt.Errorf("guardrailsOrchestrator %q not found in namespace %q", constants.GuardrailsOrchestratorName, namespace)
 }
 
 func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
@@ -1545,4 +1545,11 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 	return &config, nil
+}
+
+// GetSafetyConfig parses the llama-stack-config ConfigMap and returns guardrail models/shields
+// TODO: Real implementation pending - backend not yet completed
+// For now, returns error indicating not implemented
+func (kc *TokenKubernetesClient) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
+	return nil, fmt.Errorf("getSafetyConfig not implemented - use mock mode (MOCK_K8S_CLIENT=true)")
 }
