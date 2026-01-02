@@ -336,10 +336,9 @@ describe('Playground - MCP Servers', () => {
     },
   );
 
-  // Skipped because it is flaky
-  it.skip(
-    '[Automation Bug: RHOAIENG-41824] should auto-unlock server without token when selected in playground',
-    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock', '@Bug'] },
+  it(
+    'should auto-unlock server without token when selected in playground',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock'] },
     () => {
       const namespace = config.defaultNamespace;
       const { name: serverName, url: serverUrl } = config.servers.kubernetes;
@@ -363,20 +362,17 @@ describe('Playground - MCP Servers', () => {
       cy.step('Select the Kubernetes server by checking the checkbox');
       serverRow.findCheckbox().check();
 
-      cy.step('Wait for auto-unlock status check');
+      cy.step('Wait for auto-unlock status check and tools fetch');
       cy.wait('@statusCheckAutoConnect', { timeout: 15000 });
-
-      cy.step('Wait for tools to be fetched');
       cy.wait('@toolsRequestAutoConnect', { timeout: 15000 });
 
-      cy.step('Verify connection successful modal is shown');
+      cy.step('Verify connection successful modal is shown with server name');
       playgroundPage.mcpPanel.verifySuccessModalVisible();
-
-      cy.step('Verify the success modal shows the server name');
       playgroundPage.mcpPanel.verifySuccessModalContainsServerName(serverName);
 
       cy.step('Close the success modal');
       playgroundPage.mcpPanel.closeSuccessModal();
+      mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify tools button is enabled after closing modal');
       serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
@@ -384,20 +380,26 @@ describe('Playground - MCP Servers', () => {
       cy.step('Click tools button to open tools modal');
       serverRow.findToolsButton().click();
 
-      cy.step('Verify tools modal opens with all tools selected by default');
+      cy.step('Verify tools modal opens with tools');
       mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolRows().should('have.length.at.least', 1);
 
-      cy.step('Get initial tool count and verify all selected');
+      cy.step('Verify all tools are selected initially');
+      mcpToolsModal
+        .findToolCountText()
+        .should('exist')
+        .and(($el) => {
+          const match = $el.text().match(/(\d+) out of (\d+)/);
+          expect(match![1]).to.equal(match![2]);
+        });
+
+      cy.step('Get total tools count for later verification');
       mcpToolsModal
         .findToolCountText()
         .invoke('text')
         .then((text) => {
           const match = text.match(/(\d+) out of (\d+)/);
           const totalTools = parseInt(match![2], 10);
-          const initialSelected = parseInt(match![1], 10);
-          // Verify all tools are selected initially
-          expect(initialSelected).to.equal(totalTools);
 
           cy.step('Deselect first 2 tools');
           mcpToolsModal.findToolCheckbox(0).click();
@@ -406,12 +408,7 @@ describe('Playground - MCP Servers', () => {
           cy.step('Verify count updated to show 2 fewer tools selected');
           mcpToolsModal
             .findToolCountText()
-            .invoke('text')
-            .then((countText) => {
-              const countMatch = countText.match(/(\d+) out of \d+/);
-              const selected = parseInt(countMatch![1], 10);
-              expect(selected).to.equal(totalTools - 2);
-            });
+            .should('contain.text', `${totalTools - 2} out of ${totalTools}`);
 
           cy.step('Save tool selection');
           mcpToolsModal.findSaveButton().click();
@@ -424,12 +421,7 @@ describe('Playground - MCP Servers', () => {
           cy.step('Verify tool selection persisted (2 tools deselected)');
           mcpToolsModal
             .findToolCountText()
-            .invoke('text')
-            .then((persistedText) => {
-              const persistedMatch = persistedText.match(/(\d+) out of \d+/);
-              const persistedSelected = parseInt(persistedMatch![1], 10);
-              expect(persistedSelected).to.equal(totalTools - 2);
-            });
+            .should('contain.text', `${totalTools - 2} out of ${totalTools}`);
         });
 
       cy.step('Close tools modal');
