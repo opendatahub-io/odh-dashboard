@@ -336,10 +336,9 @@ describe('Playground - MCP Servers', () => {
     },
   );
 
-  // Skipped because it is flaky
-  it.skip(
-    '[Automation Bug: RHOAIENG-41824] should auto-unlock server without token when selected in playground',
-    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock', '@Bug'] },
+  it(
+    'should auto-unlock server without token when selected in playground',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@AutoUnlock'] },
     () => {
       const namespace = config.defaultNamespace;
       const { name: serverName, url: serverUrl } = config.servers.kubernetes;
@@ -358,83 +357,79 @@ describe('Playground - MCP Servers', () => {
       serverRow.find().should('be.visible');
 
       cy.step('Verify no modal is shown before selection');
-      playgroundPage.mcpPanel.verifyNoModalShown();
+      cy.findByRole('dialog').should('not.exist');
 
       cy.step('Select the Kubernetes server by checking the checkbox');
-      serverRow.findCheckbox().check();
+      cy.findByTestId(`mcp-server-checkbox-${serverUrl}`).find('input[type="checkbox"]').check();
 
-      cy.step('Wait for auto-unlock status check');
+      cy.step('Wait for auto-unlock status check and tools fetch');
       cy.wait('@statusCheckAutoConnect', { timeout: 15000 });
-
-      cy.step('Wait for tools to be fetched');
       cy.wait('@toolsRequestAutoConnect', { timeout: 15000 });
 
-      cy.step('Verify connection successful modal is shown');
-      playgroundPage.mcpPanel.verifySuccessModalVisible();
-
-      cy.step('Verify the success modal shows the server name');
-      playgroundPage.mcpPanel.verifySuccessModalContainsServerName(serverName);
+      cy.step('Verify connection successful modal is shown with server name');
+      cy.findByTestId('mcp-server-success-modal').should('be.visible');
+      cy.findByRole('heading', { name: /connection successful/i }).should('be.visible');
+      cy.findByTestId('mcp-server-success-modal').should('contain.text', serverName);
 
       cy.step('Close the success modal');
-      playgroundPage.mcpPanel.closeSuccessModal();
+      cy.findByRole('button', { name: /close/i }).click();
+      cy.findByTestId('mcp-server-success-modal').should('not.exist');
 
       cy.step('Verify tools button is enabled after closing modal');
-      serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
+      cy.findByTestId(`mcp-server-tools-button-${serverUrl}`)
+        .should('exist')
+        .and('not.have.attr', 'aria-disabled');
 
       cy.step('Click tools button to open tools modal');
-      serverRow.findToolsButton().click();
+      cy.findByTestId(`mcp-server-tools-button-${serverUrl}`).click();
 
-      cy.step('Verify tools modal opens with all tools selected by default');
-      mcpToolsModal.find().should('be.visible');
-      mcpToolsModal.findToolRows().should('have.length.at.least', 1);
+      cy.step('Verify tools modal opens with tools');
+      cy.findByTestId('mcp-tools-modal').should('be.visible');
+      cy.findByTestId('mcp-tools-modal-table').find('tbody tr').should('have.length.at.least', 1);
 
-      cy.step('Get initial tool count and verify all selected');
-      mcpToolsModal
-        .findToolCountText()
+      cy.step('Verify all tools are selected initially');
+      cy.findByTestId('mcp-tools-selection-count')
+        .should('exist')
+        .invoke('text')
+        .should('match', /(\d+) out of \1/);
+
+      cy.step('Get total tools count for later verification');
+      cy.findByTestId('mcp-tools-selection-count')
         .invoke('text')
         .then((text) => {
           const match = text.match(/(\d+) out of (\d+)/);
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(match).to.not.be.null;
           const totalTools = parseInt(match![2], 10);
-          const initialSelected = parseInt(match![1], 10);
-          // Verify all tools are selected initially
-          expect(initialSelected).to.equal(totalTools);
 
           cy.step('Deselect first 2 tools');
-          mcpToolsModal.findToolCheckbox(0).click();
-          mcpToolsModal.findToolCheckbox(1).click();
+          cy.findByTestId('mcp-tools-modal-table').find('tbody tr').eq(0).find('input').click();
+          cy.findByTestId('mcp-tools-modal-table').find('tbody tr').eq(1).find('input').click();
 
           cy.step('Verify count updated to show 2 fewer tools selected');
-          mcpToolsModal
-            .findToolCountText()
-            .invoke('text')
-            .then((countText) => {
-              const countMatch = countText.match(/(\d+) out of \d+/);
-              const selected = parseInt(countMatch![1], 10);
-              expect(selected).to.equal(totalTools - 2);
-            });
+          cy.findByTestId('mcp-tools-selection-count').should(
+            'contain.text',
+            `${totalTools - 2} out of ${totalTools}`,
+          );
 
           cy.step('Save tool selection');
-          mcpToolsModal.findSaveButton().click();
-          mcpToolsModal.find().should('not.exist');
+          cy.findByRole('button', { name: /save/i }).click();
+          cy.findByTestId('mcp-tools-modal').should('not.exist');
 
           cy.step('Re-open tools modal to verify persistence');
-          serverRow.findToolsButton().click();
-          mcpToolsModal.find().should('be.visible');
+          cy.findByTestId(`mcp-server-tools-button-${serverUrl}`).click();
+          cy.findByTestId('mcp-tools-modal').should('be.visible');
 
           cy.step('Verify tool selection persisted (2 tools deselected)');
-          mcpToolsModal
-            .findToolCountText()
-            .invoke('text')
-            .then((persistedText) => {
-              const persistedMatch = persistedText.match(/(\d+) out of \d+/);
-              const persistedSelected = parseInt(persistedMatch![1], 10);
-              expect(persistedSelected).to.equal(totalTools - 2);
-            });
+          cy.findByTestId('mcp-tools-selection-count').should(
+            'contain.text',
+            `${totalTools - 2} out of ${totalTools}`,
+          );
         });
 
       cy.step('Close tools modal');
-      mcpToolsModal.findCloseButton().click();
-      mcpToolsModal.find().should('not.exist');
+      cy.findByRole('button', { name: 'Close' }).click();
+      cy.findByTestId('mcp-tools-modal').should('not.exist');
 
       cy.step('Test completed - Auto-unlock with tool selection workflow successful');
     },
