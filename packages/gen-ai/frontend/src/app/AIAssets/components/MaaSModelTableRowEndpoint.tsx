@@ -68,7 +68,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                     onClick={handleGenerateToken}
                     icon={isGenerating ? <Spinner size="sm" /> : undefined}
                   >
-                    Generate API token
+                    Generate API Key
                   </Button>
                 </FlexItem>
               )}
