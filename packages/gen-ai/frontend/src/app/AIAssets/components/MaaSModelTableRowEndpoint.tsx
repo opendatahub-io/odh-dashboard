@@ -56,7 +56,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-                  API token
+                  API Key
                 </Content>
               </FlexItem>
 
