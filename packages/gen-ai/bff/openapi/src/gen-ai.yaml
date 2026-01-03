@@ -2507,6 +2507,14 @@ components:
           type: boolean
           description: Whether this is a MaaS (Model as a Service) model
           example: false
+        max_tokens:
+          type: integer
+          description: |
+            Optional maximum token limit for this model's context window.
+            Must be between 128 and 128,000 tokens. If not specified, a default value will be used.
+          minimum: 128
+          maximum: 128000
+          example: 8192
 
     LlamaStackDistributionInstallModel:
       type: object
