@@ -6,14 +6,15 @@ spec:
   display:
     name: Cluster
   duration: 1h
+  # Variable for namespace filtering - controlled by HeaderProjectSelector
   variables:
     - kind: TextVariable
       spec:
         name: namespace
-        value: ".*"
         display:
           name: Namespace
-          hidden: true
+          hidden: true  # Hide from Perses UI since we use our own selector
+        value: ".*"  # Default: match all namespaces
   panels:
     # Overview Stats
     systemHealth:
@@ -44,7 +45,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(kube_node_status_condition{condition="Ready",status="true"}) / count(kube_node_info)
+                  query: count(max by (node) (kube_node_status_condition{condition="Ready",status="true"} == 1)) / count(max by (node) (kube_node_status_condition{condition="Ready",status="true"}))
                   seriesNameFormat: System Health
     activeModels:
       kind: Panel
@@ -67,7 +68,9 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: count(kube_deployment_status_replicas_available{namespace=~"$namespace", deployment=~".*model.*"} > 0) or vector(4)
+                  # Count unique InferenceServices by their predictor pods
+                  # Uses KServe labels: component=predictor, serving.kserve.io/inferenceservice
+                  query: count(group(inference_model_request_total) by (model))
                   seriesNameFormat: Active Models
     gpuUtilizationStat:
       kind: Panel
@@ -97,7 +100,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / (count(DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) * 100) or vector(1)
+                  query: avg(accelerator_gpu_utilization)
                   seriesNameFormat: GPU Utilization
     successRate:
       kind: Panel
@@ -128,7 +131,8 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(rate(http_requests_total{namespace=~"$namespace", status=~"2.."}[5m])) / sum(rate(http_requests_total{namespace=~"$namespace"}[5m])) or vector(0.992)
+                  # API server request success rate (2xx responses)
+                  query: 1 - (sum(inference_model_request_error_total) / sum(inference_model_request_total))
                   seriesNameFormat: Success Rate
     # Cluster-wide Utilizations - Area Charts
     gpuUtilizationArea:
@@ -161,7 +165,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: avg(DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / 100 or vector(0.6)
+                  query: avg(DCGM_FI_DEV_GPU_UTIL) / 100
                   seriesNameFormat: GPU Utilization
     memoryUtilizationArea:
       kind: Panel
@@ -193,7 +197,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(container_memory_working_set_bytes{namespace=~"$namespace", container!="", image!=""}) / sum(node_memory_MemTotal_bytes) or vector(0.45)
+                  query: sum(container_memory_working_set_bytes{container!="", image!=""}) / sum(node_memory_MemTotal_bytes)
                   seriesNameFormat: Memory Usage
     cpuUtilizationArea:
       kind: Panel
@@ -225,7 +229,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"}) / sum(kube_node_status_allocatable{resource="cpu"}) or vector(0.55)
+                  query: sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) / sum(kube_node_status_allocatable{resource="cpu"})
                   seriesNameFormat: CPU Usage
     networkUtilizationArea:
       kind: Panel
@@ -257,7 +261,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(rate(container_network_receive_bytes_total{namespace=~"$namespace"}[5m])) / 1000000 or vector(12)
+                  query: sum(rate(container_network_receive_bytes_total[5m])) / 1000000
                   seriesNameFormat: Network In (Mbps)
     # Resource Usage by Project - Stacked Area Charts
     gpuUsageByProject:
@@ -324,6 +328,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                  # CPU usage by namespace (filtered by $namespace variable)
                   query: sum by (namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"})
                   seriesNameFormat: "{{namespace}}"
     memoryUsageByProject:
@@ -357,8 +362,39 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                  # Memory usage by namespace (filtered by $namespace variable)
                   query: sum by (namespace) (container_memory_working_set_bytes{namespace=~"$namespace", container!="", image!=""})
                   seriesNameFormat: "{{namespace}}"
+    # Cluster Details - Static Markdown Panel
+    clusterDetails:
+      kind: Panel
+      spec:
+        display:
+          name: Cluster Information
+          description: Static cluster configuration details
+        plugin:
+          kind: Markdown
+          spec:
+            text: |
+              **Provider**
+
+              ${PROVIDER}
+
+              **OpenShift Version**
+
+              ${OC_VERSION}
+
+              **Channel**
+
+              ${CHANNEL}
+
+              **API Server**
+
+              ${API_SERVER}
+
+              <br>
+
+              [View Settings](/settings/cluster/general)
   layouts:
     # Overview Section - Stats Row
     - kind: Grid
@@ -450,4 +486,17 @@ spec:
             height: 10
             content:
               '$ref': '#/spec/panels/memoryUsageByProject'
-
+    # Cluster Details Section
+    - kind: Grid
+      spec:
+        display:
+          title: Cluster Details
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 24
+            height: 9
+            content:
+              '$ref': '#/spec/panels/clusterDetails'
