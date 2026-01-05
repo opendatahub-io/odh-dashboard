@@ -2,12 +2,12 @@ import yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
-import { ensureTrainerEnabled } from '../../../utils/oc_commands/dsc';
 import {
-  deleteTrainingKueueResources,
   deleteTrainingRuntime,
   setupTrainingResources,
+  verifyTrainJobDeleted,
 } from '../../../utils/oc_commands/trainingJobs';
+import { deleteKueueResources } from '../../../utils/oc_commands/distributedWorkloads';
 import {
   modelTrainingGlobal,
   trainingJobTable,
@@ -17,8 +17,10 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import type { TrainJobTestData } from '../../../types';
 
 describe('Verify a Training Job with Progression Tracking', () => {
+  let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
   let trainJobName: string;
@@ -52,17 +54,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
       // Load test data from fixture
       cy.fixture('e2e/modelTraining/testTrainjobProgression.yaml', 'utf8')
         .then((yamlContent: string) => {
-          const testData = yaml.load(yamlContent) as {
-            projectName: string;
-            trainJobName: string;
-            trainingRuntimeName: string;
-            flavorName: string;
-            clusterQueueName: string;
-            localQueueName: string;
-            cpuQuota: number;
-            memoryQuota: number;
-            gpuQuota: number;
-          };
+          testData = yaml.load(yamlContent) as TrainJobTestData;
 
           projectName = `${testData.projectName}-${uuid}`;
           trainJobName = `${testData.trainJobName}-${uuid}`;
@@ -75,10 +67,6 @@ describe('Verify a Training Job with Progression Tracking', () => {
           gpuQuota = testData.gpuQuota;
 
           cy.log(`Test configuration loaded for project: ${projectName}`);
-        })
-        .then(() => {
-          cy.step('Ensure Trainer component is enabled in DSC');
-          return ensureTrainerEnabled();
         })
         .then(() => {
           cy.step('Create testing project');
@@ -115,7 +103,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
     deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
 
     cy.step('delete Kueue resources');
-    deleteTrainingKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
+    deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
       wait: false,
       ignoreNotFound: true,
     });
@@ -124,7 +112,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
   it(
     'Should create and complete training job with progression tracking',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining', '@FeatureFlagged'],
+      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining'],
     },
     () => {
       if (skipTest) {
@@ -133,10 +121,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
       }
 
       cy.step('Log into the application');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=Model+Training+Plugin%3Dtrue%2CtrainingJobs%3Dtrue',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Training jobs');
       modelTrainingGlobal.navigate();
@@ -162,7 +147,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
       cy.step('Close modal and wait for training job to complete in table');
       trainingJobStatusModal.close();
 
-      cy.log('Waiting for training job to complete...');
+      cy.step('Wait for training job to complete');
       trainingJobTable
         .getTableRow(trainJobName)
         .findStatus()
@@ -185,17 +170,11 @@ describe('Verify a Training Job with Progression Tracking', () => {
       // Modal should close
       trainingJobStatusModal.shouldBeOpen(false);
 
-      // Verify job is removed from table
-      trainingJobTable.findTable().should('be.visible');
-      cy.contains(trainJobName).should('not.exist');
+      // Verify empty state is shown with correct message
+      trainingJobTable.findEmptyState().should('be.visible');
 
       // Verify via oc command that resource is deleted
-      cy.exec(`oc get trainjob ${trainJobName} -n ${projectName}`, {
-        failOnNonZeroExit: false,
-      }).then((result) => {
-        expect(result.code).to.not.equal(0);
-        cy.log('Training job successfully deleted');
-      });
+      verifyTrainJobDeleted(trainJobName, projectName);
     },
   );
 });

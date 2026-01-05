@@ -4,11 +4,9 @@ import { appChrome } from './appChrome';
 
 class ModelTrainingGlobal {
   visit(projectName?: string, wait = true) {
-    const baseUrl = projectName
+    const url = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
-    // Enable both Model Training Plugin and Training Jobs feature flags
-    const url = `${baseUrl}?devFeatureFlags=trainingJobs%3Dtrue`;
     cy.visitWithLogin(url);
     if (wait) {
       this.wait();
@@ -17,8 +15,8 @@ class ModelTrainingGlobal {
 
   navigate() {
     // Wait for the sidebar to be visible and ready
-    cy.get('#page-sidebar').should('be.visible');
-    cy.get('#dashboard-page-main').should('be.visible');
+    appChrome.findSideBar().should('be.visible');
+    appChrome.findMainContent().should('be.visible');
 
     appChrome
       .findNavItem({
@@ -112,6 +110,10 @@ class TrainingJobTable {
   shouldBeEmpty() {
     this.findEmptyResults().should('exist');
     return this;
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-state-body');
   }
 }
 

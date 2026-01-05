@@ -55,53 +55,21 @@ export const createTrainingKueueResources = (
       `Creating Kueue resources with: flavor=${flavorName}, clusterQueue=${clusterQueueName}, localQueue=${localQueueName}`,
     );
 
-    // Write to temp file and apply with failOnNonZeroExit: true to see actual error
+    // Write to temp file and apply
     const tempFile = `/tmp/kueue-resources-${Date.now()}.yaml`;
     cy.writeFile(tempFile, yamlContent);
-    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: true, timeout: 30000 }).then(
+    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 30000 }).then(
       (result) => {
-        cy.log(`Kueue resources created: ${result.stdout}`);
-        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
+        // Always cleanup temp file first, then check result
+        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
+          if (result.code !== 0) {
+            throw new Error(`Failed to create Kueue resources: ${result.stderr}`);
+          }
+          cy.log(`Kueue resources created: ${result.stdout}`);
+        });
       },
     );
   });
-};
-
-/**
- * Deletes Kueue resources for training jobs by executing `oc delete` commands.
- *
- * @param localQueueName - The name of the local queue to delete.
- * @param clusterQueueName - The name of the cluster queue to delete.
- * @param resourceFlavor - The name of the resource flavor to delete.
- * @param namespace - The namespace in which the resources exist.
- * @param options - Configuration options for the deletion operation.
- * @param options.wait - Whether to wait for the deletion to complete (default: true).
- * @param options.ignoreNotFound - Whether to ignore errors when resources are not found (default: false).
- * @returns A Cypress chainable resolving with the result of the deletion command.
- */
-export const deleteTrainingKueueResources = (
-  localQueueName: string,
-  clusterQueueName: string,
-  resourceFlavor: string,
-  namespace: string,
-  options: { wait?: boolean; ignoreNotFound?: boolean } = {},
-): Cypress.Chainable<CommandLineResult> => {
-  const { ignoreNotFound = false } = options;
-
-  const deleteLocalQueue = `oc delete LocalQueue ${localQueueName} -n ${namespace} --ignore-not-found=${ignoreNotFound} --wait=false`;
-  const deleteClusterQueue = `oc delete ClusterQueue ${clusterQueueName} --ignore-not-found=${ignoreNotFound} --wait=false`;
-  const deleteResourceFlavor = `oc delete ResourceFlavor ${resourceFlavor} --ignore-not-found=${ignoreNotFound} --wait=false`;
-
-  cy.log(`Deleting Kueue resources: ${localQueueName}, ${clusterQueueName}, ${resourceFlavor}`);
-
-  return cy
-    .exec(deleteLocalQueue, { failOnNonZeroExit: false, timeout: 120000 })
-    .then(() => cy.exec(deleteClusterQueue, { failOnNonZeroExit: false, timeout: 120000 }))
-    .then(() => cy.exec(deleteResourceFlavor, { failOnNonZeroExit: false, timeout: 120000 }))
-    .then((result) => {
-      cy.log('Kueue resources cleanup completed');
-      return result;
-    });
 };
 
 /**
@@ -118,13 +86,18 @@ export const createTrainingRuntime = (namespace: string, trainingRuntimeName: st
 
     cy.log(`Creating TrainingRuntime ${trainingRuntimeName} in namespace: ${namespace}`);
 
-    // Write to temp file and apply with failOnNonZeroExit: true to see actual error
+    // Write to temp file and apply
     const tempFile = `/tmp/training-runtime-${Date.now()}.yaml`;
     cy.writeFile(tempFile, yamlContent);
-    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: true, timeout: 30000 }).then(
+    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 30000 }).then(
       (result) => {
-        cy.log(`TrainingRuntime created: ${result.stdout}`);
-        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
+        // Always cleanup temp file first, then check result
+        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
+          if (result.code !== 0) {
+            throw new Error(`Failed to create TrainingRuntime: ${result.stderr}`);
+          }
+          cy.log(`TrainingRuntime created: ${result.stdout}`);
+        });
       },
     );
   });
@@ -152,13 +125,18 @@ export const createTrainJob = (
 
     cy.log(`Creating TrainJob ${trainJobName} in namespace: ${namespace}`);
 
-    // Write to temp file and apply with failOnNonZeroExit: true to see actual error
+    // Write to temp file and apply
     const tempFile = `/tmp/train-job-${Date.now()}.yaml`;
     cy.writeFile(tempFile, yamlContent);
-    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: true, timeout: 30000 }).then(
+    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 30000 }).then(
       (result) => {
-        cy.log(`TrainJob created: ${result.stdout}`);
-        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
+        // Always cleanup temp file first, then check result
+        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
+          if (result.code !== 0) {
+            throw new Error(`Failed to create TrainJob: ${result.stderr}`);
+          }
+          cy.log(`TrainJob created: ${result.stdout}`);
+        });
       },
     );
   });
@@ -189,6 +167,23 @@ export const deleteTrainingRuntime = (
       cy.log(`ERROR deleting TrainingRuntime: ${result.stderr}`);
     }
     return result;
+  });
+};
+
+/**
+ * Verifies that a TrainJob resource has been deleted from the cluster.
+ *
+ * @param trainJobName - The name of the TrainJob to verify is deleted.
+ * @param namespace - The namespace where the TrainJob was located.
+ */
+export const verifyTrainJobDeleted = (trainJobName: string, namespace: string): void => {
+  cy.log(`Verifying TrainJob ${trainJobName} is deleted from namespace ${namespace}`);
+
+  cy.exec(`oc get trainjob ${trainJobName} -n ${namespace}`, {
+    failOnNonZeroExit: false,
+  }).then((result) => {
+    expect(result.code).to.not.equal(0);
+    cy.log('Training job successfully deleted');
   });
 };
 
