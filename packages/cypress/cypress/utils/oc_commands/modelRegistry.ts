@@ -370,6 +370,69 @@ export const createAndVerifyModelRegistry = (
 };
 
 /**
+ * Get ModelRegistry CR database configuration from the cluster
+ * @param registryName Name of the model registry
+ * @param namespace Optional namespace (defaults to getModelRegistryNamespace())
+ * @returns Cypress chainable with the database configuration
+ */
+export const getModelRegistryDatabaseConfig = (
+  registryName: string,
+  namespace?: string,
+): Cypress.Chainable<{
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  passwordSecret: {
+    name: string;
+    key: string;
+  };
+}> => {
+  const targetNamespace = namespace || getModelRegistryNamespace();
+  const command = `oc get modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} -o json`;
+
+  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      cy.log(`Failed to get ModelRegistry CR: ${result.stderr}`);
+      return cy.wrap({
+        host: '',
+        port: 0,
+        database: '',
+        username: '',
+        passwordSecret: { name: '', key: '' },
+      });
+    }
+
+    try {
+      const registry = JSON.parse(result.stdout);
+      const mysqlConfig = registry.spec?.mysql || {};
+
+      cy.log('Retrieved ModelRegistry database configuration:', mysqlConfig);
+
+      return cy.wrap({
+        host: mysqlConfig.host || '',
+        port: mysqlConfig.port || 0,
+        database: mysqlConfig.database || '',
+        username: mysqlConfig.username || '',
+        passwordSecret: {
+          name: mysqlConfig.passwordSecret?.name || '',
+          key: mysqlConfig.passwordSecret?.key || '',
+        },
+      });
+    } catch (error) {
+      cy.log(`Failed to parse ModelRegistry CR JSON: ${String(error)}`);
+      return cy.wrap({
+        host: '',
+        port: 0,
+        database: '',
+        username: '',
+        passwordSecret: { name: '', key: '' },
+      });
+    }
+  });
+};
+
+/**
  * Complete cleanup for model registry components
  * @param modelNames Array of model names to clean up from database
  * @param registryName Name of the model registry to delete
