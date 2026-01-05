@@ -63,13 +63,13 @@ NAMESPACE=my-example make port-forward
 
 #### Give your dev env access
 
-This section walks through connecting your dev environment to an ODH cluster.
+This section walks through connecting your local dev environment to an ODH dev cluster.
 
 Your dev env will typically point to either a shared cluster from [SharedClustersConfluence] (where you can also find test user credentials and cluster status) or some other cluster which you/your team created.
 
 ##### Pre-requisite Step: Adding a .env.local file
 
-Before you login to a dev cluster, you will want to first ensure you've added a `.env.local` file (not committed) to your repo root (see the `.env.local.example` template file, it explains the variables you can set, some of which you may want to change). As mentioned in below section [Applied dotenv files](#applied-dotenv-files), there are build processes in place that leverage these .env files.
+Before you login to a dev cluster, you will want to first ensure you've added a `.env.local` file (not committed) to your repo root (see the `.env.local.example` template file, it explains the variables you can set, some of which you'll want to change). As mentioned in below section [Applied dotenv files](#applied-dotenv-files), there are build processes in place that leverage these .env files.
 
 ##### Step 1: Open the cluster console
 
