@@ -137,3 +137,18 @@ aliases:
     - rohitkrai03
     - danpierce1
     - jharan1
+
+  # Notebooks
+  notebooks-approvers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+  notebooks-reviewers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+    - caponetto
+    - jenny-s51
+    - thaorell
