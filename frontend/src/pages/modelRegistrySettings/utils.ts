@@ -2,6 +2,7 @@ import { RecursivePartial } from '#~/typeHelpers';
 import { ConfigSecretItem, ModelRegistryKind } from '#~/k8sTypes';
 import {
   CA_BUNDLE_CRT,
+  DatabaseType,
   ODH_CA_BUNDLE_CRT,
   ODH_TRUSTED_BUNDLE,
   ResourceType,
@@ -29,24 +30,45 @@ export const findConfigMap = (secureDBInfo: SecureDBInfo): { name: string; key: 
   return { name: secureDBInfo.resourceName, key: secureDBInfo.key };
 };
 
+/**
+ * Constructs the request body for creating or updating a model registry.
+ * Handles SSL certificate configuration (ConfigMap or Secret) based on the secure DB settings.
+ *
+ * @param data - The model registry data to be sent
+ * @param secureDBInfo - Information about the SSL certificate configuration
+ * @param addSecureDB - Whether to add SSL certificate configuration
+ * @param databaseType - The database type (MySQL or PostgreSQL), defaults to MySQL
+ * @returns The modified model registry object with SSL configuration applied
+ */
 export const constructRequestBody = (
   data: RecursivePartial<ModelRegistryKind>,
   secureDBInfo: SecureDBInfo,
   addSecureDB: boolean,
+  databaseType: DatabaseType = DatabaseType.MYSQL,
 ): RecursivePartial<ModelRegistryKind> => {
   const mr = data;
-  if (addSecureDB && secureDBInfo.resourceType === ResourceType.Secret && mr.spec?.mysql) {
-    mr.spec.mysql.sslRootCertificateSecret = {
+  const dbSpec = databaseType === DatabaseType.POSTGRES ? mr.spec?.postgres : mr.spec?.mysql;
+
+  // If database spec doesn't exist, return unmodified data
+  // This is a defensive check - normally the spec should always exist from buildDatabaseSpec()
+  if (!dbSpec) {
+    // eslint-disable-next-line no-console
+    console.warn('constructRequestBody: Database spec not found, returning unmodified data');
+    return mr;
+  }
+
+  if (addSecureDB && secureDBInfo.resourceType === ResourceType.Secret) {
+    dbSpec.sslRootCertificateSecret = {
       name: secureDBInfo.resourceName,
       key: secureDBInfo.key,
     };
-    mr.spec.mysql.sslRootCertificateConfigMap = null;
-  } else if (addSecureDB && mr.spec?.mysql) {
-    mr.spec.mysql.sslRootCertificateConfigMap = findConfigMap(secureDBInfo);
-    mr.spec.mysql.sslRootCertificateSecret = null;
-  } else if (!addSecureDB && mr.spec?.mysql) {
-    mr.spec.mysql.sslRootCertificateConfigMap = null;
-    mr.spec.mysql.sslRootCertificateSecret = null;
+    dbSpec.sslRootCertificateConfigMap = null;
+  } else if (addSecureDB) {
+    dbSpec.sslRootCertificateConfigMap = findConfigMap(secureDBInfo);
+    dbSpec.sslRootCertificateSecret = null;
+  } else {
+    dbSpec.sslRootCertificateConfigMap = null;
+    dbSpec.sslRootCertificateSecret = null;
   }
 
   return mr;
