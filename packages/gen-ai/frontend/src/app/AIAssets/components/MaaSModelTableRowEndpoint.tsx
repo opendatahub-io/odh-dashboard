@@ -12,6 +12,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSModel } from '~/app/types';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
@@ -92,6 +93,9 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                         hoverTip="Copy"
                         clickTip="Copied"
                         aria-label="Generated MaaS API token"
+                        onCopy={() => {
+                          fireSimpleTrackingEvent('MaaS API Token Copied');
+                        }}
                       >
                         {tokenData.token}
                       </ClipboardCopy>
