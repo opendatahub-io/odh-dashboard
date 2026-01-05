@@ -290,9 +290,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
 
-	// Guardrails API route (fetched from dashboard namespace like MCP servers)
-	// Returns status of the "custom-guardrails" CR
-	apiRouter.GET(constants.GuardrailsStatusPath, app.RequireAccessToService(app.GuardrailsStatusHandler))
+	// Guardrails API route - namespace-specific
+	// Returns status of the "custom-guardrails" CR from the specified namespace
+	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireAccessToService(app.GuardrailsStatusHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
