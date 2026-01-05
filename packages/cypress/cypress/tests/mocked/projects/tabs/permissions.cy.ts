@@ -623,6 +623,87 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.findAddRow('user').should('not.exist');
   });
 
+  it('should patch an existing RoleBinding when adding a user to the same role', () => {
+    const newUserName = 'test-user-new-2';
+    const existingUserName = 'test-user-1';
+
+    const existingUserSubject = mockUserRoleBindingSubject({ name: existingUserName });
+    const newUserSubject = mockUserRoleBindingSubject({ name: newUserName });
+
+    const roleBindingsPath = getK8sAPIResourceURL(RoleBindingModel, undefined, { ns: namespace });
+    initProjectRbacIntercepts();
+
+    let roleBindingsItems: ReturnType<typeof mockRoleBindingK8sResource>[] = [
+      mockRoleBindingK8sResource({
+        name: 'rb-user-edit',
+        namespace,
+        subjects: [existingUserSubject],
+        roleRefKind: 'ClusterRole',
+        roleRefName: 'edit',
+        creationTimestamp: '2024-02-01T00:00:00Z',
+      }),
+    ];
+
+    cy.intercept({ method: 'GET', pathname: roleBindingsPath }, (req) => {
+      req.reply(mockK8sResourceList(roleBindingsItems));
+    }).as('listRoleBindingsDynamic');
+
+    cy.interceptK8s(
+      'PATCH',
+      { model: RoleBindingModel, ns: namespace, name: 'rb-user-edit' },
+      (req) => {
+        expect(req.body).to.have.length(1);
+        expect(req.body[0]).to.containSubset({
+          op: 'replace',
+          path: '/subjects',
+        });
+        expect(req.body[0].value).to.containSubset([
+          { apiGroup: 'rbac.authorization.k8s.io', kind: 'User', name: existingUserName },
+          { apiGroup: 'rbac.authorization.k8s.io', kind: 'User', name: newUserName },
+        ]);
+
+        roleBindingsItems = [
+          mockRoleBindingK8sResource({
+            name: 'rb-user-edit',
+            namespace,
+            subjects: [existingUserSubject, newUserSubject],
+            roleRefKind: 'ClusterRole',
+            roleRefName: 'edit',
+            creationTimestamp: '2024-02-01T00:00:00Z',
+          }),
+        ];
+
+        req.reply(roleBindingsItems[0]);
+      },
+    ).as('patchRoleBindingSubjects');
+
+    let createCount = 0;
+    cy.interceptK8s('POST', { model: RoleBindingModel, ns: namespace }, (req) => {
+      createCount += 1;
+      req.reply(mockRoleBindingK8sResource({}));
+    }).as('createRoleBindingShouldNotHappen');
+
+    projectRbacPermissions.visit(namespace);
+    cy.wait('@listRoleBindingsDynamic');
+
+    projectRbacPermissions.findAddUserButton().should('be.enabled').click();
+    projectRbacPermissions.findAddRow('user').should('exist');
+
+    projectRbacPermissions.selectAddRowSubject('user', newUserName);
+    projectRbacPermissions.selectAddRowRole('user', 'ClusterRole:edit');
+    projectRbacPermissions.findAddRowSaveButton('user').should('not.be.disabled').click();
+
+    cy.wait('@patchRoleBindingSubjects');
+    cy.wait('@listRoleBindingsDynamic');
+
+    usersTable.findNameCell(newUserName).should('exist');
+    usersTable.findRoleLinkInRow(newUserName, 'Contributor').should('exist');
+    projectRbacPermissions.findAddRow('user').should('not.exist');
+    cy.wrap(null).then(() => {
+      expect(createCount).to.eq(0);
+    });
+  });
+
   it('should hide the create option when the subject input exactly matches an existing subject', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(namespace);
@@ -640,10 +721,10 @@ describe('Permissions tab (projectRBAC)', () => {
   it('should show an inline error when saving fails and keep the add row open', () => {
     initProjectRbacIntercepts();
     cy.interceptK8s(
-      'POST',
-      { model: RoleBindingModel, ns: namespace },
+      'PATCH',
+      { model: RoleBindingModel, ns: namespace, name: 'rb-user-edit' },
       { forceNetworkError: true },
-    ).as('createRoleBindingError');
+    ).as('patchRoleBindingSubjectsError');
 
     projectRbacPermissions.visit(namespace);
     projectRbacPermissions.findAddUserButton().should('be.enabled').click();
@@ -653,15 +734,191 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.selectAddRowSubject('user', 'test-user-3');
     // For this test we only care about the error handling path, not the exact role selected.
     // Pick a non-admin role to avoid collisions with any default/mock bindings that may already include admin.
-    projectRbacPermissions.selectAddRowRole('user', 'ClusterRole:admin');
+    projectRbacPermissions.selectAddRowRole('user', 'ClusterRole:edit');
 
     projectRbacPermissions.findAddRowSaveButton('user').should('not.be.disabled').click();
-    cy.wait('@createRoleBindingError');
+    cy.wait('@patchRoleBindingSubjectsError');
 
     projectRbacPermissions.findAddRow('user').should('exist');
     projectRbacPermissions
       .findAddRowSaveError('user')
       .should('exist')
       .and('contain.text', 'Failed');
+  });
+
+  it('should edit a user role assignment (Admin -> Contributor) without confirmation modal', () => {
+    const userName = 'test-user-1';
+    const userSubject = mockUserRoleBindingSubject({ name: userName });
+    const rbAdmin = mockRoleBindingK8sResource({
+      name: 'rb-user-admin',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'admin',
+      creationTimestamp: '2024-01-01T00:00:00Z',
+    });
+    const rbEdit = mockRoleBindingK8sResource({
+      name: 'rb-user-edit',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'edit',
+      creationTimestamp: '2024-02-01T00:00:00Z',
+    });
+
+    const roleBindingsPath = getK8sAPIResourceURL(RoleBindingModel, undefined, { ns: namespace });
+    initProjectRbacIntercepts({ items: [rbAdmin] });
+
+    let roleBindingsItems: ReturnType<typeof mockRoleBindingK8sResource>[] = [rbAdmin];
+    cy.intercept({ method: 'GET', pathname: roleBindingsPath }, (req) => {
+      req.reply(mockK8sResourceList(roleBindingsItems));
+    }).as('listRoleBindingsDynamic');
+
+    cy.interceptK8s('POST', { model: RoleBindingModel, ns: namespace }, (req) => {
+      roleBindingsItems = [...roleBindingsItems, rbEdit];
+      req.reply(rbEdit);
+    }).as('createRoleBindingEdit');
+
+    cy.interceptK8s(
+      'DELETE',
+      { model: RoleBindingModel, ns: namespace, name: rbAdmin.metadata.name },
+      (req) => {
+        roleBindingsItems = roleBindingsItems.filter(
+          (rb) => rb.metadata.name !== rbAdmin.metadata.name,
+        );
+        req.reply(mock200Status({}));
+      },
+    ).as('deleteRoleBindingAdmin');
+
+    projectRbacPermissions.visit(namespace);
+    cy.wait('@listRoleBindingsDynamic');
+
+    // Enter edit mode via kebab on the Admin row
+    usersTable.getRowByRoleLink('Admin').findKebabAction('Edit').click();
+
+    projectRbacPermissions.findEditRowSaveButton('user').should('be.disabled');
+    projectRbacPermissions.selectEditRowRole('user', 'ClusterRole:edit');
+    projectRbacPermissions.findEditRowSaveButton('user').should('not.be.disabled').click();
+
+    // No confirmation modal for reversible -> reversible
+    projectRbacPermissions.findReplaceRoleModal('user').should('not.exist');
+
+    cy.wait('@createRoleBindingEdit');
+    cy.wait('@deleteRoleBindingAdmin');
+    cy.wait('@listRoleBindingsDynamic');
+
+    usersTable.findRoleLink('Contributor').should('exist');
+    usersTable.findRoleLink('Admin').should('not.exist');
+  });
+
+  it('should not allow editing irreversible roles (Edit action hidden)', () => {
+    const userName = 'test-user-1';
+    const userSubject = mockUserRoleBindingSubject({ name: userName });
+    const rbView = mockRoleBindingK8sResource({
+      name: 'rb-user-view',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'view',
+      creationTimestamp: '2024-01-01T00:00:00Z',
+    });
+    const rbAdmin = mockRoleBindingK8sResource({
+      name: 'rb-user-admin',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'admin',
+      creationTimestamp: '2024-02-01T00:00:00Z',
+    });
+
+    const roleBindingsPath = getK8sAPIResourceURL(RoleBindingModel, undefined, { ns: namespace });
+    initProjectRbacIntercepts({ items: [rbView] });
+
+    let roleBindingsItems: ReturnType<typeof mockRoleBindingK8sResource>[] = [rbView];
+    cy.intercept({ method: 'GET', pathname: roleBindingsPath }, (req) => {
+      req.reply(mockK8sResourceList(roleBindingsItems));
+    }).as('listRoleBindingsDynamic');
+
+    cy.interceptK8s('POST', { model: RoleBindingModel, ns: namespace }, (req) => {
+      roleBindingsItems = [...roleBindingsItems, rbAdmin];
+      req.reply(rbAdmin);
+    }).as('createRoleBindingAdmin');
+
+    cy.interceptK8s(
+      'DELETE',
+      { model: RoleBindingModel, ns: namespace, name: rbView.metadata.name },
+      (req) => {
+        roleBindingsItems = roleBindingsItems.filter(
+          (rb) => rb.metadata.name !== rbView.metadata.name,
+        );
+        req.reply(mock200Status({}));
+      },
+    ).as('deleteRoleBindingView');
+
+    projectRbacPermissions.visit(namespace);
+    cy.wait('@listRoleBindingsDynamic');
+
+    // For irreversible roles, Edit should not be available (only Remove).
+    const viewRow = usersTable.getRowByRoleLink('view');
+    viewRow.findKebab().click();
+    viewRow.findKebabAction('Edit', false).should('not.exist');
+  });
+
+  it('should cancel editing a user role assignment without making any changes', () => {
+    const userName = 'test-user-1';
+    const userSubject = mockUserRoleBindingSubject({ name: userName });
+    const rbAdmin = mockRoleBindingK8sResource({
+      name: 'rb-user-admin',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'admin',
+      creationTimestamp: '2024-01-01T00:00:00Z',
+    });
+
+    const roleBindingsPath = getK8sAPIResourceURL(RoleBindingModel, undefined, { ns: namespace });
+    initProjectRbacIntercepts({ items: [rbAdmin] });
+
+    const roleBindingsItems: ReturnType<typeof mockRoleBindingK8sResource>[] = [rbAdmin];
+    cy.intercept({ method: 'GET', pathname: roleBindingsPath }, (req) => {
+      req.reply(mockK8sResourceList(roleBindingsItems));
+    }).as('listRoleBindingsDynamic');
+
+    // Track network calls to ensure cancel does not mutate.
+    let createCount = 0;
+    let deleteCount = 0;
+    cy.interceptK8s('POST', { model: RoleBindingModel, ns: namespace }, (req) => {
+      createCount += 1;
+      req.reply(mockRoleBindingK8sResource({}));
+    }).as('createRoleBindingEdit');
+    cy.interceptK8s(
+      'DELETE',
+      { model: RoleBindingModel, ns: namespace, name: rbAdmin.metadata.name },
+      (req) => {
+        deleteCount += 1;
+        req.reply(mock200Status({}));
+      },
+    ).as('deleteRoleBindingAdmin');
+
+    projectRbacPermissions.visit(namespace);
+    cy.wait('@listRoleBindingsDynamic');
+
+    // Enter edit mode and change role selection
+    usersTable.getRowByRoleLink('Admin').findKebabAction('Edit').click();
+    projectRbacPermissions.selectEditRowRole('user', 'ClusterRole:edit');
+    projectRbacPermissions.findEditRowSaveButton('user').should('not.be.disabled');
+
+    // Cancel exits edit mode without any API calls
+    projectRbacPermissions.findEditRowCancelButton('user').click();
+    projectRbacPermissions.findEditRowRoleSelectToggle('user').should('not.exist');
+    projectRbacPermissions.findReplaceRoleModal('user').should('not.exist');
+
+    cy.wrap(null).then(() => {
+      expect(createCount).to.eq(0);
+      expect(deleteCount).to.eq(0);
+    });
+
+    // Original role remains
+    usersTable.findRoleLink('Admin').should('exist');
   });
 });
