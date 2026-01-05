@@ -1577,11 +1577,25 @@ export type ModelRegistryKind = K8sResourceCommon & {
           key: string;
           name: string;
         };
-        port: number;
+        port?: number;
         skipDBCreation?: boolean;
+        generateDeployment?: boolean;
         sslMode?: string;
         username?: string;
-      };
+      } & EitherNotBoth<
+        {
+          sslRootCertificateConfigMap?: {
+            name: string;
+            key: string;
+          } | null;
+        },
+        {
+          sslRootCertificateSecret?: {
+            name: string;
+            key: string;
+          } | null;
+        }
+      >;
     }
   >;
   status?: {

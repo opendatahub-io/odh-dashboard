@@ -13,6 +13,16 @@ export enum FormFieldSelector {
   DATABASE = '#mr-database',
 }
 
+export enum DatabaseSource {
+  DEFAULT = 'default',
+  EXTERNAL = 'external',
+}
+
+export enum DatabaseType {
+  MYSQL = 'mysql',
+  POSTGRES = 'postgres',
+}
+
 export enum FormErrorTestId {
   HOST = 'mr-host-error',
   PORT = 'mr-port-error',
@@ -179,6 +189,27 @@ class ModelRegistrySettings {
 
   findCertificateNote() {
     return cy.findByTestId('certificate-note');
+  }
+
+  findDatabaseSourceDefaultRadio() {
+    return cy.findByTestId('mr-database-source-default');
+  }
+
+  findDatabaseSourceExternalRadio() {
+    return cy.findByTestId('mr-database-source-external');
+  }
+
+  findDatabaseTypeDropdown() {
+    return cy.findByTestId('mr-database-type');
+  }
+
+  findDefaultDatabaseAlert() {
+    return cy.findByTestId('mr-default-database-alert');
+  }
+
+  selectDatabaseType(type: DatabaseType) {
+    this.findDatabaseTypeDropdown().click();
+    cy.findByRole('option', { name: type === DatabaseType.MYSQL ? 'MySQL' : 'PostgreSQL' }).click();
   }
 }
 
