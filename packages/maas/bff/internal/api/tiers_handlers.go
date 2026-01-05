@@ -108,7 +108,20 @@ func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	// Fetch the created tier to return the full object with any server-side defaults
+	createdTier, err := app.repositories.Tiers.GetTierByName(ctx, tier.Name)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := Envelope[*models.Tier, None]{
+		Data: createdTier,
+	}
+
+	if responseErr := app.WriteJSON(w, http.StatusCreated, response, nil); responseErr != nil {
+		app.serverErrorResponse(w, r, responseErr)
+	}
 }
 
 func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -150,7 +163,20 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	// Fetch the updated tier to return the full object
+	updatedTier, err := app.repositories.Tiers.GetTierByName(ctx, tierName)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := Envelope[*models.Tier, None]{
+		Data: updatedTier,
+	}
+
+	if responseErr := app.WriteJSON(w, http.StatusOK, response, nil); responseErr != nil {
+		app.serverErrorResponse(w, r, responseErr)
+	}
 }
 
 func DeleteTierHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -178,5 +204,11 @@ func DeleteTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	response := Envelope[None, None]{
+		Data: nil,
+	}
+
+	if responseErr := app.WriteJSON(w, http.StatusOK, response, nil); responseErr != nil {
+		app.serverErrorResponse(w, r, responseErr)
+	}
 }

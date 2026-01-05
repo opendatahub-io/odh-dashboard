@@ -12,8 +12,8 @@ export type Tier = {
 };
 
 export type TierLimits = {
-  tokensPerUnit: RateLimit[];
-  requestsPerUnit: RateLimit[];
+  tokensPerUnit?: RateLimit[];
+  requestsPerUnit?: RateLimit[];
 };
 
 export type RateLimit = {

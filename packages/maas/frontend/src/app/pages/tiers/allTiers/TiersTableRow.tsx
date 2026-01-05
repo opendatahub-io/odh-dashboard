@@ -33,12 +33,12 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
       </Td>
       <Td dataLabel={tierColumns[3].label}>
         <Stack>
-          {tier.limits.tokensPerUnit.map((limit, index) => (
+          {tier.limits.tokensPerUnit?.map((limit, index) => (
             <StackItem key={`token-${index}`}>
               {limit.count.toLocaleString()} tokens/{limit.time} {limit.unit}
             </StackItem>
           ))}
-          {tier.limits.requestsPerUnit.map((limit, index) => (
+          {tier.limits.requestsPerUnit?.map((limit, index) => (
             <StackItem key={`request-${index}`}>
               {limit.count.toLocaleString()} requests/{limit.time} {limit.unit}
             </StackItem>

@@ -1,5 +1,6 @@
 import {
   ActionGroup,
+  Alert,
   Button,
   Flex,
   FlexItem,
@@ -31,9 +32,17 @@ const DEFAULT_REQUEST_LIMIT: RateLimit = { count: 100, time: 1, unit: 'minute' }
 
 type CreateTierFormProps = {
   tier?: Tier;
+  onSubmit: (tier: Tier) => Promise<void>;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 };
 
-const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
+const CreateTierForm: React.FC<CreateTierFormProps> = ({
+  tier,
+  onSubmit,
+  isSubmitting = false,
+  submitError = null,
+}) => {
   const navigate = useNavigate();
   const { data, onDataChange } = useK8sNameDescriptionFieldData({
     initialData: tier
@@ -67,7 +76,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
   const [level, setLevel] = React.useState(tier?.level ?? 1);
 
   // Get selected group names for validation
-  const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => g.name);
+  const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
 
   const isK8sNameValid = isK8sNameDescriptionDataValid(data);
 
@@ -81,10 +90,15 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
     requestLimits,
   });
 
-  const canSubmit = isK8sNameValid && isFormValid;
+  const canSubmit = isK8sNameValid && isFormValid && !isSubmitting;
 
   return (
     <Form maxWidth="750px">
+      {submitError && (
+        <Alert variant="danger" isInline title="Failed to create tier">
+          {submitError}
+        </Alert>
+      )}
       <K8sNameDescriptionField
         data={data}
         onDataChange={onDataChange}
@@ -188,18 +202,32 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({ tier }) => {
       <ActionGroup>
         <Button
           key="create"
-          onClick={() => navigate('/maas/tiers')}
+          onClick={() =>
+            onSubmit({
+              name: data.k8sName.value,
+              displayName: data.name,
+              description: data.description,
+              level,
+              groups: selectedGroupNames,
+              limits: {
+                tokensPerUnit: tokenLimits,
+                requestsPerUnit: requestLimits,
+              },
+            })
+          }
           variant="primary"
           data-testid="create-tier-button"
           isDisabled={!canSubmit}
+          isLoading={isSubmitting}
         >
-          Create tier
+          {isSubmitting ? 'Creating...' : 'Create tier'}
         </Button>
         <Button
           key="cancel"
           onClick={() => navigate('/maas/tiers')}
           variant="link"
           data-testid="cancel-tier-button"
+          isDisabled={isSubmitting}
         >
           Cancel
         </Button>
