@@ -9,7 +9,11 @@ import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/area
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__/mockModelRegistry';
 import type { ConfigSecretItem, RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
-import { FormFieldSelector, modelRegistrySettings } from '../../../pages/modelRegistrySettings';
+import {
+  DatabaseType,
+  FormFieldSelector,
+  modelRegistrySettings,
+} from '../../../pages/modelRegistrySettings';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { verifyRelativeURL } from '../../../utils/url';
@@ -324,6 +328,7 @@ describe('CreateModal', () => {
   it('should display error messages when form fields are invalid and not allow submit', () => {
     modelRegistrySettings.visit(true);
     modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findSubmitButton().should('be.disabled');
     modelRegistrySettings.clearFormFields();
     modelRegistrySettings.findSubmitButton().should('be.disabled');
@@ -333,12 +338,13 @@ describe('CreateModal', () => {
   it('should enable submit button if fields are valid', () => {
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).blur();
     modelRegistrySettings.findSubmitButton().should('be.enabled');
 
@@ -392,12 +398,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findErrorFetchingResourceAlert().should('exist');
@@ -413,6 +420,7 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
 
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
@@ -429,12 +437,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
 
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
@@ -451,12 +460,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
 
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
@@ -473,12 +483,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findClusterWideCARadio().should('be.checked');
@@ -519,12 +530,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
@@ -569,12 +581,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findClusterWideCARadio().should('be.disabled');
@@ -635,12 +648,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findExistingCARadio().should('be.enabled');
@@ -700,6 +714,7 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findExistingCARadio().should('be.enabled');
@@ -730,12 +745,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findUploadNewCertificateRadio().check();
@@ -778,12 +794,13 @@ describe('CreateModal', () => {
     });
     modelRegistrySettings.visit(true);
     cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).type('1234');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).clear().type('1234');
     modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('validUser');
     modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('strongPassword');
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).type('myDatabase');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('myDatabase');
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
     modelRegistrySettings.findUploadNewCertificateRadio().check();
@@ -795,6 +812,186 @@ describe('CreateModal', () => {
       .findRestrictedFileUploadHelptext()
       .should('have.text', 'Must be a PEM file: error status;');
     modelRegistrySettings.findSubmitButton().should('be.disabled');
+  });
+
+  it('should show database source options with Default selected by default', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+    modelRegistrySettings.findDatabaseSourceExternalRadio().should('not.be.checked');
+    modelRegistrySettings.findDefaultDatabaseAlert().should('exist');
+    // External database fields should not be visible when Default is selected
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('not.exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('not.exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).should('not.exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).should('not.exist');
+  });
+
+  it('should show external database fields when External database is selected', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().should('be.checked');
+    modelRegistrySettings.findDefaultDatabaseAlert().should('not.exist');
+    // External database fields should be visible
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).should('exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).should('exist');
+    modelRegistrySettings.findDatabaseTypeDropdown().should('exist');
+  });
+
+  it('should switch between database sources', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+
+    // Initially Default is selected
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+    modelRegistrySettings.findDefaultDatabaseAlert().should('exist');
+
+    // Switch to External
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().should('be.checked');
+    modelRegistrySettings.findDefaultDatabaseAlert().should('not.exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('exist');
+
+    // Switch back to Default
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().click();
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+    modelRegistrySettings.findDefaultDatabaseAlert().should('exist');
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('not.exist');
+  });
+
+  it('should update port when database type is changed', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
+
+    // Default type is MySQL with port 3306
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '3306');
+
+    // Change to PostgreSQL - port should update to 5432
+    modelRegistrySettings.selectDatabaseType(DatabaseType.POSTGRES);
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '5432');
+
+    // Change back to MySQL - port should update to 3306
+    modelRegistrySettings.selectDatabaseType(DatabaseType.MYSQL);
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '3306');
+  });
+
+  it('create a model registry with Default database', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('default-db-registry');
+    modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
+    // Default database uses a predefined database name - no database field is shown
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).should('not.exist');
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'default-db-registry',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'default-db-registry',
+            },
+          },
+          spec: {
+            postgres: {
+              database: 'model-registry',
+              generateDeployment: true,
+              skipDBCreation: false,
+            },
+          },
+        },
+      });
+    });
+  });
+
+  it('create a model registry with External PostgreSQL database', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('postgres-registry');
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
+    modelRegistrySettings.selectDatabaseType(DatabaseType.POSTGRES);
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('postgres-host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '5432');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('postgresUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('postgresPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('postgres_db');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).blur();
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'postgres-registry',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'postgres-registry',
+            },
+          },
+          spec: {
+            postgres: {
+              host: 'postgres-host',
+              port: 5432,
+              database: 'postgres_db',
+              username: 'postgresUser',
+              skipDBCreation: false,
+            },
+          },
+        },
+        databasePassword: 'postgresPassword',
+      });
+    });
+  });
+
+  it('create a model registry with External MySQL database', () => {
+    modelRegistrySettings.visit(true);
+    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('mysql-registry');
+    modelRegistrySettings.findDatabaseSourceExternalRadio().click();
+    // MySQL is the default type for external
+    modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('mysql-host');
+    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '3306');
+    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).type('mysqlUser');
+    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).type('mysqlPassword');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).clear().type('mysql_db');
+    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).blur();
+    modelRegistrySettings.findSubmitButton().should('be.enabled');
+    modelRegistrySettings.findSubmitButton().click();
+
+    cy.wait('@createModelRegistry').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            name: 'mysql-registry',
+            namespace: 'odh-model-registries',
+            annotations: {
+              'openshift.io/description': '',
+              'openshift.io/display-name': 'mysql-registry',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'mysql-host',
+              port: 3306,
+              database: 'mysql_db',
+              username: 'mysqlUser',
+              skipDBCreation: false,
+            },
+          },
+        },
+        databasePassword: 'mysqlPassword',
+      });
+    });
   });
 });
 
