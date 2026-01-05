@@ -9,6 +9,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
@@ -37,11 +38,18 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dynClient, err := dynamic.NewForConfig(kubeconfig)
+	if err != nil {
+		logger.Error("failed to create Kubernetes dynamic client", "error", err)
+		return nil, fmt.Errorf("failed to create Kubernetes dynamic client: %w", err)
+	}
+
 	return &InternalKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
-			Token:  NewBearerToken(kubeconfig.BearerToken),
+			Client:        clientset,
+			DynamicClient: dynClient,
+			Logger:        logger,
+			Token:         NewBearerToken(kubeconfig.BearerToken),
 		},
 	}, nil
 }

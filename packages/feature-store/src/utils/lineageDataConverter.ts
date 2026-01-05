@@ -10,6 +10,26 @@ import { Entity } from '../types/entities';
 import { DataSource } from '../types/dataSources';
 import { FeatureService } from '../types/featureServices';
 import { FeatureStoreRelationship } from '../types/global';
+import { FeatureView } from '../types/featureView';
+
+const getLineageFeatureViewInfo = (lineageFeatureView: LineageFeatureView) => {
+  if ('featureView' in lineageFeatureView) {
+    return {
+      spec: lineageFeatureView.featureView.spec,
+      type: 'featureView' as const,
+    };
+  }
+  if ('onDemandFeatureView' in lineageFeatureView) {
+    return {
+      spec: lineageFeatureView.onDemandFeatureView.spec,
+      type: 'onDemandFeatureView' as const,
+    };
+  }
+  return {
+    spec: lineageFeatureView.streamFeatureView.spec,
+    type: 'streamFeatureView' as const,
+  };
+};
 
 /**
  * Converts Feature Store lineage data to generic lineage visualization format
@@ -67,35 +87,24 @@ export const convertFeatureStoreLineageToVisualizationData = (
   );
 
   actualFeatureViews.forEach((lineageFeatureView: LineageFeatureView) => {
-    const { name, description, features } =
-      'featureView' in lineageFeatureView
-        ? lineageFeatureView.featureView.spec
-        : 'onDemandFeatureView' in lineageFeatureView
-        ? lineageFeatureView.onDemandFeatureView.spec
-        : lineageFeatureView.streamFeatureView.spec;
-    const type =
-      'featureView' in lineageFeatureView
-        ? 'batch_feature_view'
-        : 'onDemandFeatureView' in lineageFeatureView
-        ? 'on_demand_feature_view'
-        : 'stream_feature_view';
+    const { spec, type: featureViewType } = getLineageFeatureViewInfo(lineageFeatureView);
+    const config = getObjectTypeConfig(featureViewType);
+    const { name, description, features } = spec;
+
+    if (!config) {
+      return;
+    }
 
     addNode({
       id: `featureview-${name}`,
-      label: `${
-        type === 'batch_feature_view'
-          ? 'Batch'
-          : type === 'on_demand_feature_view'
-          ? 'On demand'
-          : 'Stream'
-      } Feature View: ${name}`,
-      fsObjectTypes: 'feature_view',
-      entityType: type,
+      label: `${config.labelPrefix}: ${name}`,
+      fsObjectTypes: config.fsObjectType,
+      entityType: config.entityType,
       features,
       name,
       description,
       truncateLength: 40,
-      layer: 2, // Position feature views in layer 2 (third from left)
+      layer: config.layer, // Position feature views in layer 2 (third from left all feature view types use layer 2)
     });
   });
 
@@ -252,6 +261,7 @@ export const convertFeatureStoreLineageToVisualizationData = (
 export const convertFeatureViewLineageToVisualizationData = (
   featureViewLineage: FeatureViewLineage,
   featureViewName: string,
+  featureViewType?: FeatureView['type'],
 ): LineageData => {
   const nodes: LineageNode[] = [];
   const edges: LineageEdge[] = [];
@@ -263,20 +273,32 @@ export const convertFeatureViewLineageToVisualizationData = (
     const sourceKey = `${relationship.source.type}-${relationship.source.name}`;
     const targetKey = `${relationship.target.type}-${relationship.target.name}`;
 
-    uniqueObjects.set(sourceKey, relationship.source);
-    uniqueObjects.set(targetKey, relationship.target);
+    if (relationship.source.name && !uniqueObjects.has(sourceKey)) {
+      uniqueObjects.set(sourceKey, relationship.source);
+    }
+    if (relationship.target.name && !uniqueObjects.has(targetKey)) {
+      uniqueObjects.set(targetKey, relationship.target);
+    }
   });
 
   // Create nodes for each unique object
   uniqueObjects.forEach((obj, key) => {
+    if (obj.type === 'feature') {
+      return;
+    }
     const isCurrentFeatureView = obj.type.includes('featureView') && obj.name === featureViewName;
     const layer = getObjectLayer(obj.type, isCurrentFeatureView);
 
+    const objectTypeForLabel = isCurrentFeatureView && featureViewType ? featureViewType : obj.type;
+
     nodes.push({
       id: mapObjectToNodeId(obj) || key,
-      label: getObjectLabel(obj.type, obj.name),
+      label: getObjectLabel(objectTypeForLabel, obj.name),
       fsObjectTypes: mapTypeToFsObjectType(obj.type),
-      entityType: mapTypeToEntityType(obj.type),
+      entityType:
+        isCurrentFeatureView && featureViewType
+          ? mapTypeToEntityType(featureViewType)
+          : mapTypeToEntityType(obj.type),
       name: obj.name,
       truncateLength: 30,
       layer,
@@ -288,6 +310,9 @@ export const convertFeatureViewLineageToVisualizationData = (
   // Create edges from relationships
   featureViewLineage.relationships.forEach(
     (relationship: FeatureStoreRelationship, index: number) => {
+      if (relationship.source.type === 'feature' || relationship.target.type === 'feature') {
+        return;
+      }
       const sourceId = mapObjectToNodeId(relationship.source);
       const targetId = mapObjectToNodeId(relationship.target);
 

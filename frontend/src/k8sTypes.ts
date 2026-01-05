@@ -620,12 +620,19 @@ export type RoleKind = K8sResourceCommon & {
   rules: ResourceRule[];
 };
 
+export type ClusterRoleKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  rules: ResourceRule[];
+};
+
 export type RoleBindingKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
   };
-  subjects: RoleBindingSubject[];
+  subjects?: RoleBindingSubject[];
   roleRef: RoleBindingRoleRef;
 };
 

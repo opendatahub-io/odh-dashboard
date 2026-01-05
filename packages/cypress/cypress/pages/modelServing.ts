@@ -1053,6 +1053,14 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  findCustomModelLocationSelect() {
+    return cy.findByTestId('custom-type-select');
+  }
+
+  findCustomModelLocationSelectOption(name: string) {
+    return this.findCustomModelLocationSelect().findSelectOption(name);
+  }
+
   findLocationPathInput() {
     return cy.findByTestId('folder-path');
   }

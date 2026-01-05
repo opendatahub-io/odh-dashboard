@@ -11,7 +11,7 @@ export const filterRoleBindingSubjects = (
 ): RoleBindingKind[] =>
   roleBindings.filter(
     (roles) =>
-      roles.subjects[0]?.kind === type &&
+      roles.subjects?.[0]?.kind === type &&
       (isProjectSubject
         ? roles.metadata.labels?.['opendatahub.io/rb-project-subject'] === 'true'
         : !(roles.metadata.labels?.['opendatahub.io/rb-project-subject'] === 'true')),
@@ -39,10 +39,10 @@ export const firstSubject = (
 ): string =>
   (isProjectSubject && project
     ? namespaceToProjectDisplayName(
-        roleBinding.subjects[0]?.name.replace(/^system:serviceaccounts:/, ''),
+        roleBinding.subjects?.[0]?.name.replace(/^system:serviceaccounts:/, '') ?? '',
         project,
       )
-    : roleBinding.subjects[0]?.name) || '';
+    : roleBinding.subjects?.[0]?.name) || '';
 
 export const roleLabel = (value: RoleBindingPermissionsRoleType): string => {
   if (value === RoleBindingPermissionsRoleType.EDIT) {
@@ -52,7 +52,9 @@ export const roleLabel = (value: RoleBindingPermissionsRoleType): string => {
 };
 
 export const removePrefix = (roleBindings: RoleBindingKind[]): string[] =>
-  roleBindings.map((rb) => rb.subjects[0]?.name.replace(/^system:serviceaccounts:/, ''));
+  roleBindings
+    .map((rb) => rb.subjects?.[0]?.name.replace(/^system:serviceaccounts:/, ''))
+    .filter((name): name is string => name !== undefined);
 
 export const isCurrentUserChanging = (
   roleBinding: RoleBindingKind | undefined,
@@ -61,7 +63,7 @@ export const isCurrentUserChanging = (
   if (!roleBinding) {
     return false;
   }
-  return currentUsername === roleBinding.subjects[0].name;
+  return currentUsername === roleBinding.subjects?.[0]?.name;
 };
 
 export const tryPatchRoleBinding = async (
@@ -76,7 +78,7 @@ export const tryPatchRoleBinding = async (
     await patchRoleBindingSubjects(
       oldRBObject.metadata.name,
       oldRBObject.metadata.namespace,
-      newRBObject.subjects,
+      newRBObject.subjects ?? [],
       { dryRun: true },
     );
   } catch (e) {
@@ -86,7 +88,7 @@ export const tryPatchRoleBinding = async (
     await patchRoleBindingSubjects(
       oldRBObject.metadata.name,
       oldRBObject.metadata.namespace,
-      newRBObject.subjects,
+      newRBObject.subjects ?? [],
       { dryRun: false },
     );
     return true;

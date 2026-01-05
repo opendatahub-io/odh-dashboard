@@ -30,36 +30,68 @@ const groupSubjects: RoleBindingSubject[] = [
 
 type HandlersProps = {
   isEmpty?: boolean;
+  includeRoleBindingWithoutSubjects?: boolean;
 };
 
-const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
+/**
+ * Creates a RoleBinding without subjects, which is valid per Kubernetes API spec.
+ * This simulates RoleBindings found in system namespaces like istio-system.
+ */
+const createRoleBindingWithoutSubjects = () => ({
+  kind: 'RoleBinding',
+  apiVersion: 'rbac.authorization.k8s.io/v1',
+  metadata: {
+    name: 'system-rolebinding-no-subjects',
+    namespace: 'test-project',
+    uid: 'test-uid-no-subjects',
+    creationTimestamp: '2023-02-14T21:43:59Z',
+  },
+  // subjects is intentionally omitted - valid per K8s API spec
+  roleRef: {
+    apiGroup: 'rbac.authorization.k8s.io',
+    kind: 'ClusterRole',
+    name: 'view',
+  },
+});
+
+const initIntercepts = ({
+  isEmpty = false,
+  includeRoleBindingWithoutSubjects = false,
+}: HandlersProps) => {
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
   );
+
+  const roleBindings = isEmpty
+    ? []
+    : [
+        mockRoleBindingK8sResource({
+          name: 'user-1',
+          subjects: [userSubjects[0]],
+          roleRefName: 'edit',
+        }),
+        mockRoleBindingK8sResource({
+          name: 'test-user',
+          subjects: [userSubjects[1]],
+          roleRefName: 'edit',
+        }),
+        mockRoleBindingK8sResource({
+          name: 'group-1',
+          subjects: groupSubjects,
+          roleRefName: 'edit',
+        }),
+      ];
+
+  if (includeRoleBindingWithoutSubjects) {
+    roleBindings.push(
+      createRoleBindingWithoutSubjects() as ReturnType<typeof mockRoleBindingK8sResource>,
+    );
+  }
+
   cy.interceptK8sList(
     { model: RoleBindingModel, ns: 'test-project' },
-    mockK8sResourceList(
-      isEmpty
-        ? []
-        : [
-            mockRoleBindingK8sResource({
-              name: 'user-1',
-              subjects: [userSubjects[0]],
-              roleRefName: 'edit',
-            }),
-            mockRoleBindingK8sResource({
-              name: 'test-user',
-              subjects: [userSubjects[1]],
-              roleRefName: 'edit',
-            }),
-            mockRoleBindingK8sResource({
-              name: 'group-1',
-              subjects: groupSubjects,
-              roleRefName: 'edit',
-            }),
-          ],
-    ),
+    mockK8sResourceList(roleBindings),
   );
 };
 
@@ -85,6 +117,31 @@ describe('Permissions tab', () => {
 
     //Group table
     groupTable.findRows().should('have.length', 0);
+    permissions.findAddGroupButton().should('be.enabled');
+  });
+
+  it('should render correctly when RoleBindings without subjects exist', () => {
+    // This test verifies the fix for the TypeError that occurred when viewing
+    // the Permissions tab for namespaces like istio-system where RoleBinding
+    // objects may exist without a subjects array (valid per K8s API spec).
+    initIntercepts({ isEmpty: false, includeRoleBindingWithoutSubjects: true });
+    permissions.visit('test-project');
+    cy.url().should('include', '/projects/test-project?section=permissions');
+
+    // The page should render without errors
+    // Only the RoleBindings with valid subjects should be displayed
+    userTable.findRows().should('have.length', 2);
+    groupTable.findRows().should('have.length', 1);
+
+    // Verify the valid users are displayed correctly
+    userTable.getTableRow('user-1').find().should('exist');
+    userTable.getTableRow('test-user').find().should('exist');
+
+    // Verify the valid group is displayed correctly
+    groupTable.getTableRow('group-1').find().should('exist');
+
+    // The add buttons should still be enabled
+    permissions.findAddUserButton().should('be.enabled');
     permissions.findAddGroupButton().should('be.enabled');
   });
 
