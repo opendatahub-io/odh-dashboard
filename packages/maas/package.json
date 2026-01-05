@@ -31,6 +31,9 @@
     "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9104 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9104"
   },
+  "exports": {
+    "./types/tier": "./frontend/src/app/types/tier.ts"
+  },
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"

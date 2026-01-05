@@ -155,6 +155,47 @@ You can install the latest version with:
   go install github.com/go-delve/delve/cmd/dlv@latest
 ```
 
+Check if dlv is installed:
+
+```bash
+dlv
+```
+
+If this returns: "dlv: command not found" the go binary directory might not be included in your path.
+
+Try running
+
+```bash
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+and then
+
+```bash
+dlv
+```
+
+again to confirm.
+
+To make this persistent you will have to add it to your .bash_profile or .bashrc or .zshrc:
+
+```bash
+echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bash_profile
+```
+
+or
+
+```bash
+echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bashrc
+```
+
+or
+
+```bash
+echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.zshrc
+```
+
+
 Then run the below, which will start the gen-ai frontend, bff with debugger, and port-forwarding (VSCode can attach on port 2345).
 
 ```bash

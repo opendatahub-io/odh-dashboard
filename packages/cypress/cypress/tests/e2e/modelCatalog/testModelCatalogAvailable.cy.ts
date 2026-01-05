@@ -2,7 +2,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../uti
 import { modelCatalog } from '../../../pages/modelCatalog/modelCatalog';
 import { verifyModelCatalogBackend } from '../../../utils/oc_commands/modelCatalog';
 
-describe('[Automation Task: RHOAIENG-39294] Verifies that Model Catalog is available for different users', () => {
+describe('Verifies that Model Catalog is available for different users', () => {
   before(() => {
     cy.step('Verifies that Model Catalog pods, Services and ConfigMaps are available');
     verifyModelCatalogBackend();
@@ -10,7 +10,7 @@ describe('[Automation Task: RHOAIENG-39294] Verifies that Model Catalog is avail
 
   it(
     'Verifies that Model Catalog is available for an admin user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Login as admin user');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -25,7 +25,7 @@ describe('[Automation Task: RHOAIENG-39294] Verifies that Model Catalog is avail
 
   it(
     'Verifies that Model Catalog is available for a regular user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Login as LDAP user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
