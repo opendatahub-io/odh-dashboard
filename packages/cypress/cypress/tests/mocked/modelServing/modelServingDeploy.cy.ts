@@ -2454,5 +2454,37 @@ describe('Model Serving Deploy Wizard', () => {
       // Verify model path is prefilled
       modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
     });
+    it('should auto-select single PVC and prefill additional fields on edit', () => {
+      const singlePVC = mockPVCK8sResource({
+        name: 'single-pvc',
+        namespace: 'test-project',
+        displayName: 'Single PVC',
+        storageClassName: 'openshift-default-sc',
+        annotations: {
+          'dashboard.opendatahub.io/model-name': 'single-model',
+          'dashboard.opendatahub.io/model-path': 'path/to/model',
+        },
+      });
+      const singlePVCModel = mockInferenceServiceK8sResource({
+        name: 'single-pvc-model',
+        displayName: 'Single PVC Model',
+        secretName: 'single-pvc-secret',
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        storageUri: 'pvc://single-pvc/path/to/model',
+      });
+      cy.interceptK8sList(
+        { model: PVCModel, ns: 'test-project' },
+        mockK8sResourceList([singlePVC]),
+      );
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([singlePVCModel]),
+      );
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Single PVC').findKebabAction('Edit').click();
+      modelServingWizardEdit.findModelLocationSelectOption('Cluster storage').should('exist');
+      modelServingWizardEdit.findPVCSelectValue().should('have.value', 'Single PVC');
+      modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
+    });
   });
 });
