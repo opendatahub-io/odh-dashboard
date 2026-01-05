@@ -25,6 +25,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
+import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import { ModelLocationInputFields, useModelLocationData } from './ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
 
@@ -208,9 +209,14 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return undefined;
   }, [modelLocationData, modelServingConnectionTypes, selectedConnection]);
 
+  // Makes sure we don't show the existing connection option if we only have generated connections
+  const nonGeneratedConnections = React.useMemo(() => {
+    return connections.filter((c) => !isGeneratedSecretName(c.metadata.name));
+  }, [connections]);
+
   const baseOptions = React.useMemo(() => {
     const options: { key: string; label: string }[] = [
-      ...(connections.length > 0
+      ...(nonGeneratedConnections.length > 0
         ? [{ key: ModelLocationType.EXISTING, label: 'Existing connection' }]
         : []),
       ...(pvcs.data.length > 0 ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }] : []),
@@ -233,7 +239,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
 
     return options;
   }, [
-    connections.length,
+    nonGeneratedConnections.length,
     pvcs.data.length,
     s3ConnectionTypes.length,
     ociConnectionTypes.length,
