@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { MaaSTokenResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 
@@ -30,9 +32,18 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
       try {
         const response = await api.generateMaaSToken(expiration ? { expiration } : {});
         setTokenData(response);
+        fireFormTrackingEvent('MaaS API Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to generate MaaS token';
         setError(errorMessage);
+        fireFormTrackingEvent('MaaS API Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: errorMessage,
+        });
       } finally {
         setIsGenerating(false);
       }
