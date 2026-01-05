@@ -225,7 +225,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
    * Builds the database specification object based on the selected database source and type.
    * For Default source: Returns PostgreSQL config with generateDeployment=true
    * For External source: Returns MySQL or PostgreSQL config based on databaseType
-   * @returns Database specification with either mysql or postgres configuration
+   * @returns Database specification with either mysql or postgres configuration (and the other set to undefined)
    */
   const buildDatabaseSpec = (): Pick<ModelRegistryKind['spec'], 'mysql' | 'postgres'> => {
     if (databaseSource === DatabaseSource.DEFAULT) {
@@ -236,6 +236,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           generateDeployment: true,
           skipDBCreation: false,
         },
+        mysql: undefined,
       };
     }
 
@@ -249,9 +250,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     };
 
     if (databaseType === DatabaseType.POSTGRES) {
-      return { postgres: dbConfig };
+      return { postgres: dbConfig, mysql: undefined };
     }
-    return { mysql: dbConfig };
+    return { mysql: dbConfig, postgres: undefined };
   };
 
   const onSubmit = async () => {
@@ -270,10 +271,15 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
             'openshift.io/display-name': nameDesc.name.trim(),
           },
         },
-        spec: {
-          kubeRBACProxy: {},
-          ...dbSpec,
-        },
+        spec: dbSpec.postgres
+          ? {
+              kubeRBACProxy: {},
+              postgres: dbSpec.postgres,
+            }
+          : {
+              kubeRBACProxy: {},
+              mysql: dbSpec.mysql,
+            },
       };
 
       try {
@@ -312,12 +318,19 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
             'openshift.io/display-name': nameDesc.name.trim(),
           },
         },
-        spec: {
-          kubeRBACProxy: {},
-          grpc: {},
-          rest: {},
-          ...dbSpec,
-        },
+        spec: dbSpec.postgres
+          ? {
+              kubeRBACProxy: {},
+              grpc: {},
+              rest: {},
+              postgres: dbSpec.postgres,
+            }
+          : {
+              kubeRBACProxy: {},
+              grpc: {},
+              rest: {},
+              mysql: dbSpec.mysql,
+            },
       };
 
       // Add SSL configuration for external databases
