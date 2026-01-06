@@ -43,6 +43,7 @@ type Providers struct {
 	DatasetIO   []Provider `json:"datasetio" yaml:"datasetio"`
 	Scoring     []Provider `json:"scoring" yaml:"scoring"`
 	ToolRuntime []Provider `json:"tool_runtime" yaml:"tool_runtime"`
+	Safety      []Provider `json:"safety" yaml:"safety"`
 }
 
 type Provider struct {
@@ -405,6 +406,16 @@ func (c *LlamaStackConfig) AddToolRuntimeProvider(provider Provider) {
 // AddFilesProvider adds a new files provider to the config
 func (c *LlamaStackConfig) AddFilesProvider(provider Provider) {
 	c.Providers.Files = append(c.Providers.Files, provider)
+}
+
+// AddSafetyProvider adds a new safety provider to the config
+func (c *LlamaStackConfig) AddSafetyProvider(provider Provider) {
+	c.Providers.Safety = append(c.Providers.Safety, provider)
+}
+
+// RegisterShield adds a shield to the registered resources
+func (c *LlamaStackConfig) RegisterShield(shield Shield) {
+	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
 }
 
 // GetModelProviderInfo extracts model provider information for a given model ID
