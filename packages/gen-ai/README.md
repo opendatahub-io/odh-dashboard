@@ -266,7 +266,7 @@ The BFF supports the following configuration options:
 
 - `PORT`: HTTP server port (default: 8080)
 - `STATIC_ASSETS_DIR`: Directory for static assets (default: "./static")
-- `LOG_LEVEL`: Logging level (default: "DEBUG")
+- `LOG_LEVEL`: Logging level (default: "INFO" for production, "debug" for development via Makefile)
 - `ALLOWED_ORIGINS`: CORS allowed origins (default: none)
 - `LLAMA_STACK_URL`: **Base URL for the Llama Stack API.** All requests to `/api/llama-stack/*` will be proxied to this URL. Example: `http://llama-stack-service:8080`
 - `MAAS_URL`: **Base URL for the MaaS (Model as a Service) API.** Used for MaaS model and token management. Example: `http://maas-service:8080`
