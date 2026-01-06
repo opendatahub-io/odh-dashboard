@@ -151,7 +151,7 @@ describe('Tiers Page', () => {
     ).as('deleteTier');
 
     tiersPage.getRow('Free Tier').findDeleteButton().click();
-    deleteTierModal.findInput().type('free');
+    deleteTierModal.findInput().type('Free Tier');
 
     // Add this intercept before the next tiers call happens after deletion
     cy.interceptOdh('GET /maas/api/v1/tiers', {

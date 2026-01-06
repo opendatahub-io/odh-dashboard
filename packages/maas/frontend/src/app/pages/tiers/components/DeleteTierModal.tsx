@@ -29,8 +29,8 @@ const DeleteTierModal: React.FC<DeleteTierModalProps> = ({ tier, onClose }) => {
       deleting={isDeleting}
       onDelete={handleDelete}
       submitButtonLabel="Delete"
-      deleteName={tier.name}
-      error={error ? new Error(error) : undefined}
+      deleteName={tier.displayName}
+      error={error}
     >
       This action cannot be undone. This will delete the <strong>{tier.displayName}</strong> tier
       for all users.

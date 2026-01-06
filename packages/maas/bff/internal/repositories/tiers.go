@@ -200,20 +200,20 @@ func (t *TiersRepository) GetTierByName(ctx context.Context, name string) (*mode
 	return nil, nil
 }
 
-func (t *TiersRepository) CreateTier(ctx context.Context, tier models.Tier) error {
+func (t *TiersRepository) CreateTier(ctx context.Context, tier models.Tier) (*models.Tier, error) {
 	// TODO: Validate tier name is compliant with Kubernetes names.
 
 	tierConfigMap, parsedTiers, err := t.fetchParsedTiersConfigMap(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, existingTier := range parsedTiers {
 		if existingTier.Name == tier.Name {
-			return ErrTierExists
+			return nil, ErrTierExists
 		}
 		if existingTier.Level == tier.Level {
-			return ErrTierLevelConflict
+			return nil, ErrTierLevelConflict
 		}
 	}
 
@@ -227,20 +227,24 @@ func (t *TiersRepository) CreateTier(ctx context.Context, tier models.Tier) erro
 	parsedTiers = append(parsedTiers, newTier)
 
 	if err = t.updateTiersConfigMap(ctx, tierConfigMap, parsedTiers); err != nil {
-		return err
+		return nil, err
 	}
 
 	if !t.isEmptyLimits(tier.Limits) {
 		err = t.createOrUpdateRateLimitPolicies(ctx, tier.Name, tier.Limits)
 	}
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return &tier, nil
 }
 
-func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) error {
+func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) (*models.Tier, error) {
 	tierConfigMap, parsedTiers, err := t.fetchParsedTiersConfigMap(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tierIdx := -1
@@ -254,11 +258,11 @@ func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) erro
 	}
 
 	if tierIdx == -1 {
-		return ErrTierNotFound
+		return nil, ErrTierNotFound
 	}
 
 	if levelConflict {
-		return ErrTierLevelConflict
+		return nil, ErrTierLevelConflict
 	}
 
 	parsedTiers[tierIdx] = tierConfigMapData{
@@ -270,14 +274,17 @@ func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) erro
 	}
 
 	if err = t.updateTiersConfigMap(ctx, tierConfigMap, parsedTiers); err != nil {
-		return err
+		return nil, err
 	}
 
 	if !t.isEmptyLimits(tier.Limits) {
 		err = t.createOrUpdateRateLimitPolicies(ctx, tier.Name, tier.Limits)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return err
+	return &tier, nil
 }
 
 func (t *TiersRepository) DeleteTierByName(ctx context.Context, name string) error {

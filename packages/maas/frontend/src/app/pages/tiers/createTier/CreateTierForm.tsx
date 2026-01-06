@@ -210,8 +210,8 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
               level,
               groups: selectedGroupNames,
               limits: {
-                tokensPerUnit: tokenLimits,
-                requestsPerUnit: requestLimits,
+                ...(tokenLimitEnabled && { tokensPerUnit: tokenLimits }),
+                ...(requestLimitEnabled && { requestsPerUnit: requestLimits }),
               },
             })
           }

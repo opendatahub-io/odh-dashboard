@@ -79,13 +79,14 @@ func GetTierHandler(app *App, w http.ResponseWriter, r *http.Request, params htt
 func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	var tier models.Tier
-	if err := json.NewDecoder(r.Body).Decode(&tier); err != nil {
+	var request Envelope[models.Tier, None]
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if err := app.repositories.Tiers.CreateTier(ctx, tier); err != nil {
+	createdTier, err := app.repositories.Tiers.CreateTier(ctx, request.Data)
+	if err != nil {
 		if errors.Is(err, repositories.ErrTierExists) || errors.Is(err, repositories.ErrTierLevelConflict) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusUnprocessableEntity,
@@ -108,13 +109,6 @@ func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	// Fetch the created tier to return the full object with any server-side defaults
-	createdTier, err := app.repositories.Tiers.GetTierByName(ctx, tier.Name)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
 	response := Envelope[*models.Tier, None]{
 		Data: createdTier,
 	}
@@ -132,11 +126,12 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	var tier models.Tier
-	if err := json.NewDecoder(r.Body).Decode(&tier); err != nil {
+	var request Envelope[models.Tier, None]
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	tier := request.Data
 
 	// Sanity check: if the body has a name, it must match.
 	if len(tier.Name) == 0 {
@@ -146,7 +141,8 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	if err := app.repositories.Tiers.UpdateTier(ctx, tier); err != nil {
+	updatedTier, err := app.repositories.Tiers.UpdateTier(ctx, tier)
+	if err != nil {
 		if errors.Is(err, repositories.ErrTierNotFound) {
 			app.notFoundResponse(w, r)
 		} else if errors.Is(err, repositories.ErrUpdateConflict) {
@@ -160,13 +156,6 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		} else {
 			app.serverErrorResponse(w, r, err)
 		}
-		return
-	}
-
-	// Fetch the updated tier to return the full object
-	updatedTier, err := app.repositories.Tiers.GetTierByName(ctx, tierName)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
 		return
 	}
 
