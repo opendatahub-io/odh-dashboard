@@ -169,15 +169,28 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     toolsModal.closeModal();
   }, [toolsModal]);
 
-  const handleSuccessModalClose = React.useCallback(() => {
-    successModal.closeModal();
-  }, [successModal]);
+  const handleSuccessModalClose = React.useCallback(
+    (server?: MCPServer, toolsCount?: number) => {
+      if (server && toolsCount !== undefined) {
+        fireMiscTrackingEvent('Playground MCP Success Modal Closed', {
+          mcpServerName: server.name,
+          toolsCount,
+        });
+      }
+      successModal.closeModal();
+    },
+    [successModal],
+  );
 
   const handleDisconnect = React.useCallback(
-    (serverUrl: string) => {
+    (serverUrl: string, serverName?: string, wasAutoConnected?: boolean) => {
       tokenManagement.removeToken(serverUrl);
       validation.clearValidationError(serverUrl);
       successModal.closeModal();
+      fireMiscTrackingEvent('Playground MCP Server Disconnected', {
+        mcpServerName: serverName || serverUrl,
+        wasAutoConnected: wasAutoConnected || false,
+      });
     },
     [tokenManagement, validation, successModal],
   );

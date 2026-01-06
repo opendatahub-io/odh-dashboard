@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MCPServer } from '~/app/types';
 
 interface MCPServerConfigModalProps {
@@ -65,7 +66,10 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
 
   const handleClear = React.useCallback(() => {
     setAccessToken('');
-  }, []);
+    fireMiscTrackingEvent('Playground MCP Token Cleared', {
+      mcpServerName: server.name,
+    });
+  }, [server.name]);
 
   return (
     <Modal
@@ -152,7 +156,12 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
         <Button
           key="cancel"
           variant="link"
-          onClick={onClose}
+          onClick={() => {
+            fireMiscTrackingEvent('Playground MCP Configuration Modal Canceled', {
+              mcpServerName: server.name,
+            });
+            onClose();
+          }}
           className="pf-v6-u-mr-sm"
           isDisabled={isValidating}
           data-testid="mcp-token-cancel-button"

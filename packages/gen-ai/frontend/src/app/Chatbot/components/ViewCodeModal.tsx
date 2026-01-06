@@ -10,6 +10,7 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { generateMCPServerConfig } from '~/app/utilities';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
@@ -134,15 +135,40 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
 
   React.useEffect(() => {
     if (isOpen) {
+      fireMiscTrackingEvent('Playground View Code Action', {
+        action: 'opened',
+        hasRag: isRagEnabled,
+        hasMcp: selectedMcpServerIds.length > 0,
+        mcpServersCount: selectedMcpServerIds.length,
+      });
       handleExportCode();
     }
-  }, [isOpen, handleExportCode]);
+  }, [isOpen, handleExportCode, isRagEnabled, selectedMcpServerIds]);
+
+  const handleClose = React.useCallback(() => {
+    fireMiscTrackingEvent('Playground View Code Action', {
+      action: 'closed',
+      hasRag: isRagEnabled,
+      hasMcp: selectedMcpServerIds.length > 0,
+      mcpServersCount: selectedMcpServerIds.length,
+      success: code.length > 0 && !error,
+    });
+    onToggle();
+  }, [onToggle, isRagEnabled, selectedMcpServerIds, code, error]);
+
+  const handleCodeCopy = React.useCallback(() => {
+    fireMiscTrackingEvent('Playground Code Copied', {
+      hasRag: isRagEnabled,
+      hasMcp: selectedMcpServerIds.length > 0,
+      mcpServersCount: selectedMcpServerIds.length,
+    });
+  }, [isRagEnabled, selectedMcpServerIds]);
 
   return (
     <Modal
       variant={ModalVariant.large}
       isOpen={isOpen}
-      onClose={onToggle}
+      onClose={handleClose}
       data-testid="view-code-modal"
     >
       <ModalHeader title="Playground configuration" />
@@ -163,6 +189,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
             language={Language.python}
             height="400px"
             isReadOnly
+            onCopy={handleCodeCopy}
           />
         )}
       </ModalBody>

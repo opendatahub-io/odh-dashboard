@@ -105,8 +105,16 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     width: number,
   ) => {
     const newWidth = `${width}px`;
+    const previousWidth = parseInt(panelWidth, 10);
+    const direction = width > previousWidth ? 'expanded' : 'collapsed';
+
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
+
+    fireMiscTrackingEvent('Playground Settings Panel Resized', {
+      newWidth: width,
+      direction,
+    });
   };
 
   return (
@@ -185,7 +193,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     id="streaming-switch"
                     label="Streaming"
                     isChecked={isStreamingEnabled}
-                    onChange={(_event, checked) => onStreamingToggle(checked)}
+                    onChange={(_event, checked) => {
+                      onStreamingToggle(checked);
+                      fireMiscTrackingEvent('Playground Streaming Toggle Changed', {
+                        isEnabled: checked,
+                        modelSelected: selectedModel,
+                      });
+                    }}
                     aria-label="Toggle streaming responses"
                   />
                 </FormGroup>
