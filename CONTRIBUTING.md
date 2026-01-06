@@ -1,28 +1,31 @@
-[dev setup documentation]: docs/dev-setup.md#requirements
-[SharedClustersConfluence]: https://spaces.redhat.com/display/RHODS/Dashboard+Shared+Clusters
-
 # Contributing
 
 Contributing encompasses repository specific requirements.
+
+[dev setup documentation]: docs/dev-setup.md#requirements
+[SharedClustersConfluence]: https://spaces.redhat.com/display/RHODS/Dashboard+Shared+Clusters
 
 ## Requirements
 
 To review the ODH requirements, please refer to the [dev setup documentation].
 
 ## Definition of Ready
+
 Before beginning development on an issue, please refer to our [Definition of Ready](/docs/definition-of-ready.md).
 
 ## PR Review Guidelines
+
 When reviewing pull requests, please refer to our comprehensive [PR Review Guidelines](docs/pr-review-guidelines.md) to ensure code quality, functionality, and adherence to best practices.
 
 ## Best Practices
+
 For development standards and coding guidelines, please review our [Best Practices](docs/best-practices.md) documentation. This covers React coding standards, component architecture, performance considerations, and PatternFly usage guidelines.
 
 ## Writing code
 
 ### Running locally
 
-Development for only "frontend" can target a backend service running on an OpenShift cluster. This method requires you to first log in to the OpenShift cluster. It is recommended to use this method unless backend changes are being developed.
+Development for only "frontend" can target a backend service running on an OpenShift cluster. This method requires you to first log in to the OpenShift cluster, see [Give your dev env access](#give-your-dev-env-access). It is recommended to use this method unless backend changes are being developed.
 
 ```bash
 cd frontend
@@ -60,43 +63,55 @@ NAMESPACE=my-example make port-forward
 
 #### Give your dev env access
 
-To give your dev environment access to the ODH configuration, log in to the OpenShift cluster and set the project to the location of the ODH installation
+This section walks through connecting your local dev environment to an ODH dev cluster.
 
-See this list for a set of shared clusters: [SharedClustersConfluence]
+Your dev env will typically point to either a shared cluster from [SharedClustersConfluence] (where you can also find test user credentials and cluster status) or some other cluster which you/your team created.
 
-1. Open the cluster UI from the above list. 
-1. On the cluster overview screen in the Administrator ⚙️ perspective, find the `Cluster API Address`. (It should be in the form of https://api.{cluster-name}.dev.datahub.redhat.com:6443)
-1. Provide the Cluster API Address to one of the following methods of authentication. 
-1. ⚠️ You will see a TLS/security warning, this is normal for development cluster protected behind the VPN. 
-1. When you log-in to the cluster, ensure that you use the `customadmins` role, and avoid the `kube:admin` role as this will be deprecated in the future. 
-1. See the Cluster [SharedClustersConfluence] page for registered users/passwords for testing, and credentials, as well as sharing the status of shared resources (up/down/etc).
+##### Pre-requisite Step: Adding a .env.local file
 
-```bash
-oc login https://api.my-openshift-cluster.com:6443 -u <username> -p <password>
-```
+Before you login to a dev cluster, you will want to first ensure you've added a `.env.local` file (not committed) to your repo root (see the `.env.local.example` template file, it explains the variables you can set, some of which you'll want to change). As mentioned in below section [Applied dotenv files](#applied-dotenv-files), there are build processes in place that leverage these .env files.
 
-or log in using the makefile and `.env.local` settings
+##### Step 1: Open the cluster console
 
-```.env.local
-OC_URL=https://specify.in.env:6443
-OC_PROJECT=opendatahub
-OC_USER=kubeadmin
-OC_PASSWORD=my-password
-```
+Open the OpenShift console UI for your target cluster. The console URL should look like: `https://console-openshift-console.apps.{cluster-name}.dev.datahub.redhat.com`
 
-> Note: Set `OC_PROJECT` to `opendatahub` (for Open Data Hub deployments) or `redhat-ods-applications` (for Red Hat OpenShift AI deployments). Leaving this variable unset will cause failures when trying to run the project with local frontend and backend.
-    
-```bash
-make login
-```
+##### Step 2: Login to the cluster
 
-or
+Choose one of the following methods to authenticate:
 
-```bash
-npm run make:login
-```
+##### Option A: Using Cluster API Address (Manual)
 
-> Note: You'll need to 🔐 reauthenticate using one of the above steps and restart `backend` each day.
+1. On the cluster UI Overview screen, find the `Cluster API Address` in the Details panel
+   - Format: `https://api.{cluster-name}.dev.datahub.redhat.com:6443`
+2. Run the login command with your credentials:
+
+   ```bash
+   oc login https://api.my-openshift-cluster.com:6443 -u <username> -p <password>
+   ```
+
+##### Option B: Copy Login Command (Quick)
+
+1. Click your username dropdown (top right of cluster UI)
+2. Select `Copy login command`
+3. Enter credentials when prompted
+4. Copy and run the displayed `oc login...` command
+
+##### Option C: Using Makefile (Often Fastest)
+
+1. This approach makes use of your `.env.local` file to construct the login command from the variables you've set there (namely `OC_URL`, `OC_USER`/`OC_PASSWORD`, `OC_TOKEN`).
+2. Run one of these commands:
+
+   ```bash
+   make login
+   # OR
+   npm run make:login
+   ```
+
+##### Important Notes
+
+- ⚠️ **TLS Warning:** You may see a security warning for development clusters behind VPN - this is normal, you can click Accept/Continue
+- **Authentication Role:** If given option on login to cluster console UI, use `customadmins` role and not `kube:admin`, which is deprecated
+- 🔐 **Daily Re-auth:** You'll need to reauthenticate and restart the backend each day
 
 ## Debugging and Testing
 
@@ -126,6 +141,7 @@ npm run cypress:run:mock
 ```
 
 ### Linter testing
+
 ```bash
 cd ./frontend && npm run test:lint
 ```
@@ -201,9 +217,10 @@ or
 npm run make:build
 ```
 
-in the root of this repository. 
+in the root of this repository.
 
-By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by 
+By default, we use [podman](https://podman.io/) as the default container tool, but you can change it by
+
 - setting the `CONTAINER_BUILDER` environment variable to `docker`
 - passing it as environment overrides when using `make build -e CONTAINER_BUILDER=docker`
 
@@ -241,6 +258,6 @@ npm run make:deploy
 
 you will deploy all the resources located in the `manifests` folder alongside the image you selected in the previous step.
 
-
 ## Definition of Done
+
 Once the elements defined in the [Definition of Done](/docs/definition-of-done.md) are complete, the feature, bug or story being developed will be considered ready for release.

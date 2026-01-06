@@ -160,7 +160,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
-	logger.Info("Initialized shared memory store")
+	logger.Debug("Initialized shared memory store")
 
 	// Initialize file upload job tracker with memory store and logger
 	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
