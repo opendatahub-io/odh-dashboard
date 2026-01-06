@@ -27,7 +27,7 @@ import {
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useFetchTiers } from '~/app/hooks/useFetchTiers';
+import { useFetchSingleTier } from '~/app/hooks/useFetchSingleTier';
 import { Tier } from '~/app/types/tier';
 import DeleteTierModal from '~/app/pages/tiers/components/DeleteTierModal';
 
@@ -63,211 +63,219 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ title, description }) => 
 const ViewTierPage: React.FC = () => {
   const { tierName } = useParams<{ tierName: string }>();
   const navigate = useNavigate();
-  const [tiers] = useFetchTiers();
-  const tier = tiers.find((t) => t.name === tierName);
+  const [tier, loaded, error] = useFetchSingleTier(tierName || '');
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [deleteTier, setDeleteTier] = React.useState<Tier | undefined>(undefined);
 
-  if (!tier) {
+  if (loaded && !tier) {
     return <NotFound />;
   }
 
   return (
     <ApplicationsPage
-      title={tier.displayName}
+      title={tier?.displayName || 'Loading...'}
       empty={false}
-      loaded
+      loaded={loaded}
+      loadError={error}
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/maas/tiers">Tiers</Link>} />
-          <BreadcrumbItem isActive>{tier.displayName}</BreadcrumbItem>
-        </Breadcrumb>
+        tier ? (
+          <Breadcrumb>
+            <BreadcrumbItem render={() => <Link to="/maas/tiers">Tiers</Link>} />
+            <BreadcrumbItem isActive>{tier.displayName}</BreadcrumbItem>
+          </Breadcrumb>
+        ) : undefined
       }
       headerAction={
-        <Dropdown
-          isOpen={isActionsOpen}
-          onOpenChange={setIsActionsOpen}
-          onSelect={() => setIsActionsOpen(false)}
-          toggle={(toggleRef) => (
-            <MenuToggle
-              ref={toggleRef}
-              onClick={() => setIsActionsOpen(!isActionsOpen)}
-              isExpanded={isActionsOpen}
-              variant="secondary"
-              aria-label="Actions"
-              data-testid="tier-actions"
-            >
-              Actions
-            </MenuToggle>
-          )}
-          popperProps={{ position: 'right' }}
-        >
-          <DropdownList>
-            <DropdownItem
-              data-testid="edit-tier-action"
-              onClick={() => navigate(`/maas/tiers/edit/${tierName}`)}
-            >
-              Edit tier
-            </DropdownItem>
-            <Divider />
-            <DropdownItem data-testid="delete-tier-action" onClick={() => setDeleteTier(tier)}>
-              Delete tier
-            </DropdownItem>
-          </DropdownList>
-        </Dropdown>
+        tier ? (
+          <Dropdown
+            isOpen={isActionsOpen}
+            onOpenChange={setIsActionsOpen}
+            onSelect={() => setIsActionsOpen(false)}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsActionsOpen(!isActionsOpen)}
+                isExpanded={isActionsOpen}
+                variant="secondary"
+                aria-label="Actions"
+                data-testid="tier-actions"
+              >
+                Actions
+              </MenuToggle>
+            )}
+            popperProps={{ position: 'right' }}
+          >
+            <DropdownList>
+              <DropdownItem
+                data-testid="edit-tier-action"
+                onClick={() => navigate(`/maas/tiers/edit/${tierName}`)}
+              >
+                Edit tier
+              </DropdownItem>
+              <Divider />
+              <DropdownItem data-testid="delete-tier-action" onClick={() => setDeleteTier(tier)}>
+                Delete tier
+              </DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        ) : undefined
       }
     >
-      <Tabs activeKey="details" aria-label="Tier details tabs">
-        <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>} aria-label="Details">
-          <PageSection aria-label="Details">
-            <Stack hasGutter>
-              <SectionHeader title="Details" />
-              <StackItem>
-                <Flex gap={{ default: 'gap2xl' }}>
-                  <FlexItem style={{ minWidth: '600px' }}>
-                    <DescriptionList>
-                      <DetailsItem label="Name" value={tier.displayName} testId="tier-name" />
-                    </DescriptionList>
-                  </FlexItem>
-                  <FlexItem>
-                    <DescriptionList>
-                      <DescriptionListGroup>
-                        <DescriptionListTerm data-testid="tier-level-label">
-                          Level{' '}
-                          <DashboardHelpTooltip
-                            content={
-                              <Stack hasGutter>
-                                <StackItem>Higher numbers indicate higher tiers.</StackItem>
-                                <StackItem>
-                                  When a user belongs to multiple groups, the highest level tier is
-                                  selected.
+      {tier && (
+        <Tabs activeKey="details" aria-label="Tier details tabs">
+          <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>} aria-label="Details">
+            <PageSection aria-label="Details">
+              <Stack hasGutter>
+                <SectionHeader title="Details" />
+                <StackItem>
+                  <Flex gap={{ default: 'gap2xl' }}>
+                    <FlexItem style={{ minWidth: '600px' }}>
+                      <DescriptionList>
+                        <DetailsItem label="Name" value={tier.displayName} testId="tier-name" />
+                      </DescriptionList>
+                    </FlexItem>
+                    <FlexItem>
+                      <DescriptionList>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm data-testid="tier-level-label">
+                            Level{' '}
+                            <DashboardHelpTooltip
+                              content={
+                                <Stack hasGutter>
+                                  <StackItem>Higher numbers indicate higher tiers.</StackItem>
+                                  <StackItem>
+                                    When a user belongs to multiple groups, the highest level tier
+                                    is selected.
+                                  </StackItem>
+                                  <StackItem>
+                                    <strong>Example:</strong> 1 (lowest), 10 (medium), 100 (highest)
+                                  </StackItem>
+                                </Stack>
+                              }
+                            />
+                          </DescriptionListTerm>
+                          <DescriptionListDescription data-testid="tier-level-value">
+                            <Label isCompact style={{ position: 'relative', top: '-10px' }}>
+                              {tier.level ?? 0}
+                            </Label>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      </DescriptionList>
+                    </FlexItem>
+                  </Flex>
+                </StackItem>
+                <StackItem>
+                  <DescriptionList>
+                    <DetailsItem
+                      label="Description"
+                      value={tier.description}
+                      testId="tier-description"
+                    />
+                  </DescriptionList>
+                </StackItem>
+              </Stack>
+            </PageSection>
+
+            <Divider />
+
+            <PageSection aria-label="Groups">
+              <Stack hasGutter>
+                <SectionHeader
+                  title="Groups"
+                  description="Users in these groups will have access to this tier's models."
+                />
+                <StackItem>
+                  <DescriptionList>
+                    <DetailsItem
+                      label="Groups"
+                      value={
+                        tier.groups.length > 0 ? (
+                          <Stack>
+                            {tier.groups.map((group) => (
+                              <StackItem key={group}>{group}</StackItem>
+                            ))}
+                          </Stack>
+                        ) : (
+                          '-'
+                        )
+                      }
+                      testId="tier-groups"
+                    />
+                  </DescriptionList>
+                </StackItem>
+              </Stack>
+            </PageSection>
+
+            <Divider />
+
+            <PageSection aria-label="Limits">
+              <Stack hasGutter>
+                <SectionHeader
+                  title="Limits"
+                  description="These limits will apply to every API key created by users in this tier's groups."
+                />
+                <StackItem>
+                  <Content className="pf-v6-u-font-weight-bold">Configured limits</Content>
+                </StackItem>
+                <StackItem>
+                  <Stack hasGutter>
+                    <StackItem>
+                      <Stack>
+                        <StackItem>
+                          <Content className="pf-v6-u-font-weight-bold">Token limits:</Content>
+                        </StackItem>
+                        <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
+                          <Stack>
+                            {tier.limits.tokensPerUnit.length > 0 ? (
+                              tier.limits.tokensPerUnit.map((limit, index) => (
+                                <StackItem key={index}>
+                                  <Content>
+                                    {`${limit.count.toLocaleString()} tokens per ${limit.time} ${limit.unit}`}
+                                  </Content>
                                 </StackItem>
-                                <StackItem>
-                                  <strong>Example:</strong> 1 (lowest), 10 (medium), 100 (highest)
+                              ))
+                            ) : (
+                              <StackItem>
+                                <Content>-</Content>
+                              </StackItem>
+                            )}
+                          </Stack>
+                        </StackItem>
+                      </Stack>
+                    </StackItem>
+                    <StackItem>
+                      <Stack>
+                        <StackItem>
+                          <Content className="pf-v6-u-font-weight-bold">
+                            Request rate limits:
+                          </Content>
+                        </StackItem>
+                        <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
+                          <Stack>
+                            {tier.limits.requestsPerUnit.length > 0 ? (
+                              tier.limits.requestsPerUnit.map((limit, index) => (
+                                <StackItem key={index}>
+                                  <Content>
+                                    {`${limit.count.toLocaleString()} requests per ${limit.time} ${limit.unit}`}
+                                  </Content>
                                 </StackItem>
-                              </Stack>
-                            }
-                          />
-                        </DescriptionListTerm>
-                        <DescriptionListDescription data-testid="tier-level-value">
-                          <Label isCompact style={{ position: 'relative', top: '-10px' }}>
-                            {tier.level}
-                          </Label>
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    </DescriptionList>
-                  </FlexItem>
-                </Flex>
-              </StackItem>
-              <StackItem>
-                <DescriptionList>
-                  <DetailsItem
-                    label="Description"
-                    value={tier.description}
-                    testId="tier-description"
-                  />
-                </DescriptionList>
-              </StackItem>
-            </Stack>
-          </PageSection>
-
-          <Divider />
-
-          <PageSection aria-label="Groups">
-            <Stack hasGutter>
-              <SectionHeader
-                title="Groups"
-                description="Users in these groups will have access to this tier's models."
-              />
-              <StackItem>
-                <DescriptionList>
-                  <DetailsItem
-                    label="Groups"
-                    value={
-                      tier.groups.length > 0 ? (
-                        <Stack>
-                          {tier.groups.map((group) => (
-                            <StackItem key={group}>{group}</StackItem>
-                          ))}
-                        </Stack>
-                      ) : (
-                        '-'
-                      )
-                    }
-                    testId="tier-groups"
-                  />
-                </DescriptionList>
-              </StackItem>
-            </Stack>
-          </PageSection>
-
-          <Divider />
-
-          <PageSection aria-label="Limits">
-            <Stack hasGutter>
-              <SectionHeader
-                title="Limits"
-                description="These limits will apply to every API key created by users in this tier's groups."
-              />
-              <StackItem>
-                <Content className="pf-v6-u-font-weight-bold">Configured limits</Content>
-              </StackItem>
-              <StackItem>
-                <Stack hasGutter>
-                  <StackItem>
-                    <Stack>
-                      <StackItem>
-                        <Content className="pf-v6-u-font-weight-bold">Token limits:</Content>
-                      </StackItem>
-                      <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
-                        <Stack>
-                          {tier.limits.tokensPerUnit.length > 0 ? (
-                            tier.limits.tokensPerUnit.map((limit, index) => (
-                              <StackItem key={index}>
-                                <Content>
-                                  {`${limit.count.toLocaleString()} tokens per ${limit.time} ${limit.unit}`}
-                                </Content>
+                              ))
+                            ) : (
+                              <StackItem>
+                                <Content>-</Content>
                               </StackItem>
-                            ))
-                          ) : (
-                            <StackItem>
-                              <Content>-</Content>
-                            </StackItem>
-                          )}
-                        </Stack>
-                      </StackItem>
-                    </Stack>
-                  </StackItem>
-                  <StackItem>
-                    <Stack>
-                      <StackItem>
-                        <Content className="pf-v6-u-font-weight-bold">Request rate limits:</Content>
-                      </StackItem>
-                      <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
-                        <Stack>
-                          {tier.limits.requestsPerUnit.length > 0 ? (
-                            tier.limits.requestsPerUnit.map((limit, index) => (
-                              <StackItem key={index}>
-                                <Content>
-                                  {`${limit.count.toLocaleString()} requests per ${limit.time} ${limit.unit}`}
-                                </Content>
-                              </StackItem>
-                            ))
-                          ) : (
-                            <StackItem>
-                              <Content>-</Content>
-                            </StackItem>
-                          )}
-                        </Stack>
-                      </StackItem>
-                    </Stack>
-                  </StackItem>
-                </Stack>
-              </StackItem>
-            </Stack>
-          </PageSection>
-        </Tab>
-      </Tabs>
+                            )}
+                          </Stack>
+                        </StackItem>
+                      </Stack>
+                    </StackItem>
+                  </Stack>
+                </StackItem>
+              </Stack>
+            </PageSection>
+          </Tab>
+        </Tabs>
+      )}
       {deleteTier && (
         <DeleteTierModal
           tier={deleteTier}
