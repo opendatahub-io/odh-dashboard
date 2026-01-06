@@ -1,14 +1,19 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireSimpleTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SystemInstructionFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireSimpleTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 const mockFireSimpleTrackingEvent = jest.mocked(fireSimpleTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 describe('SystemInstructionFormGroup', () => {
   const defaultProps = {
@@ -58,5 +63,27 @@ describe('SystemInstructionFormGroup', () => {
 
     const textarea = screen.getByRole('textbox', { name: /system instructions input/i });
     expect(textarea).toHaveValue('');
+  });
+
+  it('fires tracking event when system instructions are modified', async () => {
+    const user = userEvent.setup();
+    const mockOnChange = jest.fn();
+
+    render(
+      <SystemInstructionFormGroup {...defaultProps} onSystemInstructionChange={mockOnChange} />,
+    );
+
+    const textarea = screen.getByRole('textbox', { name: /system instructions input/i });
+    await user.type(textarea, ' Additional text');
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      'Playground System Instructions Modified',
+      {
+        instructionsLength: expect.any(Number),
+        hasInstructions: true,
+      },
+    );
+    // Should only fire once per session
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
   });
 });

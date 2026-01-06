@@ -10,6 +10,7 @@ import { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
