@@ -11,6 +11,7 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { z } from 'zod';
 import type {
   ModelServerOption,
   useModelServerSelectField,
@@ -64,6 +65,11 @@ export type ModelLocationData = {
   };
 };
 
+/**
+ * Initial data for the deployment wizard form.
+ * Known field data properties are explicitly typed, while dynamic field data
+ * (from WizardField2Extension) can be added with any string key.
+ */
 export type InitialWizardFormData = {
   wizardStartIndex?: number;
   project?: ProjectKind | null;
@@ -87,7 +93,7 @@ export type InitialWizardFormData = {
   deploymentStrategy?: DeploymentStrategyFieldData;
   transformData?: { metadata?: { labels?: Record<string, string> } };
   // Add more field handlers as needed
-};
+} & Record<string, unknown>;
 
 export type WizardFormData = {
   initialData?: InitialWizardFormData;
@@ -107,7 +113,7 @@ export type WizardFormData = {
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
-  };
+  } & Record<string, unknown>;
 };
 // wizard form data
 
@@ -136,11 +142,25 @@ export type DeploymentWizardFieldId =
   | 'tokenAuth'
   | 'deploymentStrategy';
 
-export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId> = {
+export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | string> = {
   id: ID;
   type: 'modifier' | 'replacement' | 'addition';
 } & {
   isActive: (wizardFormData: RecursivePartial<WizardFormData['state']>) => boolean;
+};
+
+export type WizardField<T = unknown> = DeploymentWizardFieldBase<string> & {
+  type: 'addition';
+  parentId?: string;
+  step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
+  reducerStuff: {
+    // TODO: make dispatch function that clears if this field's dependencies are changing
+    setFieldData: (fieldData: T) => T;
+    getInitialFieldData: (fieldData?: T) => T;
+    validationSchema?: z.ZodSchema<T>;
+  };
+  // externalDataHook: ... // TODO: add this if we need to fetch data for the field.
+  component: React.FC<{ id: string; value: T; onChange: (value: T) => void }>;
 };
 
 // actual fields

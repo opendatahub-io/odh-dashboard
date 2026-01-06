@@ -14,6 +14,7 @@ import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
+import { useWizardFieldApply } from './useWizardFieldApply';
 import type { InitialWizardFormData } from './types';
 import { ExitDeploymentModal } from './CancelDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
@@ -59,10 +60,12 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   }, [exitWizardOnCancel]);
 
   const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name);
-  const validation = useModelDeploymentWizardValidation(wizardState.state);
+  const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
+  // TODO in same jira, replace deployMethod with applyFieldData for all other fields
+  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(wizardState.state);
 
   const secretName = React.useMemo(() => {
     return (
@@ -111,7 +114,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           !validation.isModelSourceStepValid ||
           !validation.isModelDeploymentStepValid ||
           !deployMethodLoaded ||
-          !deployMethod
+          !deployMethod ||
+          !applyExtensionsLoaded
         ) {
           // shouldn't happen, but just in case
           throw new Error('Invalid form data');
@@ -141,6 +145,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           serverResourceTemplateName,
           overwrite,
           wizardState.initialData,
+          applyFieldData,
         );
       } catch (error) {
         setSubmitError(error instanceof Error ? error : new Error(String(error)));
@@ -149,6 +154,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       }
     },
     [
+      applyExtensionsLoaded,
+      applyFieldData,
       deployMethod,
       deployMethodLoaded,
       existingDeployment,
@@ -157,7 +164,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       secretName,
       validation.isModelDeploymentStepValid,
       validation.isModelSourceStepValid,
-      wizardState.state,
+      wizardState,
     ],
   );
 

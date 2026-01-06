@@ -12,10 +12,11 @@ import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
-import { type InitialWizardFormData, type WizardFormData } from './types';
+import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import { useDeploymentWizardReducer, type WizardFormAction } from './useDeploymentWizardReducer';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -28,6 +29,8 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     isExternalRouteVisible: boolean;
     shouldAutoCheckTokens: boolean;
   };
+  dispatch: React.Dispatch<WizardFormAction>;
+  fields: WizardField<unknown>[];
 };
 
 export const useModelDeploymentWizard = (
@@ -49,8 +52,8 @@ export const useModelDeploymentWizard = (
 
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
-    return modelLocationData.connectionTypesLoaded;
-  }, [modelLocationData.connectionTypesLoaded]);
+    return modelLocationData.connectionTypesLoaded && !modelLocationData.isLoadingSecretData;
+  }, [modelLocationData.connectionTypesLoaded, modelLocationData.isLoadingSecretData]);
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
@@ -110,28 +113,37 @@ export const useModelDeploymentWizard = (
 
   // Step 4: Summary
 
+  const combinedFormHooksData: WizardFormData['state'] = {
+    project,
+    modelType,
+    k8sNameDesc,
+    hardwareProfileConfig,
+    modelFormatState,
+    modelLocationData: {
+      ...modelLocationData,
+      selectedConnection: modelLocationData.selectedConnection,
+    },
+    createConnectionData,
+    externalRoute,
+    tokenAuthentication,
+    numReplicas,
+    runtimeArgs,
+    environmentVariables,
+    modelAvailability,
+    modelServer,
+    deploymentStrategy,
+  };
+
+  const { state, dispatch, fields } = useDeploymentWizardReducer(
+    combinedFormHooksData,
+    initialData,
+  );
+
   return {
     initialData,
-    state: {
-      project,
-      modelType,
-      k8sNameDesc,
-      hardwareProfileConfig,
-      modelFormatState,
-      modelLocationData: {
-        ...modelLocationData,
-        selectedConnection: modelLocationData.selectedConnection,
-      },
-      createConnectionData,
-      externalRoute,
-      tokenAuthentication,
-      numReplicas,
-      runtimeArgs,
-      environmentVariables,
-      modelAvailability,
-      modelServer,
-      deploymentStrategy,
-    },
+    state,
+    dispatch,
+    fields,
     loaded: {
       modelSourceLoaded,
       modelDeploymentLoaded,

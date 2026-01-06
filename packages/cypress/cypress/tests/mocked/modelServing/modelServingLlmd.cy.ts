@@ -40,6 +40,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { maasWizardField } from '../../../pages/modelsAsAService';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -559,7 +560,7 @@ describe('Model Serving LLMD', () => {
   });
 
   describe('Deploy LLMD with MaaS enabled', () => {
-    it('should create an LLMD deployment with MaaS enabled', () => {
+    it('should create an LLMD deployment with MaaS enabled and specific tiers', () => {
       initIntercepts({});
 
       // Navigate to wizard and set up basic deployment
@@ -581,11 +582,30 @@ describe('Model Serving LLMD', () => {
       // Focus on MaaS feature testing
       // uncheck token auth to simplify test
       modelServingWizard.findTokenAuthenticationCheckbox().click();
-      modelServingWizard.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
-      modelServingWizard.findSaveAsMaaSCheckbox().click();
-      modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');
-      modelServingWizard.findUseCaseInput().should('be.visible').type('Test MaaS use case');
-      modelServingWizard.findNextButton().click();
+
+      // Verify MaaS checkbox is unchecked by default
+      maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+
+      // Check the MaaS checkbox
+      maasWizardField.findSaveAsMaaSCheckbox().click();
+      maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+
+      // Verify default selection is "All resource tiers"
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'All resource tiers');
+
+      // Switch to "No resource tiers"
+      maasWizardField.selectMaaSTierOption('No resource tiers');
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'No resource tiers');
+
+      // Switch to "Specific resource tiers" - Next button should be disabled until input is provided
+      maasWizardField.selectMaaSTierOption('Specific resource tiers');
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific resource tiers');
+      maasWizardField.findMaaSTierNamesInput().should('be.visible');
+      modelServingWizard.findNextButton().should('be.disabled');
+
+      // Enter tier names to enable Next button
+      maasWizardField.findMaaSTierNamesInput().type('tier-1, tier-2');
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Submit and verify MaaS-specific annotations and gateway refs
       modelServingWizard.findSubmitButton().click();
@@ -593,10 +613,10 @@ describe('Model Serving LLMD', () => {
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
 
-        // Verify MaaS-specific configuration
+        // Verify MaaS-specific configuration with specific tiers
+        // The tiers annotation is a JSON stringified array
         expect(interception.request.body.metadata.annotations).to.containSubset({
-          'alpha.maas.opendatahub.io/tiers': '[]',
-          'opendatahub.io/genai-use-case': 'Test MaaS use case',
+          'alpha.maas.opendatahub.io/tiers': JSON.stringify(['tier-1', 'tier-2']),
         });
 
         expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([

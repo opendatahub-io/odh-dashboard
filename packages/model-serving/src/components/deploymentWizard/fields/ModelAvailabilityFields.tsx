@@ -13,8 +13,10 @@ import {
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
+import { GenericFieldRenderer } from './GenericFieldRenderer';
 import { ModelServerSelectFieldData, isModelAvailabilityField } from '../types';
 import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
@@ -78,12 +80,14 @@ type AvailableAiAssetsFieldsComponentProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
   showSaveAsMaaS?: boolean;
+  wizardState: UseModelDeploymentWizardState;
 };
 
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
   data,
   setData,
   showSaveAsMaaS,
+  wizardState,
 }) => {
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
@@ -136,6 +140,9 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                       the <span className="pf-v6-c-form__label-text">Models as a service</span>{' '}
                       page. This is best for production models.
                     </FlexItem>
+                    <Label isCompact color="yellow" variant="outline">
+                      Developer preview
+                    </Label>
                   </Flex>
                 </>
               }
@@ -162,6 +169,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             </div>
           </StackItem>
         )}
+        <GenericFieldRenderer parentId="model-playground-availability" wizardState={wizardState} />
       </Stack>
     </StackItem>
   );

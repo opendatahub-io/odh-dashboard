@@ -121,8 +121,8 @@ describe('AvailableAiAssetsFields', () => {
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-maas-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('save-as-maas-checkbox')).toBeChecked();
+      expect(screen.getByTestId('maas/save-as-maas-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('maas/save-as-maas-checkbox')).toBeChecked();
     });
   });
   describe('useModelAvailabilityFields hook visibility logic', () => {

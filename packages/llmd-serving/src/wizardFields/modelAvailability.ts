@@ -6,12 +6,13 @@ import type {
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
+/**
+ * Annotation key for MaaS tiers configuration.
+ * Note: MaaS-specific functionality is now handled by the maas package via
+ * WizardFieldTransformerExtension and WizardFieldExtractorExtension.
+ * This constant is kept for type definitions and backwards compatibility.
+ */
 export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
-const DEFAULT_MAAS_TIERS_VALUE = '[]';
-const DEFAULT_MAAS_GATEWAY_REF = {
-  name: 'maas-default-gateway',
-  namespace: 'openshift-ingress',
-};
 
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
@@ -22,7 +23,8 @@ export const modelAvailabilityField: ModelAvailabilityField = {
       wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
     );
   },
-  showSaveAsMaaS: true,
+  // MaaS checkbox is now provided by the maas package via WizardField2Extension
+  showSaveAsMaaS: false,
 };
 
 export const extractModelAvailabilityData = (
@@ -30,51 +32,41 @@ export const extractModelAvailabilityData = (
 ): WizardFormData['state']['modelAvailability']['data'] => {
   return {
     saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
+    // Note: MaaS data is now extracted by the maas package's WizardFieldExtractorExtension
+    // This field is kept for backwards compatibility but may be undefined
     saveAsMaaS: !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
     useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
   };
 };
 
+/**
+ * Applies model availability data (AI Asset settings) to the deployment.
+ * Note: MaaS-specific settings are now handled by the maas package's
+ * WizardFieldTransformerExtension (applyMaaSEndpointData).
+ */
 export const applyModelAvailabilityData = (
   deployment: LLMInferenceServiceKind,
   modelAvailability?: WizardFormData['state']['modelAvailability']['data'],
 ): LLMInferenceServiceKind => {
   const result = structuredClone(deployment);
 
-  // if MaaS is already present, don't override it
-  const maasTiersValue =
-    result.metadata.annotations?.[MAAS_TIERS_ANNOTATION] || DEFAULT_MAAS_TIERS_VALUE;
-  const gatewayRefs = result.spec.router?.gateway?.refs ?? [DEFAULT_MAAS_GATEWAY_REF];
-
+  // Clear existing AI Asset labels and annotations (MaaS is handled separately by transformer)
   delete result.metadata.labels?.['opendatahub.io/genai-asset'];
   delete result.metadata.annotations?.['opendatahub.io/genai-use-case'];
-  delete result.metadata.annotations?.[MAAS_TIERS_ANNOTATION];
 
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    ...(modelAvailability?.saveAsMaaS && {
-      [MAAS_TIERS_ANNOTATION]: maasTiersValue,
-    }),
-    ...(modelAvailability?.useCase &&
-      (modelAvailability.saveAsAiAsset || modelAvailability.saveAsMaaS) && {
-        'opendatahub.io/genai-use-case': modelAvailability.useCase,
-      }),
-  };
-  result.metadata.labels = {
-    ...result.metadata.labels,
-    ...(modelAvailability?.saveAsAiAsset && {
+  // Apply AI Asset settings
+  if (modelAvailability?.saveAsAiAsset) {
+    result.metadata.labels = {
+      ...result.metadata.labels,
       'opendatahub.io/genai-asset': 'true',
-    }),
-  };
+    };
+  }
 
-  delete result.spec.router?.gateway?.refs;
-  if (modelAvailability?.saveAsMaaS) {
-    result.spec.router = {
-      ...result.spec.router,
-      gateway: {
-        ...result.spec.router?.gateway,
-        refs: gatewayRefs,
-      },
+  // Apply use case annotation if AI Asset is enabled
+  if (modelAvailability?.useCase && modelAvailability.saveAsAiAsset) {
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+      'opendatahub.io/genai-use-case': modelAvailability.useCase,
     };
   }
 
