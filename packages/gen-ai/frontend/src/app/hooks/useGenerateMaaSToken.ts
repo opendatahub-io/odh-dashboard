@@ -3,6 +3,7 @@ import { NotReadyError } from 'mod-arch-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { MaaSTokenResponse } from '~/app/types';
+import { sanitizeErrorMessage } from '~/app/utilities';
 import { useGenAiAPI } from './useGenAiAPI';
 
 type UseGenerateMaaSTokenReturn = {
@@ -42,7 +43,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         fireFormTrackingEvent('MaaS API Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: errorMessage,
+          error: sanitizeErrorMessage(errorMessage),
         });
       } finally {
         setIsGenerating(false);

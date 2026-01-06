@@ -141,9 +141,14 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         hasMcp: selectedMcpServerIds.length > 0,
         mcpServersCount: selectedMcpServerIds.length,
       });
+    }
+  }, [isOpen, isRagEnabled, selectedMcpServerIds]);
+
+  React.useEffect(() => {
+    if (isOpen) {
       handleExportCode();
     }
-  }, [isOpen, handleExportCode, isRagEnabled, selectedMcpServerIds]);
+  }, [isOpen, handleExportCode]);
 
   const handleClose = React.useCallback(() => {
     fireMiscTrackingEvent('Playground View Code Action', {

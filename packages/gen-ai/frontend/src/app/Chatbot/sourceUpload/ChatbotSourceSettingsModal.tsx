@@ -109,9 +109,12 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
       return;
     }
 
+    // Capture the vector name before any state updates
+    const { vectorName } = vectorStoreForm;
+
     try {
       setIsCreatingVectorStore(true);
-      const newVectorStore = await api.createVectorStore({ name: vectorStoreForm.vectorName });
+      const newVectorStore = await api.createVectorStore({ name: vectorName });
 
       // Refresh the vector stores list to include the newly created one
       await refreshVectorStores();
@@ -126,12 +129,12 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
       setVectorStoreForm(DEFAULT_VECTOR_STORE_FORM);
 
       fireMiscTrackingEvent('Playground Vector Database Created', {
-        vectorDbName: vectorStoreForm.vectorName,
+        vectorDbName: vectorName,
         success: true,
       });
     } catch (error) {
       fireMiscTrackingEvent('Playground Vector Database Created', {
-        vectorDbName: vectorStoreForm.vectorName,
+        vectorDbName: vectorName,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       });

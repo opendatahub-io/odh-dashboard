@@ -88,8 +88,9 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
   });
 
   describe('Failed Token Generation', () => {
-    it('should fire tracking event with error when token generation fails', async () => {
+    it('should fire tracking event with sanitized error when token generation fails', async () => {
       const errorMessage = 'Failed to generate token: Unauthorized';
+      const sanitizedError = 'Failed to generate token: [REDACTED]';
       mockGenerateMaaSToken.mockRejectedValue(new Error(errorMessage));
 
       const { result } = renderHook(() => useGenerateMaaSToken());
@@ -100,7 +101,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
         expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: errorMessage,
+          error: sanitizedError,
         });
       });
     });

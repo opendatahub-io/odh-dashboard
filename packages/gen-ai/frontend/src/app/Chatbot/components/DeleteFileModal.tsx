@@ -46,10 +46,10 @@ const DeleteFileModal: React.FC<DeleteFileModalProps> = ({
           variant="danger"
           isLoading={isDeleting}
           isDisabled={isDeleting}
+          data-testid="delete-button"
           onClick={() => {
             fireMiscTrackingEvent('Playground Delete File Modal Action', {
               action: 'confirmed',
-              fileName: file.filename,
             });
             onConfirm();
           }}
@@ -59,10 +59,10 @@ const DeleteFileModal: React.FC<DeleteFileModalProps> = ({
         <Button
           key="cancel-button"
           variant="link"
+          data-testid="cancel-button"
           onClick={() => {
             fireMiscTrackingEvent('Playground Delete File Modal Action', {
               action: 'canceled',
-              fileName: file.filename,
             });
             onClose();
           }}

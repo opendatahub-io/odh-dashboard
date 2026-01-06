@@ -129,3 +129,30 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   isMaaSModel: true,
   maasModelId: maasModel.id,
 });
+
+/**
+ * Sanitizes error messages before sending to analytics by removing sensitive data
+ * @param errorMessage - The raw error message to sanitize
+ * @returns Sanitized error message safe for analytics
+ */
+export const sanitizeErrorMessage = (errorMessage: string): string => {
+  let sanitized = errorMessage;
+
+  // Remove URLs (http/https)
+  sanitized = sanitized.replace(/https?:\/\/[^\s]+/gi, '[URL]');
+
+  // Remove tokens/API keys (patterns like "token: xyz", "api-key: xyz", Bearer tokens)
+  sanitized = sanitized.replace(
+    /\b(token|api-key|bearer|authorization)[\s:=]+[^\s,;]+/gi,
+    '$1: [REDACTED]',
+  );
+
+  // Remove stack traces (lines starting with "at " or containing file paths)
+  sanitized = sanitized.replace(/\s+at\s+.*/g, '');
+  sanitized = sanitized.replace(/\s+\([^)]*\.(?:ts|js|tsx|jsx):\d+:\d+\)/g, '');
+
+  // Remove file paths
+  sanitized = sanitized.replace(/\/[^\s:,;]+\.(ts|js|tsx|jsx)/gi, '[FILE_PATH]');
+
+  return sanitized.trim();
+};

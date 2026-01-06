@@ -260,10 +260,10 @@ describe('ModelsListToolbar', () => {
         });
       });
 
-      it('should detect "maas" source when neither infoPopover nor useCase exists', async () => {
+      it('should detect "maas" source when source prop is maas', async () => {
         const user = userEvent.setup();
 
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} source="maas" />);
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
@@ -279,7 +279,7 @@ describe('ModelsListToolbar', () => {
     describe('Filter Applied Tracking', () => {
       it('should fire tracking event when search is submitted', async () => {
         const user = userEvent.setup();
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} source="maas" />);
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'llama{Enter}');
@@ -293,7 +293,7 @@ describe('ModelsListToolbar', () => {
 
       it('should track filter type correctly', async () => {
         const user = userEvent.setup();
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} source="maas" />);
 
         // Change to Keyword filter
         const filterToggle = screen.getByLabelText('Filter toggle');
@@ -314,7 +314,7 @@ describe('ModelsListToolbar', () => {
 
       it('should track empty search correctly', async () => {
         const user = userEvent.setup();
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} source="maas" />);
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, '{Enter}');
@@ -335,7 +335,7 @@ describe('ModelsListToolbar', () => {
           [AssetsFilterOptions.KEYWORD]: 'keyword',
         };
 
-        render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
+        render(<ModelsListToolbar {...defaultProps} filterData={filterData} source="maas" />);
 
         const clearAllButton = screen.getByText('Clear all filters');
         await user.click(clearAllButton);
@@ -352,7 +352,7 @@ describe('ModelsListToolbar', () => {
           [AssetsFilterOptions.NAME]: 'test',
         };
 
-        render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
+        render(<ModelsListToolbar {...defaultProps} filterData={filterData} source="maas" />);
 
         const clearAllButton = screen.getByText('Clear all filters');
         await user.click(clearAllButton);
