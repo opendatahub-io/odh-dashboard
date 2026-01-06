@@ -180,12 +180,12 @@ func (c *LlamaStackClient) CreateVectorStore(ctx context.Context, params CreateV
 	// Use default embedding model and dimension if not specified
 	embeddingModel := params.EmbeddingModel
 	if embeddingModel == "" {
-		embeddingModel = constants.DefaultEmbeddingModel.ModelID
+		embeddingModel = constants.DefaultEmbeddingModel().ModelID
 	}
 
 	embeddingDimension := params.EmbeddingDimension
 	if embeddingDimension == nil {
-		defaultDimension := constants.DefaultEmbeddingModel.EmbeddingDimension
+		defaultDimension := constants.DefaultEmbeddingModel().EmbeddingDimension
 		embeddingDimension = &defaultDimension
 	}
 
