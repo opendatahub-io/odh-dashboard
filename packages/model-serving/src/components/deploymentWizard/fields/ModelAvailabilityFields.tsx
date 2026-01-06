@@ -136,9 +136,6 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                       the <span className="pf-v6-c-form__label-text">Models as a service</span>{' '}
                       page. This is best for production models.
                     </FlexItem>
-                    <Label isCompact color="yellow" variant="outline">
-                      Developer preview
-                    </Label>
                   </Flex>
                 </>
               }
