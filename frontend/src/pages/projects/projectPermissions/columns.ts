@@ -8,7 +8,7 @@ export const columns: SortableData<SubjectRoleRow>[] = [
   {
     field: 'subjectName',
     label: 'Name',
-    width: 30,
+    width: 25,
     sortable: (a, b) => a.subjectName.localeCompare(b.subjectName),
   },
   {

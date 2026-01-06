@@ -22,15 +22,15 @@ type SubjectRolesTableBaseProps = {
 
 const getRowSpans = (rows: SubjectRoleRow[]): number[] => {
   const spans = new Array<number>(rows.length).fill(0);
-  let i = 0;
-  while (i < rows.length) {
-    const key = rows[i].subjectName;
-    let runLength = 1;
-    while (i + runLength < rows.length && rows[i + runLength].subjectName === key) {
-      runLength += 1;
+  for (let i = 0; i < rows.length; ) {
+    const { subjectName } = rows[i];
+    const groupStart = i;
+
+    while (i < rows.length && rows[i].subjectName === subjectName) {
+      i += 1;
     }
-    spans[i] = runLength;
-    i += runLength;
+
+    spans[groupStart] = i - groupStart;
   }
   return spans;
 };
