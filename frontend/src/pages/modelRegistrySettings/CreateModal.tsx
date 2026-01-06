@@ -209,6 +209,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   /**
    * Updates the database type and sets the appropriate default port.
    * MySQL uses port 3306, PostgreSQL uses port 5432.
+   * Only resets the port if it matches the old database type's default port.
+   * This preserves user-modified port values when switching database types.
    * @param newType - The database type to switch to (MySQL or PostgreSQL)
    */
   const handleDatabaseTypeChange = (newType: string) => {
@@ -216,9 +218,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     if (newType !== DatabaseType.MYSQL && newType !== DatabaseType.POSTGRES) {
       return;
     }
+
+    // Get the default port for the current database type
+    const currentDefaultPort =
+      databaseType === DatabaseType.MYSQL ? DEFAULT_MYSQL_PORT : DEFAULT_POSTGRES_PORT;
+
+    // Only update port if it matches the current default (hasn't been manually changed)
+    if (port === currentDefaultPort) {
+      setPort(newType === DatabaseType.MYSQL ? DEFAULT_MYSQL_PORT : DEFAULT_POSTGRES_PORT);
+    }
+
     setDatabaseType(newType);
-    // Update port to default for the selected database type
-    setPort(newType === DatabaseType.MYSQL ? DEFAULT_MYSQL_PORT : DEFAULT_POSTGRES_PORT);
   };
 
   /**
@@ -377,6 +387,16 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
+  /**
+   * Validates that the port is a numeric integer between 1 and 65535.
+   * @param value - The port value to validate
+   * @returns true if the port is valid, false otherwise
+   */
+  const isValidPort = (value: string): boolean => {
+    const portNum = Number(value);
+    return !Number.isNaN(portNum) && Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
+  };
+
   const canSubmit = () => {
     const isValidName = isValidK8sName(
       nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
@@ -394,6 +414,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       hasContent(host) &&
       hasContent(password) &&
       hasContent(port) &&
+      isValidPort(port) &&
       hasContent(username) &&
       hasContent(database) &&
       (!addSecureDB || (secureDBInfo.isValid && !configSecretsError))
@@ -466,6 +487,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   type="text"
                   id="mr-host"
                   name="mr-host"
+                  data-testid="mr-host-input"
                   value={host}
                   onBlur={() => setIsHostTouched(true)}
                   onChange={(_e, value) => setHost(value)}
@@ -485,15 +507,25 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   type="text"
                   id="mr-port"
                   name="mr-port"
+                  data-testid="mr-port-input"
                   value={port}
                   onBlur={() => setIsPortTouched(true)}
                   onChange={(_e, value) => setPort(value)}
-                  validated={isPortTouched && !hasContent(port) ? 'error' : 'default'}
+                  validated={
+                    isPortTouched && (!hasContent(port) || !isValidPort(port)) ? 'error' : 'default'
+                  }
                 />
                 {isPortTouched && !hasContent(port) && (
                   <HelperText>
                     <HelperTextItem variant="error" data-testid="mr-port-error">
                       Port cannot be empty
+                    </HelperTextItem>
+                  </HelperText>
+                )}
+                {isPortTouched && hasContent(port) && !isValidPort(port) && (
+                  <HelperText>
+                    <HelperTextItem variant="error" data-testid="mr-port-error">
+                      Port must be a number between 1 and 65535
                     </HelperTextItem>
                   </HelperText>
                 )}
@@ -504,6 +536,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   type="text"
                   id="mr-username"
                   name="mr-username"
+                  data-testid="mr-username-input"
                   value={username}
                   onBlur={() => setIsUsernameTouched(true)}
                   onChange={(_e, value) => setUsername(value)}
@@ -541,6 +574,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                   type="text"
                   id="mr-database"
                   name="mr-database"
+                  data-testid="mr-database-input"
                   value={database}
                   onBlur={() => setIsDatabaseTouched(true)}
                   onChange={(_e, value) => setDatabase(value)}
