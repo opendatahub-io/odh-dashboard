@@ -114,6 +114,7 @@ export type ClusterSettingsType = {
 
 export type ModelServingPlatformEnabled = {
   kServe: boolean;
+  LLMd: boolean;
 };
 
 /** @deprecated -- use SDK type */

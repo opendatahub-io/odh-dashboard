@@ -12,6 +12,7 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ModelServingPlatformEnabled } from '#~/types.ts';
 
 type ModelDeploymentSettingsProps = {
   initialUseDistributedInferencing: boolean;
@@ -20,6 +21,8 @@ type ModelDeploymentSettingsProps = {
   setUseDistributedInferencing: (value: boolean) => void;
   defaultDeploymentStrategy: string;
   setDefaultDeploymentStrategy: (value: string) => void;
+  enabledPlatforms: ModelServingPlatformEnabled;
+  setEnabledPlatforms: (platforms: ModelServingPlatformEnabled) => void;
 };
 
 const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
@@ -27,6 +30,8 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
   setUseDistributedInferencing,
   defaultDeploymentStrategy,
   setDefaultDeploymentStrategy,
+  enabledPlatforms,
+  setEnabledPlatforms,
 }) => {
   return (
     <Stack hasGutter>
@@ -41,9 +46,12 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
         <Switch
           id="enable-distributed-llm-switch"
           label="Enable distributed inference with llm-d"
-          isChecked={true} // TODO: Make this work
-          onChange={() => {
-            // TODO: Make this work
+          isChecked={enabledPlatforms.LLMd}
+          onChange={(_event, _checked) => {
+            setEnabledPlatforms({
+              ...enabledPlatforms,
+              LLMd: _checked,
+            });
           }}
           data-testid="enable-distributed-llm-switch"
         />
@@ -72,11 +80,11 @@ const ModelDeploymentSettings: React.FC<ModelDeploymentSettingsProps> = ({
       </StackItem>
       <StackItem>
         <Switch
-          id="use-distributed-llm-switch"
+          id="use-distributed-llm-default-switch"
           label="Use distributed inference with llm-d by default when deploying generative models"
-          isChecked={useDistributedInferencing}
+          isChecked={useDistributedInferencing && enabledPlatforms.LLMd}
           onChange={(_event, checked) => setUseDistributedInferencing(checked)}
-          data-testid="use-distributed-llm-switch"
+          data-testid="use-distributed-llm-default-switch"
         />
       </StackItem>
 

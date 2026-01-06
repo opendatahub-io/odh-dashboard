@@ -50,6 +50,7 @@ export const modelServingFlags = {
   disableNIMModelServing: false,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
+  disableLLMd: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines
@@ -118,6 +119,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.K_SERVE_RAW]: {
     featureFlags: ['disableKServeRaw'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.LLMD_SERVING]: {
+    featureFlags: ['disableLLMd'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.MODEL_SERVING]: {

@@ -19,6 +19,7 @@ const DEFAULT_CLUSTER_SETTINGS = {
   userTrackingEnabled: false,
   modelServingPlatformEnabled: {
     kServe: true,
+    LLMd: true,
   },
 } satisfies ClusterSettings;
 
@@ -39,6 +40,15 @@ export const updateClusterSettings = async (
         spec: {
           dashboardConfig: {
             disableKServe: !modelServingPlatformEnabled.kServe,
+          },
+        },
+      });
+    }
+    if (modelServingPlatformEnabled.LLMd !== !dashConfig.spec.dashboardConfig.disableLLMd) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          dashboardConfig: {
+            disableLLMd: !modelServingPlatformEnabled.LLMd,
           },
         },
       });
@@ -116,6 +126,7 @@ export const getClusterSettings = async (
     ...DEFAULT_CLUSTER_SETTINGS,
     modelServingPlatformEnabled: {
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
+      LLMd: !dashConfig.spec.dashboardConfig.disableLLMd,
     },
   };
 

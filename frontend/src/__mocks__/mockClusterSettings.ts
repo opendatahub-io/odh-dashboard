@@ -7,6 +7,7 @@ export const mockClusterSettings = ({
   pvcSize = DEFAULT_PVC_SIZE,
   modelServingPlatformEnabled = {
     kServe: true,
+    LLMd: true,
   },
 }: Partial<ClusterSettingsType>): ClusterSettingsType => ({
   userTrackingEnabled,
