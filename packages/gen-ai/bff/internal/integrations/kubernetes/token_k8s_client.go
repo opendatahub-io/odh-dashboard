@@ -1120,11 +1120,12 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	}
 
 	// Add the default embedding model
+	defaultEmbeddingModel := constants.DefaultEmbeddingModel()
 	embeddingModel := NewEmbeddingModel(
-		constants.DefaultEmbeddingModel.ModelID,
-		constants.DefaultEmbeddingModel.ProviderID,
-		constants.DefaultEmbeddingModel.ProviderModelID,
-		int(constants.DefaultEmbeddingModel.EmbeddingDimension),
+		defaultEmbeddingModel.ModelID,
+		defaultEmbeddingModel.ProviderID,
+		defaultEmbeddingModel.ProviderModelID,
+		int(defaultEmbeddingModel.EmbeddingDimension),
 	)
 	config.AddModel(embeddingModel)
 
