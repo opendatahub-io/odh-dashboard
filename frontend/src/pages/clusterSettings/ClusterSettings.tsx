@@ -205,6 +205,13 @@ const ClusterSettings: React.FC = () => {
                   setUseDistributedInferencing={setUseDistributedInferencing}
                   defaultDeploymentStrategy={defaultDeploymentStrategy}
                   setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
+                  enabledPlatforms={modelServingEnabledPlatforms}
+                  setEnabledPlatforms={(platforms: ModelServingPlatformEnabled) => {
+                    setModelServingEnabledPlatforms({
+                      ...platforms,
+                      LLMd: platforms.LLMd,
+                    });
+                  }}
                 />
               </StackItem>
             </Stack>

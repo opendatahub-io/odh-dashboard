@@ -47,7 +47,7 @@ class ModelSergingSettings extends ClusterSettings {
 
 class ModelDeploymentSettings extends ClusterSettings {
   findDistributedInferencing() {
-    return cy.findByTestId('use-distributed-llm-switch');
+    return cy.findByTestId('use-distributed-llm-default-switch');
   }
 
   findAlert() {

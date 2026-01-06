@@ -112,6 +112,7 @@ spec:
                     trainingJobs:
                       type: boolean
                     observabilityDashboard:
+                    disableLLMd:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
