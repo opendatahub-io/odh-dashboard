@@ -107,7 +107,6 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                     onClick={() => {
                       setIsFilterDropdownOpen(false);
                       setCurrentFilterType(key);
-                      setSearchValue(''); // Clear search when changing filter type
                     }}
                   >
                     {label}
