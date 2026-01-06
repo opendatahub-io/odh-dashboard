@@ -1243,7 +1243,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findSaveAsMaaSCheckbox() {
-    return cy.findByTestId('save-as-maas-checkbox');
+    return cy.findByTestId('maas/save-as-maas-checkbox');
   }
 
   findUseCaseInput() {

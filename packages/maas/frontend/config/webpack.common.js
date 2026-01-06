@@ -41,8 +41,13 @@ module.exports = (env) => ({
     rules: [
       {
         test: /\.(tsx|ts|jsx|js)?$/,
-        exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR, INTERNAL_DIR],
+        exclude: [/__tests__/, /__mocks__/],
+        include: [
+          SRC_DIR,
+          COMMON_DIR,
+          INTERNAL_DIR,
+          path.resolve(ROOT_NODE_MODULES, '@odh-dashboard'), // allow direct loading of ts files from @odh-dashboard packages
+        ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
