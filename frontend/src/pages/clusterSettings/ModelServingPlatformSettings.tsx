@@ -3,20 +3,14 @@ import {
   Alert,
   AlertActionCloseButton,
   AlertVariant,
-  Button,
-  Checkbox,
-  Flex,
-  FlexItem,
+  FormHelperText,
+  Switch,
   Stack,
   StackItem,
+  HelperText,
 } from '@patternfly/react-core';
-import SettingSection from '#~/components/SettingSection';
 import { ModelServingPlatformEnabled } from '#~/types';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import { DataScienceClusterModel } from '#~/api';
-import { useOpenShiftURL } from '#~/utilities/clusterUtils';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
-import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 
 type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
@@ -33,10 +27,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   const {
     kServe: { installed: kServeInstalled },
   } = useServingPlatformStatuses();
-
-  const url = useOpenShiftURL();
-
-  const [allowedToPatchDSC] = useAccessAllowed(verbModelAccess('patch', DataScienceClusterModel));
 
   React.useEffect(() => {
     const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
@@ -59,73 +49,45 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
 
   return (
     // TODO: We need to support new LLM-D interface here -- this will be awkward until that support
-    <SettingSection
-      title="Model serving platforms"
-      description={
-        <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            Select the serving platforms that can be used for deploying models on this cluster.
-          </FlexItem>
-          <DashboardHelpTooltip
-            content={
-              <>
-                To modify the availability of model serving platforms, ask your cluster admin to
-                manage the respective components in the{' '}
-                {allowedToPatchDSC && url ? (
-                  <Button
-                    isInline
-                    variant="link"
-                    onClick={() => {
-                      window.open(
-                        `${url}/k8s/cluster/datasciencecluster.opendatahub.io~v1~DataScienceCluster`,
-                      );
-                    }}
-                  >
-                    DataScienceCluster
-                  </Button>
-                ) : (
-                  'DataScienceCluster'
-                )}{' '}
-                resource.
-              </>
-            }
-          />
-        </Flex>
-      }
-    >
-      <Stack hasGutter>
+    <Stack hasGutter>
+      <StackItem>
+        <Switch
+          label="Enable model serving"
+          isDisabled={!kServeInstalled}
+          isChecked={kServeInstalled && enabledPlatforms.kServe}
+          onChange={(_event, enabled: boolean) => {
+            const newEnabledPlatforms: ModelServingPlatformEnabled = {
+              ...enabledPlatforms,
+              kServe: enabled,
+            };
+            setEnabledPlatforms(newEnabledPlatforms);
+          }}
+          aria-label="Single-model serving platform enabled checkbox"
+          id="single-model-serving-platform-enabled-checkbox"
+          data-testid="single-model-serving-platform-enabled-checkbox"
+          name="singleModelServingPlatformEnabledCheckbox"
+        />
+      </StackItem>
+      <StackItem>
+        <FormHelperText>
+          <HelperText>
+            Enable users to deploy models on the cluster. Each model is deployed on its own model
+            server.
+          </HelperText>
+        </FormHelperText>
+      </StackItem>
+      {alert && (
         <StackItem>
-          <Checkbox
-            label="Enable model serving"
-            description="Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. "
-            isDisabled={!kServeInstalled}
-            isChecked={kServeInstalled && enabledPlatforms.kServe}
-            onChange={(e, enabled) => {
-              const newEnabledPlatforms: ModelServingPlatformEnabled = {
-                ...enabledPlatforms,
-                kServe: enabled,
-              };
-              setEnabledPlatforms(newEnabledPlatforms);
-            }}
-            aria-label="Single-model serving platform enabled checkbox"
-            id="single-model-serving-platform-enabled-checkbox"
-            data-testid="single-model-serving-platform-enabled-checkbox"
-            name="singleModelServingPlatformEnabledCheckbox"
+          <Alert
+            data-testid="serving-platform-warning-alert"
+            variant={alert.variant}
+            title={alert.message}
+            isInline
+            actionClose={<AlertActionCloseButton onClose={() => setAlert(undefined)} />}
           />
         </StackItem>
-        {alert && (
-          <StackItem>
-            <Alert
-              data-testid="serving-platform-warning-alert"
-              variant={alert.variant}
-              title={alert.message}
-              isInline
-              actionClose={<AlertActionCloseButton onClose={() => setAlert(undefined)} />}
-            />
-          </StackItem>
-        )}
-      </Stack>
-    </SettingSection>
+      )}
+    </Stack>
   );
 };
 

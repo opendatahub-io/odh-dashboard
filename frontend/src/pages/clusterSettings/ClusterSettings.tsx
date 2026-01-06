@@ -16,6 +16,7 @@ import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSet
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import SettingSection from '#~/components/SettingSection';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -183,27 +184,31 @@ const ClusterSettings: React.FC = () => {
     >
       <Stack hasGutter>
         {modelServingEnabled && (
-          <StackItem>
-            <ModelServingPlatformSettings
-              initialValue={clusterSettings.modelServingPlatformEnabled}
-              enabledPlatforms={modelServingEnabledPlatforms}
-              setEnabledPlatforms={setModelServingEnabledPlatforms}
-            />
-          </StackItem>
-        )}
-        {modelServingEnabled && (
-          <StackItem>
-            <ModelDeploymentSettings
-              initialUseDistributedInferencing={clusterSettings.useDistributedInferencing ?? false}
-              initialDefaultDeploymentStrategy={
-                clusterSettings.defaultDeploymentStrategy ?? 'rolling'
-              }
-              useDistributedInferencing={useDistributedInferencing}
-              setUseDistributedInferencing={setUseDistributedInferencing}
-              defaultDeploymentStrategy={defaultDeploymentStrategy}
-              setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
-            />
-          </StackItem>
+          <SettingSection title="Model deployments">
+            <Stack hasGutter>
+              <StackItem>
+                <ModelServingPlatformSettings
+                  initialValue={clusterSettings.modelServingPlatformEnabled}
+                  enabledPlatforms={modelServingEnabledPlatforms}
+                  setEnabledPlatforms={setModelServingEnabledPlatforms}
+                />
+              </StackItem>
+              <StackItem>
+                <ModelDeploymentSettings
+                  initialUseDistributedInferencing={
+                    clusterSettings.useDistributedInferencing ?? false
+                  }
+                  initialDefaultDeploymentStrategy={
+                    clusterSettings.defaultDeploymentStrategy ?? 'rolling'
+                  }
+                  useDistributedInferencing={useDistributedInferencing}
+                  setUseDistributedInferencing={setUseDistributedInferencing}
+                  defaultDeploymentStrategy={defaultDeploymentStrategy}
+                  setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
+                />
+              </StackItem>
+            </Stack>
+          </SettingSection>
         )}
         <StackItem>
           <PVCSizeSettings
