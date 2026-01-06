@@ -26,6 +26,7 @@ type ModelsListToolbarProps = {
   filterColors?: Record<string, AssetsFilterColors>;
   infoPopover?: React.ReactNode;
   onClearFilters: () => void;
+  source: 'ai-models' | 'maas';
 };
 
 const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
@@ -35,6 +36,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   filterColors,
   infoPopover,
   onClearFilters,
+  source,
 }) => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
@@ -42,16 +44,6 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
     return keys[0];
   });
   const [searchValue, setSearchValue] = React.useState('');
-
-  // Automatically detect source based on component props
-  // AI Models table has infoPopover and 'useCase' filter option
-  // MaaS Models table has neither
-  const source = React.useMemo(() => {
-    if (infoPopover || 'useCase' in filterOptions) {
-      return 'ai-models';
-    }
-    return 'maas';
-  }, [infoPopover, filterOptions]);
 
   const handleSearch = () => {
     fireMiscTrackingEvent('AI Assets Filter Applied', {

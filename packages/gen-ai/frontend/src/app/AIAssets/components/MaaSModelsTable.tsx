@@ -52,6 +52,7 @@ const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
           filterOptions={maasFilterOptions}
           filterColors={maasFilterColors}
           onClearFilters={onClearFilters}
+          source="maas"
         />
       }
       onClearFilters={onClearFilters}

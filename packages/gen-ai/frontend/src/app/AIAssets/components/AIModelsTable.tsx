@@ -78,6 +78,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           filterColors={aiFilterColors}
           infoPopover={AIModelStatusPopover}
           onClearFilters={onClearFilters}
+          source="ai-models"
         />
       }
       onClearFilters={onClearFilters}

@@ -20,6 +20,7 @@ describe('ModelsListToolbar', () => {
       [AssetsFilterOptions.KEYWORD]: 'Keyword',
     },
     onClearFilters: jest.fn(),
+    source: 'ai-models' as const,
   };
 
   beforeEach(() => {
