@@ -1,10 +1,27 @@
-import type { ClusterRoleKind, RoleBindingKind, RoleBindingSubject, RoleKind } from '#~/k8sTypes';
+import type {
+  ClusterRoleKind,
+  RoleBindingKind,
+  RoleBindingRoleRef,
+  RoleBindingSubject,
+  RoleKind,
+} from '#~/k8sTypes';
 import { KnownLabels } from '#~/k8sTypes';
-import { OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE, OPENSHIFT_BOOTSTRAPPING_LABEL_KEY } from './const';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import {
+  OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE,
+  OPENSHIFT_BOOTSTRAPPING_LABEL_KEY,
+  RBAC_SUBJECT_KIND_GROUP,
+  RBAC_SUBJECT_KIND_USER,
+} from './const';
 import { RoleLabelType, RoleRef, RoleRefKey, SubjectKey, SupportedSubjectRef } from './types';
 
 const isSupportedSubject = (subject: RoleBindingSubject): subject is SupportedSubjectRef =>
-  subject.kind === 'User' || subject.kind === 'Group';
+  subject.kind === RBAC_SUBJECT_KIND_USER || subject.kind === RBAC_SUBJECT_KIND_GROUP;
+
+const roleBindingHasSubject = (rb: RoleBindingKind, subject: SupportedSubjectRef): boolean =>
+  (rb.subjects ?? []).some(
+    (s) => isSupportedSubject(s) && s.kind === subject.kind && s.name === subject.name,
+  );
 
 /**
  * Type guard for RoleBinding subjects.
@@ -13,7 +30,7 @@ const isSupportedSubject = (subject: RoleBindingSubject): subject is SupportedSu
  * Note: ServiceAccounts are intentionally ignored for now.
  */
 export const isUserSubject = (subject: RoleBindingSubject): subject is SupportedSubjectRef =>
-  subject.kind === 'User';
+  subject.kind === RBAC_SUBJECT_KIND_USER;
 
 /**
  * Type guard for RoleBinding subjects.
@@ -22,21 +39,23 @@ export const isUserSubject = (subject: RoleBindingSubject): subject is Supported
  * Note: ServiceAccounts are intentionally ignored for now.
  */
 export const isGroupSubject = (subject: RoleBindingSubject): subject is SupportedSubjectRef =>
-  subject.kind === 'Group';
+  subject.kind === RBAC_SUBJECT_KIND_GROUP;
 
 /**
  * Creates a stable string key for a RoleRef.
  *
  * Always include both kind + name to avoid collisions (Role vs ClusterRole can share a name).
  */
-export const getRoleRefKey = (roleRef: RoleRef): RoleRefKey => `${roleRef.kind}:${roleRef.name}`;
+export const getRoleRefKey = (roleRef: Pick<RoleBindingRoleRef, 'kind' | 'name'>): RoleRefKey =>
+  `${roleRef.kind}:${roleRef.name}`;
 
 /**
- * Creates a stable string key for a supported subject reference.
+ * Creates a stable string key for a RoleBinding subject.
  *
- * Only supports User/Group (ServiceAccount is ignored for now).
+ * Note: The Permissions feature intentionally ignores ServiceAccount subjects for now, but this
+ * helper is generic and can be used for any subject kind.
  */
-export const getSubjectKey = (subject: SupportedSubjectRef): SubjectKey =>
+export const getSubjectKey = (subject: Pick<RoleBindingSubject, 'kind' | 'name'>): SubjectKey =>
   `${subject.kind}:${subject.name}`;
 
 /**
@@ -113,12 +132,7 @@ export const buildGroupRoleMap = (
 export const getRoleBindingsForSubject = (
   roleBindings: RoleBindingKind[],
   subject: SupportedSubjectRef,
-): RoleBindingKind[] =>
-  roleBindings.filter((rb) =>
-    (rb.subjects ?? []).some(
-      (s) => isSupportedSubject(s) && s.kind === subject.kind && s.name === subject.name,
-    ),
-  );
+): RoleBindingKind[] => roleBindings.filter((rb) => roleBindingHasSubject(rb, subject));
 
 /**
  * Returns all RoleBindings that connect a subject to a specific RoleRef (kind + name).
@@ -137,9 +151,7 @@ export const getRoleBindingsForSubjectAndRoleRef = (
     (rb) =>
       rb.roleRef.kind === roleRef.kind &&
       rb.roleRef.name === roleRef.name &&
-      (rb.subjects ?? []).some(
-        (s) => isSupportedSubject(s) && s.kind === subject.kind && s.name === subject.name,
-      ),
+      roleBindingHasSubject(rb, subject),
   );
 
 /**
@@ -153,14 +165,17 @@ export const getRoleRefsForSubject = (
 ): RoleRef[] => {
   const seen = new Set<RoleRefKey>();
   const result: RoleRef[] = [];
-  getRoleBindingsForSubject(roleBindings, subject).forEach((rb) => {
-    const ref: RoleRef = { kind: rb.roleRef.kind, name: rb.roleRef.name };
-    const key = getRoleRefKey(ref);
+  roleBindings.forEach((rb) => {
+    if (!roleBindingHasSubject(rb, subject)) {
+      return;
+    }
+
+    const key = getRoleRefKey(rb.roleRef);
     if (seen.has(key)) {
       return;
     }
     seen.add(key);
-    result.push(ref);
+    result.push({ kind: rb.roleRef.kind, name: rb.roleRef.name });
   });
   return result;
 };
@@ -183,13 +198,12 @@ export const getSubjectsForRoleRef = (
         if (!isSupportedSubject(s)) {
           return;
         }
-        const subj: SupportedSubjectRef = { kind: s.kind, name: s.name };
-        const key = getSubjectKey(subj);
+        const key = getSubjectKey(s);
         if (seen.has(key)) {
           return;
         }
         seen.add(key);
-        result.push(subj);
+        result.push({ kind: s.kind, name: s.name });
       });
     });
 
@@ -211,4 +225,26 @@ export const getRoleByRef = (
     return roles.find((r) => r.metadata.name === roleRef.name);
   }
   return clusterRoles.find((r) => r.metadata.name === roleRef.name);
+};
+
+/**
+ * Returns a user-friendly display name for a Role/ClusterRole reference.
+ *
+ * Notes:
+ * - Prefer OpenShift display-name annotation when `role` is available.
+ * - Special-case well-known OpenShift ClusterRoles to make them more readable in the UI.
+ */
+export const getRoleDisplayName = (roleRef: RoleRef, role?: RoleKind | ClusterRoleKind): string => {
+  // Friendly names for well-known OpenShift ClusterRoles
+  if (roleRef.kind === 'ClusterRole') {
+    const name = (role?.metadata.name ?? roleRef.name).toLowerCase();
+    if (name === 'admin') {
+      return 'Admin';
+    }
+    if (name === 'edit') {
+      return 'Contributor';
+    }
+  }
+
+  return role ? getDisplayNameFromK8sResource(role) : roleRef.name;
 };
