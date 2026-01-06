@@ -67,7 +67,8 @@ class FeatureToolbar extends Contextual<HTMLElement> {
   }
 
   findTagFilterChip(tag: string) {
-    return this.find().document().contains(tag).closest('.pf-v6-c-label');
+    const testId = `tag-filter-chip-${tag.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    return cy.findByTestId(testId).closest('.pf-v6-c-label');
   }
 }
 

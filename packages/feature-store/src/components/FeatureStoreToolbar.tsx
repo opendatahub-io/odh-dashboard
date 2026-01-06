@@ -134,6 +134,7 @@ export function FeatureStoreToolbar({
       tag: tagFilters.map((tag, index) => ({
         key: `tag-${index}`,
         label: tag,
+        testId: `tag-filter-chip-${tag.replace(/[^a-zA-Z0-9]/g, '-')}`,
         onRemove: () => onTagFilterRemove?.(tag),
       })),
     };

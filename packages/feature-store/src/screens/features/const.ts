@@ -28,8 +28,12 @@ export const baseColumns: SortableData<Features>[] = [
     label: 'Tags',
     width: 25,
     sortable: (a: Features, b: Features): number => {
-      const aTags = Object.entries(a.tags ?? {}).map(([key, value]) => `${key}=${value}`);
-      const bTags = Object.entries(b.tags ?? {}).map(([key, value]) => `${key}=${value}`);
+      const aTags = Object.entries(a.tags ?? {})
+        .map(([key, value]) => `${key}=${value}`)
+        .toSorted();
+      const bTags = Object.entries(b.tags ?? {})
+        .map(([key, value]) => `${key}=${value}`)
+        .toSorted();
       return aTags.join(',').localeCompare(bTags.join(','));
     },
   },
