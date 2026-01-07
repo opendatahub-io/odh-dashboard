@@ -111,7 +111,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.AI_CATALOG_SETTINGS, ADMIN_USER],
+      required: [ADMIN_USER],
     },
     properties: {
       id: 'settings-model-catalog',
@@ -125,7 +125,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.AI_CATALOG_SETTINGS, ADMIN_USER],
+      required: [ADMIN_USER],
     },
     properties: {
       path: `${catalogSettingsUrl()}/*`,
