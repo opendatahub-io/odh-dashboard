@@ -116,22 +116,24 @@ const ProjectPermissions: React.FC = () => {
                 </ToolbarContent>
               </Toolbar>
             </StackItem>
-            <StackItem>
-              <SubjectRolesTableSection
-                subjectKind="user"
-                filterData={filterData}
-                isVisible={subjectScope !== SubjectScopeFilter.group}
-                onClearFilters={clearFilters}
-              />
-            </StackItem>
-            <StackItem>
-              <SubjectRolesTableSection
-                subjectKind="group"
-                filterData={filterData}
-                isVisible={subjectScope !== SubjectScopeFilter.user}
-                onClearFilters={clearFilters}
-              />
-            </StackItem>
+            {subjectScope !== SubjectScopeFilter.group ? (
+              <StackItem>
+                <SubjectRolesTableSection
+                  subjectKind="user"
+                  filterData={filterData}
+                  onClearFilters={clearFilters}
+                />
+              </StackItem>
+            ) : null}
+            {subjectScope !== SubjectScopeFilter.user ? (
+              <StackItem>
+                <SubjectRolesTableSection
+                  subjectKind="group"
+                  filterData={filterData}
+                  onClearFilters={clearFilters}
+                />
+              </StackItem>
+            ) : null}
           </>
         )}
       </Stack>

@@ -37,6 +37,8 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   dropdownLabel?: React.ReactNode;
   selectedLabel?: React.ReactNode;
   group?: string;
+  /** Internal marker used to ensure the creatable option can be rendered first even with groups */
+  isCreateOption?: boolean;
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
@@ -69,6 +71,15 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   isCreatable?: boolean;
   /** Flag to indicate if create option should be at top of typeahead */
   isCreateOptionOnTop?: boolean;
+  /**
+   * Controls how we decide whether the "create" option should be shown.
+   *
+   * When true, the create option is hidden only if the current input exactly matches an existing
+   * option (case-sensitive, after trimming).
+   *
+   * When false (default), the check is case-insensitive (after trimming).
+   */
+  isCreateOptionExactMatchCaseSensitive?: boolean;
   /** Message to display to create a new option */
   createOptionMessage?: string | ((newValue: string) => string);
   /** Message to display when no options are available. */
@@ -108,6 +119,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   noOptionsFoundMessage = defaultNoOptionsFoundMessage,
   isCreatable = false,
   isCreateOptionOnTop = false,
+  isCreateOptionExactMatchCaseSensitive = false,
   createOptionMessage = defaultCreateOptionMessage,
   isDisabled,
   toggleWidth,
@@ -138,17 +150,28 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     if (isFiltering && filterValue) {
       newSelectOptions = filterFunction(filterValue, selectOptions);
 
-      if (
-        isCreatable &&
-        filterValue.trim() &&
-        !newSelectOptions.find((o) => String(o.content).toLowerCase() === filterValue.toLowerCase())
-      ) {
+      const trimmedFilterValue = filterValue.trim();
+      const normalizedFilterValue = isCreateOptionExactMatchCaseSensitive
+        ? trimmedFilterValue
+        : trimmedFilterValue.toLowerCase();
+      const hasExactMatch = newSelectOptions.some((o) => {
+        const contentRaw = String(o.content).trim();
+        const valueRaw = String(o.value).trim();
+        const content = isCreateOptionExactMatchCaseSensitive
+          ? contentRaw
+          : contentRaw.toLowerCase();
+        const value = isCreateOptionExactMatchCaseSensitive ? valueRaw : valueRaw.toLowerCase();
+        return content === normalizedFilterValue || value === normalizedFilterValue;
+      });
+
+      if (isCreatable && normalizedFilterValue && !hasExactMatch) {
         const createOption = {
           content:
             typeof createOptionMessage === 'string'
               ? createOptionMessage
               : createOptionMessage(filterValue),
           value: filterValue,
+          isCreateOption: true,
         };
         newSelectOptions = isCreateOptionOnTop
           ? [createOption, ...newSelectOptions]
@@ -190,6 +213,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     noOptionsFoundMessage,
     isCreatable,
     isCreateOptionOnTop,
+    isCreateOptionExactMatchCaseSensitive,
     createOptionMessage,
     noOptionsAvailableMessage,
   ]);
@@ -204,7 +228,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const setActiveAndFocusedItem = (itemIndex: number) => {
     setFocusedItemIndex(itemIndex);
-    const focusedItem = selectOptions[itemIndex];
+    const focusedItem = filteredSelections[itemIndex];
     setActiveItemId(String(focusedItem.value));
   };
 
@@ -418,7 +442,6 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               {...(activeItemId && { 'aria-activedescendant': activeItemId })}
               role="combobox"
               isExpanded={isOpen}
-              aria-controls="select-typeahead-listbox"
             />
           </FlexItem>
           {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}
@@ -505,6 +528,16 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const renderOptions = (): React.ReactNode => {
     let idx = 0;
+
+    // If requested, force the creatable option to render first (even when the rest is grouped).
+    const createOption = isCreateOptionOnTop
+      ? groupedSelections.noGroup.find((o) => o.isCreateOption)
+      : undefined;
+    const ungroupedSelections = isCreateOptionOnTop
+      ? groupedSelections.noGroup.filter((o) => !o.isCreateOption)
+      : groupedSelections.noGroup;
+
+    const createNode = createOption ? tSelectOption(createOption, idx++) : null;
     const groupEntries = Object.entries(groupedSelections.group);
     const groupOpts = groupEntries.map(([groupName, group], groupIndex) => {
       const { node, nextIndex } = tGroupOption(
@@ -516,11 +549,23 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       idx = nextIndex;
       return node;
     });
-    const selectOpts = groupedSelections.noGroup.map((opt) => tSelectOption(opt, idx++));
+    const selectOpts = ungroupedSelections.map((opt) => tSelectOption(opt, idx++));
+
+    const hasGroups = groupOpts.length > 0;
+    const hasUngrouped = selectOpts.length > 0;
+    const hasCreate = !!createNode;
+
+    // Divider rules:
+    // - If create is present and there are groups, show divider between create and the first group.
+    // - Show divider between groups/create and ungrouped options, if ungrouped options exist.
+    const showDividerAfterCreate = hasCreate && hasGroups;
+    const showDividerBeforeUngrouped = hasUngrouped && (hasCreate || hasGroups);
     return (
       <>
+        {createNode}
+        {showDividerAfterCreate ? <Divider /> : null}
         {groupOpts}
-        {selectOpts.length > 0 && <Divider />}
+        {showDividerBeforeUngrouped ? <Divider /> : null}
         {selectOpts}
       </>
     );

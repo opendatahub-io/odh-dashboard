@@ -1,40 +1,24 @@
 import * as React from 'react';
 import {
   Button,
-  Label,
   Split,
   SplitItem,
   Timestamp,
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { OpenshiftIcon } from '@patternfly/react-icons';
 import { getRoleDisplayName, getRoleLabelType } from '#~/concepts/permissions/utils';
-import { RoleLabelType, RoleRef } from '#~/concepts/permissions/types';
+import { RoleRef } from '#~/concepts/permissions/types';
 import { SubjectRoleRow } from './types';
+import RoleLabel from './components/RoleLabel';
+import { isReversibleRoleRef } from './utils';
 
 type SubjectRolesTableRowProps = {
   row: SubjectRoleRow;
   subjectNameRowSpan: number;
   onRoleClick?: (roleRef: RoleRef) => void;
-};
-
-const renderRoleLabel = (type?: RoleLabelType): React.ReactNode => {
-  if (!type || type === RoleLabelType.Dashboard) {
-    return null;
-  }
-  if (type === RoleLabelType.OpenshiftDefault) {
-    return (
-      <Label variant="outline" isCompact color="blue" icon={<OpenshiftIcon />}>
-        OpenShift default
-      </Label>
-    );
-  }
-  return (
-    <Label variant="outline" isCompact color="purple" icon={<OpenshiftIcon />}>
-      OpenShift custom
-    </Label>
-  );
+  onEdit: () => void;
+  onRemove: () => void;
 };
 
 const formatDate = (timestamp?: string): string => {
@@ -52,10 +36,18 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
   row,
   subjectNameRowSpan,
   onRoleClick,
+  onEdit,
+  onRemove,
 }) => {
   const createdDate = row.roleBindingCreationTimestamp
     ? new Date(row.roleBindingCreationTimestamp)
     : undefined;
+
+  const isEditable = isReversibleRoleRef(row.roleRef);
+  const actionItems = [
+    ...(isEditable ? [{ title: 'Edit', onClick: onEdit }, { isSeparator: true }] : []),
+    { title: 'Remove', onClick: onRemove },
+  ];
 
   return (
     <Tr>
@@ -82,7 +74,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
             </Button>
           </SplitItem>
           <SplitItem>
-            {renderRoleLabel(row.role ? getRoleLabelType(row.role) : undefined)}
+            <RoleLabel type={row.role ? getRoleLabelType(row.role) : undefined} />
           </SplitItem>
         </Split>
       </Td>
@@ -96,13 +88,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
         )}
       </Td>
       <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
-        <ActionsColumn
-          items={[
-            { title: 'Edit', onClick: () => undefined },
-            { isSeparator: true },
-            { title: 'Delete', onClick: () => undefined },
-          ]}
-        />
+        <ActionsColumn items={actionItems} />
       </Td>
     </Tr>
   );
