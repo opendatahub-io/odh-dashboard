@@ -1,9 +1,6 @@
 import React from 'react';
 import {
   Checkbox,
-  FlexItem,
-  Label,
-  Flex,
   FormGroup,
   Popover,
   TextInput,
@@ -140,18 +137,7 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
         <Checkbox
           id={id}
           data-testid={id}
-          label={
-            <Flex>
-              <FlexItem>
-                <span className="pf-v6-c-form__label-text">Publish as MaaS endpoint</span>
-              </FlexItem>
-              <FlexItem>
-                <Label isCompact color="yellow" variant="outline">
-                  Tech Preview
-                </Label>
-              </FlexItem>
-            </Flex>
-          }
+          label={<span className="pf-v6-c-form__label-text">Publish as MaaS endpoint</span>}
           body={
             <>
               Enable users in any namespace to access this model by adding its endpoint to the{' '}
@@ -238,7 +224,7 @@ export const MaaSEndpointFieldWizardField: WizardField<MaaSTierValue> = {
   isActive: (wizardFormData) =>
     wizardFormData.modelType?.data === ServingRuntimeModelType.GENERATIVE &&
     wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID,
-  reducerStuff: {
+  reducerFunctions: {
     setFieldData: setMaaSEndpointsFieldData,
     getInitialFieldData: getInitialMaaSEndpointsFieldData,
     validationSchema: maasEndpointsFieldSchema,

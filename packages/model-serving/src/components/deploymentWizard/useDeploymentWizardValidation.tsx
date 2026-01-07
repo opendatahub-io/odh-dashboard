@@ -88,8 +88,8 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: runtimeArgsFieldSchema,
       environmentVariables: environmentVariablesFieldSchema,
       ...step3Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
-        if (field.reducerStuff.validationSchema) {
-          acc[field.id] = field.reducerStuff.validationSchema;
+        if (field.reducerFunctions.validationSchema) {
+          acc[field.id] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),

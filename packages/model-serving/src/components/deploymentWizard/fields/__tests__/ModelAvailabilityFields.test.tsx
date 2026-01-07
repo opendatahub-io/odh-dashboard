@@ -8,8 +8,13 @@ import {
   useModelAvailabilityFields,
 } from '../ModelAvailabilityFields';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
+import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 
 jest.mock('@odh-dashboard/plugin-core');
+
+const mockWizardState: UseModelDeploymentWizardState = {
+  fields: [],
+} as unknown as UseModelDeploymentWizardState;
 
 describe('AvailableAiAssetsFields', () => {
   beforeEach(() => {
@@ -48,41 +53,32 @@ describe('AvailableAiAssetsFields', () => {
   describe('useAvailableAiAssetsFields', () => {
     it('should initialize with false by default', () => {
       const { result } = renderHook(() => useModelAvailabilityFields());
-      expect(result.current.data).toStrictEqual({
-        saveAsAiAsset: false,
-        saveAsMaaS: undefined,
-        useCase: '',
-      });
+      expect(result.current.data.saveAsAiAsset).toBe(false);
+      expect(result.current.data.useCase).toBe('');
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
-        useModelAvailabilityFields({ saveAsAiAsset: true, saveAsMaaS: false, useCase: 'test' }),
+        useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'test' }),
       );
-      expect(result.current.data).toStrictEqual({
-        saveAsAiAsset: true,
-        saveAsMaaS: false,
-        useCase: 'test',
-      });
+      expect(result.current.data.saveAsAiAsset).toBe(true);
+      expect(result.current.data.useCase).toBe('test');
     });
     it('should update data', () => {
       const { result } = renderHook(() => useModelAvailabilityFields());
       act(() => {
-        result.current.setData({ saveAsAiAsset: true, saveAsMaaS: false, useCase: 'test' });
+        result.current.setData({ saveAsAiAsset: true, useCase: 'test' });
       });
-      expect(result.current.data).toStrictEqual({
-        saveAsAiAsset: true,
-        saveAsMaaS: false,
-        useCase: 'test',
-      });
+      expect(result.current.data.saveAsAiAsset).toBe(true);
+      expect(result.current.data.useCase).toBe('test');
     });
   });
   describe('AvailableAiAssetsFieldsComponent', () => {
     it('should render with default props', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: false, saveAsMaaS: false, useCase: '' }}
+          data={{ saveAsAiAsset: false, useCase: '' }}
           setData={jest.fn()}
-          showSaveAsMaaS={false}
+          wizardState={mockWizardState}
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
@@ -91,9 +87,9 @@ describe('AvailableAiAssetsFields', () => {
     it('should render with saveAsAiAsset true', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: true, saveAsMaaS: false, useCase: '' }}
+          data={{ saveAsAiAsset: true, useCase: '' }}
           setData={jest.fn()}
-          showSaveAsMaaS={false}
+          wizardState={mockWizardState}
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
@@ -102,27 +98,15 @@ describe('AvailableAiAssetsFields', () => {
     it('should render with useCase input', () => {
       render(
         <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: true, saveAsMaaS: false, useCase: 'test' }}
+          data={{ saveAsAiAsset: true, useCase: 'test' }}
           setData={jest.fn()}
-          showSaveAsMaaS={false}
+          wizardState={mockWizardState}
         />,
       );
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
       expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeChecked();
       expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
       expect(screen.getByTestId('use-case-input')).toHaveValue('test');
-    });
-    it('should show MaaS checkbox when showSaveAsMaaS is true', () => {
-      render(
-        <AvailableAiAssetsFieldsComponent
-          data={{ saveAsAiAsset: false, saveAsMaaS: true, useCase: '' }}
-          setData={jest.fn()}
-          showSaveAsMaaS
-        />,
-      );
-      expect(screen.getByTestId('save-as-ai-asset-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('maas/save-as-maas-checkbox')).toBeInTheDocument();
-      expect(screen.getByTestId('maas/save-as-maas-checkbox')).toBeChecked();
     });
   });
   describe('useModelAvailabilityFields hook visibility logic', () => {
@@ -141,30 +125,21 @@ describe('AvailableAiAssetsFields', () => {
     it('should reset data when model type changes from generative to not generative', () => {
       const { result, rerender } = renderHook(
         ({ modelType }) =>
-          useModelAvailabilityFields(
-            { saveAsAiAsset: true, saveAsMaaS: true, useCase: 'test' },
-            modelType,
-          ),
+          useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'test' }, modelType),
         { initialProps: { modelType: ServingRuntimeModelType.GENERATIVE } },
       );
 
       // Initially with generative model, data should be preserved
-      expect(result.current.data).toStrictEqual({
-        saveAsAiAsset: true,
-        saveAsMaaS: true,
-        useCase: 'test',
-      });
+      expect(result.current.data.saveAsAiAsset).toBe(true);
+      expect(result.current.data.useCase).toBe('test');
       expect(result.current.showField).toBe(true);
 
       // Change to predictive model type
       rerender({ modelType: ServingRuntimeModelType.PREDICTIVE });
 
       // Data should be reset and field should be hidden
-      expect(result.current.data).toStrictEqual({
-        saveAsAiAsset: false,
-        saveAsMaaS: undefined,
-        useCase: '',
-      });
+      expect(result.current.data.saveAsAiAsset).toBe(false);
+      expect(result.current.data.useCase).toBe('');
       expect(result.current.showField).toBe(false);
     });
   });

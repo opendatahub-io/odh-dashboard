@@ -73,7 +73,7 @@ export const useDeploymentWizardReducer = (
         const extractedData = initialData?.[field.id];
         // The getInitialFieldData function accepts optional initial data of the field's type
         // Since we're dealing with unknown types from dynamic fields, we pass the extracted data directly
-        const fieldInitialData = field.reducerStuff.getInitialFieldData(extractedData);
+        const fieldInitialData = field.reducerFunctions.getInitialFieldData(extractedData);
         dispatch({
           type: 'setFieldData',
           payload: { id: field.id, data: fieldInitialData },

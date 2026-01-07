@@ -115,7 +115,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
-                    showSaveAsMaaS={wizardState.state.modelAvailability.showSaveAsMaaS}
                     wizardState={wizardState}
                   />
                 </FormGroup>

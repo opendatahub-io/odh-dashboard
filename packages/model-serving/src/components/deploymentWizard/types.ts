@@ -153,7 +153,7 @@ export type WizardField<T = unknown> = DeploymentWizardFieldBase<string> & {
   type: 'addition';
   parentId?: string;
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
-  reducerStuff: {
+  reducerFunctions: {
     // TODO: make dispatch function that clears if this field's dependencies are changing
     setFieldData: (fieldData: T) => T;
     getInitialFieldData: (fieldData?: T) => T;
