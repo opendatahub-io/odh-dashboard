@@ -2,14 +2,14 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { MaaSModel } from '~/app/types';
 import MaaSModelTableRowEndpoint from '~/app/AIAssets/components/MaaSModelTableRowEndpoint';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
 // Mock tracking
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireSimpleTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 // Mock useGenerateMaaSToken hook
@@ -63,7 +63,10 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireSimpleTrackingEvent).toHaveBeenCalledWith('MaaS API Token Copied');
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
@@ -76,7 +79,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
 
-      expect(fireSimpleTrackingEvent).not.toHaveBeenCalled();
+      expect(fireMiscTrackingEvent).not.toHaveBeenCalled();
 
       // Wait for token to appear
       await screen.findByDisplayValue('generated-token-123');
@@ -87,8 +90,11 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireSimpleTrackingEvent).toHaveBeenCalledTimes(1);
-        expect(fireSimpleTrackingEvent).toHaveBeenCalledWith('MaaS API Token Copied');
+        expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
@@ -109,16 +115,19 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       // Copy first time
       await user.click(tokenCopyButton);
       await waitFor(() => {
-        expect(fireSimpleTrackingEvent).toHaveBeenCalledTimes(1);
+        expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
       });
 
       // Copy second time
       await user.click(tokenCopyButton);
       await waitFor(() => {
-        expect(fireSimpleTrackingEvent).toHaveBeenCalledTimes(2);
+        expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
       });
 
-      expect(fireSimpleTrackingEvent).toHaveBeenCalledWith('MaaS API Token Copied');
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+        assetType: 'maas_model',
+        copyTarget: 'service_token',
+      });
     });
   });
 
@@ -145,8 +154,16 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       const urlCopyButton = screen.getByRole('button', { name: /Copy/i });
       await user.click(urlCopyButton);
 
-      // Should not fire the token copy event
-      expect(fireSimpleTrackingEvent).not.toHaveBeenCalledWith('MaaS API Token Copied');
+      // Should fire Endpoint_Copied but not Service_Token_Copied
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+        assetType: 'maas_model',
+        endpointType: 'maas_route',
+        copyTarget: 'endpoint',
+      });
+      expect(fireMiscTrackingEvent).not.toHaveBeenCalledWith(
+        'Service_Token_Copied',
+        expect.any(Object),
+      );
     });
   });
 
@@ -156,7 +173,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       const { container } = render(<MaaSModelTableRowEndpoint model={model} />);
 
       expect(container.textContent).toBe('-');
-      expect(fireSimpleTrackingEvent).not.toHaveBeenCalled();
+      expect(fireMiscTrackingEvent).not.toHaveBeenCalled();
     });
   });
 });

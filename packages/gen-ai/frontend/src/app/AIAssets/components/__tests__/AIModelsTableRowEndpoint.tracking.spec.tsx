@@ -53,10 +53,10 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Endpoint Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+          assetType: 'model',
           endpointType: 'internal',
-          copyType: 'url',
-          modelName: 'test-model',
+          copyTarget: 'endpoint',
         });
       });
     });
@@ -76,10 +76,10 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Endpoint Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+          assetType: 'model',
           endpointType: 'internal',
-          copyType: 'url',
-          modelName: 'llama-3-70b',
+          copyTarget: 'endpoint',
         });
       });
     });
@@ -98,10 +98,10 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Endpoint Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+          assetType: 'model',
           endpointType: 'external',
-          copyType: 'url',
-          modelName: 'test-model',
+          copyTarget: 'endpoint',
         });
       });
     });
@@ -131,10 +131,9 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Endpoint Copied', {
-          endpointType: 'external',
-          copyType: 'token',
-          modelName: 'test-model',
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+          assetType: 'model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -160,10 +159,10 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(urlCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Endpoint Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+          assetType: 'model',
           endpointType: 'external',
-          copyType: 'url',
-          modelName: 'gpt-4',
+          copyTarget: 'endpoint',
         });
       });
 
@@ -173,10 +172,9 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Endpoint Copied', {
-          endpointType: 'external',
-          copyType: 'token',
-          modelName: 'gpt-4',
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+          assetType: 'model',
+          copyTarget: 'service_token',
         });
       });
 

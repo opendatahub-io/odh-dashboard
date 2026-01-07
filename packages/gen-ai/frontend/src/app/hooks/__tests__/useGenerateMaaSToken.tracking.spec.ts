@@ -42,9 +42,11 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -62,9 +64,11 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken('2025-06-30');
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -97,10 +101,12 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorMessage,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -113,10 +119,12 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Failed to generate MaaS token',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -130,10 +138,12 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Network request failed',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -147,10 +157,12 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Unauthorized: Invalid credentials',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -185,9 +197,11 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       });
 
       // Both calls should have same parameters
-      expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+      expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
         outcome: TrackingOutcome.submit,
         success: true,
+        assetType: 'maas_model',
+        copyTarget: 'service_token',
       });
     });
 
@@ -199,10 +213,12 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Server error',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
 
@@ -216,9 +232,11 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenLastCalledWith('MaaS API Token Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenLastCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       });
 

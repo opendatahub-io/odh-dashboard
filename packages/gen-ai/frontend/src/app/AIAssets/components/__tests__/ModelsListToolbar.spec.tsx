@@ -232,10 +232,9 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filter Applied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
           filterType: AssetsFilterOptions.NAME,
-          searchValueLength: 4,
-          source: 'ai-models',
+          resultsCount: 0,
         });
       });
 
@@ -252,10 +251,9 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filter Applied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
           filterType: AssetsFilterOptions.NAME,
-          searchValueLength: 4,
-          source: 'ai-models',
+          resultsCount: 0,
         });
       });
 
@@ -267,10 +265,9 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filter Applied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
           filterType: AssetsFilterOptions.NAME,
-          searchValueLength: 4,
-          source: 'maas',
+          resultsCount: 0,
         });
       });
     });
@@ -283,10 +280,9 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'llama{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filter Applied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
           filterType: AssetsFilterOptions.NAME,
-          searchValueLength: 5,
-          source: 'maas',
+          resultsCount: 0,
         });
       });
 
@@ -304,10 +300,9 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by keyword...');
         await user.type(searchInput, 'ai{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filter Applied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
           filterType: AssetsFilterOptions.KEYWORD,
-          searchValueLength: 2,
-          source: 'maas',
+          resultsCount: 0,
         });
       });
 
@@ -318,67 +313,9 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, '{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filter Applied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
           filterType: AssetsFilterOptions.NAME,
-          searchValueLength: 0,
-          source: 'maas',
-        });
-      });
-    });
-
-    describe('Filters Cleared Tracking', () => {
-      it('should fire tracking event when clear all filters is clicked', async () => {
-        const user = userEvent.setup();
-        const filterData = {
-          [AssetsFilterOptions.NAME]: 'test',
-          [AssetsFilterOptions.KEYWORD]: 'keyword',
-        };
-
-        render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
-
-        const clearAllButton = screen.getByText('Clear all filters');
-        await user.click(clearAllButton);
-
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filters Cleared', {
-          activeFiltersCount: 2,
-          source: 'maas',
-        });
-      });
-
-      it('should track single filter clear correctly', async () => {
-        const user = userEvent.setup();
-        const filterData = {
-          [AssetsFilterOptions.NAME]: 'test',
-        };
-
-        render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
-
-        const clearAllButton = screen.getByText('Clear all filters');
-        await user.click(clearAllButton);
-
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filters Cleared', {
-          activeFiltersCount: 1,
-          source: 'maas',
-        });
-      });
-
-      it('should track source correctly for ai-models table', async () => {
-        const user = userEvent.setup();
-        const infoPopover = <div>Info</div>;
-        const filterData = {
-          [AssetsFilterOptions.NAME]: 'test',
-        };
-
-        render(
-          <ModelsListToolbar {...defaultProps} filterData={filterData} infoPopover={infoPopover} />,
-        );
-
-        const clearAllButton = screen.getByText('Clear all filters');
-        await user.click(clearAllButton);
-
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('AI Assets Filters Cleared', {
-          activeFiltersCount: 1,
-          source: 'ai-models',
+          resultsCount: 0,
         });
       });
     });
