@@ -1,5 +1,10 @@
 # Most specific is intended to win
 filters:
+  # Allow team approvers to approve changes to their own sections in OWNERS_ALIASES
+  'OWNERS_ALIASES':
+    approvers:
+      - all-approvers
+
   # Catchall
   '.*':
     approvers:
