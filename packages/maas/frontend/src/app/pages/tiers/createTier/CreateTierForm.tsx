@@ -58,19 +58,19 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
     mockAvailableGroups.map((group) => ({
       id: group,
       name: group,
-      selected: tier?.groups.includes(group) ?? false,
+      selected: tier?.groups?.includes(group) ?? false,
     })),
   );
   const [groupsTouched, setGroupsTouched] = React.useState(false);
 
   const [tokenLimitEnabled, setTokenLimitEnabled] = React.useState(false);
   const [tokenLimits, setTokenLimits] = React.useState<RateLimit[]>(
-    tier?.limits.tokensPerUnit ?? [DEFAULT_TOKEN_LIMIT],
+    tier?.limits?.tokensPerUnit ?? [DEFAULT_TOKEN_LIMIT],
   );
 
   const [requestLimitEnabled, setRequestLimitEnabled] = React.useState(false);
   const [requestLimits, setRequestLimits] = React.useState<RateLimit[]>(
-    tier?.limits.requestsPerUnit ?? [DEFAULT_REQUEST_LIMIT],
+    tier?.limits?.requestsPerUnit ?? [DEFAULT_REQUEST_LIMIT],
   );
 
   const [level, setLevel] = React.useState(tier?.level ?? 1);

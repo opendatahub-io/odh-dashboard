@@ -13,7 +13,7 @@ const DeleteTierModal: React.FC<DeleteTierModalProps> = ({ tier, onClose }) => {
 
   const handleDelete = React.useCallback(async () => {
     try {
-      await deleteTierCallback(tier.name);
+      await deleteTierCallback(tier.name ?? '');
       onClose(true);
     } catch {
       // Error is handled by the hook and displayed in the modal
@@ -29,11 +29,11 @@ const DeleteTierModal: React.FC<DeleteTierModalProps> = ({ tier, onClose }) => {
       deleting={isDeleting}
       onDelete={handleDelete}
       submitButtonLabel="Delete"
-      deleteName={tier.displayName}
+      deleteName={tier.displayName ?? ''}
       error={error}
     >
-      This action cannot be undone. This will delete the <strong>{tier.displayName}</strong> tier
-      for all users.
+      This action cannot be undone. This will delete the <strong>{tier.displayName ?? ''}</strong>{' '}
+      tier for all users.
     </DeleteModal>
   );
 };

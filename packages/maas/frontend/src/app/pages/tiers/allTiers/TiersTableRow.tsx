@@ -34,12 +34,12 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
       </Td>
       <Td dataLabel={tierColumns[2].label}>
         <Label>
-          {tier.groups.length} Group{tier.groups.length !== 1 ? 's' : ''}
+          {tier.groups?.length ?? 0} Group{tier.groups?.length !== 1 ? 's' : ''}
         </Label>
       </Td>
       <Td dataLabel={tierColumns[3].label}>
         <Stack>
-          {tier.limits.tokensPerUnit ? (
+          {tier.limits?.tokensPerUnit ? (
             <StackItem>
               {tier.limits.tokensPerUnit.map((limit, index) => (
                 <StackItem key={`token-${index}`}>{formatRateLimit(limit, 'token')}</StackItem>
@@ -48,7 +48,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
           ) : (
             <StackItem>No token limits</StackItem>
           )}
-          {tier.limits.requestsPerUnit ? (
+          {tier.limits?.requestsPerUnit ? (
             <StackItem>
               {tier.limits.requestsPerUnit.map((limit, index) => (
                 <StackItem key={`request-${index}`}>{formatRateLimit(limit, 'request')}</StackItem>
