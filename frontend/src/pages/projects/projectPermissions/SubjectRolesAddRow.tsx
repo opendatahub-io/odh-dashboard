@@ -38,19 +38,20 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
     () => (subjectName ? assignedRolesBySubject.get(subjectName) ?? [] : []),
     [assignedRolesBySubject, subjectName],
   );
+  const trimmedSubjectName = subjectName.trim();
 
   const isExistingSubject = React.useMemo(() => {
-    const normalized = subjectName.trim().toLowerCase();
+    const normalized = trimmedSubjectName.toLowerCase();
     if (!normalized) {
       return false;
     }
     return existingSubjectNames.some((n) => n.toLowerCase() === normalized);
-  }, [existingSubjectNames, subjectName]);
+  }, [existingSubjectNames, trimmedSubjectName]);
 
   const hasAllRolesAssigned =
-    subjectName.trim().length > 0 && availableRoles.every((r) => hasRoleRef(assignedRoles, r));
+    trimmedSubjectName.length > 0 && availableRoles.every((r) => hasRoleRef(assignedRoles, r));
 
-  const canPickRole = subjectName.trim().length > 0 && !hasAllRolesAssigned;
+  const canPickRole = trimmedSubjectName.length > 0 && !hasAllRolesAssigned;
   const canSave = !!roleSelection && canPickRole;
 
   const handleSave = async () => {
@@ -60,7 +61,7 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
     setIsSaving(true);
     setSaveError(undefined);
     try {
-      await onSave({ subjectName: subjectName.trim(), roleRef: roleSelection });
+      await onSave({ subjectName: trimmedSubjectName, roleRef: roleSelection });
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -99,12 +100,15 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
         </Td>
         <Td dataLabel="Role">
           <RoleRefSelect
+            subjectKind={subjectKind}
             availableRoles={availableRoles}
-            assignedRoles={subjectName.trim().length > 0 ? assignedRoles : undefined}
+            assignedRoles={trimmedSubjectName.length > 0 ? assignedRoles : undefined}
             value={roleSelection}
             isDisabled={!canPickRole}
             disabledTooltip={
-              hasAllRolesAssigned
+              !trimmedSubjectName
+                ? `Select a ${subjectKind} first, then assign a role.`
+                : hasAllRolesAssigned
                 ? `The selected ${subjectKind} has already owned all available roles. Select another one and assign roles.`
                 : undefined
             }

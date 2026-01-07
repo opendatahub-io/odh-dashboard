@@ -70,6 +70,7 @@ describe('RoleRefSelect', () => {
   it('renders friendly labels for default cluster roles when role objects are unavailable', () => {
     render(
       <RoleRefSelect
+        subjectKind="user"
         availableRoles={[admin, edit, view]}
         value={admin}
         isDisabled={false}
@@ -96,6 +97,7 @@ describe('RoleRefSelect', () => {
   it('applies fallback label types when role objects are unavailable (admin/edit default, other cluster roles custom)', () => {
     render(
       <RoleRefSelect
+        subjectKind="user"
         availableRoles={[admin, edit, view]}
         value={admin}
         isDisabled={false}
@@ -117,6 +119,7 @@ describe('RoleRefSelect', () => {
   it('disables options already assigned to the subject', () => {
     render(
       <RoleRefSelect
+        subjectKind="user"
         availableRoles={[admin, edit]}
         assignedRoles={[edit]}
         value={admin}
@@ -128,16 +131,17 @@ describe('RoleRefSelect', () => {
 
     const options = (mockLastSimpleSelectProps?.options ?? []) as Array<{
       key: string;
-      isDisabled?: boolean;
+      isAriaDisabled?: boolean;
     }>;
     const byKey = new Map(options.map((o) => [o.key, o]));
-    expect(byKey.get('ClusterRole:edit')?.isDisabled).toBe(true);
-    expect(byKey.get('ClusterRole:admin')?.isDisabled).toBe(false);
+    expect(byKey.get('ClusterRole:edit')?.isAriaDisabled).toBe(true);
+    expect(byKey.get('ClusterRole:admin')?.isAriaDisabled).toBe(false);
   });
 
   it('uses DEFAULT_ROLE_DESCRIPTIONS for admin/edit descriptions', () => {
     render(
       <RoleRefSelect
+        subjectKind="user"
         availableRoles={[admin, edit]}
         value={admin}
         isDisabled={false}

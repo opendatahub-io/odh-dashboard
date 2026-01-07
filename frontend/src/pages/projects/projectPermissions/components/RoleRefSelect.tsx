@@ -15,6 +15,7 @@ import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel
 import type { RoleDisplay } from '#~/pages/projects/projectPermissions/types';
 
 type RoleRefSelectProps = {
+  subjectKind: 'user' | 'group';
   availableRoles: RoleRef[];
   assignedRoles?: RoleRef[];
   value?: RoleRef;
@@ -24,9 +25,8 @@ type RoleRefSelectProps = {
   dataTestId: string;
 };
 
-const DISABLED_ROLE_TOOLTIP = 'The selected user has already owned this role.';
-
 const RoleRefSelect: React.FC<RoleRefSelectProps> = ({
+  subjectKind,
   availableRoles,
   assignedRoles,
   value,
@@ -94,21 +94,20 @@ const RoleRefSelect: React.FC<RoleRefSelectProps> = ({
           label: roleDisplay.name,
           description: roleDisplay.description,
           dropdownLabel: disabled ? (
-            <Tooltip content={DISABLED_ROLE_TOOLTIP}>
+            <Tooltip content={`The selected ${subjectKind} has already owned this role.`}>
               <span>{dropdownLabel}</span>
             </Tooltip>
           ) : (
             dropdownLabel
           ),
-          isDisabled: disabled,
+          isAriaDisabled: disabled,
         };
       }),
-    [assignedRoles, availableRoles, renderRoleLabel, resolveRoleDisplay],
+    [assignedRoles, availableRoles, renderRoleLabel, resolveRoleDisplay, subjectKind],
   );
 
   const selectedKey = value ? getRoleRefKey(value) : '';
-  const selectedRole = value;
-  const toggleLabel = selectedRole ? renderRoleLabel(selectedRole) : undefined;
+  const toggleLabel = value ? renderRoleLabel(value) : undefined;
 
   const select = (
     <SimpleSelect
