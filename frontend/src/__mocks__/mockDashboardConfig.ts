@@ -86,7 +86,8 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
-  trainingJobs = false,
+  trainingJobs = true,
+  aiCatalogSettings = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
