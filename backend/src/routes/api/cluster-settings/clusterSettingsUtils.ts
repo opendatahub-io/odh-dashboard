@@ -122,11 +122,13 @@ export const getClusterSettings = async (
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
   const dashConfig = getDashboardConfig(request);
+  const disableLLMdValue = dashConfig.spec.dashboardConfig.disableLLMd;
+
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
     modelServingPlatformEnabled: {
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
-      LLMd: !dashConfig.spec.dashboardConfig.disableLLMd,
+      LLMd: disableLLMdValue === undefined ? false : !disableLLMdValue,
     },
   };
 

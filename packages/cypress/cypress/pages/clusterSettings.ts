@@ -36,6 +36,10 @@ class ModelSergingSettings extends ClusterSettings {
     return cy.findByTestId('single-model-serving-platform-enabled-checkbox');
   }
 
+  findEnableLLMdCheckbox() {
+    return cy.findByTestId('enable-distributed-llm-switch');
+  }
+
   findSinglePlatformDeploymentModeSelect() {
     return cy.findByTestId('default-deployment-mode-select');
   }
