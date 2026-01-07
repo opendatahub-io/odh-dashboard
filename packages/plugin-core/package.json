@@ -15,7 +15,7 @@
     "./testing": "./src/testing/utils.ts"
   },
   "dependencies": {
-    "@openshift/dynamic-plugin-sdk": "^5.0.1"
+    "@openshift/dynamic-plugin-sdk": "^6.0.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
