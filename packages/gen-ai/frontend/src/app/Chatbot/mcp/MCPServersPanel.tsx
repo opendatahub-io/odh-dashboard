@@ -193,8 +193,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   const handleToolsClick = React.useCallback(
     (server: MCPServer) => {
       toolsModal.openModal(server);
-      fireMiscTrackingEvent('Playground MCP View Tools', {
-        mcpServerName: server.name,
+      fireMiscTrackingEvent('MCP_Tools_List_Viewed', {
+        mcpServerId: server.id,
       });
     },
     [toolsModal],

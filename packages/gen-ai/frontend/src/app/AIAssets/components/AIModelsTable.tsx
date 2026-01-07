@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, ButtonVariant, Popover, Content, Stack, StackItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
@@ -33,7 +34,9 @@ export const AIModelStatusPopoverContent: React.ReactNode = (
   </Stack>
 );
 
-export const AIModelStatusPopover: React.ReactNode = (
+export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
+  modelsVisibleCount,
+}) => (
   <Popover
     position="bottom"
     showClose
@@ -41,7 +44,16 @@ export const AIModelStatusPopover: React.ReactNode = (
     headerComponent="h2"
     bodyContent={AIModelStatusPopoverContent}
   >
-    <Button variant={ButtonVariant.link} data-testid="dont-see-model-button">
+    <Button
+      variant={ButtonVariant.link}
+      data-testid="dont-see-model-button"
+      onClick={() => {
+        fireMiscTrackingEvent('model_not_found_link_clicked', {
+          modelsVisibleCount,
+          timestamp: new Date().toISOString(),
+        });
+      }}
+    >
       Don&apos;t see the model you&apos;re looking for?
     </Button>
   </Popover>
@@ -76,8 +88,9 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           filterData={filterData}
           filterOptions={assetsFilterOptions}
           filterColors={aiFilterColors}
-          infoPopover={AIModelStatusPopover}
+          infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
           onClearFilters={onClearFilters}
+          resultsCount={filteredModels.length}
         />
       }
       onClearFilters={onClearFilters}

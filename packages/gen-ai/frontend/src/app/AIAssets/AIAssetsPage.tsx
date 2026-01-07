@@ -23,6 +23,17 @@ export const AIAssetsPage: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(
     tabExtensions[0]?.properties.id || '',
   );
+  const hasTrackedPageView = React.useRef(false);
+
+  // Track page view on mount
+  React.useEffect(() => {
+    if (!hasTrackedPageView.current && tabExtensions.length > 0) {
+      fireMiscTrackingEvent('Available_Endpoints_Page_Viewed', {
+        entrySource: 'direct_url', // Can be enhanced later to detect actual entry source
+      });
+      hasTrackedPageView.current = true;
+    }
+  }, [tabExtensions]);
 
   return (
     <ApplicationsPage
@@ -42,7 +53,7 @@ export const AIAssetsPage: React.FC = () => {
           activeKey={activeTabKey}
           onSelect={(_, tabKey) => {
             const newTabKey = String(tabKey);
-            fireMiscTrackingEvent('AI Assets Tab Changed', {
+            fireMiscTrackingEvent('Available_Endpoints_Tab_Switched', {
               fromTab: activeTabKey,
               toTab: newTabKey,
             });

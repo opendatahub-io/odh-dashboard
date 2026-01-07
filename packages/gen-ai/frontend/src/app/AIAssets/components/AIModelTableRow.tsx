@@ -4,6 +4,7 @@ import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
@@ -67,13 +68,17 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           {enabledModel ? (
             <Button
               variant={ButtonVariant.secondary}
-              onClick={() =>
+              onClick={() => {
+                fireMiscTrackingEvent('Playground_Launched_From_Available_Endpoints', {
+                  assetType: 'model',
+                  assetId: model.model_id,
+                });
                 navigate(genAiChatPlaygroundRoute(namespace?.name), {
                   state: {
                     model: enabledModel.id,
                   },
-                })
-              }
+                });
+              }}
               isDisabled={model.status !== 'Running'}
             >
               Try in playground

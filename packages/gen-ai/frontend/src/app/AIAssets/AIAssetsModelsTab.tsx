@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Content, ContentVariants, Spinner } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
@@ -16,6 +17,18 @@ const AIAssetsModelsTab: React.FC = () => {
   const { data: aiModels = [], loaded, error } = useFetchAIModels();
   const { data: maasModels = [] } = useFetchMaaSModels();
   const { data: lsdStatus } = useFetchLSDStatus();
+  const hasTrackedAssetCount = React.useRef(false);
+
+  // Track asset count when data is loaded
+  React.useEffect(() => {
+    if (loaded && !hasTrackedAssetCount.current && aiModels.length > 0) {
+      fireMiscTrackingEvent('Asset_Count_On_Page_Load', {
+        modelsCount: aiModels.length,
+        mcpServersCount: 0, // MCP servers are tracked separately in their own tab
+      });
+      hasTrackedAssetCount.current = true;
+    }
+  }, [loaded, aiModels]);
 
   if (!loaded && !error) {
     return (

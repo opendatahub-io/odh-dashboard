@@ -26,6 +26,7 @@ type ModelsListToolbarProps = {
   filterColors?: Record<string, AssetsFilterColors>;
   infoPopover?: React.ReactNode;
   onClearFilters: () => void;
+  resultsCount?: number;
 };
 
 const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
@@ -35,6 +36,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   filterColors,
   infoPopover,
   onClearFilters,
+  resultsCount,
 }) => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
@@ -43,23 +45,12 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   });
   const [searchValue, setSearchValue] = React.useState('');
 
-  // Automatically detect source based on component props
-  // AI Models table has infoPopover and 'useCase' filter option
-  // MaaS Models table has neither
-  const source = React.useMemo(() => {
-    if (infoPopover || 'useCase' in filterOptions) {
-      return 'ai-models';
-    }
-    return 'maas';
-  }, [infoPopover, filterOptions]);
-
   const handleSearch = () => {
-    fireMiscTrackingEvent('AI Assets Filter Applied', {
-      filterType: currentFilterType,
-      searchValueLength: searchValue.length,
-      source,
-    });
     onFilterUpdate(currentFilterType, searchValue);
+    fireMiscTrackingEvent('Available_Endpoints_Filter_Performed', {
+      filterType: currentFilterType,
+      resultsCount: resultsCount ?? 0,
+    });
   };
 
   const handleSearchChange = (value: string) => {
@@ -165,13 +156,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                 <FlexItem>
                   <Button
                     variant={ButtonVariant.link}
-                    onClick={() => {
-                      fireMiscTrackingEvent('AI Assets Filters Cleared', {
-                        activeFiltersCount: activeFilters.length,
-                        source,
-                      });
-                      onClearFilters();
-                    }}
+                    onClick={onClearFilters}
                     icon={<CloseIcon />}
                   >
                     Clear all filters

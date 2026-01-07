@@ -32,17 +32,21 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
       try {
         const response = await api.generateMaaSToken(expiration ? { expiration } : {});
         setTokenData(response);
-        fireFormTrackingEvent('MaaS API Token Generated', {
+        fireFormTrackingEvent('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to generate MaaS token';
         setError(errorMessage);
-        fireFormTrackingEvent('MaaS API Token Generated', {
+        fireFormTrackingEvent('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorMessage,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       } finally {
         setIsGenerating(false);
