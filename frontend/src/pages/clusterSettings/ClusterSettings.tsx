@@ -191,27 +191,14 @@ const ClusterSettings: React.FC = () => {
                   initialValue={clusterSettings.modelServingPlatformEnabled}
                   enabledPlatforms={modelServingEnabledPlatforms}
                   setEnabledPlatforms={setModelServingEnabledPlatforms}
+                  useDistributedInferencing={useDistributedInferencing}
+                  setUseDistributedInferencing={setUseDistributedInferencing}
                 />
               </StackItem>
               <StackItem>
                 <ModelDeploymentSettings
-                  initialUseDistributedInferencing={
-                    clusterSettings.useDistributedInferencing ?? false
-                  }
-                  initialDefaultDeploymentStrategy={
-                    clusterSettings.defaultDeploymentStrategy ?? 'rolling'
-                  }
-                  useDistributedInferencing={useDistributedInferencing}
-                  setUseDistributedInferencing={setUseDistributedInferencing}
                   defaultDeploymentStrategy={defaultDeploymentStrategy}
                   setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
-                  enabledPlatforms={modelServingEnabledPlatforms}
-                  setEnabledPlatforms={(platforms: ModelServingPlatformEnabled) => {
-                    setModelServingEnabledPlatforms({
-                      ...platforms,
-                      LLMd: platforms.LLMd,
-                    });
-                  }}
                 />
               </StackItem>
             </Stack>
