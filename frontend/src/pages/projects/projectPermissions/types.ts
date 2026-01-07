@@ -1,4 +1,4 @@
-import { RoleRef } from '#~/concepts/permissions/types';
+import { RoleLabelType, RoleRef } from '#~/concepts/permissions/types';
 import { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 
 export type SubjectRoleRow = {
@@ -7,4 +7,10 @@ export type SubjectRoleRow = {
   roleRef: RoleRef;
   role?: RoleKind | ClusterRoleKind;
   roleBindingCreationTimestamp?: string;
+};
+
+export type RoleDisplay = {
+  name: string;
+  labelType?: RoleLabelType;
+  description?: React.ReactNode;
 };

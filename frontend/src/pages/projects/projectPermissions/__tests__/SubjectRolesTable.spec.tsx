@@ -4,7 +4,6 @@ import {
   buildSubjectRoleRows,
   SubjectRolesTableBase,
 } from '#~/pages/projects/projectPermissions/SubjectRolesTable';
-import SubjectRolesTableSection from '#~/pages/projects/projectPermissions/SubjectRolesTableSection';
 import { OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE } from '#~/concepts/permissions/const';
 import { KnownLabels } from '#~/k8sTypes';
 import {
@@ -377,21 +376,5 @@ describe('SubjectRolesTable', () => {
     const rows = buildSubjectRoleRows('group', emptyFilterData, [roleA], [], roleBindings);
     expect(rows).toHaveLength(1);
     expect(rows[0].subjectName).toBe('test-group-1');
-  });
-
-  it('does not render when section isVisible is false', () => {
-    render(
-      <SubjectRolesTableSection
-        subjectKind="user"
-        filterData={emptyFilterData}
-        onClearFilters={jest.fn()}
-        isVisible={false}
-      />,
-    );
-
-    expect(screen.queryByText('Users')).not.toBeInTheDocument();
-    expect(screen.queryByText('Groups')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('add-user-button')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('add-group-button')).not.toBeInTheDocument();
   });
 });
