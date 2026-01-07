@@ -103,12 +103,12 @@ describe('AIAssetsPage', () => {
       {
         type: 'gen-ai.ai-assets/tab',
         properties: {
-          id: 'maasmodels',
-          title: 'Models as a service',
-          component: () => Promise.resolve({ default: () => <div>MaaS Tab</div> }),
-          label: 'Developer Preview',
+          id: 'test-tab',
+          title: 'Test Tab',
+          component: () => Promise.resolve({ default: () => <div>Test Tab Content</div> }),
+          label: 'Tech Preview',
         },
-        uid: 'maas-uid',
+        uid: 'test-uid',
         pluginName: 'gen-ai',
         flags: {},
       },
@@ -122,8 +122,8 @@ describe('AIAssetsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Models as a service')).toBeInTheDocument();
-    expect(screen.getByText('Developer Preview')).toBeInTheDocument();
+    expect(screen.getByText('Test Tab')).toBeInTheDocument();
+    expect(screen.getByText('Tech Preview')).toBeInTheDocument();
   });
 
   it('should use correct extension type guard', () => {

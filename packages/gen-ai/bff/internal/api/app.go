@@ -160,7 +160,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
-	logger.Info("Initialized shared memory store")
+	logger.Debug("Initialized shared memory store")
 
 	// Initialize file upload job tracker with memory store and logger
 	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
@@ -273,6 +273,9 @@ func (app *App) Routes() http.Handler {
 	// Llama Stack Distribution delete endpoint
 	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
+	// LSD Safety Config endpoint - returns configured guardrail models and shields
+	apiRouter.GET(constants.LSDSafetyConfigPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
 	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
@@ -286,6 +289,10 @@ func (app *App) Routes() http.Handler {
 	// Tokens (MaaS)
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// Guardrails API route - namespace-specific
+	// Returns status of the "custom-guardrails" CR from the specified namespace
+	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireAccessToService(app.GuardrailsStatusHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

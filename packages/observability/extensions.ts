@@ -11,7 +11,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     type: 'app.area',
     properties: {
       id: PLUGIN_OBSERVABILITY,
-      devFlags: ['Observability'],
+      featureFlags: ['observabilityDashboard'],
     },
   },
   {
