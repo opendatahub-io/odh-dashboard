@@ -75,6 +75,14 @@ class TiersPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('dashboard-empty-table-state');
   }
+
+  findKebab(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(name).findKebab();
+  }
+
+  findViewDetailsButton() {
+    return cy.findByRole('menuitem', { name: 'View details' });
+  }
 }
 
 class CreateTierPage {
@@ -195,6 +203,34 @@ class CreateTierPage {
   }
 }
 
+class TierDetailsPage {
+  visit(name: string): void {
+    cy.visit(`/maas/tiers/${name}`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('tier-details-page').should('exist');
+    cy.testA11y();
+  }
+
+  findLevel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level-value');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-groups-value');
+  }
+
+  findLimits(name: string) {
+    return cy.findByText(name);
+  }
+
+  findActionsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-actions');
+  }
+}
+
 class DeleteTierModal extends DeleteModal {
   constructor() {
     super('Delete tier?');
@@ -227,3 +263,4 @@ export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
 export const maasWizardField = new MaaSWizardField();
+export const tierDetailsPage = new TierDetailsPage();
