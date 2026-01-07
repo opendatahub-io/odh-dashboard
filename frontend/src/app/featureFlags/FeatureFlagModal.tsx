@@ -68,7 +68,6 @@ const FeatureFlagModal: React.FC<Props> = ({
       onClick: onClose,
       variant: 'link',
       dataTestId: 'feature-flags-close-status-modal',
-      clickOnEnter: true,
     },
   ];
 

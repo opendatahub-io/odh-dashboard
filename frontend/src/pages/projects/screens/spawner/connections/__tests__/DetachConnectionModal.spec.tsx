@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import { DetachConnectionModal } from '#~/pages/projects/screens/spawner/connections/DetachConnectionModal';
@@ -16,34 +16,6 @@ describe('DetachConnectionModal', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-  });
-
-  it('should dismiss modal when Enter key is pressed', () => {
-    const connection = mockConnection({ displayName: 'Test Connection' });
-
-    render(
-      <DetachConnectionModal
-        connection={connection}
-        notebookDisplayName="Test Workbench"
-        onDetach={mockOnDetach}
-        onClose={mockOnClose}
-      />,
-    );
-
-    // The FocusableDiv should auto-focus on mount
-    // Press Enter key
-    const { activeElement } = document;
-    expect(activeElement).not.toBeNull();
-    fireEvent.keyDown(activeElement as Element, { key: 'Enter' });
-
-    // Advance timers to account for the 200ms delay in ContentModal
-    act(() => {
-      jest.advanceTimersByTime(200);
-    });
-
-    // Cancel button has clickOnEnter: true, so onClose should be called
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
-    expect(mockOnDetach).not.toHaveBeenCalled();
   });
 
   it('should show warning message when workbench is running', () => {

@@ -49,7 +49,6 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onConfirm 
           onClick: handleCancel,
           variant: 'link',
           dataTestId: 'cancel-button',
-          clickOnEnter: true,
         },
       ]}
     />

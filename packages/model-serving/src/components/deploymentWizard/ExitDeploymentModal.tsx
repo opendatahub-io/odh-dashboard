@@ -25,7 +25,6 @@ export const ExitDeploymentModal: React.FC<ExitDeploymentModalProps> = ({ onClos
         onClick: onClose,
         variant: 'link',
         dataTestId: 'exit-deployment-cancel-button',
-        clickOnEnter: true,
       },
     ]}
   />

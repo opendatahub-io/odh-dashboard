@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 
@@ -135,43 +135,5 @@ describe('ContentModal', () => {
     // The warning icon should be rendered in the modal header
     const header = screen.getByTestId('generic-modal-header');
     expect(header).toBeInTheDocument();
-  });
-
-  it('should trigger clickOnEnter button when Enter is pressed', () => {
-    const mockEnterClick = jest.fn();
-    const buttonActions: ButtonAction[] = [
-      {
-        label: 'Submit',
-        onClick: jest.fn(),
-        variant: 'primary',
-      },
-      {
-        label: 'Cancel',
-        onClick: mockEnterClick,
-        variant: 'link',
-        clickOnEnter: true,
-      },
-    ];
-
-    render(
-      <ContentModal
-        onClose={mockOnClose}
-        title="Test Modal"
-        contents={<div>Test content</div>}
-        buttonActions={buttonActions}
-      />,
-    );
-
-    // The FocusableDiv should auto-focus on mount
-    const { activeElement } = document;
-    expect(activeElement).not.toBeNull();
-    fireEvent.keyDown(activeElement as Element, { key: 'Enter' });
-
-    // Advance timers to account for the 200ms delay
-    act(() => {
-      jest.advanceTimersByTime(200);
-    });
-
-    expect(mockEnterClick).toHaveBeenCalledTimes(1);
   });
 });

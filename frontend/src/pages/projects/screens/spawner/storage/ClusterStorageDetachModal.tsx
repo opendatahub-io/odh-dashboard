@@ -24,7 +24,6 @@ export const ClusterStorageDetachModal: React.FC<ClusterStorageDetachModalProps>
       onClick: onClose,
       variant: 'link',
       dataTestId: 'cancel-storage-modal-button',
-      clickOnEnter: true,
     },
   ];
 

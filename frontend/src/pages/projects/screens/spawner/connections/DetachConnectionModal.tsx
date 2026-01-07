@@ -43,7 +43,6 @@ export const DetachConnectionModal: React.FC<Props> = ({
       onClick: onClose,
       variant: 'link',
       dataTestId: 'cancel-connection-modal-button',
-      clickOnEnter: true,
     },
   ];
 

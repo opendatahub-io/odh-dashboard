@@ -31,7 +31,6 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
       onClick: () => onBeforeClose(false),
       variant: 'link',
       dataTestId: 'delete-node-resource-modal-cancel-btn',
-      clickOnEnter: true,
     },
   ];
 

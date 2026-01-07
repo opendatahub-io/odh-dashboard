@@ -45,7 +45,6 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
       onClick: onClose,
       variant: 'link',
       dataTestId: 'metrics-columns-cancel-button',
-      clickOnEnter: true,
     },
   ];
 

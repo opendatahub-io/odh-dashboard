@@ -93,7 +93,6 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
           onClick: handleCancel,
           variant: 'link',
           dataTestId: 'cancel-discard-changes',
-          clickOnEnter: true,
         },
       ]}
     />
