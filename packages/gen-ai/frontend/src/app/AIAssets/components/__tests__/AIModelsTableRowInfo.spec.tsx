@@ -3,8 +3,14 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AIModel } from '~/app/types';
 import AIModelsTableRowInfo from '~/app/AIAssets/components/AIModelsTableRowInfo';
+
+// Mock tracking
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 jest.mock('mod-arch-shared', () => ({
   ...jest.requireActual('mod-arch-shared'),
@@ -45,6 +51,10 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
 });
 
 describe('AIModelsTableRowInfo', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render model display name', () => {
     const model = createMockAIModel({ display_name: 'My Custom Model' });
     render(<AIModelsTableRowInfo model={model} />);
@@ -108,5 +118,37 @@ describe('AIModelsTableRowInfo', () => {
     expect(
       screen.getByText(/unique identifier required to locate and access this model/i),
     ).toBeInTheDocument();
+  });
+
+  describe('Event Tracking', () => {
+    it('should fire Model_Info_Viewed event when popover is opened', async () => {
+      const user = userEvent.setup();
+      const model = createMockAIModel();
+      render(<AIModelsTableRowInfo model={model} />);
+
+      const infoButton = screen.getByTestId('model-id-icon-button');
+      await user.click(infoButton);
+
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model_Info_Viewed', {});
+    });
+
+    it('should fire Model_ID_Copied event when model ID is copied', async () => {
+      const user = userEvent.setup();
+      const model = createMockAIModel({ model_id: 'test-copy-id' });
+      render(<AIModelsTableRowInfo model={model} />);
+
+      // Open the popover first
+      const infoButton = screen.getByTestId('model-id-icon-button');
+      await user.click(infoButton);
+
+      // Clear the initial tracking event
+      jest.clearAllMocks();
+
+      // Find and click the copy button
+      const copyButton = screen.getByRole('button', { name: /copy model id/i });
+      await user.click(copyButton);
+
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model_ID_Copied', {});
+    });
   });
 });
