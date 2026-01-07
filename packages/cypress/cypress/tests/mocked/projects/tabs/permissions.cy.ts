@@ -1,11 +1,25 @@
-import { mockK8sResourceList, mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__';
+import {
+  mockClusterRoleK8sResource,
+  mockDashboardConfig,
+  mockGroupRoleBindingSubject,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+  mockRoleK8sResource,
+  mockUserRoleBindingSubject,
+} from '@odh-dashboard/internal/__mocks__';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
 import { permissions, roleBindingPermissionsChangeModal } from '../../../../pages/permissions';
+import { projectRbacPermissions } from '../../../../pages/projectRbacPermissions';
 import { be } from '../../../../utils/should';
-import { ProjectModel, RoleBindingModel } from '../../../../utils/models';
-import { asProjectEditUser } from '../../../../utils/mockUsers';
+import {
+  ClusterRoleModel,
+  ProjectModel,
+  RoleBindingModel,
+  RoleModel,
+} from '../../../../utils/models';
+import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
 
 const userSubjects: RoleBindingSubject[] = [
   {
@@ -391,5 +405,150 @@ describe('Permissions tab', () => {
 
       cy.wait('@deleteGroup');
     });
+  });
+});
+
+describe('Permissions tab (projectRBAC)', () => {
+  const namespace = 'test-project';
+  const usersTable = projectRbacPermissions.getUsersTable();
+  const groupsTable = projectRbacPermissions.getGroupsTable();
+
+  beforeEach(() => {
+    asProjectAdminUser();
+  });
+
+  const initProjectRbacIntercepts = () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        projectRBAC: true,
+      }),
+    );
+
+    cy.interceptK8s(ProjectModel, mockProjectK8sResource({ k8sName: namespace }));
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([mockProjectK8sResource({ k8sName: namespace })]),
+    );
+
+    const user1 = mockUserRoleBindingSubject({ name: 'test-user-1' });
+    const group1 = mockGroupRoleBindingSubject({ name: 'test-group-1' });
+
+    cy.interceptK8sList(
+      { model: RoleModel, ns: namespace },
+      mockK8sResourceList([
+        mockRoleK8sResource({
+          name: 'dashboard-role',
+          namespace,
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        }),
+      ]),
+    );
+
+    cy.interceptK8sList(
+      ClusterRoleModel,
+      mockK8sResourceList([
+        mockClusterRoleK8sResource({
+          name: 'admin',
+          labels: { 'kubernetes.io/bootstrapping': 'rbac-defaults' },
+        }),
+        mockClusterRoleK8sResource({
+          name: 'edit',
+          labels: { foo: 'bar' },
+        }),
+      ]),
+    );
+
+    cy.interceptK8sList(
+      { model: RoleBindingModel, ns: namespace },
+      mockK8sResourceList([
+        mockRoleBindingK8sResource({
+          name: 'rb-user-admin',
+          namespace,
+          subjects: [user1],
+          roleRefKind: 'ClusterRole',
+          roleRefName: 'admin',
+          creationTimestamp: '2024-01-01T00:00:00Z',
+        }),
+        mockRoleBindingK8sResource({
+          name: 'rb-user-edit',
+          namespace,
+          subjects: [user1],
+          roleRefKind: 'ClusterRole',
+          roleRefName: 'edit',
+          creationTimestamp: '2024-02-01T00:00:00Z',
+        }),
+        mockRoleBindingK8sResource({
+          name: 'rb-group-edit',
+          namespace,
+          subjects: [group1],
+          roleRefKind: 'ClusterRole',
+          roleRefName: 'edit',
+          creationTimestamp: '2024-03-01T00:00:00Z',
+        }),
+      ]),
+    );
+  };
+
+  it('should render Users/Groups role tables and allow filtering by friendly role names', () => {
+    initProjectRbacIntercepts();
+    projectRbacPermissions.visit(namespace);
+
+    // Add buttons are disabled in this phase
+    projectRbacPermissions.findAddUserButton().should('be.disabled');
+    projectRbacPermissions.findAddGroupButton().should('be.disabled');
+
+    // Users table: rowSpan grouping should result in a single name cell for test-user-1
+    usersTable.findNameCell('test-user-1').should('have.attr', 'rowspan', '2');
+    usersTable.findRoleLink('Admin').should('exist');
+    usersTable.findRoleLink('Contributor').should('exist');
+
+    // Groups table: should render group + role
+    groupsTable.findNameCell('test-group-1').should('exist');
+    groupsTable.findRoleLink('Contributor').should('exist');
+
+    // Role filter should match friendly display names (Contributor)
+    projectRbacPermissions.selectFilterType('Role');
+    projectRbacPermissions.findRoleFilterInput().should('be.visible').clear().type('contri');
+    usersTable.findRoleLink('Contributor').should('exist');
+    usersTable.findRoleLink('Admin').should('not.exist');
+  });
+
+  it('should filter by subject scope and support empty results + clear filters', () => {
+    initProjectRbacIntercepts();
+    projectRbacPermissions.visit(namespace);
+
+    // Scope: Users only
+    projectRbacPermissions.selectSubjectScope('user');
+    cy.findByTestId('permissions-user-roles-table').should('exist');
+    cy.findByTestId('permissions-group-roles-table').should('not.exist');
+
+    // Name filter: empty results should show empty view with Clear all filters
+    projectRbacPermissions.selectFilterType('Name');
+    projectRbacPermissions.findNameFilterInput().should('be.visible').clear().type('no-such-user');
+    cy.findByTestId('dashboard-empty-table-state').should('exist');
+    projectRbacPermissions.findClearAllFiltersButton().click();
+    cy.findByTestId('dashboard-empty-table-state').should('not.exist');
+    usersTable.findRoleLink('Admin').should('exist');
+    usersTable.findRoleLink('Contributor').should('exist');
+
+    // Role filter: filter to empty + clear restores
+    projectRbacPermissions.selectFilterType('Role');
+    projectRbacPermissions.findRoleFilterInput().should('be.visible').clear().type('no-such-role');
+    cy.findByTestId('dashboard-empty-table-state').should('exist');
+    projectRbacPermissions.findClearAllFiltersButton().click();
+    cy.findByTestId('dashboard-empty-table-state').should('not.exist');
+    usersTable.findRoleLink('Admin').should('exist');
+    usersTable.findRoleLink('Contributor').should('exist');
+
+    // Scope: Groups only
+    projectRbacPermissions.selectSubjectScope('group');
+    cy.findByTestId('permissions-group-roles-table').should('exist');
+    cy.findByTestId('permissions-user-roles-table').should('not.exist');
+
+    // Scope: All subjects
+    projectRbacPermissions.selectSubjectScope('all');
+    cy.findByTestId('permissions-group-roles-table').should('exist');
+    cy.findByTestId('permissions-user-roles-table').should('exist');
   });
 });
