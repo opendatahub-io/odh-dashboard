@@ -9,6 +9,7 @@ type MockResourceConfigType = {
   roleRefName?: string;
   roleRefKind?: 'Role' | 'ClusterRole';
   uid?: string;
+  creationTimestamp?: string;
   modelRegistryName?: string;
   isProjectSubject?: boolean;
 };
@@ -28,6 +29,7 @@ export const mockRoleBindingK8sResource = ({
   roleRefName = 'view',
   roleRefKind,
   uid = genUID('rolebinding'),
+  creationTimestamp,
   isProjectSubject = false,
   modelRegistryName = '',
 }: MockResourceConfigType): RoleBindingKind => {
@@ -54,7 +56,7 @@ export const mockRoleBindingK8sResource = ({
       name,
       namespace,
       uid,
-      creationTimestamp: '2023-02-14T21:43:59Z',
+      creationTimestamp: creationTimestamp ?? '2023-02-14T21:43:59Z',
       labels,
     },
     subjects,

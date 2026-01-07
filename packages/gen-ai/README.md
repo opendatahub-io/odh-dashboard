@@ -2,6 +2,16 @@
 
 A modern web application with a modular architecture, featuring a React frontend and Go backend for frontend (BFF).
 
+## Contributing
+
+Interested in contributing? See our [Contributing Guide](CONTRIBUTING.md) for:
+- Development setup and quick start
+- Testing requirements and workflows
+- Coding standards and conventions
+- PR process and checklist
+
+For general ODH contribution guidelines, see the main [ODH CONTRIBUTING.md](/CONTRIBUTING.md).
+
 ## Project Overview
 
 This project is a web application built with a modular architecture. It consists of:
@@ -30,6 +40,20 @@ This project is a web application built with a modular architecture. It consists
 ```
 
 ## Development Setup
+
+### Environment Configuration
+
+For local development, you need to create `.env.local` files in `/packages/gen-ai` and in repo root. For both files there's an accompanying `.env.local.example` reference which you can copy from. For example:
+
+1. Copy the example file:
+
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+2. You can then update values in the `.env.local` according to your local setup needs.
+
+Note that `.env.local` is gitignored and should never be committed. Use `.env.local.example` as a reference for required variables.
 
 ### Frontend
 
@@ -252,7 +276,7 @@ The BFF supports the following configuration options:
 
 - `PORT`: HTTP server port (default: 8080)
 - `STATIC_ASSETS_DIR`: Directory for static assets (default: "./static")
-- `LOG_LEVEL`: Logging level (default: "DEBUG")
+- `LOG_LEVEL`: Logging level (default: "INFO" for production, "debug" for development via Makefile)
 - `ALLOWED_ORIGINS`: CORS allowed origins (default: none)
 - `LLAMA_STACK_URL`: **Base URL for the Llama Stack API.** All requests to `/api/llama-stack/*` will be proxied to this URL. Example: `http://llama-stack-service:8080`
 - `MAAS_URL`: **Base URL for the MaaS (Model as a Service) API.** Used for MaaS model and token management. Example: `http://maas-service:8080`

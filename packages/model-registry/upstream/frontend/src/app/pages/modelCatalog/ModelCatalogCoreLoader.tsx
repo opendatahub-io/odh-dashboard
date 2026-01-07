@@ -68,11 +68,11 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({ customA
         emptyStatePage={
           <EmptyModelCatalogState
             testid="empty-model-catalog-state"
-            title={isMUITheme ? 'Deploy a model catalog' : 'Enable model catalog sources'}
+            title={isMUITheme ? 'Deploy a model catalog' : 'Model catalog configuration required'}
             description={
               isMUITheme
                 ? 'To deploy model catalog, follow the instructions in the docs below.'
-                : 'No catalog sources are enabled. Ask your admin to configure and enable sources for model catalog.'
+                : 'There are no models to display. Request that your administrator configure model sources for the catalog.'
             }
             headerIcon={() => (
               <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />
