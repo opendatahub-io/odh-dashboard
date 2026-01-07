@@ -4,7 +4,6 @@ import {
   PerformanceMetricsCustomProperties,
 } from '~/app/modelCatalogTypes';
 import {
-  getHardwareConfiguration,
   getWorkloadType,
 } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { getDoubleValue, getIntValue, getStringValue } from '~/app/utils';
@@ -23,12 +22,15 @@ const NBSP = '\u00A0';
 
 export const hardwareConfigColumns: HardwareConfigColumn[] = [
   {
-    field: 'hardware_type',
+    field: 'hardware_configuration',
     label: 'Hardware Configuration',
     sortable: (
       a: CatalogPerformanceMetricsArtifact,
       b: CatalogPerformanceMetricsArtifact,
-    ): number => getHardwareConfiguration(a).localeCompare(getHardwareConfiguration(b)),
+    ): number =>
+      getStringValue(a.customProperties, 'hardware_configuration').localeCompare(
+        getStringValue(b.customProperties, 'hardware_configuration'),
+      ),
     isStickyColumn: true,
     stickyMinWidth: '162px',
     stickyLeftOffset: '0',

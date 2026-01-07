@@ -91,6 +91,7 @@ export type CatalogModelArtifact = CatalogArtifactBase & {
 
 export type PerformanceMetricsCustomProperties = {
   config_id?: ModelRegistryCustomPropertyString;
+  hardware_configuration?: ModelRegistryCustomPropertyString;
   hardware_type?: ModelRegistryCustomPropertyString;
   hardware_count?: ModelRegistryCustomPropertyInt;
   requests_per_second?: ModelRegistryCustomPropertyDouble;
@@ -223,6 +224,7 @@ export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
+  [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue;
 };
 
@@ -288,6 +290,7 @@ export type ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense[];
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];
+  [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue[];
 } & {
   [key in ModelCatalogNumberFilterKey]: number | undefined;

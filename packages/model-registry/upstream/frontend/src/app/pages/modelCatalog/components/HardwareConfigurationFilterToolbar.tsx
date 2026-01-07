@@ -22,7 +22,7 @@ import {
   ALL_LATENCY_FIELD_NAMES,
 } from '~/concepts/modelCatalog/const';
 import WorkloadTypeFilter from './globalFilters/WorkloadTypeFilter';
-import HardwareTypeFilter from './globalFilters/HardwareTypeFilter';
+import HardwareConfigurationFilter from './globalFilters/HardwareConfigurationFilter';
 import MinRpsFilter from './globalFilters/MinRpsFilter';
 import LatencyFilter from './globalFilters/LatencyFilter';
 import ModelCatalogActiveFilters from './ModelCatalogActiveFilters';
@@ -38,7 +38,7 @@ type HardwareConfigurationFilterToolbarProps = {
  */
 const PERFORMANCE_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.USE_CASE,
-  ModelCatalogStringFilterKey.HARDWARE_TYPE,
+  ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION,
   ModelCatalogNumberFilterKey.MIN_RPS,
 ];
 
@@ -140,7 +140,10 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
           </ToolbarItem>
           <ToolbarItem variant="separator" />
           <ToolbarItem>
-            <HardwareTypeFilter performanceArtifacts={performanceArtifacts} />
+            <HardwareConfigurationFilter
+              isHardwareConfigurationPage
+              performanceArtifacts={performanceArtifacts}
+            />
           </ToolbarItem>
         </ToolbarGroup>
         <ModelCatalogActiveFilters filtersToShow={filtersToShow} />

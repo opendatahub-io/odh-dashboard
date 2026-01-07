@@ -34,6 +34,7 @@ describe('hardwareConfigurationFilterUtils', () => {
       [ModelCatalogStringFilterKey.LICENSE]: [],
       [ModelCatalogStringFilterKey.LANGUAGE]: [],
       [ModelCatalogStringFilterKey.HARDWARE_TYPE]: [],
+      [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
       [ModelCatalogStringFilterKey.USE_CASE]: useCases,
       rps_mean: undefined,
       ttft_mean: undefined,
