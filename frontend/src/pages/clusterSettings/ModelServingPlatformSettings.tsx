@@ -22,26 +22,28 @@ type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
   enabledPlatforms: ModelServingPlatformEnabled;
   setEnabledPlatforms: (platforms: ModelServingPlatformEnabled) => void;
-  useDistributedInferencing: boolean;
-  setUseDistributedInferencing: (value: boolean) => void;
+  useDistributedInferencingByDefault?: boolean;
+  setUseDistributedInferencingByDefault: (value: boolean) => void;
 };
 
 const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> = ({
   initialValue,
   enabledPlatforms,
   setEnabledPlatforms,
-  useDistributedInferencing,
-  setUseDistributedInferencing,
+  useDistributedInferencingByDefault,
+  setUseDistributedInferencingByDefault,
 }) => {
   const [alert, setAlert] = React.useState<{ variant: AlertVariant; message: string }>();
   const {
     kServe: { installed: kServeInstalled },
   } = useServingPlatformStatuses();
 
-  const [isLLMdEnabled, setIsLLMdEnabled] = React.useState(
+  const llmdEnabled = React.useMemo(() => {
     // If kServe is enabled and installed, use the LLMd value from the enabledPlatforms, if not, default to false
-    enabledPlatforms.kServe && kServeInstalled ? enabledPlatforms.LLMd : false,
-  );
+    return enabledPlatforms.kServe && kServeInstalled ? enabledPlatforms.LLMd : false;
+  }, [enabledPlatforms, kServeInstalled]);
+
+  const [isLLMdEnabled, setIsLLMdEnabled] = React.useState(llmdEnabled);
   React.useEffect(() => {
     const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
     if (kServeDisabled) {
@@ -79,13 +81,13 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             if (!enabled) {
               // If model serving is disabled, disable LLMd and useDistributedInferencing
               setIsLLMdEnabled(false);
-              setUseDistributedInferencing(false);
+              setUseDistributedInferencingByDefault(false);
             }
           }}
-          aria-label="Single-model serving platform enabled checkbox"
-          id="single-model-serving-platform-enabled-checkbox"
-          data-testid="single-model-serving-platform-enabled-checkbox"
-          name="singleModelServingPlatformEnabledCheckbox"
+          aria-label="Single-model serving platform enabled switch"
+          id="single-model-serving-platform-enabled-switch"
+          data-testid="single-model-serving-platform-enabled-switch"
+          name="singleModelServingPlatformEnabledSwitch"
         />
       </StackItem>
       <StackItem>
@@ -126,7 +128,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
       )}
       <StackItem>
         <Switch
-          id="enable-distributed-llm-switch"
+          id="enable-llmd-switch"
           label="Enable distributed inference with llm-d"
           isChecked={isLLMdEnabled}
           isDisabled={!enabledPlatforms.kServe || !kServeInstalled}
@@ -137,13 +139,16 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             });
             setIsLLMdEnabled(_checked);
             // If LLMd is disabled, disable useDistributedInferencing
-            if (!_checked) {
-              setUseDistributedInferencing(false);
-            } else {
-              setUseDistributedInferencing(true);
+            switch (_checked) {
+              case true:
+                setUseDistributedInferencingByDefault(true);
+                break;
+              case false:
+                setUseDistributedInferencingByDefault(false);
+                break;
             }
           }}
-          data-testid="enable-distributed-llm-switch"
+          data-testid="enable-llmd-switch"
         />
       </StackItem>
       <StackItem style={{ marginLeft: '40px', marginTop: '-10px' }}>
@@ -172,8 +177,8 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         <Switch
           id="use-distributed-llm-default-switch"
           label="Use distributed inference with llm-d by default when deploying generative models"
-          isChecked={useDistributedInferencing && isLLMdEnabled}
-          onChange={(_event, checked) => setUseDistributedInferencing(checked)}
+          isChecked={useDistributedInferencingByDefault && isLLMdEnabled}
+          onChange={(_event, checked) => setUseDistributedInferencingByDefault(checked)}
           data-testid="use-distributed-llm-default-switch"
           isDisabled={!isLLMdEnabled}
         />

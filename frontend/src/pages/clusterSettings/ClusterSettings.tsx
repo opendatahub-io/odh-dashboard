@@ -7,7 +7,6 @@ import { fetchClusterSettings, updateClusterSettings } from '#~/services/cluster
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
-import { patchDashboardConfigModelServing } from '#~/api/k8s/dashboardConfig';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
@@ -32,7 +31,8 @@ const ClusterSettings: React.FC = () => {
   const [pvcSize, setPvcSize] = React.useState<number>(DEFAULT_PVC_SIZE);
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
-  const [useDistributedInferencing, setUseDistributedInferencing] = React.useState(false);
+  const [useDistributedInferencingByDefault, setUseDistributedInferencingByDefault] =
+    React.useState(clusterSettings.useDistributedInferencingByDefault);
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
@@ -47,12 +47,10 @@ const ClusterSettings: React.FC = () => {
       .then((fetchedClusterSettings: ClusterSettingsType) => {
         // Get modelServing settings from dashboard config
         const modelServingConfig = dashboardConfig.spec.modelServing || {};
-        const useDistInferencing = modelServingConfig.isLLMdDefault ?? false;
         const deploymentStrategy = modelServingConfig.deploymentStrategy ?? 'rolling';
 
         const normalizedSettings: ClusterSettingsType = {
           ...fetchedClusterSettings,
-          useDistributedInferencing: useDistInferencing,
           defaultDeploymentStrategy: deploymentStrategy,
         };
         setClusterSettings(normalizedSettings);
@@ -60,7 +58,9 @@ const ClusterSettings: React.FC = () => {
         setCullerTimeout(normalizedSettings.cullerTimeout);
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
-        setUseDistributedInferencing(useDistInferencing);
+        setUseDistributedInferencingByDefault(
+          normalizedSettings.useDistributedInferencingByDefault,
+        );
         setDefaultDeploymentStrategy(deploymentStrategy);
         setLoaded(true);
         setLoadError(undefined);
@@ -77,7 +77,7 @@ const ClusterSettings: React.FC = () => {
         cullerTimeout,
         userTrackingEnabled,
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
-        useDistributedInferencing,
+        useDistributedInferencingByDefault,
         defaultDeploymentStrategy,
       }),
     [
@@ -86,7 +86,7 @@ const ClusterSettings: React.FC = () => {
       cullerTimeout,
       userTrackingEnabled,
       modelServingEnabledPlatforms,
-      useDistributedInferencing,
+      useDistributedInferencingByDefault,
       defaultDeploymentStrategy,
     ],
   );
@@ -97,7 +97,7 @@ const ClusterSettings: React.FC = () => {
       cullerTimeout,
       userTrackingEnabled,
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
-      useDistributedInferencing,
+      useDistributedInferencingByDefault,
       defaultDeploymentStrategy,
     };
 
@@ -122,27 +122,12 @@ const ClusterSettings: React.FC = () => {
         cullerTimeout,
         userTrackingEnabled,
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
+        useDistributedInferencingByDefault,
+        defaultDeploymentStrategy,
       });
 
       if (!response.success) {
         throw new Error(response.error);
-      }
-
-      if (
-        useDistributedInferencing !== clusterSettings.useDistributedInferencing ||
-        defaultDeploymentStrategy !== clusterSettings.defaultDeploymentStrategy
-      ) {
-        const { metadata } = dashboardConfig;
-        if (!metadata?.namespace) {
-          throw new Error('Dashboard config namespace not found');
-        }
-        await patchDashboardConfigModelServing(
-          {
-            deploymentStrategy: defaultDeploymentStrategy,
-            isLLMdDefault: useDistributedInferencing,
-          },
-          metadata.namespace,
-        );
       }
 
       setClusterSettings(newClusterSettings);
@@ -191,8 +176,8 @@ const ClusterSettings: React.FC = () => {
                   initialValue={clusterSettings.modelServingPlatformEnabled}
                   enabledPlatforms={modelServingEnabledPlatforms}
                   setEnabledPlatforms={setModelServingEnabledPlatforms}
-                  useDistributedInferencing={useDistributedInferencing}
-                  setUseDistributedInferencing={setUseDistributedInferencing}
+                  useDistributedInferencingByDefault={useDistributedInferencingByDefault}
+                  setUseDistributedInferencingByDefault={setUseDistributedInferencingByDefault}
                 />
               </StackItem>
               <StackItem>

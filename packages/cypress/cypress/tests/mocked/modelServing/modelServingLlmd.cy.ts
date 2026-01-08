@@ -67,6 +67,7 @@ const initIntercepts = ({
       disableKServe: false,
       genAiStudio: true,
       modelAsService: true, // Enable MaaS for testing
+      disableLLMd: false,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);

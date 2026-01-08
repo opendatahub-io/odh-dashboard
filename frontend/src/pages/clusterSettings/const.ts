@@ -20,6 +20,6 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
     kServe: true,
     LLMd: true,
   },
-  useDistributedInferencing: false,
+  useDistributedInferencingByDefault: true,
   defaultDeploymentStrategy: 'rolling',
 };

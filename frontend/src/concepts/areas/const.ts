@@ -50,7 +50,7 @@ export const modelServingFlags = {
   disableNIMModelServing: false,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
-  disableLLMd: true,
+  disableLLMd: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines
