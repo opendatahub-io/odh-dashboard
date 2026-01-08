@@ -7,6 +7,7 @@
 Thumbs.db
 
 .env*.local
+.mcp.json
 
 node_modules
 logs
@@ -30,5 +31,12 @@ jest-coverage
 # Build outputs
 dist
 
-# Contract test results 
+# Contract test results
 contract-test-results
+
+# Claude
+CLAUDE.md
+.claude/settings.local.json
+
+# Playwright MCP
+.playwright-mcp/
