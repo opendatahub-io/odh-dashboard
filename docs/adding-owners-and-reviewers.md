@@ -93,6 +93,14 @@ filters:
 - Multiple paths: `'(frontend/src/pages/yourFeature|packages/your-package)/.*'`
 - Specific file types: `'frontend/src/.*\.test\.ts'`
 
+**About labels:**
+
+The `labels` field automatically applies GitHub labels to PRs that touch matching files. Before using a label in your OWNERS filter:
+
+1. Check if the label already exists in the [repository's labels](https://github.com/opendatahub-io/odh-dashboard/labels)
+2. If it doesn't exist, request a repository admin to create it before merging your PR
+3. Use the naming convention `area/your-team` for team-specific labels
+
 ### 3. Request Addition to OWNERS_ALIASES Approvers (New Teams Only)
 
 > **Note:** This step requires approval from `general-approvers` or `managers-backup-approvers` since new teams cannot approve their own initial addition. This is the "bootstrap" step.
