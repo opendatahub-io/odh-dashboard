@@ -22,7 +22,7 @@ const AllTiersPage: React.FC = () => {
       <PageSection isFilled>
         <TiersTable tiers={tiers} onDeleteTier={(tier) => setDeleteTier(tier)} />
       </PageSection>
-      {deleteTier && (
+      {deleteTier && deleteTier.name && (
         <DeleteTierModal
           tier={deleteTier}
           onClose={(deleted) => {
