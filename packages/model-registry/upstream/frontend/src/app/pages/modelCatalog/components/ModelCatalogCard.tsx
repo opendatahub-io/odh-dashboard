@@ -13,6 +13,7 @@ import {
   Skeleton,
   Truncate,
 } from '@patternfly/react-core';
+import { ChartBarIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
 import { catalogModelDetailsFromModel } from '~/app/routes/modelCatalog/catalogModel';
@@ -57,7 +58,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, trun
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                 {isValidated && (
                   <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                    <Label color="purple" isClickable>
+                    <Label color="purple" isClickable icon={<ChartBarIcon />}>
                       Validated
                     </Label>
                   </Popover>
