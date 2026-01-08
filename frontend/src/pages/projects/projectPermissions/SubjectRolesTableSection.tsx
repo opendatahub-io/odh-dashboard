@@ -1,29 +1,35 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { createRoleBinding, generateRoleBindingPermissions } from '#~/api';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
+import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
+import { KnownLabels } from '#~/k8sTypes';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import SubjectRolesTable from './SubjectRolesTable';
-import { FilterDataType } from './const';
+import { DEFAULT_ROLE_REFS, FilterDataType } from './const';
+import SubjectRolesAddRow from './SubjectRolesAddRow';
+import { useRoleAssignmentData } from './useRoleAssignmentData';
 
 type SubjectRolesTableSectionProps = {
   subjectKind: 'user' | 'group';
-  isVisible: boolean;
   filterData: FilterDataType;
   onClearFilters: () => void;
 };
 
 const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
   subjectKind,
-  isVisible,
   filterData,
   onClearFilters,
 }) => {
-  if (!isVisible) {
-    return null;
-  }
-
-  const title = subjectKind === 'user' ? 'Users' : 'Groups';
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    roleBindings: { refresh: refreshRoleBindings },
+  } = usePermissionsContext();
+  const { existingSubjectNames, assignedRolesBySubject } = useRoleAssignmentData(subjectKind);
+  const [isAdding, setIsAdding] = React.useState(false);
 
   return (
     <Stack hasGutter>
@@ -38,7 +44,7 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
           />
           <FlexItem>
             <Title headingLevel="h2" size="xl">
-              {title}
+              {subjectKind === 'user' ? 'Users' : 'Groups'}
             </Title>
           </FlexItem>
         </Flex>
@@ -48,6 +54,34 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
           subjectKind={subjectKind}
           filterData={filterData}
           onClearFilters={onClearFilters}
+          footerRow={
+            isAdding
+              ? () => (
+                  <SubjectRolesAddRow
+                    subjectKind={subjectKind}
+                    existingSubjectNames={existingSubjectNames}
+                    availableRoles={DEFAULT_ROLE_REFS}
+                    assignedRolesBySubject={assignedRolesBySubject}
+                    onCancel={() => setIsAdding(false)}
+                    onSave={async ({ subjectName, roleRef }) => {
+                      const rbSubjectKind =
+                        subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP;
+                      const rb = generateRoleBindingPermissions(
+                        currentProject.metadata.name,
+                        rbSubjectKind,
+                        subjectName,
+                        roleRef.name,
+                        roleRef.kind,
+                        { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+                      );
+                      await createRoleBinding(rb);
+                      await refreshRoleBindings();
+                      setIsAdding(false);
+                    }}
+                  />
+                )
+              : undefined
+          }
         />
       </StackItem>
       <StackItem>
@@ -57,7 +91,8 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
           isInline
           icon={<PlusCircleIcon />}
           iconPosition="left"
-          isDisabled
+          onClick={() => setIsAdding(true)}
+          isDisabled={isAdding}
           style={{ paddingLeft: 'var(--pf-t--global--spacer--lg)' }}
         >
           {subjectKind === 'user' ? 'Add user' : 'Add group'}

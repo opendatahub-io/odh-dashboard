@@ -25,6 +25,9 @@ export type SimpleSelectOption = {
   dropdownLabel?: React.ReactNode;
   isPlaceholder?: boolean;
   isDisabled?: boolean;
+  // Use aria-disabled (instead of disabled) when we still need hover/focus behavior
+  // (e.g., tooltips on "disabled" options).
+  isAriaDisabled?: boolean;
   isFavorited?: boolean;
   dataTestId?: string;
   optionKey?: string; // Used to differentiate the only option with the same key to trigger the one-option hook in the component
@@ -113,10 +116,13 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         isOpen={open}
         selected={value || toggleLabel}
         onSelect={(e, selectValue) => {
-          onChange(
-            String(selectValue),
-            !!selectValue && (findOptionForKey(String(selectValue))?.isPlaceholder ?? false),
-          );
+          const key = String(selectValue);
+          const option = findOptionForKey(key);
+          if (option?.isAriaDisabled) {
+            return;
+          }
+
+          onChange(key, !!selectValue && (option?.isPlaceholder ?? false));
           setOpen(false);
         }}
         onOpenChange={setOpen}
@@ -151,6 +157,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     description,
                     isFavorited,
                     isDisabled: optionDisabled,
+                    isAriaDisabled: optionAriaDisabled,
                     dataTestId: optionDataTestId,
                   }) => (
                     <SelectOption
@@ -158,6 +165,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                       value={key}
                       description={<TruncatedText maxLines={2} content={description} />}
                       isDisabled={optionDisabled}
+                      isAriaDisabled={optionAriaDisabled}
                       isFavorited={isFavorited}
                       data-testid={optionDataTestId || key}
                     >
@@ -180,6 +188,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 description,
                 isFavorited,
                 isDisabled: optionDisabled,
+                isAriaDisabled: optionAriaDisabled,
                 dataTestId: optionDataTestId,
               }) => (
                 <SelectOption
@@ -188,6 +197,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                   description={<TruncatedText maxLines={2} content={description} />}
                   isFavorited={isFavorited}
                   isDisabled={optionDisabled}
+                  isAriaDisabled={optionAriaDisabled}
                   data-testid={optionDataTestId || key}
                 >
                   {dropdownLabel || label}
