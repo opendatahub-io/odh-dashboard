@@ -60,11 +60,11 @@ spec:
               unit: percent-decimal
             thresholds:
               steps:
-                - color: green
+                - color: red
                   value: 0
                 - color: orange
                   value: 0.9
-                - color: red
+                - color: green
                   value: 0.99
         queries:
           - kind: TimeSeriesQuery
@@ -74,6 +74,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                  # Healthy nodes / Total nodes
                   query: count(max by (node) (kube_node_status_condition{condition="Ready",status="true"} == 1)) / count(max by (node) (kube_node_status_condition{condition="Ready",status="true"}))
                   seriesNameFormat: System Health
     activeModels:
@@ -160,8 +161,8 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  # API server request success rate (2xx responses)
-                  query: 1 - (sum(inference_model_request_error_total) / sum(inference_model_request_total))
+                  # Request success rate using rate() for recent window
+                  query: 1 - (sum(rate(inference_model_request_error_total[$__rate_interval])) / sum(rate(inference_model_request_total[$__rate_interval])))
                   seriesNameFormat: Success Rate
     # Cluster-wide Utilizations - Area Charts
     gpuUtilizationArea:
@@ -194,7 +195,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: avg(DCGM_FI_DEV_GPU_UTIL) / 100
+                  query: avg(accelerator_gpu_utilization)
                   seriesNameFormat: GPU Utilization
     memoryUtilizationArea:
       kind: Panel
@@ -280,7 +281,7 @@ spec:
               lineWidth: 1.5
             yAxis:
               format:
-                unit: decimal
+                unit: bytes
               min: 0
         queries:
           - kind: TimeSeriesQuery
@@ -290,8 +291,9 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(rate(container_network_receive_bytes_total[5m])) / 1000000
-                  seriesNameFormat: Network In (Mbps)
+                  # Network receive rate in bytes/second
+                  query: sum(rate(container_network_receive_bytes_total[$__rate_interval]))
+                  seriesNameFormat: Network
     # Resource Usage by Project - Stacked Area Charts
     gpuUsageByProject:
       kind: Panel
@@ -324,7 +326,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum by (namespace) (DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / 100
+                  query: avg by (namespace) (accelerator_gpu_utilization{namespace=~"$namespace"})
                   seriesNameFormat: "{{namespace}}"
     cpuUsageByProject:
       kind: Panel
