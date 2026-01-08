@@ -136,7 +136,7 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.PVC).click();
       // There's only one PVC so it's automatically selected
       modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();

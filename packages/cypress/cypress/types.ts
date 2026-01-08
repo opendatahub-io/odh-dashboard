@@ -422,6 +422,21 @@ export enum AccessMode {
   RWOP = 'ReadWriteOncePod',
 }
 
+export const AccessModeLabelMap: Record<AccessMode, string> = {
+  [AccessMode.RWO]: 'RWO',
+  [AccessMode.RWX]: 'RWX',
+  [AccessMode.ROX]: 'ROX',
+  [AccessMode.RWOP]: 'RWOP',
+};
+
+export enum NotebookStatusLabel {
+  Running = 'Running',
+  Starting = 'Starting',
+  Stopping = 'Stopping',
+  Stopped = 'Stopped',
+  Failed = 'Failed',
+}
+
 export type SCAccessMode = {
   ReadWriteOnce?: boolean;
   ReadWriteMany?: boolean;

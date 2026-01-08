@@ -130,7 +130,7 @@ describe('A model can be stopped and started', () => {
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', /ModelStatus.STOPPING|ModelStatus.STOPPED/);
+        .should('match', new RegExp(`${ModelStatus.STOPPING}|${ModelStatus.STOPPED}`));
 
       //Verify the model is stopped
       // Verify model is stopped
@@ -143,7 +143,7 @@ describe('A model can be stopped and started', () => {
 
       //Restart the model
       cy.step('Restart the model');
-      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       kServeRow.findStatusLabel(ModelStatus.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
 
       //Verify the model is running again
@@ -152,7 +152,7 @@ describe('A model can be stopped and started', () => {
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', /ModelStatus.STARTING|ModelStatus.STARTED/);
+        .should('match', new RegExp(`${ModelStatus.STARTING}|${ModelStatus.STARTED}`));
     },
   );
 });
