@@ -58,6 +58,7 @@ export enum ModelTypeLabel {
 
 export enum ModelStatus {
   STOPPED = 'Stopped',
+  STOPPING = 'Stopping',
   STARTING = 'Starting',
   STARTED = 'Started',
   RUNNING = 'Running',
