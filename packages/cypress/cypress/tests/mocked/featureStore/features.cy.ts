@@ -204,6 +204,67 @@ describe('Features for a single project', () => {
     featureRow.shouldHaveOwner('data-team@company.com');
   });
 
+  it('should display tags column in features table', () => {
+    featureStoreGlobal.visitFeatures(fsProjectName);
+
+    featuresTable.findTable().should('exist');
+    featuresTable.shouldHaveFeatureCount(2);
+
+    const mockFeatureName = 'transaction_amount';
+    const featureRow = featuresTable.findRow(mockFeatureName);
+
+    featureRow.findTags().should('be.visible');
+    featureRow.shouldHaveTag('domain=transaction');
+    featureRow.shouldHaveTag('pii=false');
+    featureRow.shouldHaveTag('cardinality=high');
+  });
+
+  it('should add tag to filter when clicking on a tag for the feature row', () => {
+    featureStoreGlobal.visitFeatures(fsProjectName);
+    featuresTable.findTable().should('be.visible');
+
+    featuresTable
+      .findRow('transaction_amount')
+      .findTags()
+      .within(() => {
+        cy.contains('domain=transaction').click({ force: true });
+      });
+
+    featuresTable.shouldHaveFeatureCount(1);
+    featuresTable.findRow('transaction_amount').findFeatureName().should('be.visible');
+
+    featuresTable.findToolbarClearFiltersButton().should('exist');
+    featuresTable.findToolbarClearFiltersButton().click();
+    featuresTable.shouldHaveFeatureCount(2);
+  });
+
+  it('should allow filtering by tags', () => {
+    featureStoreGlobal.visitFeatures(fsProjectName);
+
+    const toolbar = featuresTable.findToolbar();
+
+    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
+
+    toolbar.findSearchInput().clear();
+    toolbar.findSearchInput().type('domain=transaction');
+    toolbar.findSearchInput().type('{enter}');
+    toolbar.findTagFilterChip('domain=transaction').should('exist');
+    featuresTable.shouldHaveFeatureCount(1);
+
+    toolbar.findSearchInput().clear();
+    toolbar.findSearchInput().type('pii=false');
+    toolbar.findSearchInput().type('{enter}');
+    toolbar.findTagFilterChip('domain=transaction').should('exist');
+    toolbar.findTagFilterChip('pii=false').should('exist');
+    featuresTable.shouldHaveFeatureCount(1);
+    toolbar.findTagFilterChip('domain=transaction').should('exist');
+    featuresTable.shouldHaveFeatureCount(1);
+
+    featuresTable.findToolbarClearFiltersButton().should('exist');
+    featuresTable.findToolbarClearFiltersButton().click();
+    featuresTable.shouldHaveFeatureCount(2);
+  });
+
   it('should allow filtering by feature name', () => {
     featureStoreGlobal.visitFeatures(fsProjectName);
 
@@ -258,6 +319,21 @@ describe('Features for all projects', () => {
     featureRow.shouldHaveValueType('FLOAT');
     featureRow.shouldHaveFeatureView('transaction_features');
     featureRow.shouldHaveOwner('data-team@company.com');
+  });
+
+  it('should display tags column in features table for all projects', () => {
+    featureStoreGlobal.visitFeatures();
+
+    featuresTable.findTable().should('exist');
+    featuresTable.shouldHaveFeatureCount(3);
+
+    const mockFeatureName = 'transaction_amount';
+    const featureRow = featuresTable.findRow(mockFeatureName);
+
+    featureRow.findTags().should('be.visible');
+    featureRow.shouldHaveTag('domain=transaction');
+    featureRow.shouldHaveTag('pii=false');
+    featureRow.shouldHaveTag('cardinality=high');
   });
 
   it('should allow filtering by feature name', () => {
@@ -321,7 +397,7 @@ describe('Features for all projects', () => {
       .shouldHaveApplicationsPageDescription('A test feature for unit testing')
       .shouldHaveFeatureValueType('STRING');
     featureDetails.findFeatureTags().should('be.visible');
-    featureDetails.findFeatureInteractiveExample().should('be.visible');
+    featureDetails.findDefinitionTitle().should('be.visible');
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'test-feature');
   });
@@ -367,7 +443,7 @@ describe('Feature Details', () => {
       .shouldHaveApplicationsPageDescription('A test feature for unit testing')
       .shouldHaveFeatureValueType('STRING');
     featureDetails.findFeatureTags().should('be.visible');
-    featureDetails.findFeatureInteractiveExample().should('be.visible');
+    featureDetails.findDefinitionTitle().should('be.visible');
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'test-feature');
   });

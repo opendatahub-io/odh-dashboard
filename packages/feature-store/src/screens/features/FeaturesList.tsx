@@ -1,10 +1,11 @@
 import React from 'react';
 import { featureTableFilterOptions } from './const';
 import FeaturesTable from './FeaturesTable';
-import { applyFeatureFilters } from './utils';
+import { applyFeatureFilters, applyFeatureTagFilters } from './utils';
 import { Features } from '../../types/features';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
+import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
 
 type FeaturesListProps = {
   features: Features[];
@@ -21,7 +22,11 @@ const FeaturesList = ({
     React.useState<Record<string, string | { label: string; value: string } | undefined>>(
       initialFilter,
     );
+  const [currentFilterType, setCurrentFilterType] = React.useState<string>('feature');
+  const [tagFilters, setTagFilters] = React.useState<string[]>([]);
   const { currentProject } = useFeatureStoreProject();
+
+  const tagHandlers = useTagFilterHandlers(setTagFilters, setCurrentFilterType);
 
   const processedFeatures = React.useMemo(() => {
     if (currentProject) {
@@ -39,23 +44,33 @@ const FeaturesList = ({
     [setFilterData],
   );
 
-  const onClearFilters = React.useCallback(() => setFilterData({}), [setFilterData]);
+  const onClearFilters = React.useCallback(() => {
+    setFilterData({});
+    setTagFilters([]);
+  }, []);
 
-  const filteredFeatures = React.useMemo(
-    () => applyFeatureFilters(processedFeatures, filterData, {}),
-    [processedFeatures, filterData],
-  );
+  const filteredFeatures = React.useMemo(() => {
+    let filtered = applyFeatureFilters(processedFeatures, filterData, {});
+    filtered = applyFeatureTagFilters(filtered, tagFilters);
+    return filtered;
+  }, [processedFeatures, filterData, tagFilters]);
 
   return (
     <FeaturesTable
       features={filteredFeatures}
       fsProject={fsProject}
       onClearFilters={onClearFilters}
+      onTagClick={tagHandlers.handleTagClick}
       toolbarContent={
         <FeatureStoreToolbar
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
           filterOptions={featureTableFilterOptions}
+          currentFilterType={currentFilterType}
+          onFilterTypeChange={tagHandlers.handleFilterTypeChange}
+          tagFilters={tagFilters}
+          onTagFilterRemove={tagHandlers.handleTagFilterRemove}
+          onTagFilterAdd={tagHandlers.handleTagFilterAdd}
         />
       }
     />
