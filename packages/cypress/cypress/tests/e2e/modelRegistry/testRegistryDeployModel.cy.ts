@@ -24,7 +24,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
-describe('[Product Bug: RHOAIENG-41476] Verify models can be deployed from model registry', () => {
+describe('Verify models can be deployed from model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let modelName: string;
@@ -78,7 +78,7 @@ describe('[Product Bug: RHOAIENG-41476] Verify models can be deployed from model
   it(
     'Registers a model and deploys it via model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
     },
     () => {
       cy.step('Log into the application');
