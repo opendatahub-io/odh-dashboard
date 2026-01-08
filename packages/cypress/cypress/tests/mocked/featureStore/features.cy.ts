@@ -397,7 +397,7 @@ describe('Features for all projects', () => {
       .shouldHaveApplicationsPageDescription('A test feature for unit testing')
       .shouldHaveFeatureValueType('STRING');
     featureDetails.findFeatureTags().should('be.visible');
-    featureDetails.findFeatureInteractiveExample().should('be.visible');
+    featureDetails.findDefinitionTitle().should('be.visible');
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'test-feature');
   });
@@ -443,7 +443,7 @@ describe('Feature Details', () => {
       .shouldHaveApplicationsPageDescription('A test feature for unit testing')
       .shouldHaveFeatureValueType('STRING');
     featureDetails.findFeatureTags().should('be.visible');
-    featureDetails.findFeatureInteractiveExample().should('be.visible');
+    featureDetails.findDefinitionTitle().should('be.visible');
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'test-feature');
   });
