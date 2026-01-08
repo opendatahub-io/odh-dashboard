@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   FilterLabel,
   FilterData,
@@ -8,11 +9,18 @@ import {
   MultipleLabelForType,
 } from '../types/toolbarTypes';
 
-export const buildFilterLabel = (key: string, node: string, testIdParam?: string): FilterLabel => ({
-  key,
-  node,
-  ...(testIdParam ? { props: { 'data-testid': testIdParam } } : {}),
-});
+export const buildFilterLabel = (key: string, node: string, testIdParam?: string): FilterLabel => {
+  if (testIdParam) {
+    return {
+      key,
+      node: React.createElement('span', { 'data-testid': testIdParam }, node),
+    };
+  }
+  return {
+    key,
+    node,
+  };
+};
 
 export const buildFilterLabelList = <T extends string>(
   filterKey: T,

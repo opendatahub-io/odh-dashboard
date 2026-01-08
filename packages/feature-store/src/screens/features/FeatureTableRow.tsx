@@ -5,13 +5,15 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { Features } from '../../types/features';
 import { featureRoute } from '../../FeatureStoreRoutes';
 import { featureViewRoute } from '../../routes';
+import FeatureStoreTags from '../../components/FeatureStoreTags';
 
 type FeatureTableRowType = {
   features: Features;
   fsProject?: string;
+  onTagClick?: (tag: string) => void;
 };
 
-const FeatureTableRow: React.FC<FeatureTableRowType> = ({ features, fsProject }) => (
+const FeatureTableRow: React.FC<FeatureTableRowType> = ({ features, fsProject, onTagClick }) => (
   <Tr>
     <Td dataLabel="Feature">
       <TableRowTitleDescription
@@ -31,6 +33,9 @@ const FeatureTableRow: React.FC<FeatureTableRowType> = ({ features, fsProject })
       />
     </Td>
     <Td dataLabel="Project">{features.project ?? '-'}</Td>
+    <Td dataLabel="Tags">
+      <FeatureStoreTags tags={features.tags ?? {}} threshold={3} onTagClick={onTagClick} />
+    </Td>
     <Td dataLabel="Value type">{features.type ?? '-'}</Td>
     <Td dataLabel="Feature view">
       <Link to={featureViewRoute(features.featureView, fsProject ?? features.project ?? '')}>

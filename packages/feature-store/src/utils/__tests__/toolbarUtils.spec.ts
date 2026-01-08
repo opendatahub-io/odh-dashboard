@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   buildFilterLabel,
   buildFilterLabelList,
@@ -17,16 +18,17 @@ describe('toolbarUtils', () => {
       });
     });
 
-    it('should include testId in props when provided', () => {
+    it('should create a React node with testId when provided', () => {
       const result = buildFilterLabel('entity', 'test-entity', 'entity-filter');
 
-      expect(result).toEqual({
-        key: 'entity',
-        node: 'test-entity',
-        props: {
-          'data-testid': 'entity-filter',
-        },
-      });
+      expect(result.key).toBe('entity');
+      expect(result.node).toBeDefined();
+      expect(React.isValidElement(result.node)).toBe(true);
+      if (React.isValidElement(result.node)) {
+        expect(result.node.type).toBe('span');
+        expect(result.node.props['data-testid']).toBe('entity-filter');
+        expect(result.node.props.children).toBe('test-entity');
+      }
     });
 
     it('should not include props when testId is not provided', () => {
@@ -69,6 +71,39 @@ describe('toolbarUtils', () => {
         { key: 'tag-0', node: 'environment=production' },
         { key: 'tag-1', node: 'team=ml' },
       ]);
+    });
+
+    it('should build filter label list with multiple tags with testIds', () => {
+      const mockMultipleLabels: MultipleLabels<'tag'> = {
+        tag: [
+          {
+            key: 'tag-0',
+            label: 'environment=production',
+            testId: 'tag-filter-chip-environment-production',
+            onRemove: jest.fn(),
+          },
+          {
+            key: 'tag-1',
+            label: 'team=ml',
+            testId: 'tag-filter-chip-team-ml',
+            onRemove: jest.fn(),
+          },
+        ],
+      };
+
+      const result = buildFilterLabelList('tag', mockFilterData, mockMultipleLabels);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].key).toBe('tag-0');
+      expect(result[1].key).toBe('tag-1');
+      expect(React.isValidElement(result[0].node)).toBe(true);
+      expect(React.isValidElement(result[1].node)).toBe(true);
+      if (React.isValidElement(result[0].node)) {
+        expect(result[0].node.props['data-testid']).toBe('tag-filter-chip-environment-production');
+      }
+      if (React.isValidElement(result[1].node)) {
+        expect(result[1].node.props['data-testid']).toBe('tag-filter-chip-team-ml');
+      }
     });
 
     it('should handle undefined filter data', () => {
