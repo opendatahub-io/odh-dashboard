@@ -7,6 +7,7 @@ import {
   getExternalRouteFromDeployment,
   getTokenAuthenticationFromDeployment,
 } from './utils';
+import { useWizardFieldExtractors } from './useWizardFieldExtractors';
 import {
   type Deployment,
   isModelServingDeploymentFormDataExtension,
@@ -72,10 +73,12 @@ export const useExtractFormDataFromDeployment = (
     error: deploymentSecretsError,
   } = useDeploymentAuthTokens(deployment);
 
-  // Memoize the overall loading state to prevent unnecessary recalculations
-  const loaded = React.useMemo(() => {
-    return !deployment || (formDataExtensionLoaded && deploymentSecretsLoaded);
-  }, [deployment, formDataExtensionLoaded, deploymentSecretsLoaded]);
+  // Extract dynamic field data from packages for the deployment
+  const { extractedFieldData, extractorsLoaded, extractorErrors } =
+    useWizardFieldExtractors(deployment);
+
+  const loaded =
+    !deployment || (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded);
 
   // Memoize error computation to prevent unnecessary recalculations
   const error = React.useMemo((): Error | undefined => {
@@ -88,8 +91,14 @@ export const useExtractFormDataFromDeployment = (
     if (deploymentSecretsError) {
       return new Error(deploymentSecretsError.message || 'Failed to load deployment secrets');
     }
+    if (extractorErrors.length > 0) {
+      const firstError = extractorErrors[0];
+      const errorMessage =
+        firstError instanceof Error ? firstError.message : 'Failed to load field extractors';
+      return new Error(errorMessage);
+    }
     return undefined;
-  }, [deployment, formDataExtensionErrors, deploymentSecretsError]);
+  }, [deployment, formDataExtensionErrors, deploymentSecretsError, extractorErrors]);
 
   // Memoize the form data extraction to prevent unnecessary recalculations
   const formData = React.useMemo((): InitialWizardFormData | undefined => {
@@ -172,8 +181,18 @@ export const useExtractFormDataFromDeployment = (
           : undefined,
       // Always set to true for existing deployments
       isEditing: true,
+      // Include extracted data from dynamic wizard fields (spread as top-level properties)
+      ...extractedFieldData,
     };
-  }, [deployment, formDataExtension, deploymentSecrets, dashboardNamespace, loaded, error]);
+  }, [
+    deployment,
+    formDataExtension,
+    deploymentSecrets,
+    dashboardNamespace,
+    loaded,
+    error,
+    extractedFieldData,
+  ]);
 
   return {
     formData,
