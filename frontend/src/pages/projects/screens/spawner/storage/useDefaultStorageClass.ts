@@ -37,9 +37,7 @@ const useAdminDefaultStorageClassInternal = (): FetchState<StorageClassKind | nu
             (sc) => getStorageClassConfig(sc)?.isDefault === true,
           );
 
-          if (!defaultSc && enabledStorageClasses.length > 0) {
-            resolve(enabledStorageClasses[0]);
-          } else if (defaultSc) {
+          if (defaultSc) {
             resolve(defaultSc);
           } else {
             resolve(null);
