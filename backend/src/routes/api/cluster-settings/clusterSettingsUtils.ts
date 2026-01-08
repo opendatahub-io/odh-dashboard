@@ -61,27 +61,30 @@ export const updateClusterSettings = async (
         },
       });
     }
+
     if (
-      useDistributedInferencingByDefault !== undefined ||
-      defaultDeploymentStrategy !== undefined
+      useDistributedInferencingByDefault !== undefined &&
+      useDistributedInferencingByDefault !== dashConfig.spec.modelServing?.isLLMdDefault
     ) {
-      const currentIsLLMdDefault = dashConfig.spec.modelServing?.isLLMdDefault;
-      const currentDeploymentStrategy = dashConfig.spec.modelServing?.deploymentStrategy;
-      if (
-        useDistributedInferencingByDefault !== currentIsLLMdDefault ||
-        defaultDeploymentStrategy !== currentDeploymentStrategy
-      ) {
-        const currentModelServing = dashConfig.spec.modelServing || {};
-        await setDashboardConfig(fastify, {
-          spec: {
-            modelServing: {
-              ...currentModelServing,
-              isLLMdDefault: useDistributedInferencingByDefault,
-              deploymentStrategy: defaultDeploymentStrategy,
-            },
+      await setDashboardConfig(fastify, {
+        spec: {
+          modelServing: {
+            isLLMdDefault: useDistributedInferencingByDefault,
           },
-        });
-      }
+        },
+      });
+    }
+    if (
+      defaultDeploymentStrategy !== undefined &&
+      defaultDeploymentStrategy !== dashConfig.spec.modelServing?.deploymentStrategy
+    ) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          modelServing: {
+            deploymentStrategy: defaultDeploymentStrategy,
+          },
+        },
+      });
     }
 
     await patchCM(fastify, segmentKeyCfg, {

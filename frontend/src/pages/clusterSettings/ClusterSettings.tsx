@@ -176,7 +176,7 @@ const ClusterSettings: React.FC = () => {
                   initialValue={clusterSettings.modelServingPlatformEnabled}
                   enabledPlatforms={modelServingEnabledPlatforms}
                   setEnabledPlatforms={setModelServingEnabledPlatforms}
-                  useDistributedInferencingByDefault={useDistributedInferencingByDefault}
+                  useDistributedInferencingByDefault={useDistributedInferencingByDefault ?? false}
                   setUseDistributedInferencingByDefault={setUseDistributedInferencingByDefault}
                 />
               </StackItem>

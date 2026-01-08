@@ -834,7 +834,7 @@ class ModelServingSection {
     return cy.findByTestId('section-model-server');
   }
 
-  private findKServeTable() {
+  findKServeTable() {
     return this.find().findByTestId('kserve-inference-service-table');
   }
 

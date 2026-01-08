@@ -22,7 +22,7 @@ type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
   enabledPlatforms: ModelServingPlatformEnabled;
   setEnabledPlatforms: (platforms: ModelServingPlatformEnabled) => void;
-  useDistributedInferencingByDefault?: boolean;
+  useDistributedInferencingByDefault: boolean;
   setUseDistributedInferencingByDefault: (value: boolean) => void;
 };
 
@@ -43,7 +43,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
     return enabledPlatforms.kServe && kServeInstalled ? enabledPlatforms.LLMd : false;
   }, [enabledPlatforms, kServeInstalled]);
 
-  const [isLLMdEnabled, setIsLLMdEnabled] = React.useState(llmdEnabled);
   React.useEffect(() => {
     const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
     if (kServeDisabled) {
@@ -80,7 +79,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             setEnabledPlatforms(newEnabledPlatforms);
             if (!enabled) {
               // If model serving is disabled, disable LLMd and useDistributedInferencing
-              setIsLLMdEnabled(false);
               setUseDistributedInferencingByDefault(false);
             }
           }}
@@ -116,7 +114,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
           </FlexItem>
         </Flex>
       </StackItem>
-      {!isLLMdEnabled && (
+      {!llmdEnabled && (
         <StackItem>
           <HelperText>
             <HelperTextItem variant="warning" icon={<ExclamationTriangleIcon />}>
@@ -130,14 +128,13 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         <Switch
           id="enable-llmd-switch"
           label="Enable distributed inference with llm-d"
-          isChecked={isLLMdEnabled}
+          isChecked={llmdEnabled}
           isDisabled={!enabledPlatforms.kServe || !kServeInstalled}
           onChange={(_event, _checked) => {
             setEnabledPlatforms({
               ...enabledPlatforms,
               LLMd: _checked,
             });
-            setIsLLMdEnabled(_checked);
             // If LLMd is disabled, disable useDistributedInferencing
             switch (_checked) {
               case true:
@@ -177,10 +174,10 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         <Switch
           id="use-distributed-llm-default-switch"
           label="Use distributed inference with llm-d by default when deploying generative models"
-          isChecked={useDistributedInferencingByDefault && isLLMdEnabled}
+          isChecked={useDistributedInferencingByDefault && llmdEnabled}
           onChange={(_event, checked) => setUseDistributedInferencingByDefault(checked)}
           data-testid="use-distributed-llm-default-switch"
-          isDisabled={!isLLMdEnabled}
+          isDisabled={!llmdEnabled}
         />
       </StackItem>
     </Stack>
