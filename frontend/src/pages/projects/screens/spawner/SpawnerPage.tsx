@@ -11,6 +11,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  Tooltip,
   Truncate,
 } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -18,7 +19,7 @@ import { ImageStreamAndVersion } from '#~/types';
 import ExtendedButton from '#~/components/ExtendedButton';
 import GenericSidebar from '#~/components/GenericSidebar';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, NotebookKind } from '#~/k8sTypes';
+import { HardwareProfileKind, NotebookKind, AccessReviewResourceAttributes } from '#~/k8sTypes';
 import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
 import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
@@ -49,7 +50,16 @@ import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { getGenericErrorCode } from '#~/api/errorUtils';
+import { useAccessReview } from '#~/api';
+import { PVCModel } from '#~/api/models';
 import { SpawnerPageSectionID } from './types';
+
+const storageAccessReviewResource: AccessReviewResourceAttributes = {
+  group: PVCModel.apiGroup,
+  resource: PVCModel.plural,
+  verb: 'create',
+};
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
   ScrollableSelectorID,
@@ -110,6 +120,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     loaded: storagesLoaded,
     error: storagesLoadError,
   } = useProjectPvcs(currentProject.metadata.name);
+
+  const [allowCreateStorage] = useAccessReview({
+    ...storageAccessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
 
   const defaultStorageClassName = defaultStorageClass?.metadata.name;
   const defaultNotebookSize = useDefaultPvcSize();
@@ -374,13 +389,25 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     Attach existing storage
                   </ExtendedButton>
 
-                  <Button
-                    variant="secondary"
-                    data-testid="create-storage-button"
-                    onClick={() => setIsCreateStorageModalOpen(true)}
-                  >
-                    Create storage
-                  </Button>
+                  {allowCreateStorage ? (
+                    <Button
+                      variant="secondary"
+                      data-testid="create-storage-button"
+                      onClick={() => setIsCreateStorageModalOpen(true)}
+                    >
+                      Create storage
+                    </Button>
+                  ) : (
+                    <Tooltip content="You do not have permission to create storage">
+                      <Button
+                        variant="secondary"
+                        data-testid="create-storage-button"
+                        isAriaDisabled
+                      >
+                        Create storage
+                      </Button>
+                    </Tooltip>
+                  )}
                 </Flex>
               }
               id={SpawnerPageSectionID.CLUSTER_STORAGE}
@@ -394,6 +421,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   setStorageData={setStorageData}
                   workbenchName={k8sNameDescriptionData.data.k8sName.value}
                 />
+              ) : storagesLoadError && getGenericErrorCode(storagesLoadError) === 403 ? (
+                <ClusterStorageEmptyState permissionDenied />
               ) : (
                 <ClusterStorageEmptyState />
               )}
