@@ -3,17 +3,17 @@
  * Tiers control which AI asset model endpoints users can access based on their group membership
  */
 export type Tier = {
-  name: string;
-  displayName: string;
-  description: string;
+  name?: string;
+  displayName?: string;
+  description?: string;
   level?: number;
-  groups: string[];
-  limits: TierLimits;
+  groups?: string[];
+  limits?: TierLimits;
 };
 
 export type TierLimits = {
-  tokensPerUnit: RateLimit[];
-  requestsPerUnit: RateLimit[];
+  tokensPerUnit?: RateLimit[];
+  requestsPerUnit?: RateLimit[];
 };
 
 export type RateLimit = {
