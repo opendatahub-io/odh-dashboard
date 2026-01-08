@@ -9,6 +9,31 @@ The repository uses two files to manage code ownership:
 - **`OWNERS`** — Defines which files/directories each team owns and which alias groups can approve/review them
 - **`OWNERS_ALIASES`** — Defines the actual GitHub usernames for each approver/reviewer group
 
+## Authorization Model
+
+There are two different workflows depending on your situation:
+
+| Scenario                  | Who Can Approve                                    | What You Can Change                                 |
+| ------------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| **New team onboarding**   | `general-approvers` or `managers-backup-approvers` | Add your team to both `OWNERS` and `OWNERS_ALIASES` |
+| **Existing team updates** | Your own team's approvers                          | Modify only your team's section in `OWNERS_ALIASES` |
+
+### New Team Onboarding (Bootstrap)
+
+If your team is **not yet listed** in the `OWNERS` file, you'll need approval from `general-approvers` or `managers-backup-approvers` to be added. This is a one-time bootstrap process.
+
+1. Create a PR adding your team to `OWNERS_ALIASES` and `OWNERS`
+2. Request a review from someone in `general-approvers` (see list in `OWNERS_ALIASES`)
+3. Once approved and merged, your team can self-manage future changes
+
+### Existing Team Self-Management
+
+Once your team is listed in the `OWNERS_ALIASES` approvers filter (in the `OWNERS` file), your approvers can approve changes to your own section in `OWNERS_ALIASES` without needing external approval. This allows teams to:
+
+- Add/remove team members
+- Promote reviewers to approvers
+- Update GitHub usernames
+
 ## Prerequisites
 
 > **Important:** All users listed in `OWNERS_ALIASES` must be members of the [opendatahub-io](https://github.com/orgs/opendatahub-io/people) GitHub organization. The CI will block merges if any listed users are not org members.
@@ -68,9 +93,11 @@ filters:
 - Multiple paths: `'(frontend/src/pages/yourFeature|packages/your-package)/.*'`
 - Specific file types: `'frontend/src/.*\.test\.ts'`
 
-### 3. Update the OWNERS_ALIASES Approvers List
+### 3. Request Addition to OWNERS_ALIASES Approvers (New Teams Only)
 
-If your team should be able to approve changes to `OWNERS_ALIASES` itself, add your approvers alias to the `OWNERS_ALIASES` filter in the `OWNERS` file:
+> **Note:** This step requires approval from `general-approvers` or `managers-backup-approvers` since new teams cannot approve their own initial addition. This is the "bootstrap" step.
+
+To enable your team to self-manage their section in `OWNERS_ALIASES` going forward, add your approvers alias to the `OWNERS_ALIASES` filter in the `OWNERS` file:
 
 ```yaml
 filters:
@@ -78,9 +105,15 @@ filters:
     approvers:
       - general-approvers
       - managers-backup-approvers
-      # ... other approvers ...
+      # ... other existing approvers ...
       - your-team-approvers # Add your team here
 ```
+
+**Why is this needed?**
+
+- Without this, only `general-approvers` can approve changes to your team's aliases
+- With this, your own approvers can add/remove team members without external approval
+- This is a one-time setup; once added, your team is self-sufficient for future member changes
 
 ### 4. Create a PR and Verify
 
@@ -119,7 +152,7 @@ However, the `OWNERS` file **can** reference aliases defined in `OWNERS_ALIASES`
 
 ## Example: Adding a New "Feature Store" Team
 
-**OWNERS_ALIASES:**
+### Step 1: Add to OWNERS_ALIASES
 
 ```yaml
 # Feature Store
@@ -133,7 +166,7 @@ feature-store-reviewers:
   - dana
 ```
 
-**OWNERS:**
+### Step 2: Add file path filter to OWNERS
 
 ```yaml
 # Feature Store
@@ -145,6 +178,21 @@ feature-store-reviewers:
   labels:
     - 'area/feature-store'
 ```
+
+### Step 3: Add to OWNERS_ALIASES approvers filter in OWNERS
+
+```yaml
+'OWNERS_ALIASES':
+  approvers:
+    - general-approvers
+    - managers-backup-approvers
+    # ... existing approvers ...
+    - feature-store-approvers # NEW: enables self-management
+```
+
+### Step 4: Get approval and merge
+
+Since this is a new team, request review from someone in `general-approvers`. After merge, the Feature Store team can manage their own aliases independently.
 
 ## Questions?
 
