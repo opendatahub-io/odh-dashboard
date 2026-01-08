@@ -32,12 +32,12 @@ class ClusterSettings {
 }
 
 class ModelSergingSettings extends ClusterSettings {
-  findSinglePlatformCheckbox() {
-    return cy.findByTestId('single-model-serving-platform-enabled-checkbox');
+  findSinglePlatformSwitch() {
+    return cy.findByTestId('single-model-serving-platform-enabled-switch');
   }
 
-  findEnableLLMdCheckbox() {
-    return cy.findByTestId('enable-distributed-llm-switch');
+  findEnableLLMdSwitch() {
+    return cy.findByTestId('enable-llmd-switch');
   }
 
   findSinglePlatformDeploymentModeSelect() {

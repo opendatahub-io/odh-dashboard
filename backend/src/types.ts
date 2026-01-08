@@ -106,6 +106,8 @@ export type ClusterSettings = {
     kServe: boolean;
     LLMd: boolean;
   };
+  useDistributedInferencingByDefault?: boolean;
+  defaultDeploymentStrategy?: string;
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules

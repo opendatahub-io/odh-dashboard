@@ -108,7 +108,7 @@ export type ClusterSettingsType = {
   pvcSize: number;
   cullerTimeout: number;
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
-  useDistributedInferencing?: boolean;
+  useDistributedInferencingByDefault?: boolean;
   defaultDeploymentStrategy?: string;
 };
 

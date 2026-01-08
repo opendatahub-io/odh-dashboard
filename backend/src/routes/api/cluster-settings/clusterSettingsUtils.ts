@@ -21,6 +21,7 @@ const DEFAULT_CLUSTER_SETTINGS = {
     kServe: true,
     LLMd: true,
   },
+  useDistributedInferencingByDefault: true,
 } satisfies ClusterSettings;
 
 export const updateClusterSettings = async (
@@ -31,7 +32,14 @@ export const updateClusterSettings = async (
 ): Promise<{ success: boolean; error: string }> => {
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
-  const { pvcSize, cullerTimeout, userTrackingEnabled, modelServingPlatformEnabled } = request.body;
+  const {
+    pvcSize,
+    cullerTimeout,
+    userTrackingEnabled,
+    modelServingPlatformEnabled,
+    useDistributedInferencingByDefault,
+    defaultDeploymentStrategy,
+  } = request.body;
   const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
@@ -52,6 +60,28 @@ export const updateClusterSettings = async (
           },
         },
       });
+    }
+    if (
+      useDistributedInferencingByDefault !== undefined ||
+      defaultDeploymentStrategy !== undefined
+    ) {
+      const currentIsLLMdDefault = dashConfig.spec.modelServing?.isLLMdDefault;
+      const currentDeploymentStrategy = dashConfig.spec.modelServing?.deploymentStrategy;
+      if (
+        useDistributedInferencingByDefault !== currentIsLLMdDefault ||
+        defaultDeploymentStrategy !== currentDeploymentStrategy
+      ) {
+        const currentModelServing = dashConfig.spec.modelServing || {};
+        await setDashboardConfig(fastify, {
+          spec: {
+            modelServing: {
+              ...currentModelServing,
+              isLLMdDefault: useDistributedInferencingByDefault,
+              deploymentStrategy: defaultDeploymentStrategy,
+            },
+          },
+        });
+      }
     }
 
     await patchCM(fastify, segmentKeyCfg, {
@@ -122,14 +152,15 @@ export const getClusterSettings = async (
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
   const dashConfig = getDashboardConfig(request);
-  const disableLLMdValue = dashConfig.spec.dashboardConfig.disableLLMd;
 
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
     modelServingPlatformEnabled: {
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
-      LLMd: disableLLMdValue === undefined ? false : !disableLLMdValue,
+      LLMd: !dashConfig.spec.dashboardConfig.disableLLMd,
     },
+    useDistributedInferencingByDefault: dashConfig.spec.modelServing?.isLLMdDefault,
+    defaultDeploymentStrategy: dashConfig.spec.modelServing?.deploymentStrategy,
   };
 
   if (!dashConfig.spec.dashboardConfig.disableTracking) {
