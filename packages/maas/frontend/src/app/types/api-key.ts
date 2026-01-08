@@ -4,7 +4,7 @@ export type APIKey = {
   id: string;
   name: string;
   description: string;
-  creationDate: Date;
-  expirationDate: Date;
+  creationDate: string; // ISO 8601 date string
+  expirationDate: string; // ISO 8601 date string
   status: APIKeyStatus;
 };

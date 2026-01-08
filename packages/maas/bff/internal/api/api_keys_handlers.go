@@ -25,11 +25,9 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 	var request models.APIKeyRequest
 
 	// Parse request body if present
-	if r.ContentLength > 0 {
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
 	}
 
 	// Set default expiration if not provided

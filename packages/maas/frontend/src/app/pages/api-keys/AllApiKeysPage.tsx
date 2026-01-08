@@ -21,8 +21,8 @@ const AllApiKeysPage: React.FC = () => {
             <div key={apiKey.id}>
               <div>{apiKey.name}</div>
               <div>{apiKey.description}</div>
-              <div>{String(apiKey.creationDate)}</div>
-              <div>{String(apiKey.expirationDate)}</div>
+              <div>{new Date(apiKey.creationDate).toLocaleString()}</div>
+              <div>{new Date(apiKey.expirationDate).toLocaleString()}</div>
               <div>{apiKey.status}</div>
             </div>
           ))}
