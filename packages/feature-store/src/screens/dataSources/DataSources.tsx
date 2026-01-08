@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreDataSourceListView from './dataSourceTable/FeatureStoreDataSourceListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
@@ -13,7 +14,7 @@ import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied'
 
 const title = 'Data sources';
 const description =
-  'Select a feature store repository to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
+  'Select a feature store to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
 
 const DataSources: React.FC = () => {
   const { currentProject } = useFeatureStoreProject();
@@ -31,7 +32,7 @@ const DataSources: React.FC = () => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store repository or create a data sources in a workbench.
+        Select a different feature store or create a data sources in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

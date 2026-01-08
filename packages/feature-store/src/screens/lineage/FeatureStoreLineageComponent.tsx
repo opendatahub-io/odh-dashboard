@@ -31,8 +31,8 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   project,
   featureViewName,
   featureViewType,
-  emptyStateTitle = 'Select a feature store repository',
-  emptyStateMessage = 'Select a feature store repository to view its lineage.',
+  emptyStateTitle = 'Select a feature store',
+  emptyStateMessage = 'Select a feature store to view its lineage.',
   height = '100%',
 }) => {
   if (!project) {
@@ -192,7 +192,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
         emptyStateMessage={
           featureViewName
             ? 'No lineage data available for this feature view'
-            : 'No lineage data available for this feature store repository'
+            : 'No lineage data available for this feature store'
         }
         height="100%"
         componentFactory={componentFactory}

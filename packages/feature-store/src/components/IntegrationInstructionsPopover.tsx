@@ -31,8 +31,13 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
     <Stack hasGutter>
       <StackItem>
         <p>
-          To integrate feature store repos with a workbench, navigate to your Data Science Project
-          and select the Feature store integration tab.
+          To connect a feature store to a workbench, the workbench must belong to a project that has
+          permission to access the feature store.
+          <br />
+          <br />
+          In a project with the required permission, create or edit a workbench and select the
+          desired feature store in the Connected feature stores field. or edit a workbench and
+          select the desired feature store in the <strong>Connected feature stores</strong> field.
         </p>
       </StackItem>
       <StackItem>{footerContent}</StackItem>
@@ -57,7 +62,7 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
           isInline
           style={{ textDecoration: 'none' }}
         >
-          Learn how to connect.
+          How to connect workbenches.
         </Button>
       )}
     </Popover>

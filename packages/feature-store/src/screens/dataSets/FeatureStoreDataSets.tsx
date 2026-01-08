@@ -33,7 +33,7 @@ const FeatureStoreDataSets = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store repository or create a data sets in a workbench.
+        Select a different feature store or create a data sets in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

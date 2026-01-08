@@ -10,7 +10,7 @@ export const columns: SortableData<DataSet>[] = [
   },
   {
     field: 'project',
-    label: 'Feature store repository',
+    label: 'Feature store',
     sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
   },
   {
@@ -46,7 +46,7 @@ export const columns: SortableData<DataSet>[] = [
 
 export const dataSetTableFilterOptions: Record<string, string> = {
   dataSet: 'Datasets',
-  project: 'Feature store repository',
+  project: 'Feature store',
   tag: 'Tags',
   featureServiceName: 'Feature service',
   updated: 'Updated after',
