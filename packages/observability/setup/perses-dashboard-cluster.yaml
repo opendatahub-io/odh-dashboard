@@ -15,6 +15,35 @@ spec:
           name: Namespace
           hidden: true  # Hide from Perses UI since we use our own selector
         value: ".*"  # Default: match all namespaces
+    # Cluster details variables - set by ClusterDetailsVariablesProvider
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_API_SERVER
+        display:
+          name: API Server
+          hidden: true
+        value: ""
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_CHANNEL
+        display:
+          name: Channel
+          hidden: true
+        value: ""
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_OPENSHIFT_VERSION
+        display:
+          name: OpenShift Version
+          hidden: true
+        value: ""
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER
+        display:
+          name: Infrastructure Provider
+          hidden: true
+        value: ""
   panels:
     # Overview Stats
     systemHealth:
@@ -370,30 +399,35 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Cluster Information
-          description: Static cluster configuration details
+          name: View technical configuration and infrastructure details
         plugin:
           kind: Markdown
           spec:
             text: |
               **Provider**
 
-              ${PROVIDER}
-
-              **OpenShift Version**
-
-              ${OC_VERSION}
-
-              **Channel**
-
-              ${CHANNEL}
-
-              **API Server**
-
-              ${API_SERVER}
+              ${CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER}
 
               <br>
 
+              **OpenShift Version**
+
+              ${CLUSTER_DETAILS_OPENSHIFT_VERSION}
+
+              <br>
+
+              **Channel**
+
+              ${CLUSTER_DETAILS_CHANNEL}
+
+              <br>
+
+              **API Server**
+
+              ${CLUSTER_DETAILS_API_SERVER}
+
+              <br>
+              
               [View Settings](/settings/cluster/general)
   layouts:
     # Overview Section - Stats Row
@@ -497,6 +531,6 @@ spec:
           - x: 0
             'y': 0
             width: 24
-            height: 9
+            height: 11
             content:
               '$ref': '#/spec/panels/clusterDetails'

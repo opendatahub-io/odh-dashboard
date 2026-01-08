@@ -3,9 +3,11 @@ import {
   filterDashboards,
   buildDashboardUrl,
   getDashboardDisplayName,
+  hasClusterDetailsVariables,
   BASE_PATH,
   DASHBOARD_QUERY_PARAM,
 } from '../dashboardUtils';
+import { CLUSTER_DETAILS_VARIABLES } from '../variables';
 
 // Helper to create mock DashboardResource objects
 const createMockDashboard = (name: string, displayName?: string): DashboardResource =>
@@ -242,6 +244,53 @@ describe('dashboardUtils', () => {
       const result = getDashboardDisplayName(dashboard);
 
       expect(result).toBe('dashboard-metrics');
+    });
+  });
+
+  describe('hasClusterDetailsVariables', () => {
+    it('should return true when dashboard has cluster details variables', () => {
+      const dashboard: DashboardResource = {
+        kind: 'Dashboard',
+        metadata: { name: 'dashboard-test' },
+        spec: {
+          variables: [
+            {
+              kind: 'TextVariable',
+              spec: {
+                name: CLUSTER_DETAILS_VARIABLES.API_SERVER,
+                value: 'test',
+              },
+            },
+          ],
+        },
+      } as DashboardResource;
+
+      expect(hasClusterDetailsVariables(dashboard)).toBe(true);
+    });
+
+    it('should return false when dashboard has no cluster details variables', () => {
+      const dashboard: DashboardResource = {
+        kind: 'Dashboard',
+        metadata: { name: 'dashboard-test' },
+        spec: {
+          variables: [
+            {
+              kind: 'TextVariable',
+              spec: {
+                name: 'OTHER_VARIABLE',
+                value: 'test',
+              },
+            },
+          ],
+        },
+      } as DashboardResource;
+
+      expect(hasClusterDetailsVariables(dashboard)).toBe(false);
+    });
+
+    it('should return false when dashboard has no variables', () => {
+      const dashboard = createMockDashboard('dashboard-test');
+      expect(hasClusterDetailsVariables(dashboard)).toBe(false);
     });
   });
 });
