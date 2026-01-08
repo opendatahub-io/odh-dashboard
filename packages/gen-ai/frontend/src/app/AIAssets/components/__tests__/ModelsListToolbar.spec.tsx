@@ -222,8 +222,8 @@ describe('ModelsListToolbar', () => {
       jest.clearAllMocks();
     });
 
-    describe('Source Detection', () => {
-      it('should detect "ai-models" source when infoPopover is provided', async () => {
+    describe('Filter Tracking with Different Props', () => {
+      it('should fire tracking event when infoPopover is provided', async () => {
         const user = userEvent.setup();
         const infoPopover = <div>Info</div>;
 
@@ -240,7 +240,7 @@ describe('ModelsListToolbar', () => {
         });
       });
 
-      it('should detect "ai-models" source when useCase filter option exists', async () => {
+      it('should fire tracking event when useCase filter option exists', async () => {
         const user = userEvent.setup();
         const filterOptionsWithUseCase = {
           [AssetsFilterOptions.NAME]: 'Name',
@@ -261,7 +261,7 @@ describe('ModelsListToolbar', () => {
         });
       });
 
-      it('should detect "maas" source when neither infoPopover nor useCase exists', async () => {
+      it('should fire tracking event when neither infoPopover nor useCase exists', async () => {
         const user = userEvent.setup();
 
         render(<ModelsListToolbar {...defaultProps} />);
