@@ -95,7 +95,7 @@ func NewNotFoundError(message string) *LlamaStackError {
 // API errors (openai.Error) are wrapped with appropriate error codes based on status.
 // This ensures all errors can be handled uniformly by handleLlamaStackClientError.
 // The operation parameter should be the function name that failed (e.g. "ListModels", "CreateResponse").
-func wrapClientError(err error, operation string) error {
+func wrapClientError(err error, operation string) *LlamaStackError {
 	if err == nil {
 		return nil
 	}
