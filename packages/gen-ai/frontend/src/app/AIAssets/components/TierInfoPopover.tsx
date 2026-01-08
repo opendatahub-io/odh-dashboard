@@ -35,6 +35,7 @@ const TierInfoPopover: React.FC = () => (
     <Button
       variant={ButtonVariant.link}
       icon={<OutlinedQuestionCircleIcon />}
+      iconPosition="end"
       data-testid="tier-info-button"
     >
       Tier information
