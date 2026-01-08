@@ -226,6 +226,7 @@ export type DataScienceProjectData = {
   pvStorageDescription: string;
   pvStorageNameEdited: string;
   invalidResourceNames: string[];
+  modelFormat: string;
   servingRuntime: string;
   modelStatus: string;
   hardwareProfileName: string;
@@ -339,6 +340,8 @@ export type DeployOCIModelData = {
   connectionName: string;
   ociRegistryHost: string;
   modelDeploymentName: string;
+  modelFormat: string;
+  servingRuntime: string;
 };
 
 export type ModelTolerationsTestData = {
@@ -349,6 +352,8 @@ export type ModelTolerationsTestData = {
   hardwareProfileDeploymentSize: string;
   modelName: string;
   modelFilePath: string;
+  modelFormat: string;
+  servingRuntime: string;
 };
 
 export type NotebookTolerationsTestData = {
@@ -383,6 +388,8 @@ export type ModelRegistryTestData = {
   modelFormatPytorch: string;
   formatVersion2_0: string;
   uriPrimary: string;
+  modelFormat: string;
+  servingRuntime: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
