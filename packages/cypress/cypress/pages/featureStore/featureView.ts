@@ -46,6 +46,11 @@ class FeatureViewToolbar extends Contextual<HTMLElement> {
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('filter-toolbar-text-field');
   }
+
+  findTagFilterChip(tag: string) {
+    const testId = `tag-filter-chip-${tag.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    return cy.findByTestId(testId).closest('.pf-v6-c-label');
+  }
 }
 
 class FeatureViewTableRow extends TableRow {

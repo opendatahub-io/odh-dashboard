@@ -59,6 +59,14 @@ export const getSubjectKey = (subject: Pick<RoleBindingSubject, 'kind' | 'name'>
   `${subject.kind}:${subject.name}`;
 
 /**
+ * Returns true if the given RoleRef list contains the target RoleRef.
+ *
+ * Prefer direct kind+name comparison to avoid collisions between Role and ClusterRole.
+ */
+export const hasRoleRef = (roleRefs: RoleRef[], target: RoleRef): boolean =>
+  roleRefs.some((r) => r.kind === target.kind && r.name === target.name);
+
+/**
  * Classifies a role into a label type for UI presentation.
  *
  * - Dashboard roles: RoleLabelType.Dashboard.

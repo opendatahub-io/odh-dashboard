@@ -9,6 +9,7 @@ type FeaturesTableProps = {
   features: Features[];
   onClearFilters: () => void;
   fsProject?: string;
+  onTagClick?: (tag: string) => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const FeaturesTable: React.FC<FeaturesTableProps> = ({
@@ -16,6 +17,7 @@ const FeaturesTable: React.FC<FeaturesTableProps> = ({
   onClearFilters,
   toolbarContent,
   fsProject,
+  onTagClick,
 }) => (
   <Table
     data-testid="features-table"
@@ -27,7 +29,12 @@ const FeaturesTable: React.FC<FeaturesTableProps> = ({
     toolbarContent={toolbarContent}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
     rowRenderer={(fv, idx) => (
-      <FeatureTableRow key={`${fv.name}-${idx}`} features={fv} fsProject={fsProject} />
+      <FeatureTableRow
+        key={`${fv.name}-${idx}`}
+        features={fv}
+        fsProject={fsProject}
+        onTagClick={onTagClick}
+      />
     )}
   />
 );

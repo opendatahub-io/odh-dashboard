@@ -1302,7 +1302,6 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
-  aiCatalogSettings?: boolean;
   mlflow?: boolean;
   projectRBAC?: boolean;
   embedMLflow?: boolean;
