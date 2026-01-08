@@ -57,6 +57,19 @@ export enum ModelTypeLabel {
   GENERATIVE = 'Generative AI model (Example, LLM)',
 }
 
+export enum ModelStatus {
+  STOPPED = 'Stopped',
+  STOPPING = 'Stopping',
+  STARTING = 'Starting',
+  STARTED = 'Started',
+  RUNNING = 'Running',
+  FAILED_TO_LOAD = 'Failed to load',
+}
+
+export enum ModelStateToggleLabel {
+  START = 'Start',
+  STOP = 'Stop',
+}
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
