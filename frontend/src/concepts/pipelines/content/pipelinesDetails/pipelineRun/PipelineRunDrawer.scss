@@ -1,8 +1,8 @@
 // temp fix for the PF issue https://github.com/patternfly/patternfly-react/issues/8541
 // can be removed after the issue is solved
 .pipeline-run {
-    &__drawer-panel-body {
-        display: flex;
-        flex-direction: column;
-    }
+  &__drawer-panel-body {
+    display: flex;
+    flex-direction: column;
+  }
 }
