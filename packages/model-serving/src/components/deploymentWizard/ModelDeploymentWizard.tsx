@@ -16,7 +16,7 @@ import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldApply } from './useWizardFieldApply';
 import type { InitialWizardFormData } from './types';
-import { ExitDeploymentModal } from './CancelDeploymentModal';
+import { ExitDeploymentModal } from './ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 

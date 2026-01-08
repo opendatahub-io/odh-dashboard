@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  ModalVariant,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 
@@ -35,36 +26,33 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onConfirm 
     onClose();
   };
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <Modal
-      isOpen={isOpen}
+    <ContentModal
+      title="Start a new chat?"
       onClose={handleCancel}
-      variant={ModalVariant.small}
-      data-testid="new-chat-modal"
-    >
-      <ModalHeader title="Start a new chat?" titleIconVariant="warning" />
-      <ModalBody>
-        <Stack hasGutter>
-          <StackItem>
-            Starting a new chat clears your previous chat history permanently. This action cannot be
-            undone.
-          </StackItem>
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <Button
-          key="confirm"
-          variant="primary"
-          onClick={handleConfirm}
-          data-testid="confirm-button"
-        >
-          Start new chat
-        </Button>
-        <Button key="cancel" variant="link" onClick={handleCancel} data-testid="cancel-button">
-          Cancel
-        </Button>
-      </ModalFooter>
-    </Modal>
+      variant="small"
+      dataTestId="new-chat-modal"
+      titleIconVariant="warning"
+      contents="Starting a new chat clears your previous chat history permanently. This action cannot be undone."
+      buttonActions={[
+        {
+          label: 'Start new chat',
+          onClick: handleConfirm,
+          variant: 'primary',
+          dataTestId: 'confirm-button',
+        },
+        {
+          label: 'Cancel',
+          onClick: handleCancel,
+          variant: 'link',
+          dataTestId: 'cancel-button',
+        },
+      ]}
+    />
   );
 };
 
