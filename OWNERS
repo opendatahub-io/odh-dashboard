@@ -3,7 +3,18 @@ filters:
   # Allow team approvers to approve changes to their own sections in OWNERS_ALIASES
   'OWNERS_ALIASES':
     approvers:
-      - all-approvers
+      - general-approvers
+      - managers-backup-approvers
+      - ai-trusty-approvers
+      - connections-approvers
+      - hardware-profiles-approvers
+      - model-registry-catalog-approvers
+      - model-serving-metrics-approvers
+      - pipelines-approvers
+      - platform-approvers
+      - quality-e2e-testing-approvers
+      - workbenches-approvers
+      - gen-ai-approvers
 
   # Catchall
   '.*':
