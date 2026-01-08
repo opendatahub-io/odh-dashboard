@@ -8,6 +8,7 @@ import type {
 import { KnownLabels } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
+  DEFAULT_ROLE_DESCRIPTIONS,
   OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE,
   OPENSHIFT_BOOTSTRAPPING_LABEL_KEY,
   RBAC_SUBJECT_KIND_GROUP,
@@ -76,7 +77,7 @@ export const hasRoleRef = (roleRefs: RoleRef[], target: RoleRef): boolean =>
  * - OpenShift default roles: RoleLabelType.OpenshiftDefault (bootstrapped RBAC defaults).
  * - OpenShift custom roles: RoleLabelType.OpenshiftCustom (everything else).
  */
-export const getRoleLabelType = (role: RoleKind | ClusterRoleKind): RoleLabelType => {
+const getRoleLabelType = (role: RoleKind | ClusterRoleKind): RoleLabelType => {
   const labels = role.metadata.labels ?? {};
   if (labels[KnownLabels.DASHBOARD_RESOURCE] === 'true') {
     return RoleLabelType.Dashboard;
@@ -86,6 +87,35 @@ export const getRoleLabelType = (role: RoleKind | ClusterRoleKind): RoleLabelTyp
   }
   return RoleLabelType.OpenshiftCustom;
 };
+
+/**
+ * Like getRoleLabelType, but can fall back when the role object isn't readable
+ * (e.g. role listing is forbidden).
+ *
+ * This matches the Permissions UI behavior:
+ * - admin/edit ClusterRoles are treated as OpenShift default even when unreadable.
+ * - other unreadable roles are treated as OpenShift custom.
+ */
+export const getRoleLabelTypeForRoleRef = (
+  roleRef: RoleRef,
+  role?: RoleKind | ClusterRoleKind,
+): RoleLabelType => {
+  if (role) {
+    return getRoleLabelType(role);
+  }
+  const name = roleRef.name.toLowerCase();
+  if (roleRef.kind === 'ClusterRole' && (name === 'admin' || name === 'edit')) {
+    return RoleLabelType.OpenshiftDefault;
+  }
+  return RoleLabelType.OpenshiftCustom;
+};
+
+export const getRoleDescription = (
+  roleRef: RoleRef,
+  role?: RoleKind | ClusterRoleKind,
+): string | undefined =>
+  DEFAULT_ROLE_DESCRIPTIONS[getRoleRefKey(roleRef)] ??
+  role?.metadata.annotations?.['openshift.io/description'];
 
 /**
  * Builds a map of User name -> all RoleBindings that reference that User.

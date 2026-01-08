@@ -28,6 +28,40 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   }
 }
 
+class RoleRulesTable extends Contextual<HTMLElement> {
+  findHeaderSortButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
+  }
+
+  clickHeaderSort(name: string | RegExp) {
+    return this.findHeaderSortButton(name).click();
+  }
+
+  findResourceNamesHelpButton() {
+    return this.find().findByRole('button', { name: 'Resource names help' });
+  }
+
+  clickResourceNamesHelpButton() {
+    return this.findResourceNamesHelpButton().click();
+  }
+
+  findFirstBodyRow() {
+    return this.find().find('tbody tr').first();
+  }
+}
+
+class RoleDetailsModal extends Contextual<HTMLElement> {
+  getRulesTable() {
+    return new RoleRulesTable(() => this.find().findByTestId('role-rules-table'));
+  }
+
+  findResourceNamesHelpPopover() {
+    // Popovers are rendered outside the table subtree; search globally by PF popover container.
+    // This avoids asserting the microcopy text, which can change.
+    return cy.get('.pf-v6-c-popover');
+  }
+}
+
 class ProjectRbacPermissionsTab {
   visit(projectName: string) {
     projectDetails.visitSection(projectName, 'permissions');
@@ -162,6 +196,10 @@ class ProjectRbacPermissionsTab {
 
   getGroupsTable() {
     return new SubjectRolesTable(() => cy.findByTestId('permissions-group-roles-table'));
+  }
+
+  getRoleDetailsModal() {
+    return new RoleDetailsModal(() => cy.findByTestId('role-details-modal'));
   }
 }
 
