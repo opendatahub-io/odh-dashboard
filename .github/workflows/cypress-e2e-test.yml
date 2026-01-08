@@ -13,6 +13,12 @@ on:
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
 
+# Concurrency control: Only run latest E2E tests for each PR/branch
+# Cancels in-progress E2E runs when new commits are pushed
+concurrency:
+  group: e2e-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -24,8 +30,8 @@ env:
 
 jobs:
   get-test-tags:
-    # Only run if test.yml succeeded (or manual trigger)
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only run if test.yml succeeded for a pull_request (or manual trigger) events.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
