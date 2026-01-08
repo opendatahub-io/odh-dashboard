@@ -48,7 +48,7 @@ describe('Workbenches - status tests', () => {
   });
 
   it(
-    'Verify user can access progress and event log - validate status and successful workbench creation',
+    '[Automation Bug: RHOAIENG-44393] Verify user can access progress and event log - validate status and successful workbench creation',
     { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches', '@Maintain'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
