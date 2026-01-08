@@ -12,6 +12,38 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+// Mock ClipboardCopy to trigger onCopy callback
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    ClipboardCopy: ({
+      children,
+      onCopy,
+      'data-testid': dataTestId,
+    }: {
+      children: string;
+      onCopy?: (text: string, event: React.MouseEvent) => void;
+      'data-testid'?: string;
+    }) => {
+      const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        // Simulate successful clipboard write
+        if (onCopy) {
+          onCopy('', e);
+        }
+      };
+      return (
+        <div data-testid={dataTestId}>
+          <input readOnly value={children} />
+          <button aria-label="Copy to clipboard" onClick={handleClick}>
+            Copy
+          </button>
+        </div>
+      );
+    },
+  };
+});
+
 // Mock useGenerateMaaSToken hook
 const mockGenerateToken = jest.fn();
 const mockResetToken = jest.fn();
