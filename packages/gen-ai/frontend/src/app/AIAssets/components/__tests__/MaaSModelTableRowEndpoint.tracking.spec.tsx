@@ -42,6 +42,14 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
 describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock clipboard API
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: jest.fn().mockResolvedValue(undefined),
+      },
+      writable: true,
+      configurable: true,
+    });
   });
 
   describe('MaaS Token Copy Tracking', () => {
@@ -51,16 +59,25 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       render(<MaaSModelTableRowEndpoint model={model} />);
 
       // Open popover
-      const viewButton = screen.getByText('View');
+      const viewButton = screen.getByTestId('maas-view-button');
       await user.click(viewButton);
 
       // Wait for token to appear
       await screen.findByDisplayValue('generated-token-123');
 
-      // Find and click the copy button for the token (last copy button)
-      const copyButtons = screen.getAllByRole('button', { name: /Copy/i });
-      const tokenCopyButton = copyButtons[copyButtons.length - 1];
-      await user.click(tokenCopyButton);
+      // Find the copy button inside the token ClipboardCopy component
+      const tokenCopyContainer = screen.getByTestId('maas-token-copy');
+      const tokenCopyButton = tokenCopyContainer.querySelector(
+        'button[aria-label="Copy to clipboard"]',
+      );
+
+      // Click and wait for async clipboard operation
+      await user.click(tokenCopyButton!);
+
+      // Flush all promises to ensure clipboard write completes
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 0);
+      });
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
@@ -76,7 +93,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       render(<MaaSModelTableRowEndpoint model={model} />);
 
       // Open popover - should not trigger tracking
-      const viewButton = screen.getByText('View');
+      const viewButton = screen.getByTestId('maas-view-button');
       await user.click(viewButton);
 
       expect(fireMiscTrackingEvent).not.toHaveBeenCalled();
@@ -84,10 +101,12 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       // Wait for token to appear
       await screen.findByDisplayValue('generated-token-123');
 
-      // Click copy button - should trigger tracking (last copy button is for token)
-      const copyButtons = screen.getAllByRole('button', { name: /Copy/i });
-      const tokenCopyButton = copyButtons[copyButtons.length - 1];
-      await user.click(tokenCopyButton);
+      // Click copy button - should trigger tracking
+      const tokenCopyContainer = screen.getByTestId('maas-token-copy');
+      const tokenCopyButton = tokenCopyContainer.querySelector(
+        'button[aria-label="Copy to clipboard"]',
+      );
+      await user.click(tokenCopyButton!);
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
@@ -103,23 +122,25 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       const model = createMockMaaSModel();
       render(<MaaSModelTableRowEndpoint model={model} />);
 
-      const viewButton = screen.getByText('View');
+      const viewButton = screen.getByTestId('maas-view-button');
       await user.click(viewButton);
 
       // Wait for token to appear
       await screen.findByDisplayValue('generated-token-123');
 
-      const copyButtons = screen.getAllByRole('button', { name: /Copy/i });
-      const tokenCopyButton = copyButtons[copyButtons.length - 1];
+      const tokenCopyContainer = screen.getByTestId('maas-token-copy');
+      const tokenCopyButton = tokenCopyContainer.querySelector(
+        'button[aria-label="Copy to clipboard"]',
+      );
 
       // Copy first time
-      await user.click(tokenCopyButton);
+      await user.click(tokenCopyButton!);
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
       });
 
       // Copy second time
-      await user.click(tokenCopyButton);
+      await user.click(tokenCopyButton!);
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
       });
@@ -147,18 +168,23 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
 
       render(<MaaSModelTableRowEndpoint model={model} />);
 
-      const viewButton = screen.getByText('View');
+      const viewButton = screen.getByTestId('maas-view-button');
       await user.click(viewButton);
 
-      // Copy the URL (first clipboard copy in the popover)
-      const urlCopyButton = screen.getByRole('button', { name: /Copy/i });
-      await user.click(urlCopyButton);
+      // Copy the URL using the endpoint copy button
+      const urlCopyContainer = screen.getByTestId('maas-endpoint-copy');
+      const urlCopyButton = urlCopyContainer.querySelector(
+        'button[aria-label="Copy to clipboard"]',
+      );
+      await user.click(urlCopyButton!);
 
       // Should fire Endpoint_Copied but not Service_Token_Copied
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
-        assetType: 'maas_model',
-        endpointType: 'maas_route',
-        copyTarget: 'endpoint',
+      await waitFor(() => {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+          assetType: 'maas_model',
+          endpointType: 'maas_route',
+          copyTarget: 'endpoint',
+        });
       });
       expect(fireMiscTrackingEvent).not.toHaveBeenCalledWith(
         'Service_Token_Copied',

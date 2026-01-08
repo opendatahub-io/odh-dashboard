@@ -46,6 +46,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
           <FlexItem>
             <ClipboardCopy
+              data-testid="maas-endpoint-copy"
               hoverTip="Copy"
               clickTip="Copied"
               aria-label={`MaaS route URL for ${model.id}`}
@@ -97,6 +98,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                     </FlexItem>
                     <FlexItem>
                       <ClipboardCopy
+                        data-testid="maas-token-copy"
                         hoverTip="Copy"
                         clickTip="Copied"
                         aria-label="Generated MaaS API token"
@@ -127,7 +129,9 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
       }
       onHidden={resetToken} // Reset token state when popover closes
     >
-      <Button variant={ButtonVariant.link}>View</Button>
+      <Button data-testid="maas-view-button" variant={ButtonVariant.link}>
+        View
+      </Button>
     </Popover>
   );
 };
