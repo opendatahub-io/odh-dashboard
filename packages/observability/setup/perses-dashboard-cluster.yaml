@@ -107,7 +107,6 @@ spec:
       spec:
         display:
           name: GPU utilization
-          description: GPUs currently utilized
         plugin:
           kind: StatChart
           spec:
@@ -170,7 +169,6 @@ spec:
       spec:
         display:
           name: GPU
-          description: GPU utilization across selected namespaces
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -202,7 +200,6 @@ spec:
       spec:
         display:
           name: Memory
-          description: Memory utilization across selected namespaces
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -234,7 +231,6 @@ spec:
       spec:
         display:
           name: CPU
-          description: CPU utilization across selected namespaces
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -266,7 +262,6 @@ spec:
       spec:
         display:
           name: Network
-          description: Network bandwidth across selected namespaces
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -281,7 +276,7 @@ spec:
               lineWidth: 1.5
             yAxis:
               format:
-                unit: bytes
+                unit: Bps
               min: 0
         queries:
           - kind: TimeSeriesQuery
@@ -300,7 +295,6 @@ spec:
       spec:
         display:
           name: GPU Usage
-          description: GPU usage by namespace
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -333,7 +327,6 @@ spec:
       spec:
         display:
           name: CPU Usage
-          description: CPU usage by namespace
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -367,7 +360,6 @@ spec:
       spec:
         display:
           name: Memory Usage
-          description: Memory usage by namespace
         plugin:
           kind: TimeSeriesChart
           spec:
