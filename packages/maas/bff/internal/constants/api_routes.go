@@ -10,7 +10,7 @@ const (
 
 	// API Keys routes
 	APIKeysListPath   = ApiPathPrefix + "/api-keys"
-	APIKeyByIDPath    = ApiPathPrefix + "/api-keys/:id"
+	APIKeyByIDPath    = ApiPathPrefix + "/api-key/:id"
 	APIKeyCreatePath  = ApiPathPrefix + "/api-key"
 	APIKeysDeletePath = ApiPathPrefix + "/api-keys"
 )
