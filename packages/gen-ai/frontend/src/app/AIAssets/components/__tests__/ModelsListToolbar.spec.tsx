@@ -233,8 +233,10 @@ describe('ModelsListToolbar', () => {
         await user.type(searchInput, 'test{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
-          filterType: AssetsFilterOptions.NAME,
-          resultsCount: 0,
+          // eslint-disable-next-line camelcase
+          filter_type: AssetsFilterOptions.NAME,
+          // eslint-disable-next-line camelcase
+          results_count: 0,
         });
       });
 
@@ -252,8 +254,10 @@ describe('ModelsListToolbar', () => {
         await user.type(searchInput, 'test{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
-          filterType: AssetsFilterOptions.NAME,
-          resultsCount: 0,
+          // eslint-disable-next-line camelcase
+          filter_type: AssetsFilterOptions.NAME,
+          // eslint-disable-next-line camelcase
+          results_count: 0,
         });
       });
 
@@ -266,8 +270,10 @@ describe('ModelsListToolbar', () => {
         await user.type(searchInput, 'test{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
-          filterType: AssetsFilterOptions.NAME,
-          resultsCount: 0,
+          // eslint-disable-next-line camelcase
+          filter_type: AssetsFilterOptions.NAME,
+          // eslint-disable-next-line camelcase
+          results_count: 0,
         });
       });
     });
@@ -281,8 +287,10 @@ describe('ModelsListToolbar', () => {
         await user.type(searchInput, 'llama{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
-          filterType: AssetsFilterOptions.NAME,
-          resultsCount: 0,
+          // eslint-disable-next-line camelcase
+          filter_type: AssetsFilterOptions.NAME,
+          // eslint-disable-next-line camelcase
+          results_count: 0,
         });
       });
 
@@ -301,8 +309,10 @@ describe('ModelsListToolbar', () => {
         await user.type(searchInput, 'ai{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
-          filterType: AssetsFilterOptions.KEYWORD,
-          resultsCount: 0,
+          // eslint-disable-next-line camelcase
+          filter_type: AssetsFilterOptions.KEYWORD,
+          // eslint-disable-next-line camelcase
+          results_count: 0,
         });
       });
 
@@ -314,8 +324,10 @@ describe('ModelsListToolbar', () => {
         await user.type(searchInput, '{Enter}');
 
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
-          filterType: AssetsFilterOptions.NAME,
-          resultsCount: 0,
+          // eslint-disable-next-line camelcase
+          filter_type: AssetsFilterOptions.NAME,
+          // eslint-disable-next-line camelcase
+          results_count: 0,
         });
       });
     });

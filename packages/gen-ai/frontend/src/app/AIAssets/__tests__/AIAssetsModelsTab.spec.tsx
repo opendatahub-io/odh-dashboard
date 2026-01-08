@@ -162,8 +162,10 @@ describe('AIAssetsModelsTab', () => {
       render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Asset_Count_On_Page_Load', {
-        modelsCount: 2,
-        mcpServersCount: 0,
+        // eslint-disable-next-line camelcase
+        models_count: 2,
+        // eslint-disable-next-line camelcase
+        mcp_servers_count: 0,
       });
     });
 

@@ -81,8 +81,10 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -111,8 +113,10 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -146,8 +150,10 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       });
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
-        assetType: 'maas_model',
-        copyTarget: 'service_token',
+        // eslint-disable-next-line camelcase
+        asset_type: 'maas_model',
+        // eslint-disable-next-line camelcase
+        copy_target: 'service_token',
       });
     });
   });
@@ -181,9 +187,12 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       // Should fire Endpoint_Copied but not Service_Token_Copied
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
-          assetType: 'maas_model',
-          endpointType: 'maas_route',
-          copyTarget: 'endpoint',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          endpoint_type: 'maas_route',
+          // eslint-disable-next-line camelcase
+          copy_target: 'endpoint',
         });
       });
       expect(fireMiscTrackingEvent).not.toHaveBeenCalledWith(

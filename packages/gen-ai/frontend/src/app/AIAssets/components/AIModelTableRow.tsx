@@ -70,8 +70,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               variant={ButtonVariant.secondary}
               onClick={() => {
                 fireMiscTrackingEvent('Playground_Launched_From_Available_Endpoints', {
-                  assetType: 'model',
-                  assetId: model.model_id,
+                  // eslint-disable-next-line camelcase
+                  asset_type: 'model',
+                  // eslint-disable-next-line camelcase
+                  asset_id: model.model_id,
                 });
                 navigate(genAiChatPlaygroundRoute(namespace?.name), {
                   state: {

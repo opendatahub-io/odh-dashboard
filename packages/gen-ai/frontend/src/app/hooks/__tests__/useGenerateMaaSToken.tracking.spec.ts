@@ -45,8 +45,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
         expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -67,8 +69,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
         expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -105,8 +109,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorMessage,
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -123,8 +129,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Failed to generate MaaS token',
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -142,8 +150,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Network request failed',
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -161,8 +171,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Unauthorized: Invalid credentials',
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
     });
@@ -200,8 +212,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
         outcome: TrackingOutcome.submit,
         success: true,
-        assetType: 'maas_model',
-        copyTarget: 'service_token',
+        // eslint-disable-next-line camelcase
+        asset_type: 'maas_model',
+        // eslint-disable-next-line camelcase
+        copy_target: 'service_token',
       });
     });
 
@@ -217,8 +231,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Server error',
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
 
@@ -235,8 +251,10 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
         expect(fireFormTrackingEvent).toHaveBeenLastCalledWith('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
+          // eslint-disable-next-line camelcase
+          asset_type: 'maas_model',
+          // eslint-disable-next-line camelcase
+          copy_target: 'service_token',
         });
       });
 

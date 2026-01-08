@@ -52,9 +52,12 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
               aria-label={`MaaS route URL for ${model.id}`}
               onCopy={() => {
                 fireMiscTrackingEvent('Endpoint_Copied', {
-                  assetType: 'maas_model',
-                  endpointType: 'maas_route',
-                  copyTarget: 'endpoint',
+                  // eslint-disable-next-line camelcase
+                  asset_type: 'maas_model',
+                  // eslint-disable-next-line camelcase
+                  endpoint_type: 'maas_route',
+                  // eslint-disable-next-line camelcase
+                  copy_target: 'endpoint',
                 });
               }}
             >
@@ -104,8 +107,10 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                         aria-label="Generated MaaS API token"
                         onCopy={() => {
                           fireMiscTrackingEvent('Service_Token_Copied', {
-                            assetType: 'maas_model',
-                            copyTarget: 'service_token',
+                            // eslint-disable-next-line camelcase
+                            asset_type: 'maas_model',
+                            // eslint-disable-next-line camelcase
+                            copy_target: 'service_token',
                           });
                         }}
                       >

@@ -194,7 +194,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     (server: MCPServer) => {
       toolsModal.openModal(server);
       fireMiscTrackingEvent('MCP_Tools_List_Viewed', {
-        mcpServerId: server.id,
+        // eslint-disable-next-line camelcase
+        mcp_server_id: server.id,
       });
     },
     [toolsModal],

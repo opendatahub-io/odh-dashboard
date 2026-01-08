@@ -48,8 +48,10 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
     fireMiscTrackingEvent('Available_Endpoints_Filter_Performed', {
-      filterType: currentFilterType,
-      resultsCount: resultsCount ?? 0,
+      // eslint-disable-next-line camelcase
+      filter_type: currentFilterType,
+      // eslint-disable-next-line camelcase
+      results_count: resultsCount ?? 0,
     });
   };
 

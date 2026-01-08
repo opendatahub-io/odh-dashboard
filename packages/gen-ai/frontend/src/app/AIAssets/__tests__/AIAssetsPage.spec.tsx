@@ -238,8 +238,10 @@ describe('AIAssetsPage', () => {
       await user.click(maasTab);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Tab_Switched', {
-        fromTab: 'models',
-        toTab: 'maas',
+        // eslint-disable-next-line camelcase
+        from_tab: 'models',
+        // eslint-disable-next-line camelcase
+        to_tab: 'maas',
       });
     });
 
@@ -256,8 +258,10 @@ describe('AIAssetsPage', () => {
       await user.click(maasTab);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Tab_Switched', {
-        fromTab: 'models',
-        toTab: 'maas',
+        // eslint-disable-next-line camelcase
+        from_tab: 'models',
+        // eslint-disable-next-line camelcase
+        to_tab: 'maas',
       });
 
       // Change to MCP Servers tab
@@ -265,8 +269,10 @@ describe('AIAssetsPage', () => {
       await user.click(mcpTab);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Tab_Switched', {
-        fromTab: 'maas',
-        toTab: 'mcpservers',
+        // eslint-disable-next-line camelcase
+        from_tab: 'maas',
+        // eslint-disable-next-line camelcase
+        to_tab: 'mcpservers',
       });
     });
 
@@ -278,7 +284,8 @@ describe('AIAssetsPage', () => {
       );
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Page_Viewed', {
-        entrySource: 'direct_url',
+        // eslint-disable-next-line camelcase
+        entry_source: 'direct_url',
       });
     });
   });
