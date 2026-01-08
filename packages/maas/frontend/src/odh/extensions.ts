@@ -1,3 +1,4 @@
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   WizardField2Extension,
   WizardFieldApplyExtension,
@@ -27,7 +28,8 @@ const extensions: (
     type: 'app.area',
     properties: {
       id: MODEL_AS_SERVICE,
-      featureFlags: ['modelAsService'],
+      featureFlags: ['modelAsService', 'genAiStudio'],
+      requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
     },
   },
   {
@@ -41,6 +43,20 @@ const extensions: (
       href: '/maas/tiers',
       section: 'settings',
       path: '/maas/tiers/*',
+      label: 'Tech Preview',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [MODEL_AS_SERVICE],
+    },
+    properties: {
+      id: 'maas-tokens-view',
+      title: 'API keys',
+      href: '/maas/tokens',
+      section: 'gen-ai-studio',
+      path: '/maas/tokens/*',
       label: 'Tech Preview',
     },
   },
