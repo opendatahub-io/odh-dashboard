@@ -564,7 +564,7 @@ describe('DataSet Details', () => {
     featureDetails.shouldHaveApplicationsPageDescription('Credit card due amount');
     featureDetails.shouldHaveFeatureValueType('FLOAT');
     featureDetails.findFeatureTags().should('be.visible');
-    featureDetails.findFeatureInteractiveExample().should('be.visible');
+    featureDetails.findDefinitionTitle().should('be.visible');
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'credit_card_due');
   });

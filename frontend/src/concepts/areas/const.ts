@@ -5,9 +5,9 @@ export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
   modelAsService: false,
-  aiCatalogSettings: false,
   mlflow: false,
   projectRBAC: false,
+  observabilityDashboard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -194,9 +194,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
-  },
-  [SupportedArea.AI_CATALOG_SETTINGS]: {
-    featureFlags: ['aiCatalogSettings'],
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],

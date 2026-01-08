@@ -300,7 +300,7 @@ describe('Feature Entities for all projects', () => {
       .shouldHaveValueType('STRING')
       .shouldHaveJoinKey('user_id');
     featureEntityDetails.findTags().should('be.visible');
-    featureEntityDetails.findInteractiveExample().should('be.visible');
+    featureEntityDetails.findDefinitionTitle().should('be.visible');
     featureEntityDetails.findBreadcrumbLink().should('be.visible');
     featureEntityDetails.findBreadcrumbItem().should('contain.text', 'user_id');
   });

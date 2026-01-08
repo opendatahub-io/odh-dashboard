@@ -6,6 +6,7 @@ export const featureTableFilterOptions: Record<string, string> = {
   project: 'Feature store repository',
   valueType: 'Value type',
   featureView: 'Feature view',
+  tag: 'Tags',
   owner: 'Owner',
 };
 
@@ -21,6 +22,20 @@ export const baseColumns: SortableData<Features>[] = [
     field: 'project',
     label: 'Feature store repository',
     sortable: (a: Features, b: Features): number => a.project?.localeCompare(b.project ?? '') ?? 0,
+  },
+  {
+    field: 'tags',
+    label: 'Tags',
+    width: 25,
+    sortable: (a: Features, b: Features): number => {
+      const aTags = Object.entries(a.tags ?? {})
+        .map(([key, value]) => `${key}=${value}`)
+        .toSorted();
+      const bTags = Object.entries(b.tags ?? {})
+        .map(([key, value]) => `${key}=${value}`)
+        .toSorted();
+      return aTags.join(',').localeCompare(bTags.join(','));
+    },
   },
   {
     field: 'valueType',

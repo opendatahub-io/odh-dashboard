@@ -29,8 +29,8 @@ class FeatureEntityDetails extends Contextual<HTMLElement> {
     return cy.findByTestId('feature-store-tags-group');
   }
 
-  findInteractiveExample() {
-    return cy.findByTestId('entity-interactive-example');
+  findDefinitionTitle() {
+    return cy.findByTestId('definition-title');
   }
 
   findCreatedDate() {
