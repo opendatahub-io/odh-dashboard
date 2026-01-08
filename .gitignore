@@ -32,3 +32,6 @@ dist
 
 # Contract test results 
 contract-test-results
+
+# Temporary files
+tmp/
