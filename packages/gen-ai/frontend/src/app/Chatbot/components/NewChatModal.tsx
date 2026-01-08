@@ -36,6 +36,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onConfirm 
       onClose={handleCancel}
       variant="small"
       dataTestId="new-chat-modal"
+      titleIconVariant="warning"
       contents="Starting a new chat clears your previous chat history permanently. This action cannot be undone."
       buttonActions={[
         {
