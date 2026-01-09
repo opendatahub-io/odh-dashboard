@@ -143,6 +143,9 @@ func (app *App) Routes() http.Handler {
 	// MaaS routes
 
 	attachTierHandlers(apiRouter, app)
+	if app.config.MockHTTPClient {
+		attachAPIKeyHandlers(apiRouter, app)
+	}
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)

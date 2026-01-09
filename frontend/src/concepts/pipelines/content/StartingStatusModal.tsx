@@ -1,9 +1,5 @@
 import * as React from 'react';
 import {
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
   Spinner,
   Stack,
   StackItem,
@@ -12,7 +8,6 @@ import {
   TabTitleText,
   Panel,
   PanelMain,
-  Button,
   Flex,
   FlexItem,
   Content,
@@ -29,6 +24,7 @@ import PipelineComponentStatusIcon, {
 import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes';
 import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
+import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
 const PROGRESS_TAB = 'Progress';
@@ -172,52 +168,58 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, onDe
     ? successDesc
     : inProgressDesc;
 
+  const contents = (
+    <Stack hasGutter>
+      <StackItem>
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(_ev, tabIndex) => setActiveTab(`${tabIndex}`)}
+          aria-label="status details"
+        >
+          <Tab
+            eventKey={PROGRESS_TAB}
+            aria-label={PROGRESS_TAB}
+            title={<TabTitleText>{PROGRESS_TAB}</TabTitleText>}
+            data-testid="expand-progress"
+          />
+          <Tab
+            eventKey={EVENT_LOG_TAB}
+            aria-label={EVENT_LOG_TAB}
+            title={<TabTitleText>{EVENT_LOG_TAB}</TabTitleText>}
+            data-testid="expand-logs"
+          />
+        </Tabs>
+      </StackItem>
+      <StackItem isFilled className="odh-modal__filled-stack-item">
+        {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
+      </StackItem>
+    </Stack>
+  );
+
+  const buttonActions: ButtonAction[] = [
+    {
+      label: 'Delete pipeline server',
+      onClick: onDelete,
+      variant: 'primary',
+      dataTestId: 'pipeline-delete-from-modal',
+    },
+    {
+      label: 'Close',
+      onClick: onClose,
+      variant: 'link',
+      dataTestId: 'pipeline-close-status-modal',
+    },
+  ];
+
   return (
-    <Modal
-      data-testid="pipeline-server-starting-modal"
-      isOpen
-      variant="medium"
+    <ContentModal
       onClose={onClose}
-      title="Pipeline Server Status"
-      disableFocusTrap
-    >
-      <ModalHeader title={modalTitle} description={modalDesc} />
-      <ModalBody className="odh-modal__content-height">
-        <Stack hasGutter>
-          <StackItem>
-            <Tabs
-              activeKey={activeTab}
-              onSelect={(_ev, tabIndex) => setActiveTab(`${tabIndex}`)}
-              aria-label="status details"
-            >
-              <Tab
-                eventKey={PROGRESS_TAB}
-                aria-label={PROGRESS_TAB}
-                title={<TabTitleText>{PROGRESS_TAB}</TabTitleText>}
-                data-testid="expand-progress"
-              />
-              <Tab
-                eventKey={EVENT_LOG_TAB}
-                aria-label={EVENT_LOG_TAB}
-                title={<TabTitleText>{EVENT_LOG_TAB}</TabTitleText>}
-                data-testid="expand-logs"
-              />
-            </Tabs>
-          </StackItem>
-          <StackItem isFilled className="odh-modal__filled-stack-item">
-            {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
-          </StackItem>
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <Button variant="primary" onClick={onDelete} data-testid="pipeline-delete-from-modal">
-          Delete pipeline server
-        </Button>
-        <Button variant="link" onClick={onClose} data-testid="pipeline-close-status-modal">
-          Close
-        </Button>
-      </ModalFooter>
-    </Modal>
+      title={modalTitle}
+      description={modalDesc}
+      contents={contents}
+      buttonActions={buttonActions}
+      dataTestId="pipeline-server-starting-modal"
+    />
   );
 };
 

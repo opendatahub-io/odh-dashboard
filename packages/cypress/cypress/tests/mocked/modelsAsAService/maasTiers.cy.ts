@@ -1,4 +1,5 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   createTierPage,
@@ -15,6 +16,16 @@ describe('Tiers Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
+        genAiStudio: true,
+      }),
+    );
+
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
       }),
     );
 
