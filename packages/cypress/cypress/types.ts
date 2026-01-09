@@ -450,3 +450,15 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
 };
+
+export type TrainJobTestData = {
+  projectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
