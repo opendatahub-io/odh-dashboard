@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
-import { TableBase, useTableColumnSort } from '#~/components/table';
+import { TableBase } from '#~/components/table';
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { getRoleByRef, getRoleDisplayName } from '#~/concepts/permissions/utils';
 import { RoleRef } from '#~/concepts/permissions/types';
 import { ClusterRoleKind, RoleBindingKind, RoleBindingSubject, RoleKind } from '#~/k8sTypes';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import SubjectRolesTableRow from './SubjectRolesTableRow';
 import { columns } from './columns';
 import { SubjectRoleRow } from './types';

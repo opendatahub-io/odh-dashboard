@@ -4,7 +4,7 @@ import {
   getRoleBindingsForSubject,
   getRoleBindingsForSubjectAndRoleRef,
   getRoleByRef,
-  getRoleLabelType,
+  getRoleLabelTypeForRoleRef,
   getRoleRefsForSubject,
   getRoleRefKey,
   getSubjectsForRoleRef,
@@ -86,9 +86,39 @@ describe('permissions utils', () => {
   });
 
   it('classifies role label type', () => {
-    expect(getRoleLabelType(dashboardRole)).toBe(RoleLabelType.Dashboard);
-    expect(getRoleLabelType(openshiftDefaultRole)).toBe(RoleLabelType.OpenshiftDefault);
-    expect(getRoleLabelType(openshiftCustomRole)).toBe(RoleLabelType.OpenshiftCustom);
+    expect(
+      getRoleLabelTypeForRoleRef(
+        { kind: 'Role', name: dashboardRole.metadata.name },
+        dashboardRole,
+      ),
+    ).toBe(RoleLabelType.Dashboard);
+    expect(
+      getRoleLabelTypeForRoleRef(
+        { kind: 'Role', name: openshiftDefaultRole.metadata.name },
+        openshiftDefaultRole,
+      ),
+    ).toBe(RoleLabelType.OpenshiftDefault);
+    expect(
+      getRoleLabelTypeForRoleRef(
+        { kind: 'Role', name: openshiftCustomRole.metadata.name },
+        openshiftCustomRole,
+      ),
+    ).toBe(RoleLabelType.OpenshiftCustom);
+  });
+
+  it('falls back to OpenShift label type when role object is not readable', () => {
+    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'admin' }, undefined)).toBe(
+      RoleLabelType.OpenshiftDefault,
+    );
+    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'edit' }, undefined)).toBe(
+      RoleLabelType.OpenshiftDefault,
+    );
+    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'unknown' }, undefined)).toBe(
+      RoleLabelType.OpenshiftCustom,
+    );
+    expect(getRoleLabelTypeForRoleRef({ kind: 'Role', name: 'unknown' }, undefined)).toBe(
+      RoleLabelType.OpenshiftCustom,
+    );
   });
 
   it('builds user and group role maps', () => {

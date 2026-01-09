@@ -8,6 +8,7 @@ import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/per
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { KnownLabels } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import type { RoleRef } from '#~/concepts/permissions/types';
 import SubjectRolesTable from './SubjectRolesTable';
 import { DEFAULT_ROLE_REFS, FilterDataType } from './const';
 import SubjectRolesAddRow from './SubjectRolesAddRow';
@@ -17,12 +18,14 @@ type SubjectRolesTableSectionProps = {
   subjectKind: 'user' | 'group';
   filterData: FilterDataType;
   onClearFilters: () => void;
+  onRoleClick?: (roleRef: RoleRef) => void;
 };
 
 const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
   subjectKind,
   filterData,
   onClearFilters,
+  onRoleClick,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
@@ -82,6 +85,7 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
                 )
               : undefined
           }
+          onRoleClick={onRoleClick}
         />
       </StackItem>
       <StackItem>
