@@ -160,19 +160,16 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       // Wait for token to appear
       await screen.findByDisplayValue('generated-token-123');
 
-      const tokenCopyContainer = screen.getByTestId('maas-token-copy');
-      const tokenCopyButton = tokenCopyContainer.querySelector(
-        'button[aria-label="Copy to clipboard"]',
-      );
+      const tokenCopyButton = screen.getByTestId('maas-token-copy-copy-button');
 
       // Copy first time
-      await user.click(tokenCopyButton!);
+      await user.click(tokenCopyButton);
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
       });
 
       // Copy second time
-      await user.click(tokenCopyButton!);
+      await user.click(tokenCopyButton);
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
       });
