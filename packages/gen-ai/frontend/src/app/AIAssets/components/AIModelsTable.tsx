@@ -50,7 +50,6 @@ export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
       onClick={() => {
         fireMiscTrackingEvent('model_not_found_link_clicked', {
           modelsVisibleCount,
-          timestamp: new Date().toISOString(),
         });
       }}
     >
