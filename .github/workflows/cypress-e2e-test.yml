@@ -425,8 +425,8 @@ jobs:
             STATE="error"
             DESC="E2E tests were cancelled"
           elif [ "$RESULT" = "skipped" ]; then
-            STATE="success"
-            DESC="E2E tests skipped"
+            echo "E2E tests were skipped - not posting status"
+            exit 0
           else
             STATE="failure"
             DESC="E2E tests failed"
