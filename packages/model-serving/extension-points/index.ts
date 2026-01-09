@@ -21,6 +21,7 @@ import type {
   DeploymentWizardField,
   ModelLocationData,
   InitialWizardFormData,
+  WizardField,
 } from '../src/components/deploymentWizard/types';
 import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
@@ -267,6 +268,12 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
 ): extension is ModelServingPlatformFetchDeploymentStatus<D> =>
   extension.type === 'model-serving.platform/fetch-deployment-status';
 
+/**
+ * A function that applies field data to a deployment during the assembly process.
+ * This is used by WizardFieldApplyExtension to apply field-specific data to deployments.
+ */
+export type DeploymentAssemblyFn<D extends Deployment = Deployment> = (deployment: D) => D;
+
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
@@ -285,6 +292,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
         secretName?: string,
         overwrite?: boolean,
         initialWizardData?: InitialWizardFormData,
+        applyFieldData?: DeploymentAssemblyFn<D>,
       ) => Promise<D>
     >;
   }
@@ -307,6 +315,19 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
 ): extension is DeploymentWizardFieldExtension<D> =>
   extension.type === 'model-serving.deployment/wizard-field';
 
+// TODO in same jira update name to WizardFieldExtension
+export type WizardField2Extension<T = unknown, D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/wizard-field2',
+  {
+    platform?: D['modelServingPlatformId'];
+    field: CodeRef<WizardField<T>>;
+  }
+>;
+export const isWizardField2Extension = <T = unknown, D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardField2Extension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field2';
+
 export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/transform',
   {
@@ -318,3 +339,64 @@ export const isModelServingDeploymentTransformExtension = <D extends Deployment 
   extension: Extension,
 ): extension is ModelServingDeploymentTransformExtension<D> =>
   extension.type === 'model-serving.deployment/transform';
+
+/**
+ * Extension for applying a wizard field's data to a deployment resource during assembly.
+ * This is executed as part of the deployment assembly process, allowing each field to
+ * contribute its data to the final deployment resource.
+ *
+ * The `fieldId` links this apply extension to a specific WizardField2Extension, ensuring
+ * it is only executed when its associated field is active.
+ */
+export type WizardFieldApplyExtension<T = unknown, D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/wizard-field-apply',
+  {
+    /** The ID of the WizardField this apply extension is associated with */
+    fieldId: string;
+    /** The platform this apply extension applies to (e.g., 'llmd-serving') */
+    platform: D['modelServingPlatformId'];
+    /**
+     * Apply function that modifies the deployment based on the field's data.
+     * @param deployment - The deployment resource being assembled
+     * @param fieldData - The current data from the associated wizard field
+     * @param wizardState - The full wizard form state for context
+     * @returns The modified deployment
+     */
+    apply: CodeRef<(deployment: D, fieldData: T, wizardState: WizardFormData['state']) => D>;
+  }
+>;
+export const isWizardFieldApplyExtension = <T = unknown, D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardFieldApplyExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-apply';
+
+/**
+ * Extension for extracting initial data from a deployment for a dynamic wizard field.
+ * This is used when editing an existing deployment to populate the wizard field with
+ * the current values from the deployment resource.
+ *
+ * The `fieldId` links this extractor to a specific WizardField2Extension, ensuring the
+ * extracted data is provided to the correct field.
+ */
+export type WizardFieldExtractorExtension<
+  T = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
+  'model-serving.deployment/wizard-field-extractor',
+  {
+    /** The ID of the WizardField this extractor is associated with */
+    fieldId: string;
+    /** The platform this extractor applies to (e.g., 'llmd-serving') */
+    platform: D['modelServingPlatformId'];
+    /**
+     * Extract function that retrieves the field's initial data from a deployment.
+     * @param deployment - The deployment resource to extract data from
+     * @returns The extracted field data, or undefined if not present
+     */
+    extract: CodeRef<(deployment: D) => T | undefined>;
+  }
+>;
+export const isWizardFieldExtractorExtension = <T = unknown, D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardFieldExtractorExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-extractor';

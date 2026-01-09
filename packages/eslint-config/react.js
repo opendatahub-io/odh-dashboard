@@ -38,5 +38,7 @@ module.exports = {
     'react/jsx-curly-brace-presence': [2, { props: 'never', children: 'never' }],
     'react/self-closing-comp': 'error',
     'react/prop-types': 'off',
+    'react-hooks/rules-of-hooks': 'warn',
+    'react-hooks/exhaustive-deps': 'warn',
   },
 };

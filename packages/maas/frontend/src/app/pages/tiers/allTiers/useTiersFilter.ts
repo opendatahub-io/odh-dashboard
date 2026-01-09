@@ -19,8 +19,8 @@ const useTiersFilter = (tiers: Tier[]): UseTiersFilterResult => {
           return true;
         }
         return (
-          tier.displayName.toLowerCase().includes(searchValue) ||
-          tier.description.toLowerCase().includes(searchValue)
+          tier.displayName?.toLowerCase().includes(searchValue) ||
+          (tier.description?.toLowerCase().includes(searchValue) ?? false)
         );
       }),
     [tiers, filterValue],
