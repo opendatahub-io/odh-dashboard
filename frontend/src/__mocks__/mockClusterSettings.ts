@@ -9,13 +9,13 @@ export const mockClusterSettings = ({
     kServe: true,
     LLMd: true,
   },
-  useDistributedInferencingByDefault = true,
+  isDistributedInferencingDefault = true,
   defaultDeploymentStrategy = 'rolling',
 }: Partial<ClusterSettingsType>): ClusterSettingsType => ({
   userTrackingEnabled,
   cullerTimeout,
   pvcSize,
   modelServingPlatformEnabled,
-  useDistributedInferencingByDefault,
+  isDistributedInferencingDefault,
   defaultDeploymentStrategy,
 });
