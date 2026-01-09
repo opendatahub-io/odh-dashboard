@@ -79,13 +79,14 @@ func GetTierHandler(app *App, w http.ResponseWriter, r *http.Request, params htt
 func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	var tier models.Tier
-	if err := json.NewDecoder(r.Body).Decode(&tier); err != nil {
+	var request Envelope[models.Tier, None]
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if err := app.repositories.Tiers.CreateTier(ctx, tier); err != nil {
+	createdTier, err := app.repositories.Tiers.CreateTier(ctx, request.Data)
+	if err != nil {
 		if errors.Is(err, repositories.ErrTierExists) || errors.Is(err, repositories.ErrTierLevelConflict) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusUnprocessableEntity,
@@ -108,7 +109,13 @@ func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	response := Envelope[*models.Tier, None]{
+		Data: createdTier,
+	}
+
+	if responseErr := app.WriteJSON(w, http.StatusCreated, response, nil); responseErr != nil {
+		app.serverErrorResponse(w, r, responseErr)
+	}
 }
 
 func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -119,11 +126,12 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	var tier models.Tier
-	if err := json.NewDecoder(r.Body).Decode(&tier); err != nil {
+	var request Envelope[models.Tier, None]
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	tier := request.Data
 
 	// Sanity check: if the body has a name, it must match.
 	if len(tier.Name) == 0 {
@@ -133,7 +141,8 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	if err := app.repositories.Tiers.UpdateTier(ctx, tier); err != nil {
+	updatedTier, err := app.repositories.Tiers.UpdateTier(ctx, tier)
+	if err != nil {
 		if errors.Is(err, repositories.ErrTierNotFound) {
 			app.notFoundResponse(w, r)
 		} else if errors.Is(err, repositories.ErrUpdateConflict) {
@@ -150,7 +159,13 @@ func UpdateTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	response := Envelope[*models.Tier, None]{
+		Data: updatedTier,
+	}
+
+	if responseErr := app.WriteJSON(w, http.StatusOK, response, nil); responseErr != nil {
+		app.serverErrorResponse(w, r, responseErr)
+	}
 }
 
 func DeleteTierHandler(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -178,5 +193,11 @@ func DeleteTierHandler(app *App, w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	response := Envelope[None, None]{
+		Data: nil,
+	}
+
+	if responseErr := app.WriteJSON(w, http.StatusOK, response, nil); responseErr != nil {
+		app.serverErrorResponse(w, r, responseErr)
+	}
 }

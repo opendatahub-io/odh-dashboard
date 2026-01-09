@@ -229,11 +229,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
         data-testid="ai-assets-empty-state"
         icon={CubesIcon}
         headingLevel="h6"
-        titleText="No MCP configuration found"
+        titleText="No MCP servers available"
       >
         <EmptyStateBody>
-          This playground does not have an MCP configuration. Contact your cluster administrator to
-          add MCP servers.
+          Contact your cluster administrator to request that MCP servers be configured for use in
+          the playground.
         </EmptyStateBody>
       </EmptyState>
     );

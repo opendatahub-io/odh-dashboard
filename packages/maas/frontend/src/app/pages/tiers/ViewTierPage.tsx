@@ -189,7 +189,7 @@ const ViewTierPage: React.FC = () => {
                     <DetailsItem
                       label="Groups"
                       value={
-                        tier.groups.length > 0 ? (
+                        tier.groups?.length && tier.groups.length > 0 ? (
                           <Stack>
                             {tier.groups.map((group) => (
                               <StackItem key={group}>{group}</StackItem>
@@ -226,7 +226,7 @@ const ViewTierPage: React.FC = () => {
                         </StackItem>
                         <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
                           <Stack>
-                            {tier.limits.tokensPerUnit.length > 0 ? (
+                            {tier.limits?.tokensPerUnit && tier.limits.tokensPerUnit.length > 0 ? (
                               tier.limits.tokensPerUnit.map((limit, index) => (
                                 <StackItem key={index}>
                                   <Content>
@@ -252,7 +252,8 @@ const ViewTierPage: React.FC = () => {
                         </StackItem>
                         <StackItem style={{ paddingLeft: '15px', paddingTop: '5px' }}>
                           <Stack>
-                            {tier.limits.requestsPerUnit.length > 0 ? (
+                            {tier.limits?.requestsPerUnit &&
+                            tier.limits.requestsPerUnit.length > 0 ? (
                               tier.limits.requestsPerUnit.map((limit, index) => (
                                 <StackItem key={index}>
                                   <Content>

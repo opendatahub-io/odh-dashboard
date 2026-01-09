@@ -8,6 +8,7 @@ import {
   ModelAvailabilityFieldsData,
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
+import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
 import * as _ from 'lodash-es';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
@@ -143,14 +144,24 @@ const deployLLMdInferenceService = async (
   connectionSecretName: string | undefined,
   transformData: { metadata?: { labels?: Record<string, string> } } | undefined,
   opts?: { dryRun?: boolean; overwrite?: boolean },
+  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMInferenceServiceKind> => {
-  const newResource = assembleLLMdInferenceService(
+  let newResource = assembleLLMdInferenceService(
     params,
     existingDeployment,
     connectionSecretName,
     opts?.dryRun,
     transformData,
   );
+
+  // Apply field data from wizard field extensions during assembly
+  if (applyFieldData) {
+    const assembledDeployment = applyFieldData({
+      modelServingPlatformId: LLMD_SERVING_ID,
+      model: newResource,
+    });
+    newResource = assembledDeployment.model;
+  }
 
   if (!existingDeployment) {
     return createLLMInferenceService(newResource, { dryRun: opts?.dryRun });
@@ -174,6 +185,7 @@ export const deployLLMdDeployment = async (
   connectionSecretName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
+  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMdDeployment> => {
   const params: CreateLLMdInferenceServiceParams = {
     projectName,
@@ -200,6 +212,7 @@ export const deployLLMdDeployment = async (
     connectionSecretName,
     initialWizardData?.transformData,
     { dryRun, overwrite },
+    applyFieldData,
   );
 
   const createTokenAuth =

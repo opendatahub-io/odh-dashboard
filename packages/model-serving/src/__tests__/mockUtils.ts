@@ -239,6 +239,8 @@ export const mockDeploymentWizardState = (
         isExternalRouteVisible: true,
         shouldAutoCheckTokens: false,
       },
+      dispatch: jest.fn(),
+      fields: [],
     },
     overrides,
   );
