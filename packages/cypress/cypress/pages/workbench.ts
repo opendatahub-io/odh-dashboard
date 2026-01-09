@@ -718,7 +718,7 @@ class CreateSpawnerPage {
   }
 
   findFeatureStoreTooltip() {
-    return cy.findByRole('tooltip', { timeout: 5000 });
+    return cy.findByRole('tooltip');
   }
 
   findFeatureStoreTooltipText() {
