@@ -82,7 +82,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       render(<AIModelsTableRowEndpoint model={model} />);
 
       // Open popover
-      const viewButton = screen.getByText('View URL');
+      const viewButton = screen.getByTestId('view-url-button');
       await user.click(viewButton);
 
       // Find and click the copy button for the URL
@@ -98,7 +98,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       });
     });
 
-    it('should track correct model name', async () => {
+    it('should track endpoint copy event', async () => {
       const user = userEvent.setup();
       const model = createMockAIModel({
         model_name: 'llama-3-70b',
@@ -106,7 +106,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       });
       render(<AIModelsTableRowEndpoint model={model} />);
 
-      const viewButton = screen.getByText('View URL');
+      const viewButton = screen.getByTestId('view-url-button');
       await user.click(viewButton);
 
       const copyButton = screen.getByTestId('copy-endpoint-button-copy-button');
@@ -128,7 +128,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       const model = createMockAIModel({ externalEndpoint: 'http://external.endpoint' });
       render(<AIModelsTableRowEndpoint model={model} isExternal />);
 
-      const viewButton = screen.getByText('View URL');
+      const viewButton = screen.getByTestId('view-url-button');
       await user.click(viewButton);
 
       const copyButton = screen.getByTestId('copy-endpoint-button-copy-button');
@@ -155,14 +155,12 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       });
       render(<AIModelsTableRowEndpoint model={model} isExternal />);
 
-      const viewButton = screen.getByText('View URL');
+      const viewButton = screen.getByTestId('view-url-button');
       await user.click(viewButton);
 
       // Wait for popover to open and find the token input first
       await screen.findByDisplayValue('test-token-123');
 
-      // Get token copy button by test ID
-      // Use specific test IDs instead of positional indexing
       // Get token copy button by test ID
       const tokenCopyButton = screen.getByTestId('copy-token-button-copy-button');
       await user.click(tokenCopyButton);
@@ -191,7 +189,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       });
       render(<AIModelsTableRowEndpoint model={model} isExternal />);
 
-      const viewButton = screen.getByText('View URL');
+      const viewButton = screen.getByTestId('view-url-button');
       await user.click(viewButton);
 
       // Copy URL
@@ -206,7 +204,6 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
         });
       });
 
-      // Copy token - get the last copy button (after URL copy button)
       // Get token copy button by test ID
       const tokenCopyButton = screen.getByTestId('copy-token-button-copy-button');
       await user.click(tokenCopyButton);

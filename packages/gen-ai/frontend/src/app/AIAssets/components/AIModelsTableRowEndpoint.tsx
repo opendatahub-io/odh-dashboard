@@ -101,7 +101,9 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
         </Flex>
       }
     >
-      <Button variant={ButtonVariant.link}>View URL</Button>
+      <Button variant={ButtonVariant.link} data-testid="view-url-button">
+        View URL
+      </Button>
     </Popover>
   );
 };
