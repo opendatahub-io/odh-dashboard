@@ -30,7 +30,7 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
-  # Set pending status on PR commit so devs know E2E tests are running
+  # Set pending status on PR
   set-pending-status:
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
@@ -409,7 +409,7 @@ jobs:
   set-final-status:
     needs: [set-pending-status, e2e-tests]
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
       - name: Set E2E final status
         env:
@@ -424,6 +424,9 @@ jobs:
           elif [ "$RESULT" = "cancelled" ]; then
             STATE="error"
             DESC="E2E tests were cancelled"
+          elif [ "$RESULT" = "skipped" ]; then
+            STATE="success"
+            DESC="E2E tests skipped"
           else
             STATE="failure"
             DESC="E2E tests failed"
