@@ -56,7 +56,7 @@ const renderNoResults = (
   isSearching: boolean,
   searchValue: string,
 ): React.ReactElement => {
-  const projectName = 'All repositories';
+  const projectName = 'All feature stores';
   const showSearching = isLoading || isSearching;
 
   return (

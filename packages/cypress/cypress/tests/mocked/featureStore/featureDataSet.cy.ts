@@ -281,10 +281,7 @@ describe('Feature DataSets for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitDataSets();
     featureDataSetsTable.findTable().should('be.visible');
-    featureDataSetsTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureDataSetsTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureDataSetsTable.findRow('test_dataset').shouldHaveProject(fsProjectName);
     featureDataSetsTable.findRow('fraud_detection_dataset').shouldHaveProject(fsProjectName2);
   });

@@ -3,7 +3,7 @@ import { Features } from '../../types/features';
 
 export const featureTableFilterOptions: Record<string, string> = {
   feature: 'Feature',
-  project: 'Feature store repository',
+  project: 'Feature store',
   valueType: 'Value type',
   featureView: 'Feature view',
   tag: 'Tags',
@@ -20,7 +20,7 @@ export const baseColumns: SortableData<Features>[] = [
   },
   {
     field: 'project',
-    label: 'Feature store repository',
+    label: 'Feature store',
     sortable: (a: Features, b: Features): number => a.project?.localeCompare(b.project ?? '') ?? 0,
   },
   {

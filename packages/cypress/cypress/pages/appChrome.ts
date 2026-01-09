@@ -24,6 +24,10 @@ class AppChrome {
     return cy.get('#page-sidebar');
   }
 
+  findMainContent() {
+    return cy.get('#dashboard-page-main');
+  }
+
   findHelpButton() {
     return cy.get('#help-icon-toggle');
   }
