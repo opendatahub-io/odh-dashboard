@@ -1,4 +1,14 @@
 import React, { useRef, useEffect } from 'react';
+import {
+  hideElements,
+  overrideMainElementStyles,
+  isElementNode,
+  removeQuery,
+  applyHiddenStylesToElement,
+  isHTMLElement,
+  applyOverrideStylesToMainElement,
+  mainElementQuery,
+} from './utils';
 
 interface MLflowIframeCSSOverrideProps {
   children: (iframeRef: React.RefObject<HTMLIFrameElement>) => React.ReactNode;
@@ -7,38 +17,20 @@ interface MLflowIframeCSSOverrideProps {
 const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ children }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const isElementNode = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
-
-  const isHTMLElement = (element: Element): element is HTMLElement =>
-    'style' in element && typeof element.style === 'object';
-
-  const removeQuery = '.du-bois-light-breadcrumb, .du-bois-dark-breadcrumb, header, aside';
-
   useEffect(() => {
     let observer: MutationObserver | null = null;
 
-    const applyHiddenStylesToElement = (element: Element) => {
-      if (isHTMLElement(element)) {
-        element.style.setProperty('display', 'none', 'important');
-      }
-    };
-
-    const hideElements = (doc: Document | Element) => {
-      const elementsToHide = doc.querySelectorAll(removeQuery);
-      elementsToHide.forEach((element) => {
-        applyHiddenStylesToElement(element);
-      });
-    };
-
-    const applyOverrideStylesToMainElement = (mainElement: HTMLElement) => {
-      mainElement.style.setProperty('margin', '0', 'important');
-      mainElement.style.setProperty('border-radius', '0', 'important');
-    };
-
-    const overrideMainElementStyles = (doc: Document | Element) => {
-      const mainElement = doc.querySelector('main');
-      if (mainElement) {
-        applyOverrideStylesToMainElement(mainElement);
+    const handleNodeMutation = (node: Node) => {
+      if (isElementNode(node)) {
+        // Check if the node itself matches our selectors
+        if (node.matches(removeQuery)) {
+          applyHiddenStylesToElement(node);
+        } else if (node.matches(mainElementQuery) && isHTMLElement(node)) {
+          applyOverrideStylesToMainElement(node);
+        }
+        // Also check children within the node
+        hideElements(node);
+        overrideMainElementStyles(node);
       }
     };
 
@@ -54,17 +46,7 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
           observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
               mutation.addedNodes.forEach((node) => {
-                if (isElementNode(node)) {
-                  // Check if the node itself matches our selectors
-                  if (node.matches(removeQuery)) {
-                    applyHiddenStylesToElement(node);
-                  } else if (node.matches('main') && isHTMLElement(node)) {
-                    applyOverrideStylesToMainElement(node);
-                  }
-                  // Also check children within the node
-                  hideElements(node);
-                  overrideMainElementStyles(node);
-                }
+                handleNodeMutation(node);
               });
             });
           });
