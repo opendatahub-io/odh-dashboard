@@ -79,5 +79,7 @@ export const extractModelServerTemplate = (
             : KServeDeployment.server.metadata.namespace,
         scope:
           KServeDeployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'],
+        label:
+          KServeDeployment.server.metadata.annotations?.['opendatahub.io/template-display-name'],
       }
     : null;
