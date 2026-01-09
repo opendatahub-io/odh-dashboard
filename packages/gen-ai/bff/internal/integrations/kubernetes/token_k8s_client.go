@@ -62,6 +62,9 @@ const (
 	LLMInferenceServiceName              = "app.kubernetes.io/name"
 	LLMInferenceServiceComponent         = "app.kubernetes.io/component"
 	LLMInferenceServiceWorkloadComponent = "llminferenceservice-workload"
+
+	// Annotation for authentication
+	authAnnotationKey = "security.opendatahub.io/enable-auth"
 )
 
 type TokenKubernetesClient struct {
@@ -684,6 +687,37 @@ func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) str
 	return "Stop"
 }
 
+// ConstructLLMInferenceServiceURL constructs the internal URL for an LLMInferenceService
+// This function is exported for testing purposes
+func ConstructLLMInferenceServiceURL(scheme, serviceName, namespace string, port int32) string {
+	return fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, serviceName, namespace, port)
+}
+
+// EnsureV1Suffix ensures that the URL ends with /v1 suffix
+// This function is exported for testing purposes
+func EnsureV1Suffix(url string) string {
+	if !strings.HasSuffix(url, "/v1") {
+		return url + "/v1"
+	}
+	return url
+}
+
+// DetermineSchemeFromAuth determines the URL scheme (http/https) based on auth annotation
+// This function is exported for testing purposes
+func DetermineSchemeFromAuth(authAnnotation string) string {
+	if authAnnotation == "true" {
+		return "https"
+	}
+	return "http"
+}
+
+// ShouldAddPortToURL determines if a port should be added to the URL
+// for InferenceService endpoints only.
+// This function is exported for testing purposes
+func ShouldAddPortToURL(isHeadless bool, urlHasPort bool) bool {
+	return isHeadless && !urlHasPort
+}
+
 func (kc *TokenKubernetesClient) extractDisplayNameFromInferenceService(isvc *kservev1beta1.InferenceService) string {
 	if isvc == nil || isvc.Annotations == nil {
 		return ""
@@ -1247,7 +1281,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 	// When routes are enabled, the Status.URL is the route URL, not the internal URL so we use the Address.URL
 	internalURL := targetISVC.Status.Address.URL.URL()
 
-	if targetISVC.Annotations["security.opendatahub.io/enable-auth"] != "true" {
+	if targetISVC.Annotations[authAnnotationKey] != "true" {
 		// For non-auth services, ensure http scheme
 		if internalURL.Scheme == "https" {
 			internalURL.Scheme = "http"
@@ -1264,8 +1298,9 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		svc := services[0]
 		isHeadless := kc.isHeadlessService(ctx, namespace, svc.Name)
 		port := kc.getServingPort(ctx, namespace, svc.Name)
+		urlHasPort := internalURL.Port() != ""
 
-		if isHeadless && internalURL.Port() == "" {
+		if ShouldAddPortToURL(isHeadless, urlHasPort) {
 			internalURL.Host = fmt.Sprintf("%s:%d", internalURL.Hostname(), port)
 			kc.Logger.Debug("headless kserve detected: HeadlessService is used; adding target port to internal URL",
 				"service", svc.Name, "port", port, "url", internalURL.String())
@@ -1274,9 +1309,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 
 	internalURLStr := internalURL.String()
 	// Add /v1 suffix if not present
-	if !strings.HasSuffix(internalURLStr, "/v1") {
-		internalURLStr = internalURLStr + "/v1"
-	}
+	internalURLStr = EnsureV1Suffix(internalURLStr)
 
 	// Extract additional metadata from the InferenceService
 	metadata := map[string]interface{}{}
@@ -1432,14 +1465,15 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx cont
 	port := kc.getServingPort(ctx, llmSvc.Namespace, svc.Name)
 
 	// Determine scheme based on authentication annotation
-	scheme := "http"
-	if llmSvc.Annotations["security.opendatahub.io/enable-auth"] == "true" {
-		scheme = "https"
+	var authAnnotation string
+	if llmSvc.Annotations != nil {
+		authAnnotation = llmSvc.Annotations[authAnnotationKey]
 	}
+	scheme := DetermineSchemeFromAuth(authAnnotation)
 
 	// Construct internal URL from service name with port
 	// LLMInferenceService workload services (KServe headless mode) always require port
-	internalURL := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/v1", scheme, svc.Name, llmSvc.Namespace, port)
+	internalURL := ConstructLLMInferenceServiceURL(scheme, svc.Name, llmSvc.Namespace, port)
 
 	kc.Logger.Debug("constructed internal URL for LLMInferenceService",
 		"llmServiceName", llmSvc.Name,

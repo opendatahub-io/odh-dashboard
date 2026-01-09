@@ -281,10 +281,7 @@ describe('Feature DataSets for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitDataSets();
     featureDataSetsTable.findTable().should('be.visible');
-    featureDataSetsTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureDataSetsTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureDataSetsTable.findRow('test_dataset').shouldHaveProject(fsProjectName);
     featureDataSetsTable.findRow('fraud_detection_dataset').shouldHaveProject(fsProjectName2);
   });
@@ -564,7 +561,7 @@ describe('DataSet Details', () => {
     featureDetails.shouldHaveApplicationsPageDescription('Credit card due amount');
     featureDetails.shouldHaveFeatureValueType('FLOAT');
     featureDetails.findFeatureTags().should('be.visible');
-    featureDetails.findFeatureInteractiveExample().should('be.visible');
+    featureDetails.findDefinitionTitle().should('be.visible');
     featureDetails.findBreadcrumbLink().should('be.visible');
     featureDetails.findBreadcrumbItem().should('contain.text', 'credit_card_due');
   });

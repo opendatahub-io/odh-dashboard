@@ -7,7 +7,7 @@ import TiersTable from './allTiers/TiersTable';
 import DeleteTierModal from './components/DeleteTierModal';
 
 const AllTiersPage: React.FC = () => {
-  const [tiers, loaded, error] = useFetchTiers();
+  const [tiers, loaded, error, refresh] = useFetchTiers();
 
   const [deleteTier, setDeleteTier] = React.useState<Tier | undefined>(undefined);
 
@@ -22,11 +22,14 @@ const AllTiersPage: React.FC = () => {
       <PageSection isFilled>
         <TiersTable tiers={tiers} onDeleteTier={(tier) => setDeleteTier(tier)} />
       </PageSection>
-      {deleteTier && (
+      {deleteTier && deleteTier.name && (
         <DeleteTierModal
           tier={deleteTier}
-          onClose={() => {
+          onClose={(deleted) => {
             setDeleteTier(undefined);
+            if (deleted) {
+              refresh();
+            }
           }}
         />
       )}

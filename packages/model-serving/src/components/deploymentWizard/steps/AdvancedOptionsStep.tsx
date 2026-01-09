@@ -13,7 +13,7 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
-import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 
@@ -109,13 +109,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               <StackItem>
                 <FormGroup
                   label="Model playground availability"
-                  data-testid="Model-playground-availability-section"
-                  fieldId="Model playground availability"
+                  data-testid="model-playground-availability"
+                  fieldId="model-playground-availability"
                 >
                   <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
-                    showSaveAsMaaS={wizardState.state.modelAvailability.showSaveAsMaaS}
+                    wizardState={wizardState}
                   />
                 </FormGroup>
               </StackItem>

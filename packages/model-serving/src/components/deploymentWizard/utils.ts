@@ -15,7 +15,11 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import type {
+  Deployment,
+  DeploymentEndpoint,
+  DeploymentAssemblyFn,
+} from '../../../extension-points';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
@@ -77,12 +81,14 @@ export const deployModel = async (
     secretName?: string,
     overwrite?: boolean,
     initialWizardData?: InitialWizardFormData,
+    applyFieldData?: DeploymentAssemblyFn,
   ) => Promise<Deployment>,
   existingDeployment?: Deployment,
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
+  applyFieldData?: DeploymentAssemblyFn,
 ): Promise<void> => {
   const { projectName } = wizardState.state.project;
   if (!projectName) {
@@ -110,6 +116,7 @@ export const deployModel = async (
             undefined,
             undefined,
             initialWizardData,
+            applyFieldData,
           ),
         ]
       : []),
@@ -143,6 +150,7 @@ export const deployModel = async (
     actualSecretName,
     overwrite,
     initialWizardData,
+    applyFieldData,
   );
 
   if (!wizardState.state.modelLocationData.data || !deploymentResult) {

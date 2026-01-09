@@ -18,6 +18,7 @@ type SubjectRolesTableBaseProps = {
   rows: SubjectRoleRow[];
   emptyTableView: React.ReactNode;
   onRoleClick?: (roleRef: RoleRef) => void;
+  footerRow?: (pageNumber: number) => React.ReactElement | null;
 };
 
 const getRowSpans = (rows: SubjectRoleRow[]): number[] => {
@@ -41,6 +42,7 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
   rows: inputRows,
   emptyTableView,
   onRoleClick,
+  footerRow,
 }) => {
   const sort = useTableColumnSort<SubjectRoleRow>(columns, [], 0);
   const rows = sort.transformData(inputRows);
@@ -63,6 +65,7 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
           onRoleClick={onRoleClick}
         />
       )}
+      footerRow={footerRow}
     />
   );
 };
@@ -72,6 +75,7 @@ type SubjectRolesTableProps = {
   filterData: FilterDataType;
   onClearFilters: () => void;
   onRoleClick?: (roleRef: RoleRef) => void;
+  footerRow?: (pageNumber: number) => React.ReactElement | null;
 };
 
 export const buildSubjectRoleRows = (
@@ -132,6 +136,7 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   filterData,
   onClearFilters,
   onRoleClick,
+  footerRow,
 }) => {
   const { roles, clusterRoles, roleBindings } = usePermissionsContext();
 
@@ -152,13 +157,17 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   const emptyStateText = getEmptyStateText(subjectKind);
 
   const hasActiveFilters = Object.values(filterData).some((v) => (v ?? '').trim().length > 0);
-  const emptyTableView = hasActiveFilters ? (
+  const emptyTableViewBase = hasActiveFilters ? (
     <DashboardEmptyTableView variant={EmptyStateVariant.sm} onClearFilters={onClearFilters} />
   ) : (
     <EmptyState headingLevel="h3" titleText="No roles assigned" variant={EmptyStateVariant.sm}>
       <EmptyStateBody>{emptyStateText}</EmptyStateBody>
     </EmptyState>
   );
+
+  // When the inline add row is open and the table has no rows (often due to filters),
+  // hide the empty state to avoid confusing "No results" messaging while adding.
+  const emptyTableView = footerRow && rows.length === 0 ? undefined : emptyTableViewBase;
 
   return (
     <SubjectRolesTableBase
@@ -167,6 +176,7 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
       rows={rows}
       emptyTableView={emptyTableView}
       onRoleClick={onRoleClick}
+      footerRow={footerRow}
     />
   );
 };

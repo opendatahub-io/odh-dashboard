@@ -81,7 +81,7 @@ export const processMetricsData = (data: MetricsCountResponse): MetricCardItem[]
       title: 'Feature services',
       count: counts.featureServices,
       description:
-        'A feature service is a logical group of features from one or more feature views.',
+        'Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.',
       route: '/develop-train/feature-store/feature-services',
     },
   ];

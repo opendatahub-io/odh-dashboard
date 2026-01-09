@@ -17,7 +17,7 @@ export enum FeatureStoreObject {
 export enum FeatureStoreSections {
   VALUE_TYPE = 'Value type',
   TAGS = 'Tags',
-  INTERACTIVE_EXAMPLE = 'Interactive example',
+  CODE_SNIPPET = 'Code snippet',
   DATA_SOURCE = 'Data source',
   ENTITIES = 'Entities',
   SCHEMA = 'Schema',
