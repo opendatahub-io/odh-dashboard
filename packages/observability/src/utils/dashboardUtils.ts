@@ -1,4 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
+import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
 export const DASHBOARD_QUERY_PARAM = 'dashboard';
@@ -47,3 +48,11 @@ export const buildDashboardUrl = (projectName: string, dashboardName: string): s
  */
 export const getDashboardDisplayName = (dashboard: DashboardResource): string =>
   dashboard.spec.display?.name || dashboard.metadata.name;
+
+/**
+ * Check if a dashboard uses any of the known cluster details variables
+ */
+export const hasClusterDetailsVariables = (dashboard: DashboardResource): boolean => {
+  const { variables = [] } = dashboard.spec;
+  return variables.some((variable) => isClusterDetailsVariable(variable.spec.name));
+};
