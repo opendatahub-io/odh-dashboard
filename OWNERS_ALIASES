@@ -1,4 +1,4 @@
-aliases:
+aliases:https://github.com/ederign/odh-dashboard
   # General group of approvers if specifics areas are not preferred instead
   general-approvers:
     - andrewballantyne
@@ -143,3 +143,4 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
+    - ederign
