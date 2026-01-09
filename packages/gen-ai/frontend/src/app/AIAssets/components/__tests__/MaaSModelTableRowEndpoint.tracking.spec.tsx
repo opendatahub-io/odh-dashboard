@@ -78,6 +78,15 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
 describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenerateMaaSToken.mockReset();
+    mockUseGenerateMaaSToken.mockReturnValue({
+      isGenerating: false,
+      tokenData: { token: 'generated-token-123', expiration: '2099-12-31' },
+      error: null,
+      generateToken: mockGenerateToken,
+      resetToken: mockResetToken,
+    });
+
     // Mock clipboard API
     Object.defineProperty(navigator, 'clipboard', {
       value: {
