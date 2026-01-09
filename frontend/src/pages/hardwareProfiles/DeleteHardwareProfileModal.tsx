@@ -68,7 +68,7 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
           <>
             <StackItem>
               The <b>{getHardwareProfileDisplayName(migrationAction.targetProfile)}</b> legacy
-              legacy hardware profile
+              hardware profile
               {migrationAction.dependentProfiles.length > 0 && (
                 <>
                   , dependent legacy hardware profiles:{' '}
