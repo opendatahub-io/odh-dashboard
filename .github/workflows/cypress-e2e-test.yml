@@ -1,6 +1,7 @@
 name: Cypress e2e Test
 
 # This workflow executes E2E tests on the ODH (Open Data Hub) dash-e2e cluster.
+# PR status is reported via GitHub Status API for visibility on pull requests.
 # It triggers automatically after test.yml completes successfully (via workflow_run).
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
