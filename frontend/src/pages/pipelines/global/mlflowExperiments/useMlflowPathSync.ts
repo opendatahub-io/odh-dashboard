@@ -1,64 +1,82 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  buildMlflowIframeUrl,
-  getIframeHashPath,
-  patchIframeHistory,
-  MLFLOW_PATH_PARAM,
+  buildIframePathQuery,
+  buildParentPathQuery,
+  getIframeHashPathQuery,
   MLFLOW_DEFAULT_PATH,
+  MLFLOW_EXPERIMENTS_ROUTE,
+  normalizePathQuery,
+  patchIframeHistory,
 } from '#~/routes/pipelines/mlflowExperiments';
 
 export const useMlflowPathSync = (
-  iframeRef: React.RefObject<HTMLIFrameElement>,
-): {
-  iframeSrc: string;
-} => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const lastSyncedPath = React.useRef<string | null>(null);
-  const pathParam = searchParams.get(MLFLOW_PATH_PARAM);
-  const currentPath = pathParam || MLFLOW_DEFAULT_PATH;
-  const [iframeSrc, setIframeSrc] = React.useState(() => buildMlflowIframeUrl(currentPath));
+  ref?: React.ForwardedRef<HTMLIFrameElement>,
+): { iframeRef: React.RefCallback<HTMLIFrameElement>; initIframeSrc: string } => {
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+  const parentPathQuery = buildParentPathQuery(pathname, search);
+  const syncLock = React.useRef(false);
+  const internalIframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const iframeRef = React.useCallback(
+    (node: HTMLIFrameElement | null) => {
+      internalIframeRef.current = node;
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        // eslint-disable-next-line no-param-reassign
+        ref.current = node;
+      }
+    },
+    [ref],
+  );
 
+  // Sync parent to iframe
   React.useEffect(() => {
-    const iframe = iframeRef.current;
+    if (!syncLock.current) {
+      const iframe = internalIframeRef.current;
+      if (iframe?.contentWindow) {
+        const iframePathQuery = getIframeHashPathQuery(iframe);
+        const isSynced =
+          normalizePathQuery(iframePathQuery) === normalizePathQuery(parentPathQuery);
+        const isInitialRedirect =
+          iframePathQuery === MLFLOW_DEFAULT_PATH && parentPathQuery.endsWith(MLFLOW_DEFAULT_PATH);
+        if (!isSynced && !isInitialRedirect) {
+          iframe.contentWindow.location.replace(buildIframePathQuery(parentPathQuery));
+        }
+      }
+    } else {
+      syncLock.current = false;
+    }
+  }, [parentPathQuery]);
+
+  // Sync iframe to parent
+  React.useEffect(() => {
+    const iframe = internalIframeRef.current;
     if (!iframe) {
       return undefined;
     }
-    const syncIframeToParent = () => {
-      const path = getIframeHashPath(iframe);
-      if (path && path !== lastSyncedPath.current) {
-        lastSyncedPath.current = path;
-        const newParams = new URLSearchParams(searchParams);
-        if (path === MLFLOW_DEFAULT_PATH) {
-          newParams.delete(MLFLOW_PATH_PARAM);
-        } else {
-          newParams.set(MLFLOW_PATH_PARAM, path);
-        }
-        setSearchParams(newParams, { replace: true });
+    let cleanupPatch: (() => void) | undefined;
+    const syncIframeToParent = (histPush: boolean) => {
+      const iframePath = getIframeHashPathQuery(iframe);
+      if (iframePath && normalizePathQuery(iframePath) !== normalizePathQuery(parentPathQuery)) {
+        syncLock.current = true;
+        navigate(`${MLFLOW_EXPERIMENTS_ROUTE}${iframePath}`, { replace: !histPush });
       }
     };
+
     const onLoad = () => {
-      syncIframeToParent();
-      patchIframeHistory(iframe, syncIframeToParent);
+      syncIframeToParent(false);
+      cleanupPatch?.();
+      cleanupPatch = patchIframeHistory(iframe, syncIframeToParent);
     };
+    cleanupPatch = patchIframeHistory(iframe, syncIframeToParent);
     iframe.addEventListener('load', onLoad);
     return () => {
       iframe.removeEventListener('load', onLoad);
+      cleanupPatch?.();
     };
-  }, [iframeRef, searchParams, setSearchParams]);
+  }, [navigate, parentPathQuery]);
 
-  React.useEffect(() => {
-    if (currentPath !== lastSyncedPath.current) {
-      lastSyncedPath.current = currentPath;
-      const newSrc = buildMlflowIframeUrl(currentPath);
-      setIframeSrc(newSrc);
-
-      const iframe = iframeRef.current;
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.location.replace(newSrc);
-      }
-    }
-  }, [currentPath]);
-
-  return { iframeSrc };
+  return { iframeRef, initIframeSrc: buildIframePathQuery(MLFLOW_DEFAULT_PATH) };
 };

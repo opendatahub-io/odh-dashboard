@@ -179,7 +179,6 @@ const extensions: NavExtension[] = [
       href: '/develop-train/experiments-mlflow',
       section: 'develop-and-train',
       path: '/develop-train/experiments-mlflow/*',
-      replaceWhenActive: true,
     },
   },
 

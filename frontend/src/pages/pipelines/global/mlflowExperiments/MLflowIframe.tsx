@@ -2,14 +2,13 @@ import * as React from 'react';
 import { useMlflowPathSync } from './useMlflowPathSync';
 
 const MlflowIframe = React.forwardRef<HTMLIFrameElement>((_, ref) => {
-  const internalRef = React.useRef<HTMLIFrameElement>(null);
-  const iframeRef = ref && 'current' in ref ? ref : internalRef;
-  const { iframeSrc } = useMlflowPathSync(iframeRef);
+  const { iframeRef, initIframeSrc } = useMlflowPathSync(ref);
+
   return (
     <iframe
       ref={iframeRef}
       title="MLflow Experiments Interface"
-      src={iframeSrc}
+      src={initIframeSrc}
       data-testid="mlflow-iframe"
       style={{
         width: '100%',

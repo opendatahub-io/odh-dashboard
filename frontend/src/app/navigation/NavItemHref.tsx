@@ -17,22 +17,12 @@ type Props = {
 
 export const NavItemHref: React.FC<Props> = ({
   extension: {
-    properties: {
-      href,
-      path,
-      dataAttributes,
-      title,
-      statusProviderId,
-      iconRef,
-      label,
-      replaceWhenActive,
-    },
+    properties: { href, path, dataAttributes, title, statusProviderId, iconRef, label },
   },
   onNotifyStatus,
 }) => {
   const [status, setStatus] = React.useState<StatusReport | undefined>(undefined);
   const isMatch = !!useMatch(path ?? href);
-  const shouldReplace = replaceWhenActive && isMatch;
 
   React.useEffect(
     () => () => {
@@ -46,7 +36,7 @@ export const NavItemHref: React.FC<Props> = ({
   return (
     <>
       <NavItem isActive={isMatch}>
-        <Link {...dataAttributes} to={href} replace={shouldReplace}>
+        <Link {...dataAttributes} to={href}>
           <NavItemTitle
             title={title}
             navIcon={iconRef ? <NavIcon componentRef={iconRef} /> : null}
