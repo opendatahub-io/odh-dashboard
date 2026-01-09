@@ -23,19 +23,23 @@ jest.mock('@patternfly/react-core', () => {
       'data-testid': dataTestId,
     }: {
       children: string;
-      onCopy?: (text: string, event: React.MouseEvent) => void;
+      onCopy?: (event: React.ClipboardEvent<HTMLDivElement>, text?: React.ReactNode) => void;
       'data-testid'?: string;
     }) => {
       const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         // Simulate successful clipboard write
         if (onCopy) {
-          onCopy('', e);
+          onCopy(e as unknown as React.ClipboardEvent<HTMLDivElement>, children);
         }
       };
       return (
         <div data-testid={dataTestId}>
           <input readOnly value={children} />
-          <button aria-label="Copy to clipboard" onClick={handleClick}>
+          <button
+            aria-label="Copy to clipboard"
+            onClick={handleClick}
+            data-testid={dataTestId ? `${dataTestId}-copy-button` : undefined}
+          >
             Copy
           </button>
         </div>
@@ -97,19 +101,9 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       // Wait for token to appear
       await screen.findByDisplayValue('generated-token-123');
 
-      // Find the copy button inside the token ClipboardCopy component
-      const tokenCopyContainer = screen.getByTestId('maas-token-copy');
-      const tokenCopyButton = tokenCopyContainer.querySelector(
-        'button[aria-label="Copy to clipboard"]',
-      );
-
-      // Click and wait for async clipboard operation
-      await user.click(tokenCopyButton!);
-
-      // Flush all promises to ensure clipboard write completes
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 0);
-      });
+      // Find and click the copy button
+      const tokenCopyButton = screen.getByTestId('maas-token-copy-copy-button');
+      await user.click(tokenCopyButton);
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
@@ -134,11 +128,8 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       await screen.findByDisplayValue('generated-token-123');
 
       // Click copy button - should trigger tracking
-      const tokenCopyContainer = screen.getByTestId('maas-token-copy');
-      const tokenCopyButton = tokenCopyContainer.querySelector(
-        'button[aria-label="Copy to clipboard"]',
-      );
-      await user.click(tokenCopyButton!);
+      const tokenCopyButton = screen.getByTestId('maas-token-copy-copy-button');
+      await user.click(tokenCopyButton);
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
@@ -204,11 +195,8 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       await user.click(viewButton);
 
       // Copy the URL using the endpoint copy button
-      const urlCopyContainer = screen.getByTestId('maas-endpoint-copy');
-      const urlCopyButton = urlCopyContainer.querySelector(
-        'button[aria-label="Copy to clipboard"]',
-      );
-      await user.click(urlCopyButton!);
+      const urlCopyButton = screen.getByTestId('maas-endpoint-copy-copy-button');
+      await user.click(urlCopyButton);
 
       // Should fire Endpoint_Copied but not Service_Token_Copied
       await waitFor(() => {

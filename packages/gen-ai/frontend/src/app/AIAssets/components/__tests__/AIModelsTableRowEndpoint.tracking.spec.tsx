@@ -12,6 +12,43 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+// Mock ClipboardCopy to add data-testid to button
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    ClipboardCopy: ({
+      children,
+      onCopy,
+      'data-testid': dataTestId,
+      ...props
+    }: {
+      children: string;
+      onCopy?: (event: React.ClipboardEvent<HTMLDivElement>, text?: React.ReactNode) => void;
+      'data-testid'?: string;
+      [key: string]: unknown;
+    }) => {
+      const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (onCopy) {
+          onCopy(e as unknown as React.ClipboardEvent<HTMLDivElement>, children);
+        }
+      };
+      return (
+        <div data-testid={dataTestId}>
+          <input readOnly value={children} />
+          <button
+            aria-label={(props['aria-label'] as string) || 'Copy to clipboard'}
+            onClick={handleClick}
+            data-testid={dataTestId ? `${dataTestId}-copy-button` : undefined}
+          >
+            Copy
+          </button>
+        </div>
+      );
+    },
+  };
+});
+
 const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   model_name: 'test-model',
   model_id: 'test-model-id',
@@ -49,7 +86,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(viewButton);
 
       // Find and click the copy button for the URL
-      const copyButton = screen.getByRole('button', { name: /Copy URL/i });
+      const copyButton = screen.getByTestId('copy-endpoint-button-copy-button');
       await user.click(copyButton);
 
       await waitFor(() => {
@@ -72,7 +109,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       const viewButton = screen.getByText('View URL');
       await user.click(viewButton);
 
-      const copyButton = screen.getByRole('button', { name: /Copy URL/i });
+      const copyButton = screen.getByTestId('copy-endpoint-button-copy-button');
       await user.click(copyButton);
 
       await waitFor(() => {
@@ -94,7 +131,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       const viewButton = screen.getByText('View URL');
       await user.click(viewButton);
 
-      const copyButton = screen.getByRole('button', { name: /Copy URL/i });
+      const copyButton = screen.getByTestId('copy-endpoint-button-copy-button');
       await user.click(copyButton);
 
       await waitFor(() => {
@@ -124,10 +161,10 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       // Wait for popover to open and find the token input first
       await screen.findByDisplayValue('test-token-123');
 
-      // Find all copy buttons and get the one associated with the token (second one)
-      const copyButtons = screen.getAllByRole('button', { name: /Copy/i });
-      // The token copy button should be the last one (after URL copy button)
-      const tokenCopyButton = copyButtons[copyButtons.length - 1];
+      // Get token copy button by test ID
+      // Use specific test IDs instead of positional indexing
+      // Get token copy button by test ID
+      const tokenCopyButton = screen.getByTestId('copy-token-button-copy-button');
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
@@ -155,7 +192,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(viewButton);
 
       // Copy URL
-      const urlCopyButton = screen.getByRole('button', { name: /Copy URL/i });
+      const urlCopyButton = screen.getByTestId('copy-endpoint-button-copy-button');
       await user.click(urlCopyButton);
 
       await waitFor(() => {
@@ -167,8 +204,8 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       });
 
       // Copy token - get the last copy button (after URL copy button)
-      const copyButtonsForToken = screen.getAllByRole('button', { name: /Copy/i });
-      const tokenCopyButton = copyButtonsForToken[copyButtonsForToken.length - 1];
+      // Get token copy button by test ID
+      const tokenCopyButton = screen.getByTestId('copy-token-button-copy-button');
       await user.click(tokenCopyButton);
 
       await waitFor(() => {

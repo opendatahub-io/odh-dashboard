@@ -54,6 +54,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
               </FlexItem>
               <FlexItem>
                 <ClipboardCopy
+                  data-testid="copy-endpoint-button"
                   hoverTip="Copy URL"
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
@@ -80,6 +81,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                 </FlexItem>
                 <FlexItem>
                   <ClipboardCopy
+                    data-testid="copy-token-button"
                     hoverTip="Copy"
                     clickTip="Copied"
                     aria-label={`External endpoint API token for ${model.model_name}`}
