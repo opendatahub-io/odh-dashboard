@@ -56,7 +56,7 @@ jest.mock('~/app/hooks/useGenerateMaaSToken', () => ({
   __esModule: true,
   default: jest.fn(() => ({
     isGenerating: false,
-    tokenData: { token: 'generated-token-123', expiration: '2024-12-31' },
+    tokenData: { token: 'generated-token-123', expiresAt: Date.now() },
     error: null,
     generateToken: mockGenerateToken,
     resetToken: mockResetToken,
@@ -81,7 +81,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
     mockUseGenerateMaaSToken.mockReset();
     mockUseGenerateMaaSToken.mockReturnValue({
       isGenerating: false,
-      tokenData: { token: 'generated-token-123', expiration: '2099-12-31' },
+      tokenData: { token: 'generated-token-123', expiresAt: Date.now() },
       error: null,
       generateToken: mockGenerateToken,
       resetToken: mockResetToken,
