@@ -13,6 +13,21 @@ class ModelTrainingGlobal {
     }
   }
 
+  navigate() {
+    // Wait for the sidebar to be visible and ready
+    appChrome.findSideBar().should('be.visible');
+    appChrome.findMainContent().should('be.visible');
+
+    appChrome
+      .findNavItem({
+        name: 'Training jobs',
+        rootSection: 'Develop & train',
+      })
+      .click();
+
+    this.wait();
+  }
+
   private wait() {
     this.findAppPage();
     cy.testA11y();
@@ -35,7 +50,7 @@ class ModelTrainingGlobal {
   }
 
   findProjectSelectorToggle() {
-    return cy.findByTestId('project-selector-dropdown-toggle');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   selectProject(projectName: string) {
@@ -95,6 +110,10 @@ class TrainingJobTable {
   shouldBeEmpty() {
     this.findEmptyResults().should('exist');
     return this;
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-state-body');
   }
 }
 
