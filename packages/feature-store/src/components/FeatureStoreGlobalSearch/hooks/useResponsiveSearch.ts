@@ -14,8 +14,8 @@ export const useResponsiveSearch = (
 
   const searchInputStyle = React.useMemo(
     () => ({
-      width: isSmallScreen ? '100%' : isDetailsPage ? '35ch' : '25ch',
-      maxWidth: isSmallScreen ? '100%' : isDetailsPage ? '35ch' : '25ch',
+      width: isSmallScreen ? '100%' : isDetailsPage ? '48ch' : '28ch',
+      maxWidth: isSmallScreen ? '100%' : isDetailsPage ? '48ch' : '28ch',
     }),
     [isSmallScreen, isDetailsPage],
   );

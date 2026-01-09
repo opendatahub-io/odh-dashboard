@@ -29,8 +29,8 @@ const FeatureStorePageTitle: React.FC<FeatureStorePageTitleProps> = ({
     return (
       <GlobalSearchInput
         data={convertedSearchData}
-        placeholder="Search resources by name or description."
-        ariaLabel="Search resources by name or description."
+        placeholder="Search by name, description, or tag (Example: team=platform)"
+        ariaLabel="Search by name, description, or tag (Example: team=platform)"
         isLoading={isSearching}
         isLoadingMore={isLoadingMore}
         hasMorePages={hasMorePages}

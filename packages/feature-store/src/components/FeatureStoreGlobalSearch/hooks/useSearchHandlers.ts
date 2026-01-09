@@ -11,6 +11,7 @@ export interface ISearchItem {
   type: string;
   project: string;
   featureView?: string;
+  matched_tag?: Record<string, string>;
 }
 
 export interface UseSearchHandlersOptions {
