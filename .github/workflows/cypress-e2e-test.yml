@@ -23,13 +23,31 @@ permissions:
   contents: read
   pull-requests: write
   actions: read
+  statuses: write
 
 env:
   NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
 
 jobs:
+  # Set pending status on PR
+  set-pending-status:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set E2E pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          gh api repos/${{ github.repository }}/statuses/$SHA \
+            -f state=pending \
+            -f context="Cypress E2E Tests" \
+            -f description="E2E tests running on dash-e2e-odh cluster" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
   get-test-tags:
+    needs: [set-pending-status]
     # Only run if test.yml succeeded for a pull_request (or manual trigger) events.
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: self-hosted
@@ -45,7 +63,7 @@ jobs:
           echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
   e2e-tests:
-    needs: [get-test-tags]
+    needs: [set-pending-status, get-test-tags]
     runs-on: self-hosted
     timeout-minutes: 30
     strategy:
@@ -387,10 +405,43 @@ jobs:
           echo "📊 Test artifacts uploaded to:"
           echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
+  # Update status on PR commit with final E2E test result
+  set-final-status:
+    needs: [set-pending-status, e2e-tests]
+    runs-on: ubuntu-latest
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
+    steps:
+      - name: Set E2E final status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          RESULT="${{ needs.e2e-tests.result }}"
+          
+          if [ "$RESULT" = "success" ]; then
+            STATE="success"
+            DESC="All E2E tests passed"
+          elif [ "$RESULT" = "cancelled" ]; then
+            STATE="error"
+            DESC="E2E tests were cancelled"
+          elif [ "$RESULT" = "skipped" ]; then
+            echo "E2E tests were skipped - not posting status"
+            exit 0
+          else
+            STATE="failure"
+            DESC="E2E tests failed"
+          fi
+          
+          gh api repos/${{ github.repository }}/statuses/$SHA \
+            -f state=$STATE \
+            -f context="Cypress E2E Tests" \
+            -f description="$DESC" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
   cleanup-server:
     needs: [e2e-tests]
     runs-on: self-hosted
-    if: ${{ always() }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
       - name: Stop Cypress Servers
         run: |

@@ -15,6 +15,7 @@ aliases:
     - YuliaKrimerman
     - manaswinidas
     - jrenee42
+    - ederign
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
@@ -130,6 +131,7 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
+    - ederign
   gen-ai-reviewers:
     - agagancarczyk
     - ikeola13
@@ -141,3 +143,4 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
+    - ederign

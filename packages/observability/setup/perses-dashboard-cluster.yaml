@@ -15,6 +15,35 @@ spec:
           name: Namespace
           hidden: true  # Hide from Perses UI since we use our own selector
         value: ".*"  # Default: match all namespaces
+    # Cluster details variables - set by ClusterDetailsVariablesProvider
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_API_SERVER
+        display:
+          name: API Server
+          hidden: true
+        value: ""
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_CHANNEL
+        display:
+          name: Channel
+          hidden: true
+        value: ""
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_OPENSHIFT_VERSION
+        display:
+          name: OpenShift Version
+          hidden: true
+        value: ""
+    - kind: TextVariable
+      spec:
+        name: CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER
+        display:
+          name: Infrastructure Provider
+          hidden: true
+        value: ""
   panels:
     # Overview Stats
     systemHealth:
@@ -31,11 +60,11 @@ spec:
               unit: percent-decimal
             thresholds:
               steps:
-                - color: green
+                - color: red
                   value: 0
                 - color: orange
                   value: 0.9
-                - color: red
+                - color: green
                   value: 0.99
         queries:
           - kind: TimeSeriesQuery
@@ -45,6 +74,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
+                  # Healthy nodes / Total nodes
                   query: count(max by (node) (kube_node_status_condition{condition="Ready",status="true"} == 1)) / count(max by (node) (kube_node_status_condition{condition="Ready",status="true"}))
                   seriesNameFormat: System Health
     activeModels:
@@ -131,8 +161,8 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  # API server request success rate (2xx responses)
-                  query: 1 - (sum(inference_model_request_error_total) / sum(inference_model_request_total))
+                  # Request success rate using rate() for recent window
+                  query: 1 - (sum(rate(inference_model_request_error_total[$__rate_interval])) / sum(rate(inference_model_request_total[$__rate_interval])))
                   seriesNameFormat: Success Rate
     # Cluster-wide Utilizations - Area Charts
     gpuUtilizationArea:
@@ -165,7 +195,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: avg(DCGM_FI_DEV_GPU_UTIL) / 100
+                  query: avg(accelerator_gpu_utilization)
                   seriesNameFormat: GPU Utilization
     memoryUtilizationArea:
       kind: Panel
@@ -251,7 +281,7 @@ spec:
               lineWidth: 1.5
             yAxis:
               format:
-                unit: decimal
+                unit: bytes
               min: 0
         queries:
           - kind: TimeSeriesQuery
@@ -261,8 +291,9 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum(rate(container_network_receive_bytes_total[5m])) / 1000000
-                  seriesNameFormat: Network In (Mbps)
+                  # Network receive rate in bytes/second
+                  query: sum(rate(container_network_receive_bytes_total[$__rate_interval]))
+                  seriesNameFormat: Network
     # Resource Usage by Project - Stacked Area Charts
     gpuUsageByProject:
       kind: Panel
@@ -295,7 +326,7 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: sum by (namespace) (DCGM_FI_DEV_GPU_UTIL{namespace=~"$namespace"}) / 100
+                  query: avg by (namespace) (accelerator_gpu_utilization{namespace=~"$namespace"})
                   seriesNameFormat: "{{namespace}}"
     cpuUsageByProject:
       kind: Panel
@@ -370,30 +401,35 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Cluster Information
-          description: Static cluster configuration details
+          name: View technical configuration and infrastructure details
         plugin:
           kind: Markdown
           spec:
             text: |
               **Provider**
 
-              ${PROVIDER}
-
-              **OpenShift Version**
-
-              ${OC_VERSION}
-
-              **Channel**
-
-              ${CHANNEL}
-
-              **API Server**
-
-              ${API_SERVER}
+              ${CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER}
 
               <br>
 
+              **OpenShift Version**
+
+              ${CLUSTER_DETAILS_OPENSHIFT_VERSION}
+
+              <br>
+
+              **Channel**
+
+              ${CLUSTER_DETAILS_CHANNEL}
+
+              <br>
+
+              **API Server**
+
+              ${CLUSTER_DETAILS_API_SERVER}
+
+              <br>
+              
               [View Settings](/settings/cluster/general)
   layouts:
     # Overview Section - Stats Row
@@ -497,6 +533,6 @@ spec:
           - x: 0
             'y': 0
             width: 24
-            height: 9
+            height: 11
             content:
               '$ref': '#/spec/panels/clusterDetails'
