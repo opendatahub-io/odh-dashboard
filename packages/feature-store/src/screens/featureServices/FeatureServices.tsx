@@ -33,7 +33,7 @@ const FeatureServices = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a feature services in a workbench.
+        Select a different feature store or create a feature service in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

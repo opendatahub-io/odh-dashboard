@@ -36,8 +36,7 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
           <br />
           <br />
           In a project with the required permission, create or edit a workbench and select the
-          desired feature store in the Connected feature stores field. or edit a workbench and
-          select the desired feature store in the <strong>Connected feature stores</strong> field.
+          desired feature store in the <strong>Connected feature stores</strong> field.
         </p>
       </StackItem>
       <StackItem>{footerContent}</StackItem>

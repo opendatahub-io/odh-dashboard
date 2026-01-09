@@ -32,7 +32,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a entities in a workbench.
+        Select a different feature store or create a entity in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );
