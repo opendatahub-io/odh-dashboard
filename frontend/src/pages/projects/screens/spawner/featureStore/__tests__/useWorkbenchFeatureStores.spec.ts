@@ -176,4 +176,115 @@ describe('useWorkbenchFeatureStores', () => {
     expect(creditScoring?.hasAccessToFeatureStore).toBe(true);
     expect(fraudDetect?.hasAccessToFeatureStore).toBe(false);
   });
+
+  it('should throw error when namespaces is not an array', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({ namespaces: null as unknown as [] });
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+
+    await expect(callbackArg()).rejects.toThrow('Failed to load feature stores');
+  });
+
+  it('should throw error when namespaces is undefined', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({ namespaces: undefined as unknown as [] });
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+
+    await expect(callbackArg()).rejects.toThrow('Failed to load feature stores');
+  });
+
+  it('should handle namespace with missing clientConfigs array', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({
+      namespaces: [
+        {
+          namespace: 'test-namespace',
+          clientConfigs: null as unknown as [],
+        },
+      ],
+    });
+    mockUseFetch.mockReturnValue(
+      standardUseFetchStateObject({
+        data: [],
+        loaded: true,
+      }),
+    );
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const result = await callbackArg();
+
+    expect(result).toStrictEqual([]);
+  });
+
+  it('should handle namespace with undefined clientConfigs', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({
+      namespaces: [
+        {
+          namespace: 'test-namespace',
+          clientConfigs: undefined as unknown as [],
+        },
+      ],
+    });
+    mockUseFetch.mockReturnValue(
+      standardUseFetchStateObject({
+        data: [],
+        loaded: true,
+      }),
+    );
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const result = await callbackArg();
+
+    expect(result).toStrictEqual([]);
+  });
+
+  it('should filter out namespaces with non-array clientConfigs and process valid ones', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({
+      namespaces: [
+        {
+          namespace: 'valid-namespace',
+          clientConfigs: [
+            {
+              configName: 'valid-config',
+              projectName: 'valid_project',
+              hasAccessToFeatureStore: true,
+            },
+          ],
+        },
+        {
+          namespace: 'invalid-namespace',
+          clientConfigs: null as unknown as [],
+        },
+      ],
+    });
+    mockUseFetch.mockReturnValue(
+      standardUseFetchStateObject({
+        data: [
+          {
+            namespace: 'valid-namespace',
+            configName: 'valid-config',
+            projectName: 'valid_project',
+            configMap: null,
+            hasAccessToFeatureStore: true,
+          },
+        ],
+        loaded: true,
+      }),
+    );
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const result = await callbackArg();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      namespace: 'valid-namespace',
+      configName: 'valid-config',
+      projectName: 'valid_project',
+      hasAccessToFeatureStore: true,
+    });
+  });
 });
