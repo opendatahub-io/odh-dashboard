@@ -21,7 +21,7 @@ const DEFAULT_CLUSTER_SETTINGS = {
     kServe: true,
     LLMd: true,
   },
-  useDistributedInferencingByDefault: true,
+  isDistributedInferencingDefault: true,
 } satisfies ClusterSettings;
 
 export const updateClusterSettings = async (
@@ -37,7 +37,7 @@ export const updateClusterSettings = async (
     cullerTimeout,
     userTrackingEnabled,
     modelServingPlatformEnabled,
-    useDistributedInferencingByDefault,
+    isDistributedInferencingDefault,
     defaultDeploymentStrategy,
   } = request.body;
   const dashConfig = getDashboardConfig(request);
@@ -63,13 +63,13 @@ export const updateClusterSettings = async (
     }
 
     if (
-      useDistributedInferencingByDefault !== undefined &&
-      useDistributedInferencingByDefault !== dashConfig.spec.modelServing?.isLLMdDefault
+      isDistributedInferencingDefault !== undefined &&
+      isDistributedInferencingDefault !== dashConfig.spec.modelServing?.isLLMdDefault
     ) {
       await setDashboardConfig(fastify, {
         spec: {
           modelServing: {
-            isLLMdDefault: useDistributedInferencingByDefault,
+            isLLMdDefault: isDistributedInferencingDefault,
           },
         },
       });
@@ -162,7 +162,7 @@ export const getClusterSettings = async (
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
       LLMd: !dashConfig.spec.dashboardConfig.disableLLMd,
     },
-    useDistributedInferencingByDefault: dashConfig.spec.modelServing?.isLLMdDefault,
+    isDistributedInferencingDefault: dashConfig.spec.modelServing?.isLLMdDefault,
     defaultDeploymentStrategy: dashConfig.spec.modelServing?.deploymentStrategy,
   };
 

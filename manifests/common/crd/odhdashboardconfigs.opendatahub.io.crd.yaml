@@ -112,6 +112,7 @@ spec:
                     trainingJobs:
                       type: boolean
                     observabilityDashboard:
+                      type: boolean
                     disableLLMd:
                       type: boolean
                   x-kubernetes-validations:

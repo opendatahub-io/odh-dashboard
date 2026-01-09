@@ -22,16 +22,16 @@ type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
   enabledPlatforms: ModelServingPlatformEnabled;
   setEnabledPlatforms: (platforms: ModelServingPlatformEnabled) => void;
-  useDistributedInferencingByDefault: boolean;
-  setUseDistributedInferencingByDefault: (value: boolean) => void;
+  isDistributedInferencingDefault: boolean;
+  setisDistributedInferencingDefault: (value: boolean) => void;
 };
 
 const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> = ({
   initialValue,
   enabledPlatforms,
   setEnabledPlatforms,
-  useDistributedInferencingByDefault,
-  setUseDistributedInferencingByDefault,
+  isDistributedInferencingDefault,
+  setisDistributedInferencingDefault,
 }) => {
   const [alert, setAlert] = React.useState<{ variant: AlertVariant; message: string }>();
   const {
@@ -74,12 +74,18 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             const newEnabledPlatforms: ModelServingPlatformEnabled = {
               ...enabledPlatforms,
               kServe: enabled,
-              LLMd: enabled ? enabledPlatforms.LLMd : false,
+              // If model serving is enabled, enable LLMd, otherwise disable it
+              LLMd: !!enabled,
             };
             setEnabledPlatforms(newEnabledPlatforms);
-            if (!enabled) {
-              // If model serving is disabled, disable LLMd and useDistributedInferencing
-              setUseDistributedInferencingByDefault(false);
+            // If model serving is disabled, disable LLMd and useDistributedInferencing
+            switch (enabled) {
+              case true:
+                setisDistributedInferencingDefault(true);
+                break;
+              case false:
+                setisDistributedInferencingDefault(false);
+                break;
             }
           }}
           aria-label="Single-model serving platform enabled switch"
@@ -138,10 +144,10 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             // If LLMd is disabled, disable useDistributedInferencing
             switch (_checked) {
               case true:
-                setUseDistributedInferencingByDefault(true);
+                setisDistributedInferencingDefault(true);
                 break;
               case false:
-                setUseDistributedInferencingByDefault(false);
+                setisDistributedInferencingDefault(false);
                 break;
             }
           }}
@@ -174,8 +180,8 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
         <Switch
           id="use-distributed-llm-default-switch"
           label="Use distributed inference with llm-d by default when deploying generative models"
-          isChecked={useDistributedInferencingByDefault && llmdEnabled}
-          onChange={(_event, checked) => setUseDistributedInferencingByDefault(checked)}
+          isChecked={isDistributedInferencingDefault && llmdEnabled}
+          onChange={(_event, checked) => setisDistributedInferencingDefault(checked)}
           data-testid="use-distributed-llm-default-switch"
           isDisabled={!llmdEnabled}
         />

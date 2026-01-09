@@ -106,7 +106,7 @@ export type ClusterSettings = {
     kServe: boolean;
     LLMd: boolean;
   };
-  useDistributedInferencingByDefault?: boolean;
+  isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
 };
 

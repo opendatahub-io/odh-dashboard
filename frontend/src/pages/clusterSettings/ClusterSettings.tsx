@@ -31,8 +31,9 @@ const ClusterSettings: React.FC = () => {
   const [pvcSize, setPvcSize] = React.useState<number>(DEFAULT_PVC_SIZE);
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
-  const [useDistributedInferencingByDefault, setUseDistributedInferencingByDefault] =
-    React.useState(clusterSettings.useDistributedInferencingByDefault);
+  const [isDistributedInferencingDefault, setisDistributedInferencingDefault] = React.useState(
+    clusterSettings.isDistributedInferencingDefault,
+  );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   const { dashboardConfig } = useAppContext();
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
@@ -58,9 +59,7 @@ const ClusterSettings: React.FC = () => {
         setCullerTimeout(normalizedSettings.cullerTimeout);
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
-        setUseDistributedInferencingByDefault(
-          normalizedSettings.useDistributedInferencingByDefault,
-        );
+        setisDistributedInferencingDefault(normalizedSettings.isDistributedInferencingDefault);
         setDefaultDeploymentStrategy(deploymentStrategy);
         setLoaded(true);
         setLoadError(undefined);
@@ -77,7 +76,7 @@ const ClusterSettings: React.FC = () => {
         cullerTimeout,
         userTrackingEnabled,
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
-        useDistributedInferencingByDefault,
+        isDistributedInferencingDefault,
         defaultDeploymentStrategy,
       }),
     [
@@ -86,7 +85,7 @@ const ClusterSettings: React.FC = () => {
       cullerTimeout,
       userTrackingEnabled,
       modelServingEnabledPlatforms,
-      useDistributedInferencingByDefault,
+      isDistributedInferencingDefault,
       defaultDeploymentStrategy,
     ],
   );
@@ -97,7 +96,7 @@ const ClusterSettings: React.FC = () => {
       cullerTimeout,
       userTrackingEnabled,
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
-      useDistributedInferencingByDefault,
+      isDistributedInferencingDefault,
       defaultDeploymentStrategy,
     };
 
@@ -122,7 +121,7 @@ const ClusterSettings: React.FC = () => {
         cullerTimeout,
         userTrackingEnabled,
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
-        useDistributedInferencingByDefault,
+        isDistributedInferencingDefault,
         defaultDeploymentStrategy,
       });
 
@@ -176,8 +175,8 @@ const ClusterSettings: React.FC = () => {
                   initialValue={clusterSettings.modelServingPlatformEnabled}
                   enabledPlatforms={modelServingEnabledPlatforms}
                   setEnabledPlatforms={setModelServingEnabledPlatforms}
-                  useDistributedInferencingByDefault={useDistributedInferencingByDefault ?? false}
-                  setUseDistributedInferencingByDefault={setUseDistributedInferencingByDefault}
+                  isDistributedInferencingDefault={isDistributedInferencingDefault ?? false}
+                  setisDistributedInferencingDefault={setisDistributedInferencingDefault}
                 />
               </StackItem>
               <StackItem>

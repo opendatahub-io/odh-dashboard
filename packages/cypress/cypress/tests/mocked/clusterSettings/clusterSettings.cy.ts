@@ -62,14 +62,9 @@ describe('Cluster Settings', () => {
     modelDeploymentSettings.findDistributedInferencing().should('be.disabled');
     modelServingSettings.findAlert().should('exist');
 
-    // reenable model serving and llmd
+    // reenable model serving (automatically enables llmd and distributed inferencing)
     modelServingSettings.findSinglePlatformSwitch().click({ force: true });
-    modelServingSettings.findEnableLLMdSwitch().should('not.be.disabled');
-    // if llmd is unchecked, distributed inferencing should still be disabled
-    modelDeploymentSettings.findDistributedInferencing().should('be.disabled');
 
-    // enable llmd -> automatically enables distributed inferencing
-    modelServingSettings.findEnableLLMdSwitch().click({ force: true });
     modelServingSettings.findEnableLLMdSwitch().should('be.checked');
     modelDeploymentSettings.findDistributedInferencing().should('not.be.disabled');
     modelDeploymentSettings.findDistributedInferencing().should('be.checked');
