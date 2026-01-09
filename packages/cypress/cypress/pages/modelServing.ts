@@ -1025,6 +1025,10 @@ class ModelServingWizard extends Wizard {
     return cy.get('body').contains('Project-scoped serving runtimes');
   }
 
+  selectGlobalScopedTemplateOption(name: string) {
+    return this.findGlobalScopedTemplateOption(name).should('exist').click({ force: true });
+  }
+
   findProjectScopedLabel() {
     return cy.findByTestId('project-scoped-serving-runtime-template-label');
   }

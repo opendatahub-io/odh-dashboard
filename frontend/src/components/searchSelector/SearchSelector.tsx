@@ -41,6 +41,7 @@ type SearchSelectorProps = {
   searchValue: string;
   toggleContent: React.ReactNode | string;
   toggleVariant?: React.ComponentProps<typeof MenuToggle>['variant'];
+  appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
 };
 
 const SearchSelector: React.FC<SearchSelectorProps> = ({
@@ -58,12 +59,13 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   searchValue,
   toggleContent,
   toggleVariant,
+  appendTo = 'inline',
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
-  const popperProps = { minWidth, maxWidth: 'trigger' };
+  const popperProps = { minWidth, maxWidth: 'trigger', appendTo };
 
   return (
     <MenuContainer
