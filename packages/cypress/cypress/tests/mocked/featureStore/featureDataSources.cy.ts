@@ -283,10 +283,7 @@ describe('Feature Data Sources for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitDataSources();
     featureDataSourcesTable.findTable().should('be.visible');
-    featureDataSourcesTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureDataSourcesTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureDataSourcesTable.findRow('loan_data').shouldHaveProject(fsProjectName);
     featureDataSourcesTable.findRow('transaction_data').shouldHaveProject(fsProjectName2);
   });
