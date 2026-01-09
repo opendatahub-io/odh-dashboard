@@ -183,6 +183,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     ],
   );
 
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       {isExitModalOpen && (
