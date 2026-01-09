@@ -268,10 +268,7 @@ describe('Feature Entities for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitEntities();
     featureEntitiesTable.findTable().should('be.visible');
-    featureEntitiesTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureEntitiesTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureEntitiesTable.findRow('user_id').shouldHaveProject(fsProjectName);
     featureEntitiesTable.findRow('transaction_id').shouldHaveProject(fsProjectName2);
   });
