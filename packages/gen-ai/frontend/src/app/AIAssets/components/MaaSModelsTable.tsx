@@ -10,6 +10,7 @@ import {
 } from '~/app/AIAssets/data/filterOptions';
 import MaaSModelTableRow from './MaaSModelTableRow';
 import ModelsListToolbar from './ModelsListToolbar';
+import TierInfoPopover from './TierInfoPopover';
 
 type MaaSModelsTableProps = {
   maasModels: MaaSModel[];
@@ -51,6 +52,7 @@ const MaaSModelsTable: React.FC<MaaSModelsTableProps> = ({
           filterData={filterData}
           filterOptions={maasFilterOptions}
           filterColors={maasFilterColors}
+          infoPopover={<TierInfoPopover />}
           onClearFilters={onClearFilters}
         />
       }
