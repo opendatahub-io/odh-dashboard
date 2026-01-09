@@ -46,83 +46,48 @@ export const useModelLocationData = (
   projectName?: string,
   existingData?: ModelLocationData,
 ): ModelLocationDataField => {
-  const [modelLocationData, setModelLocationData] = React.useState<ModelLocationData | undefined>(
-    existingData,
-  );
+  // Gets all connection types, even disabled ones
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
   const [connections, connectionsLoaded] = useServingConnections(projectName, true, false);
 
-  const [isStableState, setIsStableState] = React.useState(
-    connectionTypesLoaded && connectionsLoaded,
-  );
-  const [prefillApplied, setPrefillApplied] = React.useState(false);
-  const fetchConnectionData = async (existingLocationData: ModelLocationData) => {
-    if (existingLocationData.type === ModelLocationType.PVC) {
-      setIsStableState(true);
-      setPrefillApplied(true);
-      return;
-    }
-    if (existingLocationData.type === ModelLocationType.NEW) {
-      setIsStableState(true);
-      setPrefillApplied(true);
-      return;
-    }
+  const [draftModelLocationData, setDraftModelLocationData] = React.useState<
+    ModelLocationData | undefined
+  >(undefined);
 
-    setIsStableState(false);
-    try {
-      const connectionName = existingLocationData.connection;
-      if (!connectionName) {
-        return;
-      }
-
-      if (
-        modelLocationData?.type === ModelLocationType.EXISTING &&
-        modelLocationData.connection !== connectionName
-      ) {
-        setIsStableState(true);
-        return;
-      }
-
-      const secret = connections.find((c) => c.metadata.name === existingLocationData.connection);
-      if (!secret) {
-        return;
-      }
-
-      const connectionType = resolveConnectionType(secret, connectionTypes);
-      const values = parseConnectionSecretValues(secret, connectionType);
-      const isGeneratedSecret = isGeneratedSecretName(secret.metadata.name);
-      const hasOwnerRef = !!secret.metadata.ownerReferences?.length || isGeneratedSecret;
-
-      const newState = {
-        type: hasOwnerRef ? ModelLocationType.NEW : ModelLocationType.EXISTING,
-        fieldValues: values,
-        connectionTypeObject: connectionType,
-        additionalFields: existingLocationData.additionalFields,
-        connection: connectionName.toString(),
-      };
-
-      setModelLocationData(newState);
-      setPrefillApplied(true);
-    } catch (e) {
-      console.error('Failed to fetch secret data:', e);
-    } finally {
-      setIsStableState(true);
-    }
-  };
-
-  React.useEffect(() => {
-    if (!projectName || !connectionsLoaded || !connectionTypesLoaded) {
-      return;
-    }
-    if (prefillApplied) return;
+  const prefilledModelLocationData = React.useMemo<ModelLocationData | undefined>(() => {
     if (!existingData) {
-      // new deployment
-      setIsStableState(true);
-      setPrefillApplied(true);
-      return;
+      return undefined;
+    }
+    if (!projectName || !connectionsLoaded || !connectionTypesLoaded) {
+      return existingData;
     }
 
-    fetchConnectionData(existingData);
+    if (existingData.type !== ModelLocationType.EXISTING) {
+      return existingData;
+    }
+
+    const connectionName = existingData.connection;
+    if (!connectionName) {
+      return existingData;
+    }
+
+    const secret = connections.find((c) => c.metadata.name === connectionName);
+    if (!secret) {
+      return existingData;
+    }
+
+    const connectionType = resolveConnectionType(secret, connectionTypes);
+    const values = parseConnectionSecretValues(secret, connectionType);
+    const isGeneratedSecret = isGeneratedSecretName(secret.metadata.name);
+    const hasOwnerRef = !!secret.metadata.ownerReferences?.length || isGeneratedSecret;
+
+    return {
+      type: hasOwnerRef ? ModelLocationType.NEW : ModelLocationType.EXISTING,
+      fieldValues: values,
+      connectionTypeObject: connectionType,
+      additionalFields: existingData.additionalFields,
+      connection: String(connectionName),
+    };
   }, [
     existingData,
     projectName,
@@ -130,35 +95,33 @@ export const useModelLocationData = (
     connectionTypesLoaded,
     connections,
     connectionTypes,
-    modelLocationData?.type,
-    modelLocationData?.connection,
-    prefillApplied,
   ]);
 
+  const effectiveModelLocationData = draftModelLocationData ?? prefilledModelLocationData;
+
   const initialConnection = React.useMemo(() => {
-    if (connectionsLoaded && existingData?.connection) {
-      return connections.find((c) => getResourceNameFromK8sResource(c) === existingData.connection);
+    const name = effectiveModelLocationData?.connection;
+    if (connectionsLoaded && name) {
+      return connections.find((c) => getResourceNameFromK8sResource(c) === name);
     }
     return undefined;
-  }, [connections, connectionsLoaded, existingData]);
+  }, [connections, connectionsLoaded, effectiveModelLocationData?.connection]);
 
-  // For user selecting a connection
   const [userSelectedConnection, setUserSelectedConnection] = React.useState<
     Connection | undefined
   >();
-
   const selectedConnection = userSelectedConnection ?? initialConnection;
 
   const updateSelectedConnection = React.useCallback(
     (connection: Connection | undefined) => {
-      setPrefillApplied(true);
       if (!connection) {
         setUserSelectedConnection(undefined);
         return;
       }
       const selectedConnectionType = resolveConnectionType(connection, connectionTypes);
       setUserSelectedConnection(connection);
-      setModelLocationData({
+
+      setDraftModelLocationData({
         type: ModelLocationType.EXISTING,
         connectionTypeObject: selectedConnectionType ?? undefined,
         connection: getResourceNameFromK8sResource(connection),
@@ -166,12 +129,19 @@ export const useModelLocationData = (
         additionalFields: {},
       });
     },
-    [setModelLocationData, connectionTypes, setUserSelectedConnection],
+    [connectionTypes],
   );
 
+  const isLoadingSecretData =
+    !!projectName &&
+    !!existingData &&
+    existingData.type === ModelLocationType.EXISTING &&
+    !draftModelLocationData &&
+    (!connectionsLoaded || !connectionTypesLoaded);
+
   return {
-    data: modelLocationData,
-    setData: setModelLocationData,
+    data: effectiveModelLocationData,
+    setData: setDraftModelLocationData,
     projectName,
     connections,
     connectionsLoaded,
@@ -179,7 +149,7 @@ export const useModelLocationData = (
     connectionTypesLoaded,
     selectedConnection,
     setSelectedConnection: updateSelectedConnection,
-    isLoadingSecretData: !isStableState && !!projectName,
+    isLoadingSecretData,
     disableInputFields: existingData?.disableInputFields ?? false,
   };
 };

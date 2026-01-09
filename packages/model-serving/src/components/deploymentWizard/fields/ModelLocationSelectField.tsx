@@ -26,7 +26,7 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import { ModelLocationInputFields, useModelLocationData } from './ModelLocationInputFields';
+import { ModelLocationInputFields } from './ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
 
 // Schema
@@ -65,6 +65,9 @@ type ModelLocationSelectFieldProps = {
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
+  connections: Connection[];
+  setSelectedConnection: (connection: Connection | undefined) => void;
+  selectedConnection: Connection | undefined;
 };
 export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> = ({
   modelLocation,
@@ -74,6 +77,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
+  connections,
+  setSelectedConnection,
+  selectedConnection,
 }) => {
   const s3Option = {
     key: 'S3',
@@ -98,10 +104,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   }, [modelServingConnectionTypes]);
 
   const pvcs = usePvcs(projectName);
-  const { selectedConnection, connections, setSelectedConnection } = useModelLocationData(
-    projectName,
-    modelLocationData,
-  );
 
   const uriConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
     isModelServingCompatible(t, ModelServingCompatibleTypes.URI),

@@ -68,8 +68,12 @@ export const applyModelRuntime = (
 export const extractModelServerTemplate = (
   KServeDeployment: KServeDeployment,
   dashboardNamespace?: string,
-): ModelServerOption | null =>
-  KServeDeployment.server
+): ModelServerOption | null => {
+  const templateDisplayName =
+    KServeDeployment.server?.metadata.annotations?.['opendatahub.io/template-display-name'];
+  const displayName = KServeDeployment.server?.metadata.annotations?.['openshift.io/display-name'];
+  const label = templateDisplayName ?? displayName;
+  return KServeDeployment.server
     ? {
         name: KServeDeployment.server.metadata.annotations?.['opendatahub.io/template-name'] ?? '',
         namespace:
@@ -79,7 +83,7 @@ export const extractModelServerTemplate = (
             : KServeDeployment.server.metadata.namespace,
         scope:
           KServeDeployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'],
-        label:
-          KServeDeployment.server.metadata.annotations?.['opendatahub.io/template-display-name'],
+        label,
       }
     : null;
+};
