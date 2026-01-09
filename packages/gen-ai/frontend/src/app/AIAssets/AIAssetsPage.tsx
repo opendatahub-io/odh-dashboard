@@ -12,7 +12,6 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
@@ -23,17 +22,6 @@ export const AIAssetsPage: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(
     tabExtensions[0]?.properties.id || '',
   );
-  const hasTrackedPageView = React.useRef(false);
-
-  // Track page view on mount
-  React.useEffect(() => {
-    if (!hasTrackedPageView.current && tabExtensions.length > 0) {
-      fireMiscTrackingEvent('Available Endpoints Page Viewed', {
-        entrySource: 'direct_url', // Can be enhanced later to detect actual entry source
-      });
-      hasTrackedPageView.current = true;
-    }
-  }, [tabExtensions]);
 
   return (
     <ApplicationsPage
@@ -52,12 +40,7 @@ export const AIAssetsPage: React.FC = () => {
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_, tabKey) => {
-            const newTabKey = String(tabKey);
-            fireMiscTrackingEvent('Available Endpoints Tab Switched', {
-              fromTab: activeTabKey,
-              toTab: newTabKey,
-            });
-            setActiveTabKey(newTabKey);
+            setActiveTabKey(String(tabKey));
           }}
           aria-label="AI Assets tabs"
           role="region"

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { MaaSModel } from '~/app/types';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -10,11 +9,6 @@ import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import AIAssetsMaaSTab from '~/app/AIAssets/AIAssetsMaaSTab';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
-
-// Mock tracking
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 jest.mock('~/app/hooks/useFetchMaaSModels', () => ({
   __esModule: true,
@@ -218,61 +212,5 @@ describe('AIAssetsMaaSTab', () => {
 
     expect(screen.getByTestId('maas-models-table')).toBeInTheDocument();
     expect(screen.getByTestId('playground-models-count')).toHaveTextContent('1');
-  });
-
-  describe('Event Tracking', () => {
-    it('should fire Asset_Count_On_Page_Load event when MaaS models are loaded', () => {
-      mockUseFetchMaaSModels.mockReturnValue({
-        data: [
-          {
-            id: 'model-1',
-            object: 'model',
-            created: Date.now(),
-            owned_by: 'test-org', // eslint-disable-line camelcase
-            ready: true,
-            url: 'https://example.com/model',
-          },
-          {
-            id: 'model-2',
-            object: 'model',
-            created: Date.now(),
-            owned_by: 'test-org', // eslint-disable-line camelcase
-            ready: true,
-            url: 'https://example.com/model2',
-          },
-        ] as MaaSModel[],
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      } as ReturnType<typeof useFetchMaaSModels>);
-
-      render(
-        <TestWrapper>
-          <AIAssetsMaaSTab />
-        </TestWrapper>,
-      );
-
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Asset Count On Page Load', {
-        modelsCount: 2,
-        mcpServersCount: 0,
-      });
-    });
-
-    it('should not fire Asset_Count_On_Page_Load event when no models', () => {
-      mockUseFetchMaaSModels.mockReturnValue({
-        data: [],
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      } as ReturnType<typeof useFetchMaaSModels>);
-
-      render(
-        <TestWrapper>
-          <AIAssetsMaaSTab />
-        </TestWrapper>,
-      );
-
-      expect(fireMiscTrackingEvent).not.toHaveBeenCalled();
-    });
   });
 });

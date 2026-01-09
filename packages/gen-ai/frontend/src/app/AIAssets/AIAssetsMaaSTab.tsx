@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bullseye, Content, Spinner } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -17,18 +16,6 @@ const AIAssetsMaaSTab: React.FC = () => {
   const { data: playgroundModels = [] } = useFetchLlamaModels();
   const { data: lsdStatus } = useFetchLSDStatus();
   const { data: aiModels = [] } = useFetchAIModels();
-  const hasTrackedAssetCount = React.useRef(false);
-
-  // Track asset count when data is loaded
-  React.useEffect(() => {
-    if (loaded && !hasTrackedAssetCount.current && models.length > 0) {
-      fireMiscTrackingEvent('Asset Count On Page Load', {
-        modelsCount: models.length,
-        mcpServersCount: 0, // MCP servers are tracked separately in their own tab
-      });
-      hasTrackedAssetCount.current = true;
-    }
-  }, [loaded, models]);
 
   if (!loaded && !error) {
     return (

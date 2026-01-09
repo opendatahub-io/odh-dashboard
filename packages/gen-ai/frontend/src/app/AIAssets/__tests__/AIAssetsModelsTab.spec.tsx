@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AIModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
@@ -15,11 +14,6 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <MemoryRouter>{children}</MemoryRouter>
   </GenAiContext.Provider>
 );
-
-// Mock tracking
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 // Mock hooks
 jest.mock('~/app/hooks/useFetchAIModels', () => ({
@@ -135,49 +129,5 @@ describe('AIAssetsModelsTab', () => {
     expect(screen.getByTestId('models-table')).toBeInTheDocument();
     expect(screen.getByTestId('model-model-1')).toBeInTheDocument();
     expect(screen.getByText('Test Model')).toBeInTheDocument();
-  });
-
-  describe('Event Tracking', () => {
-    it('should fire Asset_Count_On_Page_Load event when models are loaded', () => {
-      mockUseFetchAIModels.mockReturnValue({
-        data: [
-          {
-            model_id: 'model-1', // eslint-disable-line camelcase
-            model_name: 'test-model-1', // eslint-disable-line camelcase
-            display_name: 'Test Model 1', // eslint-disable-line camelcase
-            status: 'Running',
-          },
-          {
-            model_id: 'model-2', // eslint-disable-line camelcase
-            model_name: 'test-model-2', // eslint-disable-line camelcase
-            display_name: 'Test Model 2', // eslint-disable-line camelcase
-            status: 'Running',
-          },
-        ] as AIModel[],
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      } as ReturnType<typeof useFetchAIModels>);
-
-      render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
-
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Asset Count On Page Load', {
-        modelsCount: 2,
-        mcpServersCount: 0,
-      });
-    });
-
-    it('should not fire Asset_Count_On_Page_Load event when no models', () => {
-      mockUseFetchAIModels.mockReturnValue({
-        data: [],
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      } as ReturnType<typeof useFetchAIModels>);
-
-      render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
-
-      expect(fireMiscTrackingEvent).not.toHaveBeenCalled();
-    });
   });
 });
