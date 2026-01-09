@@ -140,6 +140,10 @@ export type CatalogArtifacts = CatalogModelArtifact | CatalogMetricsArtifact;
 
 export type CatalogArtifactList = ModelCatalogListParams & { items: CatalogArtifacts[] };
 
+export type CatalogPerformanceArtifactList = ModelCatalogListParams & {
+  items: CatalogPerformanceMetricsArtifact[];
+};
+
 export type CatalogFilterNumberOption = {
   type: 'number';
   range?: {
@@ -190,7 +194,7 @@ export type GetPerformanceArtifacts = (
   params?: PerformanceArtifactsParams,
   filterData?: ModelCatalogFilterStates,
   filterOptions?: CatalogFilterOptionsList | null,
-) => Promise<CatalogArtifactList>;
+) => Promise<CatalogPerformanceArtifactList>;
 
 export type GetArtifactFilterOptions = (
   opts: APIOptions,
@@ -237,6 +241,9 @@ export type CatalogFilterOptions = ModelCatalogStringFilterOptions & {
 } & {
   // Allow additional latency metric field names
   [key in LatencyMetricFieldName]?: CatalogFilterNumberOption;
+} & {
+  // Allow additional artifact filter keys from backend (e.g., artifacts.hardware_type.string_value)
+  [key: string]: CatalogFilterStringOption<string> | CatalogFilterNumberOption | undefined;
 };
 
 export enum FilterOperator {

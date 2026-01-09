@@ -19,11 +19,12 @@
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/model-registry.git",
-    "branch": "main",
+    "DO_NOT_MERGE_OVERRIDDEN_FOR_PR": "https://github.com/kubeflow/model-registry/pull/2075",
+    "repo": "https://github.com/manaswinidas/model-registry.git",
+    "branch": "performance-filters-landing-page",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "9b4968621a94e980aba069230ae7b09deb5e8a93"
+    "commit": "2e615582fe9d11d0dfc9bc577f0a2f161d72ae37"
   },
   "module-federation": {
     "name": "modelRegistry",

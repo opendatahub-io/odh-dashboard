@@ -109,16 +109,31 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
     }
   }, [currentActiveFilter]);
 
+  const { filterOptions } = React.useContext(ModelCatalogContext);
+
   const { minValue, maxValue, isSliderDisabled } = React.useMemo((): SliderRange => {
     const fieldName = getLatencyFieldName(localFilter.metric, localFilter.percentile);
 
-    return getSliderRange({
-      performanceArtifacts,
-      getArtifactFilterValue: (artifact) => getDoubleValue(artifact.customProperties, fieldName),
-      fallbackRange: FALLBACK_LATENCY_RANGE,
-      shouldRound: true,
-    });
-  }, [performanceArtifacts, localFilter.metric, localFilter.percentile]);
+    // First try to get range from performance artifacts
+    if (performanceArtifacts.length > 0) {
+      return getSliderRange({
+        performanceArtifacts,
+        getArtifactFilterValue: (artifact) => getDoubleValue(artifact.customProperties, fieldName),
+        fallbackRange: FALLBACK_LATENCY_RANGE,
+        shouldRound: true,
+      });
+    }
+    // Fall back to filterOptions from context
+    const latencyFilter = filterOptions?.filters?.[fieldName];
+    if (latencyFilter && 'range' in latencyFilter && latencyFilter.range) {
+      return {
+        minValue: Math.round(latencyFilter.range.min ?? FALLBACK_LATENCY_RANGE.minValue),
+        maxValue: Math.round(latencyFilter.range.max ?? FALLBACK_LATENCY_RANGE.maxValue),
+        isSliderDisabled: false,
+      };
+    }
+    return FALLBACK_LATENCY_RANGE;
+  }, [performanceArtifacts, localFilter.metric, localFilter.percentile, filterOptions]);
 
   const clampedValue = React.useMemo(
     () => Math.min(Math.max(localFilter.value, minValue), maxValue),
@@ -130,7 +145,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
       return (
         <>
           <strong>Latency:</strong> {currentActiveFilter.metric} | {currentActiveFilter.percentile}{' '}
-          | {currentActiveFilter.value}ms
+          | Under {currentActiveFilter.value}ms
         </>
       );
     }
@@ -162,9 +177,11 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
       ref={toggleRef}
+      data-testid="latency-filter"
       onClick={() => setIsOpen(!isOpen)}
       isExpanded={isOpen}
-      style={{ minWidth: '200px', width: 'fit-content' }}
+      isFullHeight
+      style={{ minWidth: '200px', width: 'fit-content', height: '56px' }}
     >
       {getDisplayText()}
     </MenuToggle>
@@ -172,6 +189,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
 
   const filterContent = (
     <Flex
+      data-testid="latency-filter-content"
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       flexWrap={{ default: 'wrap' }}
@@ -208,6 +226,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                 toggle={(toggleRef) => (
                   <MenuToggle
                     ref={toggleRef}
+                    data-testid="latency-metric-select"
                     onClick={() => setIsMetricOpen(!isMetricOpen)}
                     isExpanded={isMetricOpen}
                     className="pf-v6-u-w-100"
@@ -216,9 +235,13 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                   </MenuToggle>
                 )}
               >
-                <SelectList>
+                <SelectList data-testid="latency-metric-options">
                   {availableMetrics.map((option) => (
-                    <SelectOption key={option.value} value={option.value}>
+                    <SelectOption
+                      key={option.value}
+                      value={option.value}
+                      data-testid={`latency-metric-option-${option.value}`}
+                    >
                       {option.label}
                     </SelectOption>
                   ))}
@@ -262,6 +285,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                     toggle={(toggleRef) => (
                       <MenuToggle
                         ref={toggleRef}
+                        data-testid="latency-percentile-select"
                         onClick={() => setIsPercentileOpen(!isPercentileOpen)}
                         isExpanded={isPercentileOpen}
                         className="pf-v6-u-w-100"
@@ -270,9 +294,13 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                       </MenuToggle>
                     )}
                   >
-                    <SelectList>
+                    <SelectList data-testid="latency-percentile-options">
                       {getAvailablePercentiles().map((option) => (
-                        <SelectOption key={option.value} value={option.value}>
+                        <SelectOption
+                          key={option.value}
+                          value={option.value}
+                          data-testid={`latency-percentile-option-${option.value}`}
+                        >
                           {option.label}
                         </SelectOption>
                       ))}
@@ -331,12 +359,17 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
       <FlexItem>
         <Flex spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
-            <Button variant="primary" onClick={handleApplyFilter} isDisabled={isSliderDisabled}>
+            <Button
+              data-testid="latency-apply-filter"
+              variant="primary"
+              onClick={handleApplyFilter}
+              isDisabled={isSliderDisabled}
+            >
               Apply filter
             </Button>
           </FlexItem>
           <FlexItem>
-            <Button variant="link" onClick={handleReset}>
+            <Button data-testid="latency-reset-filter" variant="link" onClick={handleReset}>
               Reset
             </Button>
           </FlexItem>

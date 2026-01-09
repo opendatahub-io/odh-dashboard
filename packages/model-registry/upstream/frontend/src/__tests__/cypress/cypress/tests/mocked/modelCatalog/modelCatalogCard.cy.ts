@@ -1,10 +1,8 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
 import {
-  mockCatalogAccuracyMetricsArtifact,
   mockCatalogModel,
-  mockCatalogModelArtifact,
-  mockCatalogModelArtifactList,
   mockCatalogModelList,
   mockCatalogPerformanceMetricsArtifact,
   mockCatalogSource,
@@ -43,40 +41,81 @@ const initIntercepts = ({
 
   sources.forEach((source) => {
     source.labels.forEach((label) => {
-      cy.interceptApi(
-        `GET /api/:apiVersion/model_catalog/models`,
-        {
-          path: { apiVersion: MODEL_CATALOG_API_VERSION },
-          query: { sourceLabel: label },
-        },
-        mockCatalogModelList({
-          items: Array.from({ length: modelsPerCategory }, (_, i) => {
-            const customProperties =
-              i === 0 && useValidatedModel
-                ? ({
-                    validated: {
-                      metadataType: ModelRegistryMetadataType.STRING,
-                      // eslint-disable-next-line camelcase
-                      string_value: '',
-                    },
-                  } as ModelRegistryCustomProperties)
-                : undefined;
-            const name =
-              i === 0 && useValidatedModel
-                ? 'validated-model'
-                : `${label.toLowerCase()}-model-${i + 1}`;
+      const mockModels = mockCatalogModelList({
+        items: Array.from({ length: modelsPerCategory }, (_, i) => {
+          const customProperties =
+            i === 0 && useValidatedModel
+              ? ({
+                  validated: {
+                    metadataType: ModelRegistryMetadataType.STRING,
+                    // eslint-disable-next-line camelcase
+                    string_value: '',
+                  },
+                } as ModelRegistryCustomProperties)
+              : undefined;
+          const name =
+            i === 0 && useValidatedModel
+              ? 'validated-model'
+              : `${label.toLowerCase()}-model-${i + 1}`;
 
-            return mockCatalogModel({
-              name,
-              // eslint-disable-next-line camelcase
-              source_id: source.id,
-              customProperties,
-            });
-          }),
+          return mockCatalogModel({
+            name,
+            // eslint-disable-next-line camelcase
+            source_id: source.id,
+            customProperties,
+          });
         }),
-      );
+      });
+
+      // Use regex-based intercept to match requests with this sourceLabel
+      // This handles both basic requests and requests with filterQuery
+      const encodedLabel = encodeURIComponent(label);
+      cy.intercept(
+        {
+          method: 'GET',
+          url: new RegExp(
+            `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/models.*sourceLabel=${encodedLabel}`,
+          ),
+        },
+        mockModArchResponse(mockModels),
+      ).as(`getModels-${label}`);
     });
   });
+
+  // When "All models" is selected and filters are applied (GalleryView), the request
+  // may not include sourceLabel. Create mock models that include validated models.
+  const allModelsResponse = mockCatalogModelList({
+    items: Array.from({ length: modelsPerCategory }, (_, i) => {
+      const customProperties =
+        i === 0 && useValidatedModel
+          ? ({
+              validated: {
+                metadataType: ModelRegistryMetadataType.STRING,
+                // eslint-disable-next-line camelcase
+                string_value: '',
+              },
+            } as ModelRegistryCustomProperties)
+          : undefined;
+      const name = i === 0 && useValidatedModel ? 'validated-model' : `all-models-model-${i + 1}`;
+      return mockCatalogModel({
+        name,
+        // eslint-disable-next-line camelcase
+        source_id: 'sample-source',
+        customProperties,
+      });
+    }),
+  });
+
+  // Intercept for GalleryView when filters are applied (no sourceLabel, but has filterQuery or pageSize)
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/models\\?(?!.*sourceLabel=)`,
+      ),
+    },
+    mockModArchResponse(allModelsResponse),
+  ).as('getModelsFiltered');
 
   cy.interceptApi(
     `GET /api/:apiVersion/model_catalog/sources/:sourceId/models/:modelName`,
@@ -91,18 +130,6 @@ const initIntercepts = ({
   );
 
   cy.interceptApi(
-    `GET /api/:apiVersion/model_catalog/sources/:sourceId/performance_artifacts/:modelName`,
-    {
-      path: {
-        apiVersion: MODEL_CATALOG_API_VERSION,
-        sourceId: 'source-2',
-        modelName: testModel.name.replace('/', '%2F'),
-      },
-    },
-    mockCatalogModelArtifactList({}),
-  );
-
-  cy.interceptApi(
     `GET /api/:apiVersion/model_catalog/models/filter_options`,
     {
       path: { apiVersion: MODEL_CATALOG_API_VERSION },
@@ -111,62 +138,84 @@ const initIntercepts = ({
     mockCatalogFilterOptionsList(),
   );
 
-  cy.interceptApi(
-    `GET /api/:apiVersion/model_catalog/sources/:sourceId/performance_artifacts/:modelName`,
-    {
-      path: {
-        apiVersion: MODEL_CATALOG_API_VERSION,
-        sourceId: 'source-2',
-        modelName: 'validated-model',
-      },
-    },
-    {
-      items: [
-        mockCatalogPerformanceMetricsArtifact({}),
-        mockCatalogPerformanceMetricsArtifact({
-          customProperties: {
-            hardware_type: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'RTX 4090',
-            },
-            hardware_count: {
-              metadataType: ModelRegistryMetadataType.INT,
-              int_value: '33',
-            },
-            requests_per_second: {
-              metadataType: ModelRegistryMetadataType.DOUBLE,
-              double_value: 10,
-            },
-            ttft_mean: {
-              metadataType: ModelRegistryMetadataType.DOUBLE,
-              double_value: 67.15,
-            },
+  // Mock performance artifacts data - all artifacts use CHATBOT workload type to match default filters
+  const performanceArtifactsResponse = {
+    items: [
+      mockCatalogPerformanceMetricsArtifact({}),
+      mockCatalogPerformanceMetricsArtifact({
+        customProperties: {
+          hardware_type: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'RTX 4090',
           },
-        }),
-        mockCatalogPerformanceMetricsArtifact({
-          customProperties: {
-            hardware_type: {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: 'A100',
-            },
-            hardware_count: {
-              metadataType: ModelRegistryMetadataType.INT,
-              int_value: '40',
-            },
-            requests_per_second: {
-              metadataType: ModelRegistryMetadataType.DOUBLE,
-              double_value: 15,
-            },
-            ttft_mean: {
-              metadataType: ModelRegistryMetadataType.DOUBLE,
-              double_value: 42.12,
-            },
+          hardware_count: {
+            metadataType: ModelRegistryMetadataType.INT,
+            int_value: '33',
           },
-        }),
-        mockCatalogAccuracyMetricsArtifact({}),
-        mockCatalogModelArtifact({}),
-      ],
+          requests_per_second: {
+            metadataType: ModelRegistryMetadataType.DOUBLE,
+            double_value: 10,
+          },
+          ttft_mean: {
+            metadataType: ModelRegistryMetadataType.DOUBLE,
+            double_value: 67.15,
+          },
+          ttft_p90: {
+            metadataType: ModelRegistryMetadataType.DOUBLE,
+            double_value: 82.34,
+          },
+          use_case: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'chatbot',
+          },
+        },
+      }),
+      mockCatalogPerformanceMetricsArtifact({
+        customProperties: {
+          hardware_type: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'A100',
+          },
+          hardware_count: {
+            metadataType: ModelRegistryMetadataType.INT,
+            int_value: '40',
+          },
+          requests_per_second: {
+            metadataType: ModelRegistryMetadataType.DOUBLE,
+            double_value: 15,
+          },
+          ttft_mean: {
+            metadataType: ModelRegistryMetadataType.DOUBLE,
+            double_value: 42.12,
+          },
+          ttft_p90: {
+            metadataType: ModelRegistryMetadataType.DOUBLE,
+            double_value: 58.45,
+          },
+          use_case: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'chatbot',
+          },
+        },
+      }),
+    ],
+    pageSize: 10,
+    size: 3,
+    nextPageToken: '',
+  };
+
+  // The /performance_artifacts endpoint only returns performance metrics artifacts
+  // (no accuracy or model artifacts - those are filtered server-side)
+  // All artifacts use CHATBOT workload type to match default performance filters
+  // Use regex to match any source's validated-model performance artifacts requests
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/sources/.*/performance_artifacts/validated-model`,
+      ),
     },
+    mockModArchResponse(performanceArtifactsResponse),
   ).as('getCatalogSourceModelArtifacts');
 };
 
@@ -213,9 +262,9 @@ describe('ModelCatalogCard Component', () => {
   describe('Navigation and Interaction', () => {
     it('should show model metadata correctly', () => {
       modelCatalog.findFirstModelCatalogCard().within(() => {
-        modelCatalog
-          .findModelCatalogDetailLink()
-          .should('contain.text', 'sample category 1-model-1');
+        // The first card may be from any category section (Sample category 1, Sample category 2, or Community)
+        // depending on which section renders first in the DOM
+        modelCatalog.findModelCatalogDetailLink().should('exist');
         modelCatalog.findTaskLabel().should('exist');
         modelCatalog.findProviderLabel().should('exist');
       });
@@ -223,30 +272,101 @@ describe('ModelCatalogCard Component', () => {
   });
 
   describe('Validated Model', () => {
-    beforeEach(() => {
-      initIntercepts({ useValidatedModel: true });
-      modelCatalog.visit();
-    });
-    it('should show validated model correctly', () => {
-      cy.wait('@getCatalogSourceModelArtifacts');
-      modelCatalog.findFirstModelCatalogCard().within(() => {
-        modelCatalog.findValidatedModelHardware().should('contain.text', '2xH100-80');
-        modelCatalog.findValidatedModelReplicas().should('contain.text', '7');
-        modelCatalog.findValidatedModelTtft().should('contain.text', '35.49');
-        modelCatalog.findValidatedModelBenchmarkNext().click();
-        modelCatalog.findValidatedModelHardware().should('contain.text', '33xRTX 4090');
-        modelCatalog.findValidatedModelReplicas().should('contain.text', '10');
-        modelCatalog.findValidatedModelTtft().should('contain.text', '67.15');
-        modelCatalog.findValidatedModelBenchmarkNext().click();
-        modelCatalog.findValidatedModelHardware().should('contain.text', '40xA100');
-        modelCatalog.findValidatedModelReplicas().should('contain.text', '15');
-        modelCatalog.findValidatedModelTtft().should('contain.text', '42.12');
-        modelCatalog.findValidatedModelBenchmarkPrev().click();
-        modelCatalog.findValidatedModelHardware().should('contain.text', '33xRTX 4090');
-        modelCatalog.findValidatedModelReplicas().should('contain.text', '10');
-        modelCatalog.findValidatedModelTtft().should('contain.text', '67.15');
-        modelCatalog.findValidatedModelBenchmarkLink().click();
+    describe('Toggle OFF (default)', () => {
+      beforeEach(() => {
+        initIntercepts({ useValidatedModel: true });
+        modelCatalog.visit();
+      });
+
+      it('should show description with View benchmarks link when toggle is OFF', () => {
+        cy.wait('@getCatalogSourceModelArtifacts');
+        modelCatalog.findFirstModelCatalogCard().within(() => {
+          // Should show description
+          modelCatalog.findModelCatalogDescription().should('be.visible');
+
+          // Should show "View X benchmarks" link
+          modelCatalog.findValidatedModelBenchmarkLink().should('be.visible');
+          modelCatalog
+            .findValidatedModelBenchmarkLink()
+            .should('contain.text', 'View 3 benchmarks');
+
+          // Should NOT show hardware, replicas, TTFT metrics when toggle is OFF
+          modelCatalog.findValidatedModelHardware().should('not.exist');
+          modelCatalog.findValidatedModelReplicas().should('not.exist');
+          modelCatalog.findValidatedModelTtft().should('not.exist');
+        });
+      });
+
+      it('should navigate to Performance Insights tab when clicking View benchmarks link', () => {
+        cy.wait('@getCatalogSourceModelArtifacts');
+        modelCatalog.findFirstModelCatalogCard().within(() => {
+          modelCatalog.findValidatedModelBenchmarkLink().click();
+        });
         cy.url().should('include', 'performance-insights');
+      });
+    });
+
+    describe('Toggle ON', () => {
+      beforeEach(() => {
+        initIntercepts({ useValidatedModel: true });
+        // Enable feature flag and visit
+        modelCatalog.visit({ enableTempDevCatalogAdvancedFiltersFeature: true });
+        cy.wait('@getCatalogSourceModelArtifacts');
+        // Turn the toggle ON before each test in this block
+        modelCatalog.togglePerformanceView();
+        // Wait for the page to settle after toggle
+        modelCatalog.findLoadingState().should('not.exist');
+      });
+
+      it('should show validated model metrics correctly when toggle is ON', () => {
+        modelCatalog.findFirstModelCatalogCard().within(() => {
+          // Should show hardware, replicas, TTFT metrics
+          modelCatalog.findValidatedModelHardware().should('contain.text', '2xH100-80');
+          modelCatalog.findValidatedModelReplicas().should('contain.text', '7');
+          modelCatalog.findValidatedModelTtft().should('contain.text', '35.49');
+
+          // Should NOT show description when toggle is ON
+          modelCatalog.findModelCatalogDescription().should('not.exist');
+
+          // Navigate through benchmarks
+          modelCatalog.findValidatedModelBenchmarkNext().click();
+          modelCatalog.findValidatedModelHardware().should('contain.text', '33xRTX 4090');
+          modelCatalog.findValidatedModelReplicas().should('contain.text', '10');
+          modelCatalog.findValidatedModelTtft().should('contain.text', '67.15');
+
+          modelCatalog.findValidatedModelBenchmarkNext().click();
+          modelCatalog.findValidatedModelHardware().should('contain.text', '40xA100');
+          modelCatalog.findValidatedModelReplicas().should('contain.text', '15');
+          modelCatalog.findValidatedModelTtft().should('contain.text', '42.12');
+
+          modelCatalog.findValidatedModelBenchmarkPrev().click();
+          modelCatalog.findValidatedModelHardware().should('contain.text', '33xRTX 4090');
+          modelCatalog.findValidatedModelReplicas().should('contain.text', '10');
+          modelCatalog.findValidatedModelTtft().should('contain.text', '67.15');
+
+          // Click benchmark link to navigate to Performance Insights
+          modelCatalog.findValidatedModelBenchmarkLink().click();
+        });
+        cy.url().should('include', 'performance-insights');
+      });
+
+      it('should navigate through benchmarks correctly', () => {
+        modelCatalog.findFirstModelCatalogCard().within(() => {
+          // Initial state - first benchmark
+          modelCatalog.findValidatedModelHardware().should('contain.text', '2xH100-80');
+
+          // Navigate to next benchmark
+          modelCatalog.findValidatedModelBenchmarkNext().click();
+          modelCatalog.findValidatedModelHardware().should('contain.text', '33xRTX 4090');
+
+          // Navigate to next benchmark
+          modelCatalog.findValidatedModelBenchmarkNext().click();
+          modelCatalog.findValidatedModelHardware().should('contain.text', '40xA100');
+
+          // Navigate back
+          modelCatalog.findValidatedModelBenchmarkPrev().click();
+          modelCatalog.findValidatedModelHardware().should('contain.text', '33xRTX 4090');
+        });
       });
     });
   });
