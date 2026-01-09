@@ -1,4 +1,4 @@
 {
-  "extends": "@odh-dashboard/tsconfig"
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "exclude": ["node_modules", "dist", "cypress"]
 }
-
