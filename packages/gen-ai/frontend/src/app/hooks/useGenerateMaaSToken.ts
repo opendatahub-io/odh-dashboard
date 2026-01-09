@@ -35,10 +35,8 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         fireFormTrackingEvent('MaaS_Token_Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
-          // eslint-disable-next-line camelcase
-          asset_type: 'maas_model',
-          // eslint-disable-next-line camelcase
-          copy_target: 'service_token',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to generate MaaS token';
@@ -47,10 +45,8 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorMessage,
-          // eslint-disable-next-line camelcase
-          asset_type: 'maas_model',
-          // eslint-disable-next-line camelcase
-          copy_target: 'service_token',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
         });
       } finally {
         setIsGenerating(false);

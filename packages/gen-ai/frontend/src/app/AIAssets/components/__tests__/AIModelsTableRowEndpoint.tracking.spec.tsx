@@ -54,9 +54,9 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
-          asset_type: 'model',
-          endpoint_type: 'internal',
-          copy_target: 'endpoint',
+          assetType: 'model',
+          endpointType: 'internal',
+          copyTarget: 'endpoint',
         });
       });
     });
@@ -77,9 +77,9 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
-          asset_type: 'model',
-          endpoint_type: 'internal',
-          copy_target: 'endpoint',
+          assetType: 'model',
+          endpointType: 'internal',
+          copyTarget: 'endpoint',
         });
       });
     });
@@ -99,9 +99,9 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
-          asset_type: 'model',
-          endpoint_type: 'external',
-          copy_target: 'endpoint',
+          assetType: 'model',
+          endpointType: 'external',
+          copyTarget: 'endpoint',
         });
       });
     });
@@ -132,8 +132,8 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
-          asset_type: 'model',
-          copy_target: 'service_token',
+          assetType: 'model',
+          copyTarget: 'service_token',
         });
       });
     });
@@ -160,9 +160,9 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
-          asset_type: 'model',
-          endpoint_type: 'external',
-          copy_target: 'endpoint',
+          assetType: 'model',
+          endpointType: 'external',
+          copyTarget: 'endpoint',
         });
       });
 
@@ -173,8 +173,8 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
-          asset_type: 'model',
-          copy_target: 'service_token',
+          assetType: 'model',
+          copyTarget: 'service_token',
         });
       });
 

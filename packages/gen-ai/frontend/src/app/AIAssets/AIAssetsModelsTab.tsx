@@ -23,10 +23,8 @@ const AIAssetsModelsTab: React.FC = () => {
   React.useEffect(() => {
     if (loaded && !hasTrackedAssetCount.current && aiModels.length > 0) {
       fireMiscTrackingEvent('Asset_Count_On_Page_Load', {
-        // eslint-disable-next-line camelcase
-        models_count: aiModels.length,
-        // eslint-disable-next-line camelcase
-        mcp_servers_count: 0, // MCP servers are tracked separately in their own tab
+        modelsCount: aiModels.length,
+        mcpServersCount: 0, // MCP servers are tracked separately in their own tab
       });
       hasTrackedAssetCount.current = true;
     }

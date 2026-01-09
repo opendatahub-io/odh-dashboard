@@ -84,10 +84,8 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
               variant={ButtonVariant.secondary}
               onClick={() => {
                 fireMiscTrackingEvent('Playground_Launched_From_Available_Endpoints', {
-                  // eslint-disable-next-line camelcase
-                  asset_type: 'maas_model',
-                  // eslint-disable-next-line camelcase
-                  asset_id: model.id,
+                  assetType: 'maas_model',
+                  assetId: model.id,
                 });
                 navigate(genAiChatPlaygroundRoute(namespace?.name), {
                   state: {

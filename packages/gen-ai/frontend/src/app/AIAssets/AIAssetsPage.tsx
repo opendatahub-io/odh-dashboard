@@ -29,8 +29,7 @@ export const AIAssetsPage: React.FC = () => {
   React.useEffect(() => {
     if (!hasTrackedPageView.current && tabExtensions.length > 0) {
       fireMiscTrackingEvent('Available_Endpoints_Page_Viewed', {
-        // eslint-disable-next-line camelcase
-        entry_source: 'direct_url', // Can be enhanced later to detect actual entry source
+        entrySource: 'direct_url', // Can be enhanced later to detect actual entry source
       });
       hasTrackedPageView.current = true;
     }
@@ -55,10 +54,8 @@ export const AIAssetsPage: React.FC = () => {
           onSelect={(_, tabKey) => {
             const newTabKey = String(tabKey);
             fireMiscTrackingEvent('Available_Endpoints_Tab_Switched', {
-              // eslint-disable-next-line camelcase
-              from_tab: activeTabKey,
-              // eslint-disable-next-line camelcase
-              to_tab: newTabKey,
+              fromTab: activeTabKey,
+              toTab: newTabKey,
             });
             setActiveTabKey(newTabKey);
           }}

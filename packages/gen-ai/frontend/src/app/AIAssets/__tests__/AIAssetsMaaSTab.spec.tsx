@@ -253,10 +253,8 @@ describe('AIAssetsMaaSTab', () => {
       );
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Asset_Count_On_Page_Load', {
-        // eslint-disable-next-line camelcase
-        models_count: 2,
-        // eslint-disable-next-line camelcase
-        mcp_servers_count: 0,
+        modelsCount: 2,
+        mcpServersCount: 0,
       });
     });
 

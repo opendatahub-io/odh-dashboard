@@ -59,12 +59,9 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
                   onCopy={() => {
                     fireMiscTrackingEvent('Endpoint_Copied', {
-                      // eslint-disable-next-line camelcase
-                      asset_type: 'model',
-                      // eslint-disable-next-line camelcase
-                      endpoint_type: isExternal ? 'external' : 'internal',
-                      // eslint-disable-next-line camelcase
-                      copy_target: 'endpoint',
+                      assetType: 'model',
+                      endpointType: isExternal ? 'external' : 'internal',
+                      copyTarget: 'endpoint',
                     });
                   }}
                 >
@@ -88,10 +85,8 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     aria-label={`External endpoint API token for ${model.model_name}`}
                     onCopy={() => {
                       fireMiscTrackingEvent('Service_Token_Copied', {
-                        // eslint-disable-next-line camelcase
-                        asset_type: 'model',
-                        // eslint-disable-next-line camelcase
-                        copy_target: 'service_token',
+                        assetType: 'model',
+                        copyTarget: 'service_token',
                       });
                     }}
                   >
