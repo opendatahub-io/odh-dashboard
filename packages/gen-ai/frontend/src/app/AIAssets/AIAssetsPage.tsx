@@ -28,7 +28,7 @@ export const AIAssetsPage: React.FC = () => {
   // Track page view on mount
   React.useEffect(() => {
     if (!hasTrackedPageView.current && tabExtensions.length > 0) {
-      fireMiscTrackingEvent('Available_Endpoints_Page_Viewed', {
+      fireMiscTrackingEvent('Available Endpoints Page Viewed', {
         entrySource: 'direct_url', // Can be enhanced later to detect actual entry source
       });
       hasTrackedPageView.current = true;
@@ -53,7 +53,7 @@ export const AIAssetsPage: React.FC = () => {
           activeKey={activeTabKey}
           onSelect={(_, tabKey) => {
             const newTabKey = String(tabKey);
-            fireMiscTrackingEvent('Available_Endpoints_Tab_Switched', {
+            fireMiscTrackingEvent('Available Endpoints Tab Switched', {
               fromTab: activeTabKey,
               toTab: newTabKey,
             });

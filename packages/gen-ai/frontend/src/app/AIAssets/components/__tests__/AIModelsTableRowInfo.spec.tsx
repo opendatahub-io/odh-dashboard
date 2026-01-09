@@ -129,7 +129,7 @@ describe('AIModelsTableRowInfo', () => {
       const infoButton = screen.getByTestId('model-id-icon-button');
       await user.click(infoButton);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model_Info_Viewed', {});
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model Info Viewed', {});
     });
 
     it('should fire Model_ID_Copied event when model ID is copied', async () => {
@@ -148,7 +148,7 @@ describe('AIModelsTableRowInfo', () => {
       const copyButton = screen.getByRole('button', { name: /copy model id/i });
       await user.click(copyButton);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model_ID_Copied', {});
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model ID Copied', {});
     });
   });
 });

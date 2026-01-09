@@ -115,7 +115,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service Token Copied', {
           assetType: 'maas_model',
           copyTarget: 'service_token',
         });
@@ -142,7 +142,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service Token Copied', {
           assetType: 'maas_model',
           copyTarget: 'service_token',
         });
@@ -174,7 +174,7 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
       });
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service Token Copied', {
         assetType: 'maas_model',
         copyTarget: 'service_token',
       });
@@ -206,14 +206,14 @@ describe('MaaSModelTableRowEndpoint - Event Tracking', () => {
 
       // Should fire Endpoint_Copied but not Service_Token_Copied
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint Copied', {
           assetType: 'maas_model',
           endpointType: 'maas_route',
           copyTarget: 'endpoint',
         });
       });
       expect(fireMiscTrackingEvent).not.toHaveBeenCalledWith(
-        'Service_Token_Copied',
+        'Service Token Copied',
         expect.any(Object),
       );
     });

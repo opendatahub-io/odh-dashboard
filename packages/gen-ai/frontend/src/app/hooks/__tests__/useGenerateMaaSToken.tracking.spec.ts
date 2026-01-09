@@ -42,7 +42,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
           assetType: 'maas_model',
@@ -64,7 +64,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken('2025-06-30');
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
           assetType: 'maas_model',
@@ -101,7 +101,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorMessage,
@@ -119,7 +119,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Failed to generate MaaS token',
@@ -138,7 +138,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Network request failed',
@@ -157,7 +157,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Unauthorized: Invalid credentials',
@@ -197,7 +197,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       });
 
       // Both calls should have same parameters
-      expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+      expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
         outcome: TrackingOutcome.submit,
         success: true,
         assetType: 'maas_model',
@@ -213,7 +213,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: 'Server error',
@@ -232,7 +232,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenLastCalledWith('MaaS_Token_Generated', {
+        expect(fireFormTrackingEvent).toHaveBeenLastCalledWith('MaaS Token Generated', {
           outcome: TrackingOutcome.submit,
           success: true,
           assetType: 'maas_model',

@@ -252,7 +252,7 @@ describe('AIAssetsMaaSTab', () => {
         </TestWrapper>,
       );
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Asset_Count_On_Page_Load', {
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Asset Count On Page Load', {
         modelsCount: 2,
         mcpServersCount: 0,
       });

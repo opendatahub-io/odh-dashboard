@@ -232,7 +232,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -251,7 +251,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -265,7 +265,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -280,7 +280,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'llama{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -300,7 +300,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by keyword...');
         await user.type(searchInput, 'ai{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.KEYWORD,
           resultsCount: 0,
         });
@@ -313,7 +313,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, '{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Filter_Performed', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });

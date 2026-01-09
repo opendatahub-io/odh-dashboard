@@ -70,7 +70,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               data-testid="try-playground-button"
               variant={ButtonVariant.secondary}
               onClick={() => {
-                fireMiscTrackingEvent('Playground_Launched_From_Available_Endpoints', {
+                fireMiscTrackingEvent('Playground Launched From Available Endpoints', {
                   assetType: 'model',
                   assetId: model.model_id,
                 });

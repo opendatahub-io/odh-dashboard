@@ -90,7 +90,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint Copied', {
           assetType: 'model',
           endpointType: 'internal',
           copyTarget: 'endpoint',
@@ -113,7 +113,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint Copied', {
           assetType: 'model',
           endpointType: 'internal',
           copyTarget: 'endpoint',
@@ -135,7 +135,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint Copied', {
           assetType: 'model',
           endpointType: 'external',
           copyTarget: 'endpoint',
@@ -168,7 +168,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service Token Copied', {
           assetType: 'model',
           copyTarget: 'service_token',
         });
@@ -196,7 +196,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(urlCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Endpoint Copied', {
           assetType: 'model',
           endpointType: 'external',
           copyTarget: 'endpoint',
@@ -209,7 +209,7 @@ describe('AIModelsTableRowEndpoint - Event Tracking', () => {
       await user.click(tokenCopyButton);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service_Token_Copied', {
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Service Token Copied', {
           assetType: 'model',
           copyTarget: 'service_token',
         });

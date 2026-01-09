@@ -47,7 +47,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
 
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
-    fireMiscTrackingEvent('Available_Endpoints_Filter_Performed', {
+    fireMiscTrackingEvent('Available Endpoints Filter Performed', {
       filterType: currentFilterType,
       resultsCount: resultsCount ?? 0,
     });

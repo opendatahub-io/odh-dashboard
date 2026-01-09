@@ -237,7 +237,7 @@ describe('AIAssetsPage', () => {
       const maasTab = screen.getByRole('tab', { name: /MaaS Models/i });
       await user.click(maasTab);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Tab_Switched', {
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         fromTab: 'models',
         toTab: 'maas',
       });
@@ -255,7 +255,7 @@ describe('AIAssetsPage', () => {
       const maasTab = screen.getByRole('tab', { name: /MaaS Models/i });
       await user.click(maasTab);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Tab_Switched', {
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         fromTab: 'models',
         toTab: 'maas',
       });
@@ -264,7 +264,7 @@ describe('AIAssetsPage', () => {
       const mcpTab = screen.getByRole('tab', { name: /MCP Servers/i });
       await user.click(mcpTab);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Tab_Switched', {
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         fromTab: 'maas',
         toTab: 'mcpservers',
       });
@@ -277,7 +277,7 @@ describe('AIAssetsPage', () => {
         </MemoryRouter>,
       );
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available_Endpoints_Page_Viewed', {
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Page Viewed', {
         entrySource: 'direct_url',
       });
     });

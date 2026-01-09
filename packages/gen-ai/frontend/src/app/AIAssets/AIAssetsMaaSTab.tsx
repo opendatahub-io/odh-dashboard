@@ -22,7 +22,7 @@ const AIAssetsMaaSTab: React.FC = () => {
   // Track asset count when data is loaded
   React.useEffect(() => {
     if (loaded && !hasTrackedAssetCount.current && models.length > 0) {
-      fireMiscTrackingEvent('Asset_Count_On_Page_Load', {
+      fireMiscTrackingEvent('Asset Count On Page Load', {
         modelsCount: models.length,
         mcpServersCount: 0, // MCP servers are tracked separately in their own tab
       });
