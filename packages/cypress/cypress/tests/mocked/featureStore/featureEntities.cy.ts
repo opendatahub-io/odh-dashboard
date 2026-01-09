@@ -268,10 +268,7 @@ describe('Feature Entities for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitEntities();
     featureEntitiesTable.findTable().should('be.visible');
-    featureEntitiesTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureEntitiesTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureEntitiesTable.findRow('user_id').shouldHaveProject(fsProjectName);
     featureEntitiesTable.findRow('transaction_id').shouldHaveProject(fsProjectName2);
   });
@@ -594,7 +591,7 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchNoResults().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchNoResultsText()
-      .should('contain.text', 'No results found for query "nonexistent" from All repositories');
+      .should('contain.text', 'No results found for query "nonexistent" from All feature stores');
   });
 
   it('should show loading spinner during search', () => {

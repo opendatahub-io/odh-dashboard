@@ -1,113 +1,37 @@
 name: Cypress e2e Test
 
-# This workflow currently executes on the ODH (Open Data Hub) dash-e2e cluster.
+# This workflow executes E2E tests on the ODH (Open Data Hub) dash-e2e cluster.
+# It triggers automatically after test.yml completes successfully (via workflow_run).
 # The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
 # which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
-#
-# This workflow runs on pull_request events and waits for test.yml to complete successfully.
-# It uses concurrency control to ensure only the latest E2E run executes for each PR/branch.
-# This approach ensures E2E checks appear in the PR's checks section.
+
 on:
-  # Use pull_request_target to access secrets even from fork PRs
-  pull_request_target:
-    types: [opened, synchronize, reopened]
+  # Trigger after test.yml completes successfully
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
   # Allow manual trigger for testing/debugging
   workflow_dispatch:
 
 # Concurrency control: Only run latest E2E tests for each PR/branch
+# Cancels in-progress E2E runs when new commits are pushed
 concurrency:
-  group: e2e-pr-${{ github.event.pull_request.number || github.run_id }}
+  group: e2e-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
-  statuses: read
-  checks: read
+  actions: read
 
 env:
   NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
 
 jobs:
-  wait-for-test:
-    name: Wait for Test workflow to complete
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Wait for Test workflow to succeed
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "⏳ Waiting for Test workflow to complete..."
-          COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          echo "Commit SHA: $COMMIT_SHA"
-          
-          # Phase 1: Wait for Test workflow to START (check for "Get-Test-Groups" job - max 1 minute)
-          echo "📍 Phase 1: Waiting for Test workflow to start..."
-          for i in {1..12}; do
-            GET_TEST_GROUPS_CHECK=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
-              --jq '.check_runs[] | select(.name == "Get-Test-Groups") | .id' 2>/dev/null || echo "")
-            
-            if [ -n "$GET_TEST_GROUPS_CHECK" ]; then
-              echo "✅ Test workflow started (Get-Test-Groups job found)!"
-              break
-            fi
-            
-            if [ $i -eq 12 ]; then
-              echo "❌ Test workflow not found after 1 minute"
-              exit 1
-            fi
-            
-            echo "Attempt $i/12: Test workflow not started yet, waiting 5s..."
-            sleep 5
-          done
-          
-          # Phase 2: Wait for Test workflow to COMPLETE (check for "Tests" summary job - max 45 min total)
-          echo "📍 Phase 2: Waiting for Test workflow to complete (Tests summary job)..."
-          
-          # First wait for "Tests" job to appear (it only appears after all other jobs finish)
-          echo "Waiting for Tests summary job to appear..."
-          while true; do
-            TESTS_CHECK=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
-              --jq '.check_runs[] | select(.name == "Tests") | .id' 2>/dev/null || echo "")
-            
-            if [ -n "$TESTS_CHECK" ]; then
-              echo "✅ Tests summary job found!"
-              break
-            fi
-            
-            echo "Tests job not found yet (other tests still running), checking again in 30s..."
-            sleep 30
-          done
-          
-          # Now wait for Tests job to complete successfully
-          echo "Waiting for Tests summary job to complete..."
-          while true; do
-            CHECK_STATUS=$(gh api "/repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
-              --jq '.check_runs[] | select(.name == "Tests") | "\(.status)|\(.conclusion)"')
-            
-            STATUS=$(echo "$CHECK_STATUS" | cut -d'|' -f1)
-            CONCLUSION=$(echo "$CHECK_STATUS" | cut -d'|' -f2)
-            
-            echo "Tests job status: $STATUS, conclusion: $CONCLUSION"
-            
-            if [ "$STATUS" = "completed" ]; then
-              if [ "$CONCLUSION" = "success" ]; then
-                echo "✅ Test workflow completed successfully!"
-                exit 0
-              else
-                echo "❌ Test workflow completed with conclusion: $CONCLUSION"
-                exit 1
-              fi
-            fi
-            
-            echo "Tests job still running, checking again in 30s..."
-            sleep 30
-          done
-
   get-test-tags:
-    needs: [wait-for-test]
+    # Only run if test.yml succeeded for a pull_request (or manual trigger) events.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: self-hosted
     outputs:
       test-tags: ${{ steps.set-tags.outputs.test-tags }}
@@ -117,7 +41,6 @@ jobs:
         # Test sets:
         # @ci-dashboard-set-1: Pipelines (Import and Run), Workbenches (create with storage), Project Creation, User Login
         # @ci-dashboard-set-2: Model Stop/Start, Cluster Settings, Connection Creation, Cluster Storage Creation
-        # TODO: Use turbo to run tests according to PR changes.
         run: |
           echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
 
@@ -158,11 +81,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # For pull_request_target, explicitly checkout the PR head (from fork)
-          # This is safe because we only run after test.yml passes
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          # Fetch from the fork repository if it's a fork PR
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          # For workflow_run, checkout the commit that triggered test.yml
+          # For manual trigger, checkout the current ref
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Restore npm dependencies cache
         uses: actions/cache/restore@v4
@@ -214,32 +135,13 @@ jobs:
               exit 1
             fi
           else
-            echo "⚠️  GitLab secrets not available (forked PR or secrets not configured)"
-            echo "💡 Attempting to use fallback test-variables.yml if available"
-            # Check if test-variables.yml already exists (e.g., from a previous step or cached)
-            if [ ! -f "${{ github.workspace }}/packages/cypress/test-variables.yml" ]; then
-              echo "❌ No test-variables.yml found and secrets not available"
-              echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets"
-              exit 1
-            else
-              echo "✅ Using existing test-variables.yml file"
-            fi
-          fi
-
-          # Update ODH_DASHBOARD_URL if secret is not available (for fork PRs)
-          if [ -z "${{ secrets.ODH_DASHBOARD_URL }}" ]; then
-            echo "⚠️  ODH_DASHBOARD_URL secret not available (forked PR) - using localhost"
-            sed -i.bak "s|ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: http://localhost:${WEBPACK_PORT}|" ${{ github.workspace }}/packages/cypress/test-variables.yml || true
+            echo "⚠️  GitLab secrets not available"
+            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets"
+            exit 1
           fi
 
       - name: Login to OpenShift cluster
         run: |
-          # For forked PRs, skip OpenShift login since secrets are not available
-          if [ -z "${{ secrets.OC_SERVER }}" ]; then
-            echo "⚠️  OpenShift secrets not available (forked PR) - skipping cluster login"
-            exit 0
-          fi
-
           # Read credentials from downloaded test-variables.yml
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
@@ -479,9 +381,7 @@ jobs:
           echo "🏁 E2E Test completed!"
           echo "Status: ${{ job.status }}"
           echo "Event: ${{ github.event_name }}"
-          echo "Branch: ${{ github.ref_name }}"
           echo "Test Tag: ${{ matrix.test-tag }}"
-          echo "Commit: ${{ github.sha }}"
           echo "Run ID: ${{ github.run_id }}"
           echo ""
           echo "📊 Test artifacts uploaded to:"
@@ -490,7 +390,7 @@ jobs:
   cleanup-server:
     needs: [e2e-tests]
     runs-on: self-hosted
-    if: ${{ always() && needs.e2e-tests.result != 'skipped' }}
+    if: ${{ always() }}
     steps:
       - name: Stop Cypress Servers
         run: |
