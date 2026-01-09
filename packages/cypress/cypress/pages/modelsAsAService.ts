@@ -237,7 +237,30 @@ class DeleteTierModal extends DeleteModal {
   }
 }
 
+// MaaS Wizard Field helpers for the model deployment wizard
+class MaaSWizardField {
+  findSaveAsMaaSCheckbox() {
+    return cy.findByTestId('maas/save-as-maas-checkbox');
+  }
+
+  findMaaSTierDropdown() {
+    return cy.findByTestId('maas/save-as-maas-checkbox-tier-dropdown');
+  }
+
+  selectMaaSTierOption(
+    option: 'All resource tiers' | 'No resource tiers' | 'Specific resource tiers',
+  ) {
+    this.findMaaSTierDropdown().click();
+    return cy.findByRole('option', { name: option }).click();
+  }
+
+  findMaaSTierNamesInput() {
+    return cy.findByTestId('maas/save-as-maas-checkbox-tier-names');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
+export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();

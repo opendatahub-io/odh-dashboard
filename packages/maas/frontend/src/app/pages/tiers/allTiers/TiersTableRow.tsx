@@ -3,8 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Label, Stack, StackItem } from '@patternfly/react-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { Tier } from '~/app/types/tier';
+import { RateLimit, Tier } from '~/app/types/tier';
 import { tierColumns } from './columns';
+
+const pluralize = (count: number, singular: string): string =>
+  count === 1 ? singular : `${singular}s`;
+
+const formatRateLimit = (limit: RateLimit, type: 'token' | 'request'): string =>
+  `${limit.count.toLocaleString()} ${pluralize(limit.count, type)}/${limit.time} ${pluralize(limit.time, limit.unit)}`;
 
 type TiersTableRowProps = {
   tier: Tier;
@@ -28,21 +34,29 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
       </Td>
       <Td dataLabel={tierColumns[2].label}>
         <Label>
-          {tier.groups.length} Group{tier.groups.length !== 1 ? 's' : ''}
+          {tier.groups?.length ?? 0} Group{tier.groups?.length !== 1 ? 's' : ''}
         </Label>
       </Td>
       <Td dataLabel={tierColumns[3].label}>
         <Stack>
-          {tier.limits.tokensPerUnit.map((limit, index) => (
-            <StackItem key={`token-${index}`}>
-              {limit.count.toLocaleString()} tokens/{limit.time} {limit.unit}
+          {tier.limits?.tokensPerUnit ? (
+            <StackItem>
+              {tier.limits.tokensPerUnit.map((limit, index) => (
+                <StackItem key={`token-${index}`}>{formatRateLimit(limit, 'token')}</StackItem>
+              ))}
             </StackItem>
-          ))}
-          {tier.limits.requestsPerUnit.map((limit, index) => (
-            <StackItem key={`request-${index}`}>
-              {limit.count.toLocaleString()} requests/{limit.time} {limit.unit}
+          ) : (
+            <StackItem>No token limits</StackItem>
+          )}
+          {tier.limits?.requestsPerUnit ? (
+            <StackItem>
+              {tier.limits.requestsPerUnit.map((limit, index) => (
+                <StackItem key={`request-${index}`}>{formatRateLimit(limit, 'request')}</StackItem>
+              ))}
             </StackItem>
-          ))}
+          ) : (
+            <StackItem>No request limits</StackItem>
+          )}
         </Stack>
       </Td>
       <Td isActionCell>

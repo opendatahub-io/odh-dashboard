@@ -244,12 +244,12 @@ const getStatusSections = (projectName?: string): StatusSection[] => [
         comp: (state) => (state.modelAvailability.data.saveAsAiAsset ? 'Yes' : 'No'),
         isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
       },
-      {
-        key: 'modelAvailability-maasEndpoint',
-        label: 'Add as MaaS endpoint',
-        comp: (state) => (state.modelAvailability.data.saveAsMaaS ? 'Yes' : 'No'),
-        isVisible: (wizardState) => !!wizardState.state.modelAvailability.showSaveAsMaaS,
-      },
+      // {
+      //   key: 'modelAvailability-maasEndpoint',
+      //   label: 'Add as MaaS endpoint',
+      //   comp: (state) => (state.modelAvailability.data.saveAsMaaS ? 'Yes' : 'No'),
+      //   isVisible: (wizardState) => !!wizardState.state.modelAvailability.showSaveAsMaaS,
+      // },
       {
         key: 'modelAvailability-useCase',
         label: 'Use case',
