@@ -48,7 +48,7 @@ export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
       variant={ButtonVariant.link}
       data-testid="dont-see-model-button"
       onClick={() => {
-        fireMiscTrackingEvent('Model Not Found Link Clicked', {
+        fireMiscTrackingEvent('Available Endpoints Model Not Found Clicked', {
           modelsVisibleCount,
         });
       }}

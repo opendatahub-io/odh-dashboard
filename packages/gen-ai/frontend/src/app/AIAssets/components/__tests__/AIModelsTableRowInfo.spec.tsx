@@ -121,17 +121,6 @@ describe('AIModelsTableRowInfo', () => {
   });
 
   describe('Event Tracking', () => {
-    it('should fire Model_Info_Viewed event when popover is opened', async () => {
-      const user = userEvent.setup();
-      const model = createMockAIModel();
-      render(<AIModelsTableRowInfo model={model} />);
-
-      const infoButton = screen.getByTestId('model-id-icon-button');
-      await user.click(infoButton);
-
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model Info Viewed', {});
-    });
-
     it('should fire Model_ID_Copied event when model ID is copied', async () => {
       const user = userEvent.setup();
       const model = createMockAIModel({ model_id: 'test-copy-id' });
@@ -148,7 +137,7 @@ describe('AIModelsTableRowInfo', () => {
       const copyButton = screen.getByRole('button', { name: /copy model id/i });
       await user.click(copyButton);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Model ID Copied', {});
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Model Id Copied', {});
     });
   });
 });

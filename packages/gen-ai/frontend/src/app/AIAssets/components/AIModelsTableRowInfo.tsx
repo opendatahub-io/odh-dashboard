@@ -27,9 +27,6 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
         position="right"
         isVisible={isOpen}
         onHidden={() => setIsOpen(false)}
-        onShown={() => {
-          fireMiscTrackingEvent('Model Info Viewed', {});
-        }}
         bodyContent={
           <Stack hasGutter>
             <StackItem>
@@ -44,7 +41,7 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
                 clickTip="Model ID copied"
                 aria-label="Copy model ID"
                 onCopy={() => {
-                  fireMiscTrackingEvent('Model ID Copied', {});
+                  fireMiscTrackingEvent('Available Endpoints Model Id Copied', {});
                 }}
               >
                 {model.model_id}

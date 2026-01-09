@@ -83,7 +83,7 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
             <Button
               variant={ButtonVariant.secondary}
               onClick={() => {
-                fireMiscTrackingEvent('Playground Launched From Available Endpoints', {
+                fireMiscTrackingEvent('Available Endpoints Playground Launched', {
                   assetType: 'maas_model',
                   assetId: model.id,
                 });

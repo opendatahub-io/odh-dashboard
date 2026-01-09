@@ -51,7 +51,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
               clickTip="Copied"
               aria-label={`MaaS route URL for ${model.id}`}
               onCopy={() => {
-                fireMiscTrackingEvent('Endpoint Copied', {
+                fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
                   assetType: 'maas_model',
                   endpointType: 'maas_route',
                   copyTarget: 'endpoint',
@@ -103,7 +103,7 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                         clickTip="Copied"
                         aria-label="Generated MaaS API token"
                         onCopy={() => {
-                          fireMiscTrackingEvent('Service Token Copied', {
+                          fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
                             assetType: 'maas_model',
                             copyTarget: 'service_token',
                           });
