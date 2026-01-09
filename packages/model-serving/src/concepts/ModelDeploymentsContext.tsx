@@ -27,7 +27,7 @@ type PlatformDeploymentWatcherProps = {
   project: ProjectKind;
   onStateChange: (
     platformId: string,
-    state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
+    state: { deployments?: Deployment[]; loaded: boolean; errors?: Error[] },
   ) => void;
   unloadPlatformDeployments: (platformId: string) => void;
   labelSelectors?: { [key: string]: string };
@@ -46,14 +46,14 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   const useWatchDeployments = watcher.properties.watch;
 
   // Scope the call to the single project
-  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors, filterFn);
+  const [deployments, loaded, errors] = useWatchDeployments(project, labelSelectors, filterFn);
 
   React.useEffect(() => {
-    onStateChange(platformId, { deployments, loaded, error });
+    onStateChange(platformId, { deployments, loaded, errors });
     return () => {
       unloadPlatformDeployments(platformId);
     };
-  }, [platformId, deployments, loaded, error, onStateChange, unloadPlatformDeployments]);
+  }, [platformId, deployments, loaded, errors, onStateChange, unloadPlatformDeployments]);
 
   return null;
 };
@@ -82,11 +82,14 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
   );
 
   const [platformDeployments, setPlatformDeployments] = React.useState<{
-    [platformId: string]: { deployments?: Deployment[]; loaded: boolean; error?: Error };
+    [platformId: string]: { deployments?: Deployment[]; loaded: boolean; errors?: Error[] };
   }>(Object.fromEntries(availablePlatforms.map((platformId) => [platformId, { loaded: false }])));
 
   const updatePlatformDeployments = React.useCallback(
-    (platformId: string, data: { deployments?: Deployment[]; loaded: boolean; error?: Error }) => {
+    (
+      platformId: string,
+      data: { deployments?: Deployment[]; loaded: boolean; errors?: Error[] },
+    ) => {
       setPlatformDeployments((oldDeployments) => ({ ...oldDeployments, [platformId]: data }));
     },
     [],
@@ -109,8 +112,8 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
       if (state.deployments) {
         allDeployments.push(...state.deployments);
       }
-      if (state.error) {
-        errors.push(state.error);
+      if (state.errors) {
+        errors.push(...state.errors);
       }
     }
 
@@ -130,7 +133,8 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     return {
       deployments: allLoaded ? allDeployments : undefined,
       loaded: allLoaded,
-      errors,
+      // sort errors so they are always in the same order
+      errors: errors.toSorted((a, b) => a.message.localeCompare(b.message)),
       projects,
     };
   }, [projects, platformDeployments, deploymentWatchersLoaded, availablePlatforms]);
