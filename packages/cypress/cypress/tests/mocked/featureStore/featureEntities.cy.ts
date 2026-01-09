@@ -591,7 +591,7 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchNoResults().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchNoResultsText()
-      .should('contain.text', 'No results found for query "nonexistent" from All repositories');
+      .should('contain.text', 'No results found for query "nonexistent" from All feature stores');
   });
 
   it('should show loading spinner during search', () => {
