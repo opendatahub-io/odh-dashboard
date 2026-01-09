@@ -37,6 +37,7 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
                 Model ID
               </Content>
               <ClipboardCopy
+                data-testid="clipboard-copy-model-id"
                 hoverTip="Copy model ID"
                 clickTip="Model ID copied"
                 aria-label="Copy model ID"
