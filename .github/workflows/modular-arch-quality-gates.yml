@@ -418,7 +418,7 @@ jobs:
     if: always() && needs.detect-changes.outputs.has-changes == 'true'
     steps:
       - name: Download per-module assessments
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: app-gate-*
           merge-multiple: true
