@@ -1,4 +1,5 @@
 import type { WBControlSuiteTestData } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import {
   workbenchPage,
@@ -97,7 +98,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(controlSuiteTestDescription);
-          notebookRow.expectStatusLabelToBe('Running', 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
           // Use the dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -107,12 +108,12 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
             cy.step('Stop workbench and validate it has been stopped');
             notebookRow.findNotebookStopToggle().click();
             notebookConfirmModal.findStopWorkbenchButton().click();
-            notebookRow.expectStatusLabelToBe('Stopped', 120000);
+            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Stopped, 120000);
 
             // Restart workbench and confirm initiation
             cy.step('Restart workbench and validate it starts successfully');
             notebookRow.findNotebookStopToggle().click();
-            notebookRow.expectStatusLabelToBe('Running', 120000);
+            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
             // Delete workbench
             cy.step('Delete workbench and confirm deleteion');
@@ -173,15 +174,15 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           cy.step('Click on Running status and stop the workbench');
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findHaveNotebookStatusText().click();
-          workbenchStatusModal.getNotebookStatus('Starting', 120000);
+          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Starting, 120000);
           workbenchStatusModal.findStopWorkbenchFooterButton().click();
           workbenchStatusModal.findStopWorkbenchButton().click();
-          workbenchStatusModal.getNotebookStatus('Stopped', 120000);
+          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Stopped, 120000);
 
           // Start the Workbench and validate it has started successfully
           cy.step('Restart the workbench and confirm the workbench has started successfully');
           workbenchStatusModal.findStartWorkbenchFooterButton().click();
-          workbenchStatusModal.getNotebookStatus('Running', 120000);
+          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Running, 120000);
         },
       );
     },

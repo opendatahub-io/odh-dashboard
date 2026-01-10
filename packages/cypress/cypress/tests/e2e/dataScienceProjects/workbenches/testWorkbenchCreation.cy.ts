@@ -1,4 +1,5 @@
 import type { WBEditTestData, AWSS3BucketDetails } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import {
   workbenchPage,
@@ -104,7 +105,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
           // Wait for workbench to run
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-          notebookRow.expectStatusLabelToBe('Running', 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -114,7 +115,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
             cy.step('Stop workbench and validate it has been stopped');
             notebookRow.findNotebookStopToggle().click();
             notebookConfirmModal.findStopWorkbenchButton().click();
-            notebookRow.expectStatusLabelToBe('Stopped', 120000);
+            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Stopped, 120000);
 
             // Edit the workbench and update
             cy.step('Editing the workbench - both the Name and Description');

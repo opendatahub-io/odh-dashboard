@@ -17,6 +17,8 @@ objectStorageBucket: "test-models"
 objectStorageRegion: "us-east-1"
 objectStoragePath: "models/test-model/v1.0"
 modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
+modelFormat: 'openvino_ir - opset13'
+servingRuntime: 'OpenVINO Model Server'
 
 # Second model (URI)
 uriModelName: "test-uri-model"

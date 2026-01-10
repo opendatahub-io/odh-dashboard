@@ -3,3 +3,5 @@ projectSingleModelAdminDisplayName: "Cypress Single Model Admin Test Project"
 projectSingleModelAdminResourceName: "cy-single-model-admin-test" 
 singleModelAdminName: "cy-openvino-model"
 modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
+modelFormat: 'openvino_ir - opset13'
+servingRuntime: 'OpenVINO Model Server'

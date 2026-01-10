@@ -16,6 +16,7 @@ import { clusterStorage, addClusterStorageModal } from '../../../../pages/cluste
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import type { WBStorageClassesTestData } from '../../../../types';
+import { AccessMode } from '../../../../types';
 import { selectNotebookImageWithBackendFallback } from '../../../../utils/oc_commands/imageStreams';
 import { loadWBStorageClassesFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -52,9 +53,9 @@ describe('Workbench Storage Classes Tests', () => {
   let mountPathB: string;
   let mountPathC: string;
 
-  const rwoLabel = 'ReadWriteOnce';
-  const rwxLabel = 'ReadWriteMany';
-  const roxLabel = 'ReadOnlyMany';
+  const rwoLabel = AccessMode.RWO;
+  const rwxLabel = AccessMode.RWX;
+  const roxLabel = AccessMode.ROX;
 
   retryableBefore(() => {
     // Load test data from fixtures
@@ -157,7 +158,7 @@ describe('Workbench Storage Classes Tests', () => {
 
           cy.step('Verify storage access mode in table');
           const storageTable = createSpawnerPage.getStorageTable();
-          storageTable.verifyStorageAccessMode(storageNameRWO, 'ReadWriteOnce');
+          storageTable.verifyStorageAccessMode(storageNameRWO, AccessMode.RWO);
 
           createSpawnerPage.findSubmitButton().click();
         },
