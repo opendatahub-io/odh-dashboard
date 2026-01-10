@@ -1306,6 +1306,7 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   embedMLflow?: boolean;
   observabilityDashboard?: boolean;
+  disableLLMd?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

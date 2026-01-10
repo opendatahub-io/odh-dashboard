@@ -44,26 +44,50 @@ describe('Cluster Settings', () => {
     clusterSettings.visit();
 
     // check serving platform field
-    modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
+    // LLMd and single platform checkbox should be checked initially
+    modelServingSettings.findEnableLLMdSwitch().should('be.checked');
+    modelServingSettings.findSinglePlatformSwitch().should('be.checked');
+    modelDeploymentSettings.findDistributedInferencing().should('be.checked');
     modelServingSettings.findSubmitButton().should('be.disabled');
     modelServingSettings.findAlert().should('not.exist');
-    modelServingSettings.findSinglePlatformCheckbox().uncheck();
+
+    // If disable model serving checkbox is unchecked, submit button should be enabled
+    modelServingSettings.findSinglePlatformSwitch().click({ force: true });
     modelServingSettings.findSubmitButton().should('be.enabled');
     modelServingSettings.findAlert().should(be.warning);
-    modelServingSettings.findSinglePlatformCheckbox().check();
+    // and if disable model serving checkbox is unchecked, LLMd checkboxes should be unchecked and disabled as well
+    modelServingSettings.findEnableLLMdSwitch().should('not.be.checked');
+    modelServingSettings.findEnableLLMdSwitch().should('be.disabled');
+    modelDeploymentSettings.findDistributedInferencing().should('not.be.checked');
+    modelDeploymentSettings.findDistributedInferencing().should('be.disabled');
+    modelServingSettings.findAlert().should('exist');
+
+    // reenable model serving (automatically enables llmd and distributed inferencing)
+    modelServingSettings.findSinglePlatformSwitch().click({ force: true });
+
+    modelServingSettings.findEnableLLMdSwitch().should('be.checked');
+    modelDeploymentSettings.findDistributedInferencing().should('not.be.disabled');
+    modelDeploymentSettings.findDistributedInferencing().should('be.checked');
+
     modelServingSettings.findAlert().should('not.exist');
+
     modelServingSettings.findSubmitButton().should('be.disabled');
 
-    // check model deployment options field
+    // If llmd is disabled the distributed inferencing checkbox should be unchecked as well
+    modelServingSettings.findEnableLLMdSwitch().click({ force: true });
+    modelServingSettings.findEnableLLMdSwitch().should('not.be.checked');
     modelDeploymentSettings.findDistributedInferencing().should('not.be.checked');
+    modelDeploymentSettings.findDistributedInferencing().should('be.disabled');
     modelDeploymentSettings.findAlert().should('exist');
-    modelDeploymentSettings.findSubmitButton().should('be.disabled');
-    modelDeploymentSettings.findDistributedInferencing().click({ force: true });
+
     modelDeploymentSettings.findSubmitButton().should('be.enabled');
-    modelDeploymentSettings.findAlert().should('not.exist');
-    modelDeploymentSettings.findDistributedInferencing().click({ force: true });
+
+    // reenable llmd but not distributed inferencing -> submit button should be disabled, back to original state
+    modelServingSettings.findEnableLLMdSwitch().click({ force: true });
+
     modelDeploymentSettings.findSubmitButton().should('be.disabled');
 
+    // check model deployment options field
     modelDeploymentSettings.findRollingUpdateRadio().should('be.checked');
     modelDeploymentSettings.findSubmitButton().should('be.disabled');
     modelDeploymentSettings.findRecreateRadio().check();

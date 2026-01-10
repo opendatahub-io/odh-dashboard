@@ -108,12 +108,13 @@ export type ClusterSettingsType = {
   pvcSize: number;
   cullerTimeout: number;
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
-  useDistributedInferencing?: boolean;
+  isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
 };
 
 export type ModelServingPlatformEnabled = {
   kServe: boolean;
+  LLMd: boolean;
 };
 
 /** @deprecated -- use SDK type */

@@ -27,13 +27,13 @@ export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig):
   cy.log(`Value of isKServeEnabled: ${String(isKServeEnabled)}`);
 
   if (isModelServingEnabled) {
-    modelServingSettings.findSinglePlatformCheckbox().should('not.exist');
+    modelServingSettings.findSinglePlatformSwitch().should('not.exist');
     cy.log('Model Serving is disabled, checkboxes should not be visible');
   } else if (isKServeEnabled) {
-    modelServingSettings.findSinglePlatformCheckbox().should('not.be.checked');
+    modelServingSettings.findSinglePlatformSwitch().should('not.be.checked');
     cy.log('Single-Platform Checkbox is disabled, it should not be checked');
   } else {
-    modelServingSettings.findSinglePlatformCheckbox().should('be.checked');
+    modelServingSettings.findSinglePlatformSwitch().should('be.checked');
     cy.log('Single-Platform Checkbox is enabled, it should be checked');
   }
 };
