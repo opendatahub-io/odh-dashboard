@@ -4,6 +4,7 @@ export enum ModelCatalogStringFilterKey {
   LICENSE = 'license',
   LANGUAGE = 'language',
   HARDWARE_TYPE = 'hardware_type',
+  HARDWARE_CONFIGURATION = 'hardware_configuration',
   USE_CASE = 'use_case',
 }
 
@@ -396,6 +397,7 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.TASK]: 'Task',
   [ModelCatalogStringFilterKey.LANGUAGE]: 'Language',
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: 'Hardware type',
+  [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: 'Hardware',
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
   // Number filter keys
   [ModelCatalogNumberFilterKey.MIN_RPS]: 'Min RPS',

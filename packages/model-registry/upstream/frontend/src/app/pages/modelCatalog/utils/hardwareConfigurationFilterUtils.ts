@@ -50,7 +50,20 @@ export const getUniqueHardwareTypes = (
 };
 
 /**
- * Enhanced filter for Latency that supports metric and percentile selection
+ * Extracts unique hardware configurations from performance artifacts
+ */
+export const getUniqueHardwareConfigurations = (
+  artifacts: CatalogPerformanceMetricsArtifact[],
+): string[] => {
+  const hardwareConfigurations = artifacts
+    .map((artifact) => getStringValue(artifact.customProperties, 'hardware_configuration'))
+    .filter((hardware): hardware is string => !!hardware && hardware !== '-');
+
+  return [...new Set(hardwareConfigurations)].toSorted();
+};
+
+/**
+ * Enhanced filter for Max Latency that supports metric and percentile selection
  */
 export const applyLatencyFilter = (
   artifact: CatalogPerformanceMetricsArtifact,
