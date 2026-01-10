@@ -114,8 +114,8 @@ class CreateTierPage {
   }
 
   // Level field
-  findLevelInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('tier-level');
+  findLevelInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return cy.findByTestId('tier-level').find('input');
   }
 
   // Groups MultiSelection
@@ -191,6 +191,14 @@ class CreateTierPage {
 
   findRequestRateLimitRemoveButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`tier-request-rate-limit-${index}-remove`);
+  }
+
+  findNameTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-name-taken-error');
+  }
+
+  findLevelTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level-taken-error');
   }
 
   // Form action buttons
