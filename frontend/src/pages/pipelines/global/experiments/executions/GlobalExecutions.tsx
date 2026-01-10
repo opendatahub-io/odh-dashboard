@@ -30,6 +30,7 @@ const GlobalExecutions: React.FC = () => {
       getRedirectPath={executionsBaseRoute}
       overrideChildPadding
       overrideTimeout
+      accessDomain="executions"
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

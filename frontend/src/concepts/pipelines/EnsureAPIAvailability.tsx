@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { Bullseye, Spinner, Button, Flex, FlexItem, Title } from '@patternfly/react-core';
+import { Alert, Bullseye, Spinner, Button, Flex, FlexItem, Title } from '@patternfly/react-core';
+import { getGenericErrorCode } from '#~/api';
 import {
   usePipelinesAPI,
   PipelineServerTimedOut,
   DeleteServerModal,
 } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { getPipelineServerName } from './context/PipelinesContext';
 
 type EnsureAPIAvailabilityProps = {
@@ -33,8 +35,14 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
   inTab = false,
   children,
 }) => {
-  const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef, project } =
-    usePipelinesAPI();
+  const {
+    apiAvailable,
+    pipelinesServer,
+    namespace,
+    startingStatusModalOpenRef,
+    project,
+    pipelineLoadError,
+  } = usePipelinesAPI();
 
   const [showModal, setShowModal] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -127,6 +135,20 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
   const getMainComponent = () => {
     const { isStarting, compatible, timedOut } = pipelinesServer;
+
+    // Handle pipeline load errors
+    if (pipelineLoadError) {
+      if (getGenericErrorCode(pipelineLoadError) === 403) {
+        return <UnauthorizedError accessDomain="pipelines" />;
+      }
+      return (
+        <Bullseye>
+          <Alert title="Pipelines load error" variant="danger" isInline>
+            {pipelineLoadError.message}
+          </Alert>
+        </Bullseye>
+      );
+    }
 
     if (timedOut && compatible) {
       return <PipelineServerTimedOut />;

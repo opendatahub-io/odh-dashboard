@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { PageSection, Stack } from '@patternfly/react-core';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import OverviewModelsSection from '#~/concepts/projects/overviewTab/ServeModels';
 import TrainModelsSection from './trainModels/TrainModelsSection';
@@ -18,9 +17,7 @@ const ProjectOverview: React.FC = () => {
       id={ProjectSectionID.OVERVIEW}
     >
       <Stack hasGutter data-testid={`section-${ProjectSectionID.OVERVIEW}`}>
-        <PipelineAndVersionContextProvider>
-          <TrainModelsSection />
-        </PipelineAndVersionContextProvider>
+        <TrainModelsSection />
         {modelServingEnabled && <OverviewModelsSection />}
         <ConfigurationSection />
       </Stack>

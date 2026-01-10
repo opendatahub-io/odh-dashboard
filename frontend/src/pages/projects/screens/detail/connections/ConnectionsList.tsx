@@ -10,10 +10,18 @@ import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconBu
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
-import { createSecret, replaceSecret } from '#~/api';
+import { createSecret, replaceSecret, useAccessReview } from '#~/api';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { SecretModel } from '#~/api/models';
 import { filterEnabledConnectionTypes } from '#~/concepts/connectionTypes/utils';
 import ConnectionsTable from './ConnectionsTable';
 import { ManageConnectionModal } from './ManageConnectionsModal';
+
+const accessReviewResource: AccessReviewResourceAttributes = {
+  group: SecretModel.apiGroup,
+  resource: SecretModel.plural,
+  verb: 'create',
+};
 
 const ConnectionsDescription =
   'Connections enable you to store and retrieve information that typically should not be stored in code. For example, you can store details (including credentials) for object storage, databases, and more. You can then attach the connections to artifacts in your project, such as workbenches and model servers.';
@@ -29,12 +37,43 @@ const ConnectionsList: React.FC = () => {
     [connectionTypes],
   );
 
+  const [allowCreate] = useAccessReview({
+    ...accessReviewResource,
+    namespace: currentProject.metadata.name,
+  });
+
   const [manageConnectionModal, setManageConnectionModal] = React.useState<{
     connection?: Connection;
     isEdit?: boolean;
   }>();
 
   const tooltipRef = React.useRef<HTMLButtonElement>();
+
+  // Button is disabled if user lacks create permission or if no connection types are available
+  const isButtonDisabled = !allowCreate || enabledConnectionTypes.length === 0;
+  const disabledReason = !allowCreate
+    ? 'You do not have permission to create connections'
+    : 'No connection types available';
+
+  const getCreateButton = (testId: string) => (
+    <>
+      <Button
+        data-testid={testId}
+        variant="primary"
+        onClick={() => {
+          setManageConnectionModal({});
+        }}
+        aria-describedby={isButtonDisabled ? 'connection-button-tooltip' : undefined}
+        isAriaDisabled={isButtonDisabled}
+        ref={tooltipRef}
+      >
+        Create connection
+      </Button>
+      {isButtonDisabled && (
+        <Tooltip id="connection-button-tooltip" content={disabledReason} triggerRef={tooltipRef} />
+      )}
+    </>
+  );
 
   return (
     <>
@@ -50,31 +89,7 @@ const ConnectionsList: React.FC = () => {
             />
           </Popover>
         }
-        actions={[
-          <>
-            <Button
-              data-testid="add-connection-button"
-              variant="primary"
-              onClick={() => {
-                setManageConnectionModal({});
-              }}
-              aria-describedby={
-                enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
-              }
-              isAriaDisabled={enabledConnectionTypes.length === 0}
-              ref={tooltipRef}
-            >
-              Create connection
-            </Button>
-            {enabledConnectionTypes.length === 0 && (
-              <Tooltip
-                id="no-connection-types-tooltip"
-                content="No connection types available"
-                triggerRef={tooltipRef}
-              />
-            )}
-          </>,
-        ]}
+        actions={[getCreateButton('add-connection-button')]}
         isLoading={!loaded || !connectionTypesLoaded}
         isEmpty={connections.length === 0}
         loadError={error || connectionTypesError}
@@ -84,31 +99,7 @@ const ConnectionsList: React.FC = () => {
             description={ConnectionsDescription}
             iconImage={typedEmptyImage(ProjectObjectType.connections)}
             imageAlt="create a connection"
-            createButton={
-              <>
-                <Button
-                  variant="primary"
-                  data-testid="create-connection-button"
-                  aria-describedby={
-                    enabledConnectionTypes.length === 0 ? 'no-connection-types-tooltip' : undefined
-                  }
-                  isAriaDisabled={enabledConnectionTypes.length === 0}
-                  onClick={() => {
-                    setManageConnectionModal({});
-                  }}
-                  ref={tooltipRef}
-                >
-                  Create connection
-                </Button>
-                {enabledConnectionTypes.length === 0 && (
-                  <Tooltip
-                    id="no-connection-types-tooltip"
-                    content="No connection types available"
-                    triggerRef={tooltipRef}
-                  />
-                )}
-              </>
-            }
+            createButton={getCreateButton('create-connection-button')}
           />
         }
       >

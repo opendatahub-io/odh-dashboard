@@ -20,8 +20,6 @@ import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProjec
 import { conditionalArea, SupportedArea } from '#~/concepts/areas';
 import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
-import { getGenericErrorCode } from '#~/api';
-import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 
@@ -54,6 +52,8 @@ type PipelineContext = {
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   isStarting?: boolean;
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
+  /** Error from loading pipeline CR or route */
+  pipelineLoadError: Error | undefined;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -79,18 +79,18 @@ const PipelinesContext = React.createContext<PipelineContext>({
   managedPipelines: undefined,
   isStarting: false,
   startingStatusModalOpenRef: { current: null },
+  pipelineLoadError: undefined,
 });
 
 type PipelineContextProviderProps = {
   children: React.ReactNode;
   namespace: string;
-  pageName?: string;
 };
 
 export const PipelineContextProvider = conditionalArea<PipelineContextProviderProps>(
   SupportedArea.DS_PIPELINES,
   true,
-)(({ children, namespace, pageName }) => {
+)(({ children, namespace }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
@@ -136,21 +136,17 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
   const { getRecurringRunInformation } = useRecurringRunRelatedInformation(apiState);
-  let error = crLoadError || routeLoadError;
-  if (error || !project) {
-    error = error || new Error('Project not found');
-    if (getGenericErrorCode(error) === 403) {
-      return <UnauthorizedError accessDomain={pageName} />;
-    }
+  const pipelineLoadError = crLoadError || routeLoadError;
+
+  if (!project) {
     return (
       <Bullseye>
         <Alert title="Pipelines load error" variant="danger" isInline>
-          {error.message}
+          Project not found
         </Alert>
       </Bullseye>
     );
   }
-
   return (
     <PipelinesContext.Provider
       value={{
@@ -170,6 +166,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
         isStarting,
         startingStatusModalOpenRef,
+        pipelineLoadError,
       }}
     >
       {children}
@@ -198,6 +195,8 @@ type UsePipelinesAPI = PipelineAPIState & {
     crStatus: DSPipelineKind['status'];
     isStarting: boolean | undefined;
   };
+  /** Error from loading pipeline CR or route */
+  pipelineLoadError: Error | undefined;
   /**
    * Allows agnostic functionality to request all watched API to be reacquired.
    * Triggering this will invalidate the memo for API - pay attention to only calling it once per need.
@@ -229,6 +228,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     crStatus,
     isStarting,
     startingStatusModalOpenRef,
+    pipelineLoadError,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -251,6 +251,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     managedPipelines,
     refreshState,
     startingStatusModalOpenRef,
+    pipelineLoadError,
     ...apiState,
   };
 };

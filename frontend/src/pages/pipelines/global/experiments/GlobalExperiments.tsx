@@ -31,6 +31,7 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
       getRedirectPath={experimentsBaseRoute}
       overrideChildPadding
       overrideTimeout
+      accessDomain="experiments"
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>
