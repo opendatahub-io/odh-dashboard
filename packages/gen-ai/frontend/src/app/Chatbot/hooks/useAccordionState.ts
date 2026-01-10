@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { DEFAULT_EXPANDED_ACCORDION_ITEMS } from '~/app/Chatbot/const';
 
 export interface UseAccordionStateReturn {
@@ -13,7 +14,15 @@ const useAccordionState = (): UseAccordionStateReturn => {
 
   const onAccordionToggle = React.useCallback(
     (id: string) => {
-      if (expandedAccordionItems.includes(id)) {
+      const isExpanded = expandedAccordionItems.includes(id);
+      const action = isExpanded ? 'collapsed' : 'expanded';
+
+      fireMiscTrackingEvent('Playground Settings Section Toggled', {
+        section: id,
+        action,
+      });
+
+      if (isExpanded) {
         setExpandedAccordionItems((currentExpanded) =>
           currentExpanded.filter((itemId) => itemId !== id),
         );

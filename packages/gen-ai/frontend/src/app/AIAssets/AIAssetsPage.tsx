@@ -12,6 +12,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
@@ -39,7 +40,14 @@ export const AIAssetsPage: React.FC = () => {
       <PageSection>
         <Tabs
           activeKey={activeTabKey}
-          onSelect={(_, tabKey) => setActiveTabKey(String(tabKey))}
+          onSelect={(_, tabKey) => {
+            const newTabKey = String(tabKey);
+            fireMiscTrackingEvent('AI Assets Tab Changed', {
+              fromTab: activeTabKey,
+              toTab: newTabKey,
+            });
+            setActiveTabKey(newTabKey);
+          }}
           aria-label="AI Assets tabs"
           role="region"
         >

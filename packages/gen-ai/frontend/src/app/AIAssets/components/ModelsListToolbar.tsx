@@ -16,6 +16,7 @@ import {
   ButtonVariant,
 } from '@patternfly/react-core';
 import { FilterIcon, CloseIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AssetsFilterColors } from '~/app/AIAssets/data/filterOptions';
 
 type ModelsListToolbarProps = {
@@ -25,6 +26,7 @@ type ModelsListToolbarProps = {
   filterColors?: Record<string, AssetsFilterColors>;
   infoPopover?: React.ReactNode;
   onClearFilters: () => void;
+  source: 'ai-models' | 'maas';
 };
 
 const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
@@ -34,6 +36,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   filterColors,
   infoPopover,
   onClearFilters,
+  source,
 }) => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
@@ -43,6 +46,11 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   const [searchValue, setSearchValue] = React.useState('');
 
   const handleSearch = () => {
+    fireMiscTrackingEvent('AI Assets Filter Applied', {
+      filterType: currentFilterType,
+      searchValueLength: searchValue.length,
+      source,
+    });
     onFilterUpdate(currentFilterType, searchValue);
   };
 
@@ -149,7 +157,13 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                 <FlexItem>
                   <Button
                     variant={ButtonVariant.link}
-                    onClick={onClearFilters}
+                    onClick={() => {
+                      fireMiscTrackingEvent('AI Assets Filters Cleared', {
+                        activeFiltersCount: activeFilters.length,
+                        source,
+                      });
+                      onClearFilters();
+                    }}
                     icon={<CloseIcon />}
                   >
                     Clear all filters

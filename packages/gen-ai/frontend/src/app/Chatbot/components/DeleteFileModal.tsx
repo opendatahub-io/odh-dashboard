@@ -8,6 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FileModel } from '~/app/types';
 
 interface DeleteFileModalProps {
@@ -45,11 +46,28 @@ const DeleteFileModal: React.FC<DeleteFileModalProps> = ({
           variant="danger"
           isLoading={isDeleting}
           isDisabled={isDeleting}
-          onClick={onConfirm}
+          data-testid="delete-button"
+          onClick={() => {
+            fireMiscTrackingEvent('Playground Delete File Modal Action', {
+              action: 'confirmed',
+            });
+            onConfirm();
+          }}
         >
           Delete
         </Button>
-        <Button key="cancel-button" variant="link" onClick={onClose} isDisabled={isDeleting}>
+        <Button
+          key="cancel-button"
+          variant="link"
+          data-testid="cancel-button"
+          onClick={() => {
+            fireMiscTrackingEvent('Playground Delete File Modal Action', {
+              action: 'canceled',
+            });
+            onClose();
+          }}
+          isDisabled={isDeleting}
+        >
           Cancel
         </Button>
       </ModalFooter>

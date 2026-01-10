@@ -20,7 +20,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -89,6 +89,10 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
       ...prev,
       [name]: value,
     }));
+    fireMiscTrackingEvent('Playground RAG Settings Changed', {
+      parameter: name,
+      value,
+    });
   };
 
   const handleVectorStoreFormChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
@@ -105,9 +109,12 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
       return;
     }
 
+    // Capture the vector name before any state updates
+    const { vectorName } = vectorStoreForm;
+
     try {
       setIsCreatingVectorStore(true);
-      const newVectorStore = await api.createVectorStore({ name: vectorStoreForm.vectorName });
+      const newVectorStore = await api.createVectorStore({ name: vectorName });
 
       // Refresh the vector stores list to include the newly created one
       await refreshVectorStores();
@@ -120,7 +127,17 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
 
       // Reset the vector store creation form
       setVectorStoreForm(DEFAULT_VECTOR_STORE_FORM);
-    } catch {
+
+      fireMiscTrackingEvent('Playground Vector Database Created', {
+        vectorDbName: vectorName,
+        success: true,
+      });
+    } catch (error) {
+      fireMiscTrackingEvent('Playground Vector Database Created', {
+        vectorDbName: vectorName,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       // Error is handled by the createVectorStore function
       // which will show appropriate user-facing error messages
     } finally {
@@ -321,12 +338,16 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         id="source-settings-form-maxChunkLength"
                         name="maxChunkLength"
                         value={fields.maxChunkLength}
-                        onChange={(e, value) =>
+                        onChange={(e, value) => {
                           setFields((prev) => ({
                             ...prev,
                             maxChunkLength: value ? Number(value) : undefined,
-                          }))
-                        }
+                          }));
+                          fireMiscTrackingEvent('Playground RAG Settings Changed', {
+                            parameter: 'maxChunkLength',
+                            value: value ? Number(value) : undefined,
+                          });
+                        }}
                       />
                     </FormGroup>
                     <FormGroup
@@ -423,12 +444,16 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         id="source-settings-form-chunkOverlap"
                         name="chunkOverlap"
                         value={fields.chunkOverlap}
-                        onChange={(e, value) =>
+                        onChange={(e, value) => {
                           setFields((prev) => ({
                             ...prev,
                             chunkOverlap: value ? Number(value) : undefined,
-                          }))
-                        }
+                          }));
+                          fireMiscTrackingEvent('Playground RAG Settings Changed', {
+                            parameter: 'chunkOverlap',
+                            value: value ? Number(value) : undefined,
+                          });
+                        }}
                       />
                     </FormGroup>
                     <FormGroup

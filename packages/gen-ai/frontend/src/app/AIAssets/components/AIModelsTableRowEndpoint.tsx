@@ -10,6 +10,7 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel } from '~/app/types';
 
 type AIModelsTableRowEndpointProps = {
@@ -56,6 +57,13 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   hoverTip="Copy URL"
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
+                  onCopy={() => {
+                    fireMiscTrackingEvent('AI Assets Endpoint Copied', {
+                      endpointType: isExternal ? 'external' : 'internal',
+                      copyType: 'url',
+                      modelName: model.model_name,
+                    });
+                  }}
                 >
                   {endpoint}
                 </ClipboardCopy>
@@ -75,6 +83,13 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     hoverTip="Copy"
                     clickTip="Copied"
                     aria-label={`External endpoint API token for ${model.model_name}`}
+                    onCopy={() => {
+                      fireMiscTrackingEvent('AI Assets Endpoint Copied', {
+                        endpointType: 'external',
+                        copyType: 'token',
+                        modelName: model.model_name,
+                      });
+                    }}
                   >
                     {model.sa_token.token}
                   </ClipboardCopy>
