@@ -2,8 +2,14 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ModelsListToolbar from '~/app/AIAssets/components/ModelsListToolbar';
 import { AssetsFilterColors, AssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
+
+// Mock tracking
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 describe('ModelsListToolbar', () => {
   const defaultProps = {
@@ -208,6 +214,110 @@ describe('ModelsListToolbar', () => {
       render(<ModelsListToolbar {...defaultProps} />);
 
       expect(screen.queryByTestId('info-popover')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Event Tracking', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    describe('Filter Tracking with Different Props', () => {
+      it('should fire tracking event when infoPopover is provided', async () => {
+        const user = userEvent.setup();
+        const infoPopover = <div>Info</div>;
+
+        render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'test{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+
+      it('should fire tracking event when useCase filter option exists', async () => {
+        const user = userEvent.setup();
+        const filterOptionsWithUseCase = {
+          [AssetsFilterOptions.NAME]: 'Name',
+          [AssetsFilterOptions.KEYWORD]: 'Keyword',
+          [AssetsFilterOptions.USE_CASE]: 'Use Case',
+        };
+
+        render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptionsWithUseCase} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'test{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+
+      it('should fire tracking event when neither infoPopover nor useCase exists', async () => {
+        const user = userEvent.setup();
+
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'test{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+    });
+
+    describe('Filter Applied Tracking', () => {
+      it('should fire tracking event when search is submitted', async () => {
+        const user = userEvent.setup();
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'llama{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+
+      it('should track filter type correctly', async () => {
+        const user = userEvent.setup();
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        // Change to Keyword filter
+        const filterToggle = screen.getByLabelText('Filter toggle');
+        await user.click(filterToggle);
+        const keywordOption = screen.getByText('Keyword');
+        await user.click(keywordOption);
+
+        // Submit search
+        const searchInput = screen.getByPlaceholderText('Filter by keyword...');
+        await user.type(searchInput, 'ai{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.KEYWORD,
+          resultsCount: 0,
+        });
+      });
+
+      it('should track empty search correctly', async () => {
+        const user = userEvent.setup();
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, '{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
     });
   });
 });
