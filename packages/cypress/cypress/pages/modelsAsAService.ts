@@ -194,7 +194,7 @@ class CreateTierPage {
   }
 
   findNameTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('tier-name-taken-error');
+    return cy.findByTestId('resource-name-taken-error');
   }
 
   findLevelTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {

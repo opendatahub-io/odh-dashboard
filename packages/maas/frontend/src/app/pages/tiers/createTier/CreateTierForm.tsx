@@ -140,21 +140,12 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
         dataTestId="tier-name-desc"
         nameHelperText='A descriptive name for this tier (e.g., "Premium Tier")'
         descriptionHelperText="Optional description of this tier's purpose and target users"
+        resourceNameTakenHelperText={
+          isK8sNameTaken
+            ? `A tier with the resource name "${data.k8sName.value}" already exists. Use a unique name.`
+            : undefined
+        }
       />
-      {isK8sNameTaken && (
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem
-              icon={<ExclamationCircleIcon />}
-              variant="error"
-              data-testid="tier-name-taken-error"
-            >
-              A tier with the resource name &quot;{data.k8sName.value}&quot; already exists. Use a
-              unique name.
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
-      )}
       <FormGroup label="Level" fieldId="tier-level" isRequired>
         <NumberInput
           value={Number.isNaN(level) ? '' : level}
