@@ -5,10 +5,9 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { TableBase, getTableColumnSort, useCheckboxTable, SortableData } from '#~/components/table';
 import { ManageColumnsModal } from '#~/components/table/manageColumns/ManageColumnsModal';
-import { ManagedColumn } from '#~/components/table/manageColumns/types';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useManageColumns } from '#~/components/table/manageColumns/useManageColumns';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
@@ -73,33 +72,20 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { runs, contextsError, runArtifactsError, runArtifactsLoaded, metricsNames } =
     useMetricsData(runWithoutMetrics);
 
-  // Manage which metric columns are visible via localStorage
-  const storageKey = getMetricsColumnsLocalStorageKey(experiment?.experiment_id);
-  const allMetricNames = React.useMemo(() => [...metricsNames], [metricsNames]);
-  const defaultMetricColumns = React.useMemo(() => allMetricNames.slice(0, 2), [allMetricNames]);
-  const [metricsColumnNames, setMetricsColumnNames] = useBrowserStorage<string[]>(
-    storageKey,
-    defaultMetricColumns,
-    true,
+  // Build synthetic column definitions for metrics to use with useManageColumns hook
+  const metricColumns: SortableData<PipelineRunKF>[] = React.useMemo(
+    () => [...metricsNames].map((name) => ({ label: name, field: name, sortable: false })),
+    [metricsNames],
   );
 
-  // Build managed columns for the modal
-  const managedColumns: ManagedColumn[] = React.useMemo(() => {
-    // Preserve order from stored columns, add new metrics at the end
-    const orderedNames = [...metricsColumnNames];
-    allMetricNames.forEach((name) => {
-      if (!orderedNames.includes(name)) {
-        orderedNames.push(name);
-      }
-    });
-    return orderedNames
-      .filter((name) => allMetricNames.includes(name))
-      .map((name) => ({
-        id: name,
-        label: name,
-        isVisible: metricsColumnNames.includes(name),
-      }));
-  }, [metricsColumnNames, allMetricNames]);
+  // Manage which metric columns are visible via localStorage
+  const storageKey = getMetricsColumnsLocalStorageKey(experiment?.experiment_id);
+  const { managedColumns, visibleColumnIds, setVisibleColumnIds } = useManageColumns({
+    allColumns: metricColumns,
+    storageKey,
+    defaultVisibleFields: [...metricsNames].slice(0, 2),
+    maxVisibleColumns: 10,
+  });
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -231,8 +217,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(metricsColumnNames).filter((column) => column.field !== 'experiment')
-    : getPipelineRunColumns(metricsColumnNames);
+    ? getPipelineRunColumns(visibleColumnIds).filter((column) => column.field !== 'experiment')
+    : getPipelineRunColumns(visibleColumnIds);
 
   return (
     <>
@@ -268,7 +254,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   content={
                     !runArtifactsLoaded
                       ? 'Customize metrics columns: Loading metrics...'
-                      : !(metricsColumnNames.length || metricsNames.size)
+                      : !(visibleColumnIds.length || metricsNames.size)
                       ? 'Customize metrics columns: No metrics available'
                       : 'Customize metrics columns'
                   }
@@ -277,7 +263,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                     variant="plain"
                     aria-label="Customize metrics column button"
                     isAriaDisabled={
-                      !runArtifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
+                      !runArtifactsLoaded || !(visibleColumnIds.length || metricsNames.size)
                     }
                     onClick={() => setIsCustomColModalOpen(true)}
                     icon={<ColumnsIcon />}
@@ -301,7 +287,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               setIsDeleteModalOpen(true);
             }}
             run={run}
-            customCells={metricsColumnNames.map((metricName: string) => (
+            customCells={visibleColumnIds.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
                   <Skeleton />
@@ -378,7 +364,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           isOpen
           columns={managedColumns}
           onClose={() => setIsCustomColModalOpen(false)}
-          onUpdate={setMetricsColumnNames}
+          onUpdate={setVisibleColumnIds}
           title="Customize metrics columns"
           description="Select up to 10 metrics that will display as columns in the table. Drag and drop column names to reorder them."
           maxSelections={10}
