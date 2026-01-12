@@ -6,19 +6,43 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        ref: odh-release
-        fetch-depth: 0
-        # Uses automatic GITHUB_TOKEN - no manual secrets needed!
 
-    - name: Merge main into odh-release
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git fetch origin main
-        git merge origin/main -m "Auto-merge main into odh-release"
-        git push origin odh-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: odh-release
+          fetch-depth: 0
+          # Uses automatic GITHUB_TOKEN - no manual secrets needed!
+
+      - name: Merge main into odh-release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+
+          # Attempt merge, handle .env conflicts by keeping odh-release version
+          if git merge origin/main -m "Auto-merge main into odh-release"; then
+            echo "Merge completed successfully"
+          else
+            echo "Merge conflict detected, resolving..."
+            
+            # Check if frontend/.env has conflicts and resolve by keeping ours (odh-release)
+            if git diff --name-only --diff-filter=U | grep -q "frontend/.env"; then
+              echo "Resolving frontend/.env conflict - keeping odh-release version"
+              git checkout --ours frontend/.env
+              git add frontend/.env
+            fi
+            
+            # Check for any remaining unresolved conflicts
+            if git diff --name-only --diff-filter=U | grep -v "frontend/.env" | grep -q .; then
+              echo "ERROR: Unresolved conflicts in files other than frontend/.env:"
+              git diff --name-only --diff-filter=U
+              exit 1
+            fi
+            
+            # Complete the merge
+            git commit -m "Auto-merge main into odh-release (resolved .env conflict)"
+          fi
+
+          git push origin odh-release
