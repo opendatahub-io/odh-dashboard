@@ -938,7 +938,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findModelLocationSelect().should('exist');
     modelServingWizard
-      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
       .should('exist')
       .click();
 
