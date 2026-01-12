@@ -7,11 +7,6 @@ import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import ModelCatalogFilters from '~/app/pages/modelCatalog/components/ModelCatalogFilters';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import {
-  ModelCatalogNumberFilterKey,
-  ModelCatalogStringFilterKey,
-  ALL_LATENCY_FIELD_NAMES,
-} from '~/concepts/modelCatalog/const';
 import { CategoryName } from '~/app/modelCatalogTypes';
 import ModelCatalogSourceLabelSelectorNavigator from './ModelCatalogSourceLabelSelectorNavigator';
 import ModelCatalogAllModelsView from './ModelCatalogAllModelsView';
@@ -20,7 +15,17 @@ import { useSearchParams } from 'react-router-dom';
 
 const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
+<<<<<<< ours
   const { selectedSourceLabel, filterData, setFilterData, updateSelectedSourceLabel } = React.useContext(ModelCatalogContext);
+=======
+  const {
+    selectedSourceLabel,
+    filterData,
+    clearAllFilters,
+    performanceViewEnabled,
+    clearBasicFiltersAndResetPerformanceToDefaults,
+  } = React.useContext(ModelCatalogContext);
+>>>>>>> theirs
   const filtersApplied = hasFiltersApplied(filterData);
   const isAllModelsView =
     selectedSourceLabel === CategoryName.allModels && !searchTerm && !filtersApplied;
@@ -44,27 +49,16 @@ const ModelCatalog: React.FC = () => {
     setSearchTerm('');
   }, []);
 
-  const resetAllFilters = React.useCallback(() => {
-    // Clear all string filters
-    Object.values(ModelCatalogStringFilterKey).forEach((filterKey) => {
-      setFilterData(filterKey, []);
-    });
-
-    // Clear all number filters
-    Object.values(ModelCatalogNumberFilterKey).forEach((filterKey) => {
-      setFilterData(filterKey, undefined);
-    });
-
-    // Clear all latency filters
-    ALL_LATENCY_FIELD_NAMES.forEach((filterKey) => {
-      setFilterData(filterKey, undefined);
-    });
-  }, [setFilterData]);
-
   const handleFilterReset = React.useCallback(() => {
     setSearchTerm('');
-    resetAllFilters();
-  }, [resetAllFilters]);
+    // When performance view is enabled, clear basic filters but reset
+    // performance filters to defaults instead of clearing them completely
+    if (performanceViewEnabled) {
+      clearBasicFiltersAndResetPerformanceToDefaults();
+    } else {
+      clearAllFilters();
+    }
+  }, [clearAllFilters, performanceViewEnabled, clearBasicFiltersAndResetPerformanceToDefaults]);
 
   return (
     <>

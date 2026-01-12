@@ -393,3 +393,59 @@ export type ModelCatalogSettingsAPIs = {
   deleteCatalogSourceConfig: DeleteCatalogSourceConfig;
   previewCatalogSource: PreviewCatalogSource;
 };
+
+<<<<<<< PATCH FAILED TO APPLY
+UPSTREAM COMMIT: 8104af3a66c9d4291e3898491920ea7fe9080a02
+COMMIT MESSAGE: Refactoring and de-duplication
+FILE: frontend/src/app/modelCatalogTypes.ts
+=======
+The patch below could not be applied automatically.
+This usually means the file content differs from what upstream expects.
+
+WHAT THE PATCH WANTS TO DO:
+────────────────────────────────────────────────────────────
+diff --git a/frontend/src/app/modelCatalogTypes.ts b/frontend/src/app/modelCatalogTypes.ts
+index 63d06046..dcee70a8 100644
+--- a/frontend/src/app/modelCatalogTypes.ts
++++ b/frontend/src/app/modelCatalogTypes.ts
+@@ -7,6 +7,7 @@ import {
+   ModelCatalogStringFilterKey,
+   ModelCatalogNumberFilterKey,
+   LatencyMetricFieldName,
++  LatencyPropertyKey,
+   UseCaseOptionValue,
+   ModelCatalogFilterKey,
+ } from '~/concepts/modelCatalog/const';
+@@ -113,7 +114,7 @@ export type PerformanceMetricsCustomProperties = {
+   // Computed properties when targetRPS is provided
+   replicas?: ModelRegistryCustomPropertyInt;
+   total_requests_per_second?: ModelRegistryCustomPropertyDouble;
+-} & Partial<Record<LatencyMetricFieldName, ModelRegistryCustomPropertyDouble>>;
++} & Partial<Record<LatencyPropertyKey, ModelRegistryCustomPropertyDouble>>;
+ 
+ export type AccuracyMetricsCustomProperties = {
+   // overall_average?: ModelRegistryCustomPropertyDouble; // NOTE: overall_average is currently omitted from the API and will be restored
+@@ -239,11 +240,7 @@ export type ModelCatalogStringFilterOptions = {
+ export type CatalogFilterOptions = ModelCatalogStringFilterOptions & {
+   [key in ModelCatalogNumberFilterKey]?: CatalogFilterNumberOption;
+ } & {
+-  // Allow additional latency metric field names
+   [key in LatencyMetricFieldName]?: CatalogFilterNumberOption;
+-} & {
+-  // Allow additional artifact filter keys from backend (e.g., artifacts.hardware_type.string_value)
+-  [key: string]: CatalogFilterStringOption<string> | CatalogFilterNumberOption | undefined;
+ };
+ 
+ export enum FilterOperator {
+────────────────────────────────────────────────────────────
+
+INSTRUCTIONS:
+1. Review the patch above (lines with - are removed, lines with + are added)
+2. Manually apply the intended changes to this file
+3. Remove this entire conflict marker block (from <<<<<<< to >>>>>>>)
+4. Stage the file: git add packages/model-registry
+5. Continue: npm run update-subtree -- --continue
+
+For more details, view the upstream commit at:
+  https://github.com/<owner>/<repo>/commit/8104af3a66c9d4291e3898491920ea7fe9080a02
+>>>>>>> END PATCH FAILED
