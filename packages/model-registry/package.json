@@ -24,7 +24,7 @@
     "branch": "performance-filters-landing-page",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "bde3b0ffcc0b43484397440d6babdd6762746d07"
+    "commit": "7604f6c4d78dc5eccc1758050d41363cbb23dff0"
   },
   "module-federation": {
     "name": "modelRegistry",
