@@ -1,4 +1,4 @@
-import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { RouteModel } from '#~/api/models';
 import { K8sAPIOptions, RouteKind } from '#~/k8sTypes';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
@@ -17,3 +17,21 @@ export const getRoute = (
       opts,
     ),
   );
+
+export const listRoutes = (
+  namespace: string,
+  labelSelector?: string,
+  opts?: K8sAPIOptions,
+): Promise<RouteKind[]> =>
+  k8sListResource<RouteKind>(
+    applyK8sAPIOptions(
+      {
+        model: RouteModel,
+        queryOptions: {
+          ns: namespace,
+          queryParams: { ...(labelSelector ? { labelSelector } : {}) },
+        },
+      },
+      opts,
+    ),
+  ).then((result) => result.items);

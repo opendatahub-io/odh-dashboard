@@ -1,9 +1,9 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { getRoute } from '#~/api';
+import { listRoutes } from '#~/api';
 import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 
 jest.mock('#~/api', () => ({
-  getRoute: jest.fn(),
+  listRoutes: jest.fn(),
 }));
 
 describe('useRouteForNotebook', () => {
@@ -17,12 +17,12 @@ describe('useRouteForNotebook', () => {
       },
     };
 
-    (getRoute as jest.Mock).mockResolvedValue(mockRoute);
+    (listRoutes as jest.Mock).mockResolvedValue([mockRoute]);
 
     const renderResult = testHook(useRouteForNotebook)('test-notebook', 'test-project', true);
     await renderResult.waitForNextUpdate();
     const { data: route, loaded, error } = renderResult.result.current;
-    expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
+    expect(listRoutes).toHaveBeenCalledWith('test-project', 'notebook-name=test-notebook', {
       signal: expect.any(AbortSignal),
     });
     expect(route).toBe('https://example.com/notebook/test-project/test-notebook');
@@ -32,13 +32,13 @@ describe('useRouteForNotebook', () => {
 
   it('should handle error', async () => {
     const errorObj = new Error('Test error');
-    (getRoute as jest.Mock).mockRejectedValue(errorObj);
+    (listRoutes as jest.Mock).mockRejectedValue(errorObj);
 
     const renderResult = testHook(useRouteForNotebook)('test-notebook', 'test-project', true);
     await renderResult.waitForNextUpdate();
 
     const { data: route, loaded, error } = renderResult.result.current;
-    expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
+    expect(listRoutes).toHaveBeenCalledWith('test-project', 'notebook-name=test-notebook', {
       signal: expect.any(AbortSignal),
     });
     expect(error).toBe(errorObj);
