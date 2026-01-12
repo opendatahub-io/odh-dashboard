@@ -39,7 +39,9 @@ export const AIAssetsPage: React.FC = () => {
       <PageSection>
         <Tabs
           activeKey={activeTabKey}
-          onSelect={(_, tabKey) => setActiveTabKey(String(tabKey))}
+          onSelect={(_, tabKey) => {
+            setActiveTabKey(String(tabKey));
+          }}
           aria-label="AI Assets tabs"
           role="region"
         >
