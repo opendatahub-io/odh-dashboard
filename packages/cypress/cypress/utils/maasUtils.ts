@@ -1,4 +1,5 @@
 import type { Tier, TierLimits } from '@odh-dashboard/maas/types/tier';
+import type { APIKey } from '@odh-dashboard/maas/types/api-key';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -38,6 +39,41 @@ export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
 };
 
 export const mockTiers = (): Tier[] => [MOCK_TIERS.free, MOCK_TIERS.premium, MOCK_TIERS.enterprise];
+
+export const mockAPIKeys = (): APIKey[] => [
+  {
+    id: 'key-prod-backend-001',
+    name: 'production-backend',
+    description: 'Production API key for backend service',
+    creationDate: '2026-01-07T11:54:34.521671447-05:00',
+    expirationDate: '2026-02-06T11:54:34.521671447-05:00',
+    status: 'active',
+  },
+  {
+    id: 'key-dev-testing-002',
+    name: 'development-testing',
+    description: 'Development API key for testing purposes',
+    creationDate: '2026-01-14T09:54:34.521671447-05:00',
+    expirationDate: '2026-01-15T09:54:34.521671447-05:00',
+    status: 'active',
+  },
+  {
+    id: 'key-ci-pipeline-003',
+    name: 'ci-pipeline',
+    description: 'API key for CI/CD pipeline automation',
+    creationDate: '2026-01-11T11:54:34.521671447-05:00',
+    expirationDate: '2026-01-18T11:54:34.521671447-05:00',
+    status: 'active',
+  },
+  {
+    id: 'key-expired-old-004',
+    name: 'old-service-key',
+    description: 'Expired API key from previous deployment',
+    creationDate: '2025-12-15T11:54:34.521671447-05:00',
+    expirationDate: '2026-01-13T11:54:34.521671447-05:00',
+    status: 'expired',
+  },
+];
 
 export const mockTier = ({
   name = 'free',

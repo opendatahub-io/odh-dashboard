@@ -32,7 +32,8 @@
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9104"
   },
   "exports": {
-    "./types/tier": "./frontend/src/app/types/tier.ts"
+    "./types/tier": "./frontend/src/app/types/tier.ts",
+    "./types/api-key": "./frontend/src/app/types/api-key.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
