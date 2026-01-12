@@ -2,7 +2,7 @@ import { mockRoleBindingK8sResource, mockUserRoleBindingSubject } from '#~/__moc
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
-  ensureSubjectHasRoleBinding,
+  upsertRoleBinding,
   findRoleBindingForRoleRef,
   moveSubjectRoleBinding,
   removeSubjectFromRoleBinding,
@@ -86,7 +86,7 @@ describe('project permissions roleBindingMutations', () => {
     });
   });
 
-  describe('ensureSubjectHasRoleBinding', () => {
+  describe('upsertRoleBinding', () => {
     it('creates a RoleBinding when none match', async () => {
       const generated: RoleBindingKind = mockRoleBindingK8sResource({
         name: 'generated',
@@ -97,7 +97,7 @@ describe('project permissions roleBindingMutations', () => {
       });
       generateRoleBindingPermissionsMock.mockReturnValue(generated);
 
-      await ensureSubjectHasRoleBinding({
+      await upsertRoleBinding({
         roleBindings: [],
         namespace,
         subjectKind: 'User',
@@ -127,7 +127,7 @@ describe('project permissions roleBindingMutations', () => {
         subjects: [],
       });
 
-      await ensureSubjectHasRoleBinding({
+      await upsertRoleBinding({
         roleBindings: [rb1, rb2],
         namespace,
         subjectKind: 'User',
@@ -156,7 +156,7 @@ describe('project permissions roleBindingMutations', () => {
         subjects: [subject],
       });
 
-      await ensureSubjectHasRoleBinding({
+      await upsertRoleBinding({
         roleBindings: [rb1, rb2],
         namespace,
         subjectKind: 'User',

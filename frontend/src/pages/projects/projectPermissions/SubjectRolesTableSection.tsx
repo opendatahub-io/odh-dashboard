@@ -10,7 +10,7 @@ import SubjectRolesTable from './SubjectRolesTable';
 import { DEFAULT_ROLE_REFS, FilterDataType } from './const';
 import SubjectRolesAddRow from './SubjectRolesAddRow';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
-import { buildRoleBindingSubject, ensureSubjectHasRoleBinding } from './roleBindingMutations';
+import { buildRoleBindingSubject, upsertRoleBinding } from './roleBindingMutations';
 
 type SubjectRolesTableSectionProps = {
   subjectKind: 'user' | 'group';
@@ -64,7 +64,7 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
                       const namespace = currentProject.metadata.name;
                       const rbSubjectKind =
                         subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP;
-                      await ensureSubjectHasRoleBinding({
+                      await upsertRoleBinding({
                         roleBindings: roleBindings.data,
                         namespace,
                         subjectKind: rbSubjectKind,

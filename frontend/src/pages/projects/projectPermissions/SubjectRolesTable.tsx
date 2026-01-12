@@ -22,13 +22,8 @@ type SubjectRolesTableBaseProps = {
   testId: string;
   rows: SubjectRoleRow[];
   emptyTableView: React.ReactNode;
-  onRoleClick?: (roleRef: RoleRef) => void;
   footerRow?: (pageNumber: number) => React.ReactElement | null;
-  rowRenderer?: (
-    row: SubjectRoleRow,
-    rowIndex: number,
-    subjectNameRowSpan: number,
-  ) => React.ReactNode;
+  rowRenderer: (row: SubjectRoleRow, subjectNameRowSpan: number) => React.ReactNode;
 };
 
 const getRowSpans = (rows: SubjectRoleRow[]): number[] => {
@@ -51,7 +46,6 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
   testId,
   rows: inputRows,
   emptyTableView,
-  onRoleClick,
   footerRow,
   rowRenderer,
 }) => {
@@ -68,22 +62,9 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
       columns={columns}
       getColumnSort={sort.getColumnSort}
       emptyTableView={emptyTableView}
-      rowRenderer={(row, rowIndex) =>
-        rowRenderer ? (
-          <React.Fragment key={row.key}>
-            {rowRenderer(row, rowIndex, rowSpans[rowIndex])}
-          </React.Fragment>
-        ) : (
-          <SubjectRolesTableRow
-            key={row.key}
-            row={row}
-            subjectNameRowSpan={rowSpans[rowIndex]}
-            onRoleClick={onRoleClick}
-            onEdit={() => undefined}
-            onRemove={() => undefined}
-          />
-        )
-      }
+      rowRenderer={(row, rowIndex) => (
+        <React.Fragment key={row.key}>{rowRenderer(row, rowSpans[rowIndex])}</React.Fragment>
+      )}
       footerRow={footerRow}
     />
   );
@@ -230,9 +211,8 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
       testId={testId}
       rows={rows}
       emptyTableView={emptyTableView}
-      onRoleClick={onRoleClick}
       footerRow={footerRow}
-      rowRenderer={(row, rowIndex, rowSpan) => {
+      rowRenderer={(row, rowSpan) => {
         if (row.key === editingRowKey) {
           const assigned = assignedRolesBySubject.get(row.subjectName) ?? [];
           const assignedWithoutCurrent = assigned.filter(

@@ -800,9 +800,6 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.selectEditRowRole('user', 'ClusterRole:edit');
     projectRbacPermissions.findEditRowSaveButton('user').should('not.be.disabled').click();
 
-    // No confirmation modal for reversible -> reversible
-    projectRbacPermissions.findReplaceRoleModal('user').should('not.exist');
-
     cy.wait('@createRoleBindingEdit');
     cy.wait('@deleteRoleBindingAdmin');
     cy.wait('@listRoleBindingsDynamic');
@@ -911,7 +908,6 @@ describe('Permissions tab (projectRBAC)', () => {
     // Cancel exits edit mode without any API calls
     projectRbacPermissions.findEditRowCancelButton('user').click();
     projectRbacPermissions.findEditRowRoleSelectToggle('user').should('not.exist');
-    projectRbacPermissions.findReplaceRoleModal('user').should('not.exist');
 
     cy.wrap(null).then(() => {
       expect(createCount).to.eq(0);

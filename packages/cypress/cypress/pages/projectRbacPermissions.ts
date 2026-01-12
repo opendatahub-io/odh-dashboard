@@ -156,18 +156,6 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId(`permissions-edit-${subjectKind}-cancel`);
   }
 
-  findReplaceRoleModal(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-edit-${subjectKind}-replace-role-modal`);
-  }
-
-  findReplaceRoleConfirmButton(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-edit-${subjectKind}-replace-role-confirm`);
-  }
-
-  findReplaceRoleCancelButton(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-edit-${subjectKind}-replace-role-cancel`);
-  }
-
   getUsersTable() {
     return new SubjectRolesTable(() => cy.findByTestId('permissions-user-roles-table'));
   }

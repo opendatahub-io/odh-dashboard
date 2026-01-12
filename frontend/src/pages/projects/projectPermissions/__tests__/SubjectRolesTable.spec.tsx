@@ -4,6 +4,8 @@ import {
   buildSubjectRoleRows,
   SubjectRolesTableBase,
 } from '#~/pages/projects/projectPermissions/SubjectRolesTable';
+import SubjectRolesTableRow from '#~/pages/projects/projectPermissions/SubjectRolesTableRow';
+import type { RoleRef } from '#~/concepts/permissions/types';
 import { OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE } from '#~/concepts/permissions/const';
 import { KnownLabels } from '#~/k8sTypes';
 import {
@@ -13,9 +15,25 @@ import {
   mockRoleK8sResource,
   mockUserRoleBindingSubject,
 } from '#~/__mocks__';
+import type { SubjectRoleRow } from '#~/pages/projects/projectPermissions/types';
 
 describe('SubjectRolesTable', () => {
   const emptyFilterData = { name: '', role: '' };
+
+  const renderRow = (
+    row: SubjectRoleRow,
+    rowSpan: number,
+    onRoleClick?: (roleRef: RoleRef) => void,
+  ): React.ReactNode => (
+    <SubjectRolesTableRow
+      key={row.key}
+      row={row}
+      subjectNameRowSpan={rowSpan}
+      onRoleClick={onRoleClick}
+      onEdit={() => undefined}
+      onRemove={() => undefined}
+    />
+  );
 
   it('renders an empty state when there are no rows', () => {
     render(
@@ -24,6 +42,7 @@ describe('SubjectRolesTable', () => {
         testId="permissions-user-roles-table"
         rows={[]}
         emptyTableView={<div>No users have roles assigned.</div>}
+        rowRenderer={(row, rowSpan) => renderRow(row, rowSpan)}
       />,
     );
 
@@ -128,6 +147,7 @@ describe('SubjectRolesTable', () => {
         testId="permissions-user-roles-table"
         rows={rows}
         emptyTableView={<div>No users have roles assigned.</div>}
+        rowRenderer={(row, rowSpan) => renderRow(row, rowSpan)}
       />,
     );
 
@@ -245,7 +265,7 @@ describe('SubjectRolesTable', () => {
         testId="permissions-user-roles-table"
         rows={rows}
         emptyTableView={<div>No users have roles assigned.</div>}
-        onRoleClick={onRoleClick}
+        rowRenderer={(row, rowSpan) => renderRow(row, rowSpan, onRoleClick)}
       />,
     );
 
@@ -290,6 +310,7 @@ describe('SubjectRolesTable', () => {
         testId="permissions-user-roles-table"
         rows={rows}
         emptyTableView={<div>No users have roles assigned.</div>}
+        rowRenderer={(row, rowSpan) => renderRow(row, rowSpan)}
       />,
     );
 
@@ -319,6 +340,7 @@ describe('SubjectRolesTable', () => {
         testId="permissions-user-roles-table"
         rows={rows}
         emptyTableView={<div>No users have roles assigned.</div>}
+        rowRenderer={(row, rowSpan) => renderRow(row, rowSpan)}
       />,
     );
 
@@ -350,6 +372,7 @@ describe('SubjectRolesTable', () => {
         testId="permissions-user-roles-table"
         rows={rows}
         emptyTableView={<div>No users have roles assigned.</div>}
+        rowRenderer={(row, rowSpan) => renderRow(row, rowSpan)}
       />,
     );
 
