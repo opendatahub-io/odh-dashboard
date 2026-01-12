@@ -475,6 +475,7 @@ export type Route = {
     name: string;
     namespace: string;
     annotations?: { [key: string]: string };
+    labels?: { [key: string]: string };
   };
   spec: {
     host: string;
@@ -1370,3 +1371,12 @@ export enum OdhPlatformType {
   SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
   MANAGED_RHOAI = 'OpenShift AI Cloud Service',
 } // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
+
+export type KubeResponseBody<T> = {
+  kind: string;
+  apiVersion: string;
+  metadata?: {
+    resourceVersion?: string;
+  };
+  items?: T[];
+};
