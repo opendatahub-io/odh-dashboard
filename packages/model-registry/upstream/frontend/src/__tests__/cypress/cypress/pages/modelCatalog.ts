@@ -1,4 +1,4 @@
-import { TEMP_DEV_CATALOG_ADVANCED_FILTERS_FEATURE_KEY } from '~/app/hooks/useTempDevCatalogAdvancedFiltersFeatureAvailable';
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import { appChrome } from './appChrome';
 
 class ModelCatalogFilter {
@@ -36,7 +36,7 @@ class ModelCatalog {
     enableTempDevCatalogAdvancedFiltersFeature = false,
   }: { enableTempDevCatalogAdvancedFiltersFeature?: boolean } = {}) {
     if (enableTempDevCatalogAdvancedFiltersFeature) {
-      window.localStorage.setItem(TEMP_DEV_CATALOG_ADVANCED_FILTERS_FEATURE_KEY, 'true');
+      window.localStorage.setItem(TempDevFeature.CatalogAdvancedFilters, 'true');
     }
     cy.visit('/model-catalog');
     this.wait();
@@ -141,20 +141,8 @@ class ModelCatalog {
     return cy.get('img[alt="model logo"]');
   }
 
-  findVersionIcon() {
-    return cy.get('.pf-v6-c-icon');
-  }
-
-  findFrameworkLabel() {
-    return cy.contains('PyTorch');
-  }
-
   findTaskLabel() {
     return cy.contains('text-generation');
-  }
-
-  findLicenseLabel() {
-    return cy.contains('apache-2.0');
   }
 
   findProviderLabel() {
@@ -240,36 +228,20 @@ class ModelCatalog {
     return cy.get('[data-testid="hardware-configuration-table"] tbody tr');
   }
 
-  findHardwareConfigurationTableData() {
-    return cy.get('[data-testid="hardware-configuration-table"] tbody td');
-  }
-
   findHardwareConfigurationColumn(columnName: string) {
     return cy.get(`[data-testid="hardware-configuration-table"] [data-label="${columnName}"]`);
-  }
-
-  findHardwareConfigurationSortButton(columnName: string) {
-    return cy.get(`[data-testid="hardware-configuration-table"] th`).contains(columnName);
-  }
-
-  findHardwareConfigurationPagination() {
-    return cy.get('[data-testid="hardware-configuration-table"] .pf-v6-c-pagination');
   }
 
   findValidatedModelHardware() {
     return cy.findByTestId('validated-model-hardware');
   }
 
-  findValidatedModelRps() {
-    return cy.findByTestId('validated-model-rps');
-  }
-
   findValidatedModelReplicas() {
     return cy.findByTestId('validated-model-replicas');
   }
 
-  findValidatedModelTtft() {
-    return cy.findByTestId('validated-model-ttft');
+  findValidatedModelLatency() {
+    return cy.findByTestId('validated-model-latency');
   }
 
   findWorkloadTypeFilter() {
@@ -277,8 +249,8 @@ class ModelCatalog {
   }
 
   findWorkloadTypeOption(useCaseValue: string) {
-    // Use the checkbox id attribute (e.g., 'chatbot', 'code_fixing', 'long_rag', 'rag')
-    return cy.get(`#${useCaseValue}`);
+    // WorkloadTypeFilter is now single-select dropdown with data-testid
+    return cy.findByTestId(`workload-type-filter-${useCaseValue}`);
   }
 
   selectWorkloadType(useCaseValue: string) {
@@ -308,6 +280,63 @@ class ModelCatalog {
 
   dismissPerformanceFiltersUpdatedAlert() {
     this.findPerformanceFiltersUpdatedAlertCloseButton().click();
+    return this;
+  }
+
+  // Model card content helpers for toggle-based display
+  findValidatedModelBenchmarksCount() {
+    return cy.findAllByTestId('validated-model-benchmarks');
+  }
+
+  // Latency filter helpers
+  findLatencyFilter() {
+    return cy.findByTestId('latency-filter');
+  }
+
+  openLatencyFilter() {
+    this.findLatencyFilter().click();
+    // Wait for dropdown content to appear
+    cy.findByTestId('latency-filter-content').should('be.visible');
+    return this;
+  }
+
+  findLatencyMetricSelect() {
+    return cy.findByTestId('latency-metric-select');
+  }
+
+  findLatencyPercentileSelect() {
+    return cy.findByTestId('latency-percentile-select');
+  }
+
+  selectLatencyMetric(metric: string) {
+    this.findLatencyMetricSelect().click();
+    // Wait for menu to appear and click the option
+    cy.findByTestId('latency-metric-options').contains(metric).click();
+    return this;
+  }
+
+  selectLatencyPercentile(percentile: string) {
+    this.findLatencyPercentileSelect().click();
+    // Wait for menu to appear and click the option
+    cy.findByTestId('latency-percentile-options').contains(percentile).click();
+    return this;
+  }
+
+  findApplyFilterButton() {
+    return cy.findByTestId('latency-apply-filter');
+  }
+
+  findResetFilterButton() {
+    return cy.findByTestId('latency-reset-filter');
+  }
+
+  clickApplyFilter() {
+    this.findApplyFilterButton().click();
+    return this;
+  }
+
+  clickResetFilter() {
+    this.findResetFilterButton().click();
     return this;
   }
 }

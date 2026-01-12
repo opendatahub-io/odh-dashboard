@@ -7,6 +7,7 @@ import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
   LatencyMetricFieldName,
+  LatencyPropertyKey,
   UseCaseOptionValue,
   ModelCatalogFilterKey,
 } from '../concepts/modelCatalog/const';
@@ -113,7 +114,7 @@ export type PerformanceMetricsCustomProperties = {
   // Computed properties when targetRPS is provided
   replicas?: ModelRegistryCustomPropertyInt;
   total_requests_per_second?: ModelRegistryCustomPropertyDouble;
-} & Partial<Record<LatencyMetricFieldName, ModelRegistryCustomPropertyDouble>>;
+} & Partial<Record<LatencyPropertyKey, ModelRegistryCustomPropertyDouble>>;
 
 export type AccuracyMetricsCustomProperties = {
   // overall_average?: ModelRegistryCustomPropertyDouble; // NOTE: overall_average is currently omitted from the API and will be restored
@@ -139,6 +140,10 @@ export type CatalogMetricsArtifact =
 export type CatalogArtifacts = CatalogModelArtifact | CatalogMetricsArtifact;
 
 export type CatalogArtifactList = ModelCatalogListParams & { items: CatalogArtifacts[] };
+
+export type CatalogPerformanceArtifactList = ModelCatalogListParams & {
+  items: CatalogPerformanceMetricsArtifact[];
+};
 
 export type CatalogFilterNumberOption = {
   type: 'number';
@@ -190,7 +195,7 @@ export type GetPerformanceArtifacts = (
   params?: PerformanceArtifactsParams,
   filterData?: ModelCatalogFilterStates,
   filterOptions?: CatalogFilterOptionsList | null,
-) => Promise<CatalogArtifactList>;
+) => Promise<CatalogPerformanceArtifactList>;
 
 export type GetArtifactFilterOptions = (
   opts: APIOptions,
@@ -235,7 +240,6 @@ export type ModelCatalogStringFilterOptions = {
 export type CatalogFilterOptions = ModelCatalogStringFilterOptions & {
   [key in ModelCatalogNumberFilterKey]?: CatalogFilterNumberOption;
 } & {
-  // Allow additional latency metric field names
   [key in LatencyMetricFieldName]?: CatalogFilterNumberOption;
 };
 
