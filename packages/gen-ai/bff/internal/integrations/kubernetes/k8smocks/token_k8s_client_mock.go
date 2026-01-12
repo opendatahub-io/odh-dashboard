@@ -343,7 +343,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailModel *models.GuardrailModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
@@ -365,6 +365,57 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
+	// Build safety section based on guardrailModel
+	safetySection := "  safety: []"
+	shieldsSection := "  shields: []"
+
+	if guardrailModel != nil && guardrailModel.ModelName != "" {
+		// GuardrailModel is provided - add TrustyAI safety provider
+		guardrailModelURL := guardrailModel.ModelURL
+		if guardrailModelURL == "" {
+			// Default URL if not provided
+			guardrailModelURL = "http://guardrail-model-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
+		}
+
+		safetySection = `  safety:
+  - provider_id: trustyai_fms
+    provider_type: remote::trustyai_fms
+    config:
+      shields:
+        trustyai_input:
+          type: content
+          detector_url: "https://custom-guardrails-service:8480"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "${VLLM_TOKEN}"
+          detector_params:
+            custom:
+              input_guardrail:
+                input_policies: [jailbreak, content-moderation, pii]
+                guardrail_model: ` + guardrailModel.ModelName + `
+                guardrail_model_token: "${VLLM_TOKEN}"
+                guardrail_model_url: "` + guardrailModelURL + `"
+        trustyai_output:
+          type: content
+          detector_url: "https://custom-guardrails-service:8480"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "${VLLM_TOKEN}"
+          detector_params:
+            custom:
+              output_guardrail:
+                output_policies: [jailbreak, content-moderation, pii]
+                guardrail_model: ` + guardrailModel.ModelName + `
+                guardrail_model_token: "${VLLM_TOKEN}"
+                guardrail_model_url: "` + guardrailModelURL + `"`
+
+		shieldsSection = `  shields:
+    - shield_id: trustyai_input
+      provider_id: trustyai_fms
+    - shield_id: trustyai_output
+      provider_id: trustyai_fms`
+	}
+
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -379,6 +430,7 @@ apis:
 - datasetio
 - files
 - inference
+- safety
 - scoring
 - telemetry
 - tool_runtime
@@ -403,7 +455,7 @@ providers:
       persistence:
         namespace: vector_io::milvus
         backend: kv_default
-  safety: []
+` + safetySection + `
   eval: []
   files:
   - provider_id: meta-reference-files
@@ -465,25 +517,26 @@ storage:
     conversations:
       table_name: openai_conversations
       backend: sql_default
-models:
-  - metadata:
-      embedding_dimension: 768
-    model_id: granite-embedding-125m
-    provider_id: sentence-transformers
-    provider_model_id: ibm-granite/granite-embedding-125m-english
-    model_type: embedding
-  - metadata: {}
-    model_id: mock-model
-    provider_id: vllm-inference-1
-    model_type: llm
-shields: []
-vector_dbs: []
-datasets: []
-scoring_fns: []
-benchmarks: []
-tool_groups:
-- toolgroup_id: builtin::rag
-  provider_id: rag-runtime
+registered_resources:
+  models:
+    - metadata:
+        embedding_dimension: 768
+      model_id: granite-embedding-125m
+      provider_id: sentence-transformers
+      provider_model_id: ibm-granite/granite-embedding-125m-english
+      model_type: embedding
+    - metadata: {}
+      model_id: mock-model
+      provider_id: vllm-inference-1
+      model_type: llm
+` + shieldsSection + `
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+    - toolgroup_id: builtin::rag
+      provider_id: rag-runtime
 server:
   port: 8321`,
 		},
@@ -691,4 +744,68 @@ func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, ident
 	// For testing purposes, always return true to allow namespace listing
 	// In real scenarios, this would perform a SubjectAccessReview for cluster-scoped namespace access
 	return true, nil
+}
+
+// GetGuardrailsOrchestratorStatus returns mock GuardrailsOrchestrator status for testing
+func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
+	// Mock data - simulating the "custom-guardrails" CR status
+	return &models.GuardrailsStatus{
+		Phase: "Ready",
+		Conditions: []models.GuardrailsCondition{
+			{
+				Type:               "Progressing",
+				Status:             "True",
+				Reason:             "ReconcileInit",
+				Message:            "Initializing GuardrailsOrchestrator resource",
+				LastTransitionTime: "2025-12-24T06:40:07Z",
+			},
+			{
+				Type:               "InferenceServiceReady",
+				Status:             "False",
+				Reason:             "InferenceServiceNotReady",
+				Message:            "Inference service is not ready",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+			{
+				Type:               "DeploymentReady",
+				Status:             "True",
+				Reason:             "DeploymentReady",
+				Message:            "Deployment is ready",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+			{
+				Type:               "RouteReady",
+				Status:             "False",
+				Reason:             "RouteNotReady",
+				Message:            "Route is not ready",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+			{
+				Type:               "ReconcileComplete",
+				Status:             "False",
+				Reason:             "ReconcileFailed",
+				Message:            "Reconcile failed",
+				LastTransitionTime: "2025-12-24T06:40:47Z",
+			},
+		},
+	}, nil
+}
+
+// GetSafetyConfig returns mock safety configuration for testing
+// Returns hardcoded mock data simulating guardrails configuration
+func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
+	// Return hardcoded mock data for testing
+	return &models.SafetyConfigResponse{
+		Enabled: true,
+		GuardrailModels: []models.GuardrailModelConfig{
+			{
+				ModelName:      "llama-guard-3",
+				DisplayName:    "Llama Guard 3",
+				InputShieldID:  "trustyai_input",
+				OutputShieldID: "trustyai_output",
+				InputPolicies:  []string{"jailbreak", "content-moderation", "pii"},
+				OutputPolicies: []string{"jailbreak", "content-moderation", "pii"},
+			},
+		},
+	}, nil
 }

@@ -12,8 +12,13 @@ import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import EmptyModelCatalogState from './EmptyModelCatalogState';
+import { hasSourcesWithModels } from './utils/modelCatalogUtils';
 
-const ModelCatalogCoreLoader: React.FC = () => {
+type ModelCatalogCoreLoaderProps = {
+  customAction?: React.ReactNode;
+};
+
+const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({ customAction }) => {
   const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError } =
     React.useContext(ModelCatalogContext);
 
@@ -50,8 +55,11 @@ const ModelCatalogCoreLoader: React.FC = () => {
       />
     );
   }
+  // Show empty state if there are no sources, or if all sources have no models (e.g., disabled)
+  if (catalogSources?.items?.length === 0 || !hasSourcesWithModels(catalogSources)) {
+    // Determine the default action based on theme
+    const defaultAction = isMUITheme ? <KubeflowDocs /> : <WhosMyAdministrator />;
 
-  if (catalogSources?.items?.length === 0) {
     return (
       <ApplicationsPage
         title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
@@ -60,16 +68,16 @@ const ModelCatalogCoreLoader: React.FC = () => {
         emptyStatePage={
           <EmptyModelCatalogState
             testid="empty-model-catalog-state"
-            title={isMUITheme ? 'Deploy a model catalog' : 'Request access to model catalog'}
+            title={isMUITheme ? 'Deploy a model catalog' : 'Model catalog configuration required'}
             description={
               isMUITheme
                 ? 'To deploy model catalog, follow the instructions in the docs below.'
-                : 'To request model catalog, or to request permission to access model catalog, contact your administrator.'
+                : 'There are no models to display. Request that your administrator configure model sources for the catalog.'
             }
             headerIcon={() => (
               <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />
             )}
-            customAction={isMUITheme ? <KubeflowDocs /> : <WhosMyAdministrator />}
+            customAction={customAction ?? defaultAction}
           />
         }
         headerContent={null}

@@ -16,12 +16,20 @@ type LlamaStackDistributionResponse struct {
 
 // LlamaStackDistributionInstallRequest represents the request body for installing models
 type LlamaStackDistributionInstallRequest struct {
-	Models []InstallModel `json:"models"`
+	Models         []InstallModel  `json:"models"`
+	GuardrailModel *GuardrailModel `json:"guardrail_model,omitempty"` // Optional guardrail model configuration
 }
 
 type InstallModel struct {
 	ModelName   string `json:"model_name"`
 	IsMaaSModel bool   `json:"is_maas_model"`
+}
+
+// GuardrailModel represents the guardrail model configuration for safety
+type GuardrailModel struct {
+	ModelName   string `json:"model_name"`          // e.g., "vllm/qwen3"
+	IsMaaSModel bool   `json:"is_maas_model"`       // Whether this is a MaaS model
+	ModelURL    string `json:"model_url,omitempty"` // Optional: model endpoint URL
 }
 
 type LlamaStackDistributionInstallModel struct {

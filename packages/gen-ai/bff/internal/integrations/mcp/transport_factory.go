@@ -190,7 +190,7 @@ func ValidateAndNormalizeTransportType(transportType string, logger *slog.Logger
 	case string(TransportTypeStreamableHTTP):
 		return TransportTypeStreamableHTTP
 	default:
-		logger.Info("Invalid or missing transport type, falling back to streamable-http",
+		logger.Warn("Invalid or missing transport type, falling back to streamable-http",
 			"server", serverURL, "type", transportType)
 		return TransportTypeStreamableHTTP
 	}

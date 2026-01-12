@@ -12,12 +12,22 @@ import {
   ModelCatalogFilterStates,
   ModelCatalogStringFilterValueType,
   MetricsType,
+  ModelCatalogFilterKey,
 } from '~/app/modelCatalogTypes';
 import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
+  ALL_LATENCY_FIELD_NAMES,
+  LatencyMetricFieldName,
 } from '~/concepts/modelCatalog/const';
+import { CatalogSourceStatus } from '~/concepts/modelCatalogSettings/const';
+
+/**
+ * Prefix used by the backend for artifact-specific filter options.
+ * Filter options with this prefix are applicable to the artifacts endpoint.
+ */
+export const ARTIFACTS_FILTER_PREFIX = 'artifacts.';
 
 export const extractVersionTag = (tags?: string[]): string | undefined =>
   tags?.find((tag) => /^\d+\.\d+\.\d+$/.test(tag));
@@ -56,7 +66,10 @@ export const filterEnabledCatalogSources = (
     return null;
   }
 
-  const filteredItems = catalogSources.items?.filter((source) => source.enabled !== false);
+  // Filter sources that are enabled AND have available models
+  const filteredItems = catalogSources.items?.filter(
+    (source) => source.enabled !== false && source.status === CatalogSourceStatus.AVAILABLE,
+  );
 
   return {
     ...catalogSources,
@@ -111,6 +124,10 @@ export const isModelValidated = (model: CatalogModel): boolean => {
   const labels = getLabels(model.customProperties);
   return labels.includes('validated');
 };
+
+// Utility function to check if a model is from Red Hat
+export const isRedHatModel = (model: CatalogModel): boolean =>
+  model.provider === 'Red Hat';
 
 export const shouldShowValidatedInsights = (
   model: CatalogModel,
@@ -185,11 +202,54 @@ const isArrayOfSelections = (
 //   filterOption.type === 'number' &&
 //   KNOWN_MORE_THAN_IDS.includes(filterId) &&
 //   typeof data === 'number';
+/**
+ * Filter IDs that should use "less than" comparison (latency filters).
+ * All latency field names use less-than comparison.
+ */
+const KNOWN_LESS_THAN_IDS: string[] = ALL_LATENCY_FIELD_NAMES;
+
+const isKnownLessThanValue = (
+  filterOption: CatalogFilterOptions[keyof CatalogFilterOptions],
+  filterId: string,
+  data: unknown,
+): data is number =>
+  filterOption?.type === 'number' &&
+  KNOWN_LESS_THAN_IDS.includes(filterId) &&
+  typeof data === 'number';
+
+/**
+ * Filter IDs that should use "greater than" comparison (RPS filter).
+ */
+const KNOWN_GREATER_THAN_IDS: string[] = [ModelCatalogNumberFilterKey.MIN_RPS];
+
+const isKnownGreaterThanValue = (
+  filterOption: CatalogFilterOptions[keyof CatalogFilterOptions],
+  filterId: string,
+  data: unknown,
+): data is number =>
+  filterOption?.type === 'number' &&
+  KNOWN_GREATER_THAN_IDS.includes(filterId) &&
+  typeof data === 'number';
 
 const isFilterIdInMap = (
   filterId: unknown,
   filters: CatalogFilterOptions,
 ): filterId is keyof CatalogFilterOptions => typeof filterId === 'string' && filterId in filters;
+
+/**
+ * Gets the active latency field name from the filter state (if any)
+ */
+export const getActiveLatencyFieldName = (
+  filterData: ModelCatalogFilterStates,
+): LatencyMetricFieldName | undefined => {
+  for (const fieldName of ALL_LATENCY_FIELD_NAMES) {
+    const value = filterData[fieldName];
+    if (value !== undefined && typeof value === 'number') {
+      return fieldName;
+    }
+  }
+  return undefined;
+};
 
 const wrapInQuotes = (v: string): string => `'${v}'`;
 
@@ -197,12 +257,20 @@ const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
 const inFilter = (k: string, values: string[]) =>
   `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
 
+/**
+ * Converts filter data into a filter query string for the /models endpoint.
+ * Supports string filters (equality/IN), and numeric filters (greater than for RPS, less than for latency).
+ */
 export const filtersToFilterQuery = (
   filterData: ModelCatalogFilterStates,
   options: CatalogFilterOptionsList,
 ): string => {
   const serializedFilters: string[] = Object.entries(filterData).map(([filterId, data]) => {
-    if (!isFilterIdInMap(filterId, options.filters) || typeof data === 'undefined') {
+    if (
+      !options.filters ||
+      !isFilterIdInMap(filterId, options.filters) ||
+      typeof data === 'undefined'
+    ) {
       // Unhandled key or no data
       return '';
     }
@@ -221,16 +289,15 @@ export const filtersToFilterQuery = (
       }
     }
 
-    // TODO: Implement performance filters.
-    // if (isKnownLessThanValue(filterOption, filterId, data)) {
-    //   return `${filterId} < ${data}`;
-    // }
+    // Numeric filters: less-than for latency, greater-than for RPS
+    if (isKnownLessThanValue(filterOption, filterId, data)) {
+      return `${filterId} < ${data}`;
+    }
 
-    // if (isKnownMoreThanValue(filterOption, filterId, data)) {
-    //   return `${filterId} > ${data}`;
-    // }
+    if (isKnownGreaterThanValue(filterOption, filterId, data)) {
+      return `${filterId} > ${data}`;
+    }
 
-    // TODO: Implement more data transforms
     // Shouldn't reach this far, but if it does, log & ignore the case
     // eslint-disable-next-line no-console
     console.warn('Unhandled option', filterId, data, filterOption);
@@ -239,7 +306,74 @@ export const filtersToFilterQuery = (
 
   const nonEmptyFilters = serializedFilters.filter((v) => !!v);
 
-  // eg. filterQuery=rps_mean >1 AND license IN ('mit','apache-2.0') AND ttft_mean < 10
+  // eg. filterQuery=rps_mean > 1 AND license IN ('mit','apache-2.0') AND ttft_mean < 10
+  return nonEmptyFilters.length === 0 ? '' : nonEmptyFilters.join(' AND ');
+};
+
+/**
+ * Converts filter data into a filter query string for the /artifacts/performance endpoint.
+ * Only includes filters that have the 'artifacts.' prefix and strips that prefix in the output.
+ * RPS is NOT included in filterQuery for artifacts - it's passed as targetRPS param instead.
+ */
+export const filtersToArtifactsFilterQuery = (
+  filterData: ModelCatalogFilterStates,
+  options: CatalogFilterOptionsList,
+): string => {
+  const isLatencyFieldName = (id: string): boolean =>
+    ALL_LATENCY_FIELD_NAMES.some((name) => name === id);
+
+  const serializedFilters: string[] = Object.entries(filterData)
+    .filter(([filterId]) => {
+      // Only include artifact-specific filters (those with artifacts. prefix in filter options)
+      // OR performance-related filters like latency and hardware_type/use_case
+      // But NOT rps_mean - that goes to targetRPS param
+      if (filterId === ModelCatalogNumberFilterKey.MIN_RPS) {
+        return false; // RPS is passed as targetRPS param, not in filterQuery
+      }
+      // Include latency filters, hardware_type, and use_case for artifacts filtering
+      if (isLatencyFieldName(filterId)) {
+        return true;
+      }
+      if (
+        filterId === ModelCatalogStringFilterKey.HARDWARE_TYPE ||
+        filterId === ModelCatalogStringFilterKey.USE_CASE
+      ) {
+        return true;
+      }
+      return false;
+    })
+    .map(([filterId, data]) => {
+      if (typeof data === 'undefined') {
+        return '';
+      }
+
+      // For artifacts endpoint, we use the filter ID directly (no prefix stripping needed
+      // since our local state doesn't have the prefix - the backend filter_options have it)
+      const filterOption =
+        options.filters && isFilterIdInMap(filterId, options.filters)
+          ? options.filters[filterId]
+          : undefined;
+
+      if (isArrayOfSelections(filterOption, data)) {
+        switch (data.length) {
+          case 0:
+            return '';
+          case 1:
+            return eqFilter(filterId, data[0]);
+          default:
+            return inFilter(filterId, data);
+        }
+      }
+
+      // Numeric filters for artifacts: latency uses less-than
+      if (isKnownLessThanValue(filterOption, filterId, data)) {
+        return `${filterId} < ${data}`;
+      }
+
+      return '';
+    });
+
+  const nonEmptyFilters = serializedFilters.filter((v) => !!v);
   return nonEmptyFilters.length === 0 ? '' : nonEmptyFilters.join(' AND ');
 };
 
@@ -251,7 +385,12 @@ export const getUniqueSourceLabels = (catalogSources: CatalogSourceList | null):
   const allLabels = new Set<string>();
 
   catalogSources.items.forEach((source) => {
-    if (source.enabled && source.labels.length > 0) {
+    // Only include labels from sources that are enabled AND have available models
+    if (
+      source.enabled &&
+      source.status === CatalogSourceStatus.AVAILABLE &&
+      source.labels.length > 0
+    ) {
       source.labels.forEach((label) => {
         if (label.trim()) {
           allLabels.add(label.trim());
@@ -269,7 +408,8 @@ export const hasSourcesWithoutLabels = (catalogSources: CatalogSourceList | null
   }
 
   return catalogSources.items.some((source) => {
-    if (source.enabled !== false) {
+    // Only consider sources that are enabled AND have available models
+    if (source.enabled !== false && source.status === CatalogSourceStatus.AVAILABLE) {
       // Check if source has no labels or only empty/whitespace labels
       return source.labels.length === 0 || source.labels.every((label) => !label.trim());
     }
@@ -288,10 +428,55 @@ export const getSourceFromSourceId = (
   return catalogSources.items.find((source) => source.id === sourceId);
 };
 
-export const hasFiltersApplied = (filterData: ModelCatalogFilterStates): boolean =>
-  Object.values(filterData).some((value) => {
+/**
+ * Checks if any filters are applied. If filterKeys is provided, only checks those specific filters.
+ * Otherwise checks all filters.
+ */
+export const hasFiltersApplied = (
+  filterData: ModelCatalogFilterStates,
+  filterKeys?: ModelCatalogFilterKey[],
+): boolean =>
+  Object.entries(filterData).some(([key, value]) => {
+    if (filterKeys && !filterKeys.some((k) => k === key)) {
+      return false;
+    }
     if (Array.isArray(value)) {
       return value.length > 0;
     }
     return value !== undefined;
   });
+
+/**
+ * Filters catalog sources to only include those with available models.
+ * A source has models if its status is AVAILABLE.
+ * This is used to filter out disabled sources or sources with errors from the switcher.
+ */
+export const filterSourcesWithModels = (
+  catalogSources: CatalogSourceList | null,
+): CatalogSourceList | null => {
+  if (!catalogSources) {
+    return null;
+  }
+
+  const filteredItems = catalogSources.items?.filter(
+    (source) => source.status === CatalogSourceStatus.AVAILABLE,
+  );
+
+  return {
+    ...catalogSources,
+    items: filteredItems || [],
+    size: filteredItems?.length || 0,
+  };
+};
+
+/**
+ * Checks if there are any catalog sources that have models available.
+ * Returns true if at least one source has status === AVAILABLE.
+ */
+export const hasSourcesWithModels = (catalogSources: CatalogSourceList | null): boolean => {
+  if (!catalogSources?.items) {
+    return false;
+  }
+
+  return catalogSources.items.some((source) => source.status === CatalogSourceStatus.AVAILABLE);
+};

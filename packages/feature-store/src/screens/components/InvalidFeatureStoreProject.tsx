@@ -15,8 +15,10 @@ const InvalidFeatureStoreProject: React.FC<InvalidFeatureStoreProjectProps> = ({
   getRedirectPath,
 }) => (
   <EmptyStateErrorMessage
-    title={title || 'Feature store repository not found'}
-    bodyText={`${projectName ? `Repository ${projectName}` : 'The Repository'} was not found.`}
+    title={title || 'Feature store not found'}
+    bodyText={`${
+      projectName ? `Feature store ${projectName}` : 'The Feature store'
+    } was not found.`}
   >
     <FeatureStoreProjectSelectorNavigator getRedirectPath={getRedirectPath} />
   </EmptyStateErrorMessage>

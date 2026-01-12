@@ -11,9 +11,10 @@ import useTiersFilter from './useTiersFilter';
 
 type TiersTableProps = {
   tiers: Tier[];
+  onDeleteTier: (tier: Tier) => void;
 };
 
-const TiersTable: React.FC<TiersTableProps> = ({ tiers }) => {
+const TiersTable: React.FC<TiersTableProps> = ({ tiers, onDeleteTier }) => {
   const { filteredTiers, filterValue, setFilterValue, onClearFilters } = useTiersFilter(tiers);
 
   return (
@@ -52,7 +53,9 @@ const TiersTable: React.FC<TiersTableProps> = ({ tiers }) => {
           </ToolbarContent>
         </Toolbar>
       }
-      rowRenderer={(tier) => <TiersTableRow key={tier.name} tier={tier} />}
+      rowRenderer={(tier) => (
+        <TiersTableRow key={tier.name} tier={tier} onDeleteTier={onDeleteTier} />
+      )}
     />
   );
 };

@@ -264,6 +264,10 @@ class ModelCatalog {
     return cy.findByTestId('validated-model-rps');
   }
 
+  findValidatedModelReplicas() {
+    return cy.findByTestId('validated-model-replicas');
+  }
+
   findValidatedModelTtft() {
     return cy.findByTestId('validated-model-ttft');
   }
@@ -272,14 +276,13 @@ class ModelCatalog {
     return cy.findByTestId('workload-type-filter');
   }
 
-  findWorkloadTypeOption(label: string) {
-    // Workload type uses checkboxes in a panel, not menu items
-    // Find checkbox by its label within the dropdown panel
-    return cy.contains('label', label).parent().find('input[type="checkbox"]');
+  findWorkloadTypeOption(useCaseValue: string) {
+    // Use the checkbox id attribute (e.g., 'chatbot', 'code_fixing', 'long_rag', 'rag')
+    return cy.get(`#${useCaseValue}`);
   }
 
-  selectWorkloadType(label: string) {
-    this.findWorkloadTypeOption(label).click();
+  selectWorkloadType(useCaseValue: string) {
+    this.findWorkloadTypeOption(useCaseValue).click();
   }
 
   findPerformanceViewToggle() {

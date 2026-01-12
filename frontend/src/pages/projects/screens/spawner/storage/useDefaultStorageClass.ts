@@ -37,9 +37,7 @@ const useAdminDefaultStorageClassInternal = (): FetchState<StorageClassKind | nu
             (sc) => getStorageClassConfig(sc)?.isDefault === true,
           );
 
-          if (!defaultSc && enabledStorageClasses.length > 0) {
-            resolve(enabledStorageClasses[0]);
-          } else if (defaultSc) {
+          if (defaultSc) {
             resolve(defaultSc);
           } else {
             resolve(null);
@@ -134,16 +132,19 @@ export const useDefaultStorageClass = (
     storageClass = adminDefaultStorageClass;
     loaded = adminDefaultStorageClassLoaded;
   }
+
   // 2. Second priority: preferred storage class (from OdhDashboardConfig CR)
-  else if (preferredStorageClass) {
+  if (!storageClass && preferredStorageClass) {
     storageClass = preferredStorageClass;
   }
+
   // 3. Third priority: OpenShift default storage class
-  else if (openshiftDefaultStorageClass) {
+  if (!storageClass && openshiftDefaultStorageClass) {
     storageClass = openshiftDefaultStorageClass;
   }
+
   // 4. Fourth priority: first storage class in the list (if fallbackToFirst is true)
-  else if (fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
+  if (!storageClass && fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
     storageClass = storageClasses[0] || null;
     error = storageClassesError;
     loaded = storageClassesLoaded;

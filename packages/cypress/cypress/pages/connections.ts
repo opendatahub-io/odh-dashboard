@@ -41,6 +41,10 @@ class ConnectionModal extends Modal {
     return this.find().findByTestId('connection-type-dropdown');
   }
 
+  findConnectionTypeOption(name: string | RegExp) {
+    return cy.findByRole('option', { name: new RegExp(name), hidden: true });
+  }
+
   findS3CompatibleStorageOption() {
     return cy.findByText('S3 compatible object storage - v1');
   }

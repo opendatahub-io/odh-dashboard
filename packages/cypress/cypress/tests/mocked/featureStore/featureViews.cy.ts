@@ -195,10 +195,18 @@ describe('Feature Views', () => {
     const toolbar = featureViewsTable.findToolbar();
 
     toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
-    toolbar.findSearchInput().type('pii');
+
+    toolbar.findSearchInput().clear();
+    toolbar.findSearchInput().type('pii=false');
+    toolbar.findSearchInput().type('{enter}');
+    toolbar.findTagFilterChip('pii=false').should('exist');
     featureViewsTable.shouldHaveFeatureViewCount(1);
 
-    toolbar.findSearchInput().clear().type('nonexistent=tag');
+    toolbar.findSearchInput().clear();
+    toolbar.findSearchInput().type('nonexistent=tag');
+    toolbar.findSearchInput().type('{enter}');
+    toolbar.findTagFilterChip('pii=false').should('exist');
+    toolbar.findTagFilterChip('nonexistent=tag').should('exist');
     featureViewsTable.shouldHaveFeatureViewCount(0);
   });
 

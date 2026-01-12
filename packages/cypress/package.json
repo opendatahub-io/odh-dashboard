@@ -25,6 +25,7 @@
     "@odh-dashboard/feature-store": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/llmd-serving": "*",
+    "@odh-dashboard/maas": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/model-training": "*",

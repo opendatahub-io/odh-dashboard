@@ -2,6 +2,7 @@ import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeaturesList from './FeaturesList';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
@@ -14,7 +15,7 @@ import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied'
 
 const title = 'Features';
 const description =
-  'Select a feature store repository to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
+  'Select a feature store to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
 
 const Features = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -39,7 +40,7 @@ const Features = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store repository or create a features in a workbench.
+        Select a different feature store or create a feature in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

@@ -25,7 +25,6 @@ const setupMocksForMCSettingAccess = () => {
     mockDashboardConfig({
       disableModelRegistry: false,
       disableModelCatalog: false,
-      aiCatalogSettings: true,
     }),
   );
   cy.interceptOdh(

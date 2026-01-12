@@ -59,6 +59,7 @@ FROM ${GOLANG_BASE_IMAGE} AS bff-builder
 ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
+ARG MODULE_NAME
 
 WORKDIR /usr/src/app
 
@@ -71,7 +72,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
-COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
+COPY ./packages/${MODULE_NAME}/api/openapi/ ./openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd

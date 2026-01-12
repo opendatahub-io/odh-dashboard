@@ -310,6 +310,18 @@ export type OOTBConnectionTypesData = {
   s3: OOTBConnectionTypes.s3;
   uri: OOTBConnectionTypes.uri;
   oci: OOTBConnectionTypes.oci;
+  projectResourceName: string;
+  connectionTypeName: string;
+  connectionTypeDescription: string;
+  connectionTypeCategory: string[];
+  connectionTypeModelServingCompatibleType: string[];
+  connectionTypeSectionHeading: string;
+  connectionTypeSectionHeadingDescription: string;
+  connectionTypeAddFieldName: string;
+  connectionTypeAddFieldDescription: string;
+  connectionTypeAddFieldType: string;
+  connectionTypeAddFieldDefaultValue: string;
+  modelLocation: string;
 };
 
 export type WorkloadMetricsTestData = {
@@ -437,4 +449,16 @@ export type GenAiTestData = {
   hardwareProfileDeploymentSize: string;
   configMapName: string;
   playgroundServiceName: string;
+};
+
+export type TrainJobTestData = {
+  projectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
 };

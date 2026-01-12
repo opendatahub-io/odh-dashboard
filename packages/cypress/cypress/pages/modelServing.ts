@@ -1053,6 +1053,14 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  findCustomModelLocationSelect() {
+    return cy.findByTestId('custom-type-select');
+  }
+
+  findCustomModelLocationSelectOption(name: string) {
+    return this.findCustomModelLocationSelect().findSelectOption(name);
+  }
+
   findLocationPathInput() {
     return cy.findByTestId('folder-path');
   }
@@ -1232,10 +1240,6 @@ class ModelServingWizard extends Wizard {
 
   findSaveAiAssetCheckbox() {
     return cy.findByTestId('save-as-ai-asset-checkbox');
-  }
-
-  findSaveAsMaaSCheckbox() {
-    return cy.findByTestId('save-as-maas-checkbox');
   }
 
   findUseCaseInput() {

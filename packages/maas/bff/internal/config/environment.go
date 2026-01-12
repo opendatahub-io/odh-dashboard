@@ -117,4 +117,6 @@ type EnvConfig struct {
 	// MaaS
 	TiersConfigMapNamespace string
 	TiersConfigMapName      string
+	GatewayNamespace        string
+	GatewayName             string
 }

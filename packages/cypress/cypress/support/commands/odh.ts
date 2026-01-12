@@ -27,6 +27,7 @@ import type {
   CatalogModel,
   CatalogModelList,
 } from '@odh-dashboard/model-registry/types/modelCatalogTypes';
+import type { Tier } from '@odh-dashboard/maas/types/tier';
 import type {
   BaseMetricCreationResponse,
   BaseMetricListResponse,
@@ -1087,6 +1088,19 @@ declare global {
             query?: { query: string; projects: string; page?: string; limit?: string };
           },
           response: OdhResponse<GlobalSearchResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/tiers',
+          response: { data: OdhResponse<Tier[]> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/tier',
+          response: { data: OdhResponse<Tier> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/tier/:name',
+          options: { path: { name: string } },
+          response: { data: null },
         ) => Cypress.Chainable<null>);
     }
   }

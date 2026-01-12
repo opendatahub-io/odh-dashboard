@@ -17,14 +17,21 @@ type LlamaStackConfig struct {
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
 	Storage             Storage             `json:"storage" yaml:"storage"`
+	VectorStores        VectorStores        `json:"vector_stores" yaml:"vector_stores"`
 	RegisteredResources RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
-	Shields             []Shield            `json:"shields" yaml:"shields"`
-	VectorDBs           []VectorDB          `json:"vector_dbs" yaml:"vector_dbs"`
-	Datasets            []Dataset           `json:"datasets" yaml:"datasets"`
-	ScoringFns          []ScoringFn         `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks          []Benchmark         `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups          []ToolGroup         `json:"tool_groups" yaml:"tool_groups"`
 	Server              Server              `json:"server" yaml:"server"`
+}
+
+// VectorStores configures the default vector store behavior for Llama Stack.
+type VectorStores struct {
+	DefaultProviderID     string                    `json:"default_provider_id" yaml:"default_provider_id"`
+	DefaultEmbeddingModel VectorStoreModelReference `json:"default_embedding_model" yaml:"default_embedding_model"`
+}
+
+// VectorStoreModelReference references an embedding model by provider and model ID.
+type VectorStoreModelReference struct {
+	ProviderID string `json:"provider_id" yaml:"provider_id"`
+	ModelID    string `json:"model_id" yaml:"model_id"`
 }
 
 type Providers struct {
@@ -36,6 +43,7 @@ type Providers struct {
 	DatasetIO   []Provider `json:"datasetio" yaml:"datasetio"`
 	Scoring     []Provider `json:"scoring" yaml:"scoring"`
 	ToolRuntime []Provider `json:"tool_runtime" yaml:"tool_runtime"`
+	Safety      []Provider `json:"safety" yaml:"safety"`
 }
 
 type Provider struct {
@@ -50,7 +58,13 @@ type MetadataStore struct {
 }
 
 type RegisteredResources struct {
-	Models []Model `json:"models,omitempty" yaml:"models,omitempty"`
+	Models     []Model     `json:"models" yaml:"models"`
+	Shields    []Shield    `json:"shields" yaml:"shields"`
+	VectorDBs  []VectorDB  `json:"vector_dbs" yaml:"vector_dbs"`
+	Datasets   []Dataset   `json:"datasets" yaml:"datasets"`
+	ScoringFns []ScoringFn `json:"scoring_fns" yaml:"scoring_fns"`
+	Benchmarks []Benchmark `json:"benchmarks" yaml:"benchmarks"`
+	ToolGroups []ToolGroup `json:"tool_groups" yaml:"tool_groups"`
 }
 
 type Storage struct {
@@ -135,10 +149,19 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				NewProvider("model-context-protocol", "remote::model-context-protocol", EmptyConfig()),
 			},
 		},
-		ToolGroups: []ToolGroup{
-			{
-				ToolGroupID: "builtin::rag",
-				ProviderID:  "rag-runtime",
+		RegisteredResources: RegisteredResources{
+			// Ensure these serialize as `[]` (not `null`) when no values exist.
+			Models:     []Model{},
+			Shields:    []Shield{},
+			VectorDBs:  []VectorDB{},
+			Datasets:   []Dataset{},
+			ScoringFns: []ScoringFn{},
+			Benchmarks: []Benchmark{},
+			ToolGroups: []ToolGroup{
+				{
+					ToolGroupID: "builtin::rag",
+					ProviderID:  "rag-runtime",
+				},
 			},
 		},
 		MetadataStore: MetadataStore{
@@ -169,6 +192,13 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					"table_name": "openai_conversations",
 					"backend":    "sql_default",
 				},
+			},
+		},
+		VectorStores: VectorStores{
+			DefaultProviderID: "milvus",
+			DefaultEmbeddingModel: VectorStoreModelReference{
+				ProviderID: "sentence-transformers",
+				ModelID:    "ibm-granite/granite-embedding-125m-english",
 			},
 		},
 		Server: Server{
@@ -376,6 +406,16 @@ func (c *LlamaStackConfig) AddToolRuntimeProvider(provider Provider) {
 // AddFilesProvider adds a new files provider to the config
 func (c *LlamaStackConfig) AddFilesProvider(provider Provider) {
 	c.Providers.Files = append(c.Providers.Files, provider)
+}
+
+// AddSafetyProvider adds a new safety provider to the config
+func (c *LlamaStackConfig) AddSafetyProvider(provider Provider) {
+	c.Providers.Safety = append(c.Providers.Safety, provider)
+}
+
+// RegisterShield adds a shield to the registered resources
+func (c *LlamaStackConfig) RegisterShield(shield Shield) {
+	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
 }
 
 // GetModelProviderInfo extracts model provider information for a given model ID
