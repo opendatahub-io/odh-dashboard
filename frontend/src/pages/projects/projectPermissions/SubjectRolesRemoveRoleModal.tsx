@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Alert, Content, ContentVariants, Stack, StackItem } from '@patternfly/react-core';
 import { getRoleDisplayName } from '#~/concepts/permissions/utils';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
@@ -37,29 +36,19 @@ const SubjectRolesRemoveRoleModal: React.FC<SubjectRolesRemoveRoleModalProps> = 
       genericLabel
       removeConfirmation={isReversible}
     >
-      <Stack hasGutter>
-        {!isReversible ? (
-          <StackItem>
-            <Alert
-              isInline
-              variant="danger"
-              title={
-                <Content
-                  component={ContentVariants.p}
-                  style={{ fontWeight: 'var(--pf-t--global--font--weight--body--default)' }}
-                >
-                  The role <strong>{roleDisplayName}</strong> is granted in OpenShift. It cannot be
-                  re-added in {ODH_PRODUCT_NAME} once it’s removed.
-                </Content>
-              }
-            />
-          </StackItem>
-        ) : null}
-        <StackItem>
+      {isReversible ? (
+        <>
           Once the role <strong>{roleDisplayName}</strong> is removed, all permissions associated
           with this role will not be granted to {subjectKind} <strong>{row.subjectName}</strong>.
-        </StackItem>
-      </Stack>
+        </>
+      ) : (
+        <>
+          The role <strong>{roleDisplayName}</strong> is granted in OpenShift. It cannot be re-added
+          in {ODH_PRODUCT_NAME} once it’s removed. Once the role is removed, all permissions
+          associated with this role will not be granted to {subjectKind}{' '}
+          <strong>{row.subjectName}</strong>.
+        </>
+      )}
     </DeleteModal>
   );
 };
