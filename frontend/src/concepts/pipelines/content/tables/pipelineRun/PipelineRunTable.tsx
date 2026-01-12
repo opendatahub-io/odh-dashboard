@@ -5,13 +5,9 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import {
-  TableBase,
-  getTableColumnSort,
-  useCheckboxTable,
-  ManageColumnsModal,
-  ManagedColumn,
-} from '#~/components/table';
+import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { ManageColumnsModal } from '#~/components/table/manageColumns/ManageColumnsModal';
+import { ManagedColumn } from '#~/components/table/manageColumns/types';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
