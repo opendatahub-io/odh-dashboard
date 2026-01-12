@@ -1,4 +1,4 @@
-import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types.js';
+import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/types/form-data';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData } from '../../../types';
