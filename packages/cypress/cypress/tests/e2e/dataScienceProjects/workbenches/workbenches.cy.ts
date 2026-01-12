@@ -25,45 +25,60 @@ describe('Workbench and PVSs tests', () => {
   let PVCDisplayName: string;
   let PVCSize: string;
   let defaultStorageClass: string;
+  let skipTests = false;
   const uuid = generateTestUUID();
 
-  retryableBefore(() =>
-    getOpenshiftDefaultStorageClass()
-      .then((result) => {
-        if (result.code !== 0 || !result.stdout) {
-          throw new Error(`Failed to get default storage class: ${result.stderr}`);
-        }
-        defaultStorageClass = result.stdout;
-        cy.log(`Using default storage class: ${defaultStorageClass}`);
-        return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml');
-      })
-      .then((fixtureData: PVCReplacements) => {
-        projectName = `${fixtureData.NAMESPACE}-${uuid}`;
-        PVCName = fixtureData.PVC_NAME;
-        PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
-        PVCSize = fixtureData.PVC_SIZE;
+  retryableBefore(() => {
+    // Check if a default storage class exists - if not, skip tests
+    // (workbench tests require real storage provisioner to create PVCs)
+    getOpenshiftDefaultStorageClass().then((result) => {
+      if (result.code !== 0 || !result.stdout.trim()) {
+        cy.log(
+          'No default storage class found - skipping workbench tests (requires real storage provisioner)',
+        );
+        skipTests = true;
+        return;
+      }
+      defaultStorageClass = result.stdout.trim();
+      cy.log(`Using default storage class: ${defaultStorageClass}`);
 
-        if (!projectName) {
-          throw new Error('Project name is undefined or empty in the loaded fixture');
-        }
-        cy.log(`Loaded project name: ${projectName}`);
-        return createCleanProject(projectName);
-      })
-      .then(() => {
-        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
-        const pvcReplacements: PVCReplacements = {
-          NAMESPACE: projectName,
-          PVC_NAME: PVCName,
-          PVC_DISPLAY_NAME: PVCDisplayName,
-          PVC_SIZE: PVCSize,
-          STORAGE_CLASS: defaultStorageClass,
-        };
-        return createPersistentVolumeClaim(pvcReplacements);
-      })
-      .then((commandResult) => {
-        cy.log(`Persistent Volume Claim created: ${JSON.stringify(commandResult)}`);
-      }),
-  );
+      loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml').then(
+        (fixtureData: PVCReplacements) => {
+          projectName = `${fixtureData.NAMESPACE}-${uuid}`;
+          PVCName = fixtureData.PVC_NAME;
+          PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
+          PVCSize = fixtureData.PVC_SIZE;
+
+          if (!projectName) {
+            throw new Error('Project name is undefined or empty in the loaded fixture');
+          }
+          cy.log(`Loaded project name: ${projectName}`);
+          createCleanProject(projectName);
+
+          cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+          const pvcReplacements: PVCReplacements = {
+            NAMESPACE: projectName,
+            PVC_NAME: PVCName,
+            PVC_DISPLAY_NAME: PVCDisplayName,
+            PVC_SIZE: PVCSize,
+            STORAGE_CLASS: defaultStorageClass,
+          };
+          createPersistentVolumeClaim(pvcReplacements).then((commandResult) => {
+            cy.log(`Persistent Volume Claim created: ${JSON.stringify(commandResult)}`);
+          });
+        },
+      );
+    });
+  });
+
+  beforeEach(function skipIfNoStorageClass() {
+    if (skipTests) {
+      cy.log(
+        'Skipping test: No default storage class available (requires real storage provisioner)',
+      );
+      this.skip();
+    }
+  });
 
   after(() => {
     if (projectName) {
