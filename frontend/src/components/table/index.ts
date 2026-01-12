@@ -14,3 +14,5 @@ export { default as TableRowTitleDescription } from './TableRowTitleDescription'
 export { default as CheckboxTd } from './CheckboxTd';
 
 export { getTableColumnSort } from './useTableColumnSort';
+
+export * from './manageColumns';
