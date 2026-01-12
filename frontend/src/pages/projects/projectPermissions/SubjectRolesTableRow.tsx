@@ -11,11 +11,14 @@ import { getRoleDisplayName, getRoleLabelType } from '#~/concepts/permissions/ut
 import { RoleRef } from '#~/concepts/permissions/types';
 import { SubjectRoleRow } from './types';
 import RoleLabel from './components/RoleLabel';
+import { isReversibleRoleRef } from './utils';
 
 type SubjectRolesTableRowProps = {
   row: SubjectRoleRow;
   subjectNameRowSpan: number;
   onRoleClick?: (roleRef: RoleRef) => void;
+  onEdit: () => void;
+  onRemove: () => void;
 };
 
 const formatDate = (timestamp?: string): string => {
@@ -33,10 +36,18 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
   row,
   subjectNameRowSpan,
   onRoleClick,
+  onEdit,
+  onRemove,
 }) => {
   const createdDate = row.roleBindingCreationTimestamp
     ? new Date(row.roleBindingCreationTimestamp)
     : undefined;
+
+  const isEditable = isReversibleRoleRef(row.roleRef);
+  const actionItems = [
+    ...(isEditable ? [{ title: 'Edit', onClick: onEdit }, { isSeparator: true }] : []),
+    { title: 'Remove', onClick: onRemove },
+  ];
 
   return (
     <Tr>
@@ -77,13 +88,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
         )}
       </Td>
       <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
-        <ActionsColumn
-          items={[
-            { title: 'Edit', onClick: () => undefined },
-            { isSeparator: true },
-            { title: 'Delete', onClick: () => undefined },
-          ]}
-        />
+        <ActionsColumn items={actionItems} />
       </Td>
     </Tr>
   );
