@@ -64,22 +64,25 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
   // Check if the active dashboard needs cluster details variables
   const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
 
-  // Handle tab selection - prevent default anchor behavior and use React Router
+  // Handle tab selection - use React Router for normal clicks, allow browser default for cmd/ctrl+click
   const handleTabSelect = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, eventKey: string | number) => {
+      // Allow cmd+click (Mac) or ctrl+click (Windows/Linux) to open in new tab
+      if (event.metaKey || event.ctrlKey) {
+        return;
+      }
       event.preventDefault();
-      navigate(buildDashboardUrl(projectName, String(eventKey)));
+      navigate(buildDashboardUrl(projectName, String(eventKey), searchParams.toString()));
     },
-    [navigate, projectName],
+    [navigate, projectName, searchParams],
   );
 
   // Handle project change - update URL path
   const handleProjectChange = React.useCallback(
     (newProject: string) => {
-      // Keep the current dashboard selection when changing projects
-      navigate(buildDashboardUrl(newProject, activeDashboardName));
+      navigate(buildDashboardUrl(newProject, activeDashboardName, searchParams.toString()));
     },
-    [navigate, activeDashboardName],
+    [navigate, activeDashboardName, searchParams],
   );
 
   return (
@@ -112,7 +115,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
                 key={dashboard.metadata.name}
                 eventKey={dashboard.metadata.name}
                 title={<TabTitleText>{getDashboardDisplayName(dashboard)}</TabTitleText>}
-                href={buildDashboardUrl(projectName, dashboard.metadata.name)}
+                href={buildDashboardUrl(
+                  projectName,
+                  dashboard.metadata.name,
+                  searchParams.toString(),
+                )}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
                   <PersesBoard />
