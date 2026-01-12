@@ -27,7 +27,7 @@ import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/model-serving/types/form-data';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
