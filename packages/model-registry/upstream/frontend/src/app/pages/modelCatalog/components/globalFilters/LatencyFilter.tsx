@@ -16,7 +16,8 @@ import { HelpIcon } from '@patternfly/react-icons';
 import {
   LatencyMetric,
   LatencyPercentile,
-  getLatencyFieldName,
+  getLatencyFilterKey,
+  getLatencyPropertyKey,
 } from '~/concepts/modelCatalog/const';
 import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
 import { getDoubleValue } from '~/app/utils';
@@ -25,6 +26,7 @@ import {
   getSliderRange,
   FALLBACK_LATENCY_RANGE,
   SliderRange,
+  formatLatency,
 } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import SliderWithInput from './SliderWithInput';
 
@@ -65,10 +67,10 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
   const currentActiveFilter = React.useMemo(() => {
     for (const metric of Object.values(LatencyMetric)) {
       for (const percentile of Object.values(LatencyPercentile)) {
-        const fieldName = getLatencyFieldName(metric, percentile);
-        const value = filterData[fieldName];
+        const filterKey = getLatencyFilterKey(metric, percentile);
+        const value = filterData[filterKey];
         if (value !== undefined && typeof value === 'number') {
-          return { fieldName, metric, percentile, value };
+          return { fieldName: filterKey, metric, percentile, value };
         }
       }
     }
@@ -109,16 +111,35 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
     }
   }, [currentActiveFilter]);
 
-  const { minValue, maxValue, isSliderDisabled } = React.useMemo((): SliderRange => {
-    const fieldName = getLatencyFieldName(localFilter.metric, localFilter.percentile);
+  const { filterOptions } = React.useContext(ModelCatalogContext);
 
-    return getSliderRange({
-      performanceArtifacts,
-      getArtifactFilterValue: (artifact) => getDoubleValue(artifact.customProperties, fieldName),
-      fallbackRange: FALLBACK_LATENCY_RANGE,
-      shouldRound: true,
-    });
-  }, [performanceArtifacts, localFilter.metric, localFilter.percentile]);
+  const { minValue, maxValue, isSliderDisabled } = React.useMemo((): SliderRange => {
+    // Use short property key for accessing customProperties
+    const propertyKey = getLatencyPropertyKey(localFilter.metric, localFilter.percentile);
+    // Use full filter key for accessing filterOptions
+    const filterKey = getLatencyFilterKey(localFilter.metric, localFilter.percentile);
+
+    // First try to get range from performance artifacts
+    if (performanceArtifacts.length > 0) {
+      return getSliderRange({
+        performanceArtifacts,
+        getArtifactFilterValue: (artifact) =>
+          getDoubleValue(artifact.customProperties, propertyKey),
+        fallbackRange: FALLBACK_LATENCY_RANGE,
+        shouldRound: true,
+      });
+    }
+    // Fall back to filterOptions from context
+    const latencyFilter = filterOptions?.filters?.[filterKey];
+    if (latencyFilter && 'range' in latencyFilter && latencyFilter.range) {
+      return {
+        minValue: Math.round(latencyFilter.range.min ?? FALLBACK_LATENCY_RANGE.minValue),
+        maxValue: Math.round(latencyFilter.range.max ?? FALLBACK_LATENCY_RANGE.maxValue),
+        isSliderDisabled: false,
+      };
+    }
+    return FALLBACK_LATENCY_RANGE;
+  }, [performanceArtifacts, localFilter.metric, localFilter.percentile, filterOptions]);
 
   const clampedValue = React.useMemo(
     () => Math.min(Math.max(localFilter.value, minValue), maxValue),
@@ -130,7 +151,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
       return (
         <>
           <strong>Latency:</strong> {currentActiveFilter.metric} | {currentActiveFilter.percentile}{' '}
-          | {currentActiveFilter.value}ms
+          | Under {formatLatency(currentActiveFilter.value)}
         </>
       );
     }
@@ -143,9 +164,9 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
       setFilterData(currentActiveFilter.fieldName, undefined);
     }
 
-    // Set the new latency filter using the dynamic field name
-    const newFieldName = getLatencyFieldName(localFilter.metric, localFilter.percentile);
-    setFilterData(newFieldName, localFilter.value);
+    // Set the new latency filter using the dynamic filter key
+    const newFilterKey = getLatencyFilterKey(localFilter.metric, localFilter.percentile);
+    setFilterData(newFilterKey, localFilter.value);
     setIsOpen(false);
   };
 
@@ -162,9 +183,11 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
       ref={toggleRef}
+      data-testid="latency-filter"
       onClick={() => setIsOpen(!isOpen)}
       isExpanded={isOpen}
-      style={{ minWidth: '200px', width: 'fit-content' }}
+      isFullHeight
+      style={{ minWidth: '200px', width: 'fit-content', height: '56px' }}
     >
       {getDisplayText()}
     </MenuToggle>
@@ -172,6 +195,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
 
   const filterContent = (
     <Flex
+      data-testid="latency-filter-content"
       direction={{ default: 'column' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       flexWrap={{ default: 'wrap' }}
@@ -208,6 +232,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                 toggle={(toggleRef) => (
                   <MenuToggle
                     ref={toggleRef}
+                    data-testid="latency-metric-select"
                     onClick={() => setIsMetricOpen(!isMetricOpen)}
                     isExpanded={isMetricOpen}
                     className="pf-v6-u-w-100"
@@ -216,9 +241,13 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                   </MenuToggle>
                 )}
               >
-                <SelectList>
+                <SelectList data-testid="latency-metric-options">
                   {availableMetrics.map((option) => (
-                    <SelectOption key={option.value} value={option.value}>
+                    <SelectOption
+                      key={option.value}
+                      value={option.value}
+                      data-testid={`latency-metric-option-${option.value}`}
+                    >
                       {option.label}
                     </SelectOption>
                   ))}
@@ -262,6 +291,7 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                     toggle={(toggleRef) => (
                       <MenuToggle
                         ref={toggleRef}
+                        data-testid="latency-percentile-select"
                         onClick={() => setIsPercentileOpen(!isPercentileOpen)}
                         isExpanded={isPercentileOpen}
                         className="pf-v6-u-w-100"
@@ -270,9 +300,13 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
                       </MenuToggle>
                     )}
                   >
-                    <SelectList>
+                    <SelectList data-testid="latency-percentile-options">
                       {getAvailablePercentiles().map((option) => (
-                        <SelectOption key={option.value} value={option.value}>
+                        <SelectOption
+                          key={option.value}
+                          value={option.value}
+                          data-testid={`latency-percentile-option-${option.value}`}
+                        >
                           {option.label}
                         </SelectOption>
                       ))}
@@ -331,12 +365,17 @@ const LatencyFilter: React.FC<LatencyFilterProps> = ({ performanceArtifacts }) =
       <FlexItem>
         <Flex spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
-            <Button variant="primary" onClick={handleApplyFilter} isDisabled={isSliderDisabled}>
+            <Button
+              data-testid="latency-apply-filter"
+              variant="primary"
+              onClick={handleApplyFilter}
+              isDisabled={isSliderDisabled}
+            >
               Apply filter
             </Button>
           </FlexItem>
           <FlexItem>
-            <Button variant="link" onClick={handleReset}>
+            <Button data-testid="latency-reset-filter" variant="link" onClick={handleReset}>
               Reset
             </Button>
           </FlexItem>
