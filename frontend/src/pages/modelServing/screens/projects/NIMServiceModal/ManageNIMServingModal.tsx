@@ -195,7 +195,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const isDisabledServingRuntime =
     namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
 
-  const baseInputValueValid = createDataServingRuntime.numReplicas >= 1;
+  const baseInputValueValid = createDataInferenceService.minReplicas >= 1;
 
   const isExistingPvcValid =
     pvcMode === 'create-new' || (existingPvcName.trim() !== '' && modelPath.trim() !== '');
