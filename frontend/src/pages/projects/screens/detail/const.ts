@@ -11,3 +11,8 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
   [ProjectSectionID.SETTINGS]: 'Settings',
   [ProjectSectionID.FEATURE_STORE]: 'Feature Store',
 };
+
+/**
+ * Permission-related messages
+ */
+export const CREATE_WORKBENCH_DISABLED_MESSAGE = 'You do not have permission to create workbenches';
