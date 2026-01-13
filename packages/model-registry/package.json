@@ -24,7 +24,7 @@
     "branch": "comparison-card",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "f55b1d022bbb27784fc4f4d37c33bbe99bdf9d1f"
+    "commit": "6064f9490d12d7ac2572a6d1f803156a6d1d6958"
   },
   "module-federation": {
     "name": "modelRegistry",

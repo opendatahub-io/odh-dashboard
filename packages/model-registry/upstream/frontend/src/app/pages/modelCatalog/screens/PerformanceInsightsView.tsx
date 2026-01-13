@@ -1,8 +1,18 @@
 import * as React from 'react';
-import { PageSection, Card, CardBody, Title, Flex, FlexItem, Alert } from '@patternfly/react-core';
+import {
+  PageSection,
+  Card,
+  CardBody,
+  Title,
+  Flex,
+  FlexItem,
+  Alert,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
 import HardwareConfigurationTable from '~/app/pages/modelCatalog/components/HardwareConfigurationTable';
-import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
+import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useCatalogPerformanceArtifacts } from '~/app/hooks/modelCatalog/useCatalogPerformanceArtifacts';
 import {
@@ -14,13 +24,18 @@ import {
   decodeParams,
   getActiveLatencyFieldName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+
+type PerformanceInsightsViewProps = {
+  model: CatalogModel;
+};
 import { parseLatencyFieldName } from '~/app/pages/modelCatalog/utils/hardwareConfigurationFilterUtils';
 import {
   applyFilterValue,
   getDefaultFiltersFromNamedQuery,
 } from '~/app/pages/modelCatalog/utils/performanceFilterUtils';
+import TensorTypeComparisonCard from './TensorTypeComparisonCard';
 
-const PerformanceInsightsView = (): React.JSX.Element => {
+const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const {
@@ -93,35 +108,40 @@ const PerformanceInsightsView = (): React.JSX.Element => {
   }
 
   return (
-    <PageSection padding={{ default: 'noPadding' }}>
-      <Card>
-        <CardBody>
-          <Flex direction={{ default: 'column' }} gap={{ default: 'gapLg' }}>
-            <FlexItem>
-              <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <Title headingLevel="h2" size="lg">
-                    Hardware Configuration
-                  </Title>
-                </FlexItem>
-                <FlexItem>
-                  <p>
-                    Compare the performance metrics of hardware configuration to determine the most
-                    suitable option for deployment.
-                  </p>
-                </FlexItem>
-              </Flex>
-            </FlexItem>
-            <FlexItem>
-              <HardwareConfigurationTable
-                performanceArtifacts={performanceArtifactsList.items}
-                isLoading={!performanceArtifactsLoaded}
-              />
-            </FlexItem>
-          </Flex>
-        </CardBody>
-      </Card>
-    </PageSection>
+    <Stack hasGutter>
+      <StackItem>
+        <Card>
+          <CardBody>
+            <Flex direction={{ default: 'column' }} gap={{ default: 'gapLg' }}>
+              <FlexItem>
+                <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                  <FlexItem>
+                    <Title headingLevel="h2" size="lg">
+                      Hardware Configuration
+                    </Title>
+                  </FlexItem>
+                  <FlexItem>
+                    <p>
+                      Compare the performance metrics of hardware configuration to determine the
+                      most suitable option for deployment.
+                    </p>
+                  </FlexItem>
+                </Flex>
+              </FlexItem>
+              <FlexItem>
+                <HardwareConfigurationTable
+                  performanceArtifacts={performanceArtifactsList.items}
+                  isLoading={!performanceArtifactsLoaded}
+                />
+              </FlexItem>
+            </Flex>
+          </CardBody>
+        </Card>
+      </StackItem>
+      <StackItem>
+        <TensorTypeComparisonCard model={model} />
+      </StackItem>
+    </Stack>
   );
 };
 
