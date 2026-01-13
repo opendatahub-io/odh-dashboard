@@ -128,7 +128,9 @@ describe('Administration Tab', () => {
       mockAllowedUsers({}),
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
     ];
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
+    cy.interceptK8sList(RouteModel, mockK8sResourceList([mockRouteK8sResource({})])).as(
+      'getWorkbenchURL',
+    );
     initIntercepts({ allowedUsers });
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
@@ -203,7 +205,9 @@ describe('Administration Tab', () => {
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
     ];
     initIntercepts({ allowedUsers });
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
+    cy.interceptK8sList(RouteModel, mockK8sResourceList([mockRouteK8sResource({})])).as(
+      'getWorkbenchURL',
+    );
     administration.mockGetNotebookStatus('jupyter-nb-regularuser1');
     administration.mockGetNotebookStatus('jupyter-nb-regularuser2');
     cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
@@ -227,7 +231,9 @@ describe('Administration Tab', () => {
     initIntercepts({ allowedUsers });
     cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
     administration.mockGetNotebookStatus('jupyter-nb-regularuser1');
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
+    cy.interceptK8sList(RouteModel, mockK8sResourceList([mockRouteK8sResource({})])).as(
+      'getWorkbenchURL',
+    );
 
     notebookController.visit();
     notebookController.findAdministrationTab().click();

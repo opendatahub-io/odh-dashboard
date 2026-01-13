@@ -463,7 +463,10 @@ const initIntercepts = ({
   );
   cy.interceptK8s(SecretModel, mockSecretK8sResource({ name: 'aws-connection-db-1' }));
   cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
-  cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
+  cy.interceptK8sList(
+    RouteModel,
+    mockK8sResourceList([mockRouteK8sResource({ notebookName: 'test-notebook' })]),
+  );
   cy.interceptK8sList(
     {
       model: NotebookModel,
@@ -980,7 +983,10 @@ describe('Workbench page', () => {
         mockPVCK8sResource({ name: 'outdated-notebook', displayName: 'Outdated Notebook' }),
       ]),
     );
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'outdated-notebook' }));
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'outdated-notebook' })]),
+    );
     cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: true })]));
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Outdated Notebook').findNotebookImageLabel().click();
@@ -1015,7 +1021,10 @@ describe('Workbench page', () => {
       PVCModel,
       mockK8sResourceList([mockPVCK8sResource({ name: 'latest-notebook' })]),
     );
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'latest-notebook' }));
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'latest-notebook' })]),
+    );
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Latest Notebook').findNotebookImageLabel().click();
     cy.contains('Latest image version');
@@ -1027,7 +1036,10 @@ describe('Workbench page', () => {
       PVCModel,
       mockK8sResourceList([mockPVCK8sResource({ name: 'latest-notebook' })]),
     );
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'latest-notebook' }));
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'latest-notebook' })]),
+    );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Latest Notebook');
     notebookRow.findNotebookImageVersionLink().click();
@@ -1047,7 +1059,10 @@ describe('Workbench page', () => {
         mockPVCK8sResource({ name: 'mismatch-commit-byon-notebook' }),
       ]),
     );
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'mismatch-commit-notebook' }));
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'mismatch-commit-notebook' })]),
+    );
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('BYON Notebook').findNotebookImageLabel().should('not.exist');
     workbenchPage.getNotebookRow('Deprecated Notebook').findNotebookImageLabel().click();
@@ -1079,7 +1094,10 @@ describe('Workbench page', () => {
       PVCModel,
       mockK8sResourceList([mockPVCK8sResource({ name: 'deleted-image-popover' })]),
     );
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'deleted-image-popover' }));
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'deleted-image-popover' })]),
+    );
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Deleted Image Popover').findNotebookImageLabel().click();
     cy.contains('Notebook image deleted');
