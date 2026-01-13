@@ -3,9 +3,11 @@ import {
   filterDashboards,
   buildDashboardUrl,
   getDashboardDisplayName,
+  hasClusterDetailsVariables,
   BASE_PATH,
   DASHBOARD_QUERY_PARAM,
 } from '../dashboardUtils';
+import { CLUSTER_DETAILS_VARIABLES } from '../variables';
 
 // Helper to create mock DashboardResource objects
 const createMockDashboard = (name: string, displayName?: string): DashboardResource =>
@@ -198,8 +200,9 @@ describe('dashboardUtils', () => {
       it('should encode special characters in dashboard name', () => {
         const result = buildDashboardUrl('my-project', 'dashboard name&special');
 
+        // URLSearchParams.set() encodes spaces as '+' which is valid in query strings
         expect(result).toBe(
-          `${BASE_PATH}/my-project?${DASHBOARD_QUERY_PARAM}=dashboard%20name%26special`,
+          `${BASE_PATH}/my-project?${DASHBOARD_QUERY_PARAM}=dashboard+name%26special`,
         );
       });
 
@@ -215,6 +218,40 @@ describe('dashboardUtils', () => {
         const result = buildDashboardUrl('', 'dashboard-cluster');
 
         expect(result).toBe(`${BASE_PATH}?${DASHBOARD_QUERY_PARAM}=dashboard-cluster`);
+      });
+    });
+
+    describe('preserving existing query params', () => {
+      it('should preserve time range params when switching dashboards', () => {
+        const result = buildDashboardUrl('my-project', 'dashboard-model', 'start=30m&end=now');
+
+        expect(result).toContain('start=30m');
+        expect(result).toContain('end=now');
+        expect(result).toContain(`${DASHBOARD_QUERY_PARAM}=dashboard-model`);
+      });
+
+      it('should update dashboard param while preserving other params', () => {
+        const result = buildDashboardUrl(
+          'my-project',
+          'new-dashboard',
+          `${DASHBOARD_QUERY_PARAM}=old-dashboard&start=1h`,
+        );
+
+        expect(result).toContain(`${DASHBOARD_QUERY_PARAM}=new-dashboard`);
+        expect(result).toContain('start=1h');
+        expect(result).not.toContain('old-dashboard');
+      });
+
+      it('should handle empty currentSearch', () => {
+        const result = buildDashboardUrl('my-project', 'dashboard-model', '');
+
+        expect(result).toBe(`${BASE_PATH}/my-project?${DASHBOARD_QUERY_PARAM}=dashboard-model`);
+      });
+
+      it('should handle undefined currentSearch', () => {
+        const result = buildDashboardUrl('my-project', 'dashboard-model', undefined);
+
+        expect(result).toBe(`${BASE_PATH}/my-project?${DASHBOARD_QUERY_PARAM}=dashboard-model`);
       });
     });
   });
@@ -242,6 +279,53 @@ describe('dashboardUtils', () => {
       const result = getDashboardDisplayName(dashboard);
 
       expect(result).toBe('dashboard-metrics');
+    });
+  });
+
+  describe('hasClusterDetailsVariables', () => {
+    it('should return true when dashboard has cluster details variables', () => {
+      const dashboard: DashboardResource = {
+        kind: 'Dashboard',
+        metadata: { name: 'dashboard-test' },
+        spec: {
+          variables: [
+            {
+              kind: 'TextVariable',
+              spec: {
+                name: CLUSTER_DETAILS_VARIABLES.API_SERVER,
+                value: 'test',
+              },
+            },
+          ],
+        },
+      } as DashboardResource;
+
+      expect(hasClusterDetailsVariables(dashboard)).toBe(true);
+    });
+
+    it('should return false when dashboard has no cluster details variables', () => {
+      const dashboard: DashboardResource = {
+        kind: 'Dashboard',
+        metadata: { name: 'dashboard-test' },
+        spec: {
+          variables: [
+            {
+              kind: 'TextVariable',
+              spec: {
+                name: 'OTHER_VARIABLE',
+                value: 'test',
+              },
+            },
+          ],
+        },
+      } as DashboardResource;
+
+      expect(hasClusterDetailsVariables(dashboard)).toBe(false);
+    });
+
+    it('should return false when dashboard has no variables', () => {
+      const dashboard = createMockDashboard('dashboard-test');
+      expect(hasClusterDetailsVariables(dashboard)).toBe(false);
     });
   });
 });

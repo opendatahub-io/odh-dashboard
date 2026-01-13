@@ -75,6 +75,14 @@ class TiersPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('dashboard-empty-table-state');
   }
+
+  findKebab(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(name).findKebab();
+  }
+
+  findViewDetailsButton() {
+    return cy.findByRole('menuitem', { name: 'View details' });
+  }
 }
 
 class CreateTierPage {
@@ -107,7 +115,7 @@ class CreateTierPage {
 
   // Level field
   findLevelInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('tier-level');
+    return cy.findByTestId('tier-level').find('input[type="number"]');
   }
 
   // Groups MultiSelection
@@ -135,11 +143,11 @@ class CreateTierPage {
   }
 
   findTokenRateLimitCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-token-rate-limit-${index}-count`);
+    return cy.findByTestId(`tier-token-rate-limit-${index}-count`).find('input[type="number"]');
   }
 
   findTokenRateLimitTimeInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-token-rate-limit-${index}-time`);
+    return cy.findByTestId(`tier-token-rate-limit-${index}-time`).find('input[type="number"]');
   }
 
   findTokenRateLimitUnitSelect(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -165,11 +173,11 @@ class CreateTierPage {
   }
 
   findRequestRateLimitCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-request-rate-limit-${index}-count`);
+    return cy.findByTestId(`tier-request-rate-limit-${index}-count`).find('input[type="number"]');
   }
 
   findRequestRateLimitTimeInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-request-rate-limit-${index}-time`);
+    return cy.findByTestId(`tier-request-rate-limit-${index}-time`).find('input[type="number"]');
   }
 
   findRequestRateLimitUnitSelect(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -190,8 +198,40 @@ class CreateTierPage {
     return cy.findByTestId('create-tier-button');
   }
 
+  findUpdateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('update-tier-button');
+  }
+
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-tier-button');
+  }
+}
+
+class TierDetailsPage {
+  visit(name: string): void {
+    cy.visit(`/maas/tiers/${name}`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('tier-details-page').should('exist');
+    cy.testA11y();
+  }
+
+  findLevel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level-value');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-groups-value');
+  }
+
+  findLimits(name: string) {
+    return cy.findByText(name);
+  }
+
+  findActionsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-actions');
   }
 }
 
@@ -201,6 +241,30 @@ class DeleteTierModal extends DeleteModal {
   }
 }
 
+// MaaS Wizard Field helpers for the model deployment wizard
+class MaaSWizardField {
+  findSaveAsMaaSCheckbox() {
+    return cy.findByTestId('maas/save-as-maas-checkbox');
+  }
+
+  findMaaSTierDropdown() {
+    return cy.findByTestId('maas/save-as-maas-checkbox-tier-dropdown');
+  }
+
+  selectMaaSTierOption(
+    option: 'All resource tiers' | 'No resource tiers' | 'Specific resource tiers',
+  ) {
+    this.findMaaSTierDropdown().click();
+    return cy.findByRole('option', { name: option }).click();
+  }
+
+  findMaaSTierNamesInput() {
+    return cy.findByTestId('maas/save-as-maas-checkbox-tier-names');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
+export const maasWizardField = new MaaSWizardField();
+export const tierDetailsPage = new TierDetailsPage();

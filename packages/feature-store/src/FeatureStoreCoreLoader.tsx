@@ -61,7 +61,7 @@ const FeatureStoreContent: React.FC<{
     return (
       <ApplicationsPage loaded loadError={featureStoreCRError} empty={false}>
         <RedirectErrorState
-          title="Feature Store repository load error"
+          title="Feature Store load error"
           errorMessage={featureStoreCRError.message}
         />
       </ApplicationsPage>
@@ -69,15 +69,15 @@ const FeatureStoreContent: React.FC<{
   }
 
   if (!featureStoreCRLoaded || !isAdminLoaded) {
-    return <Bullseye>Loading feature store repositories...</Bullseye>;
+    return <Bullseye>Loading feature store...</Bullseye>;
   }
 
   if (!featureStoreCR) {
-    const adminTitle = 'Create a feature store repository';
+    const adminTitle = 'Create a feature store';
     const adminDescription = (
       <>
-        No feature store repositories are available to users in your organization. Create a
-        repository in OpenShift. <br />
+        No feature stores are available to users in your organization. Create a feature store in
+        OpenShift. <br />
         <br />
         {osConsoleAction && (
           <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
@@ -88,11 +88,11 @@ const FeatureStoreContent: React.FC<{
       </>
     );
 
-    const userTitle = 'Request access to a feature store repository';
+    const userTitle = 'Request access to a feature store';
     const userDescription = (
       <>
-        Feature store repositories allow teams to organize and collaborate on resources within
-        separate namespaces. To request access to a new or existing repository, contact your
+        Feature stores enable teams to organize and collaborate on resources within separate
+        namespaces. To request access to a new or existing feature store, contact your
         administrator.
       </>
     );

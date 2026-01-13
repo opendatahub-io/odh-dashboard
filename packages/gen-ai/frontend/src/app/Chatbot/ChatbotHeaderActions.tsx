@@ -58,7 +58,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 onClick={onNewChat}
                 data-testid="new-chat-button"
               >
-                New Chat
+                New chat
               </Button>
             </ActionListItem>
             <ActionListItem>
@@ -71,7 +71,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                     isAriaDisabled={isViewCodeDisabled}
                     data-testid="view-code-button"
                   >
-                    View Code
+                    View code
                   </Button>
                 </Tooltip>
               ) : (

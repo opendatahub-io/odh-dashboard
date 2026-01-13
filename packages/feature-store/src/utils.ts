@@ -143,19 +143,19 @@ export const getFeatureStoreObjectDescription = (
 ): string => {
   switch (featureStoreObject) {
     case FeatureStoreObject.ENTITIES:
-      return 'Select a feature store repository to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
+      return 'Entities are collections of related features and can be mapped to different use cases, such as customers, products, or transactions. ';
     case FeatureStoreObject.DATA_SOURCES:
-      return 'Select a feature store repository to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
+      return 'Select a feature store to view and manage its data sources. Data sources provide the raw data that feeds into your feature store.';
     case FeatureStoreObject.FEATURES:
-      return 'Select a feature store repository to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
+      return 'Select a feature store to view its features. A feature is a schema containing a name and a type, and is used to represent the data stored in feature views for both training and serving purposes.';
     case FeatureStoreObject.FEATURE_VIEWS:
-      return 'Select a feature store repository to view and manage its feature views. A feature view defines how to retrieve a logical group of features from a specific data source. It binds a data source to one or more entities and contains the logic for transforming the raw data into feature values.';
+      return 'Select a feature store to view and manage its feature views. A feature view defines how to retrieve a logical group of features from a specific data source. It binds a data source to one or more entities and contains the logic for transforming the raw data into feature values.';
     case FeatureStoreObject.FEATURE_SERVICES:
-      return "Select a feature store repository to view and manage its feature services. Feature services groups features from across one or more Feature views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
+      return 'Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.';
     case FeatureStoreObject.DATA_SETS:
-      return 'View and manage datasets created from feature services. Datasets are point-in-time-correct snapshots of feature services,data and are used for training,  or validation, and analysis.';
+      return 'View and manage datasets generated from feature services. These datasets contain point-in-time-correct feature values to avoid leakage and support reliable training, validation, and offline analysis. You can add labels and apply additional preprocessing as needed.';
     case FeatureStoreObject.OVERVIEW:
-      return 'Feature store repositories connect models to data by enabling you to store, manage, and serve ML features from your existing data sources. To consume and manage resources within feature store repositories , connect repos with your workbenches.';
+      return 'Feature stores are shared catalogs for defining and managing features across teams. They help ensure consistent feature values from training to production and reduce duplicated feature engineering. Connect your workbenches to use and manage features in your projects.';
     default:
       return 'Feature store object details';
   }

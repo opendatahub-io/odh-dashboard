@@ -1,6 +1,4 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import DashboardContent from './DashboardContent';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
@@ -14,12 +12,6 @@ const DashboardPage: React.FC = () => {
     return <DashboardContent dashboards={dashboards} />;
   }
 
-  const emptyStatePage = (
-    <EmptyState headingLevel="h4" icon={CubesIcon} titleText="No dashboards found">
-      <EmptyStateBody>No dashboards found.</EmptyStateBody>
-    </EmptyState>
-  );
-
   // Loading, error, or empty states - render without PersesWrapper
   return (
     <ApplicationsPage
@@ -28,7 +20,7 @@ const DashboardPage: React.FC = () => {
       loaded={loaded}
       loadError={error}
       empty={dashboards.length === 0}
-      emptyStatePage={emptyStatePage}
+      emptyMessage="No dashboards found."
     />
   );
 };

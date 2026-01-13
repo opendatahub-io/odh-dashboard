@@ -12,7 +12,7 @@ const FEATURE_STORE_SELECTION_HELP =
   'Select feature stores to connect to this workbench. Features in selected feature stores have read and write access to this workbench. ';
 
 const NO_FEATURE_STORES_TOOLTIP =
-  'The project this workbench belongs to has not been granted permission to use any feature store repository. Contact your admin to grant permission.';
+  'The current project doesn’t have access to any feature stores. Contact your admin to request access.';
 
 type FeatureStoreSelectorProps = {
   selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
@@ -61,7 +61,11 @@ const FeatureStoreSelector: React.FC<FeatureStoreSelectorProps> = ({
       <Stack hasGutter data-testid="feature-store-section">
         <StackItem>
           <FormGroup label="Feature store selection" fieldId="feature-store-select">
-            <Alert title="Failed to load feature stores" variant="danger">
+            <Alert
+              title="Failed to load feature stores"
+              variant="danger"
+              data-testid="feature-store-error-alert-message"
+            >
               {error.message || 'An error occurred while loading feature stores'}
             </Alert>
           </FormGroup>
@@ -84,10 +88,11 @@ const FeatureStoreSelector: React.FC<FeatureStoreSelectorProps> = ({
 
   const multiSelection = (
     <MultiSelection
+      data-testid="feature-store-typeahead"
       key={`feature-store-${selectedFeatureStoreOptionsKey}`}
       id="feature-store-select"
       ariaLabel="Select feature stores"
-      placeholder="Feature store selection"
+      placeholder="Select a feature store"
       value={selectionOptions}
       setValue={handleSelectionChange}
       isDisabled={shouldDisable}

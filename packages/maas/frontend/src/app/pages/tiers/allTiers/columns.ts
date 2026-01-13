@@ -6,7 +6,7 @@ export const tierColumns: SortableData<Tier>[] = [
     field: 'name',
     label: 'Name',
     width: 30,
-    sortable: (a: Tier, b: Tier): number => a.displayName.localeCompare(b.displayName),
+    sortable: (a: Tier, b: Tier): number => a.displayName?.localeCompare(b.displayName ?? '') ?? 0,
   },
   {
     field: 'level',

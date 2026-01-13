@@ -82,15 +82,15 @@ const FeatureViewTransformation: React.FC<FeatureViewTransformationProps> = ({ f
         width="100%"
         height="100%"
         icon={PlusCircleIcon}
-        title="No transformation data"
-        titleText="No transformation data"
+        title="No transformations defined"
+        titleText="No transformations defined"
         headingLevel="h1"
         variant={EmptyStateVariant.sm}
         data-testid="no-transformation-empty-state"
       >
         <EmptyStateBody>
-          Check if the transformation is enabled in feature definition. Modify feature definition to
-          enable transformation
+          This feature view doesn’t include any transformations. Transformations are defined in the
+          code that creates this feature view, using your SDK.
         </EmptyStateBody>
       </EmptyState>
     </Flex>

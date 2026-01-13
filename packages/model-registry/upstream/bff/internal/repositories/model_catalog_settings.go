@@ -33,6 +33,7 @@ var (
 	ErrCatalogIDTooLong          = errors.New("catalog source ID exceeds maximum length for secret name")
 	ErrCannotChangeType          = errors.New("cannot change catalog source type")
 	ErrValidationFailed          = errors.New("validation failed")
+	ErrCatalogSourceConflict     = errors.New("catalog source was modified by another request")
 )
 
 const (
@@ -122,11 +123,13 @@ func (r *ModelCatalogSettingsRepository) GetCatalogSourceConfig(ctx context.Cont
 
 	if result.Type == CatalogTypeYaml {
 		if yamlFilePath != "" {
+			result.YamlCatalogPath = &yamlFilePath
 			if yamlContent, ok := userCM.Data[yamlFilePath]; ok {
 				result.Yaml = &yamlContent
 			} else if yamlContent, ok := defaultCM.Data[yamlFilePath]; ok {
 				result.Yaml = &yamlContent
-			} else {
+			} else if result.IsDefault == nil || !*result.IsDefault {
+				// Only warn for non-default sources
 				sessionLogger := ctx.Value(constants.TraceLoggerKey).(*slog.Logger)
 				sessionLogger.Warn("yaml catalog content missing from configmap",
 					"catalogId", catalogSourceId,
@@ -207,6 +210,9 @@ func (r *ModelCatalogSettingsRepository) CreateCatalogSourceConfig(
 	if err != nil {
 		if secretName != "" {
 			deleteSecretForHuggingFace(ctx, client, namespace, secretName)
+		}
+		if apierrors.IsConflict(err) {
+			return nil, fmt.Errorf("%w: %v", ErrCatalogSourceConflict, err)
 		}
 		return nil, fmt.Errorf("failed to update user configmap: %w", err)
 	}
@@ -336,6 +342,9 @@ func (r *ModelCatalogSettingsRepository) UpdateCatalogSourceConfig(
 
 	err = client.UpdateCatalogSourceConfig(ctx, namespace, &userCM)
 	if err != nil {
+		if apierrors.IsConflict(err) {
+			return nil, fmt.Errorf("%w: %v", ErrCatalogSourceConflict, err)
+		}
 		return nil, fmt.Errorf("failed to update user configmap: %w", err)
 	}
 
@@ -391,6 +400,9 @@ func (r *ModelCatalogSettingsRepository) DeleteCatalogSourceConfig(
 
 	err = client.UpdateCatalogSourceConfig(ctx, namespace, &userCM)
 	if err != nil {
+		if apierrors.IsConflict(err) {
+			return nil, fmt.Errorf("%w: %v", ErrCatalogSourceConflict, err)
+		}
 		return nil, fmt.Errorf("failed to update configmap after deletion: %w", err)
 	}
 

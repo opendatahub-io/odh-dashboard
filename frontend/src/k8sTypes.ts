@@ -1302,10 +1302,11 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
-  aiCatalogSettings?: boolean;
   mlflow?: boolean;
   projectRBAC?: boolean;
   embedMLflow?: boolean;
+  observabilityDashboard?: boolean;
+  disableLLMd?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
