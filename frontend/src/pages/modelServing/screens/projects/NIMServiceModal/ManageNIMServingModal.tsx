@@ -454,8 +454,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               <KServeAutoscalerReplicaSection
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
-                infoContent="Consider network traffic and failover scenarios when specifying the number of model
-                server replicas."
+                infoContent="A replica is an independent instance of your model server.
+                Multiple replicas improve availability and handle higher traffic loads. 
+                Consider network traffic and failover scenarios when specifying the number of model server replicas.
+                More replicas enhance fault tolerance but use additional resources."
               />
             </StackItem>
             <DeploymentHardwareProfileSection
