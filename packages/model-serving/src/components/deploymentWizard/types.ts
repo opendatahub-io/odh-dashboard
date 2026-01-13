@@ -57,7 +57,7 @@ export enum ModelTypeLabel {
   GENERATIVE = 'Generative AI model (Example, LLM)',
 }
 
-export enum ModelStatus {
+export enum ModelStateLabel {
   STOPPED = 'Stopped',
   STOPPING = 'Stopping',
   STARTING = 'Starting',

@@ -2,7 +2,7 @@ import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelSe
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
-  ModelStatus,
+  ModelStateLabel,
   ModelStateToggleLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import {
@@ -130,7 +130,7 @@ describe('A model can be stopped and started', () => {
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', new RegExp(`${ModelStatus.STOPPING}|${ModelStatus.STOPPED}`));
+        .should('match', new RegExp(`${ModelStateLabel.STOPPING}|${ModelStateLabel.STOPPED}`));
 
       //Verify the model is stopped
       // Verify model is stopped
@@ -139,12 +139,12 @@ describe('A model can be stopped and started', () => {
         checkStopped: true,
         requireLoadedState: false,
       });
-      kServeRow.findStatusLabel(ModelStatus.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
+      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
       cy.step('Restart the model');
       kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
-      kServeRow.findStatusLabel(ModelStatus.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
+      kServeRow.findStatusLabel(ModelStateLabel.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
 
       //Verify the model is running again
       // Verify model deployment is ready
@@ -152,7 +152,7 @@ describe('A model can be stopped and started', () => {
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', new RegExp(`${ModelStatus.STARTING}|${ModelStatus.STARTED}`));
+        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.STARTED}`));
     },
   );
 });

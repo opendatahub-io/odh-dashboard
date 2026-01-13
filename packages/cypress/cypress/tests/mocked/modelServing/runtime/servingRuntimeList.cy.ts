@@ -35,7 +35,7 @@ import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import {
   ModelStateToggleLabel,
-  ModelStatus,
+  ModelStateLabel,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingSection } from '../../../../pages/modelServing';
 import { projectDetails } from '../../../../pages/projects';
@@ -626,7 +626,7 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
-      kserveRow.findStatusLabel(ModelStatus.STARTED);
+      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
 
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
@@ -675,7 +675,7 @@ describe('Serving Runtime List', () => {
       cy.reload();
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
 
-      kserveRow.findStatusLabel(ModelStatus.STOPPED);
+      kserveRow.findStatusLabel(ModelStateLabel.STOPPED);
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START);
       cy.window().then((win) => {
         const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
@@ -708,7 +708,7 @@ describe('Serving Runtime List', () => {
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       cy.reload();
       cy.wait(['@startModelPatch', '@getStartedModel']);
-      kserveRow.findStatusLabel(ModelStatus.STARTED);
+      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP);
     });
 

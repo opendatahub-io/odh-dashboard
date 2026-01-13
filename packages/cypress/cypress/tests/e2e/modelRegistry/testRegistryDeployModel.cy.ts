@@ -1,6 +1,6 @@
 import {
   ModelLocationSelectOption,
-  ModelStatus,
+  ModelStateLabel,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
@@ -203,7 +203,7 @@ describe('Verify models can be deployed from model registry', () => {
       modelRegistry.navigate();
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName).should('be.visible');
-      cy.contains(ModelStatus.STARTED).should('be.visible');
+      cy.contains(ModelStateLabel.STARTED).should('be.visible');
     },
   );
 });

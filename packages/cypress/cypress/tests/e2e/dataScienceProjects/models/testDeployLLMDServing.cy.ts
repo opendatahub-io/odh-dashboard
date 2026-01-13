@@ -1,6 +1,6 @@
 import {
   ModelLocationSelectOption,
-  ModelStatus,
+  ModelStateLabel,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
@@ -130,7 +130,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.visit(projectName);
 
       const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
-      llmdRow.findStatusLabel(ModelStatus.STARTED).should('exist');
+      llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
       // Expand row to verify deployment details
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
     },
