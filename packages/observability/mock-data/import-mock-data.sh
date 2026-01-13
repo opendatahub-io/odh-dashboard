@@ -31,6 +31,7 @@ PROMETHEUS_SERVICE="prometheus-data-science-monitoringstack"
 PROMETHEUS_PORT="9090"
 USE_THANOS=false
 DRY_RUN=false
+AUTO_RESTART=false
 BATCH_SIZE=500
 
 # Parse arguments
@@ -45,6 +46,7 @@ while [[ $# -gt 0 ]]; do
         -p) PROMETHEUS_PORT="$2"; shift 2 ;;
         --thanos) USE_THANOS=true; shift ;;
         --dry-run) DRY_RUN=true; shift ;;
+        --auto-restart) AUTO_RESTART=true; shift ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -58,6 +60,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -p PORT         Prometheus port (default: 9090)"
             echo "  --thanos        Target Thanos instead of Prometheus"
             echo "  --dry-run       Show what would be done without executing"
+            echo "  --auto-restart  Automatically restart Prometheus pod after import"
             echo ""
             echo "Methods:"
             echo "  remote-write    Push metrics via Prometheus Remote Write API (requires remote write receiver enabled)"
@@ -275,8 +278,21 @@ import_tsdb_blocks() {
     if command -v oc &> /dev/null && oc whoami &> /dev/null; then
         echo "Detected OpenShift connection. Attempting to copy blocks..."
 
-        # Find the Prometheus pod
-        PROM_POD=$(oc get pods -n "$PROMETHEUS_NAMESPACE" -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        # Find a Running Prometheus pod (prefer Running status over CrashLoopBackOff)
+        PROM_POD=""
+        for pod in $(oc get pods -n "$PROMETHEUS_NAMESPACE" -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            pod_status=$(oc get pod "$pod" -n "$PROMETHEUS_NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null)
+            container_ready=$(oc get pod "$pod" -n "$PROMETHEUS_NAMESPACE" -o jsonpath='{.status.containerStatuses[?(@.name=="prometheus")].ready}' 2>/dev/null)
+            if [[ "$pod_status" == "Running" && "$container_ready" == "true" ]]; then
+                PROM_POD="$pod"
+                break
+            fi
+        done
+
+        # Fallback to first pod if none are fully ready
+        if [[ -z "$PROM_POD" ]]; then
+            PROM_POD=$(oc get pods -n "$PROMETHEUS_NAMESPACE" -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        fi
 
         if [[ -n "$PROM_POD" ]]; then
             echo "Found Prometheus pod: $PROM_POD"
@@ -326,12 +342,44 @@ import_tsdb_blocks() {
 
             echo ""
             echo "Blocks copied to Prometheus pod!"
-            echo ""
-            echo "IMPORTANT: You may need to restart the Prometheus pod for blocks to load correctly:"
-            echo "  oc delete pod $PROM_POD -n $PROMETHEUS_NAMESPACE"
+
+            # Auto-restart if requested
+            if $AUTO_RESTART; then
+                echo ""
+                echo "Auto-restarting Prometheus pod to load new blocks..."
+                oc delete pod "$PROM_POD" -n "$PROMETHEUS_NAMESPACE"
+                echo "Waiting for pod to restart..."
+                sleep 5
+
+                # Wait for new pod to be ready (timeout 120s)
+                NEW_POD=""
+                for i in {1..24}; do
+                    NEW_POD=$(oc get pods -n "$PROMETHEUS_NAMESPACE" -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+                    if [[ -n "$NEW_POD" ]]; then
+                        pod_ready=$(oc get pod "$NEW_POD" -n "$PROMETHEUS_NAMESPACE" -o jsonpath='{.status.containerStatuses[?(@.name=="prometheus")].ready}' 2>/dev/null)
+                        if [[ "$pod_ready" == "true" ]]; then
+                            echo "Prometheus pod $NEW_POD is ready!"
+                            break
+                        fi
+                    fi
+                    echo "  Waiting... ($i/24)"
+                    sleep 5
+                done
+
+                if [[ -z "$NEW_POD" ]]; then
+                    echo "WARNING: Pod did not become ready within timeout. Check pod status manually."
+                fi
+            else
+                echo ""
+                echo "IMPORTANT: You may need to restart the Prometheus pod for blocks to load correctly:"
+                echo "  oc delete pod $PROM_POD -n $PROMETHEUS_NAMESPACE"
+                echo ""
+                echo "Or use --auto-restart flag to automatically restart after import."
+            fi
+
             echo ""
             echo "After restart, verify the block loaded successfully:"
-            echo "  oc logs -n $PROMETHEUS_NAMESPACE $PROM_POD -c $PROM_CONTAINER | grep -i 'healthy block'"
+            echo "  oc logs -n $PROMETHEUS_NAMESPACE \$(oc get pods -n $PROMETHEUS_NAMESPACE -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}') -c prometheus | grep -i 'healthy block'"
             echo ""
             echo "NOTE: Mock data is static and will become stale after ~5 minutes."
             echo "Set your dashboard time range to match the data period, or regenerate data frequently."
