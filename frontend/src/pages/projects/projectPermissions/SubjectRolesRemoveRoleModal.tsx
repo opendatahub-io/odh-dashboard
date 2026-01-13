@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { getRoleDisplayName } from '#~/concepts/permissions/utils';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
@@ -6,7 +7,6 @@ import type { SubjectRoleRow } from './types';
 import { isReversibleRoleRef } from './utils';
 
 type SubjectRolesRemoveRoleModalProps = {
-  subjectKind: 'user' | 'group';
   row: SubjectRoleRow;
   isSubmitting: boolean;
   error?: Error;
@@ -15,7 +15,6 @@ type SubjectRolesRemoveRoleModalProps = {
 };
 
 const SubjectRolesRemoveRoleModal: React.FC<SubjectRolesRemoveRoleModalProps> = ({
-  subjectKind,
   row,
   isSubmitting,
   error,
@@ -26,29 +25,29 @@ const SubjectRolesRemoveRoleModal: React.FC<SubjectRolesRemoveRoleModalProps> = 
   const isReversible = isReversibleRoleRef(row.roleRef);
   return (
     <DeleteModal
-      title="Remove role?"
+      title="Unassign role?"
       onClose={onClose}
       deleting={isSubmitting}
       onDelete={onConfirm}
       deleteName={row.subjectName}
-      submitButtonLabel="Remove role"
+      submitButtonLabel="Unassign role"
       error={error}
-      genericLabel
+      typeConfirmationLabel="unassignment"
       removeConfirmation={isReversible}
     >
-      {isReversible ? (
-        <>
-          Once the role <strong>{roleDisplayName}</strong> is removed, all permissions associated
-          with this role will not be granted to {subjectKind} <strong>{row.subjectName}</strong>.
-        </>
-      ) : (
-        <>
-          The role <strong>{roleDisplayName}</strong> is granted in OpenShift. It cannot be re-added
-          in {ODH_PRODUCT_NAME} once it’s removed. Once the role is removed, all permissions
-          associated with this role will not be granted to {subjectKind}{' '}
-          <strong>{row.subjectName}</strong>.
-        </>
-      )}
+      <Stack hasGutter>
+        {!isReversible ? (
+          <StackItem>
+            The <strong>{roleDisplayName}</strong> role was assigned to{' '}
+            <strong>{row.subjectName}</strong> from OpenShift. It cannot be reassigned from{' '}
+            {ODH_PRODUCT_NAME}.
+          </StackItem>
+        ) : null}
+        <StackItem>
+          <strong>{row.subjectName}</strong> will lose all permissions associated with the{' '}
+          <strong>{roleDisplayName}</strong> role.
+        </StackItem>
+      </Stack>
     </DeleteModal>
   );
 };

@@ -287,7 +287,6 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
       />
       {removingRow ? (
         <SubjectRolesRemoveRoleModal
-          subjectKind={subjectKind}
           row={removingRow}
           isSubmitting={isRemoving}
           error={removeError}
