@@ -646,6 +646,115 @@ class CreateSpawnerPage {
     this.findConnectionsTable().find(`[data-label=Name]`).contains(name);
     this.findConnectionsTable().find(`[data-label=Type]`).contains(type);
   }
+
+  findFeatureStoreSection() {
+    return cy.findByTestId('feature-store-section');
+  }
+
+  findFeatureStoreSelector() {
+    return cy.findByTestId('feature-store-typeahead');
+  }
+
+  shouldHaveFeatureStoreSelectorDisabled() {
+    this.findFeatureStoreSelector()
+      .should('have.class', 'pf-m-disabled')
+      .and('have.attr', 'disabled');
+    return this;
+  }
+
+  findFeatureStoreInput() {
+    return cy.findByTestId('feature-store-select-input');
+  }
+
+  findFeatureStoreTypeaheadList() {
+    return cy.findByTestId('feature-store-typeahead-list');
+  }
+
+  selectFeatureStore(projectName: string) {
+    this.findFeatureStoreSelector().click();
+    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
+    return this;
+  }
+
+  deselectFeatureStore(projectName: string) {
+    this.findFeatureStoreSelector().click();
+    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
+    return this;
+  }
+
+  shouldHaveFeatureStoreSelected(projectName: string) {
+    this.findFeatureStoreSelector().should('contain.text', projectName);
+    return this;
+  }
+
+  shouldNotHaveFeatureStoreSelected(projectName: string) {
+    this.findFeatureStoreSelector().should('not.contain.text', projectName);
+    return this;
+  }
+
+  findFeatureStoreCodeBlock() {
+    return cy.findByTestId('feature-store-code-block');
+  }
+
+  findFeatureStoreCodeBlockInstructionText() {
+    return cy.findByText(/Modify and run this example code/);
+  }
+
+  findFeatureStoreLabel() {
+    return cy.findByText('Feature store selection');
+  }
+
+  findFeatureStoreOptionInList(projectName: string) {
+    return this.findFeatureStoreTypeaheadList().findByText(projectName);
+  }
+
+  shouldHaveFeatureStoreOptionsInList(projectNames: string[]) {
+    this.findFeatureStoreTypeaheadList().within(() => {
+      projectNames.forEach((name) => {
+        cy.findByText(name).should('exist');
+      });
+    });
+    return this;
+  }
+
+  findFeatureStoreTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
+  findFeatureStoreTooltipText() {
+    return cy.findByText(
+      'The current project doesn’t have access to any feature stores. Contact your admin to request access.',
+    );
+  }
+
+  findFeatureStoreCodeBlockTitle() {
+    return cy.findByText('Example code');
+  }
+
+  shouldHaveFeatureStoreCodeBlock() {
+    this.findFeatureStoreCodeBlockTitle().should('exist');
+    this.findFeatureStoreCodeBlock().should('exist');
+    return this;
+  }
+
+  shouldNotHaveFeatureStoreCodeBlock() {
+    this.findFeatureStoreCodeBlockTitle().should('not.exist');
+    this.findFeatureStoreCodeBlock().should('not.exist');
+    return this;
+  }
+
+  findFeatureStoreErrorAlert() {
+    return cy.findByTestId('feature-store-error-alert-message');
+  }
+
+  shouldHaveFeatureStoreError(message?: string) {
+    this.findFeatureStoreErrorAlert().should('exist');
+    this.findFeatureStoreErrorAlert().should('contain.text', 'Failed to load feature stores');
+    if (message) {
+      this.findFeatureStoreErrorAlert().should('contain.text', message);
+    }
+    return this;
+  }
 }
 
 class EditSpawnerPage extends CreateSpawnerPage {

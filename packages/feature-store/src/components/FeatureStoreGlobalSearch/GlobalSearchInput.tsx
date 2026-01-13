@@ -15,6 +15,7 @@ import {
   Flex,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { useSearchState } from './hooks/useSearchState';
@@ -111,31 +112,92 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
     onSelect,
   });
   const searchInputContainerRef = React.useRef<HTMLDivElement>(null);
+  const tooltipTriggerRef = React.useRef<HTMLDivElement>(null);
+  const [isTooltipVisible, setIsTooltipVisible] = React.useState(false);
   const { searchInputStyle, searchMenuStyle } = useResponsiveSearch(
     searchState.isSmallScreen,
     searchInputContainerRef,
     isDetailsPage,
   );
 
-  const renderSearchInput = (): React.ReactElement => (
-    <div
-      ref={searchInputContainerRef}
-      style={searchInputStyle}
-      data-testid="global-search-input-container"
-    >
-      <SearchInput
-        ref={searchState.searchInputRef}
-        value={searchState.searchValue}
-        onChange={handlers.handleSearchChange}
-        onClear={handlers.handleSearchClear}
-        aria-label={ariaLabel}
-        placeholder={!projectsLoaded ? 'Loading projects...' : placeholder}
-        isDisabled={!projectsLoaded}
-        style={!projectsLoaded ? { opacity: 0.6 } : undefined}
-        data-testid="global-search-input"
-      />
-    </div>
+  const canShowTooltip = searchState.searchValue.trim() === '' && projectsLoaded;
+
+  const placeholderText = React.useMemo(
+    () => (!projectsLoaded ? 'Loading projects...' : placeholder),
+    [projectsLoaded, placeholder],
   );
+
+  React.useEffect(() => {
+    if (!canShowTooltip) {
+      setIsTooltipVisible(false);
+    }
+  }, [canShowTooltip]);
+
+  const handleMouseEnter = React.useCallback(() => {
+    if (canShowTooltip) {
+      setIsTooltipVisible(true);
+    }
+  }, [canShowTooltip]);
+
+  const handleMouseLeave = React.useCallback(() => {
+    setIsTooltipVisible(false);
+  }, []);
+
+  const handleSearchInputFocus = React.useCallback(() => {
+    if (canShowTooltip) {
+      setIsTooltipVisible(true);
+    }
+  }, [canShowTooltip]);
+
+  const handleSearchInputChange = React.useCallback(
+    (event: React.FormEvent<HTMLInputElement>, value: string) => {
+      if (value.trim() !== '') {
+        setIsTooltipVisible(false);
+      }
+      handlers.handleSearchChange(event, value);
+    },
+    [handlers.handleSearchChange],
+  );
+
+  const renderSearchInput = (): React.ReactElement => {
+    return (
+      <div
+        ref={searchInputContainerRef}
+        style={searchInputStyle}
+        data-testid="global-search-input-container"
+      >
+        <div
+          ref={tooltipTriggerRef}
+          style={{ display: 'inline-block', width: '100%' }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <SearchInput
+            ref={searchState.searchInputRef}
+            value={searchState.searchValue}
+            onChange={handleSearchInputChange}
+            onClear={handlers.handleSearchClear}
+            onFocus={handleSearchInputFocus}
+            aria-label={ariaLabel}
+            placeholder={placeholderText}
+            isDisabled={!projectsLoaded}
+            style={!projectsLoaded ? { opacity: 0.6 } : undefined}
+            data-testid="global-search-input"
+          />
+        </div>
+        {canShowTooltip && (
+          <Tooltip
+            position="top"
+            content={placeholderText}
+            triggerRef={tooltipTriggerRef}
+            isVisible={isTooltipVisible ? true : undefined}
+            enableFlip={false}
+            data-testid="global-search-tooltip"
+          />
+        )}
+      </div>
+    );
+  };
 
   const searchMenu = (
     <Menu
@@ -195,32 +257,54 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                           .toLowerCase()
                           .replace(/\s+/g, '-')}`}
                       >
-                        <Stack hasGutter={false}>
+                        <Stack hasGutter>
                           <StackItem>
-                            <Flex
-                              direction={{ default: 'row' }}
-                              alignItems={{ default: 'alignItemsCenter' }}
-                              gap={{ default: 'gapMd' }}
-                            >
-                              <Content className={text.textColorRegular}>
-                                {highlightText(item.title, searchState.searchValue)}
-                              </Content>
-                              <FeatureStoreLabels color="blue" isCompact variant="outline">
-                                {item.project}
-                              </FeatureStoreLabels>
-                            </Flex>
+                            <Stack hasGutter={false}>
+                              <StackItem>
+                                <Flex
+                                  direction={{ default: 'row' }}
+                                  alignItems={{ default: 'alignItemsCenter' }}
+                                  gap={{ default: 'gapMd' }}
+                                >
+                                  <Content className={text.textColorRegular}>
+                                    {highlightText(item.title, searchState.searchValue)}
+                                  </Content>
+                                  <FeatureStoreLabels color="blue" isCompact variant="outline">
+                                    {item.project}
+                                  </FeatureStoreLabels>
+                                </Flex>
+                              </StackItem>
+                              <StackItem>
+                                <Content
+                                  className={`${text.fontSizeSm} ${text.textColorSubtle} ${text.textWrap}`}
+                                >
+                                  {highlightText(item.description, searchState.searchValue)}
+                                </Content>
+                              </StackItem>
+                            </Stack>
                           </StackItem>
-                          <StackItem>
-                            <Content
-                              className={`${text.fontSizeSm} ${text.textColorSubtle} ${text.textWrap}`}
-                              style={{
-                                marginTop: '0.25rem',
-                                display: 'block',
-                              }}
-                            >
-                              {highlightText(item.description, searchState.searchValue)}
-                            </Content>
-                          </StackItem>
+                          {item.matched_tag && Object.keys(item.matched_tag).length > 0 && (
+                            <StackItem>
+                              <Flex
+                                direction={{ default: 'row' }}
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                gap={{ default: 'gapSm' }}
+                                flexWrap={{ default: 'wrap' }}
+                              >
+                                {Object.entries(item.matched_tag).map(([key, value]) => (
+                                  <FeatureStoreLabels
+                                    key={key}
+                                    color="blue"
+                                    isCompact
+                                    variant="filled"
+                                    dataTestId={`global-search-matched-tag-${key}`}
+                                  >
+                                    {key}={value}
+                                  </FeatureStoreLabels>
+                                ))}
+                              </Flex>
+                            </StackItem>
+                          )}
                         </Stack>
                       </MenuItem>
                     ))}
