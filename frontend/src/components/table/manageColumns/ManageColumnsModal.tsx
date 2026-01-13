@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-drag-drop';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import { ManageColumnSearchInput } from './ManageColumnSearchInput';
-import { ManagedColumn } from './types';
+import { ManagedColumn } from './useManageColumns';
 import { reorderColumns } from './utils';
 
 /**
@@ -135,7 +135,6 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   );
 
   const draggableItems: DraggableObject[] = columnsMatchingSearch.map((col) => {
-    // Find current state from columns (not columnsMatchingSearch) to get latest isVisible
     const currentCol = columns.find((c) => c.id === col.id) ?? col;
     const isDisabled = isMaxReached && !currentCol.isVisible;
 

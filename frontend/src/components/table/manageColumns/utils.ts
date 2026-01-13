@@ -1,4 +1,4 @@
-import { ManagedColumn } from './types';
+import { ManagedColumn } from './useManageColumns';
 
 /**
  * Reorders columns while preserving the positions of non-matching columns.

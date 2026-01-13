@@ -1,4 +1,4 @@
-import { ManagedColumn } from '#~/components/table/manageColumns/types';
+import { ManagedColumn } from '#~/components/table/manageColumns/useManageColumns';
 import { reorderColumns } from '#~/components/table/manageColumns/utils';
 
 const createColumn = (id: string, isVisible = true): ManagedColumn => ({
