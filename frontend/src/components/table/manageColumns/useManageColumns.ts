@@ -63,12 +63,10 @@ export const useManageColumns = <T>({
     if (defaultVisibleFields) {
       return defaultVisibleFields;
     }
-    // Default: show first few columns (up to maxVisibleColumns or 2)
+    // Default: show first maxVisibleColumns columns, or first 2 if not specified
     const manageableFields = manageableColumns.map((col) => col.field);
-    if (maxVisibleColumns !== undefined) {
-      return manageableFields.slice(0, Math.min(2, maxVisibleColumns));
-    }
-    return manageableFields.slice(0, 2);
+    const defaultCount = maxVisibleColumns ?? 2;
+    return manageableFields.slice(0, defaultCount);
   }, [defaultVisibleFields, manageableColumns, maxVisibleColumns]);
 
   // Persist visible column IDs to localStorage
