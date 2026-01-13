@@ -183,79 +183,86 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     ],
   );
 
-  React.useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
   return (
-    <ApplicationsPage title={title} description={description} loaded empty={false}>
-      {isExitModalOpen && (
-        <ExitDeploymentModal
-          onClose={() => setIsExitModalOpen(false)}
-          onConfirm={handleExitConfirm}
-        />
-      )}
-      <Wizard
-        onClose={() => setIsExitModalOpen(true)}
-        onSave={() => onSave()}
-        footer={wizardFooter}
-        startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
-      >
-        <WizardStep name="Model details" id="source-model-step">
-          {wizardState.loaded.modelSourceLoaded ? (
-            <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-        <WizardStep
-          name="Model deployment"
-          id="model-deployment-step"
-          isDisabled={!validation.isModelSourceStepValid}
-        >
-          {wizardState.loaded.modelDeploymentLoaded ? (
-            <ModelDeploymentStepContent
-              projectName={currentProjectName}
-              wizardState={wizardState}
-            />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-        <WizardStep
-          name="Advanced settings"
-          id="advanced-options-step"
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
-        >
-          {wizardState.loaded.advancedOptionsLoaded ? (
-            <AdvancedSettingsStepContent
-              wizardState={wizardState}
-              projectName={currentProjectName}
-            />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-        <WizardStep
-          name="Review"
-          id="summary-step"
-          isDisabled={
-            !validation.isModelSourceStepValid ||
-            !validation.isModelDeploymentStepValid ||
-            !validation.isAdvancedSettingsStepValid
+    <>
+      <style>
+        {`
+          body {
+            overflow: hidden !important;
           }
+        `}
+      </style>
+      <ApplicationsPage title={title} description={description} loaded empty={false}>
+        {isExitModalOpen && (
+          <ExitDeploymentModal
+            onClose={() => setIsExitModalOpen(false)}
+            onConfirm={handleExitConfirm}
+          />
+        )}
+        <Wizard
+          onClose={() => setIsExitModalOpen(true)}
+          onSave={() => onSave()}
+          footer={wizardFooter}
+          startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
         >
-          {wizardState.loaded.summaryLoaded ? (
-            <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-      </Wizard>
-    </ApplicationsPage>
+          <WizardStep name="Model details" id="source-model-step">
+            {wizardState.loaded.modelSourceLoaded ? (
+              <ModelSourceStepContent
+                wizardState={wizardState}
+                validation={validation.modelSource}
+              />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+          <WizardStep
+            name="Model deployment"
+            id="model-deployment-step"
+            isDisabled={!validation.isModelSourceStepValid}
+          >
+            {wizardState.loaded.modelDeploymentLoaded ? (
+              <ModelDeploymentStepContent
+                projectName={currentProjectName}
+                wizardState={wizardState}
+              />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+          <WizardStep
+            name="Advanced settings"
+            id="advanced-options-step"
+            isDisabled={
+              !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
+            }
+          >
+            {wizardState.loaded.advancedOptionsLoaded ? (
+              <AdvancedSettingsStepContent
+                wizardState={wizardState}
+                projectName={currentProjectName}
+              />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+          <WizardStep
+            name="Review"
+            id="summary-step"
+            isDisabled={
+              !validation.isModelSourceStepValid ||
+              !validation.isModelDeploymentStepValid ||
+              !validation.isAdvancedSettingsStepValid
+            }
+          >
+            {wizardState.loaded.summaryLoaded ? (
+              <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+        </Wizard>
+      </ApplicationsPage>
+    </>
   );
 };
 
