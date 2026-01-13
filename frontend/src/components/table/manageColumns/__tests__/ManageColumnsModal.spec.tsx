@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ManageColumnsModal } from '#~/components/table/manageColumns/ManageColumnsModal';
-import { ManagedColumn } from '#~/components/table/manageColumns/types';
+import { ManagedColumn } from '#~/components/table/manageColumns/useManageColumns';
 
 // Mock DragDropSort to avoid portal issues in tests
 jest.mock('@patternfly/react-drag-drop', () => ({
