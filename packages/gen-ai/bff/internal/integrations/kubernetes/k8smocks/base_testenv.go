@@ -15,6 +15,7 @@ import (
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
 	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	"github.com/shirou/gopsutil/v4/process"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,6 +127,13 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 	err = kservev1beta1.AddToScheme(scheme)
 	if err != nil {
 		input.Logger.Error("failed to add KServe v1beta1 types to scheme", slog.String("error", err.Error()))
+		input.Cancel()
+		os.Exit(1)
+	}
+
+	err = gorchv1alpha1.AddToScheme(scheme)
+	if err != nil {
+		input.Logger.Error("failed to add GuardrailsOrchestrator types to scheme", slog.String("error", err.Error()))
 		input.Cancel()
 		os.Exit(1)
 	}

@@ -35,6 +35,8 @@ import (
 	// Import KServe types
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	// Import TrustyAI GuardrailsOrchestrator types
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
 
 const (
@@ -471,11 +473,37 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 }
 
 // GetGuardrailsOrchestratorStatus fetches the status of the GuardrailsOrchestrator CR
-// Real implementation not yet available - returns error
+// using the typed API from github.com/trustyai-explainability/trustyai-service-operator
 func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
-	// Real implementation not yet available
-	// Use MOCK_K8S_CLIENT=true to test with mock data
-	return nil, fmt.Errorf("guardrailsOrchestrator %q not found in namespace %q", constants.GuardrailsOrchestratorName, namespace)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Use typed GuardrailsOrchestrator struct
+	guardrailsCR := &gorchv1alpha1.GuardrailsOrchestrator{}
+
+	// Fetch the specific CR by name
+	err := kc.Client.Get(ctx, client.ObjectKey{
+		Namespace: namespace,
+		Name:      constants.GuardrailsOrchestratorName,
+	}, guardrailsCR)
+
+	if err != nil {
+		kc.Logger.Error("failed to get GuardrailsOrchestrator CR", "error", err, "namespace", namespace, "name", constants.GuardrailsOrchestratorName)
+		return nil, fmt.Errorf("guardrailsOrchestrator %q not found in namespace %q: %w", constants.GuardrailsOrchestratorName, namespace, err)
+	}
+
+	// Extract phase from typed status (no more NestedMap/NestedString!)
+	phase := guardrailsCR.Status.Phase
+	if phase == "" {
+		phase = constants.GuardrailsPhaseProgressing
+	}
+
+	kc.Logger.Info("successfully fetched GuardrailsOrchestrator status", "namespace", namespace, "name", constants.GuardrailsOrchestratorName, "phase", phase, "conditionsCount", len(guardrailsCR.Status.Conditions))
+
+	return &models.GuardrailsStatus{
+		Phase:      phase,
+		Conditions: guardrailsCR.Status.Conditions,
+	}, nil
 }
 
 func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {

@@ -11,6 +11,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -752,41 +753,41 @@ func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.
 	// Mock data - simulating the "custom-guardrails" CR status
 	return &models.GuardrailsStatus{
 		Phase: "Ready",
-		Conditions: []models.GuardrailsCondition{
+		Conditions: []gorchv1alpha1.Condition{
 			{
 				Type:               "Progressing",
-				Status:             "True",
+				Status:             corev1.ConditionTrue,
 				Reason:             "ReconcileInit",
 				Message:            "Initializing GuardrailsOrchestrator resource",
-				LastTransitionTime: "2025-12-24T06:40:07Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "InferenceServiceReady",
-				Status:             "False",
+				Status:             corev1.ConditionFalse,
 				Reason:             "InferenceServiceNotReady",
 				Message:            "Inference service is not ready",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "DeploymentReady",
-				Status:             "True",
+				Status:             corev1.ConditionTrue,
 				Reason:             "DeploymentReady",
 				Message:            "Deployment is ready",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "RouteReady",
-				Status:             "False",
+				Status:             corev1.ConditionFalse,
 				Reason:             "RouteNotReady",
 				Message:            "Route is not ready",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "ReconcileComplete",
-				Status:             "False",
+				Status:             corev1.ConditionFalse,
 				Reason:             "ReconcileFailed",
 				Message:            "Reconcile failed",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 		},
 	}, nil
