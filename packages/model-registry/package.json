@@ -24,7 +24,7 @@
     "branch": "performance-filters-issue-fix",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "f55b1d022bbb27784fc4f4d37c33bbe99bdf9d1f"
+    "commit": "377591102201bb2b80a0c7bae957f55cc5a67fea"
   },
   "module-federation": {
     "name": "modelRegistry",
