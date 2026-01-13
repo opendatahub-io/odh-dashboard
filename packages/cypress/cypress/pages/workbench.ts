@@ -723,7 +723,7 @@ class CreateSpawnerPage {
 
   findFeatureStoreTooltipText() {
     return cy.findByText(
-      'The project this workbench belongs to has not been granted permission to use any feature store repository. Contact your admin to grant permission.',
+      'The current project doesn’t have access to any feature stores. Contact your admin to request access.',
     );
   }
 
