@@ -1,0 +1,9 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "include": ["**/*.ts"],
+  "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": ".",
+    "types": ["node", "cypress", "@testing-library/cypress", "@odh-dashboard/cypress"]
+  }
+}
