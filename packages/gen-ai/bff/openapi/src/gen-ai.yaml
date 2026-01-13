@@ -2396,6 +2396,13 @@ components:
             - model_name: 'facebook/opt-125m'
               is_maas_model: true
           minItems: 1
+        enable_guardrails:
+          type: boolean
+          description: |
+            If true, adds safety configuration with guardrail input and output shields
+            for all selected models. Default policies include jailbreak, content-moderation, and pii.
+          example: true
+          default: false
 
     InstallModel:
       type: object

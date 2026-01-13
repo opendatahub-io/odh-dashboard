@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -25,6 +26,33 @@ import (
 const (
 	mockLSDName = "mock-lsd"
 )
+
+// generateMockShieldID creates a unique shield ID based on type, model name, and index
+func generateMockShieldID(shieldType, modelName string, index int) string {
+	// Sanitize model name for use in shield ID
+	sanitized := strings.ReplaceAll(modelName, "/", "_")
+	sanitized = strings.ReplaceAll(sanitized, " ", "_")
+	sanitized = strings.ReplaceAll(sanitized, "-", "_")
+	sanitized = strings.ToLower(sanitized)
+
+	return fmt.Sprintf("trustyai_%s_%s", shieldType, sanitized)
+}
+
+// formatPoliciesYAML formats a slice of policies as a YAML inline array
+func formatPoliciesYAML(policies []string) string {
+	if len(policies) == 0 {
+		return "[]"
+	}
+	result := "["
+	for i, p := range policies {
+		if i > 0 {
+			result += ", "
+		}
+		result += p
+	}
+	result += "]"
+	return result
+}
 
 type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
@@ -344,7 +372,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailModel *models.GuardrailModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
@@ -366,55 +394,79 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
-	// Build safety section based on guardrailModel
+	// Build safety section based on enableGuardrails flag
+	// When enabled, guardrails are automatically added for all selected models
 	safetySection := "  safety: []"
 	shieldsSection := "  shields: []"
 
-	if guardrailModel != nil && guardrailModel.ModelName != "" {
-		// GuardrailModel is provided - add TrustyAI safety provider
-		guardrailModelURL := guardrailModel.ModelURL
-		if guardrailModelURL == "" {
-			// Default URL if not provided
-			guardrailModelURL = "http://guardrail-model-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
+	if enableGuardrails && len(installModels) > 0 {
+		// Build shields config for each model when guardrails are enabled
+		shieldsConfig := ""
+		shieldsList := ""
+
+		// Default policies for all models
+		inputPolicies := models.DefaultGuardrailPolicies()
+		outputPolicies := models.DefaultGuardrailPolicies()
+		detectorURL := constants.DefaultDetectorURL
+
+		for i, model := range installModels {
+			modelName := model.ModelName
+			guardrailModelURL := "http://" + modelName + "-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
+
+			// Generate shield IDs
+			inputShieldID := generateMockShieldID("input", modelName, i)
+			outputShieldID := generateMockShieldID("output", modelName, i)
+
+			// Format policies as YAML array
+			inputPoliciesYAML := formatPoliciesYAML(inputPolicies)
+			outputPoliciesYAML := formatPoliciesYAML(outputPolicies)
+
+			// Add shields config
+			// auth_token uses GUARDRAIL_AUTH_TOKEN from guardrails-service-account secret
+			shieldsConfig += `
+        ` + inputShieldID + `:
+          type: content
+          detector_url: "` + detectorURL + `"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
+          detector_params:
+            custom:
+              input_guardrail:
+                input_policies: ` + inputPoliciesYAML + `
+                guardrail_model: ` + modelName + `
+                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
+                guardrail_model_url: "` + guardrailModelURL + `"
+        ` + outputShieldID + `:
+          type: content
+          detector_url: "` + detectorURL + `"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
+          detector_params:
+            custom:
+              output_guardrail:
+                output_policies: ` + outputPoliciesYAML + `
+                guardrail_model: ` + modelName + `
+                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
+                guardrail_model_url: "` + guardrailModelURL + `"`
+
+			// Add shield registrations
+			shieldsList += `
+    - shield_id: ` + inputShieldID + `
+      provider_id: trustyai_fms
+    - shield_id: ` + outputShieldID + `
+      provider_id: trustyai_fms`
 		}
 
 		safetySection = `  safety:
   - provider_id: trustyai_fms
     provider_type: remote::trustyai_fms
+    module: llama_stack_provider_trustyai_fms==0.3.2
     config:
-      shields:
-        trustyai_input:
-          type: content
-          detector_url: "https://custom-guardrails-service:8480"
-          message_types: ["user", "completion"]
-          verify_ssl: false
-          auth_token: "${VLLM_TOKEN}"
-          detector_params:
-            custom:
-              input_guardrail:
-                input_policies: [jailbreak, content-moderation, pii]
-                guardrail_model: ` + guardrailModel.ModelName + `
-                guardrail_model_token: "${VLLM_TOKEN}"
-                guardrail_model_url: "` + guardrailModelURL + `"
-        trustyai_output:
-          type: content
-          detector_url: "https://custom-guardrails-service:8480"
-          message_types: ["user", "completion"]
-          verify_ssl: false
-          auth_token: "${VLLM_TOKEN}"
-          detector_params:
-            custom:
-              output_guardrail:
-                output_policies: [jailbreak, content-moderation, pii]
-                guardrail_model: ` + guardrailModel.ModelName + `
-                guardrail_model_token: "${VLLM_TOKEN}"
-                guardrail_model_url: "` + guardrailModelURL + `"`
+      shields:` + shieldsConfig
 
-		shieldsSection = `  shields:
-    - shield_id: trustyai_input
-      provider_id: trustyai_fms
-    - shield_id: trustyai_output
-      provider_id: trustyai_fms`
+		shieldsSection = `  shields:` + shieldsList
 	}
 
 	// Then create the ConfigMap that the LSD will reference
@@ -802,6 +854,8 @@ func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identit
 				ModelName:      "llama-guard-3",
 				InputShieldID:  "trustyai_input",
 				OutputShieldID: "trustyai_output",
+				InputPolicies:  models.DefaultGuardrailPolicies(),
+				OutputPolicies: models.DefaultGuardrailPolicies(),
 			},
 		},
 	}, nil

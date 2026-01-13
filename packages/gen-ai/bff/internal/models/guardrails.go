@@ -27,3 +27,8 @@ type GuardrailModelConfig struct {
 	InputShieldID  string `json:"input_shield_id"`  // e.g., "trustyai_input"
 	OutputShieldID string `json:"output_shield_id"` // e.g., "trustyai_output"
 }
+
+// DefaultGuardrailPolicies returns the default policies used for guardrails
+func DefaultGuardrailPolicies() []string {
+	return []string{"jailbreak", "content-moderation", "pii"}
+}
