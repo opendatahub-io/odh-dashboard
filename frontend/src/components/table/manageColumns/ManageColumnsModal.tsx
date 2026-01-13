@@ -3,7 +3,33 @@ import { Checkbox, Flex, FlexItem, Label, Stack, StackItem, Tooltip } from '@pat
 import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import { ManageColumnSearchInput } from './ManageColumnSearchInput';
-import { ManageColumnsModalProps, ManagedColumn } from './types';
+import { ManagedColumn } from './types';
+
+/**
+ * Configuration for the ManageColumnsModal
+ */
+export interface ManageColumnsModalProps {
+  /** Whether the modal is open */
+  isOpen: boolean;
+  /** Callback when the modal closes (cancel or update) */
+  onClose: () => void;
+  /** Callback when columns are updated - receives the new ordered list of visible column IDs */
+  onUpdate: (visibleColumnIds: string[]) => void;
+  /** All available columns that can be managed */
+  columns: ManagedColumn[];
+  /** Modal title - defaults to "Manage columns" */
+  title?: string;
+  /** Description text shown above the column list */
+  description?: string;
+  /** Maximum number of columns that can be selected, undefined = unlimited */
+  maxSelections?: number;
+  /** Tooltip text when max is reached */
+  maxSelectionsTooltip?: string;
+  /** Placeholder for the search input */
+  searchPlaceholder?: string;
+  /** Test ID prefix for data-testid attributes */
+  dataTestId?: string;
+}
 
 export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   isOpen,
@@ -18,14 +44,21 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   dataTestId = 'manage-columns-modal',
 }) => {
   const [columns, setColumns] = React.useState<ManagedColumn[]>(initialColumns);
-  const [filteredColumns, setFilteredColumns] = React.useState<ManagedColumn[]>(initialColumns);
   const [searchValue, setSearchValue] = React.useState('');
+
+  // Derive filtered columns from search
+  const columnsMatchingSearch = React.useMemo(
+    () =>
+      searchValue
+        ? columns.filter((col) => col.label.toLowerCase().includes(searchValue.toLowerCase()))
+        : columns,
+    [columns, searchValue],
+  );
 
   // Reset state when modal opens with new columns
   React.useEffect(() => {
     if (isOpen) {
       setColumns(initialColumns);
-      setFilteredColumns(initialColumns);
       setSearchValue('');
     }
   }, [isOpen, initialColumns]);
@@ -39,19 +72,9 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
     onClose();
   }, [columns, onUpdate, onClose]);
 
-  const handleSearch = React.useCallback(
-    (value: string) => {
-      setSearchValue(value);
-      if (!value) {
-        setFilteredColumns(columns);
-      } else {
-        setFilteredColumns(
-          columns.filter((col) => col.label.toLowerCase().includes(value.toLowerCase())),
-        );
-      }
-    },
-    [columns],
-  );
+  const handleSearch = React.useCallback((value: string) => {
+    setSearchValue(value);
+  }, []);
 
   const handleToggleColumn = React.useCallback((columnId: string, isChecked: boolean) => {
     setColumns((prev) =>
@@ -59,20 +82,24 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
     );
   }, []);
 
-  const handleDrop = React.useCallback((_: unknown, newItems: DraggableObject[]) => {
-    const newOrder = newItems.map((item) => String(item.id));
-    setColumns((prev) => {
-      const columnMap = new Map(prev.map((col) => [col.id, col]));
-      return newOrder.map((id) => columnMap.get(id)).filter((col): col is ManagedColumn => !!col);
-    });
-    setFilteredColumns((prev) => {
-      const columnMap = new Map(prev.map((col) => [col.id, col]));
-      return newOrder
-        .filter((id) => prev.some((col) => col.id === id))
-        .map((id) => columnMap.get(id))
-        .filter((col): col is ManagedColumn => !!col);
-    });
-  }, []);
+  const handleDrop = React.useCallback(
+    (_: unknown, newItems: DraggableObject[]) => {
+      const reorderedIds = newItems.map((item) => String(item.id));
+      const matchingIds = new Set(columnsMatchingSearch.map((c) => c.id));
+
+      setColumns((prev) => {
+        const columnMap = new Map(prev.map((col) => [col.id, col]));
+        // Reordered columns that match the search
+        const reordered = reorderedIds
+          .map((id) => columnMap.get(id))
+          .filter((col): col is ManagedColumn => !!col);
+        // Non-matching columns preserve their relative order, appended at end
+        const nonMatching = prev.filter((c) => !matchingIds.has(c.id));
+        return [...reordered, ...nonMatching];
+      });
+    },
+    [columnsMatchingSearch],
+  );
 
   if (!isOpen) {
     return null;
@@ -112,8 +139,8 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
     </Stack>
   );
 
-  const draggableItems: DraggableObject[] = filteredColumns.map((col) => {
-    // Find current state from columns (not filteredColumns) to get latest isVisible
+  const draggableItems: DraggableObject[] = columnsMatchingSearch.map((col) => {
+    // Find current state from columns (not columnsMatchingSearch) to get latest isVisible
     const currentCol = columns.find((c) => c.id === col.id) ?? col;
     const isDisabled = isMaxReached && !currentCol.isVisible;
 

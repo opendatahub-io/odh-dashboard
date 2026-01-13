@@ -13,32 +13,6 @@ export interface ManagedColumn {
 }
 
 /**
- * Configuration for the ManageColumnsModal
- */
-export interface ManageColumnsModalProps {
-  /** Whether the modal is open */
-  isOpen: boolean;
-  /** Callback when the modal closes (cancel or update) */
-  onClose: () => void;
-  /** Callback when columns are updated - receives the new ordered list of visible column IDs */
-  onUpdate: (visibleColumnIds: string[]) => void;
-  /** All available columns that can be managed */
-  columns: ManagedColumn[];
-  /** Modal title - defaults to "Manage columns" */
-  title?: string;
-  /** Description text shown above the column list */
-  description?: string;
-  /** Maximum number of columns that can be selected, undefined = unlimited */
-  maxSelections?: number;
-  /** Tooltip text when max is reached */
-  maxSelectionsTooltip?: string;
-  /** Placeholder for the search input */
-  searchPlaceholder?: string;
-  /** Test ID prefix for data-testid attributes */
-  dataTestId?: string;
-}
-
-/**
  * Configuration for the useManageColumns hook
  */
 export interface UseManageColumnsConfig<T> {
