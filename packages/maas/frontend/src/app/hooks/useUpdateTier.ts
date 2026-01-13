@@ -17,9 +17,14 @@ const useUpdateTier = (): UseUpdateTierReturn => {
     setError(null);
 
     try {
-      await updateTier()({}, tier.name ?? '', tier);
+      if (!tier.name) {
+        const errorMessage = 'Tier name is required';
+        setError(errorMessage);
+        return;
+      }
+      await updateTier()({}, tier.name, tier);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create tier';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update tier';
       setError(errorMessage);
       throw err; // Re-throw so the caller knows it failed
     } finally {
