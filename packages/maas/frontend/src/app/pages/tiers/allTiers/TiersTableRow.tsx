@@ -19,6 +19,10 @@ type TiersTableRowProps = {
 
 const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => {
   const navigate = useNavigate();
+  const editNavigationFunction = React.useCallback(
+    () => navigate(`/maas/tiers/edit/${tier.name}`, { state: { tier } }),
+    [navigate, tier],
+  );
 
   return (
     <Tr>
@@ -68,7 +72,7 @@ const TiersTableRow: React.FC<TiersTableRowProps> = ({ tier, onDeleteTier }) => 
             },
             {
               title: 'Edit tier',
-              onClick: () => navigate(`/maas/tiers/edit/${tier.name}`),
+              onClick: editNavigationFunction,
             },
             {
               title: 'Delete tier',

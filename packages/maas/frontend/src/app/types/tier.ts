@@ -27,4 +27,8 @@ export const mockAvailableGroups = [
   'premium-users',
   'enterprise-users',
   'enterprise-admins',
+  'system:authenticated',
+  'tier-premium-users',
+  'premium-group',
+  'tier-free-users',
 ];

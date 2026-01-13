@@ -70,6 +70,7 @@ const initIntercepts = ({
       disableKServe: false,
       genAiStudio: true,
       modelAsService: true, // Enable MaaS for testing
+      disableLLMd: false,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -242,6 +243,72 @@ describe('Model Serving LLMD', () => {
         .getModelRow('KServe Test Model')
         .findByTestId('deployed-model-name')
         .should('contain', 'KServe Test Model');
+    });
+
+    it('should show LLMD deployments and runtime options when LLMD is enabled but not when disabled', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-llmd-model',
+            displayName: 'Test LLM Inference Service',
+            replicas: 2,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableLLMd: true,
+        }),
+      );
+      modelServingSection.visit('test-project');
+
+      cy.step('Verify LLMD deployment is not displayed');
+      modelServingSection.findKServeTable().should('have.length', 0);
+      modelServingSection.findDeployModelButton().should('exist');
+      modelServingSection.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Verify LLMD runtime option is not displayed');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('not.exist');
+
+      //Just to close the runtime template search selector
+      modelServingWizard.findModelDeploymentNameInput().click();
+      modelServingWizard.findCancelButton().click();
+      modelServingWizard.findDiscardButton().click();
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableLLMd: false,
+        }),
+      );
+      cy.reload();
+      cy.step('Verify LLMD deployment is displayed when LLMD is enabled');
+      modelServingSection.findKServeTable().should('have.length', 1);
+      modelServingSection.findDeployModelButton().should('exist');
+      modelServingSection.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Verify LLMD runtime option is displayed when LLMD is enabled');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist');
     });
 
     it('should handle LLMD deployment with error status', () => {

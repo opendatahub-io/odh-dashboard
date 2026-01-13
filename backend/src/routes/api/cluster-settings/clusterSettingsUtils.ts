@@ -19,7 +19,9 @@ const DEFAULT_CLUSTER_SETTINGS = {
   userTrackingEnabled: false,
   modelServingPlatformEnabled: {
     kServe: true,
+    LLMd: true,
   },
+  isDistributedInferencingDefault: true,
 } satisfies ClusterSettings;
 
 export const updateClusterSettings = async (
@@ -30,7 +32,14 @@ export const updateClusterSettings = async (
 ): Promise<{ success: boolean; error: string }> => {
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
-  const { pvcSize, cullerTimeout, userTrackingEnabled, modelServingPlatformEnabled } = request.body;
+  const {
+    pvcSize,
+    cullerTimeout,
+    userTrackingEnabled,
+    modelServingPlatformEnabled,
+    isDistributedInferencingDefault,
+    defaultDeploymentStrategy,
+  } = request.body;
   const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
@@ -39,6 +48,40 @@ export const updateClusterSettings = async (
         spec: {
           dashboardConfig: {
             disableKServe: !modelServingPlatformEnabled.kServe,
+          },
+        },
+      });
+    }
+    if (modelServingPlatformEnabled.LLMd !== !dashConfig.spec.dashboardConfig.disableLLMd) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          dashboardConfig: {
+            disableLLMd: !modelServingPlatformEnabled.LLMd,
+          },
+        },
+      });
+    }
+
+    if (
+      isDistributedInferencingDefault !== undefined &&
+      isDistributedInferencingDefault !== dashConfig.spec.modelServing?.isLLMdDefault
+    ) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          modelServing: {
+            isLLMdDefault: isDistributedInferencingDefault,
+          },
+        },
+      });
+    }
+    if (
+      defaultDeploymentStrategy !== undefined &&
+      defaultDeploymentStrategy !== dashConfig.spec.modelServing?.deploymentStrategy
+    ) {
+      await setDashboardConfig(fastify, {
+        spec: {
+          modelServing: {
+            deploymentStrategy: defaultDeploymentStrategy,
           },
         },
       });
@@ -112,11 +155,15 @@ export const getClusterSettings = async (
   const { coreV1Api } = fastify.kube;
   const { namespace } = fastify.kube;
   const dashConfig = getDashboardConfig(request);
+
   const clusterSettings: ClusterSettings = {
     ...DEFAULT_CLUSTER_SETTINGS,
     modelServingPlatformEnabled: {
       kServe: !dashConfig.spec.dashboardConfig.disableKServe,
+      LLMd: !dashConfig.spec.dashboardConfig.disableLLMd,
     },
+    isDistributedInferencingDefault: dashConfig.spec.modelServing?.isLLMdDefault,
+    defaultDeploymentStrategy: dashConfig.spec.modelServing?.deploymentStrategy,
   };
 
   if (!dashConfig.spec.dashboardConfig.disableTracking) {
