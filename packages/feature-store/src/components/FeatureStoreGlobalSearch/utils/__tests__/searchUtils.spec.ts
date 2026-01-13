@@ -94,7 +94,7 @@ describe('searchUtils', () => {
       project: string = TEST_PROJECTS.DEFAULT,
       featureView?: string,
       // eslint-disable-next-line camelcase
-      matched_tag?: Record<string, string>,
+      matched_tags?: Record<string, string>,
     ): ISearchItem => ({
       id,
       category,
@@ -104,7 +104,7 @@ describe('searchUtils', () => {
       project,
       featureView,
       // eslint-disable-next-line camelcase
-      matched_tag,
+      matched_tags,
     });
 
     const createRealisticMockData = (): ISearchItem[] => [
@@ -505,12 +505,12 @@ describe('searchUtils', () => {
 
       // Verify matched_tag is preserved for first item
       // eslint-disable-next-line camelcase
-      expect(featureViewGroup?.items[0].matched_tag).toEqual({ computation: 'derived' });
+      expect(featureViewGroup?.items[0].matched_tags).toEqual({ computation: 'derived' });
       expect(featureViewGroup?.items[0].title).toBe('risk_features');
 
       // Verify matched_tag is preserved for second item
       // eslint-disable-next-line camelcase
-      expect(featureViewGroup?.items[1].matched_tag).toEqual({
+      expect(featureViewGroup?.items[1].matched_tags).toEqual({
         computation: 'aggregated',
         source: 'external',
       });
@@ -519,7 +519,7 @@ describe('searchUtils', () => {
       // Verify item without matched_tag doesn't have it
       const entityGroup = result.find((g) => g.category === FEATURE_STORE_TYPE_TO_CATEGORY.entity);
       // eslint-disable-next-line camelcase
-      expect(entityGroup?.items[0].matched_tag).toBeUndefined();
+      expect(entityGroup?.items[0].matched_tags).toBeUndefined();
     });
 
     it('should handle items with empty matched_tag object', () => {
@@ -539,7 +539,7 @@ describe('searchUtils', () => {
 
       expect(result).toHaveLength(1);
       // eslint-disable-next-line camelcase
-      expect(result[0].items[0].matched_tag).toEqual({});
+      expect(result[0].items[0].matched_tags).toEqual({});
     });
   });
 });

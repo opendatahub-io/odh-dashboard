@@ -96,7 +96,7 @@ export const transformToSearchItems = (
   type: string;
   category: string;
   project: string;
-  matched_tag?: Record<string, string>;
+  matched_tags?: Record<string, string>;
 }> =>
   results.map((result, index) => ({
     id: `${result.project}-${result.type}-${result.name}-${index}`,
@@ -105,7 +105,7 @@ export const transformToSearchItems = (
     type: result.type || 'unknown',
     category: FEATURE_STORE_TYPE_TO_CATEGORY[result.type] || result.type || 'Unknown',
     project: result.project || 'unknown-project',
-    matched_tag: result.matched_tag,
+    matched_tags: result.matched_tags,
   }));
 
 export const mockComprehensiveSearchResponse = (
