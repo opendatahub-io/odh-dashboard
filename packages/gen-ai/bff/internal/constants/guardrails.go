@@ -55,3 +55,12 @@ const (
 func FormatEnvVar(envName string) string {
 	return fmt.Sprintf("${env.%s}", envName)
 }
+
+// Moderation constants
+const (
+	// ModerationChunkSize is the number of words to buffer before running moderation
+	ModerationChunkSize = 30
+
+	// GuardrailViolationMessage is the message shown when content is blocked by guardrails
+	GuardrailViolationMessage = "I apologize, but I cannot provide a response to this request as it may contain content that violates our safety guidelines."
+)
