@@ -53,6 +53,7 @@ export type DashboardConfig = K8sResourceCommon & {
       genAiStudio: boolean;
       modelAsService: boolean;
       mlflow: boolean;
+      disableLLMd: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -103,7 +104,10 @@ export type ClusterSettings = {
   userTrackingEnabled: boolean;
   modelServingPlatformEnabled: {
     kServe: boolean;
+    LLMd: boolean;
   };
+  isDistributedInferencingDefault?: boolean;
+  defaultDeploymentStrategy?: string;
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
