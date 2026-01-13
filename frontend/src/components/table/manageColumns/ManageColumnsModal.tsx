@@ -1,6 +1,10 @@
 import React from 'react';
 import { Checkbox, Flex, FlexItem, Label, Stack, StackItem, Tooltip } from '@patternfly/react-core';
-import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
+import {
+  DragDropSort,
+  DragDropSortDragEndEvent,
+  DraggableObject,
+} from '@patternfly/react-drag-drop';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import { ManageColumnSearchInput } from './ManageColumnSearchInput';
 import { ManagedColumn } from './types';
@@ -84,7 +88,7 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   }, []);
 
   const handleDrop = React.useCallback(
-    (_: unknown, newItems: DraggableObject[]) => {
+    (_: DragDropSortDragEndEvent, newItems: DraggableObject[]) => {
       const reorderedIds = newItems.map((item) => String(item.id));
       const matchingIds = new Set(columnsMatchingSearch.map((c) => c.id));
       setColumns((prev) => reorderColumns(prev, matchingIds, reorderedIds));
