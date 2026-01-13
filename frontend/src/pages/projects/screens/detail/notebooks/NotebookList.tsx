@@ -13,16 +13,7 @@ import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
-import { useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
-import { NotebookModel } from '#~/api/models';
 import NotebookTable from './NotebookTable';
-
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: NotebookModel.apiGroup,
-  resource: NotebookModel.plural,
-  verb: 'create',
-};
 
 const NotebookList: React.FC = () => {
   const {
@@ -38,11 +29,6 @@ const NotebookList: React.FC = () => {
   const projectName = currentProject.metadata.name;
   const isNotebooksEmpty = notebooks.length === 0;
 
-  const [allowCreate] = useAccessReview({
-    ...accessReviewResource,
-    namespace: projectName,
-  });
-
   useRefreshInterval(FAST_POLL_INTERVAL, () =>
     notebooks
       .filter((notebookState) => notebookState.isStarting || notebookState.isStopping)
@@ -57,16 +43,10 @@ const NotebookList: React.FC = () => {
 
   const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
-  // Button is disabled if user lacks create permission or if Kueue is disabled
-  const isButtonDisabled = !allowCreate || isKueueDisabled;
-  const disabledReason = !allowCreate
-    ? 'You do not have permission to create workbenches'
-    : KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE;
-
   const getCreateButton = () => {
-    if (isButtonDisabled) {
+    if (isKueueDisabled) {
       return (
-        <Tooltip content={disabledReason}>
+        <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>
           <Button
             key={`action-${ProjectSectionID.WORKBENCHES}`}
             onClick={() => navigate(`/projects/${projectName}/spawner`)}

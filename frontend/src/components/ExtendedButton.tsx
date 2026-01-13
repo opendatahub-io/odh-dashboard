@@ -1,6 +1,16 @@
 import * as React from 'react';
-import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
-import { getGenericErrorCode } from '#~/api/errorUtils';
+import {
+  Button,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+  Icon,
+  Popover,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 type TooltipProps = { isEnabled: true; content: React.ReactNode } | { isEnabled: false };
 
@@ -16,31 +26,29 @@ const ExtendedButton: React.FC<ExtendedButtonProps> = ({
 }) => {
   const tooltipRef = React.useRef<HTMLButtonElement | null>(null);
 
-  // Check for errors first - an error means loading is complete (with failure)
-  if (loadProps.error) {
-    const is403 = getGenericErrorCode(loadProps.error) === 403;
-    const errorTooltip = is403
-      ? 'You do not have permission to perform this action'
-      : 'Could not load required data';
-
-    return (
-      <>
-        <Button
-          {...props}
-          ref={tooltipRef}
-          isAriaDisabled
-          aria-describedby="error-button-tooltip"
-          data-testid="error-button"
-        >
-          {props.children}
-        </Button>
-        <Tooltip id="error-button-tooltip" content={errorTooltip} triggerRef={tooltipRef} />
-      </>
-    );
-  }
-
   if (!loadProps.loaded) {
     return <Skeleton data-testid="skeleton-loader" style={{ width: 200 }} />;
+  }
+
+  if (loadProps.error) {
+    return (
+      <Flex
+        data-testid="error-content"
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+      >
+        <FlexItem>
+          <Popover aria-label="Error popover" bodyContent={loadProps.error.message}>
+            <Icon status="danger" size="sm" data-testid="error-icon">
+              <ExclamationCircleIcon />
+            </Icon>
+          </Popover>
+        </FlexItem>
+        <FlexItem>
+          <Content component={ContentVariants.small}>Could not load required data</Content>
+        </FlexItem>
+      </Flex>
+    );
   }
 
   return (

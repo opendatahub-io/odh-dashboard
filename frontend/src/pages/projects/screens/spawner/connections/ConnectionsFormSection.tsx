@@ -1,28 +1,17 @@
 import React from 'react';
 import {
   Bullseye,
-  Button,
-  Content,
   EmptyState,
   EmptyStateBody,
   Flex,
   FlexItem,
   FormSection,
-  Tooltip,
 } from '@patternfly/react-core';
-import { LockIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import ExtendedButton from '#~/components/ExtendedButton';
 import { SortableData, Table } from '#~/components/table';
-import { createSecret, replaceSecret, useAccessReview } from '#~/api';
-import { getGenericErrorCode } from '#~/api/errorUtils';
-import { SecretModel } from '#~/api/models';
-import { AccessReviewResourceAttributes, NotebookKind, ProjectKind } from '#~/k8sTypes';
-
-const connectionAccessReviewResource: AccessReviewResourceAttributes = {
-  group: SecretModel.apiGroup,
-  resource: SecretModel.plural,
-  verb: 'create',
-};
+import { createSecret, replaceSecret } from '#~/api';
+import { NotebookKind, ProjectKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
@@ -88,11 +77,6 @@ export const ConnectionsFormSection: React.FC<Props> = ({
   const [connectionTypes, connectionTypesLoaded, connectiontypesLoadError] =
     useWatchConnectionTypes();
 
-  const [allowCreateConnection] = useAccessReview({
-    ...connectionAccessReviewResource,
-    namespace: project.metadata.name,
-  });
-
   const enabledConnectionTypes = React.useMemo(
     () => filterEnabledConnectionTypes(connectionTypes),
     [connectionTypes],
@@ -156,29 +140,21 @@ export const ConnectionsFormSection: React.FC<Props> = ({
             </ExtendedButton>
           </FlexItem>
           <FlexItem>
-            {!allowCreateConnection ? (
-              <Tooltip content="You do not have permission to create connections">
-                <Button data-testid="create-connection-button" variant="secondary" isAriaDisabled>
-                  Create connection
-                </Button>
-              </Tooltip>
-            ) : (
-              <ExtendedButton
-                data-testid="create-connection-button"
-                variant="secondary"
-                onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
-                loadProps={{
-                  loaded: connectionTypesLoaded,
-                  error: connectiontypesLoadError,
-                }}
-                tooltipProps={{
-                  isEnabled: enabledConnectionTypes.length === 0,
-                  content: 'No connection types available',
-                }}
-              >
-                Create connection
-              </ExtendedButton>
-            )}
+            <ExtendedButton
+              data-testid="create-connection-button"
+              variant="secondary"
+              onClick={() => setManageConnectionModal({ connection: undefined, isEdit: false })}
+              loadProps={{
+                loaded: connectionTypesLoaded,
+                error: connectiontypesLoadError,
+              }}
+              tooltipProps={{
+                isEnabled: enabledConnectionTypes.length === 0,
+                content: 'No connection types available',
+              }}
+            >
+              Create connection
+            </ExtendedButton>
           </FlexItem>
         </Flex>
       }
@@ -224,17 +200,6 @@ export const ConnectionsFormSection: React.FC<Props> = ({
           )}
           isStriped
         />
-      ) : projectConnectionsLoadError &&
-        getGenericErrorCode(projectConnectionsLoadError) === 403 ? (
-        <Bullseye>
-          <EmptyState headingLevel="h2" icon={LockIcon} titleText="Access permissions needed">
-            <EmptyStateBody>
-              <Content component="small">
-                To access connections, ask your administrator to adjust your permissions.
-              </Content>
-            </EmptyStateBody>
-          </EmptyState>
-        </Bullseye>
       ) : (
         <Bullseye>
           <EmptyState headingLevel="h2" icon={PlusCircleIcon} titleText="No connections">

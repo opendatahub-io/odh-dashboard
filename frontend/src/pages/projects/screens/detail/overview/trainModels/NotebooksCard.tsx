@@ -19,17 +19,8 @@ import OverviewCard from '#~/pages/projects/screens/detail/overview/components/O
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import ErrorOverviewCard from '#~/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
-import { useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
-import { NotebookModel } from '#~/api/models';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
-
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: NotebookModel.apiGroup,
-  resource: NotebookModel.plural,
-  verb: 'create',
-};
 
 const NotebooksCard: React.FC = () => {
   const navigate = useNavigate();
@@ -38,18 +29,7 @@ const NotebooksCard: React.FC = () => {
     notebooks: { data: notebooks, loaded, error },
   } = React.useContext(ProjectDetailsContext);
 
-  const [allowCreate] = useAccessReview({
-    ...accessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
-
   const { isKueueDisabled } = useKueueConfiguration(currentProject);
-
-  // Button is disabled if user lacks create permission or if Kueue is disabled
-  const isButtonDisabled = !allowCreate || isKueueDisabled;
-  const disabledReason = !allowCreate
-    ? 'You do not have permission to create workbenches'
-    : KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE;
 
   const statistics = React.useMemo(
     () => [
@@ -122,7 +102,7 @@ const NotebooksCard: React.FC = () => {
                 {(() => {
                   const button = (
                     <Button
-                      isAriaDisabled={isButtonDisabled}
+                      isAriaDisabled={isKueueDisabled}
                       variant={ButtonVariant.primary}
                       onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
                     >
@@ -137,8 +117,8 @@ const NotebooksCard: React.FC = () => {
                     </Button>
                   );
 
-                  return isButtonDisabled ? (
-                    <Tooltip content={disabledReason}>{button}</Tooltip>
+                  return isKueueDisabled ? (
+                    <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>{button}</Tooltip>
                   ) : (
                     button
                   );
@@ -162,23 +142,9 @@ const NotebooksCard: React.FC = () => {
     >
       <MetricsContents
         title="Workbenches"
-        createButton={
-          isButtonDisabled ? (
-            <Tooltip content={disabledReason}>
-              <Button isAriaDisabled variant="link" isInline>
-                Create workbench
-              </Button>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="link"
-              isInline
-              onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
-            >
-              Create workbench
-            </Button>
-          )
-        }
+        onCreate={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
+        createText="Create workbench"
+        isKueueDisabled={isKueueDisabled}
         statistics={statistics}
         listItems={
           <NotebooksCardItems

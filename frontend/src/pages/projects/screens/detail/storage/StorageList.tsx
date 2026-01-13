@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Popover, Tooltip } from '@patternfly/react-core';
+import { Button, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
@@ -8,63 +8,20 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
-import { useAccessReview } from '#~/api';
-import { AccessReviewResourceAttributes } from '#~/k8sTypes';
-import { PVCModel } from '#~/api/models';
 import StorageTable from './StorageTable';
 import ClusterStorageModal from './ClusterStorageModal';
-
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: PVCModel.apiGroup,
-  resource: PVCModel.plural,
-  verb: 'create',
-};
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   const {
-    currentProject,
     notebooks: { refresh: refreshNotebooks },
     pvcs: { data: pvcs, loaded: pvcsLoaded, error: pvcsError, refresh: refreshPvcs },
   } = React.useContext(ProjectDetailsContext);
   const isPvcsEmpty = pvcs.length === 0;
 
-  const [allowCreate] = useAccessReview({
-    ...accessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
-
   const refresh = () => {
     refreshPvcs();
     refreshNotebooks();
-  };
-
-  const getCreateButton = (testId: string) => {
-    if (!allowCreate) {
-      return (
-        <Tooltip content="You do not have permission to add cluster storage">
-          <Button
-            onClick={() => setOpen(true)}
-            key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-            variant="primary"
-            data-testid={testId}
-            isAriaDisabled
-          >
-            Add cluster storage
-          </Button>
-        </Tooltip>
-      );
-    }
-    return (
-      <Button
-        onClick={() => setOpen(true)}
-        key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
-        variant="primary"
-        data-testid={testId}
-      >
-        Add cluster storage
-      </Button>
-    );
   };
 
   return (
@@ -76,7 +33,7 @@ const StorageList: React.FC = () => {
         popover={
           <Popover
             headerContent="About cluster storage"
-            bodyContent="Cluster storage saves your project's data on a selected cluster. You can optionally connect cluster storage to a workbench. "
+            bodyContent="Cluster storage saves your project’s data on a selected cluster. You can optionally connect cluster storage to a workbench. "
           >
             <DashboardPopupIconButton
               icon={<OutlinedQuestionCircleIcon />}
@@ -84,17 +41,34 @@ const StorageList: React.FC = () => {
             />
           </Popover>
         }
-        actions={[getCreateButton('actions-cluster-storage-button')]}
+        actions={[
+          <Button
+            onClick={() => setOpen(true)}
+            key={`action-${ProjectSectionID.CLUSTER_STORAGES}`}
+            variant="primary"
+            data-testid="actions-cluster-storage-button"
+          >
+            Add cluster storage
+          </Button>,
+        ]}
         isLoading={!pvcsLoaded}
         isEmpty={isPvcsEmpty}
         loadError={pvcsError}
         emptyState={
           <EmptyDetailsView
             title="Start by adding cluster storage"
-            description="Cluster storage saves your project's data on a selected cluster. You can optionally connect cluster storage to a workbench."
+            description="Cluster storage saves your project’s data on a selected cluster. You can optionally connect cluster storage to a workbench."
             iconImage={typedEmptyImage(ProjectObjectType.clusterStorage)}
             imageAlt="add cluster storage"
-            createButton={getCreateButton('cluster-storage-button')}
+            createButton={
+              <Button
+                data-testid="cluster-storage-button"
+                onClick={() => setOpen(true)}
+                variant="primary"
+              >
+                Add cluster storage
+              </Button>
+            }
           />
         }
       >

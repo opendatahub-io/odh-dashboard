@@ -12,10 +12,8 @@ import {
   Skeleton,
   MenuItem,
   FormHelperText,
-  Tooltip,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { getGenericErrorCode } from '#~/api/errorUtils';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { formatResource, formatResourceValue } from '#~/concepts/hardwareProfiles/utils';
@@ -256,30 +254,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   if (isProjectScoped && !currentProjectHardwareProfilesLoaded && !hardwareProfilesLoaded) {
     return <Skeleton />;
-  }
-
-  // Check for 403 permission errors
-  const is403Error =
-    (hardwareProfilesError && getGenericErrorCode(hardwareProfilesError) === 403) ||
-    (currentProjectHardwareProfilesError &&
-      getGenericErrorCode(currentProjectHardwareProfilesError) === 403);
-
-  if (is403Error) {
-    return (
-      <Tooltip content="You do not have permission to access hardware profiles">
-        <div>
-          <SimpleSelect
-            dataTestId="hardware-profile-select"
-            options={[]}
-            value={undefined}
-            onChange={() => undefined}
-            placeholder="Select hardware profile..."
-            isFullWidth
-            isDisabled
-          />
-        </div>
-      </Tooltip>
-    );
   }
 
   return (
