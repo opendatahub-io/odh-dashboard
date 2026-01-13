@@ -88,6 +88,10 @@ class AdministrationTab {
     return this.findTable().find('tbody tr');
   }
 
+  findEmptyState() {
+    return cy.findByTestId('administration-users-empty-state');
+  }
+
   mockGetNotebookStatus(username: string, isRunning = true) {
     return cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
