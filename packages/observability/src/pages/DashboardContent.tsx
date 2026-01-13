@@ -104,9 +104,10 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
           }
         >
           <Tabs
+            data-testid="observability-dashboard-tabs"
             activeKey={activeDashboardName}
             onSelect={handleTabSelect}
-            aria-label="Dashboard tabs"
+            aria-label="Observability dashboard tabs"
             mountOnEnter
             unmountOnExit
           >
