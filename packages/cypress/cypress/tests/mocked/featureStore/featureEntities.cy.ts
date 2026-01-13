@@ -640,7 +640,7 @@ describe('Global Search in Feature Entities', () => {
     if (featureViewIndex !== -1) {
       searchResponseWithMatchedTags.results[featureViewIndex] = {
         ...searchResponseWithMatchedTags.results[featureViewIndex],
-        matched_tag: {
+        matched_tags: {
           computation: 'derived',
         },
       };
@@ -673,7 +673,7 @@ describe('Global Search in Feature Entities', () => {
     if (featureViewIndex !== -1) {
       searchResponseWithMultipleTags.results[featureViewIndex] = {
         ...searchResponseWithMultipleTags.results[featureViewIndex],
-        matched_tag: {
+        matched_tags: {
           computation: 'derived',
           source: 'external',
           category: 'risk',
