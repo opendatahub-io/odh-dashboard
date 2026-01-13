@@ -7,6 +7,7 @@ import {
 } from '#~/api';
 import { KnownLabels } from '#~/k8sTypes';
 import type { RoleRef, SupportedSubjectKind } from '#~/concepts/permissions/types';
+import { roleBindingHasSubject } from '#~/concepts/permissions/utils.ts';
 
 export const buildRoleBindingSubject = (
   subjectKind: SupportedSubjectKind,
@@ -39,9 +40,6 @@ export const findRoleBindingForRoleRef = ({
   roleRef: RoleRef;
 }): RoleBindingKind | undefined =>
   roleBindings.find((rb) => matchesRoleRefInNamespace(rb, namespace, roleRef));
-
-export const roleBindingHasSubject = (rb: RoleBindingKind, subject: RoleBindingSubject): boolean =>
-  (rb.subjects ?? []).some((s) => s.kind === subject.kind && s.name === subject.name);
 
 // Ensures the subject is assigned to the desired RoleRef by patching an existing RoleBinding (if any)
 // or creating a new RoleBinding when none exists.

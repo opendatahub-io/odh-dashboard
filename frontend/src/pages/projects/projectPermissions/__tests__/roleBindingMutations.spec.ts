@@ -6,7 +6,6 @@ import {
   findRoleBindingForRoleRef,
   moveSubjectRoleBinding,
   removeSubjectFromRoleBinding,
-  roleBindingHasSubject,
 } from '#~/pages/projects/projectPermissions/roleBindingMutations';
 
 jest.mock('#~/api', () => ({
@@ -70,19 +69,6 @@ describe('project permissions roleBindingMutations', () => {
         roleRef: roleRefEdit,
       });
       expect(found?.metadata.name).toBe('rb-match-1');
-    });
-  });
-
-  describe('roleBindingHasSubject', () => {
-    it('returns false when subjects is undefined', () => {
-      const rb = mockRoleBindingK8sResource({
-        name: 'rb-no-subjects',
-        namespace,
-        roleRefKind: 'ClusterRole',
-        roleRefName: 'edit',
-        subjects: undefined,
-      });
-      expect(roleBindingHasSubject(rb, subject)).toBe(false);
     });
   });
 

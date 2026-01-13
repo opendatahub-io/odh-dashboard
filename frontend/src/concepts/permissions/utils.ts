@@ -14,19 +14,20 @@ import {
   RBAC_SUBJECT_KIND_GROUP,
   RBAC_SUBJECT_KIND_USER,
 } from './const';
-import { RoleLabelType, RoleRef, RoleRefKey, SubjectKey, SupportedSubjectRef } from './types';
+import {
+  RoleAssignment,
+  RoleLabelType,
+  RoleRef,
+  RoleRefKey,
+  SubjectKey,
+  SupportedSubjectRef,
+} from './types';
 
 const isSupportedSubject = (subject: RoleBindingSubject): subject is SupportedSubjectRef =>
   subject.kind === RBAC_SUBJECT_KIND_USER || subject.kind === RBAC_SUBJECT_KIND_GROUP;
 
-export const roleBindingHasSupportedSubject = (
-  rb: RoleBindingKind,
-  subject: SupportedSubjectRef,
-): boolean =>
-  (rb.subjects ?? []).some(
-    (s) => isSupportedSubject(s) && s.kind === subject.kind && s.name === subject.name,
-  );
-
+export const roleBindingHasSubject = (rb: RoleBindingKind, subject: RoleBindingSubject): boolean =>
+  (rb.subjects ?? []).some((s) => s.kind === subject.kind && s.name === subject.name);
 /**
  * Type guard for RoleBinding subjects.
  *
@@ -166,36 +167,6 @@ export const buildGroupRoleMap = (
   }, new Map<string, RoleBindingKind[]>());
 
 /**
- * Returns all RoleBindings that reference the provided subject.
- *
- * This only matches User/Group subjects (ServiceAccounts ignored).
- */
-export const getRoleBindingsForSubject = (
-  roleBindings: RoleBindingKind[],
-  subject: SupportedSubjectRef,
-): RoleBindingKind[] => roleBindings.filter((rb) => roleBindingHasSupportedSubject(rb, subject));
-
-/**
- * Returns all RoleBindings that connect a subject to a specific RoleRef (kind + name).
- *
- * The connection can be represented by multiple RoleBindings; callers should update ALL returned
- * RoleBindings when mutating assignments.
- *
- * This only matches User/Group subjects (ServiceAccounts ignored).
- */
-export const getRoleBindingsForSubjectAndRoleRef = (
-  roleBindings: RoleBindingKind[],
-  subject: SupportedSubjectRef,
-  roleRef: RoleRef,
-): RoleBindingKind[] =>
-  roleBindings.filter(
-    (rb) =>
-      rb.roleRef.kind === roleRef.kind &&
-      rb.roleRef.name === roleRef.name &&
-      roleBindingHasSupportedSubject(rb, subject),
-  );
-
-/**
  * Returns all unique RoleRefs assigned to a subject.
  *
  * Result is always deduped (by kind + name).
@@ -207,7 +178,7 @@ export const getRoleRefsForSubject = (
   const seen = new Set<RoleRefKey>();
   const result: RoleRef[] = [];
   roleBindings.forEach((rb) => {
-    if (!roleBindingHasSupportedSubject(rb, subject)) {
+    if (!roleBindingHasSubject(rb, subject)) {
       return;
     }
 
@@ -222,29 +193,30 @@ export const getRoleRefsForSubject = (
 };
 
 /**
- * Returns all unique subjects assigned to a role (RoleRef).
- *
- * Result is always deduped and only includes User/Group (ServiceAccount ignored).
+ * Returns all role assignments for a role (RoleRef) with RoleBinding metadata.
  */
-export const getSubjectsForRoleRef = (
+export const getRoleAssignmentsForRoleRef = (
   roleBindings: RoleBindingKind[],
   roleRef: RoleRef,
-): SupportedSubjectRef[] => {
-  const seen = new Set<SubjectKey>();
-  const result: SupportedSubjectRef[] = [];
+): RoleAssignment[] => {
+  const seen = new Set<string>();
+  const result: RoleAssignment[] = [];
+
   roleBindings
     .filter((rb) => rb.roleRef.kind === roleRef.kind && rb.roleRef.name === roleRef.name)
     .forEach((rb) => {
+      const rbId = rb.metadata.uid ?? rb.metadata.name;
       (rb.subjects ?? []).forEach((s) => {
         if (!isSupportedSubject(s)) {
           return;
         }
-        const key = getSubjectKey(s);
+        const subjectKey = getSubjectKey(s);
+        const key = `${rbId}:${subjectKey}`;
         if (seen.has(key)) {
           return;
         }
         seen.add(key);
-        result.push({ kind: s.kind, name: s.name });
+        result.push({ subject: s, roleBinding: rb });
       });
     });
 

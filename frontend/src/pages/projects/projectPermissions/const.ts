@@ -35,6 +35,9 @@ export const initialFilterData: FilterDataType = {
   [SubjectsFilterOptions.role]: '',
 };
 
+export const ROLE_BINDING_DATE_CREATED_TOOLTIP =
+  'The date the role binding was created. This can differ from when the user or group was assigned the role.';
+
 export const DEFAULT_ROLE_REFS: RoleRef[] = [
   { kind: 'ClusterRole', name: 'admin' },
   { kind: 'ClusterRole', name: 'edit' },

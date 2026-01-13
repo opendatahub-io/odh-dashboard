@@ -1,14 +1,13 @@
 import {
   buildGroupRoleMap,
   buildUserRoleMap,
-  getRoleBindingsForSubject,
-  getRoleBindingsForSubjectAndRoleRef,
   getRoleByRef,
   getRoleLabelTypeForRoleRef,
   getRoleRefsForSubject,
   getRoleRefKey,
-  getSubjectsForRoleRef,
+  getRoleAssignmentsForRoleRef,
   getSubjectKey,
+  roleBindingHasSubject,
 } from '#~/concepts/permissions/utils';
 import { RoleLabelType, RoleRef, SupportedSubjectRef } from '#~/concepts/permissions/types';
 import { KnownLabels } from '#~/k8sTypes';
@@ -129,34 +128,19 @@ describe('permissions utils', () => {
     expect(groupMap.get('team-a')).toEqual([roleBindings[0], roleBindings[2]]);
   });
 
-  it('returns all roleBindings for a subject', () => {
-    expect(getRoleBindingsForSubject(roleBindings, userAlice)).toEqual([
-      roleBindings[0],
-      roleBindings[1],
-    ]);
-    expect(getRoleBindingsForSubject(roleBindings, groupTeam)).toEqual([
-      roleBindings[0],
-      roleBindings[2],
-    ]);
-  });
-
   it('returns roleRefs for a subject (deduped)', () => {
     expect(getRoleRefsForSubject(roleBindings, userAlice)).toEqual([roleRefEdit]);
     expect(getRoleRefsForSubject(roleBindings, groupTeam)).toEqual([roleRefEdit, roleRefView]);
   });
 
-  it('returns subjects for a roleRef (deduped) and ignores ServiceAccounts', () => {
-    expect(getSubjectsForRoleRef(roleBindings, roleRefEdit)).toEqual([userAlice, groupTeam]);
-    expect(getSubjectsForRoleRef(roleBindings, roleRefView)).toEqual([groupTeam]);
-  });
-
-  it('returns all roleBindings for a subject + roleRef', () => {
-    expect(getRoleBindingsForSubjectAndRoleRef(roleBindings, userAlice, roleRefEdit)).toEqual([
-      roleBindings[0],
-      roleBindings[1],
+  it('returns role assignments for a roleRef', () => {
+    expect(getRoleAssignmentsForRoleRef(roleBindings, roleRefEdit)).toEqual([
+      { subject: aliceSubject, roleBinding: roleBindings[0] },
+      { subject: teamSubject, roleBinding: roleBindings[0] },
+      { subject: aliceSubject, roleBinding: roleBindings[1] },
     ]);
-    expect(getRoleBindingsForSubjectAndRoleRef(roleBindings, groupTeam, roleRefEdit)).toEqual([
-      roleBindings[0],
+    expect(getRoleAssignmentsForRoleRef(roleBindings, roleRefView)).toEqual([
+      { subject: teamSubject, roleBinding: roleBindings[2] },
     ]);
   });
 
@@ -172,9 +156,12 @@ describe('permissions utils', () => {
     const all = [...roleBindings, rbNoSubjects];
     expect(buildUserRoleMap(all).get('alice')).toEqual([roleBindings[0], roleBindings[1]]);
     expect(buildGroupRoleMap(all).get('team-a')).toEqual([roleBindings[0], roleBindings[2]]);
-    expect(getRoleBindingsForSubject(all, userAlice)).toEqual([roleBindings[0], roleBindings[1]]);
     expect(getRoleRefsForSubject(all, userAlice)).toEqual([roleRefEdit]);
-    expect(getSubjectsForRoleRef(all, roleRefEdit)).toEqual([userAlice, groupTeam]);
+    expect(getRoleAssignmentsForRoleRef(all, roleRefEdit)).toEqual([
+      { subject: aliceSubject, roleBinding: roleBindings[0] },
+      { subject: teamSubject, roleBinding: roleBindings[0] },
+      { subject: aliceSubject, roleBinding: roleBindings[1] },
+    ]);
   });
 
   it('resolves role by roleRef', () => {
@@ -184,5 +171,19 @@ describe('permissions utils', () => {
 
   it('returns undefined when a ClusterRoleRef cannot be resolved (e.g. cluster roles not listable)', () => {
     expect(getRoleByRef([role], [], roleRefView)).toBeUndefined();
+  });
+
+  it('returns true when a roleBinding has a subject', () => {
+    expect(roleBindingHasSubject(roleBindings[0], userAlice)).toBe(true);
+    expect(roleBindingHasSubject(roleBindings[0], groupTeam)).toBe(true);
+    expect(roleBindingHasSubject(roleBindings[0], serviceAccountSubject)).toBe(true);
+  });
+
+  it('returns false when a roleBinding does not have a subject', () => {
+    expect(roleBindingHasSubject(roleBindings[0], { kind: 'User', name: 'unknown' })).toBe(false);
+    expect(roleBindingHasSubject(roleBindings[0], { kind: 'Group', name: 'unknown' })).toBe(false);
+    expect(
+      roleBindingHasSubject(roleBindings[0], { kind: 'ServiceAccount', name: 'unknown' }),
+    ).toBe(false);
   });
 });

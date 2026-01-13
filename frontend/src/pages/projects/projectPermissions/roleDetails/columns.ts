@@ -1,5 +1,7 @@
 import { SortableData } from '#~/components/table/types';
+import { RoleAssignment } from '#~/concepts/permissions/types';
 import { ResourceRule } from '#~/k8sTypes';
+import { ROLE_BINDING_DATE_CREATED_TOOLTIP } from '#~/pages/projects/projectPermissions/const';
 
 const toSortableValue = (values?: string[]): string => {
   if (!values || values.length === 0) {
@@ -9,7 +11,7 @@ const toSortableValue = (values?: string[]): string => {
   if (values.includes('*')) {
     return 'All';
   }
-  return values.join(', ');
+  return values.filter((v) => v.length > 0).join(', ');
 };
 
 const compareRuleListField = (a: ResourceRule, b: ResourceRule, keyField: string): number => {
@@ -29,7 +31,7 @@ const compareRuleListField = (a: ResourceRule, b: ResourceRule, keyField: string
   return get(a).localeCompare(get(b));
 };
 
-export const columns: SortableData<ResourceRule>[] = [
+export const resourceRulesColumns: SortableData<ResourceRule>[] = [
   { field: 'verbs', label: 'Actions', sortable: false, width: 15 },
   { field: 'apiGroups', label: 'API Groups', sortable: compareRuleListField, width: 25 },
   { field: 'resources', label: 'Resources', sortable: compareRuleListField, width: 35 },
@@ -42,5 +44,38 @@ export const columns: SortableData<ResourceRule>[] = [
     },
     sortable: compareRuleListField,
     width: 25,
+  },
+];
+
+export const assigneesColumns: SortableData<RoleAssignment>[] = [
+  {
+    field: 'subjectName',
+    label: 'Subject',
+    sortable: (a, b) => a.subject.name.localeCompare(b.subject.name),
+    width: 25,
+  },
+  {
+    field: 'subjectKind',
+    label: 'Subject kind',
+    sortable: (a, b) => a.subject.kind.localeCompare(b.subject.kind),
+    width: 15,
+  },
+  {
+    field: 'roleBindingName',
+    label: 'Role binding',
+    sortable: (a, b) => a.roleBinding.metadata.name.localeCompare(b.roleBinding.metadata.name),
+    width: 30,
+  },
+  {
+    field: 'roleBindingCreationTimestamp',
+    label: 'Date created',
+    info: {
+      popover: ROLE_BINDING_DATE_CREATED_TOOLTIP,
+      ariaLabel: 'Date created help',
+    },
+    sortable: (a, b) =>
+      new Date(b.roleBinding.metadata.creationTimestamp || 0).getTime() -
+      new Date(a.roleBinding.metadata.creationTimestamp || 0).getTime(),
+    width: 30,
   },
 ];

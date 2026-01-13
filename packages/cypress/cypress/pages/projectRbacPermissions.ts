@@ -28,6 +28,26 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   }
 }
 
+class RoleDetailsModal extends Contextual<HTMLElement> {
+  findAssigneesTab() {
+    return this.find().findByRole('tab', { name: /Assignees/i });
+  }
+
+  clickAssigneesTab() {
+    return this.findAssigneesTab().click();
+  }
+
+  getRulesTable() {
+    return new RoleRulesTable(() => this.find().findByTestId('role-rules-table'));
+  }
+
+  getAssigneesTable() {
+    // Table content may be rendered outside the modal subtree by PF Tabs internals.
+    // Keep this query global for stability.
+    return new RoleAssigneesTable(() => cy.findByTestId('role-assignees-table'));
+  }
+}
+
 class RoleRulesTable extends Contextual<HTMLElement> {
   findHeaderSortButton(name: string | RegExp) {
     return this.find().find('thead').findByRole('button', { name });
@@ -37,28 +57,21 @@ class RoleRulesTable extends Contextual<HTMLElement> {
     return this.findHeaderSortButton(name).click();
   }
 
-  findResourceNamesHelpButton() {
-    return this.find().findByRole('button', { name: 'Resource names help' });
-  }
-
-  clickResourceNamesHelpButton() {
-    return this.findResourceNamesHelpButton().click();
-  }
-
   findFirstBodyRow() {
     return this.find().find('tbody tr').first();
   }
 }
-
-class RoleDetailsModal extends Contextual<HTMLElement> {
-  getRulesTable() {
-    return new RoleRulesTable(() => this.find().findByTestId('role-rules-table'));
+class RoleAssigneesTable extends Contextual<HTMLElement> {
+  findHeaderSortButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
   }
 
-  findResourceNamesHelpPopover() {
-    // Popovers are rendered outside the table subtree; search globally by PF popover container.
-    // This avoids asserting the microcopy text, which can change.
-    return cy.get('.pf-v6-c-popover');
+  clickHeaderSort(name: string | RegExp) {
+    return this.findHeaderSortButton(name).click();
+  }
+
+  findFirstBodyRow() {
+    return this.find().find('tbody tr').first();
   }
 }
 

@@ -19,6 +19,7 @@ import {
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import RoleDetailsModalDetailsTab from './RoleDetailsModalDetailsTab';
+import RoleDetailsModalAssigneesTab from './RoleDetailsModalAssigneesTab';
 
 type RoleDetailsModalProps = {
   roleRef: RoleRef;
@@ -78,7 +79,7 @@ const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({ roleRef, onClose })
             <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
           </Tab>
           <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
-            {/* TODO: Implement assignees tab */}
+            <RoleDetailsModalAssigneesTab roleRef={roleRef} />
           </Tab>
         </Tabs>
       </ModalBody>

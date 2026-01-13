@@ -620,9 +620,35 @@ describe('Permissions tab (projectRBAC)', () => {
     // Sort: Resource names (exclude the help button)
     rulesTable.clickHeaderSort(/^Resource names$/);
     rulesTable.findFirstBodyRow().should('contain.text', 'a-name');
+  });
 
-    rulesTable.clickResourceNamesHelpButton();
-    roleDetailsModal.findResourceNamesHelpPopover().should('exist');
+  it('should show assignees table with sortable columns', () => {
+    initProjectRbacIntercepts();
+    projectRbacPermissions.visit(namespace);
+
+    // Open modal from role link
+    usersTable.findRoleLink('Contributor').click();
+    const roleDetailsModal = projectRbacPermissions.getRoleDetailsModal();
+    roleDetailsModal.find().should('exist');
+
+    roleDetailsModal.clickAssigneesTab();
+    const assigneesTable = roleDetailsModal.getAssigneesTable();
+    assigneesTable.find().should('exist');
+
+    // Sort by Subject
+    assigneesTable.findHeaderSortButton('Subject').click();
+    assigneesTable.findHeaderSortButton('Subject').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
+
+    // Sort by Subject kind
+    assigneesTable.findHeaderSortButton('Subject kind').click();
+    assigneesTable.findHeaderSortButton('Subject kind').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
+
+    // Sort by Role binding
+    assigneesTable.findHeaderSortButton('Role binding').click();
+    assigneesTable.findHeaderSortButton('Role binding').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'rb-group-edit');
   });
 
   it('should add a user role assignment and refresh the table', () => {

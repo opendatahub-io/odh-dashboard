@@ -4,7 +4,7 @@ import { TableBase } from '#~/components/table';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import type { ResourceRule } from '#~/k8sTypes';
 import RoleRulesTableRow from './RoleRulesTableRow';
-import { columns } from './columns';
+import { resourceRulesColumns } from './columns';
 
 const DEFAULT_RULES_PAGE_SIZE = 10;
 
@@ -15,7 +15,7 @@ type RoleRulesTableProps = {
 const RoleRulesTable: React.FC<RoleRulesTableProps> = ({ rules }) => {
   const [visibleCount, setVisibleCount] = React.useState(DEFAULT_RULES_PAGE_SIZE);
 
-  const sort = useTableColumnSort<ResourceRule>(columns, [], undefined);
+  const sort = useTableColumnSort<ResourceRule>(resourceRulesColumns, [], undefined);
   const sortedRules = sort.transformData(rules);
   const visibleRows = React.useMemo(
     () => sortedRules.slice(0, visibleCount),
@@ -29,7 +29,8 @@ const RoleRulesTable: React.FC<RoleRulesTableProps> = ({ rules }) => {
         data-testid="role-rules-table"
         variant="compact"
         data={visibleRows}
-        columns={columns}
+        style={{ tableLayout: 'fixed' }}
+        columns={resourceRulesColumns}
         getColumnSort={sort.getColumnSort}
         rowRenderer={(rule, idx) => <RoleRulesTableRow key={idx} rule={rule} />}
         bottomToolbarContent={

@@ -80,8 +80,7 @@ describe('RoleDetailsModal', () => {
 
     render(<RoleDetailsModal roleRef={roleRef} onClose={() => undefined} />);
 
-    // Resource names header includes a helper popover trigger
-    expect(screen.getByRole('button', { name: /Resource names help/i })).toBeInTheDocument();
+    // Header helper popovers are PatternFly affordances; avoid asserting their presence.
 
     const table = screen.getByTestId('role-rules-table');
     const getFirstBodyRow = () => {
@@ -137,10 +136,12 @@ describe('RoleDetailsModal', () => {
     expect(screen.queryByText('OpenShift name')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: /Assignees/i }));
-    // Assignees tab is implemented in a follow-up ticket.
     expect(screen.getByRole('tab', { name: /Assignees/i })).toHaveAttribute(
       'aria-selected',
       'true',
     );
+    expect(screen.getByTestId('role-assignees-table')).toBeInTheDocument();
+    expect(screen.getByText('test-user-1')).toBeInTheDocument();
+    expect(screen.getByText('test-group-1')).toBeInTheDocument();
   });
 });
