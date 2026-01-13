@@ -4,6 +4,7 @@ import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
 import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import { ManageColumnSearchInput } from './ManageColumnSearchInput';
 import { ManagedColumn } from './types';
+import { reorderColumns } from './utils';
 
 /**
  * Configuration for the ManageColumnsModal
@@ -86,17 +87,7 @@ export const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
     (_: unknown, newItems: DraggableObject[]) => {
       const reorderedIds = newItems.map((item) => String(item.id));
       const matchingIds = new Set(columnsMatchingSearch.map((c) => c.id));
-
-      setColumns((prev) => {
-        const columnMap = new Map(prev.map((col) => [col.id, col]));
-        // Reordered columns that match the search
-        const reordered = reorderedIds
-          .map((id) => columnMap.get(id))
-          .filter((col): col is ManagedColumn => !!col);
-        // Non-matching columns preserve their relative order, appended at end
-        const nonMatching = prev.filter((c) => !matchingIds.has(c.id));
-        return [...reordered, ...nonMatching];
-      });
+      setColumns((prev) => reorderColumns(prev, matchingIds, reorderedIds));
     },
     [columnsMatchingSearch],
   );
