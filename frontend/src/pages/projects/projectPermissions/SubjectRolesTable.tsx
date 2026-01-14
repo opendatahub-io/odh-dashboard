@@ -10,12 +10,17 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import SubjectRolesTableRow from './SubjectRolesTableRow';
 import SubjectRolesEditRow from './SubjectRolesEditRow';
+import SubjectRolesRemoveRoleModal from './SubjectRolesRemoveRoleModal';
 import { columns } from './columns';
 import { SubjectRoleRow } from './types';
 import { FilterDataType, SubjectsFilterOptions } from './const';
 import { getEditableRoleRefOptions, isReversibleRoleRef } from './utils';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
-import { moveSubjectRoleBinding } from './roleBindingMutations';
+import {
+  buildRoleBindingSubject,
+  moveSubjectRoleBinding,
+  removeSubjectFromRoleBinding,
+} from './roleBindingMutations';
 
 type SubjectRolesTableBaseProps = {
   ariaLabel: string;
@@ -139,11 +144,18 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   onRoleClick,
   footerRow,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const {
+    currentProject: {
+      metadata: { name: namespace },
+    },
+  } = React.useContext(ProjectDetailsContext);
   const { roles, clusterRoles, roleBindings } = usePermissionsContext();
   const { assignedRolesBySubject } = useRoleAssignmentData(subjectKind);
 
   const [editingRowKey, setEditingRowKey] = React.useState<string>();
+  const [removingRow, setRemovingRow] = React.useState<SubjectRoleRow>();
+  const [isRemoving, setIsRemoving] = React.useState(false);
+  const [removeError, setRemoveError] = React.useState<Error>();
 
   const rows = React.useMemo(
     () =>
@@ -176,80 +188,118 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
 
   const subjectK8sKind = subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP;
 
-  const handleSaveEdit = React.useCallback(
-    async (row: SubjectRoleRow, nextRoleRef: RoleRef) => {
-      const namespace = currentProject.metadata.name;
-      const subject: RoleBindingSubject = {
-        kind: subjectK8sKind,
-        apiGroup: 'rbac.authorization.k8s.io',
-        name: row.subjectName,
-      };
+  const findRoleBindingByName = (roleBindingName: string): RoleBindingKind | undefined =>
+    roleBindings.data.find((rb) => rb.metadata.name === roleBindingName);
 
-      const oldRb = roleBindings.data.find((rb) => rb.metadata.name === row.roleBindingName);
-      if (!oldRb) {
-        throw new Error('RoleBinding not found');
-      }
+  const handleSaveEdit = async (row: SubjectRoleRow, nextRoleRef: RoleRef) => {
+    const subject = buildRoleBindingSubject(subjectK8sKind, row.subjectName);
+    const oldRb = findRoleBindingByName(row.roleBindingName);
+    if (!oldRb) {
+      throw new Error('RoleBinding not found');
+    }
 
-      await moveSubjectRoleBinding({
-        roleBindings: roleBindings.data,
-        namespace,
-        subjectKind: subjectK8sKind,
-        subject,
-        fromRoleBinding: oldRb,
-        toRoleRef: nextRoleRef,
-      });
+    await moveSubjectRoleBinding({
+      roleBindings: roleBindings.data,
+      namespace,
+      subjectKind: subjectK8sKind,
+      subject,
+      fromRoleBinding: oldRb,
+      toRoleRef: nextRoleRef,
+    });
 
+    await roleBindings.refresh();
+    setEditingRowKey(undefined);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removingRow) {
+      return;
+    }
+
+    const subject = buildRoleBindingSubject(subjectK8sKind, removingRow.subjectName);
+    const rb = findRoleBindingByName(removingRow.roleBindingName);
+    if (!rb) {
+      setRemoveError(new Error('RoleBinding not found'));
+      return;
+    }
+
+    setIsRemoving(true);
+    setRemoveError(undefined);
+    try {
+      await removeSubjectFromRoleBinding({ namespace, roleBinding: rb, subject });
       await roleBindings.refresh();
-      setEditingRowKey(undefined);
-    },
-    [currentProject.metadata.name, roleBindings, subjectK8sKind],
-  );
+      setRemovingRow(undefined);
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   return (
-    <SubjectRolesTableBase
-      ariaLabel={ariaLabel}
-      testId={testId}
-      rows={rows}
-      emptyTableView={emptyTableView}
-      footerRow={footerRow}
-      rowRenderer={(row, rowSpan) => {
-        if (row.key === editingRowKey) {
-          const assigned = assignedRolesBySubject.get(row.subjectName) ?? [];
-          const assignedWithoutCurrent = assigned.filter(
-            (r) => !(r.kind === row.roleRef.kind && r.name === row.roleRef.name),
-          );
-          const availableRoles = getEditableRoleRefOptions(row.roleRef);
+    <>
+      <SubjectRolesTableBase
+        ariaLabel={ariaLabel}
+        testId={testId}
+        rows={rows}
+        emptyTableView={emptyTableView}
+        footerRow={footerRow}
+        rowRenderer={(row, rowSpan) => {
+          if (row.key === editingRowKey) {
+            const assigned = assignedRolesBySubject.get(row.subjectName) ?? [];
+            const assignedWithoutCurrent = assigned.filter(
+              (r) => !(r.kind === row.roleRef.kind && r.name === row.roleRef.name),
+            );
+            const availableRoles = getEditableRoleRefOptions(row.roleRef);
+
+            return (
+              <SubjectRolesEditRow
+                key={row.key}
+                row={row}
+                subjectKind={subjectKind}
+                subjectNameRowSpan={rowSpan}
+                availableRoles={availableRoles}
+                assignedRoles={assignedWithoutCurrent}
+                onCancel={() => setEditingRowKey(undefined)}
+                onSave={(next) => handleSaveEdit(row, next)}
+              />
+            );
+          }
 
           return (
-            <SubjectRolesEditRow
+            <SubjectRolesTableRow
               key={row.key}
               row={row}
-              subjectKind={subjectKind}
               subjectNameRowSpan={rowSpan}
-              availableRoles={availableRoles}
-              assignedRoles={assignedWithoutCurrent}
-              onCancel={() => setEditingRowKey(undefined)}
-              onSave={(next) => handleSaveEdit(row, next)}
+              onRoleClick={onRoleClick}
+              onEdit={() => {
+                if (isReversibleRoleRef(row.roleRef)) {
+                  setEditingRowKey(row.key);
+                }
+              }}
+              onRemove={() => {
+                setRemoveError(undefined);
+                setRemovingRow(row);
+              }}
             />
           );
-        }
-
-        return (
-          <SubjectRolesTableRow
-            key={row.key}
-            row={row}
-            subjectNameRowSpan={rowSpan}
-            onRoleClick={onRoleClick}
-            onEdit={() => {
-              if (isReversibleRoleRef(row.roleRef)) {
-                setEditingRowKey(row.key);
-              }
-            }}
-            onRemove={() => undefined}
-          />
-        );
-      }}
-    />
+        }}
+      />
+      {removingRow ? (
+        <SubjectRolesRemoveRoleModal
+          row={removingRow}
+          isSubmitting={isRemoving}
+          error={removeError}
+          onConfirm={handleConfirmRemove}
+          onClose={() => {
+            if (!isRemoving) {
+              setRemovingRow(undefined);
+              setRemoveError(undefined);
+            }
+          }}
+        />
+      ) : null}
+    </>
   );
 };
 

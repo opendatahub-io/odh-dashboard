@@ -9,6 +9,7 @@ import {
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { getRoleDisplayName, getRoleLabelType } from '#~/concepts/permissions/utils';
 import { RoleRef } from '#~/concepts/permissions/types';
+import { relativeTime } from '#~/utilities/time';
 import { SubjectRoleRow } from './types';
 import RoleLabel from './components/RoleLabel';
 import { isReversibleRoleRef } from './utils';
@@ -19,17 +20,6 @@ type SubjectRolesTableRowProps = {
   onRoleClick?: (roleRef: RoleRef) => void;
   onEdit: () => void;
   onRemove: () => void;
-};
-
-const formatDate = (timestamp?: string): string => {
-  if (!timestamp) {
-    return '-';
-  }
-  const d = new Date(timestamp);
-  if (Number.isNaN(d.getTime())) {
-    return '-';
-  }
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
@@ -46,7 +36,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
   const isEditable = isReversibleRoleRef(row.roleRef);
   const actionItems = [
     ...(isEditable ? [{ title: 'Edit', onClick: onEdit }, { isSeparator: true }] : []),
-    { title: 'Remove', onClick: onRemove },
+    { title: 'Unassign', onClick: onRemove },
   ];
 
   return (
@@ -81,7 +71,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
       <Td dataLabel="Date created">
         {createdDate ? (
           <Timestamp date={createdDate} tooltip={{ variant: TimestampTooltipVariant.default }}>
-            {formatDate(row.roleBindingCreationTimestamp)}
+            {relativeTime(Date.now(), createdDate.getTime())}
           </Timestamp>
         ) : (
           '-'
