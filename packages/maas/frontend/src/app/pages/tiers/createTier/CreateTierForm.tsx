@@ -63,12 +63,16 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   );
   const [groupsTouched, setGroupsTouched] = React.useState(false);
 
-  const [tokenLimitEnabled, setTokenLimitEnabled] = React.useState(false);
+  const [tokenLimitEnabled, setTokenLimitEnabled] = React.useState(
+    (tier?.limits?.tokensPerUnit?.length ?? 0) >= 1,
+  );
   const [tokenLimits, setTokenLimits] = React.useState<RateLimit[]>(
     tier?.limits?.tokensPerUnit ?? [DEFAULT_TOKEN_LIMIT],
   );
 
-  const [requestLimitEnabled, setRequestLimitEnabled] = React.useState(false);
+  const [requestLimitEnabled, setRequestLimitEnabled] = React.useState(
+    (tier?.limits?.requestsPerUnit?.length ?? 0) >= 1,
+  );
   const [requestLimits, setRequestLimits] = React.useState<RateLimit[]>(
     tier?.limits?.requestsPerUnit ?? [DEFAULT_REQUEST_LIMIT],
   );
@@ -91,6 +95,10 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   });
 
   const canSubmit = isK8sNameValid && isFormValid && !isSubmitting;
+
+  const submitButtonText = tier ? 'Update tier' : 'Create tier';
+  const submittingText = tier ? 'Updating...' : 'Creating...';
+  const submitButtonTestId = tier ? 'update-tier-button' : 'create-tier-button';
 
   return (
     <Form maxWidth="750px">
@@ -216,11 +224,11 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
             })
           }
           variant="primary"
-          data-testid="create-tier-button"
+          data-testid={submitButtonTestId}
           isDisabled={!canSubmit}
           isLoading={isSubmitting}
         >
-          {isSubmitting ? 'Creating...' : 'Create tier'}
+          {isSubmitting ? submittingText : submitButtonText}
         </Button>
         <Button
           key="cancel"

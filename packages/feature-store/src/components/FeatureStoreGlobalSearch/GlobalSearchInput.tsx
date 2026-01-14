@@ -283,7 +283,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                               </StackItem>
                             </Stack>
                           </StackItem>
-                          {item.matched_tag && Object.keys(item.matched_tag).length > 0 && (
+                          {item.matched_tags && Object.keys(item.matched_tags).length > 0 && (
                             <StackItem>
                               <Flex
                                 direction={{ default: 'row' }}
@@ -291,7 +291,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
                                 gap={{ default: 'gapSm' }}
                                 flexWrap={{ default: 'wrap' }}
                               >
-                                {Object.entries(item.matched_tag).map(([key, value]) => (
+                                {Object.entries(item.matched_tags).map(([key, value]) => (
                                   <FeatureStoreLabels
                                     key={key}
                                     color="blue"

@@ -1,4 +1,7 @@
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import {
   modelServingGlobal,
   modelServingSection,
@@ -26,6 +29,8 @@ let projectName: string;
 let modelName: string;
 let modelFilePath: string;
 let pvStorageName: string;
+let modelFormat: string;
+let servingRuntime: string;
 const awsBucket = 'BUCKET_1' as const;
 const awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
 const awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
@@ -50,6 +55,8 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
         modelName = testData.singleModelName;
         modelFilePath = testData.modelOpenVinoExamplePath;
         pvStorageName = testData.pvStorageName;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -138,7 +145,7 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption('Cluster storage').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.PVC).click();
       // There's only one PVC so it's automatically selected
       modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
@@ -146,8 +153,8 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
@@ -155,12 +162,12 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
 
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      modelServingSection.findModelServerDeployedName(modelName);
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-      cy.reload();
+      checkInferenceServiceState(modelName, projectName, { checkReady: true });
+      modelServingSection.findModelMetricsLink(modelName);
     },
   );
 });

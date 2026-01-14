@@ -1,4 +1,7 @@
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import {
   modelServingGlobal,
@@ -23,6 +26,8 @@ let testData: DataScienceProjectData;
 let projectName: string;
 let modelName: string;
 let modelFilePath: string;
+let modelFormat: string;
+let servingRuntime: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
@@ -35,6 +40,8 @@ describe('[Product Bug: RHOAIENG-41827] A model can be deployed with token auth'
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
         modelFilePath = testData.modelOpenVinoExamplePath;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -87,15 +94,15 @@ describe('[Product Bug: RHOAIENG-41827] A model can be deployed with token auth'
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');

@@ -115,7 +115,7 @@ class CreateTierPage {
 
   // Level field
   findLevelInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('tier-level');
+    return cy.findByTestId('tier-level').find('input[type="number"]');
   }
 
   // Groups MultiSelection
@@ -143,11 +143,11 @@ class CreateTierPage {
   }
 
   findTokenRateLimitCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-token-rate-limit-${index}-count`);
+    return cy.findByTestId(`tier-token-rate-limit-${index}-count`).find('input[type="number"]');
   }
 
   findTokenRateLimitTimeInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-token-rate-limit-${index}-time`);
+    return cy.findByTestId(`tier-token-rate-limit-${index}-time`).find('input[type="number"]');
   }
 
   findTokenRateLimitUnitSelect(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -173,11 +173,11 @@ class CreateTierPage {
   }
 
   findRequestRateLimitCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-request-rate-limit-${index}-count`);
+    return cy.findByTestId(`tier-request-rate-limit-${index}-count`).find('input[type="number"]');
   }
 
   findRequestRateLimitTimeInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`tier-request-rate-limit-${index}-time`);
+    return cy.findByTestId(`tier-request-rate-limit-${index}-time`).find('input[type="number"]');
   }
 
   findRequestRateLimitUnitSelect(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -196,6 +196,10 @@ class CreateTierPage {
   // Form action buttons
   findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-tier-button');
+  }
+
+  findUpdateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('update-tier-button');
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {

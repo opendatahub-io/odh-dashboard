@@ -48,6 +48,7 @@ export type MockDashboardConfigType = {
   mlflow?: boolean;
   projectRBAC?: boolean;
   embedMLflow?: boolean;
+  disableLLMd?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -89,6 +90,7 @@ export const mockDashboardConfig = ({
   disableFeatureStore = true,
   trainingJobs = true,
   observabilityDashboard = false,
+  disableLLMd = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -253,6 +255,7 @@ export const mockDashboardConfig = ({
       disableFeatureStore,
       trainingJobs,
       observabilityDashboard,
+      disableLLMd,
     },
     notebookController: {
       enabled: !disableNotebookController,

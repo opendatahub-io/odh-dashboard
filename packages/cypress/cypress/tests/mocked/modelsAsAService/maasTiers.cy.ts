@@ -28,6 +28,7 @@ describe('Tiers Page', () => {
         },
       }),
     );
+    cy.intercept('GET', '/api/tiers', mockTiers);
 
     cy.interceptOdh('GET /maas/api/v1/tiers', {
       data: mockTiers(),
@@ -197,5 +198,77 @@ describe('Tiers Page', () => {
     tierDetailsPage.findLimits('100 requests per 1 minute').should('exist');
 
     tierDetailsPage.findActionsButton().click();
+  });
+
+  it('should edit a tier', () => {
+    cy.interceptOdh(
+      'PUT /maas/api/v1/tier/:name',
+      { path: { name: 'enterprise' } },
+      {
+        data: mockTier({
+          name: 'enterprise',
+          displayName: 'Enterprise Tier',
+          description: 'Unlimited enterprise access',
+          level: 5,
+          groups: ['enterprise-users'],
+          limits: {
+            tokensPerUnit: [{ count: 1000000, time: 1, unit: 'hour' }],
+            requestsPerUnit: [{ count: 10000, time: 1, unit: 'minute' }],
+          },
+        }),
+      },
+    ).as('updateTier');
+    tiersPage.getRow('Enterprise Tier').findKebabAction('Edit tier').click();
+    createTierPage.findTitle().should('contain.text', 'Edit tier');
+    createTierPage
+      .findPageDescription()
+      .should(
+        'contain.text',
+        'Edit a tier to control which models users can access based on their group membership.',
+      );
+
+    createTierPage.findNameInput().should('have.value', 'Enterprise Tier');
+    createTierPage.findNameInput().clear().type('Enterprise Tier Edited');
+    createTierPage.findDescriptionInput().should('have.value', 'Unlimited enterprise access');
+    createTierPage.findDescriptionInput().clear().type('Unlimited enterprise access edited');
+    createTierPage.findLevelInput().should('have.value', '3');
+    createTierPage.findLevelInput().clear().type('5');
+    createTierPage.findGroupsSelectButton().click();
+    createTierPage
+      .findGroupsOption('enterprise-users')
+      .should('have.attr', 'aria-selected', 'true');
+    createTierPage.findGroupsSelectButton().click();
+
+    createTierPage.selectGroupsOption('all-users');
+    createTierPage.findTokenRateLimitCheckbox().should('be.checked');
+    createTierPage.findTokenRateLimitCountInput(0).should('have.value', '1000000');
+    createTierPage.findTokenRateLimitCountInput(0).clear().type('2000000');
+    createTierPage.findTokenRateLimitTimeInput(0).should('have.value', '1');
+    createTierPage.findTokenRateLimitTimeInput(0).clear().type('2');
+    createTierPage.selectTokenRateLimitUnit(0, 'minute');
+    createTierPage.findTokenRateLimitUnitSelect(0).should('contain.text', 'minute');
+    createTierPage.findRequestRateLimitCheckbox().should('be.checked');
+    createTierPage.findRequestRateLimitCountInput(0).should('have.value', '10000');
+    createTierPage.findRequestRateLimitCountInput(0).clear().type('20000');
+    createTierPage.findRequestRateLimitTimeInput(0).should('have.value', '1');
+    createTierPage.findRequestRateLimitTimeInput(0).clear().type('2');
+    createTierPage.findRequestRateLimitUnitSelect(0).should('contain.text', 'minute');
+    createTierPage.selectRequestRateLimitUnit(0, 'hour');
+    createTierPage.findUpdateButton().should('exist').should('be.enabled').click();
+
+    cy.wait('@updateTier').then((interception) => {
+      expect(interception.request.body.data).to.deep.include({
+        name: 'enterprise',
+        displayName: 'Enterprise Tier Edited',
+        description: 'Unlimited enterprise access edited',
+        level: 5,
+        groups: ['all-users', 'enterprise-users'],
+        limits: {
+          tokensPerUnit: [{ count: 2000000, time: 2, unit: 'minute' }],
+          requestsPerUnit: [{ count: 20000, time: 2, unit: 'hour' }],
+        },
+      });
+    });
+    tiersPage.findTable().should('exist');
   });
 });

@@ -4,9 +4,9 @@ import {
   isModArchResponse,
   restGET,
   restCREATE,
-  restPATCH,
   restDELETE,
   assembleModArchBody,
+  restUPDATE,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { type Tier } from '~/app/types/tier';
@@ -61,7 +61,7 @@ export const updateTier =
   (hostPath = '') =>
   (opts: APIOptions, tierName: string, tier: Tier): Promise<void> =>
     handleRestFailures(
-      restPATCH(
+      restUPDATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/tier/${tierName}`,
         assembleModArchBody(tier),
