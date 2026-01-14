@@ -16,11 +16,13 @@ import { CreatePipelineServerButton, usePipelinesAPI } from '#~/concepts/pipelin
 import { useSafePipelines } from '#~/concepts/pipelines/apiHooks/usePipelines';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import ErrorOverviewCard from '#~/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
 import PipelinesOverviewCard from './PipelinesOverviewCard';
 import PipelinesCardMetrics from './PipelinesCardMetrics';
 
 const PipelinesCard: React.FC = () => {
-  const { pipelinesServer } = usePipelinesAPI();
+  const { pipelinesServer, pipelineLoadError } = usePipelinesAPI();
   const {
     notebooks: { data: notebooks, loaded: notebooksLoaded, error: notebooksError },
   } = React.useContext(ProjectDetailsContext);
@@ -28,6 +30,20 @@ const PipelinesCard: React.FC = () => {
   const [{ totalSize: pipelinesCount }] = useSafePipelines({
     pageSize: 1,
   });
+
+  if (pipelineLoadError) {
+    return (
+      <ErrorOverviewCard
+        id="Pipelines"
+        objectType={ProjectObjectType.pipeline}
+        sectionType={pipelinesCount ? SectionType.training : SectionType.organize}
+        title="Pipelines"
+        popoverHeaderContent="About pipelines"
+        popoverBodyContent="Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench."
+        error={pipelineLoadError}
+      />
+    );
+  }
 
   const renderContent = () => {
     if (pipelinesServer.initializing) {
