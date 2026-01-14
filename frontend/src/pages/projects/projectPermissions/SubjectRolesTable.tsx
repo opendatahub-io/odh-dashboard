@@ -7,18 +7,28 @@ import { getRoleByRef, getRoleDisplayName } from '#~/concepts/permissions/utils'
 import { RoleRef } from '#~/concepts/permissions/types';
 import { ClusterRoleKind, RoleBindingKind, RoleBindingSubject, RoleKind } from '#~/k8sTypes';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import SubjectRolesTableRow from './SubjectRolesTableRow';
+import SubjectRolesEditRow from './SubjectRolesEditRow';
+import SubjectRolesRemoveRoleModal from './SubjectRolesRemoveRoleModal';
 import { columns } from './columns';
 import { SubjectRoleRow } from './types';
 import { FilterDataType, SubjectsFilterOptions } from './const';
+import { getEditableRoleRefOptions, isReversibleRoleRef } from './utils';
+import { useRoleAssignmentData } from './useRoleAssignmentData';
+import {
+  buildRoleBindingSubject,
+  moveSubjectRoleBinding,
+  removeSubjectFromRoleBinding,
+} from './roleBindingMutations';
 
 type SubjectRolesTableBaseProps = {
   ariaLabel: string;
   testId: string;
   rows: SubjectRoleRow[];
   emptyTableView: React.ReactNode;
-  onRoleClick?: (roleRef: RoleRef) => void;
   footerRow?: (pageNumber: number) => React.ReactElement | null;
+  rowRenderer: (row: SubjectRoleRow, subjectNameRowSpan: number) => React.ReactNode;
 };
 
 const getRowSpans = (rows: SubjectRoleRow[]): number[] => {
@@ -41,8 +51,8 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
   testId,
   rows: inputRows,
   emptyTableView,
-  onRoleClick,
   footerRow,
+  rowRenderer,
 }) => {
   const sort = useTableColumnSort<SubjectRoleRow>(columns, [], 0);
   const rows = sort.transformData(inputRows);
@@ -58,12 +68,7 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
       getColumnSort={sort.getColumnSort}
       emptyTableView={emptyTableView}
       rowRenderer={(row, rowIndex) => (
-        <SubjectRolesTableRow
-          key={row.key}
-          row={row}
-          subjectNameRowSpan={rowSpans[rowIndex]}
-          onRoleClick={onRoleClick}
-        />
+        <React.Fragment key={row.key}>{rowRenderer(row, rowSpans[rowIndex])}</React.Fragment>
       )}
       footerRow={footerRow}
     />
@@ -114,6 +119,7 @@ export const buildSubjectRoleRows = (
         subjectName: s.name,
         roleRef,
         role,
+        roleBindingName: rb.metadata.name,
         roleBindingCreationTimestamp: rb.metadata.creationTimestamp,
       });
     });
@@ -138,7 +144,18 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   onRoleClick,
   footerRow,
 }) => {
+  const {
+    currentProject: {
+      metadata: { name: namespace },
+    },
+  } = React.useContext(ProjectDetailsContext);
   const { roles, clusterRoles, roleBindings } = usePermissionsContext();
+  const { assignedRolesBySubject } = useRoleAssignmentData(subjectKind);
+
+  const [editingRowKey, setEditingRowKey] = React.useState<string>();
+  const [removingRow, setRemovingRow] = React.useState<SubjectRoleRow>();
+  const [isRemoving, setIsRemoving] = React.useState(false);
+  const [removeError, setRemoveError] = React.useState<Error>();
 
   const rows = React.useMemo(
     () =>
@@ -169,15 +186,120 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   // hide the empty state to avoid confusing "No results" messaging while adding.
   const emptyTableView = footerRow && rows.length === 0 ? undefined : emptyTableViewBase;
 
+  const subjectK8sKind = subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP;
+
+  const findRoleBindingByName = (roleBindingName: string): RoleBindingKind | undefined =>
+    roleBindings.data.find((rb) => rb.metadata.name === roleBindingName);
+
+  const handleSaveEdit = async (row: SubjectRoleRow, nextRoleRef: RoleRef) => {
+    const subject = buildRoleBindingSubject(subjectK8sKind, row.subjectName);
+    const oldRb = findRoleBindingByName(row.roleBindingName);
+    if (!oldRb) {
+      throw new Error('RoleBinding not found');
+    }
+
+    await moveSubjectRoleBinding({
+      roleBindings: roleBindings.data,
+      namespace,
+      subjectKind: subjectK8sKind,
+      subject,
+      fromRoleBinding: oldRb,
+      toRoleRef: nextRoleRef,
+    });
+
+    await roleBindings.refresh();
+    setEditingRowKey(undefined);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removingRow) {
+      return;
+    }
+
+    const subject = buildRoleBindingSubject(subjectK8sKind, removingRow.subjectName);
+    const rb = findRoleBindingByName(removingRow.roleBindingName);
+    if (!rb) {
+      setRemoveError(new Error('RoleBinding not found'));
+      return;
+    }
+
+    setIsRemoving(true);
+    setRemoveError(undefined);
+    try {
+      await removeSubjectFromRoleBinding({ namespace, roleBinding: rb, subject });
+      await roleBindings.refresh();
+      setRemovingRow(undefined);
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   return (
-    <SubjectRolesTableBase
-      ariaLabel={ariaLabel}
-      testId={testId}
-      rows={rows}
-      emptyTableView={emptyTableView}
-      onRoleClick={onRoleClick}
-      footerRow={footerRow}
-    />
+    <>
+      <SubjectRolesTableBase
+        ariaLabel={ariaLabel}
+        testId={testId}
+        rows={rows}
+        emptyTableView={emptyTableView}
+        footerRow={footerRow}
+        rowRenderer={(row, rowSpan) => {
+          if (row.key === editingRowKey) {
+            const assigned = assignedRolesBySubject.get(row.subjectName) ?? [];
+            const assignedWithoutCurrent = assigned.filter(
+              (r) => !(r.kind === row.roleRef.kind && r.name === row.roleRef.name),
+            );
+            const availableRoles = getEditableRoleRefOptions(row.roleRef);
+
+            return (
+              <SubjectRolesEditRow
+                key={row.key}
+                row={row}
+                subjectKind={subjectKind}
+                subjectNameRowSpan={rowSpan}
+                availableRoles={availableRoles}
+                assignedRoles={assignedWithoutCurrent}
+                onCancel={() => setEditingRowKey(undefined)}
+                onSave={(next) => handleSaveEdit(row, next)}
+              />
+            );
+          }
+
+          return (
+            <SubjectRolesTableRow
+              key={row.key}
+              row={row}
+              subjectNameRowSpan={rowSpan}
+              onRoleClick={onRoleClick}
+              onEdit={() => {
+                if (isReversibleRoleRef(row.roleRef)) {
+                  setEditingRowKey(row.key);
+                }
+              }}
+              onRemove={() => {
+                setRemoveError(undefined);
+                setRemovingRow(row);
+              }}
+            />
+          );
+        }}
+      />
+      {removingRow ? (
+        <SubjectRolesRemoveRoleModal
+          row={removingRow}
+          isSubmitting={isRemoving}
+          error={removeError}
+          onConfirm={handleConfirmRemove}
+          onClose={() => {
+            if (!isRemoving) {
+              setRemovingRow(undefined);
+              setRemoveError(undefined);
+            }
+          }}
+        />
+      ) : null}
+    </>
   );
 };
 

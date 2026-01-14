@@ -12,6 +12,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSModel } from '~/app/types';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
@@ -45,9 +46,17 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
           <FlexItem>
             <ClipboardCopy
+              data-testid="maas-endpoint-copy"
               hoverTip="Copy"
               clickTip="Copied"
               aria-label={`MaaS route URL for ${model.id}`}
+              onCopy={() => {
+                fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
+                  assetType: 'maas_model',
+                  endpointType: 'maas_route',
+                  copyTarget: 'endpoint',
+                });
+              }}
             >
               {model.url}
             </ClipboardCopy>
@@ -89,9 +98,16 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                     </FlexItem>
                     <FlexItem>
                       <ClipboardCopy
+                        data-testid="maas-token-copy"
                         hoverTip="Copy"
                         clickTip="Copied"
                         aria-label="Generated MaaS API token"
+                        onCopy={() => {
+                          fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
+                            assetType: 'maas_model',
+                            copyTarget: 'service_token',
+                          });
+                        }}
                       >
                         {tokenData.token}
                       </ClipboardCopy>
@@ -113,7 +129,9 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
       }
       onHidden={resetToken} // Reset token state when popover closes
     >
-      <Button variant={ButtonVariant.link}>View</Button>
+      <Button data-testid="maas-view-button" variant={ButtonVariant.link}>
+        View
+      </Button>
     </Popover>
   );
 };

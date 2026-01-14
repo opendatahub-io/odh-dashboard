@@ -10,31 +10,32 @@ import {
   Panel,
   PanelMain,
 } from '@patternfly/react-core';
-import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
-import { getUniqueHardwareTypes } from '~/app/pages/modelCatalog/utils/hardwareConfigurationFilterUtils';
 import { useHardwareTypeFilterState } from '~/app/pages/modelCatalog/utils/hardwareTypeFilterState';
-
-type HardwareTypeFilterProps = {
-  performanceArtifacts: CatalogPerformanceMetricsArtifact[];
-};
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
 
 type HardwareTypeOption = {
   value: string;
   label: string;
 };
 
-const HardwareTypeFilter: React.FC<HardwareTypeFilterProps> = ({ performanceArtifacts }) => {
+const HardwareTypeFilter: React.FC = () => {
   const { appliedHardwareTypes, setAppliedHardwareTypes } = useHardwareTypeFilterState();
+  const { filterOptions } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
-  // Get unique hardware types from actual performance artifacts
+  // Get unique hardware types from filterOptions (which provides the full list across all artifacts)
+  // Don't use performanceArtifacts since we may not have all of them in memory when paginating
   const hardwareOptions: HardwareTypeOption[] = React.useMemo(() => {
-    const uniqueTypes = getUniqueHardwareTypes(performanceArtifacts);
-    return uniqueTypes.map((type) => ({
-      value: type,
-      label: type,
-    }));
-  }, [performanceArtifacts]);
+    const filterValue = filterOptions?.filters?.[ModelCatalogStringFilterKey.HARDWARE_TYPE];
+    if (filterValue && 'values' in filterValue && Array.isArray(filterValue.values)) {
+      return filterValue.values.map((type: string) => ({
+        value: type,
+        label: type,
+      }));
+    }
+    return [];
+  }, [filterOptions]);
 
   const selectedCount = appliedHardwareTypes.length;
 
@@ -53,7 +54,8 @@ const HardwareTypeFilter: React.FC<HardwareTypeFilterProps> = ({ performanceArti
       ref={toggleRef}
       onClick={() => setIsOpen(!isOpen)}
       isExpanded={isOpen}
-      style={{ minWidth: '200px', width: 'fit-content' }}
+      isFullHeight
+      style={{ minWidth: '200px', width: 'fit-content', height: '56px' }}
       badge={selectedCount > 0 ? <Badge>{selectedCount} selected</Badge> : undefined}
     >
       Hardware type

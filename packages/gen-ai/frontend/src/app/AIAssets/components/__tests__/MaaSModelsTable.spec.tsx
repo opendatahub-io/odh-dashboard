@@ -11,6 +11,11 @@ import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/AIAssets/hooks/useMaaSModelsFilter');
 
+jest.mock('~/app/AIAssets/components/TierInfoPopover', () => ({
+  __esModule: true,
+  default: () => <div data-testid="tier-info-popover">Tier Info</div>,
+}));
+
 const mockUseMaaSModelsFilter = jest.mocked(useMaaSModelsFilter);
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -97,5 +102,24 @@ describe('MaaSModelsTable', () => {
 
     expect(screen.getByText('model-1')).toBeInTheDocument();
     expect(screen.queryByText('model-2')).not.toBeInTheDocument();
+  });
+
+  it('should render Tier information popover in toolbar', () => {
+    const models = [createMockMaaSModel({ id: 'model-1' })];
+
+    mockUseMaaSModelsFilter.mockReturnValue({
+      filterData: {},
+      onFilterUpdate: jest.fn(),
+      onClearFilters: jest.fn(),
+      filteredModels: models,
+    });
+
+    render(
+      <TestWrapper>
+        <MaaSModelsTable {...defaultProps} maasModels={models} />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByTestId('tier-info-popover')).toBeInTheDocument();
   });
 });

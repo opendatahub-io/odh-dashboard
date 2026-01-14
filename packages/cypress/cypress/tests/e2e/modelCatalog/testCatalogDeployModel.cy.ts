@@ -89,7 +89,9 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
-      modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
+      modelServingWizard
+        .findModelLocationSelect()
+        .should('contain.text', ModelLocationSelectOption.URI);
       modelDetailsPage.getModelSourceImageLocation().then((modelSourceImageLocation) => {
         modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
       });

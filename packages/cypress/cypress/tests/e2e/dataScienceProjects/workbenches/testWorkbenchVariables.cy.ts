@@ -1,4 +1,5 @@
 import type { WBVariablesTestData } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { workbenchPage, createSpawnerPage } from '../../../../pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
@@ -89,7 +90,7 @@ describe('Workbenches - variable tests', () => {
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
-          notebookRow.expectStatusLabelToBe('Running', 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
           // Use dynamic image name verification for first workbench
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -126,7 +127,7 @@ describe('Workbenches - variable tests', () => {
                 cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
                 const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
                 notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
-                notebookRow2.expectStatusLabelToBe('Running', 120000);
+                notebookRow2.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
                 // Use dynamic image name verification for second workbench
                 getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {
@@ -197,7 +198,7 @@ describe('Workbenches - variable tests', () => {
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
-          notebookRow.expectStatusLabelToBe('Running', 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
           // Use dynamic image name verification for first workbench
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -234,7 +235,7 @@ describe('Workbenches - variable tests', () => {
                 cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
                 const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
                 notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
-                notebookRow2.expectStatusLabelToBe('Running', 120000);
+                notebookRow2.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
 
                 // Use dynamic image name verification for second workbench
                 getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {

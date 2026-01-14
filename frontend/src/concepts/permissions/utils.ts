@@ -18,7 +18,10 @@ import { RoleLabelType, RoleRef, RoleRefKey, SubjectKey, SupportedSubjectRef } f
 const isSupportedSubject = (subject: RoleBindingSubject): subject is SupportedSubjectRef =>
   subject.kind === RBAC_SUBJECT_KIND_USER || subject.kind === RBAC_SUBJECT_KIND_GROUP;
 
-const roleBindingHasSubject = (rb: RoleBindingKind, subject: SupportedSubjectRef): boolean =>
+export const roleBindingHasSupportedSubject = (
+  rb: RoleBindingKind,
+  subject: SupportedSubjectRef,
+): boolean =>
   (rb.subjects ?? []).some(
     (s) => isSupportedSubject(s) && s.kind === subject.kind && s.name === subject.name,
   );
@@ -140,7 +143,7 @@ export const buildGroupRoleMap = (
 export const getRoleBindingsForSubject = (
   roleBindings: RoleBindingKind[],
   subject: SupportedSubjectRef,
-): RoleBindingKind[] => roleBindings.filter((rb) => roleBindingHasSubject(rb, subject));
+): RoleBindingKind[] => roleBindings.filter((rb) => roleBindingHasSupportedSubject(rb, subject));
 
 /**
  * Returns all RoleBindings that connect a subject to a specific RoleRef (kind + name).
@@ -159,7 +162,7 @@ export const getRoleBindingsForSubjectAndRoleRef = (
     (rb) =>
       rb.roleRef.kind === roleRef.kind &&
       rb.roleRef.name === roleRef.name &&
-      roleBindingHasSubject(rb, subject),
+      roleBindingHasSupportedSubject(rb, subject),
   );
 
 /**
@@ -174,7 +177,7 @@ export const getRoleRefsForSubject = (
   const seen = new Set<RoleRefKey>();
   const result: RoleRef[] = [];
   roleBindings.forEach((rb) => {
-    if (!roleBindingHasSubject(rb, subject)) {
+    if (!roleBindingHasSupportedSubject(rb, subject)) {
       return;
     }
 

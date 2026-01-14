@@ -1,17 +1,16 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { createRoleBinding, generateRoleBindingPermissions } from '#~/api';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
-import { KnownLabels } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import SubjectRolesTable from './SubjectRolesTable';
 import { DEFAULT_ROLE_REFS, FilterDataType } from './const';
 import SubjectRolesAddRow from './SubjectRolesAddRow';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
+import { buildRoleBindingSubject, upsertRoleBinding } from './roleBindingMutations';
 
 type SubjectRolesTableSectionProps = {
   subjectKind: 'user' | 'group';
@@ -25,9 +24,7 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
   onClearFilters,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const {
-    roleBindings: { refresh: refreshRoleBindings },
-  } = usePermissionsContext();
+  const { roleBindings } = usePermissionsContext();
   const { existingSubjectNames, assignedRolesBySubject } = useRoleAssignmentData(subjectKind);
   const [isAdding, setIsAdding] = React.useState(false);
 
@@ -64,18 +61,17 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
                     assignedRolesBySubject={assignedRolesBySubject}
                     onCancel={() => setIsAdding(false)}
                     onSave={async ({ subjectName, roleRef }) => {
+                      const namespace = currentProject.metadata.name;
                       const rbSubjectKind =
                         subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP;
-                      const rb = generateRoleBindingPermissions(
-                        currentProject.metadata.name,
-                        rbSubjectKind,
-                        subjectName,
-                        roleRef.name,
-                        roleRef.kind,
-                        { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
-                      );
-                      await createRoleBinding(rb);
-                      await refreshRoleBindings();
+                      await upsertRoleBinding({
+                        roleBindings: roleBindings.data,
+                        namespace,
+                        subjectKind: rbSubjectKind,
+                        subject: buildRoleBindingSubject(rbSubjectKind, subjectName),
+                        roleRef,
+                      });
+                      await roleBindings.refresh();
                       setIsAdding(false);
                     }}
                   />

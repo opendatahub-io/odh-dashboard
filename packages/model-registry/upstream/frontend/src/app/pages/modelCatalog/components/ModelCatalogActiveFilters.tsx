@@ -15,21 +15,42 @@ import {
   AllLanguageCode,
   ModelCatalogNumberFilterKey,
   isCatalogFilterKey,
+  isPerformanceFilterKey,
+  parseLatencyFilterKey,
 } from '~/concepts/modelCatalog/const';
 import { ModelCatalogFilterKey } from '~/app/modelCatalogTypes';
-import { parseLatencyFieldName } from '~/app/pages/modelCatalog/utils/hardwareConfigurationFilterUtils';
+import {
+  USE_CASE_OPTIONS,
+  isUseCaseOptionValue,
+} from '~/app/pages/modelCatalog/utils/workloadTypeUtils';
+import { isValueDifferentFromDefault } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 
 type ModelCatalogActiveFiltersProps = {
   filtersToShow: ModelCatalogFilterKey[];
 };
 
 const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ filtersToShow }) => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
+  const {
+    filterData,
+    setFilterData,
+    resetSinglePerformanceFilterToDefault,
+    performanceViewEnabled,
+    getPerformanceFilterDefaultValue,
+  } = React.useContext(ModelCatalogContext);
 
   const handleRemoveFilter = (categoryKey: string, labelKey: string) => {
     if (!isCatalogFilterKey(categoryKey)) {
       return;
     }
+
+    // Performance filters always reset to default (they should always have a value)
+    if (isPerformanceFilterKey(categoryKey)) {
+      resetSinglePerformanceFilterToDefault(categoryKey);
+      return;
+    }
+
+    // Basic filters: remove the specific value
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
       const currentValues = filterData[categoryKey];
       if (Array.isArray(currentValues)) {
@@ -37,7 +58,7 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
         setFilterData(categoryKey, newValues);
       }
     } else {
-      // For number filters and latency fields, clear the value
+      // For number filters, clear the value
       setFilterData(categoryKey, undefined);
     }
   };
@@ -46,10 +67,18 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
     if (!isCatalogFilterKey(categoryKey)) {
       return;
     }
+
+    // Performance filters always reset to default (they should always have a value)
+    if (isPerformanceFilterKey(categoryKey)) {
+      resetSinglePerformanceFilterToDefault(categoryKey);
+      return;
+    }
+
+    // Basic filters: clear completely
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
       setFilterData(categoryKey, []);
     } else {
-      // For number filters and latency fields, clear the value
+      // For number filters, clear the value
       setFilterData(categoryKey, undefined);
     }
   };
@@ -80,6 +109,16 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
         case ModelCatalogStringFilterKey.LANGUAGE: {
           return isEnumMember(valueStr, AllLanguageCode) ? AllLanguageCodesMap[valueStr] : valueStr;
         }
+        case ModelCatalogStringFilterKey.USE_CASE: {
+          // Show same format as menu toggle but without bold
+          if (isUseCaseOptionValue(valueStr)) {
+            const option = USE_CASE_OPTIONS.find((opt) => opt.value === valueStr);
+            if (option) {
+              return `${option.label} (${option.inputTokens} input | ${option.outputTokens} output tokens)`;
+            }
+          }
+          return valueStr;
+        }
         default:
           return valueStr;
       }
@@ -90,19 +129,17 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
     if (isEnumMember(filterKey, ModelCatalogNumberFilterKey)) {
       switch (filterKey) {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        case ModelCatalogNumberFilterKey.MIN_RPS:
-          return `≥${value} requests/sec`;
+        case ModelCatalogNumberFilterKey.MAX_RPS:
+          return `≤${value} requests/sec`;
         default:
           return String(value);
       }
     }
 
     // Handle latency field names - type is already narrowed to LatencyMetricFieldName
-    const parsed = parseLatencyFieldName(filterKey);
-    if (parsed) {
-      return `${parsed.metric} ${parsed.percentile}: ≤${value}ms`;
-    }
-    return `${filterKey}: ≤${value}ms`;
+    const parsed = parseLatencyFilterKey(filterKey);
+    const formattedValue = typeof value === 'number' ? formatLatency(value) : `${value}ms`;
+    return `${parsed.metric} | ${parsed.percentile} | ${formattedValue}`;
   };
 
   return (
@@ -120,11 +157,22 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
           return null;
         }
 
+        const isPerf = performanceViewEnabled && isPerformanceFilterKey(filterKey);
+
+        // For performance filters, skip if value matches the default
+        if (isPerf) {
+          const defaultValue = getPerformanceFilterDefaultValue(filterKey);
+          if (!isValueDifferentFromDefault(filterValue, defaultValue)) {
+            return null;
+          }
+        }
+
         // Normalize to array for consistent handling
         const filterValues = Array.isArray(filterValue) ? filterValue : [filterValue];
 
         const categoryName = MODEL_CATALOG_FILTER_CATEGORY_NAMES[filterKey];
 
+        // Build labels for ToolbarFilter
         const labels: ToolbarLabel[] = filterValues.map((value) => {
           const valueStr = String(value);
           const labelText = getFilterLabel(filterKey, value);
@@ -139,6 +187,8 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
           name: categoryName,
         };
 
+        // Use ToolbarFilter for all filters (both basic and performance)
+        // This ensures proper integration with Toolbar's clearAllFilters button
         return (
           <ToolbarFilter
             key={filterKey}

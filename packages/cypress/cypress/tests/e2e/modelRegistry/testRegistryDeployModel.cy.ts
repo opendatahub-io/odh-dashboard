@@ -1,3 +1,8 @@
+import {
+  ModelLocationSelectOption,
+  ModelStateLabel,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   FormFieldSelector,
@@ -30,6 +35,8 @@ describe('Verify models can be deployed from model registry', () => {
   let modelName: string;
   let projectName: string;
   let deploymentName: string;
+  let modelFormat: string;
+  let servingRuntime: string;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
 
@@ -41,6 +48,8 @@ describe('Verify models can be deployed from model registry', () => {
       modelName = `${testData.objectStorageModelName}-${uuid}`;
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
       deploymentName = testData.operatorDeploymentName;
+      modelFormat = testData.modelFormat;
+      servingRuntime = testData.servingRuntime;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
@@ -148,7 +157,9 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Configure the deployment');
       cy.step('Model details');
       // connection data should be prefilled
-      modelServingWizard.findModelLocationSelect().should('contain.text', 'S3 object storage');
+      modelServingWizard
+        .findModelLocationSelect()
+        .should('contain.text', ModelLocationSelectOption.S3);
       modelServingWizard.findLocationAccessKeyInput().clear().type(AWS_BUCKETS.AWS_ACCESS_KEY_ID);
       modelServingWizard
         .findLocationSecretKeyInput()
@@ -164,7 +175,7 @@ describe('Verify models can be deployed from model registry', () => {
       modelServingWizard.findLocationPathInput().should('have.value', testData.modelOpenVinoPath);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard.findSaveConnectionInput().clear().type(`${projectName}-connection`);
-      modelServingWizard.findModelTypeSelectOption('Predictive model').click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Model deployment');
@@ -172,7 +183,8 @@ describe('Verify models can be deployed from model registry', () => {
       modelServingWizard
         .findModelDeploymentNameInput()
         .should('have.value', `${modelName} - ${testData.version1Name}`);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Advanced settings');
@@ -191,7 +203,7 @@ describe('Verify models can be deployed from model registry', () => {
       modelRegistry.navigate();
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName).should('be.visible');
-      cy.contains('Started').should('be.visible');
+      cy.contains(ModelStateLabel.STARTED).should('be.visible');
     },
   );
 });

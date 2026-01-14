@@ -41,7 +41,7 @@ export type FileOptions = {
   fileFormat?: {
     parquetFormat: Record<string, string>;
   };
-  uri: string;
+  uri?: string;
 };
 
 export type NameValueTypePair = {
@@ -54,7 +54,7 @@ export type BatchSource = {
   type: string;
   timestampField: string;
   createdTimestampColumn: string;
-  fileOptions: FileOptions;
+  fileOptions?: FileOptions;
   name: string;
   description?: string;
   tags?: Record<string, string>;

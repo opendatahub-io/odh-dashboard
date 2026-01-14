@@ -30,6 +30,11 @@ COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+# Copy packages required for @odh-dashboard/llmd-serving and its dependencies
+COPY --chown=default:root packages/llmd-serving/ ./packages/llmd-serving/
+COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
+COPY --chown=default:root packages/kserve/ ./packages/kserve/
+COPY --chown=default:root packages/model-registry/ ./packages/model-registry/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
 
@@ -72,7 +77,6 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
-COPY ./packages/${MODULE_NAME}/api/openapi/ ./openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
@@ -84,7 +88,6 @@ ARG UI_SOURCE_CODE
 
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
-COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 

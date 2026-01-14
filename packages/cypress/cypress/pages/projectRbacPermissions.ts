@@ -1,9 +1,14 @@
 import { Contextual } from './components/Contextual';
+import { TableRow } from './components/table';
 import { projectDetails } from './projects';
 
 class SubjectRolesTable extends Contextual<HTMLElement> {
   findNameCell(name: string) {
     return this.find().find('[data-label="Name"]').contains(name).closest('td');
+  }
+
+  getRowByName(name: string) {
+    return new TableRow(() => this.findNameCell(name).parents('tr'));
   }
 
   findRoleCellButtons() {
@@ -12,6 +17,14 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
 
   findRoleLink(name: string) {
     return this.find().findByRole('button', { name });
+  }
+
+  findRoleLinkInRow(rowName: string, roleName: string) {
+    return this.getRowByName(rowName).find().findByRole('button', { name: roleName });
+  }
+
+  getRowByRoleLink(roleName: string) {
+    return new TableRow(() => this.findRoleLink(roleName).parents('tr'));
   }
 }
 
@@ -124,6 +137,23 @@ class ProjectRbacPermissionsTab {
     this.findAddRowRoleSelectToggle(subjectKind).click();
     // SimpleSelect renders a non-clickable list-item wrapper for each option. Click the inner button.
     return cy.findByTestId(roleRefKey).should('not.be.disabled').find('button').click();
+  }
+
+  findEditRowRoleSelectToggle(subjectKind: 'user' | 'group') {
+    return cy.findByTestId(`permissions-edit-${subjectKind}-role-select-toggle`);
+  }
+
+  selectEditRowRole(subjectKind: 'user' | 'group', roleRefKey: string) {
+    this.findEditRowRoleSelectToggle(subjectKind).click();
+    return cy.findByTestId(roleRefKey).should('not.be.disabled').find('button').click();
+  }
+
+  findEditRowSaveButton(subjectKind: 'user' | 'group') {
+    return cy.findByTestId(`permissions-edit-${subjectKind}-save`);
+  }
+
+  findEditRowCancelButton(subjectKind: 'user' | 'group') {
+    return cy.findByTestId(`permissions-edit-${subjectKind}-cancel`);
   }
 
   getUsersTable() {
