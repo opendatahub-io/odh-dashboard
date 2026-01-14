@@ -1214,6 +1214,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 	}
 
+	// Ensure storage field is present before serialization (defensive check)
+	config.EnsureStorageField()
+
 	// Convert the config to YAML
 	configYAML, err := config.ToYAML()
 	if err != nil {
@@ -1585,6 +1588,11 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 	if err := config.FromYAML(runYAML); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
+
+	// Ensure storage field is present for llama-stack v0.4.0+ compatibility
+	// This provides backward compatibility with ConfigMaps created before storage was required
+	config.EnsureStorageField()
+
 	return &config, nil
 }
 

@@ -89,6 +89,15 @@ type Server struct {
 	Port int `json:"port" yaml:"port"`
 }
 
+// EnsureStorageField ensures the storage field is populated with defaults if missing
+// This provides backward compatibility for ConfigMaps created before llama-stack v0.4.0+
+func (c *LlamaStackConfig) EnsureStorageField() {
+	if len(c.Storage.Backends) == 0 || len(c.Storage.Stores) == 0 {
+		defaultConfig := NewDefaultLlamaStackConfig()
+		c.Storage = defaultConfig.Storage
+	}
+}
+
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
