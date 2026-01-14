@@ -206,6 +206,17 @@ export const mockSecretCreate: SecretsSecretCreate = {
     username: {
       base64: 'abcd',
     },
+    password: {},
+  },
+};
+
+export const mockSecretCreate3: SecretsSecretCreate = {
+  name: 'secret-3',
+  type: 'Opaque',
+  immutable: false,
+  contents: {
+    apiKey: {},
+    apiSecret: {},
   },
 };
 
