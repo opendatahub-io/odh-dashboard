@@ -9,7 +9,6 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
       == "odh-release"
-      )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-release
