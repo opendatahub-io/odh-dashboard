@@ -28,6 +28,53 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   }
 }
 
+class RoleDetailsModal extends Contextual<HTMLElement> {
+  findAssigneesTab() {
+    return this.find().findByRole('tab', { name: /Assignees/i });
+  }
+
+  clickAssigneesTab() {
+    return this.findAssigneesTab().click();
+  }
+
+  getRulesTable() {
+    return new RoleRulesTable(() => this.find().findByTestId('role-rules-table'));
+  }
+
+  getAssigneesTable() {
+    // Table content may be rendered outside the modal subtree by PF Tabs internals.
+    // Keep this query global for stability.
+    return new RoleAssigneesTable(() => cy.findByTestId('role-assignees-table'));
+  }
+}
+
+class RoleRulesTable extends Contextual<HTMLElement> {
+  findHeaderSortButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
+  }
+
+  clickHeaderSort(name: string | RegExp) {
+    return this.findHeaderSortButton(name).click();
+  }
+
+  findFirstBodyRow() {
+    return this.find().find('tbody tr').first();
+  }
+}
+class RoleAssigneesTable extends Contextual<HTMLElement> {
+  findHeaderSortButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
+  }
+
+  clickHeaderSort(name: string | RegExp) {
+    return this.findHeaderSortButton(name).click();
+  }
+
+  findFirstBodyRow() {
+    return this.find().find('tbody tr').first();
+  }
+}
+
 class ProjectRbacPermissionsTab {
   visit(projectName: string) {
     projectDetails.visitSection(projectName, 'permissions');
@@ -162,6 +209,10 @@ class ProjectRbacPermissionsTab {
 
   getGroupsTable() {
     return new SubjectRolesTable(() => cy.findByTestId('permissions-group-roles-table'));
+  }
+
+  getRoleDetailsModal() {
+    return new RoleDetailsModal(() => cy.findByTestId('role-details-modal'));
   }
 }
 
