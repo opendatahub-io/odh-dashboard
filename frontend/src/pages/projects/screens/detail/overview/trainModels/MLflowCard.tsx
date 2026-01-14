@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CardBody,
+  CardFooter,
   CardHeader,
   Content,
   Flex,
@@ -26,7 +27,7 @@ const MLflowCard: React.FC = () => {
   }
 
   return (
-    <Card isCompact>
+    <Card>
       <CardHeader>
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           <FlexItem>
@@ -40,42 +41,33 @@ const MLflowCard: React.FC = () => {
         </Flex>
       </CardHeader>
       <CardBody>
-        <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
+        <Content component="p" style={{ maxWidth: '620px' }}>
+          Track your pipeline experiments with the embedded MLflow experience on the Experiments
+          page, or launch MLflow in a new tab.
+        </Content>
+      </CardBody>
+      <CardFooter>
+        <Flex gap={{ default: 'gapMd' }}>
           <FlexItem>
-            <Content>
-              <Content component="p">
-                Track your pipeline experiments with the embedded MLflow experience on the
-                Experiments page, or launch MLflow in a new tab.
-              </Content>
-            </Content>
+            <Button variant="link" onClick={() => navigate('/develop-train/experiments-mlflow')}>
+              Go to <strong>Experiments</strong>
+            </Button>
           </FlexItem>
           <FlexItem>
-            <Flex gap={{ default: 'gapMd' }}>
-              <FlexItem>
-                <Button
-                  variant="link"
-                  onClick={() => navigate('/develop-train/experiments-mlflow')}
-                >
-                  Go to <strong>Experiments</strong>
-                </Button>
-              </FlexItem>
-              <FlexItem>
-                <Button
-                  component="a"
-                  variant="link"
-                  href={mlflowLink.spec.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  icon={<ExternalLinkAltIcon />}
-                  iconPosition="right"
-                >
-                  Launch MLflow
-                </Button>
-              </FlexItem>
-            </Flex>
+            <Button
+              component="a"
+              variant="link"
+              href={mlflowLink.spec.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<ExternalLinkAltIcon />}
+              iconPosition="right"
+            >
+              Launch MLflow
+            </Button>
           </FlexItem>
         </Flex>
-      </CardBody>
+      </CardFooter>
     </Card>
   );
 };
