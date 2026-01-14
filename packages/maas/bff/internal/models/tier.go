@@ -6,7 +6,7 @@ type Tier struct {
 	Name        string     `json:"name,omitempty"`
 	DisplayName string     `json:"displayName,omitempty"`
 	Description string     `json:"description,omitempty"`
-	Level       int        `json:"level,omitempty"`
+	Level       int        `json:"level"`
 	Groups      []string   `json:"groups,omitempty"`
 	Models      []string   `json:"models,omitempty"`
 	Limits      TierLimits `json:"limits,omitempty"`

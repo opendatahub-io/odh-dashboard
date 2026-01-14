@@ -53,10 +53,12 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
       .map((t) => [t.level, t.displayName ?? t.name ?? '']),
   );
 
-  // Find the lowest available tier level starting from 1
-  let defaultTierLevel = 1;
-  while (existingTierLevels.has(defaultTierLevel)) {
-    defaultTierLevel++;
+  // Find the lowest available tier level starting from 0 if no tier is provided
+  let defaultTierLevel = 0;
+  if (!tier) {
+    while (existingTierLevels.has(defaultTierLevel)) {
+      defaultTierLevel++;
+    }
   }
 
   const existingTierNames = new Set(
@@ -149,8 +151,6 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
       <FormGroup label="Level" fieldId="tier-level" isRequired>
         <NumberInput
           value={Number.isNaN(level) ? '' : level}
-          min={1}
-          max={999999}
           data-testid="tier-level"
           validated={
             getAllValidationIssues(['level']).length > 0 || isLevelTaken
@@ -162,6 +162,9 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
             if (inputValue === '') {
               // Allow empty field - store as NaN to indicate empty
               setLevel(NaN);
+            } else if (inputValue === '-') {
+              // Allow typing a minus sign to start a negative number
+              setLevel(NaN);
             } else {
               const newValue = parseInt(inputValue, 10);
               if (!Number.isNaN(newValue)) {
@@ -169,8 +172,8 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
               }
             }
           }}
-          onMinus={() => setLevel(Math.max(1, (level || 1) - 1))}
-          onPlus={() => setLevel((level || 0) + 1)}
+          onMinus={() => setLevel((Number.isNaN(level) ? 0 : level) - 1)}
+          onPlus={() => setLevel((Number.isNaN(level) ? 0 : level) + 1)}
         />
         {getAllValidationIssues(['level']).length > 0 && (
           <FormHelperText>

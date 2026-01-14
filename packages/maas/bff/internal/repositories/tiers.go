@@ -26,7 +26,7 @@ type tierConfigMapData struct {
 	DisplayName string   `yaml:"displayName,omitempty"` // Human-friendly label (optional, falls back to Name)
 	Description string   `yaml:"description,omitempty"` // Human-readable description
 	Groups      []string `yaml:"groups"`                // List of groups that belong to this tier
-	Level       int      `yaml:"level,omitempty"`       // Level for importance (higher wins)
+	Level       int      `yaml:"level"`                 // Level for importance (higher wins)
 }
 
 type TiersRepository struct {
