@@ -6,3 +6,5 @@ tolerationValue: "PreferNoSchedule"
 hardwareProfileDeploymentSize: "cypress-hardware-profile-model Compatible CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB"
 modelName: "cypress-toleration-single-model"
 modelFilePath: "flan-t5-small/flan-t5-small-caikit"
+modelFormat: 'openvino_ir - opset13'
+servingRuntime: 'OpenVINO Model Server'

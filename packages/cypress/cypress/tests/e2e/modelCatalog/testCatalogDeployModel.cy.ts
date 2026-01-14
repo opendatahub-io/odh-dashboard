@@ -1,3 +1,4 @@
+import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/types/form-data';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData } from '../../../types';
@@ -71,7 +72,9 @@ describe('[Automation Task: RHOAIENG-39294] Verify a model can be deployed from 
 
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
-      modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
+      modelServingWizard
+        .findModelLocationSelect()
+        .should('contain.text', ModelLocationSelectOption.URI);
       modelDetailsPage.getModelSourceImageLocation().then((modelSourceImageLocation) => {
         modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
       });
