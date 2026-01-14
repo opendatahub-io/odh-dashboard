@@ -46,10 +46,9 @@ type tierPolicyReference struct {
 }
 
 var (
-	ErrTierExists        = errors.New("tier exists")
-	ErrTierLevelConflict = errors.New("another tier with same level exists")
-	ErrTierNotFound      = errors.New("tier not found")
-	ErrUpdateConflict    = errors.New("another user has updated tier data at the same time")
+	ErrTierExists     = errors.New("tier exists")
+	ErrTierNotFound   = errors.New("tier not found")
+	ErrUpdateConflict = errors.New("another user has updated tier data at the same time")
 )
 
 // TODO: In general, there is no protection around edits from multiple users
@@ -212,9 +211,6 @@ func (t *TiersRepository) CreateTier(ctx context.Context, tier models.Tier) (*mo
 		if existingTier.Name == tier.Name {
 			return nil, ErrTierExists
 		}
-		if existingTier.Level == tier.Level {
-			return nil, ErrTierLevelConflict
-		}
 	}
 
 	newTier := tierConfigMapData{
@@ -248,21 +244,14 @@ func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) (*mo
 	}
 
 	tierIdx := -1
-	levelConflict := false
 	for idx, existingTier := range parsedTiers {
 		if existingTier.Name == tier.Name {
 			tierIdx = idx
-		} else if existingTier.Level == tier.Level {
-			levelConflict = true
 		}
 	}
 
 	if tierIdx == -1 {
 		return nil, ErrTierNotFound
-	}
-
-	if levelConflict {
-		return nil, ErrTierLevelConflict
 	}
 
 	parsedTiers[tierIdx] = tierConfigMapData{
