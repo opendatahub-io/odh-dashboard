@@ -1,3 +1,8 @@
+import {
+  ModelLocationSelectOption,
+  ModelStateLabel,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -24,11 +29,8 @@ let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
-let modelLocationType: string;
 let modelURI: string;
 let servingRuntime: string;
-let modelStatus: string;
-let modelType: string;
 let resourceType: string;
 let Image: string;
 
@@ -40,11 +42,8 @@ describe('A user can deploy an LLMD model', () => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
-        modelLocationType = testData.modelLocationType;
         modelURI = testData.modelLocationURI;
-        modelType = testData.modelType;
         servingRuntime = testData.servingRuntime;
-        modelStatus = testData.modelStatus;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
         resourceType = testData.resourceType;
@@ -93,11 +92,11 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Select Model details');
-      modelServingWizard.findModelLocationSelectOption(modelLocationType).click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard.findSaveConnectionInput().clear().type(`${modelName}-connection`);
-      modelServingWizard.findModelTypeSelectOption(modelType).click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -113,7 +112,8 @@ describe('A user can deploy an LLMD model', () => {
       // LLMD models support token authentication and it is checked by default
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
       modelServingWizard.findNextButton().click();
-      // Step 4: Summary
+
+      cy.step('Review');
       modelServingWizard.findSubmitButton().click();
 
       cy.step('Verify the model is available in UI');
@@ -130,7 +130,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.visit(projectName);
 
       const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
-      llmdRow.findStatusLabel(modelStatus);
+      llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
       // Expand row to verify deployment details
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
     },

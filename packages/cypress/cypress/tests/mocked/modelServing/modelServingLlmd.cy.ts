@@ -23,7 +23,10 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import {
   HardwareProfileModel,
@@ -341,7 +344,7 @@ describe('Model Serving LLMD', () => {
 
       // Step 1: Model source
       modelServingWizard
-        .findModelLocationSelectOption('Existing connection')
+        .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
         .should('exist')
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
@@ -493,7 +496,7 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
 
       // Step 1: Model source
-      modelServingWizardEdit.findModelLocationSelectOption('URI').click();
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
 
       modelServingWizardEdit
@@ -635,7 +638,7 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Quick setup: Model source and deployment
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();

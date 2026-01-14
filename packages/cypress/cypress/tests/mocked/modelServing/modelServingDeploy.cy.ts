@@ -24,7 +24,10 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -345,7 +348,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist');
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
     modelServingWizard.findExistingConnectionSelect().should('exist').click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
@@ -642,7 +648,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist');
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
     modelServingWizard.findExistingConnectionSelect().should('exist').click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
@@ -817,7 +826,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     // test filling in minimum required fields
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -876,7 +888,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -922,7 +937,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
 
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
 
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -988,7 +1006,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentStep().should('be.disabled');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().should('exist').type('https://test');
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
     modelServingWizard.findSaveConnectionCheckbox().click();
@@ -1071,7 +1092,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findBackButton().should('be.disabled');
     modelServingWizard.findCancelButton().should('be.enabled');
-    modelServingWizard.findModelLocationSelectOption('Existing connection').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
     modelServingWizard.findExistingConnectionValue().should('have.value', 'Test Secret');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findOCIModelURI().click();
@@ -1217,7 +1241,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findCancelButton().should('be.enabled');
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findModelLocationSelectOption('Cluster storage').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.PVC)
+      .should('exist')
+      .click();
     modelServingWizard.findPVCSelectValue().should('have.value', 'Test PVC');
     modelServingWizard.findPVCPathPrefix().should('contain.text', 'pvc://test-pvc/');
     modelServingWizard.findLocationPathInput().should('have.value', 'test-path');
@@ -1343,7 +1370,9 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 1: Model source
     modelServingWizardEdit.findModelLocationSelect().should('exist');
-    modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
+    modelServingWizardEdit
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist');
     modelServingWizardEdit.findExistingConnectionSelect().should('exist');
     modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Test URI Secret');
     modelServingWizardEdit.findSaveConnectionCheckbox().should('not.exist');
@@ -1511,7 +1540,10 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist');
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
     modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().type('https://testinguri');
 
     modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
@@ -1693,7 +1725,10 @@ describe('Model Serving Deploy Wizard', () => {
         .findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE)
         .should('exist')
         .click();
-      modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+        .should('exist')
+        .click();
       modelServingWizard.findUrilocationInput().type('https://test');
       modelServingWizard.findSaveConnectionCheckbox().click();
       modelServingWizard.findNextButton().should('be.enabled').click();
