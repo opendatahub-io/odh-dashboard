@@ -69,7 +69,10 @@ const RoleDetailsModalDetailsTab: React.FC<RoleDetailsModalDetailsTabProps> = ({
                   headerContent="OpenShift name"
                   bodyContent="This is the name of the role in OpenShift."
                 >
-                  <DescriptionListTermHelpTextButton aria-label="More info for OpenShift name">
+                  <DescriptionListTermHelpTextButton
+                    data-testid="openshift-name-help-button"
+                    aria-label="More info for OpenShift name"
+                  >
                     <HelpIcon />
                   </DescriptionListTermHelpTextButton>
                 </Popover>

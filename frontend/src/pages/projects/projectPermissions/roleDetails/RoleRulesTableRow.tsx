@@ -3,13 +3,14 @@ import { Td, Tr } from '@patternfly/react-table';
 import type { ResourceRule } from '#~/k8sTypes';
 
 const formatRuleValues = (values?: string[]): string => {
-  if (!values || values.length === 0) {
+  const normalized = (values ?? []).map((v) => v.trim()).filter((v) => v.length > 0);
+  if (normalized.length === 0) {
     return '-';
   }
-  if (values.includes('*')) {
+  if (normalized.includes('*')) {
     return 'All';
   }
-  return values.join(', ');
+  return normalized.join(', ');
 };
 
 type RoleRulesTableRowProps = {

@@ -4,14 +4,15 @@ import { ResourceRule } from '#~/k8sTypes';
 import { ROLE_BINDING_DATE_CREATED_TOOLTIP } from '#~/pages/projects/projectPermissions/const';
 
 const toSortableValue = (values?: string[]): string => {
-  if (!values || values.length === 0) {
+  const normalized = (values ?? []).map((v) => v.trim()).filter((v) => v.length > 0);
+  if (normalized.length === 0) {
     // Keep "no values" at the bottom when sorting asc.
     return '\uFFFF';
   }
-  if (values.includes('*')) {
+  if (normalized.includes('*')) {
     return 'All';
   }
-  return values.filter((v) => v.length > 0).join(', ');
+  return normalized.join(', ');
 };
 
 const compareRuleListField = (a: ResourceRule, b: ResourceRule, keyField: string): number => {
