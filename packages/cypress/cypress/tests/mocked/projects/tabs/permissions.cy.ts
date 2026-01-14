@@ -856,7 +856,7 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.visit(namespace);
     cy.wait('@listRoleBindingsDynamic');
 
-    // For irreversible roles, Edit should not be available (only Remove).
+    // For irreversible roles, Edit should not be available (only Unassign).
     const viewRow = usersTable.getRowByRoleLink('view');
     viewRow.findKebab().click();
     viewRow.findKebabAction('Edit', false).should('not.exist');
@@ -896,22 +896,22 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.visit(namespace);
     cy.wait('@listRoleBindingsDynamic');
 
-    usersTable.getRowByRoleLink('Admin').findKebabAction('Remove').click();
-    const removeRoleModal = new DeleteModal(/Unassign role\?/);
-    removeRoleModal.shouldBeOpen();
+    usersTable.getRowByRoleLink('Admin').findKebabAction('Unassign').click();
+    const unassignRoleModal = new DeleteModal(/Unassign role\?/);
+    unassignRoleModal.shouldBeOpen();
 
-    // Cancel does not delete
-    removeRoleModal.findCancelButton().click();
-    removeRoleModal.shouldBeOpen(false);
+    // Cancel does not unassign
+    unassignRoleModal.findCancelButton().click();
+    unassignRoleModal.shouldBeOpen(false);
     cy.wrap(null).then(() => {
       expect(deleteCount).to.eq(0);
     });
     usersTable.findRoleLink('Admin').should('exist');
 
-    // Confirm removes role assignment (RoleBinding deleted because it would become empty)
-    usersTable.getRowByRoleLink('Admin').findKebabAction('Remove').click();
-    removeRoleModal.shouldBeOpen();
-    removeRoleModal
+    // Confirm remove the role assignment (RoleBinding deleted because it would become empty)
+    usersTable.getRowByRoleLink('Admin').findKebabAction('Unassign').click();
+    unassignRoleModal.shouldBeOpen();
+    unassignRoleModal
       .findSubmitButton({ name: /Unassign role/i })
       .should('be.enabled')
       .click();
@@ -950,14 +950,14 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.visit(namespace);
     cy.wait('@listRoleBindingsDynamic');
 
-    usersTable.getRowByRoleLink('view').findKebabAction('Remove').click();
-    const removeRoleModal = new DeleteModal(/Unassign role\?/);
-    removeRoleModal.shouldBeOpen();
+    usersTable.getRowByRoleLink('view').findKebabAction('Unassign').click();
+    const unassignRoleModal = new DeleteModal(/Unassign role\?/);
+    unassignRoleModal.shouldBeOpen();
 
     // Non-reversible roles should require typing the subject name to enable the button
-    removeRoleModal.findSubmitButton({ name: /Unassign role/i }).should('be.disabled');
-    removeRoleModal.findInput().fill(userName);
-    removeRoleModal
+    unassignRoleModal.findSubmitButton({ name: /Unassign role/i }).should('be.disabled');
+    unassignRoleModal.findInput().fill(userName);
+    unassignRoleModal
       .findSubmitButton({ name: /Unassign role/i })
       .should('be.enabled')
       .click();
