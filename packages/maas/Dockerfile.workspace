@@ -47,13 +47,15 @@ USER default
 # Install workspace dependencies first (this creates node_modules at workspace level)
 RUN npm cache clean --force
 # Install all workspace dependencies (includes root + any copied workspaces)
-RUN npm ci --ignore-scripts
+# Use cachi2 prefetched dependencies if available
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && npm ci --ignore-scripts
 
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
 # Install module dependencies
-RUN npm ci --ignore-scripts
+# Use cachi2 prefetched dependencies if available
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && npm ci --ignore-scripts
 
 # Build the module
 RUN npm run build:prod
