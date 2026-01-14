@@ -42,8 +42,8 @@ const MLflowCard: React.FC = () => {
       </CardHeader>
       <CardBody>
         <Content component="p" style={{ maxWidth: '620px' }}>
-          Track your pipeline experiments with the embedded MLflow experience on the Experiments
-          page, or launch MLflow in a new tab.
+          Track your pipeline experiments with the embedded MLflow experience on the{' '}
+          <strong>Experiments</strong> page, or launch MLflow in a new tab.
         </Content>
       </CardBody>
       <CardFooter>
