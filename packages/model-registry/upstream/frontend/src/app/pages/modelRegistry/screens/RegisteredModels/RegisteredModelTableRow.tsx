@@ -18,6 +18,7 @@ import {
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
+import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -152,7 +153,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
             </FlexItem>
           </div>
         ) : (
-          '-'
+          EMPTY_CUSTOM_PROPERTY_VALUE
         )}
       </Td>
       <Td dataLabel="Labels">
@@ -163,7 +164,7 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
       </Td>
       <Td dataLabel="Owner">
         <Content component="p" data-testid="registered-model-owner">
-          {rm.owner || '-'}
+          {rm.owner || EMPTY_CUSTOM_PROPERTY_VALUE}
         </Content>
       </Td>
       <Td isActionCell>
