@@ -18,6 +18,7 @@ import {
   POLL_INTERVAL,
 } from '#~/utilities/const';
 import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
 import { FetchStateObject } from '#~/utilities/useFetch';
@@ -117,6 +118,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   );
 
   const projectsEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW).status;
+  const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
 
   const contextValue = React.useMemo(
     () =>
@@ -173,7 +175,13 @@ const ProjectDetailsContextProvider: React.FC = () => {
 
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
-      <Outlet />
+      {pipelinesEnabled ? (
+        <PipelineContextProvider namespace={project.metadata.name}>
+          <Outlet />
+        </PipelineContextProvider>
+      ) : (
+        <Outlet />
+      )}
     </ProjectDetailsContext.Provider>
   );
 };
