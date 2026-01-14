@@ -2,6 +2,8 @@ import type { UserSettings } from 'mod-arch-core';
 import type {
   ApiErrorEnvelope,
   ApiNamespaceListEnvelope,
+  ApiSecretCreateEnvelope,
+  ApiSecretListEnvelope,
   ApiWorkspaceActionPauseEnvelope,
   ApiWorkspaceCreateEnvelope,
   ApiWorkspaceEnvelope,
@@ -90,6 +92,16 @@ declare global {
           type: 'POST /api/:apiVersion/workspacekinds',
           options: { path: { apiVersion: string } },
           response: ApiWorkspaceKindEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/secrets/:namespace',
+          options: { path: { apiVersion: string; namespace: string } },
+          response: ApiSecretListEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/secrets/:namespace',
+          options: { path: { apiVersion: string; namespace: string } },
+          response: ApiSecretCreateEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>);
     }
   }

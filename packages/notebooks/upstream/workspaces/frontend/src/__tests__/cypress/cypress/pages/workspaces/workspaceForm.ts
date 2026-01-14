@@ -158,6 +158,174 @@ class WorkspaceForm {
   assertSecretsCount(count: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('secrets-count').should('have.text', `${count} added`);
   }
+
+  findSecretsExpandableToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('button', 'Secrets') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+  }
+
+  expandSecretsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSecretsExpandableToggle().click();
+  }
+
+  findCreateNewSecretButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('button', 'Create New Secret') as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  clickCreateNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findCreateNewSecretButton().click();
+  }
+}
+
+class SecretsCreateModal {
+  find() {
+    // eslint-disable-next-line @cspell/spellchecker
+    return cy.get('[aria-labelledby="create-secret-modal-title"]');
+  }
+
+  assertModalExists() {
+    return this.find().should('exist');
+  }
+
+  assertModalNotExists() {
+    return this.find().should('not.exist');
+  }
+
+  findSecretNameInput() {
+    return cy.findByTestId('secret-name-input');
+  }
+
+  typeSecretName(name: string) {
+    return this.findSecretNameInput().clear().type(name);
+  }
+
+  assertSecretNameValue(value: string) {
+    return this.findSecretNameInput().should('have.value', value);
+  }
+
+  findSecretTypeSelect() {
+    return cy.findByTestId('secret-type-select');
+  }
+
+  assertSecretTypeDisabled() {
+    return this.findSecretTypeSelect().should('be.disabled');
+  }
+
+  assertSecretTypeValue(value: string) {
+    return this.findSecretTypeSelect().should('contain.text', value);
+  }
+
+  findKeyInput(index = 0) {
+    return cy.findAllByTestId('key-input').eq(index);
+  }
+
+  typeKey(index: number, key: string) {
+    return this.findKeyInput(index).clear().type(key);
+  }
+
+  assertKeyValue(index: number, value: string) {
+    return this.findKeyInput(index).should('have.value', value);
+  }
+
+  findValueInput(index = 0) {
+    return cy.findAllByTestId('value-input').eq(index);
+  }
+
+  typeValue(index: number, value: string) {
+    return this.findValueInput(index).clear().type(value);
+  }
+
+  assertValueValue(index: number, value: string) {
+    return this.findValueInput(index).should('have.value', value);
+  }
+
+  findRemoveKeyValuePairButton(index = 0) {
+    return cy.findAllByTestId('remove-key-value-pair').eq(index);
+  }
+
+  clickRemoveKeyValuePair(index: number) {
+    return this.findRemoveKeyValuePairButton(index).click();
+  }
+
+  assertRemoveButtonDisabled(index: number) {
+    return this.findRemoveKeyValuePairButton(index).should('be.disabled');
+  }
+
+  assertRemoveButtonEnabled(index: number) {
+    return this.findRemoveKeyValuePairButton(index).should('not.be.disabled');
+  }
+
+  findAddKeyValuePairButton() {
+    return cy.findByTestId('another-key-value-pair-button');
+  }
+
+  clickAddKeyValuePair() {
+    return this.findAddKeyValuePairButton().click();
+  }
+
+  findCreateButton() {
+    // Find the button element that contains 'Create' text in the modal footer
+    return this.find()
+      .find('footer button, .pf-v6-c-modal-box__footer button')
+      .filter(':contains("Create")')
+      .first();
+  }
+
+  clickCreate() {
+    return this.findCreateButton().click();
+  }
+
+  assertCreateButtonEnabled() {
+    return this.findCreateButton().should('not.be.disabled');
+  }
+
+  assertCreateButtonDisabled() {
+    return this.findCreateButton().should('be.disabled');
+  }
+
+  findCancelButton() {
+    // Find the button element that contains 'Cancel' text in the modal footer
+    return this.find()
+      .find('footer button, .pf-v6-c-modal-box__footer button')
+      .filter(':contains("Cancel")')
+      .first();
+  }
+
+  clickCancel() {
+    return this.findCancelButton().click();
+  }
+
+  findErrorAlert() {
+    // PatternFly Alert component - look for the alert class or role
+    return this.find().find('.pf-v6-c-alert, [role="alert"]');
+  }
+
+  assertErrorAlertExists() {
+    return this.findErrorAlert().should('exist');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    return this.findErrorAlert().should('contain.text', message);
+  }
+
+  assertErrorAlertNotExists() {
+    return this.findErrorAlert().should('not.exist');
+  }
+
+  findHelperText() {
+    // Find the HelperText component that contains the secret name helper text
+    return this.find().contains('Must start and end with a letter or number');
+  }
+
+  assertHelperTextVisible() {
+    return this.findHelperText().should('be.visible');
+  }
+
+  assertKeyValuePairCount(count: number) {
+    return cy.findAllByTestId('key-value-pair').should('have.length', count);
+  }
 }
 
 export { WorkspaceForm };
+export const secretsCreateModal = new SecretsCreateModal();
