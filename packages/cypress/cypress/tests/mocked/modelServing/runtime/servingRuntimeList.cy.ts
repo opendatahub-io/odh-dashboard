@@ -33,6 +33,10 @@ import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelSe
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockNimResource';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+import {
+  ModelStateToggleLabel,
+  ModelStateLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingSection } from '../../../../pages/modelServing';
 import { projectDetails } from '../../../../pages/projects';
 import { be } from '../../../../utils/should';
@@ -622,7 +626,7 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
-      kserveRow.findStatusLabel('Started');
+      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
 
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
@@ -651,7 +655,7 @@ describe('Serving Runtime List', () => {
         'getStoppedModel',
       );
 
-      kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
       kserveRow.findConfirmStopModal().should('exist');
       kserveRow.findConfirmStopModalCheckbox().should('exist');
       kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
@@ -671,8 +675,8 @@ describe('Serving Runtime List', () => {
       cy.reload();
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
 
-      kserveRow.findStatusLabel('Stopped');
-      kserveRow.findStateActionToggle().should('have.text', 'Start');
+      kserveRow.findStatusLabel(ModelStateLabel.STOPPED);
+      kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START);
       cy.window().then((win) => {
         const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
         expect(preference).to.equal('true');
@@ -701,11 +705,11 @@ describe('Serving Runtime List', () => {
         'getStartedModel',
       );
 
-      kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       cy.reload();
       cy.wait(['@startModelPatch', '@getStartedModel']);
-      kserveRow.findStatusLabel('Started');
-      kserveRow.findStateActionToggle().should('have.text', 'Stop');
+      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
+      kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP);
     });
 
     it('Check number of replicas of model', () => {

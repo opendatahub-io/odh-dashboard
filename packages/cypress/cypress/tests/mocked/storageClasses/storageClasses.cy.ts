@@ -1,9 +1,9 @@
-import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import {
   buildMockStorageClass,
   buildMockStorageClassConfig,
   mockStorageClasses,
 } from '@odh-dashboard/internal/__mocks__';
+import { AccessMode } from '../../../types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import {

@@ -4,14 +4,12 @@ import {
   CatalogFilterOptionsList,
   CatalogModel,
   CatalogModelList,
+  CatalogPerformanceArtifactList,
   CatalogSourceList,
   ModelCatalogFilterStates,
   PerformanceArtifactsParams,
 } from '~/app/modelCatalogTypes';
-import {
-  filtersToFilterQuery,
-  filtersToArtifactsFilterQuery,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { filtersToFilterQuery } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
 export const getCatalogModelsBySource =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
@@ -29,14 +27,15 @@ export const getCatalogModelsBySource =
     filterData?: ModelCatalogFilterStates,
     filterOptions?: CatalogFilterOptionsList | null,
   ): Promise<CatalogModelList> => {
+    const filterQuery =
+      filterData && filterOptions ? filtersToFilterQuery(filterData, filterOptions) : '';
     const allParams = {
       source: sourceId,
       sourceLabel,
       ...paginationParams,
       ...(searchKeyword && { q: searchKeyword }),
       ...queryParams,
-      ...(filterData &&
-        filterOptions && { filterQuery: filtersToFilterQuery(filterData, filterOptions) }),
+      ...(filterQuery && { filterQuery }),
     };
     return handleRestFailures(restGET(hostPath, '/models', allParams, opts)).then((response) => {
       if (isModArchResponse<CatalogModelList>(response)) {
@@ -101,7 +100,7 @@ export const getPerformanceArtifacts =
     params?: PerformanceArtifactsParams,
     filterData?: ModelCatalogFilterStates,
     filterOptions?: CatalogFilterOptionsList | null,
-  ): Promise<CatalogArtifactList> => {
+  ): Promise<CatalogPerformanceArtifactList> => {
     const allParams: Record<string, unknown> = {
       ...queryParams,
       ...(params?.targetRPS !== undefined && { targetRPS: params.targetRPS }),
@@ -115,12 +114,14 @@ export const getPerformanceArtifacts =
       ...(params?.sortOrder && { sortOrder: params.sortOrder }),
       ...(params?.nextPageToken && { nextPageToken: params.nextPageToken }),
       ...(filterData &&
-        filterOptions && { filterQuery: filtersToArtifactsFilterQuery(filterData, filterOptions) }),
+        filterOptions && {
+          filterQuery: filtersToFilterQuery(filterData, filterOptions, 'artifacts'),
+        }),
     };
     return handleRestFailures(
       restGET(hostPath, `/sources/${sourceId}/performance_artifacts/${modelName}`, allParams, opts),
     ).then((response) => {
-      if (isModArchResponse<CatalogArtifactList>(response)) {
+      if (isModArchResponse<CatalogPerformanceArtifactList>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

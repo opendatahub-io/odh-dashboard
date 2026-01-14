@@ -3,4 +3,6 @@ projectResourceName: 'test-model-token-auth'
 projectDisplayName: 'Test Model Token Auth'
 singleModelName: 'test-model'
 modelOpenVinoExamplePath: 'kserve-openvino-test/openvino-example-model/'
+modelFormat: 'openvino_ir - opset13'
+servingRuntime: 'OpenVINO Model Server'
 

@@ -10,83 +10,98 @@ import {
 import { HelpIcon } from '@patternfly/react-icons';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
-  CatalogPerformanceMetricsArtifact,
-  ModelCatalogFilterKey,
-  ModelCatalogFilterStates,
-} from '~/app/modelCatalogTypes';
-import { clearAllFilters } from '~/app/pages/modelCatalog/utils/hardwareConfigurationFilterUtils';
-import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import {
-  ModelCatalogStringFilterKey,
-  ModelCatalogNumberFilterKey,
-  ALL_LATENCY_FIELD_NAMES,
+  getPerformanceFiltersToShow,
+  getAllFiltersToShow,
+  BASIC_FILTER_KEYS,
+  isPerformanceFilterKey,
 } from '~/concepts/modelCatalog/const';
+import { isValueDifferentFromDefault } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import WorkloadTypeFilter from './globalFilters/WorkloadTypeFilter';
 import HardwareTypeFilter from './globalFilters/HardwareTypeFilter';
-import MinRpsFilter from './globalFilters/MinRpsFilter';
+import MaxRpsFilter from './globalFilters/MaxRpsFilter';
 import LatencyFilter from './globalFilters/LatencyFilter';
 import ModelCatalogActiveFilters from './ModelCatalogActiveFilters';
 
 type HardwareConfigurationFilterToolbarProps = {
-  performanceArtifacts: CatalogPerformanceMetricsArtifact[];
-};
-
-/**
- * Filter keys that are shown on the performance/hardware configuration page.
- * This is used to determine which filters to show in the active filters chips
- * and which filters to clear when "Reset all filters" is clicked.
- */
-const PERFORMANCE_FILTER_KEYS: ModelCatalogFilterKey[] = [
-  ModelCatalogStringFilterKey.USE_CASE,
-  ModelCatalogStringFilterKey.HARDWARE_TYPE,
-  ModelCatalogNumberFilterKey.MIN_RPS,
-];
-
-/**
- * Gets the active filter keys including any active latency filters from filterData
- */
-const getActivePerformanceFilterKeys = (
-  filterData: ModelCatalogFilterStates,
-): ModelCatalogFilterKey[] => {
-  const activeLatencyKeys = ALL_LATENCY_FIELD_NAMES.filter((key) => filterData[key] !== undefined);
-  return [...PERFORMANCE_FILTER_KEYS, ...activeLatencyKeys];
+  onResetAllFilters?: () => void;
+  /** If true, shows basic filter chips. Defaults to false (only show on landing page when toggle is ON). */
+  includeBasicFilters?: boolean;
+  /** If true, shows performance filter chips. Landing page passes performanceViewEnabled, details page passes true. */
+  includePerformanceFilters?: boolean;
 };
 
 const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterToolbarProps> = ({
-  performanceArtifacts,
+  onResetAllFilters,
+  includeBasicFilters = false,
+  includePerformanceFilters = true,
 }) => {
-  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filterData, setFilterData } =
-    React.useContext(ModelCatalogContext);
+  const {
+    filterOptions,
+    filterOptionsLoaded,
+    filterOptionsLoadError,
+    filterData,
+    getPerformanceFilterDefaultValue,
+  } = React.useContext(ModelCatalogContext);
 
-  // Get all performance filter keys including active latency filters
-  const filtersToShow = React.useMemo(
-    () => getActivePerformanceFilterKeys(filterData),
-    [filterData],
-  );
+  // Get filter keys to show in the chip bar based on props
+  // - includeBasicFilters: show basic filters (Task, Provider, License, Language)
+  // - includePerformanceFilters: show performance filters (Workload type, Hardware type, Max RPS, Latency)
+  const filtersToShow = React.useMemo(() => {
+    if (includeBasicFilters && includePerformanceFilters) {
+      return getAllFiltersToShow(filterData);
+    }
+    if (includePerformanceFilters) {
+      return getPerformanceFiltersToShow(filterData);
+    }
+    if (includeBasicFilters) {
+      return BASIC_FILTER_KEYS;
+    }
+    return [];
+  }, [filterData, includeBasicFilters, includePerformanceFilters]);
 
-  // Check if any performance filters are active (only checking performance-related filters)
-  const hasActiveFilters = React.useMemo(
-    () => hasFiltersApplied(filterData, filtersToShow),
-    [filterData, filtersToShow],
+  // Check if there are any visible filter chips (to control "Clear all filters" button visibility)
+  // A chip is visible if:
+  // - For basic filters: has a non-empty value
+  // - For performance filters: has a value different from the default (regardless of toggle state)
+  const hasVisibleChips = React.useMemo(
+    () =>
+      filtersToShow.some((filterKey) => {
+        const filterValue = filterData[filterKey];
+
+        // Skip if no value is set
+        if (!filterValue) {
+          return false;
+        }
+
+        // For array values (string filters), skip if empty
+        if (Array.isArray(filterValue) && filterValue.length === 0) {
+          return false;
+        }
+
+        // For performance filters, always check if value differs from default
+        // (performance filters always have values - defaults when not explicitly set)
+        if (isPerformanceFilterKey(filterKey)) {
+          const defaultValue = getPerformanceFilterDefaultValue(filterKey);
+          return isValueDifferentFromDefault(filterValue, defaultValue);
+        }
+
+        // For basic filters, any non-empty value means visible
+        return true;
+      }),
+    [filtersToShow, filterData, getPerformanceFilterDefaultValue],
   );
 
   if (!filterOptionsLoaded || filterOptionsLoadError || !filterOptions) {
     return null;
   }
 
-  const handleClearAllFilters = () => {
-    // Only clear performance-related filters, not the basic catalog filters
-    clearAllFilters(setFilterData, filtersToShow);
-  };
-
   return (
     <Toolbar
-      key={`toolbar-${hasActiveFilters}`}
-      clearAllFilters={handleClearAllFilters}
-      clearFiltersButtonText={hasActiveFilters ? 'Reset all filters' : ''}
+      // Only show "Clear all filters" button when there are visible chips to clear
+      {...(onResetAllFilters && hasVisibleChips ? { clearAllFilters: onResetAllFilters } : {})}
     >
-      <ToolbarContent>
-        <ToolbarGroup>
+      <ToolbarContent rowWrap={{ default: 'wrap' }}>
+        <ToolbarGroup rowWrap={{ default: 'wrap' }}>
           <ToolbarItem>
             <WorkloadTypeFilter />
             <Popover
@@ -103,7 +118,7 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
           </ToolbarItem>
           <ToolbarItem variant="separator" />
           <ToolbarItem>
-            <LatencyFilter performanceArtifacts={performanceArtifacts} />
+            <LatencyFilter />
             <Popover
               bodyContent={
                 <>
@@ -136,11 +151,11 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
             </Popover>
           </ToolbarItem>
           <ToolbarItem>
-            <MinRpsFilter performanceArtifacts={performanceArtifacts} />
+            <MaxRpsFilter />
           </ToolbarItem>
           <ToolbarItem variant="separator" />
           <ToolbarItem>
-            <HardwareTypeFilter performanceArtifacts={performanceArtifacts} />
+            <HardwareTypeFilter />
           </ToolbarItem>
         </ToolbarGroup>
         <ModelCatalogActiveFilters filtersToShow={filtersToShow} />

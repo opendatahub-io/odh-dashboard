@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 import type { WBNegativeTestsData } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import {
   workbenchPage,
@@ -93,10 +94,10 @@ describe('Workbenches - negative tests', () => {
           // Confirm that the Workbench does not start and is at Failed status
           cy.step(`Wait for workbench ${workbenchName} to display a "Failed" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-          notebookRow.expectStatusLabelToBe('Failed', 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Failed, 120000);
           cy.step(`Open the Modal and confirm the status is Failed`);
           notebookRow.findHaveNotebookStatusText().click();
-          workbenchStatusModal.getNotebookStatus('Failed');
+          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Failed);
         },
       );
     },
