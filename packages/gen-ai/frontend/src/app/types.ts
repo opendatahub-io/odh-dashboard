@@ -83,7 +83,7 @@ export type ChatContextMessage = {
 export type MCPServerConfig = {
   server_label: string;
   server_url: string;
-  headers: Record<string, string>;
+  authorization?: string;
   allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 

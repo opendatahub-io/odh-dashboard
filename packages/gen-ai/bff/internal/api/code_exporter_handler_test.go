@@ -181,11 +181,9 @@ func TestCodeExporterHandler(t *testing.T) {
 			Model: "llama3.2:3b",
 			MCPServers: []models.MCPServer{
 				{
-					ServerLabel: "test-server",
-					ServerURL:   "https://example.com",
-					Headers: map[string]string{
-						"Authorization": "Bearer token",
-					},
+					ServerLabel:   "test-server",
+					ServerURL:     "https://example.com",
+					Authorization: "token",
 				},
 			},
 		}
@@ -403,19 +401,14 @@ func TestGeneratePythonCode(t *testing.T) {
 			Temperature:  &temperature,
 			MCPServers: []models.MCPServer{
 				{
-					ServerLabel: "localhost-mcp",
-					ServerURL:   "https://localhost:3000/sse",
-					Headers: map[string]string{
-						"Authorization":   "Bearer token",
-						"X-Custom-Header": "value",
-					},
+					ServerLabel:   "localhost-mcp",
+					ServerURL:     "https://localhost:3000/sse",
+					Authorization: "token",
 				},
 				{
-					ServerLabel: "local-mcp",
-					ServerURL:   "http://localhost:3000/mcp",
-					Headers: map[string]string{
-						"API-Key": "secret",
-					},
+					ServerLabel:   "local-mcp",
+					ServerURL:     "http://localhost:3000/mcp",
+					Authorization: "secret",
 				},
 			},
 		}
@@ -432,8 +425,8 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "https://localhost:3000/sse")
 		assert.Contains(t, code, "local-mcp")
 		assert.Contains(t, code, "http://localhost:3000/mcp")
-		assert.Contains(t, code, "Authorization")
-		assert.Contains(t, code, "Bearer token")
+		assert.Contains(t, code, "authorization")
+		assert.Contains(t, code, "token")
 		assert.Contains(t, code, "X-Custom-Header")
 	})
 
@@ -452,11 +445,9 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 			MCPServers: []models.MCPServer{
 				{
-					ServerLabel: "localhost-mcp",
-					ServerURL:   "https://localhost:3000/sse",
-					Headers: map[string]string{
-						"Authorization": "Bearer token",
-					},
+					ServerLabel:   "localhost-mcp",
+					ServerURL:     "https://localhost:3000/sse",
+					Authorization: "token",
 				},
 			},
 		}
@@ -474,7 +465,7 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "https://localhost:3000/sse")
 	})
 
-	t.Run("should generate Python code with minimal MCP server (no headers)", func(t *testing.T) {
+	t.Run("should generate Python code with minimal MCP server (no authorization)", func(t *testing.T) {
 		config := models.CodeExportRequest{
 			Input:        "check my slack messages",
 			Model:        "llama3.2:3b",
@@ -484,7 +475,7 @@ func TestGeneratePythonCode(t *testing.T) {
 				{
 					ServerLabel: "localhost-mcp",
 					ServerURL:   "https://localhost:3000/sse",
-					// No headers
+					// No authorization
 				},
 			},
 		}
@@ -499,7 +490,6 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.NotEmpty(t, code)
 		assert.Contains(t, code, "localhost-mcp")
 		assert.Contains(t, code, "https://localhost:3000/sse")
-		assert.NotContains(t, code, "headers:")
 	})
 
 	t.Run("should generate Python code with MCP server and allowed_tools", func(t *testing.T) {
@@ -510,12 +500,10 @@ func TestGeneratePythonCode(t *testing.T) {
 			Stream:       false,
 			MCPServers: []models.MCPServer{
 				{
-					ServerLabel: "slack",
-					ServerURL:   "http://127.0.0.1:13080/sse",
-					Headers: map[string]string{
-						"Authorization": "Bearer token",
-					},
-					AllowedTools: []string{"send_message", "get_channel_history"},
+					ServerLabel:   "slack",
+					ServerURL:     "http://127.0.0.1:13080/sse",
+					Authorization: "token",
+					AllowedTools:  []string{"send_message", "get_channel_history"},
 				},
 			},
 		}

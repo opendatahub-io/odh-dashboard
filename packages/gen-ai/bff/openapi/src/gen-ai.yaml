@@ -1735,13 +1735,10 @@ components:
           format: uri
           example: 'http://127.0.0.1:13080/sse'
           description: URL endpoint for the MCP server
-        headers:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            Authorization: 'Bearer slack_token_123'
-          description: Custom headers for MCP server authentication
+        authorization:
+          type: string
+          example: 'slack_token_123'
+          description: OAuth access token for MCP server authentication
         allowed_tools:
           type: array
           items:
@@ -1759,8 +1756,7 @@ components:
       example:
         server_label: 'slack'
         server_url: 'http://127.0.0.1:13080/sse'
-        headers:
-          Authorization: 'Bearer slack_token_123'
+        authorization: 'slack_token_123'
         allowed_tools: ['send_message', 'get_channel_history']
 
     # Response Creation Schema
@@ -1844,16 +1840,13 @@ components:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
               allowed_tools: ['send_message', 'get_channel_history']
-              headers:
-                Authorization: 'Bearer slack_token_123'
+              authorization: 'slack_token_123'
             - server_label: 'github'
               server_url: 'http://127.0.0.1:14080/sse'
               allowed_tools: ['get_latest_release']
-              headers:
-                Authorization: 'Bearer github_token_456'
-                X-API-Version: 'v1'
+              authorization: 'github_token_456'
           description: >-
-            MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
+            MCP server configurations for external tool access. Each server can have its own authorization token and provides multiple tools.
             Use the allowed_tools field within each MCP server config to restrict which tools can be used from that server.
         previous_response_id:
           type: string
@@ -2156,8 +2149,7 @@ components:
           example:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
-              headers:
-                Authorization: 'Bearer slack_token_123'
+              authorization: 'slack_token_123'
           description: MCP server configurations for tool integration
         tools:
           type: array
