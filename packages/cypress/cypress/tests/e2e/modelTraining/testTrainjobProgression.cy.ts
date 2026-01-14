@@ -19,7 +19,7 @@ import { deleteModal } from '../../../pages/components/DeleteModal';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import type { TrainJobTestData } from '../../../types';
 
-describe('Verify a Training Job with Progression Tracking', () => {
+describe('[Product Bug: RHOAIENG-45527] Verify a Training Job with Progression Tracking', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -112,7 +112,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
   it(
     'Should create and complete training job with progression tracking',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining'],
+      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining', '@Bug'],
     },
     () => {
       if (skipTest) {
