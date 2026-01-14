@@ -46,14 +46,7 @@ describe('[Automation Task: RHOAIENG-39294] Verify a model can be deployed from 
   it(
     'Verify a model can be deployed from model catalog',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelServing',
-        '@Smoke',
-        '@SmokeSet3',
-        '@Maintain',
-        '@DisconnectedClusterNotSupported',
-      ],
+      tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@Maintain'],
     },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

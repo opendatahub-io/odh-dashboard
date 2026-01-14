@@ -73,14 +73,7 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@DisconnectedClusterNotSupported',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);

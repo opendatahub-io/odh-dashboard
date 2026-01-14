@@ -42,14 +42,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry and then deletes it',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelRegistry',
-        '@Smoke',
-        '@SmokeSet4',
-        '@NonConcurrent',
-        '@DisconnectedClusterNotSupported',
-      ],
+      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4', '@NonConcurrent'],
     },
     () => {
       cy.step('Login as an Admin');

@@ -67,14 +67,7 @@ describe('A model can be stopped and started', () => {
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@DisconnectedClusterNotSupported',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);

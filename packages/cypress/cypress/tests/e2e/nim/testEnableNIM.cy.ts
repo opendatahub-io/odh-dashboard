@@ -33,13 +33,7 @@ describe('Verify NIM enable flow', () => {
   it(
     'Enable and validate NIM flow',
     {
-      tags: [
-        '@NIM',
-        '@Sanity',
-        '@SanitySet3',
-        '@NonConcurrent',
-        '@DisconnectedClusterNotSupported',
-      ],
+      tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'],
     },
     function enableAndValidateNIMFlow() {
       cy.step('Login to the application');
