@@ -183,7 +183,7 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
   },
   {
     field: 'tps_mean',
-    label: `TPS${NBSP}Latency Mean`,
+    label: `TPS${NBSP}Mean`,
     sortable: (
       a: CatalogPerformanceMetricsArtifact,
       b: CatalogPerformanceMetricsArtifact,
@@ -195,7 +195,7 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
   },
   {
     field: 'tps_p90',
-    label: `TPS${NBSP}Latency P90`,
+    label: `TPS${NBSP}P90`,
     sortable: (
       a: CatalogPerformanceMetricsArtifact,
       b: CatalogPerformanceMetricsArtifact,
@@ -206,7 +206,7 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
   },
   {
     field: 'tps_p95',
-    label: `TPS${NBSP}Latency P95`,
+    label: `TPS${NBSP}P95`,
     sortable: (
       a: CatalogPerformanceMetricsArtifact,
       b: CatalogPerformanceMetricsArtifact,
@@ -217,7 +217,7 @@ export const hardwareConfigColumns: HardwareConfigColumn[] = [
   },
   {
     field: 'tps_p99',
-    label: `TPS${NBSP}Latency P99`,
+    label: `TPS${NBSP}P99`,
     sortable: (
       a: CatalogPerformanceMetricsArtifact,
       b: CatalogPerformanceMetricsArtifact,

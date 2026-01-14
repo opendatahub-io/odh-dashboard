@@ -24,7 +24,7 @@
     "branch": "manage-columns-hw-table",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "643624bb43e89715d8dc0df36f721cae46abe6e2"
+    "commit": "662540854a3971f8a5914cc6c0774324a4eb5ffb"
   },
   "module-federation": {
     "name": "modelRegistry",
