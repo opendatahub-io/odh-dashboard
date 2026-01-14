@@ -73,7 +73,7 @@ func TestProviderCreationUtilities(t *testing.T) {
 	provider2 := NewInferenceProvider("inference-1", "http://example.com")
 	assert.Equal(t, "inference-1", provider2.ProviderID)
 	assert.Equal(t, "remote::inference", provider2.ProviderType)
-	assert.Equal(t, "http://example.com", provider2.Config["url"])
+	assert.Equal(t, "http://example.com", provider2.Config["base_url"])
 
 	// Test NewSentenceTransformerProvider
 	provider3 := NewSentenceTransformerProvider()
@@ -85,7 +85,7 @@ func TestProviderCreationUtilities(t *testing.T) {
 	provider4 := NewVLLMProvider("vllm-1", "http://vllm.example.com")
 	assert.Equal(t, "vllm-1", provider4.ProviderID)
 	assert.Equal(t, "remote::vllm", provider4.ProviderType)
-	assert.Equal(t, "http://vllm.example.com", provider4.Config["url"])
+	assert.Equal(t, "http://vllm.example.com", provider4.Config["base_url"])
 
 	// Test adding providers to config
 	config.AddInferenceProvider(provider1)
