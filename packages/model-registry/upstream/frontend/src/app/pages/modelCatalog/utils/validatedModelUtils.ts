@@ -1,6 +1,7 @@
 import {
   CatalogPerformanceMetricsArtifact,
   CatalogAccuracyMetricsArtifact,
+  CatalogModel,
 } from '~/app/modelCatalogTypes';
 import {
   LatencyFilterKey,
@@ -8,7 +9,9 @@ import {
   LatencyPercentile,
   getLatencyPropertyKey,
   getLatencyFilterKey,
+  PerformancePropertyKey,
 } from '~/concepts/modelCatalog/const';
+import { getStringValue } from '~/app/utils';
 
 /**
  * Type for latency metrics - uses LatencyFilterKey from const.ts
@@ -18,6 +21,7 @@ export type LatencyMetricsMap = Partial<Record<LatencyFilterKey, number>>;
 
 export type ValidatedModelMetrics = {
   // accuracy: number; // NOTE: overall_average is currently omitted from the API and will be restored
+  hardwareConfiguration: string;
   hardwareType: string;
   hardwareCount: string;
   rpsPerReplica: number;
@@ -28,6 +32,7 @@ export type ValidatedModelMetrics = {
 };
 
 export type PerformanceMetrics = {
+  hardwareConfiguration: string;
   hardwareType: string;
   hardwareCount: string;
   rpsPerReplica: number;
@@ -64,6 +69,11 @@ export const extractPerformanceMetrics = (
 ): PerformanceMetrics => {
   const ttftMeanKey = getLatencyPropertyKey(LatencyMetric.TTFT, LatencyPercentile.Mean);
   return {
+    hardwareConfiguration:
+      getStringValue(
+        performanceMetrics.customProperties,
+        PerformancePropertyKey.HARDWARE_CONFIGURATION,
+      ) || 'H100-80',
     hardwareType: performanceMetrics.customProperties?.hardware_type?.string_value || 'H100-80',
     hardwareCount: performanceMetrics.customProperties?.hardware_count?.int_value || '1',
     rpsPerReplica: performanceMetrics.customProperties?.requests_per_second?.double_value || 1,
@@ -119,6 +129,7 @@ export const extractValidatedModelMetrics = (
   const performance = currentPerformance
     ? extractPerformanceMetrics(currentPerformance)
     : {
+        hardwareConfiguration: 'H100-80',
         hardwareType: 'H100-80',
         hardwareCount: '1',
         rpsPerReplica: 1,
@@ -133,3 +144,20 @@ export const extractValidatedModelMetrics = (
     ...performance,
   };
 };
+
+export const sortModelsWithCurrentFirst = (
+  models: CatalogModel[],
+  currentModelName: string,
+  limit = 4,
+): CatalogModel[] =>
+  [...models]
+    .toSorted((a, b) => {
+      if (a.name === currentModelName) {
+        return -1;
+      }
+      if (b.name === currentModelName) {
+        return 1;
+      }
+      return 0;
+    })
+    .slice(0, limit);
