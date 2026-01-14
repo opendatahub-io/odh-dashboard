@@ -52,7 +52,7 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-3. **Export the test variables:**
+3. **Export the test variables file path:**
 
    The test variables are required for the tests to execute properly.  See the file 'test-variables.yml.example' in the packages/cypress directory (three directories up) for a 'fake' example of what this looks like.  Talk to Anthony Coughlin  or ask on the slack dashboard team channel to get the real credentials.
 
