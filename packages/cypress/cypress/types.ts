@@ -450,3 +450,10 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
 };
+
+export type ModelCatalogSourceTestData = {
+  sourceName: string;
+  redhatAiSourceId: string;
+  sourceName2: string;
+  redhatAiSourceId2: string;
+};

@@ -38,6 +38,14 @@ class ModelCatalogSettings {
   findAddSourceButton() {
     return cy.findByTestId('add-source-button');
   }
+
+  findTable() {
+    return cy.findByTestId('catalog-source-configs-table');
+  }
+
+  findEnableToggle(sourceId: string) {
+    return cy.findByTestId(`enable-toggle-${sourceId}`);
+  }
 }
 
 export const modelCatalogSettings = new ModelCatalogSettings();
