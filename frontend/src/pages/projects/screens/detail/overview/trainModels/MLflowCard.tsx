@@ -56,7 +56,7 @@ const MLflowCard: React.FC = () => {
                   variant="link"
                   onClick={() => navigate('/develop-train/experiments-mlflow')}
                 >
-                  Go to Experiments
+                  Go to <strong>Experiments</strong>
                 </Button>
               </FlexItem>
               <FlexItem>
