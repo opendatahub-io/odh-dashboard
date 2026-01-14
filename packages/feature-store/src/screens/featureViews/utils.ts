@@ -168,7 +168,7 @@ export const formatFeatureViewDataSources = (
         dataSources.push({
           sourceType: 'Batch',
           name: featureView.spec.batchSource.name || '-',
-          fileUrl: featureView.spec.batchSource.fileOptions.uri || '-',
+          fileUrl: featureView.spec.batchSource.fileOptions?.uri || '-',
           createdDate: featureView.spec.batchSource.meta?.createdTimestamp || '-',
           lastModifiedDate: featureView.spec.batchSource.meta?.lastUpdatedTimestamp || '-',
         });
@@ -204,7 +204,7 @@ export const formatFeatureViewDataSources = (
             dataSources.push({
               sourceType: 'Projection',
               name: source.featureViewProjection.batchSource.name || '-',
-              fileUrl: source.featureViewProjection.batchSource.fileOptions.uri || '-',
+              fileUrl: source.featureViewProjection.batchSource.fileOptions?.uri || '-',
               createdDate: source.featureViewProjection.batchSource.meta?.createdTimestamp || '-',
               lastModifiedDate:
                 source.featureViewProjection.batchSource.meta?.lastUpdatedTimestamp || '-',
@@ -301,7 +301,7 @@ export const formatOnDemandFeatureViewSources = (
         batchSource: batchSource
           ? {
               name: batchSource.name || '-',
-              fileUrl: batchSource.fileOptions.uri || '-',
+              fileUrl: batchSource.fileOptions?.uri || '-',
               createdDate: batchSource.meta?.createdTimestamp || '-',
               lastModifiedDate: batchSource.meta?.lastUpdatedTimestamp || '-',
             }

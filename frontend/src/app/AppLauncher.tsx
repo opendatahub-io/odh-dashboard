@@ -16,6 +16,7 @@ import { ApplicationAction, Section } from '#~/types';
 import './AppLauncher.scss';
 import { SupportedArea } from '#~/concepts/areas/types';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useAppContext } from './AppContext';
 
 const appConsoleLinkNames = ['rhodslink', 'odhlink'];
@@ -138,6 +139,12 @@ const AppLauncher: React.FC = () => {
         key={action.label}
         to={action.href}
         icon={action.image}
+        onClick={() => {
+          fireLinkTrackingEvent('Application Launcher Item Clicked', {
+            name: action.label,
+            href: action.href,
+          });
+        }}
       >
         {action.label}
       </DropdownItem>
