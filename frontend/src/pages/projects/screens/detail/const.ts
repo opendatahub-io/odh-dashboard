@@ -15,4 +15,5 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
 /**
  * Permission-related messages
  */
-export const CREATE_WORKBENCH_DISABLED_MESSAGE = 'You do not have permission to create workbenches';
+export const CREATE_WORKBENCH_DISABLED_MESSAGE =
+  'To create a workbench, ask your administrator to adjust your permissions.';

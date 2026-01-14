@@ -16,7 +16,7 @@ import { CreatePipelineServerButton, usePipelinesAPI } from '#~/concepts/pipelin
 import { useSafePipelines } from '#~/concepts/pipelines/apiHooks/usePipelines';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { ProjectObjectType, SectionType } from '#~/concepts/design/utils.ts';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import ErrorOverviewCard from '#~/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
 import PipelinesOverviewCard from './PipelinesOverviewCard';
 import PipelinesCardMetrics from './PipelinesCardMetrics';

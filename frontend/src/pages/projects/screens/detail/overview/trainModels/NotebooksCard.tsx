@@ -73,9 +73,9 @@ const NotebooksCard: React.FC = () => {
         id="section-notebooks"
         objectType={ProjectObjectType.notebook}
         sectionType={SectionType.training}
-        title="Notebooks"
-        popoverHeaderContent="About notebooks"
-        popoverBodyContent="Notebooks are isolated areas where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and configure cluster storage in your notebook."
+        title="Workbenches"
+        popoverHeaderContent="About workbenches"
+        popoverBodyContent="Workbenches are isolated areas where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and configure cluster storage in your notebook."
         error={error}
       />
     );
