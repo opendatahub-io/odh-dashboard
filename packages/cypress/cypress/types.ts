@@ -479,3 +479,15 @@ export type ModelCatalogSourceTestData = {
   sourceName2: string;
   redhatAiSourceId2: string;
 };
+
+export type TrainJobTestData = {
+  projectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
