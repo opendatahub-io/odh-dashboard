@@ -613,8 +613,8 @@ describe('Permissions tab (projectRBAC)', () => {
     rulesTable.clickHeaderSort('API Groups');
     rulesTable.findFirstBodyRow().should('contain.text', 'a-group');
 
-    // Sort: Resources
-    rulesTable.clickHeaderSort('Resources');
+    // Sort: Resource type
+    rulesTable.clickHeaderSort('Resource type');
     rulesTable.findFirstBodyRow().should('contain.text', 'a-res');
 
     // Sort: Resource names (exclude the help button)
@@ -805,7 +805,7 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.findAddRowSubjectInput('user').clear().type('test-user-1');
     projectRbacPermissions.findTypeaheadOption(/^test-user-1$/).should('exist');
     projectRbacPermissions
-      .findTypeaheadOptions(/Grant access to "test-user-1"/)
+      .findTypeaheadOptions(/Assign role to "test-user-1"/)
       .should('have.length', 0);
   });
 
