@@ -10,6 +10,7 @@ import {
   ImageTag,
   ImageTagInfo,
   KubeFastifyInstance,
+  KubeResponseBody,
   Notebook,
   NotebookData,
   NotebookList,
@@ -77,14 +78,37 @@ export const getRoute = async (
   routeName: string,
 ): Promise<Route> => {
   const kubeResponse = await fastify.kube.customObjectsApi
-    .getNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes', routeName)
+    .listNamespacedCustomObject(
+      'route.openshift.io',
+      'v1',
+      namespace,
+      'routes',
+      undefined,
+      undefined,
+      undefined,
+      `notebook-name=${routeName}`,
+    )
     .catch((res) => {
       const e = res.response.body;
-      const error = createCustomError('Error getting Route', e.message, e.code);
+      const error = createCustomError('Error listing Routes', e.message, e.code);
       fastify.log.error(error);
       throw error;
     });
-  return kubeResponse.body as Route;
+
+  const routes = (kubeResponse.body as KubeResponseBody<Route>)?.items ?? [];
+  const matched = routes.find((r: Route) => r?.metadata?.labels?.['notebook-name'] === routeName);
+
+  if (!matched) {
+    const error = createCustomError(
+      'Error getting Route',
+      `Route with label notebook-name=${routeName} not found`,
+      404,
+    );
+    fastify.log.error(error);
+    throw error;
+  }
+
+  return matched;
 };
 
 export const createRBAC = async (

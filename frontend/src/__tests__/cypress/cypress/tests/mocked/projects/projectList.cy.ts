@@ -236,9 +236,10 @@ describe('Data science projects details', () => {
 
   it('should show list of workbenches when the column is expanded', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
-      'getWorkbench',
-    );
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'test-notebook' })]),
+    ).as('getWorkbench');
     cy.interceptK8sList(
       { model: NotebookModel },
       mockK8sResourceList([
@@ -281,9 +282,10 @@ describe('Data science projects details', () => {
     cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('stopWorkbench');
     cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' })).as(
-      'getWorkbench',
-    );
+    cy.interceptK8sList(
+      RouteModel,
+      mockK8sResourceList([mockRouteK8sResource({ notebookName: 'test-notebook' })]),
+    ).as('getWorkbench');
     cy.interceptK8sList(
       NotebookModel,
       mockK8sResourceList([

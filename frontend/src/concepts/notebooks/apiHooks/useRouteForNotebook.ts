@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getRoute } from '#~/api';
+import { listRoutes } from '#~/api';
 import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch';
 import { K8sAPIOptions } from '#~/k8sTypes';
 
@@ -15,11 +15,12 @@ const useRouteForNotebook = (
         return Promise.reject('Notebook name or project name is not provided');
       }
 
-      return getRoute(notebookName, projectName, opts)
-        .then(
-          (fetchedRoute) =>
-            `https://${fetchedRoute.spec.host}/notebook/${projectName}/${notebookName}`,
-        )
+      return listRoutes(projectName, `notebook-name=${notebookName}`, opts)
+        .then((fetchedRoutes) => {
+          return fetchedRoutes.length > 0
+            ? `https://${fetchedRoutes[0].spec.host}/notebook/${projectName}/${notebookName}`
+            : null;
+        })
         .catch((e) => {
           if (!isRunning && e.statusObject?.code === 404) {
             return null;
