@@ -89,6 +89,15 @@ type Server struct {
 	Port int `json:"port" yaml:"port"`
 }
 
+// EnsureStorageField ensures the storage field is populated with defaults if missing
+// llama-stack v0.4.0+ requires the storage field to be present with both backends and stores.
+func (c *LlamaStackConfig) EnsureStorageField() {
+	if len(c.Storage.Backends) == 0 || len(c.Storage.Stores) == 0 {
+		defaultConfig := NewDefaultLlamaStackConfig()
+		c.Storage = defaultConfig.Storage
+	}
+}
+
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
@@ -317,7 +326,7 @@ func NewInferenceProvider(providerID string, url string) Provider {
 		ProviderID:   providerID,
 		ProviderType: "remote::inference",
 		Config: map[string]interface{}{
-			"url": url,
+			"base_url": url,
 		},
 	}
 }
@@ -342,7 +351,7 @@ func NewVLLMProvider(providerID string, url string) Provider {
 		ProviderID:   providerID,
 		ProviderType: "remote::vllm",
 		Config: map[string]interface{}{
-			"url": url,
+			"base_url": url,
 		},
 	}
 }
@@ -352,7 +361,7 @@ func NewVLLMProvider(providerID string, url string) Provider {
 func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}) {
 	// Create provider config
 	providerConfig := EmptyConfig()
-	providerConfig["url"] = endpointURL
+	providerConfig["base_url"] = endpointURL
 	providerConfig["max_tokens"] = "${env.VLLM_MAX_TOKENS:=4096}"
 	providerConfig["api_token"] = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", index+1)
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
@@ -461,7 +470,12 @@ func (c *LlamaStackConfig) GetModelProviderInfo(modelID string) (*types.ModelPro
 	for _, provider := range c.Providers.Inference {
 		if provider.ProviderID == providerID {
 			url := ""
-			if urlVal, ok := provider.Config["url"]; ok {
+			// Try base_url first (llama-stack v0.4.0+), fallback to url for backward compatibility
+			if urlVal, ok := provider.Config["base_url"]; ok {
+				if urlStr, ok := urlVal.(string); ok {
+					url = cleanEnvVar(urlStr)
+				}
+			} else if urlVal, ok := provider.Config["url"]; ok {
 				if urlStr, ok := urlVal.(string); ok {
 					url = cleanEnvVar(urlStr)
 				}
