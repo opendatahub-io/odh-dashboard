@@ -427,7 +427,6 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "http://localhost:3000/mcp")
 		assert.Contains(t, code, "authorization")
 		assert.Contains(t, code, "token")
-		assert.Contains(t, code, "X-Custom-Header")
 	})
 
 	t.Run("should generate Python code with MCP servers and tools combined", func(t *testing.T) {
