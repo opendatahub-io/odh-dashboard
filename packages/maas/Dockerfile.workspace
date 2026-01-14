@@ -48,14 +48,14 @@ USER default
 RUN npm cache clean --force
 # Install all workspace dependencies (includes root + any copied workspaces)
 # Use cachi2 prefetched dependencies if available
-RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && npm ci --ignore-scripts
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && npm ci --omit=optional --ignore-scripts
 
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
 # Install module dependencies
 # Use cachi2 prefetched dependencies if available
-RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && npm ci --ignore-scripts
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && npm ci --omit=optional --ignore-scripts
 
 # Build the module
 RUN npm run build:prod
