@@ -641,10 +641,10 @@ describe('Project Details', () => {
       cy.contains('Experiment tracking').should('be.visible');
       cy.contains('Track your pipeline experiments').should('be.visible');
 
-      cy.findByRole('link', { name: 'Launch MLflow' })
+      cy.findByTestId('mlflow-jump-link')
         .should('have.attr', 'href')
-        .and('include', mockMLflowLink.spec.href);
-      cy.findByRole('button', { name: 'Go to Experiments' }).should('be.visible').click();
+        .and('include', `${mockMLflowLink.spec.href}/#/workspaces/test-project/experiments`);
+      cy.findByTestId('embedded-mlflow-experiments-link').should('be.visible').click();
       cy.url().should('include', '/develop-train/experiments-mlflow');
     });
 
@@ -659,8 +659,8 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'overview');
 
       cy.contains('Experiment tracking').should('not.exist');
-      cy.findByRole('link', { name: 'Launch MLflow' }).should('not.exist');
-      cy.findByRole('button', { name: 'Go to Experiments' }).should('not.exist');
+      cy.findByTestId('mlflow-jump-link').should('not.exist');
+      cy.findByTestId('embedded-mlflow-experiments-link').should('not.exist');
     });
   });
 

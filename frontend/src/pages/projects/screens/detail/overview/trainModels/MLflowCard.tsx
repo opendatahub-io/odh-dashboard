@@ -16,15 +16,28 @@ import { ProjectObjectType, SectionType } from '#~/concepts/design/utils.ts';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+
+const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
+  const encodedProjectName = encodeURIComponent(projectName);
+  const base = href.replace(/\/+$/, '');
+  return `${base}/#/workspaces/${encodedProjectName}/experiments`;
+};
 
 const MLflowCard: React.FC = () => {
   const navigate = useNavigate();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const { consoleLinks } = useWatchConsoleLinks();
   const mlflowLink = consoleLinks.find((link) => isMLflowConsoleLink(link.metadata?.name));
+  const projectName = currentProject.metadata.name;
 
   if (!mlflowLink) {
     return null;
   }
+
+  const mlflowWorkspaceHref = projectName
+    ? buildMLflowExperimentsWorkspaceHref(mlflowLink.spec.href, projectName)
+    : mlflowLink.spec.href;
 
   return (
     <Card>
@@ -49,15 +62,20 @@ const MLflowCard: React.FC = () => {
       <CardFooter>
         <Flex gap={{ default: 'gapMd' }}>
           <FlexItem>
-            <Button variant="link" onClick={() => navigate('/develop-train/experiments-mlflow')}>
+            <Button
+              data-testid="embedded-mlflow-experiments-link"
+              variant="link"
+              onClick={() => navigate('/develop-train/experiments-mlflow')}
+            >
               Go to <strong>Experiments</strong>
             </Button>
           </FlexItem>
           <FlexItem>
             <Button
+              data-testid="mlflow-jump-link"
               component="a"
               variant="link"
-              href={mlflowLink.spec.href}
+              href={mlflowWorkspaceHref}
               target="_blank"
               rel="noopener noreferrer"
               icon={<ExternalLinkAltIcon />}
