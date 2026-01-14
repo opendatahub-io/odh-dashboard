@@ -69,7 +69,16 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers models via model registry using object storage and URI',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@NonConcurrent',
+        '@Smoke',
+        '@SmokeSet4',
+        '@DisconnectedClusterNotSupported',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -167,7 +176,16 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers a new version via versions view',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@NonConcurrent',
+        '@Smoke',
+        '@SmokeSet4',
+        '@DisconnectedClusterNotSupported',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

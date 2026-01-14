@@ -56,7 +56,16 @@ describe('Verify that admin users can edit a model registry', () => {
 
   it(
     'Logs in as admin user and edits an existing model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@Sanity',
+        '@SanitySet4',
+        '@NonConcurrent',
+        '@DisconnectedClusterNotSupported',
+      ],
+    },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

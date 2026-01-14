@@ -65,7 +65,16 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@Bug',
+        '@DisconnectedClusterNotSupported',
+      ],
+    },
     () => {
       cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

@@ -126,7 +126,13 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Create custom serving runtime for Gen AI',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@GenAI',
+        '@ServingRuntime',
+        '@DisconnectedClusterNotSupported',
+      ],
     },
     () => {
       if (skipTest) {
@@ -175,7 +181,14 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@GenAI',
+        '@ModelServing',
+        '@Deployment',
+        '@DisconnectedClusterNotSupported',
+      ],
     },
     () => {
       if (skipTest) {
@@ -253,7 +266,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@DisconnectedClusterNotSupported'],
     },
     () => {
       if (skipTest) {

@@ -73,7 +73,16 @@ describe('Verify that models and versions can be archived and restored via model
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@NonConcurrent',
+        '@Sanity',
+        '@SanitySet4',
+        '@DisconnectedClusterNotSupported',
+      ],
+    },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

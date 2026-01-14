@@ -112,7 +112,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
   it(
     'Should create and complete training job with progression tracking',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining'],
+      tags: ['@Smoke', '@SmokeSet1', '@ModelTraining', '@DisconnectedClusterNotSupported'],
     },
     () => {
       if (skipTest) {
