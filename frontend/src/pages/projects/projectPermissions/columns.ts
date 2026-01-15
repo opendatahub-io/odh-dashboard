@@ -1,8 +1,6 @@
 import { SortableData } from '#~/components/table';
 import { SubjectRoleRow } from './types';
-
-const dateCreatedInfoText =
-  'The date the role binding was created. This can differ from when the user or group was assigned the role.';
+import { ROLE_BINDING_DATE_CREATED_TOOLTIP } from './const';
 
 export const columns: SortableData<SubjectRoleRow>[] = [
   {
@@ -22,7 +20,7 @@ export const columns: SortableData<SubjectRoleRow>[] = [
     label: 'Date created',
     width: 25,
     info: {
-      popover: dateCreatedInfoText,
+      popover: ROLE_BINDING_DATE_CREATED_TOOLTIP,
       ariaLabel: 'Date created help',
     },
     sortable: (a, b) =>

@@ -11,6 +11,8 @@ import {
   getTablePagingProps,
   getTableSortProps,
 } from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import { getGenericErrorCode } from '#~/api/errorUtils';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 
 const PipelinesView: React.FC = () => {
   const [
@@ -22,6 +24,9 @@ const PipelinesView: React.FC = () => {
   const sortProps = getTableSortProps(tableProps);
 
   if (loadError) {
+    if (getGenericErrorCode(loadError) === 403) {
+      return <UnauthorizedError accessDomain="pipelines" />;
+    }
     return (
       <EmptyStateErrorMessage title="Error displaying pipelines" bodyText={loadError.message} />
     );

@@ -120,6 +120,14 @@ export const isModelServingPlatformExtension = <D extends Deployment = Deploymen
 
 export type ModelServingPlatformWatchDeployments =
   ResolvedExtension<ModelServingPlatformWatchDeploymentsExtension>;
+/**
+ * Extension point for a `watch` hook to watch deployments for a given platform.
+ *
+ * @returns [deployments, loaded, errors]
+ * - deployments: the deployments for the given platform
+ * - loaded: whether the deployments are loaded (NOTE: loading should resolve to true if an error is encountered)
+ * - errors: any errors encountered while loading the deployments
+ */
 export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment = Deployment> =
   Extension<
     'model-serving.platform/watch-deployments',
@@ -131,7 +139,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
           labelSelectors?: { [key: string]: string },
           filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,
-        ) => [D[] | undefined, boolean, Error | undefined]
+        ) => [D[] | undefined, boolean, Error[] | undefined]
       >;
     }
   >;

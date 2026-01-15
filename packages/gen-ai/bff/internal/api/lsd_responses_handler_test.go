@@ -198,12 +198,10 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			Model: "llama-3.1-8b",
 			MCPServers: []MCPServer{
 				{
-					ServerLabel: "slack",
-					ServerURL:   "http://127.0.0.1:13080/sse",
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
-					AllowedTools: []string{"send_message", "", "get_channel_history"}, // Empty string should cause validation error
+					ServerLabel:   "slack",
+					ServerURL:     "http://127.0.0.1:13080/sse",
+					Authorization: "test-token",
+					AllowedTools:  []string{"send_message", "", "get_channel_history"}, // Empty string should cause validation error
 				},
 			},
 		}
@@ -370,11 +368,9 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			Model: "mock-model-for-testing",
 			MCPServers: []MCPServer{
 				{
-					ServerLabel: "github",
-					ServerURL:   "https://api.githubcopilot.com/mcp/x/repos/readonly",
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
+					ServerLabel:   "github",
+					ServerURL:     "https://api.githubcopilot.com/mcp/x/repos/readonly",
+					Authorization: "test-token",
 				},
 			},
 		}
@@ -474,10 +470,8 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			MCPServers: []MCPServer{
 				{
 					// Missing ServerLabel - should cause validation error
-					ServerURL: "https://api.githubcopilot.com/mcp/x/repos/readonly",
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
+					ServerURL:     "https://api.githubcopilot.com/mcp/x/repos/readonly",
+					Authorization: "test-token",
 				},
 			},
 		}
@@ -508,11 +502,9 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			Model: "llama-3.1-8b",
 			MCPServers: []MCPServer{
 				{
-					ServerLabel: "github",
+					ServerLabel:   "github",
+					Authorization: "test-token",
 					// Missing ServerURL - should cause validation error
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
 				},
 			},
 		}

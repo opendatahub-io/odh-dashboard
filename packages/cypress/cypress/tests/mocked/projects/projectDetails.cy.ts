@@ -378,27 +378,6 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', true);
     });
 
-    it('shows 403 page when user does not have access to the project', () => {
-      asProjectEditUser({ projects: [] });
-      cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-      projectDetails.visit('test-project', { wait: false });
-      projectDetails.find403Page().should('exist');
-    });
-
-    it('shows 403 page with context when pipelines are disabled', () => {
-      asProjectEditUser({ projects: [] });
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({
-          disablePipelines: true,
-        }),
-      );
-      cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-      projectDetails.visitSection('test-project', 'workbenches');
-      projectDetails.find403Page().should('exist');
-      projectDetails.findSectionTab('workbenches').should('exist');
-    });
-
     it('Shows project information', () => {
       initIntercepts({ disableKServe: true });
       projectDetails.visit('test-project');

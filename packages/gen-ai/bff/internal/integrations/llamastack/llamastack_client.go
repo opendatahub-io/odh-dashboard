@@ -14,6 +14,7 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -352,8 +353,8 @@ type MCPServerParam struct {
 	ServerLabel string
 	// ServerURL is the URL endpoint for the MCP server
 	ServerURL string
-	// Headers contains custom headers for MCP server authentication
-	Headers map[string]string
+	// Authorization is the OAuth access token for MCP server authentication
+	Authorization string
 	// AllowedTools contains list of specific tool names allowed from this server
 	AllowedTools []string
 }
@@ -487,15 +488,21 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 			}
 
 			// Create MCP tool parameter for OpenAI client
-			mcpServerToolParam := responses.ToolUnionParam{
-				OfMcp: &responses.ToolMcpParam{
-					ServerLabel: mcpServer.ServerLabel,
-					ServerURL:   openai.String(mcpServer.ServerURL),
-					Headers:     mcpServer.Headers,
-					AllowedTools: responses.ToolMcpAllowedToolsUnionParam{
-						OfMcpAllowedTools: mcpServer.AllowedTools,
-					},
+			mcpToolParam := &responses.ToolMcpParam{
+				ServerLabel: mcpServer.ServerLabel,
+				ServerURL:   openai.String(mcpServer.ServerURL),
+				AllowedTools: responses.ToolMcpAllowedToolsUnionParam{
+					OfMcpAllowedTools: mcpServer.AllowedTools,
 				},
+			}
+
+			// Set authorization if provided
+			if mcpServer.Authorization != "" {
+				mcpToolParam.Authorization = param.NewOpt(mcpServer.Authorization)
+			}
+
+			mcpServerToolParam := responses.ToolUnionParam{
+				OfMcp: mcpToolParam,
 			}
 			tools = append(tools, mcpServerToolParam)
 		}
