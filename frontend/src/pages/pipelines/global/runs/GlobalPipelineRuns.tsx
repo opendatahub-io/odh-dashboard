@@ -33,6 +33,7 @@ const GlobalPipelineRuns: React.FC<GlobalPipelineRunsProps> = ({ tab }) => {
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={pipelineRunsBaseRoute}
       overrideTimeout
+      accessDomain="pipeline runs"
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

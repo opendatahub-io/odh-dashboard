@@ -23,6 +23,7 @@ export const GlobalArtifactsPage: React.FC = () => {
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={artifactsBaseRoute}
       overrideTimeout
+      accessDomain="artifacts"
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>
