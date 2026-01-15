@@ -4,9 +4,10 @@ import RevokeAllApiKeysModal from './RevokeAllApiKeysModal';
 
 type ApiKeysActionsProps = {
   apiKeyCount: number;
+  onRefresh?: () => void;
 };
 
-const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount }) => {
+const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, onRefresh }) => {
   const [open, setOpen] = React.useState(false);
   const [revokeAllOpen, setRevokeAllOpen] = React.useState(false);
 
@@ -47,8 +48,11 @@ const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount }) => {
       {revokeAllOpen ? (
         <RevokeAllApiKeysModal
           apiKeyCount={apiKeyCount}
-          onClose={() => {
+          onClose={(revoked) => {
             setRevokeAllOpen(false);
+            if (revoked && onRefresh) {
+              onRefresh();
+            }
           }}
         />
       ) : null}

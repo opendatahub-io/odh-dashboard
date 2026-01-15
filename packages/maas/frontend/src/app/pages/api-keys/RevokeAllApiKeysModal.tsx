@@ -4,8 +4,6 @@ import {
   Button,
   Flex,
   FlexItem,
-  Form,
-  FormGroup,
   Modal,
   ModalBody,
   ModalFooter,
@@ -14,6 +12,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { deleteAllApiKeys } from '~/app/api/api-keys';
 
 type RevokeAllApiKeysModalProps = {
   onClose: (revoked: boolean) => void;
@@ -23,23 +22,30 @@ type RevokeAllApiKeysModalProps = {
 const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, apiKeyCount }) => {
   const [revoking, setRevoking] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const [confirmationValue, setConfirmationValue] = React.useState('');
+  const [value, setValue] = React.useState('');
 
-  const isConfirmed = confirmationValue.trim() === 'revoke';
+  const confirmationWord = 'revoke';
+  const isConfirmed = value.trim() === confirmationWord;
+
+  const handleRevoke = React.useCallback(async () => {
+    setRevoking(true);
+    setError(undefined);
+
+    try {
+      await deleteAllApiKeys()({});
+      onClose(true);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to revoke API keys'));
+      setRevoking(false);
+    }
+  }, [onClose]);
 
   const onBeforeClose = (revoked: boolean) => {
-    onClose(revoked);
-    setRevoking(false);
-    setError(undefined);
-    setConfirmationValue('');
-  };
-
-  const handleRevoke = () => {
-    setRevoking(true);
-
-    setTimeout(() => {
-      onBeforeClose(true);
-    }, 500);
+    if (revoked) {
+      handleRevoke();
+    } else {
+      onClose(false);
+    }
   };
 
   return (
@@ -49,45 +55,34 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
       variant="small"
       data-testid="revoke-all-api-keys-modal"
     >
-      <ModalHeader title="Revoke all API keys?" />
+      <ModalHeader title="Revoke all API keys?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            <Alert
-              isInline
-              variant="danger"
-              title="This action cannot be undone"
-              data-testid="revoke-all-alert"
-            >
-              Revoking all API keys will immediately remove endpoint access to any applications
-              currently using them. This will revoke {apiKeyCount}{' '}
-              {apiKeyCount === 1 ? 'key' : 'keys'}.
-            </Alert>
+            This action cannot be undone. Revoking all API keys will immediately remove endpoint
+            access to any applications currently using them. This will revoke {apiKeyCount}{' '}
+            {apiKeyCount === 1 ? 'key' : 'keys'}.
           </StackItem>
 
           <StackItem>
-            <Form>
+            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
-                To confirm revocation, type <strong>revoke</strong> below:
+                Type <strong>{confirmationWord}</strong> to confirm:
               </FlexItem>
-              <FormGroup label="Confirmation" isRequired fieldId="revoke-confirmation-input">
-                <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                  <TextInput
-                    id="revoke-confirmation-input"
-                    data-testid="revoke-confirmation-input"
-                    aria-label="Revoke confirmation input"
-                    placeholder="Type 'revoke' to confirm"
-                    value={confirmationValue}
-                    onChange={(_e, value) => setConfirmationValue(value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && isConfirmed && !revoking) {
-                        handleRevoke();
-                      }
-                    }}
-                  />
-                </Flex>
-              </FormGroup>
-            </Form>
+
+              <TextInput
+                id="revoke-confirmation-input"
+                data-testid="revoke-confirmation-input"
+                aria-label="Revoke confirmation input"
+                value={value}
+                onChange={(_e, newValue) => setValue(newValue)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && isConfirmed && !revoking) {
+                    handleRevoke();
+                  }
+                }}
+              />
+            </Flex>
           </StackItem>
 
           {error && (
@@ -106,18 +101,19 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
       </ModalBody>
       <ModalFooter>
         <Button
-          variant="primary"
-          onClick={handleRevoke}
-          isDisabled={!isConfirmed || revoking}
+          key="revoke-button"
+          variant="danger"
           isLoading={revoking}
+          isDisabled={revoking || !isConfirmed}
+          onClick={() => onBeforeClose(true)}
           data-testid="revoke-keys-button"
         >
           Revoke keys
         </Button>
         <Button
+          key="cancel-button"
           variant="link"
           onClick={() => onBeforeClose(false)}
-          isDisabled={revoking}
           data-testid="cancel-revoke-button"
         >
           Cancel
