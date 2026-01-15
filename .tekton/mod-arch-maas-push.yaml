@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   annotations:
-    build.appstudio.openshift.io/repo: https://github.com/AjayJagan/odh-dashboard?rev={{revision}}
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
@@ -11,10 +11,10 @@ metadata:
       == "odh-release"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: odh-release
-    appstudio.openshift.io/component: mod-arch-maas-poc
+    appstudio.openshift.io/application: opendatahub-release
+    appstudio.openshift.io/component: mod-arch-maas
     pipelines.appstudio.openshift.io/type: build
-  name: mod-arch-maas-poc-on-push
+  name: mod-arch-maas-on-push
   namespace: open-data-hub-tenant
 spec:
   params:
