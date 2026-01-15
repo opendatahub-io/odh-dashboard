@@ -1,14 +1,17 @@
 import * as React from 'react';
-import { Gallery } from '@patternfly/react-core';
+import { Gallery, Stack, StackItem } from '@patternfly/react-core';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
 import PipelinesCard from './PipelinesCard';
 import NotebooksCard from './NotebooksCard';
+import MLflowCard from './MLflowCard';
 
 const TrainModelsSection: React.FC = () => {
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+  const mlflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+  const mlflowEmbedEnabled = useIsAreaAvailable(SupportedArea.EMBED_MLFLOW).status;
 
   if (!workbenchEnabled && !pipelinesEnabled) {
     return null;
@@ -16,18 +19,27 @@ const TrainModelsSection: React.FC = () => {
 
   return (
     <CollapsibleSection title="Train models">
-      <Gallery
-        hasGutter
-        minWidths={{ default: '100%', lg: pipelinesEnabled ? 'calc(50% - 1rem / 2)' : '100%' }}
-        maxWidths={{ default: '100%', lg: pipelinesEnabled ? 'calc(50% - 1rem / 2)' : '100%' }}
-      >
-        {workbenchEnabled ? <NotebooksCard /> : null}
-        {pipelinesEnabled ? (
-          <PipelineAndVersionContextProvider>
-            <PipelinesCard />
-          </PipelineAndVersionContextProvider>
+      <Stack hasGutter>
+        <StackItem>
+          <Gallery
+            hasGutter
+            minWidths={{ default: '100%', lg: pipelinesEnabled ? 'calc(50% - 1rem / 2)' : '100%' }}
+            maxWidths={{ default: '100%', lg: pipelinesEnabled ? 'calc(50% - 1rem / 2)' : '100%' }}
+          >
+            {workbenchEnabled ? <NotebooksCard /> : null}
+            {pipelinesEnabled ? (
+              <PipelineAndVersionContextProvider>
+                <PipelinesCard />
+              </PipelineAndVersionContextProvider>
+            ) : null}
+          </Gallery>
+        </StackItem>
+        {mlflowEnabled && mlflowEmbedEnabled ? (
+          <StackItem>
+            <MLflowCard />
+          </StackItem>
         ) : null}
-      </Gallery>
+      </Stack>
     </CollapsibleSection>
   );
 };
