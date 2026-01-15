@@ -24,6 +24,7 @@ import {
   getUniqueSourceLabels,
   hasSourcesWithoutLabels,
   hasFiltersApplied,
+  getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 
 // TODO: Implement performance filters.
@@ -34,6 +35,7 @@ describe('filtersToFilterQuery', () => {
     provider = [],
     language = [],
     hardware_type = [],
+    hardware_configuration = [],
     use_case = [],
     rps_mean = undefined,
     ttft_mean = undefined,
@@ -43,6 +45,7 @@ describe('filtersToFilterQuery', () => {
     provider?: ModelCatalogProvider[];
     language?: AllLanguageCode[];
     hardware_type?: string[];
+    hardware_configuration?: string[];
     use_case?: UseCaseOptionValue[];
     rps_mean?: number;
     ttft_mean?: number;
@@ -52,6 +55,7 @@ describe('filtersToFilterQuery', () => {
     [ModelCatalogStringFilterKey.LICENSE]: license,
     [ModelCatalogStringFilterKey.LANGUAGE]: language,
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: hardware_type,
+    [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
     'artifacts.ttft_mean.double_value': ttft_mean,
@@ -649,6 +653,7 @@ describe('hasFiltersApplied', () => {
     provider = [],
     language = [],
     hardware_type = [],
+    hardware_configuration = [],
     use_case = [],
     rps_mean = undefined,
     ttft_mean = undefined,
@@ -658,6 +663,7 @@ describe('hasFiltersApplied', () => {
     provider?: ModelCatalogProvider[];
     language?: AllLanguageCode[];
     hardware_type?: string[];
+    hardware_configuration?: string[];
     use_case?: UseCaseOptionValue[];
     rps_mean?: number;
     ttft_mean?: number;
@@ -667,6 +673,7 @@ describe('hasFiltersApplied', () => {
     [ModelCatalogStringFilterKey.LICENSE]: license,
     [ModelCatalogStringFilterKey.LANGUAGE]: language,
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: hardware_type,
+    [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
     'artifacts.ttft_mean.double_value': ttft_mean,
@@ -823,5 +830,47 @@ describe('hasFiltersApplied', () => {
       });
       expect(hasFiltersApplied(filterData, [])).toBe(false);
     });
+  });
+});
+
+describe('getModelName', () => {
+  it('should return the part after the slash when model name contains a slash', () => {
+    const result = getModelName('repo1/granite-8b-code-instruct');
+    expect(result).toBe('granite-8b-code-instruct');
+  });
+
+  it('should return the original name when no slash is present', () => {
+    const result = getModelName('granite-8b-code-instruct');
+    expect(result).toBe('granite-8b-code-instruct');
+  });
+
+  it('should return empty string when given an empty string', () => {
+    const result = getModelName('');
+    expect(result).toBe('');
+  });
+
+  it('should handle multiple slashes and return everything after the first slash', () => {
+    const result = getModelName('org/repo/model-name');
+    expect(result).toBe('repo/model-name');
+  });
+
+  it('should return empty string when model name ends with a slash', () => {
+    const result = getModelName('repo/');
+    expect(result).toBe('');
+  });
+
+  it('should return the part after slash when model name starts with a slash', () => {
+    const result = getModelName('/model-name');
+    expect(result).toBe('model-name');
+  });
+
+  it('should handle model names with special characters', () => {
+    const result = getModelName('repo1/granite-8b-code-instruct-quantized.w4a16');
+    expect(result).toBe('granite-8b-code-instruct-quantized.w4a16');
+  });
+
+  it('should handle model names with hyphens and underscores', () => {
+    const result = getModelName('my_org/my-model_v1');
+    expect(result).toBe('my-model_v1');
   });
 });

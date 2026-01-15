@@ -5,6 +5,7 @@ export enum ModelCatalogStringFilterKey {
   LANGUAGE = 'language',
   // Performance filter keys use backend format
   HARDWARE_TYPE = 'artifacts.hardware_type.string_value',
+  HARDWARE_CONFIGURATION = 'artifacts.hardware_configuration.string_value',
   USE_CASE = 'artifacts.use_case.string_value',
 }
 
@@ -19,6 +20,7 @@ export enum ModelCatalogNumberFilterKey {
  */
 export const PerformancePropertyKey = {
   HARDWARE_TYPE: 'hardware_type',
+  HARDWARE_CONFIGURATION: 'hardware_configuration',
   USE_CASE: 'use_case',
   REQUESTS_PER_SECOND: 'requests_per_second',
 } as const;
@@ -475,7 +477,7 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
  */
 export const PERFORMANCE_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.USE_CASE,
-  ModelCatalogStringFilterKey.HARDWARE_TYPE,
+  ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION,
   ModelCatalogNumberFilterKey.MAX_RPS,
   ...ALL_LATENCY_FILTER_KEYS,
 ];
@@ -554,6 +556,7 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.TASK]: 'Task',
   [ModelCatalogStringFilterKey.LANGUAGE]: 'Language',
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: 'Hardware type',
+  [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: 'Hardware',
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
   // Number filter keys
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
@@ -568,4 +571,20 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
 export enum ModelDetailsTab {
   OVERVIEW = 'overview',
   PERFORMANCE_INSIGHTS = 'performance-insights',
+}
+
+export const EMPTY_CUSTOM_PROPERTY_VALUE = '-';
+
+export enum ModelCatalogSortOption {
+  RECENT_PUBLISH = 'recent_publish',
+  LOWEST_LATENCY = 'lowest_latency',
+}
+
+export enum SortOrder {
+  ASC = 'ASC',
+  DESC = 'DESC',
+}
+
+export enum SortField {
+  LAST_UPDATE_TIME = 'LAST_UPDATE_TIME',
 }

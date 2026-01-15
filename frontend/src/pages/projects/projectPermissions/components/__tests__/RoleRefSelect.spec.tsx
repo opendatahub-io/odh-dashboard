@@ -2,8 +2,8 @@ import * as React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import { RoleLabelType } from '#~/concepts/permissions/types';
+import { DEFAULT_ROLE_DESCRIPTIONS } from '#~/concepts/permissions/const';
 import RoleRefSelect from '#~/pages/projects/projectPermissions/components/RoleRefSelect';
-import { DEFAULT_ROLE_DESCRIPTIONS } from '#~/pages/projects/projectPermissions/const';
 
 const mockUsePermissionsContext = jest.fn();
 
