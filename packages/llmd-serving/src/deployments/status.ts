@@ -117,7 +117,7 @@ export const calculateGracePeriod = (lastActivity?: Date): boolean => {
     return false;
   }
   const now = Date.now();
-  const idleTime = new Date(lastActivity).setSeconds(lastActivity.getSeconds() + 180);
+  const idleTime = new Date(lastActivity).setSeconds(lastActivity.getSeconds() + 600);
   // Return true if we're still within grace period
   return idleTime - now > 0;
 };
