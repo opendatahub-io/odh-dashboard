@@ -2,15 +2,15 @@ import * as React from 'react';
 import { Flex, FlexItem, Tooltip } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
-import { RoleLabelType, RoleRef } from '#~/concepts/permissions/types';
+import { RoleRef } from '#~/concepts/permissions/types';
 import {
   hasRoleRef,
   getRoleByRef,
   getRoleDisplayName,
-  getRoleLabelType,
+  getRoleLabelTypeForRoleRef,
   getRoleRefKey,
 } from '#~/concepts/permissions/utils';
-import { DEFAULT_ROLE_DESCRIPTIONS } from '#~/pages/projects/projectPermissions/const';
+import { DEFAULT_ROLE_DESCRIPTIONS } from '#~/concepts/permissions/const';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import type { RoleDisplay } from '#~/pages/projects/projectPermissions/types';
 
@@ -42,23 +42,9 @@ const RoleRefSelect: React.FC<RoleRefSelectProps> = ({
       const role = getRoleByRef(roles.data, clusterRoles.data, roleRef);
       const key = getRoleRefKey(roleRef);
 
-      // When ClusterRole listing is forbidden, we may not have role objects.
-      // Still classify the two well-known ClusterRoles as OpenShift default,
-      // and treat any other unknown ClusterRole as OpenShift custom.
-      const fallbackClusterRoleLabelType = (): RoleLabelType | undefined => {
-        if (roleRef.kind !== 'ClusterRole' || role) {
-          return undefined;
-        }
-        const name = roleRef.name.toLowerCase();
-        if (name === 'admin' || name === 'edit') {
-          return RoleLabelType.OpenshiftDefault;
-        }
-        return RoleLabelType.OpenshiftCustom;
-      };
-
       return {
         name: getRoleDisplayName(roleRef, role),
-        labelType: role ? getRoleLabelType(role) : fallbackClusterRoleLabelType(),
+        labelType: getRoleLabelTypeForRoleRef(roleRef, role),
         description:
           DEFAULT_ROLE_DESCRIPTIONS[key] ??
           role?.metadata.annotations?.['openshift.io/description'],
@@ -94,7 +80,7 @@ const RoleRefSelect: React.FC<RoleRefSelectProps> = ({
           label: roleDisplay.name,
           description: roleDisplay.description,
           dropdownLabel: disabled ? (
-            <Tooltip content={`The selected ${subjectKind} has already owned this role.`}>
+            <Tooltip content={`This role is already assigned to the selected ${subjectKind}.`}>
               <span>{dropdownLabel}</span>
             </Tooltip>
           ) : (

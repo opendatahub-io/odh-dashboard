@@ -10,6 +10,7 @@ import {
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import { DeleteModal } from '../../../../pages/components/DeleteModal';
 import { permissions, roleBindingPermissionsChangeModal } from '../../../../pages/permissions';
 import { projectRbacPermissions } from '../../../../pages/projectRbacPermissions';
 import { be } from '../../../../utils/should';
@@ -288,6 +289,12 @@ describe('Permissions tab', () => {
     });
 
     it('Does not show confirmation modal when editing other users permissions', () => {
+      cy.interceptK8s('POST', RoleBindingModel, mockRoleBindingK8sResource({})).as('editUser');
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'user-1' },
+        mock200Status({}),
+      ).as('deleteUser');
       initIntercepts({ isEmpty: false });
       permissions.visit('test-project');
 
@@ -297,6 +304,8 @@ describe('Permissions tab', () => {
       userTable.findEditSaveButton('user-3').click();
 
       roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('not.exist');
+      cy.wait('@editUser');
+      cy.wait('@deleteUser');
     });
 
     it('Does not show confirmation modal when deleting other users permissions', () => {
@@ -560,6 +569,88 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.findUsersTable().should('exist');
   });
 
+  it('should open the role details modal and support rules sorting + resource names helper', () => {
+    initProjectRbacIntercepts();
+
+    // Override ClusterRole list to include rules for the Admin role.
+    cy.interceptK8sList(
+      ClusterRoleModel,
+      mockK8sResourceList([
+        mockClusterRoleK8sResource({
+          name: 'admin',
+          labels: { 'kubernetes.io/bootstrapping': 'rbac-defaults' },
+          rules: [
+            {
+              verbs: ['get'],
+              apiGroups: ['z-group'],
+              resources: ['b-res'],
+              resourceNames: ['b-name'],
+            },
+            {
+              verbs: ['get'],
+              apiGroups: ['a-group'],
+              resources: ['a-res'],
+              resourceNames: ['a-name'],
+            },
+          ],
+        }),
+        mockClusterRoleK8sResource({
+          name: 'edit',
+          labels: { foo: 'bar' },
+        }),
+      ]),
+    );
+
+    projectRbacPermissions.visit(namespace);
+    usersTable.findRoleLink('Admin').click();
+
+    const roleDetailsModal = projectRbacPermissions.getRoleDetailsModal();
+    roleDetailsModal.find().should('exist');
+
+    const rulesTable = roleDetailsModal.getRulesTable();
+
+    // Sort: API Groups
+    rulesTable.clickHeaderSort('API Groups');
+    rulesTable.findFirstBodyRow().should('contain.text', 'a-group');
+
+    // Sort: Resource type
+    rulesTable.clickHeaderSort('Resource type');
+    rulesTable.findFirstBodyRow().should('contain.text', 'a-res');
+
+    // Sort: Resource names (exclude the help button)
+    rulesTable.clickHeaderSort(/^Resource names$/);
+    rulesTable.findFirstBodyRow().should('contain.text', 'a-name');
+  });
+
+  it('should show assignees table with sortable columns', () => {
+    initProjectRbacIntercepts();
+    projectRbacPermissions.visit(namespace);
+
+    // Open modal from role link
+    usersTable.findRoleLink('Contributor').click();
+    const roleDetailsModal = projectRbacPermissions.getRoleDetailsModal();
+    roleDetailsModal.find().should('exist');
+
+    roleDetailsModal.clickAssigneesTab();
+    const assigneesTable = roleDetailsModal.getAssigneesTable();
+    assigneesTable.find().should('exist');
+
+    // Sort by Subject
+    assigneesTable.findHeaderSortButton('Subject').click();
+    assigneesTable.findHeaderSortButton('Subject').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
+
+    // Sort by Subject kind
+    assigneesTable.findHeaderSortButton('Subject kind').click();
+    assigneesTable.findHeaderSortButton('Subject kind').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
+
+    // Sort by Role binding
+    assigneesTable.findHeaderSortButton('Role binding').click();
+    assigneesTable.findHeaderSortButton('Role binding').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'rb-group-edit');
+  });
+
   it('should add a user role assignment and refresh the table', () => {
     const newUserName = 'test-user-new-1';
     const newUserSubject = mockUserRoleBindingSubject({ name: newUserName });
@@ -714,7 +805,7 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.findAddRowSubjectInput('user').clear().type('test-user-1');
     projectRbacPermissions.findTypeaheadOption(/^test-user-1$/).should('exist');
     projectRbacPermissions
-      .findTypeaheadOptions(/Grant access to "test-user-1"/)
+      .findTypeaheadOptions(/Assign role to "test-user-1"/)
       .should('have.length', 0);
   });
 
@@ -855,10 +946,113 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.visit(namespace);
     cy.wait('@listRoleBindingsDynamic');
 
-    // For irreversible roles, Edit should not be available (only Remove).
+    // For irreversible roles, Edit should not be available (only Unassign).
     const viewRow = usersTable.getRowByRoleLink('view');
     viewRow.findKebab().click();
     viewRow.findKebabAction('Edit', false).should('not.exist');
+  });
+
+  it('should remove a user role assignment after confirmation', () => {
+    const userName = 'test-user-1';
+    const userSubject = mockUserRoleBindingSubject({ name: userName });
+    const rbAdmin = mockRoleBindingK8sResource({
+      name: 'rb-user-admin',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'admin',
+      creationTimestamp: '2024-01-01T00:00:00Z',
+    });
+
+    const roleBindingsPath = getK8sAPIResourceURL(RoleBindingModel, undefined, { ns: namespace });
+    initProjectRbacIntercepts({ items: [rbAdmin] });
+
+    let roleBindingsItems: ReturnType<typeof mockRoleBindingK8sResource>[] = [rbAdmin];
+    cy.intercept({ method: 'GET', pathname: roleBindingsPath }, (req) => {
+      req.reply(mockK8sResourceList(roleBindingsItems));
+    }).as('listRoleBindingsDynamic');
+
+    let deleteCount = 0;
+    cy.interceptK8s(
+      'DELETE',
+      { model: RoleBindingModel, ns: namespace, name: rbAdmin.metadata.name },
+      (req) => {
+        deleteCount += 1;
+        roleBindingsItems = [];
+        req.reply(mock200Status({}));
+      },
+    ).as('deleteRoleBindingAdmin');
+
+    projectRbacPermissions.visit(namespace);
+    cy.wait('@listRoleBindingsDynamic');
+
+    usersTable.getRowByRoleLink('Admin').findKebabAction('Unassign').click();
+    const unassignRoleModal = new DeleteModal(/Unassign role\?/);
+    unassignRoleModal.shouldBeOpen();
+
+    // Cancel does not unassign
+    unassignRoleModal.findCancelButton().click();
+    unassignRoleModal.shouldBeOpen(false);
+    cy.wrap(null).then(() => {
+      expect(deleteCount).to.eq(0);
+    });
+    usersTable.findRoleLink('Admin').should('exist');
+
+    // Confirm remove the role assignment (RoleBinding deleted because it would become empty)
+    usersTable.getRowByRoleLink('Admin').findKebabAction('Unassign').click();
+    unassignRoleModal.shouldBeOpen();
+    unassignRoleModal
+      .findSubmitButton({ name: /Unassign role/i })
+      .should('be.enabled')
+      .click();
+
+    cy.wait('@deleteRoleBindingAdmin');
+    cy.wait('@listRoleBindingsDynamic');
+    usersTable.findRoleLink('Admin').should('not.exist');
+  });
+
+  it('should require typing to remove a non-reversible role assignment', () => {
+    const userName = 'test-user-1';
+    const userSubject = mockUserRoleBindingSubject({ name: userName });
+    const rbView = mockRoleBindingK8sResource({
+      name: 'rb-user-view',
+      namespace,
+      subjects: [userSubject],
+      roleRefKind: 'ClusterRole',
+      roleRefName: 'view',
+      creationTimestamp: '2024-01-01T00:00:00Z',
+    });
+
+    const roleBindingsPath = getK8sAPIResourceURL(RoleBindingModel, undefined, { ns: namespace });
+    initProjectRbacIntercepts({ items: [rbView] });
+
+    const roleBindingsItems: ReturnType<typeof mockRoleBindingK8sResource>[] = [rbView];
+    cy.intercept({ method: 'GET', pathname: roleBindingsPath }, (req) => {
+      req.reply(mockK8sResourceList(roleBindingsItems));
+    }).as('listRoleBindingsDynamic');
+
+    cy.interceptK8s(
+      'DELETE',
+      { model: RoleBindingModel, ns: namespace, name: rbView.metadata.name },
+      mock200Status({}),
+    ).as('deleteRoleBindingView');
+
+    projectRbacPermissions.visit(namespace);
+    cy.wait('@listRoleBindingsDynamic');
+
+    usersTable.getRowByRoleLink('view').findKebabAction('Unassign').click();
+    const unassignRoleModal = new DeleteModal(/Unassign role\?/);
+    unassignRoleModal.shouldBeOpen();
+
+    // Non-reversible roles should require typing the subject name to enable the button
+    unassignRoleModal.findSubmitButton({ name: /Unassign role/i }).should('be.disabled');
+    unassignRoleModal.findInput().fill(userName);
+    unassignRoleModal
+      .findSubmitButton({ name: /Unassign role/i })
+      .should('be.enabled')
+      .click();
+
+    cy.wait('@deleteRoleBindingView');
   });
 
   it('should cancel editing a user role assignment without making any changes', () => {

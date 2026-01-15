@@ -87,7 +87,7 @@ func CreateTierHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 
 	createdTier, err := app.repositories.Tiers.CreateTier(ctx, request.Data)
 	if err != nil {
-		if errors.Is(err, repositories.ErrTierExists) || errors.Is(err, repositories.ErrTierLevelConflict) {
+		if errors.Is(err, repositories.ErrTierExists) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusUnprocessableEntity,
 				Error: ErrorPayload{

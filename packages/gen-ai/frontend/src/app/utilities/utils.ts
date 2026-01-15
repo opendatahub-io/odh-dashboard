@@ -90,17 +90,21 @@ export const generateMCPServerConfig = (
   serverTokens: Map<string, TokenInfo>,
 ): MCPServerConfig => {
   const serverTokenInfo = serverTokens.get(server.url);
-  const headers: Record<string, string> = {};
+  let authorization: string | undefined;
 
   if (serverTokenInfo?.token) {
-    const raw = serverTokenInfo.token.trim();
-    headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
+    let token = serverTokenInfo.token.trim();
+    // Strip "Bearer " prefix if present (case-insensitive)
+    if (token.toLowerCase().startsWith('bearer ')) {
+      token = token.slice(7).trim();
+    }
+    authorization = token || undefined;
   }
 
   return {
     server_label: server.name,
     server_url: server.url,
-    headers,
+    authorization,
   };
 };
 

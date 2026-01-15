@@ -35,12 +35,10 @@ export const initialFilterData: FilterDataType = {
   [SubjectsFilterOptions.role]: '',
 };
 
+export const ROLE_BINDING_DATE_CREATED_TOOLTIP =
+  'The date the role binding was created. This can differ from when the user or group was assigned the role.';
+
 export const DEFAULT_ROLE_REFS: RoleRef[] = [
   { kind: 'ClusterRole', name: 'admin' },
   { kind: 'ClusterRole', name: 'edit' },
 ];
-
-export const DEFAULT_ROLE_DESCRIPTIONS: Partial<Record<string, string>> = {
-  'ClusterRole:admin': 'Edit the project and manage user access',
-  'ClusterRole:edit': 'View and edit the project components',
-};

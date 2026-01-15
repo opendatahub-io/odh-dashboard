@@ -109,6 +109,7 @@ describe('StartingStatusModal', () => {
     apiAvailable: true,
     api: {} as PipelineAPIs,
     startingStatusModalOpenRef: { current: 'test-namespace' },
+    pipelineLoadError: undefined,
   });
 
   beforeEach(() => {

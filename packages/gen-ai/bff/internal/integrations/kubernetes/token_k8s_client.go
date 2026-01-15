@@ -1583,8 +1583,96 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 }
 
 // GetSafetyConfig parses the llama-stack-config ConfigMap and returns guardrail models/shields
-// TODO: Real implementation pending - backend not yet completed
-// For now, returns error indicating not implemented
 func (kc *TokenKubernetesClient) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
-	return nil, fmt.Errorf("getSafetyConfig not implemented - use mock mode (MOCK_K8S_CLIENT=true)")
+	// Load the llama stack config from ConfigMap
+	config, err := kc.loadLlamaStackConfig(ctx, identity, namespace)
+	if err != nil {
+		// If no LSD found, return empty array
+		kc.Logger.Debug("no llama stack config found", "namespace", namespace, "error", err)
+		return &models.SafetyConfigResponse{
+			GuardrailModels: []models.GuardrailModelConfig{},
+		}, nil
+	}
+
+	// Check if safety providers exist
+	if len(config.Providers.Safety) == 0 {
+		return &models.SafetyConfigResponse{
+			GuardrailModels: []models.GuardrailModelConfig{},
+		}, nil
+	}
+
+	// Extract shields from safety provider config (only trustyai_fms provider)
+	guardrailModels := kc.extractGuardrailModelsFromSafetyProviders(config, namespace)
+
+	return &models.SafetyConfigResponse{
+		GuardrailModels: guardrailModels,
+	}, nil
+}
+
+// extractGuardrailModelsFromSafetyProviders extracts guardrail models from safety provider config
+func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(config *LlamaStackConfig, namespace string) []models.GuardrailModelConfig {
+	var guardrailModels []models.GuardrailModelConfig
+
+	for _, provider := range config.Providers.Safety {
+		// Only process trustyai_fms provider
+		if provider.ProviderID != "trustyai_fms" {
+			continue
+		}
+
+		// Extract shields from provider config
+		shields, ok := provider.Config["shields"].(map[interface{}]interface{})
+		if !ok {
+			kc.Logger.Debug("No shields found in provider config", "provider_id", provider.ProviderID)
+			continue
+		}
+
+		var inputShieldID, outputShieldID, modelName string
+
+		for shieldID, shieldConfig := range shields {
+			shieldIDStr, ok := shieldID.(string)
+			if !ok {
+				continue
+			}
+
+			shieldMap, ok := shieldConfig.(map[interface{}]interface{})
+			if !ok {
+				continue
+			}
+
+			// Extract model name from detector_params
+			if detectorParams, ok := shieldMap["detector_params"].(map[interface{}]interface{}); ok {
+				if custom, ok := detectorParams["custom"].(map[interface{}]interface{}); ok {
+					for guardrailKey, guardrailConfig := range custom {
+						guardrailKeyStr, _ := guardrailKey.(string)
+						gc, ok := guardrailConfig.(map[interface{}]interface{})
+						if !ok {
+							continue
+						}
+
+						if mn, ok := gc["guardrail_model"].(string); ok && modelName == "" {
+							modelName = mn
+						}
+
+						// Determine if this is input or output shield
+						if strings.Contains(guardrailKeyStr, "input") {
+							inputShieldID = shieldIDStr
+						} else if strings.Contains(guardrailKeyStr, "output") {
+							outputShieldID = shieldIDStr
+						}
+					}
+				}
+			}
+		}
+
+		// Create guardrail model config if we found shields
+		if inputShieldID != "" || outputShieldID != "" {
+			guardrailModels = append(guardrailModels, models.GuardrailModelConfig{
+				ModelName:      modelName,
+				InputShieldID:  inputShieldID,
+				OutputShieldID: outputShieldID,
+			})
+		}
+	}
+
+	return guardrailModels
 }

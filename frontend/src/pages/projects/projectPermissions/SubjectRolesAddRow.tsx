@@ -74,10 +74,12 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
       <Tr>
         <Td dataLabel="Name">
           <SubjectNameTypeaheadSelect
-            groupLabel={`${
-              subjectKind === 'user' ? 'Users' : 'Groups'
-            } with existing project access`}
-            placeholder={`Select a ${subjectKind} or type ${subjectKind} name`}
+            groupLabel={`${subjectKind === 'user' ? 'Users' : 'Groups'} with existing assignment`}
+            placeholder={
+              subjectKind === 'user'
+                ? `Select a user or type a username`
+                : `Select a group or type a group name`
+            }
             existingNames={existingSubjectNames}
             value={subjectName}
             onChange={(next) => {
@@ -89,12 +91,13 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
               setRoleSelection(undefined);
             }}
             dataTestId={`permissions-add-${subjectKind}-subject-typeahead-toggle`}
-            createOptionMessage={(v) => `Grant access to "${v}"`}
+            createOptionMessage={(v) => `Assign role to "${v}"`}
           />
           <HelperText style={{ paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
             <HelperTextItem>
-              Only {subjectKind}s with existing permissions are listed. To add someone new, enter
-              their {subjectKind} name.
+              {subjectKind === 'user'
+                ? 'Only users that have already been assigned roles appear in the dropdown. To add a new user, type their username.'
+                : 'Only groups that have already been assigned roles appear in the dropdown. To add a new group, type its name.'}
             </HelperTextItem>
           </HelperText>
         </Td>
@@ -107,9 +110,9 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
             isDisabled={!canPickRole}
             disabledTooltip={
               !trimmedSubjectName
-                ? `Select a ${subjectKind} first, then assign a role.`
+                ? `Select a ${subjectKind} to assign a role.`
                 : hasAllRolesAssigned
-                ? `The selected ${subjectKind} has already owned all available roles. Select another one and assign roles.`
+                ? `All available roles are already assigned to the selected ${subjectKind}.`
                 : undefined
             }
             onChange={setRoleSelection}
@@ -131,9 +134,8 @@ const SubjectRolesAddRow: React.FC<SubjectRolesAddRowProps> = ({
                 }
               >
                 {hasAllRolesAssigned
-                  ? `The selected ${subjectKind} has already owned all available roles. Select another one
-                and assign roles.`
-                  : `The selected ${subjectKind} already has existing roles. Any additions or changes will be merged with the existing roles.`}
+                  ? `All available roles are already assigned to the selected ${subjectKind}.`
+                  : `This ${subjectKind} already has roles. Any roles you add will be added to the existing set.`}
               </HelperTextItem>
             </HelperText>
           ) : null}
