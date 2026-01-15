@@ -34,10 +34,6 @@ spec:
     - linux-m2xlarge/arm64
     - linux/ppc64le
     - linux/s390x
-  - name: prefetch-input
-    value: '{"type": "npm", "path": "."}'
-  - name: hermetic
-    value: "false"
   pipelineRef:
     resolver: git
     params:
