@@ -1,0 +1,4 @@
+sourceName: 'Red Hat AI'
+redhatAiSourceId: 'redhat_ai_models'
+sourceName2: 'Red Hat AI validated'
+redhatAiSourceId2: 'redhat_ai_validated_models'
