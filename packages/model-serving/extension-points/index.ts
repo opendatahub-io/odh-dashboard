@@ -324,16 +324,24 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension.type === 'model-serving.deployment/wizard-field';
 
 // TODO in same jira update name to WizardFieldExtension
-export type WizardField2Extension<T = unknown, D extends Deployment = Deployment> = Extension<
+export type WizardField2Extension<
+  FieldData = unknown,
+  ExternalData = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
   'model-serving.deployment/wizard-field2',
   {
     platform?: D['modelServingPlatformId'];
-    field: CodeRef<WizardField<T>>;
+    field: CodeRef<WizardField<FieldData, ExternalData>>;
   }
 >;
-export const isWizardField2Extension = <T = unknown, D extends Deployment = Deployment>(
+export const isWizardField2Extension = <
+  FieldData = unknown,
+  ExternalData = unknown,
+  D extends Deployment = Deployment,
+>(
   extension: Extension,
-): extension is WizardField2Extension<T, D> =>
+): extension is WizardField2Extension<FieldData, ExternalData, D> =>
   extension.type === 'model-serving.deployment/wizard-field2';
 
 export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<

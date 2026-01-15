@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
@@ -10,6 +9,7 @@ import {
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
+import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
@@ -19,8 +19,9 @@ import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldApply } from './useWizardFieldApply';
 import type { InitialWizardFormData } from './types';
-import { ExitDeploymentModal } from './ExitDeploymentModal';
+import { ExitDeploymentModal } from './exitModel/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
+import { useExitDeploymentWizard } from './exitModel/useExitDeploymentWizard';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -44,25 +45,14 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   returnRoute,
   cancelReturnRoute,
 }) => {
-  const navigate = useNavigate();
   const onRefresh = useRefreshWizardPage(existingDeployment);
+  const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
+    useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
 
-  const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
+  // External data state - loaded by ExternalDataLoader component
+  const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
-  const exitWizardOnCancel = React.useCallback(() => {
-    navigate(cancelReturnRoute ?? returnRoute ?? '/ai-hub/deployments');
-  }, [navigate, cancelReturnRoute, returnRoute]);
-
-  const exitWizardOnSubmit = React.useCallback(() => {
-    navigate(returnRoute ?? '/ai-hub/deployments');
-  }, [navigate, returnRoute]);
-
-  const handleExitConfirm = React.useCallback(() => {
-    setIsExitModalOpen(false);
-    exitWizardOnCancel();
-  }, [exitWizardOnCancel]);
-
-  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name);
+  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
   const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
 
@@ -205,14 +195,16 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         `}
       </style>
       <ApplicationsPage title={title} description={description} loaded empty={false}>
+        <ExternalDataLoader
+          fields={wizardState.fields}
+          initialData={existingData}
+          setExternalData={setExternalData}
+        />
         {isExitModalOpen && (
-          <ExitDeploymentModal
-            onClose={() => setIsExitModalOpen(false)}
-            onConfirm={handleExitConfirm}
-          />
+          <ExitDeploymentModal onClose={closeExitModal} onConfirm={handleExitConfirm} />
         )}
         <Wizard
-          onClose={() => setIsExitModalOpen(true)}
+          onClose={openExitModal}
           onSave={() => onSave()}
           footer={wizardFooter}
           startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
@@ -252,6 +244,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               <AdvancedSettingsStepContent
                 wizardState={wizardState}
                 projectName={currentProjectName}
+                externalData={externalData}
               />
             ) : (
               <Spinner data-testid="spinner" />

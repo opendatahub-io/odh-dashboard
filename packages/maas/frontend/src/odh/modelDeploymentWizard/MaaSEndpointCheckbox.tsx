@@ -3,7 +3,6 @@ import {
   Checkbox,
   FormGroup,
   Popover,
-  TextInput,
   HelperText,
   HelperTextItem,
   FormHelperText,
@@ -19,7 +18,13 @@ import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import {
+  MultiSelection,
+  SelectionOptions,
+} from '@odh-dashboard/internal/components/MultiSelection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import type { Tier } from '~/app/types/tier';
+import { useFetchTiers } from '~/app/hooks/useFetchTiers';
 
 /**
  * The `tiers` is the true value that is stored and is interpreted like so:
@@ -28,11 +33,13 @@ import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
  * - `[]` = maas enabled and all tiers used / `isChecked` = true and `tiersDropdownSelection` = 'all-tiers'
  *   - This is the default value when the checkbox is checked
  * - `[string]` = maas enabled and specific tiers selected / `isChecked` = true and `tiersDropdownSelection` = 'specify-tiers'
+ *
+ * @see https://github.com/opendatahub-io/models-as-a-service/blob/main/docs/content/configuration-and-management/tier-configuration.md#2-configure-tier-access
  */
 export type MaaSTierValue = {
   isChecked: boolean; // whether the checkbox is checked
   tiersDropdownSelection?: TierDropdownOption; // the selected tier from the dropdown
-  tierNamesInput?: string; // if tiersDropdownSelection is 'specify-tiers', this is the raw text input for tier names (comma-separated)
+  selectedTierNames?: string[]; // if tiersDropdownSelection is 'specify-tiers', this is the list of selected tier names
 };
 
 //// Zod Validation Schema ////
@@ -41,19 +48,19 @@ export type MaaSTierValue = {
  * Validation schema for MaaS endpoint field.
  * - When unchecked (isChecked: false), no validation needed
  * - When checked with 'all-tiers' or 'no-tiers', no additional validation needed
- * - When checked with 'specify-tiers', tierNamesInput is required
+ * - When checked with 'specify-tiers', selectedTierNames must have at least one entry
  */
 export const maasEndpointsFieldSchema = z
   .object({
     isChecked: z.boolean(),
     tiersDropdownSelection: z.enum(['all-tiers', 'no-tiers', 'specify-tiers']).optional(),
-    tierNamesInput: z.string().optional(),
+    selectedTierNames: z.array(z.string()).optional(),
   })
   .refine(
     (data) => {
-      // Only validate tierNamesInput when checkbox is checked and 'specify-tiers' is selected
+      // Only validate selectedTierNames when checkbox is checked and 'specify-tiers' is selected
       if (data.isChecked && data.tiersDropdownSelection === 'specify-tiers') {
-        return data.tierNamesInput != null && data.tierNamesInput.trim().length > 0;
+        return data.selectedTierNames != null && data.selectedTierNames.length > 0;
       }
       return true;
     },
@@ -69,6 +76,27 @@ const setMaaSEndpointsFieldData = (value: MaaSTierValue): MaaSTierValue => value
 const getInitialMaaSEndpointsFieldData = (value?: MaaSTierValue): MaaSTierValue =>
   value ?? { isChecked: false };
 
+//// External data hook ////
+
+export type MaaSEndpointsExternalData = {
+  tiers: Tier[] | undefined;
+  hasViewTiersPermission: boolean;
+};
+
+const useMaaSEndpointsExternalData: MaaSEndpointsFieldType['externalDataHook'] = () => {
+  const [tiers, loaded, error] = useFetchTiers();
+  // If there's no error and we have tiers, the user has permission to view them
+  const hasViewTiersPermission = error === undefined;
+
+  return React.useMemo(
+    () => ({
+      data: { tiers, hasViewTiersPermission },
+      loaded,
+      loadError: error,
+    }),
+    [tiers, hasViewTiersPermission, loaded, error],
+  );
+};
 //// Dropdown options ////
 
 type TierDropdownOption = 'all-tiers' | 'no-tiers' | 'specify-tiers';
@@ -90,15 +118,44 @@ type MaasEndpointFieldProps = {
   id: string;
   value: MaaSTierValue;
   onChange: (value: MaaSTierValue) => void;
+  externalData?: { data: MaaSEndpointsExternalData; loaded: boolean; loadError?: Error };
 };
 
-const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChange }) => {
+const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({
+  id,
+  value,
+  onChange,
+  externalData,
+}) => {
+  const { tiers, hasViewTiersPermission } = externalData?.data ?? {
+    tiers: [],
+    hasViewTiersPermission: false,
+  };
+
+  const tierSelectionOptions = React.useMemo((): SelectionOptions[] => {
+    const availableTiers = tiers ?? [];
+    if (hasViewTiersPermission) {
+      // Admin: show available tiers as options
+      return availableTiers.map((tier) => ({
+        id: tier.name ?? '',
+        name: tier.displayName ?? tier.name ?? '',
+        selected: value.selectedTierNames?.includes(tier.name ?? '') ?? false,
+      }));
+    }
+    // Non-admin: only show user-created selections (no pre-populated options)
+    return (value.selectedTierNames ?? []).map((tierName) => ({
+      id: tierName,
+      name: tierName,
+      selected: true,
+    }));
+  }, [tiers, hasViewTiersPermission, value.selectedTierNames]);
+
   const handleCheckboxChange = (_: React.FormEvent<HTMLInputElement>, checked: boolean): void => {
     if (checked) {
       onChange({
         isChecked: true,
         tiersDropdownSelection: 'all-tiers',
-        tierNamesInput: '',
+        selectedTierNames: [],
       });
     } else {
       onChange({ isChecked: false });
@@ -118,17 +175,15 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
     onChange({
       ...value,
       tiersDropdownSelection: key,
-      tierNamesInput: value.tierNamesInput ?? '',
+      selectedTierNames: value.selectedTierNames ?? [],
     });
   };
 
-  const handleTierNamesChange = (
-    _: React.FormEvent<HTMLInputElement>,
-    inputValue: string,
-  ): void => {
+  const handleTierSelectionChange = (newOptions: SelectionOptions[]): void => {
+    const selectedNames = newOptions.filter((opt) => opt.selected).map((opt) => String(opt.id));
     onChange({
       ...value,
-      tierNamesInput: inputValue,
+      selectedTierNames: selectedNames,
     });
   };
 
@@ -203,17 +258,26 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
                       isRequired
                       className="pf-v6-u-pt-md" // Add manual padding b/c the Checkbox body overrides the FormGroup padding
                     >
-                      <TextInput
-                        id={`${id}-tier-names`}
-                        data-testid={`${id}-tier-names`}
-                        value={value.tierNamesInput ?? ''}
-                        onChange={handleTierNamesChange}
-                        isRequired
-                        aria-describedby={`${id}-tier-names-helper`}
+                      <MultiSelection
+                        inputId={`${id}-tier-names`}
+                        toggleTestId={`${id}-tier-names`}
+                        ariaLabel="Select resource tiers"
+                        placeholder="Select tiers"
+                        value={tierSelectionOptions}
+                        setValue={handleTierSelectionChange}
+                        isCreatable={!hasViewTiersPermission}
+                        createOptionMessage={(tierName) => `Create "${tierName}"`}
+                        // selectionRequired
+                        noSelectedOptionsMessage="At least one resource tier must be selected"
+                        popperProps={{ appendTo: 'inline' }}
                       />
                       <FormHelperText>
                         <HelperText>
-                          <HelperTextItem>Separate names using commas.</HelperTextItem>
+                          <HelperTextItem>
+                            {hasViewTiersPermission
+                              ? 'Select from available resource tiers.'
+                              : 'Enter the names of the resource tiers you want to use.'}
+                          </HelperTextItem>
                         </HelperText>
                       </FormHelperText>
                     </FormGroup>
@@ -230,7 +294,9 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
   );
 };
 
-export const MaaSEndpointFieldWizardField: WizardField<MaaSTierValue> = {
+type MaaSEndpointsFieldType = WizardField<MaaSTierValue, MaaSEndpointsExternalData>;
+
+export const MaaSEndpointFieldWizardField: MaaSEndpointsFieldType = {
   id: 'maas/save-as-maas-checkbox',
   parentId: 'model-playground-availability',
   step: 'advancedOptions',
@@ -244,4 +310,5 @@ export const MaaSEndpointFieldWizardField: WizardField<MaaSTierValue> = {
     validationSchema: maasEndpointsFieldSchema,
   },
   component: MaasEndpointField,
+  externalDataHook: useMaaSEndpointsExternalData,
 };
