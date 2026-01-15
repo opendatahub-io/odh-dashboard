@@ -108,7 +108,7 @@ describe('Tiers Page', () => {
     // check the level and names are unique
     createTierPage.findNameInput().type('free');
     createTierPage.findNameTakenError().should('exist');
-    createTierPage.findLevelInput().should('have.value', '4');
+    createTierPage.findLevelInput().should('have.value', '0');
     createTierPage.findLevelInput().clear().type('1');
     createTierPage.findLevelTakenError().should('exist');
 
