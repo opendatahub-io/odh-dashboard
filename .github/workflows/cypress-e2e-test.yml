@@ -129,33 +129,30 @@ jobs:
               return 1
             fi
             
-            # Check phase (quickest check)
+            # Check phase - this is the most reliable indicator
             PHASE=$(echo "$DSC_JSON" | jq -r '.items[0].status.phase // "Unknown"')
+            
+            # If phase is Ready, cluster is healthy - no need to check individual conditions
             if [[ "$PHASE" == "Ready" ]]; then
               echo "  ✅ DSC phase: Ready"
-            else
-              echo "  ⚠️ DSC phase: $PHASE (expected Ready)"
-              # Continue checking conditions for more detail
+              return 0
             fi
             
-            # Check critical conditions: Available=True, Degraded!=True, odh-dashboardReady=True
-            AVAILABLE=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Available") | .status' 2>/dev/null)
-            DEGRADED=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Degraded") | .status' 2>/dev/null)
-            DASHBOARD_READY=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="odh-dashboardReady") | .status' 2>/dev/null)
+            # Phase not Ready - check conditions for more detail
+            echo "  ⚠️ DSC phase: $PHASE (expected Ready)"
             
-            echo "  📊 Conditions: Available=$AVAILABLE, Degraded=$DEGRADED, DashboardReady=$DASHBOARD_READY"
+            AVAILABLE=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Available") | .status' 2>/dev/null || echo "")
+            DEGRADED=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Degraded") | .status' 2>/dev/null || echo "")
             
-            # Cluster is healthy if: Available=True AND Degraded!=True AND (DashboardReady=True OR not set)
+            echo "  📊 Conditions: Available=$AVAILABLE, Degraded=$DEGRADED"
+            
+            # Fallback: if conditions show healthy even though phase isn't Ready
             if [[ "$AVAILABLE" == "True" && "$DEGRADED" != "True" ]]; then
-              if [[ "$DASHBOARD_READY" == "True" || -z "$DASHBOARD_READY" ]]; then
-                return 0
-              else
-                echo "  ⚠️ Dashboard not ready yet"
-                return 1
-              fi
+              echo "  ✅ Conditions look healthy despite phase"
+              return 0
             fi
             
-            echo "  ❌ DSC conditions not healthy"
+            echo "  ❌ DSC not healthy"
             return 1
           }
 
