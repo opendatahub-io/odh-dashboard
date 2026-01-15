@@ -18,11 +18,11 @@ import {
   POLL_INTERVAL,
 } from '#~/utilities/const';
 import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
-import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
@@ -176,7 +176,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (
-        <PipelineContextProvider namespace={project.metadata.name} pageName={pageName}>
+        <PipelineContextProvider namespace={project.metadata.name}>
           <Outlet />
         </PipelineContextProvider>
       ) : (

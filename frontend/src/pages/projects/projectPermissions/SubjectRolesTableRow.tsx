@@ -7,7 +7,7 @@ import {
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { getRoleDisplayName, getRoleLabelType } from '#~/concepts/permissions/utils';
+import { getRoleDisplayName, getRoleLabelTypeForRoleRef } from '#~/concepts/permissions/utils';
 import { RoleRef } from '#~/concepts/permissions/types';
 import { relativeTime } from '#~/utilities/time';
 import { SubjectRoleRow } from './types';
@@ -64,7 +64,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
             </Button>
           </SplitItem>
           <SplitItem>
-            <RoleLabel type={row.role ? getRoleLabelType(row.role) : undefined} />
+            <RoleLabel type={getRoleLabelTypeForRoleRef(row.roleRef, row.role)} isCompact />
           </SplitItem>
         </Split>
       </Td>

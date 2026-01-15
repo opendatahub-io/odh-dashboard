@@ -1,5 +1,9 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import ErrorOverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
+import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { Bullseye, Card, CardBody, Spinner } from '@patternfly/react-core';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
@@ -30,7 +34,26 @@ const EmptyLoadingSection: React.FC = () => (
 const ServeModelsSectionContent: React.FC<{ platforms: ModelServingPlatform[] }> = ({
   platforms,
 }) => {
-  const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
+  const {
+    deployments,
+    loaded: deploymentsLoaded,
+    errors,
+  } = React.useContext(ModelDeploymentsContext);
+
+  if (errors && errors.length > 0) {
+    // If there are multiple errors, we only show the first one
+    // It won't load the deployments anyway
+    return (
+      <CollapsibleSection title="Serve models" data-testid="section-model-server">
+        <ErrorOverviewCard
+          objectType={ProjectObjectType.deployedModels}
+          sectionType={SectionType.serving}
+          title="Deployments"
+          error={errors[0]}
+        />
+      </CollapsibleSection>
+    );
+  }
 
   if (!deploymentsLoaded) {
     return <EmptyLoadingSection />;
