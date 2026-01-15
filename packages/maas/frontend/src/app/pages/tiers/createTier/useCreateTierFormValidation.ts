@@ -40,8 +40,7 @@ export const createTierFormSchema = z.object({
   level: z
     // eslint-disable-next-line camelcase
     .number({ invalid_type_error: 'Level is required' })
-    .min(1, 'Level must be at least 1')
-    .max(999999, 'Level cannot exceed 999999'),
+    .int('Level must be a whole number'),
   groups: z.array(z.string()).min(1, 'At least one group is required'),
   tokenRateLimits: rateLimitsSectionSchema,
   requestRateLimits: rateLimitsSectionSchema,

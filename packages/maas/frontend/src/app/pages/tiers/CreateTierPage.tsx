@@ -4,11 +4,14 @@ import { Breadcrumb, BreadcrumbItem, PageSection } from '@patternfly/react-core'
 import { Link, useNavigate } from 'react-router-dom';
 import useCreateTier from '~/app/hooks/useCreateTier';
 import { Tier } from '~/app/types/tier';
+import { useFetchTiers } from '~/app/hooks/useFetchTiers';
 import CreateTierForm from './createTier/CreateTierForm';
 
 const CreateTierPage: React.FC = () => {
   const navigate = useNavigate();
   const { isCreating, error, createTierCallback } = useCreateTier();
+
+  const [tiers, loaded, fetchTiersError] = useFetchTiers();
 
   const handleSubmit = async (tier: Tier): Promise<void> => {
     try {
@@ -24,7 +27,8 @@ const CreateTierPage: React.FC = () => {
       title="Create tier"
       description="Create a new tier to control which models users can access based on their group membership."
       empty={false}
-      loaded
+      loaded={loaded}
+      loadError={fetchTiersError}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/maas/tiers">Tiers</Link>} />
@@ -34,7 +38,12 @@ const CreateTierPage: React.FC = () => {
       data-testid="create-tier-page"
     >
       <PageSection isFilled>
-        <CreateTierForm onSubmit={handleSubmit} isSubmitting={isCreating} submitError={error} />
+        <CreateTierForm
+          onSubmit={handleSubmit}
+          isSubmitting={isCreating}
+          submitError={error}
+          allTiers={tiers}
+        />
       </PageSection>
     </ApplicationsPage>
   );

@@ -193,6 +193,14 @@ class CreateTierPage {
     return cy.findByTestId(`tier-request-rate-limit-${index}-remove`);
   }
 
+  findNameTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-name-taken-error');
+  }
+
+  findLevelTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level-taken-error');
+  }
+
   // Form action buttons
   findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-tier-button');
