@@ -3,24 +3,24 @@ import { getModelRegistryNamespace } from './modelRegistry';
 import type { CommandLineResult } from '../../types';
 
 /**
- * Verify that the model-catalog-sources ConfigMap exists in the model registry namespace.
+ * Verify that the model-catalog-default-sources ConfigMap exists in the model registry namespace.
  * @returns A Cypress chainable that resolves with the command result.
  */
 export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = getModelRegistryNamespace();
-  const command = `oc get configmap model-catalog-sources -n ${namespace}`;
-  cy.log(`Verifying model-catalog-sources ConfigMap: ${command}`);
+  const command = `oc get configmap model-catalog-default-sources -n ${namespace}`;
+  cy.log(`Verifying model-catalog-default-sources ConfigMap: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      cy.log(`ERROR: model-catalog-sources ConfigMap not found in ${namespace}`);
+      cy.log(`ERROR: model-catalog-default-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
       cy.log(`stderr: ${result.stderr}`);
       throw new Error(
-        `model-catalog-sources ConfigMap not found in ${namespace}: ${result.stderr}`,
+        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${result.stderr}`,
       );
     }
-    cy.log(`✓ model-catalog-sources ConfigMap exists in ${namespace}`);
+    cy.log(`✓ model-catalog-default-sources ConfigMap exists in ${namespace}`);
     return cy.wrap(result);
   });
 };
@@ -89,7 +89,8 @@ export const verifyModelCatalogBackend = (): Cypress.Chainable<CommandLineResult
 };
 
 /**
- * Verify the enabled status of a specific source in the model-catalog-sources ConfigMap.
+ * Verify the enabled status of a specific source in the catalog configmaps.
+ * First checks model-catalog-sources (user overrides), then falls back to model-catalog-default-sources.
  * Polls until the expected value is found or max attempts is reached.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai')
  * @param expectedEnabled The expected enabled status (true or false)
@@ -104,39 +105,72 @@ export const verifyModelCatalogSourceEnabled = (
   pollIntervalMs = 2000,
 ): Cypress.Chainable<undefined> => {
   const namespace = getModelRegistryNamespace();
-  // Use yq to parse the YAML and check the enabled status for the specific source
-  const command = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'`;
+  // User changes are stored in model-catalog-sources, defaults in model-catalog-default-sources
+  // Try user configmap first, fall back to default if source not found there
+  const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'`;
+  const defaultCommand = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'`;
 
   cy.log(`Polling for source ${sourceId} enabled status to be ${expectedEnabled}`);
 
   const checkStatus = (attempt: number): void => {
-    execWithOutput(command, 30).then((result: CommandLineResult) => {
-      if (result.code !== 0) {
-        cy.log(`ERROR: Failed to get source enabled status`);
-        cy.log(`stdout: ${result.stdout}`);
-        cy.log(`stderr: ${result.stderr}`);
-        throw new Error(`Failed to verify source enabled status: ${result.stderr}`);
-      }
+    // First try user configmap
+    execWithOutput(userCommand, 30).then((userResult: CommandLineResult) => {
+      const userValue = userResult.stdout.trim();
 
-      const actualEnabled = result.stdout.trim() === 'true';
-      cy.log(
-        `Attempt ${attempt}/${maxAttempts}: Source ${sourceId} enabled=${actualEnabled}, expected=${expectedEnabled}`,
-      );
+      // If user configmap has a value for this source, use it
+      if (userResult.code === 0 && (userValue === 'true' || userValue === 'false')) {
+        const actualEnabled = userValue === 'true';
+        cy.log(
+          `Attempt ${attempt}/${maxAttempts}: Source ${sourceId} enabled=${actualEnabled} (from user configmap), expected=${expectedEnabled}`,
+        );
 
-      if (actualEnabled === expectedEnabled) {
-        cy.log(`✓ Source ${sourceId} enabled status is ${expectedEnabled}`);
+        if (actualEnabled === expectedEnabled) {
+          cy.log(`✓ Source ${sourceId} enabled status is ${expectedEnabled}`);
+          return;
+        }
+
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `Source ${sourceId} enabled status mismatch after ${maxAttempts} attempts: expected ${expectedEnabled}, got ${actualEnabled}`,
+          );
+        }
+
+        // Wait and retry
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(pollIntervalMs).then(() => checkStatus(attempt + 1));
         return;
       }
 
-      if (attempt >= maxAttempts) {
-        throw new Error(
-          `Source ${sourceId} enabled status mismatch after ${maxAttempts} attempts: expected ${expectedEnabled}, got ${actualEnabled}`,
-        );
-      }
+      // Fall back to default configmap
+      execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
+        if (defaultResult.code !== 0) {
+          cy.log(`ERROR: Failed to get source enabled status from both configmaps`);
+          cy.log(`stderr: ${defaultResult.stderr}`);
+          throw new Error(`Failed to verify source enabled status: ${defaultResult.stderr}`);
+        }
 
-      // Wait and retry
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(pollIntervalMs).then(() => checkStatus(attempt + 1));
+        const defaultValue = defaultResult.stdout.trim();
+        // Default sources have enabled=true if not explicitly set
+        const actualEnabled = defaultValue === '' ? true : defaultValue === 'true';
+        cy.log(
+          `Attempt ${attempt}/${maxAttempts}: Source ${sourceId} enabled=${actualEnabled} (from default configmap), expected=${expectedEnabled}`,
+        );
+
+        if (actualEnabled === expectedEnabled) {
+          cy.log(`✓ Source ${sourceId} enabled status is ${expectedEnabled}`);
+          return;
+        }
+
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `Source ${sourceId} enabled status mismatch after ${maxAttempts} attempts: expected ${expectedEnabled}, got ${actualEnabled}`,
+          );
+        }
+
+        // Wait and retry
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(pollIntervalMs).then(() => checkStatus(attempt + 1));
+      });
     });
   };
 
@@ -232,7 +266,7 @@ export const ensureModelCatalogSourceEnabled = (sourceId: string): Cypress.Chain
 const UI_POLL_CONFIG = {
   maxAttempts: 10,
   pollIntervalMs: 5000,
-  pageLoadWaitMs: 2000,
+  pageLoadWaitMs: 10000,
 } as const;
 
 // polling and refresh is required until https://issues.redhat.com/browse/RHOAIENG-45098 is resolved

@@ -13,6 +13,10 @@ class ModelCatalogSettings {
     this.wait();
   }
 
+  visitExpectDenied() {
+    cy.visit('/settings/model-resources-operations/model-catalog', { failOnStatusCode: false });
+  }
+
   private wait() {
     this.findHeading();
     cy.testA11y();

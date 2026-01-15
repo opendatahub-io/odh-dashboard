@@ -29,7 +29,7 @@ describe('Verify AI Catalog Settings Access Control', () => {
       modelCatalogSettings.findNavItem().should('not.exist');
 
       cy.step('Attempt to navigate to AI catalog settings directly');
-      cy.visit('/settings/model-resources-operations/model-catalog', { failOnStatusCode: false });
+      modelCatalogSettings.visitExpectDenied();
 
       cy.step('Verify page not found is displayed');
       pageNotfound.findPage().should('exist');
