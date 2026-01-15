@@ -473,6 +473,13 @@ export type GenAiTestData = {
   playgroundServiceName: string;
 };
 
+export type ModelCatalogSourceTestData = {
+  sourceName: string;
+  redhatAiSourceId: string;
+  sourceName2: string;
+  redhatAiSourceId2: string;
+};
+
 export type TrainJobTestData = {
   projectName: string;
   trainJobName: string;

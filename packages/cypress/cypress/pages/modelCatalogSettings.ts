@@ -13,6 +13,10 @@ class ModelCatalogSettings {
     this.wait();
   }
 
+  visitExpectDenied() {
+    cy.visit('/settings/model-resources-operations/model-catalog', { failOnStatusCode: false });
+  }
+
   private wait() {
     this.findHeading();
     cy.testA11y();
@@ -37,6 +41,14 @@ class ModelCatalogSettings {
 
   findAddSourceButton() {
     return cy.findByTestId('add-source-button');
+  }
+
+  findTable() {
+    return cy.findByTestId('catalog-source-configs-table');
+  }
+
+  findEnableToggle(sourceId: string) {
+    return cy.findByTestId(`enable-toggle-${sourceId}`);
   }
 }
 
