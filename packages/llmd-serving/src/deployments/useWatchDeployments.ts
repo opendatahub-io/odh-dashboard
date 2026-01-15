@@ -20,7 +20,7 @@ export const useWatchDeployments = (
   labelSelectors?: { [key: string]: string },
   filterFn?: (llmInferenceService: LLMInferenceServiceKind) => boolean,
   opts?: K8sAPIOptions,
-): [LLMdDeployment[] | undefined, boolean, Error | undefined] => {
+): [LLMdDeployment[] | undefined, boolean, Error[] | undefined] => {
   const [llmInferenceServices, llmInferenceServiceLoaded, llmInferenceServiceError] =
     useK8sWatchResourceList<LLMInferenceServiceKind[]>(
       {
@@ -38,16 +38,10 @@ export const useWatchDeployments = (
     [llmInferenceServices, filterFn],
   );
 
-  const [deploymentPods, deploymentPodsLoaded] = useLLMInferenceServicePods(
+  const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useLLMInferenceServicePods(
     project.metadata.name,
     opts,
   );
-
-  const loaded = llmInferenceServiceLoaded && deploymentPodsLoaded;
-
-  const effectivelyLoaded =
-    loaded ||
-    (llmInferenceServiceError ? llmInferenceServiceError.message.includes('forbidden') : false);
 
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
@@ -72,5 +66,16 @@ export const useWatchDeployments = (
     });
   }, [filteredLLMInferenceServices, deploymentPods]);
 
-  return [deployments, effectivelyLoaded, llmInferenceServiceError];
+  const effectivelyLoaded = Boolean(
+    (llmInferenceServiceLoaded || llmInferenceServiceError) &&
+      (deploymentPodsLoaded || deploymentPodsError),
+  );
+
+  const errors = React.useMemo(() => {
+    return [llmInferenceServiceError, deploymentPodsError].filter((error): error is Error =>
+      Boolean(error),
+    );
+  }, [llmInferenceServiceError, deploymentPodsError]);
+
+  return [deployments, effectivelyLoaded, errors];
 };

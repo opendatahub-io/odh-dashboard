@@ -289,6 +289,12 @@ describe('Permissions tab', () => {
     });
 
     it('Does not show confirmation modal when editing other users permissions', () => {
+      cy.interceptK8s('POST', RoleBindingModel, mockRoleBindingK8sResource({})).as('editUser');
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'user-1' },
+        mock200Status({}),
+      ).as('deleteUser');
       initIntercepts({ isEmpty: false });
       permissions.visit('test-project');
 
@@ -298,6 +304,8 @@ describe('Permissions tab', () => {
       userTable.findEditSaveButton('user-3').click();
 
       roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('not.exist');
+      cy.wait('@editUser');
+      cy.wait('@deleteUser');
     });
 
     it('Does not show confirmation modal when deleting other users permissions', () => {
@@ -559,6 +567,88 @@ describe('Permissions tab (projectRBAC)', () => {
     projectRbacPermissions.selectSubjectScope('all');
     projectRbacPermissions.findGroupsTable().should('exist');
     projectRbacPermissions.findUsersTable().should('exist');
+  });
+
+  it('should open the role details modal and support rules sorting + resource names helper', () => {
+    initProjectRbacIntercepts();
+
+    // Override ClusterRole list to include rules for the Admin role.
+    cy.interceptK8sList(
+      ClusterRoleModel,
+      mockK8sResourceList([
+        mockClusterRoleK8sResource({
+          name: 'admin',
+          labels: { 'kubernetes.io/bootstrapping': 'rbac-defaults' },
+          rules: [
+            {
+              verbs: ['get'],
+              apiGroups: ['z-group'],
+              resources: ['b-res'],
+              resourceNames: ['b-name'],
+            },
+            {
+              verbs: ['get'],
+              apiGroups: ['a-group'],
+              resources: ['a-res'],
+              resourceNames: ['a-name'],
+            },
+          ],
+        }),
+        mockClusterRoleK8sResource({
+          name: 'edit',
+          labels: { foo: 'bar' },
+        }),
+      ]),
+    );
+
+    projectRbacPermissions.visit(namespace);
+    usersTable.findRoleLink('Admin').click();
+
+    const roleDetailsModal = projectRbacPermissions.getRoleDetailsModal();
+    roleDetailsModal.find().should('exist');
+
+    const rulesTable = roleDetailsModal.getRulesTable();
+
+    // Sort: API Groups
+    rulesTable.clickHeaderSort('API Groups');
+    rulesTable.findFirstBodyRow().should('contain.text', 'a-group');
+
+    // Sort: Resources
+    rulesTable.clickHeaderSort('Resources');
+    rulesTable.findFirstBodyRow().should('contain.text', 'a-res');
+
+    // Sort: Resource names (exclude the help button)
+    rulesTable.clickHeaderSort(/^Resource names$/);
+    rulesTable.findFirstBodyRow().should('contain.text', 'a-name');
+  });
+
+  it('should show assignees table with sortable columns', () => {
+    initProjectRbacIntercepts();
+    projectRbacPermissions.visit(namespace);
+
+    // Open modal from role link
+    usersTable.findRoleLink('Contributor').click();
+    const roleDetailsModal = projectRbacPermissions.getRoleDetailsModal();
+    roleDetailsModal.find().should('exist');
+
+    roleDetailsModal.clickAssigneesTab();
+    const assigneesTable = roleDetailsModal.getAssigneesTable();
+    assigneesTable.find().should('exist');
+
+    // Sort by Subject
+    assigneesTable.findHeaderSortButton('Subject').click();
+    assigneesTable.findHeaderSortButton('Subject').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
+
+    // Sort by Subject kind
+    assigneesTable.findHeaderSortButton('Subject kind').click();
+    assigneesTable.findHeaderSortButton('Subject kind').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
+
+    // Sort by Role binding
+    assigneesTable.findHeaderSortButton('Role binding').click();
+    assigneesTable.findHeaderSortButton('Role binding').should(be.sortAscending);
+    assigneesTable.findFirstBodyRow().should('contain.text', 'rb-group-edit');
   });
 
   it('should add a user role assignment and refresh the table', () => {
