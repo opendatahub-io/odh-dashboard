@@ -80,7 +80,7 @@ const RoleRefSelect: React.FC<RoleRefSelectProps> = ({
           label: roleDisplay.name,
           description: roleDisplay.description,
           dropdownLabel: disabled ? (
-            <Tooltip content={`The selected ${subjectKind} has already owned this role.`}>
+            <Tooltip content={`This role is already assigned to the selected ${subjectKind}.`}>
               <span>{dropdownLabel}</span>
             </Tooltip>
           ) : (

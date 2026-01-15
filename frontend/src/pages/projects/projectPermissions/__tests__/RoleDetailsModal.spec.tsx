@@ -64,7 +64,7 @@ describe('RoleDetailsModal', () => {
     expect(screen.getByText('Showing 12/12')).toBeInTheDocument();
   });
 
-  it('supports sorting by API Groups, Resources, and Resource names', () => {
+  it('supports sorting by API Groups, Resource type, and Resource names', () => {
     const roleRef: RoleRef = { kind: 'ClusterRole', name: 'sortable-role' };
     const rules = [
       { verbs: ['get'], apiGroups: ['z-group'], resources: ['b-res'], resourceNames: ['b-name'] },
@@ -97,9 +97,9 @@ describe('RoleDetailsModal', () => {
     fireEvent.click(within(apiGroupsHeader).getByRole('button', { name: /API Groups/i }));
     expect(within(getFirstBodyRow()).getByText('a-group')).toBeInTheDocument();
 
-    // Sort by Resources ascending
-    const resourcesHeader = within(table).getByRole('columnheader', { name: /Resources/i });
-    fireEvent.click(within(resourcesHeader).getByRole('button', { name: /Resources/i }));
+    // Sort by Resource type ascending
+    const resourcesHeader = within(table).getByRole('columnheader', { name: /Resource type/i });
+    fireEvent.click(within(resourcesHeader).getByRole('button', { name: /Resource type/i }));
     expect(within(getFirstBodyRow()).getByText('a-res')).toBeInTheDocument();
 
     // Sort by Resource names ascending
@@ -131,9 +131,9 @@ describe('RoleDetailsModal', () => {
 
     render(<RoleDetailsModal roleRef={roleRef} onClose={() => undefined} />);
 
-    expect(screen.getByText('Access permissions needed')).toBeInTheDocument();
+    expect(screen.getByText('No view access')).toBeInTheDocument();
     // When access is denied, the whole Role details tab is locked.
-    expect(screen.queryByText('OpenShift name')).not.toBeInTheDocument();
+    expect(screen.queryByText('Role name')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: /Assignees/i }));
     expect(screen.getByRole('tab', { name: /Assignees/i })).toHaveAttribute(
