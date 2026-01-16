@@ -41,6 +41,7 @@ export type MockDashboardConfigType = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
+  maasApiKeys?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
@@ -63,6 +64,7 @@ export const mockDashboardConfig = ({
   disableISVBadges = false,
   genAiStudio = false,
   modelAsService = true,
+  maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -238,6 +240,7 @@ export const mockDashboardConfig = ({
       disableKServe,
       genAiStudio,
       modelAsService,
+      maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,

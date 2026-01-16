@@ -1,35 +1,28 @@
-// basic page layout for all api keys
-
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { PageSection } from '@patternfly/react-core';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
+import ApiKeysTable from './allKeys/ApiKeysTable';
+import EmptyApiKeysPage from './EmptyApiKeysPage';
 
 const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error] = useFetchApiKeys();
+
   return (
     <ApplicationsPage
       title="API Keys"
-      description="API Keys"
-      empty={false}
+      description="Manage personal API keys that can be used to access AI asset endpoints."
+      empty={loaded && !error && apiKeys.length === 0}
       loaded={loaded}
       loadError={error}
+      emptyStatePage={<EmptyApiKeysPage />}
     >
       {loaded && (
         <PageSection isFilled>
-          {apiKeys.map((apiKey) => (
-            <div key={apiKey.id}>
-              <div>{apiKey.name}</div>
-              <div>{apiKey.description}</div>
-              <div>{new Date(apiKey.creationDate).toLocaleString()}</div>
-              <div>{new Date(apiKey.expirationDate).toLocaleString()}</div>
-              <div>{apiKey.status}</div>
-            </div>
-          ))}
+          <ApiKeysTable apiKeys={apiKeys} />
         </PageSection>
       )}
     </ApplicationsPage>
   );
 };
-
 export default AllApiKeysPage;
