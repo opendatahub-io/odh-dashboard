@@ -4,9 +4,10 @@ import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
+import ApiKeysActions from './ApiKeysActions';
 
 const AllApiKeysPage: React.FC = () => {
-  const [apiKeys, loaded, error] = useFetchApiKeys();
+  const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
 
   return (
     <ApplicationsPage
@@ -16,6 +17,7 @@ const AllApiKeysPage: React.FC = () => {
       loaded={loaded}
       loadError={error}
       emptyStatePage={<EmptyApiKeysPage />}
+      headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
     >
       {loaded && (
         <PageSection isFilled>
