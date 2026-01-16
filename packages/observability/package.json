@@ -76,5 +76,9 @@
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "react": "^18",
+    "react-dom": "^18"
   }
 }
