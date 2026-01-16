@@ -91,6 +91,7 @@ import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockN
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import type { APIKey } from '@odh-dashboard/maas/types/api-key';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1106,6 +1107,10 @@ declare global {
           type: 'PUT /maas/api/v1/tier/:name',
           options: { path: { name: string } },
           response: { data: OdhResponse<Tier> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/api-keys',
+          response: { data: OdhResponse<APIKey[]> },
         ) => Cypress.Chainable<null>);
     }
   }
