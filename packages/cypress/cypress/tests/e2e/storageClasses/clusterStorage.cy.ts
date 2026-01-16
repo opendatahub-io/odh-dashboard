@@ -5,18 +5,40 @@ import {
 } from '../../../utils/storageClass';
 import { addClusterStorageModal, clusterStorage } from '../../../pages/clusterStorage';
 import { projectDetails, projectListPage } from '../../../pages/projects';
-import { disableNonDefaultStorageClasses } from '../../../utils/oc_commands/storageClass';
+import {
+  deleteStorageClass,
+  disableNonDefaultStorageClasses,
+  ensureOpenshiftDefaultStorageClass,
+} from '../../../utils/oc_commands/storageClass';
 import { retryableBefore } from '../../../utils/retryableHooks';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
+const testDefaultScName = 'test-default-sc';
 
 describe('Regular Users can make use of the Storage Classes in the Cluster Storage tab from Pipelines ', () => {
+  let createdDefaultSc = false;
+
   retryableBefore(() => {
+    // Ensure an OpenShift default storage class exists before running tests.
+    // If no storage classes exist (e.g., disconnected environments), one will be created.
+    ensureOpenshiftDefaultStorageClass().then((defaultSC) => {
+      cy.log(`Using OpenShift default storage class: ${defaultSC}`);
+      // Track if we created the default SC so we can clean it up
+      if (defaultSC === testDefaultScName) {
+        createdDefaultSc = true;
+      }
+    });
+
     provisionClusterStorageSCFeature(dspName, LDAP_CONTRIBUTOR_USER.USERNAME);
   });
 
   after(() => {
     tearDownClusterStorageSCFeature(dspName);
+
+    // Clean up the default SC if we created it
+    if (createdDefaultSc) {
+      deleteStorageClass(testDefaultScName);
+    }
   });
 
   // TODO: This test is failing due to https://issues.redhat.com/browse/RHOAIENG-16609

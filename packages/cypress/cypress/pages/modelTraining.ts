@@ -55,7 +55,11 @@ class ModelTrainingGlobal {
 
   selectProject(projectName: string) {
     this.findProjectSelectorToggle().click();
-    cy.findByRole('menuitem', { name: projectName }).click();
+    this.findProjectMenuItem(projectName).click();
+  }
+
+  findProjectMenuItem(projectName: string) {
+    return cy.findByRole('menuitem', { name: projectName });
   }
 
   findEmptyState() {
@@ -502,6 +506,14 @@ class ScaleNodesModal extends Modal {
 
   findNodeCountInput() {
     return cy.findByTestId('node-count-input');
+  }
+
+  findPlusButton() {
+    return this.find().find('button[aria-label="Plus"]');
+  }
+
+  findMinusButton() {
+    return this.find().find('button[aria-label="Minus"]');
   }
 
   setNodeCount(count: number) {

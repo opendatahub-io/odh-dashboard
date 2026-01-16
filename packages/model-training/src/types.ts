@@ -12,4 +12,5 @@ export enum TrainingJobState {
   INADMISSIBLE = 'Inadmissible',
   DELETING = 'Deleting',
   UNKNOWN = 'Unknown',
+  COMPLETE = 'Complete',
 }
