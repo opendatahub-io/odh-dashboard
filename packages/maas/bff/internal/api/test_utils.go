@@ -51,10 +51,14 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
+	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig)
+	if err != nil {
+		return empty, nil, err
+	}
 	app := &App{
 		config:                  envConfig,
 		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(logger, k8Factory, envConfig),
+		repositories:            repos,
 		logger:                  logger,
 	}
 

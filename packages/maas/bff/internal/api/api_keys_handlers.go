@@ -35,7 +35,7 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		request.Expiration = "4h"
 	}
 
-	response, err := app.repositories.APIKeys.CreateAPIKey(request)
+	response, err := app.repositories.APIKeys.CreateAPIKey(r.Context(), request)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -53,7 +53,7 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 // ListAPIKeysHandler handles GET /api/v1/api-keys
 // Returns all API keys for the authenticated user
 func ListAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	keys, err := app.repositories.APIKeys.ListAPIKeys()
+	keys, err := app.repositories.APIKeys.ListAPIKeys(r.Context())
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -77,7 +77,7 @@ func GetAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
-	key, err := app.repositories.APIKeys.GetAPIKey(keyID)
+	key, err := app.repositories.APIKeys.GetAPIKey(r.Context(), keyID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

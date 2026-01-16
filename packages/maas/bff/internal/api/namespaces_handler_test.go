@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
@@ -23,11 +24,13 @@ var _ = Describe("TestNamespacesHandler", func() {
 
 		BeforeAll(func() {
 			By("setting up the test app in dev mode")
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig)
+			Expect(err).NotTo(HaveOccurred())
 
 			testApp = App{
 				config:                  config.EnvConfig{DevMode: true},
 				kubernetesClientFactory: k8Factory,
-				repositories:            repositories.NewRepositories(logger, k8Factory, envConfig),
+				repositories:            repos,
 				logger:                  logger,
 			}
 		})
@@ -134,10 +137,12 @@ var _ = Describe("TestNamespacesHandler", func() {
 			By("setting up the test app in dev mode")
 			kubernetesMockedTokenClientFactory, err := k8mocks.NewTokenClientFactory(clientset, restConfig, logger)
 			Expect(err).NotTo(HaveOccurred())
+			repos, err := repositories.NewRepositories(logger, kubernetesMockedTokenClientFactory, envConfig)
+			Expect(err).NotTo(HaveOccurred())
 			testApp = App{
 				config:                  config.EnvConfig{DevMode: true},
 				kubernetesClientFactory: kubernetesMockedTokenClientFactory,
-				repositories:            repositories.NewRepositories(logger, kubernetesMockedTokenClientFactory, envConfig),
+				repositories:            repos,
 				logger:                  logger,
 			}
 		})
