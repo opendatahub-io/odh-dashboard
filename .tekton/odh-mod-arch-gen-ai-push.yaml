@@ -40,7 +40,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-genai
+    serviceAccountName: build-pipeline-genai-poc
   workspaces:
   - name: git-auth
     secret:
