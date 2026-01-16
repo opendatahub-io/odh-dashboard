@@ -12,7 +12,6 @@ const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-
   return (
     <ApplicationsPage
       title="API Keys"
@@ -23,21 +22,23 @@ const AllApiKeysPage: React.FC = () => {
       emptyStatePage={<EmptyApiKeysPage />}
       headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
     >
-      <PageSection>
-        <Button
-          variant="primary"
-          icon={<PlusIcon />}
-          onClick={() => setIsModalOpen(true)}
-          data-testid="create-api-key-button"
-        >
-          Create API key
-        </Button>
-      </PageSection>
       <CreateApiKeyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
       {loaded && (
         <PageSection isFilled>
-          <ApiKeysTable apiKeys={apiKeys} />
+          <ApiKeysTable
+            apiKeys={apiKeys}
+            toolbarContent={
+              <Button
+                variant="primary"
+                icon={<PlusIcon />}
+                onClick={() => setIsModalOpen(true)}
+                data-testid="create-api-key-button"
+              >
+                Create API key
+              </Button>
+            }
+          />
         </PageSection>
       )}
     </ApplicationsPage>

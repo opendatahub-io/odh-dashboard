@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   DatePicker,
   Form,
@@ -11,10 +12,56 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Stack,
+  StackItem,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
 import React from 'react';
+import { z } from 'zod';
+import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { createApiKey } from '~/app/api/api-keys';
+
+const getTodaysDate = () => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const createApiKeySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  expirationDate: z
+    .string()
+    .optional()
+    .refine(
+      (dateStr) => {
+        if (!dateStr) {
+          return true;
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          return false;
+        }
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        date.setHours(0, 0, 0, 0);
+        if (Number.isNaN(date.getTime())) {
+          return false;
+        }
+        if (
+          date.getFullYear() !== year ||
+          date.getMonth() !== month - 1 ||
+          date.getDate() !== day
+        ) {
+          return false;
+        }
+        return date >= getTodaysDate();
+      },
+      { message: 'Date must be today or in the future' },
+    ),
+});
+
+type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
   isOpen: boolean;
@@ -23,42 +70,36 @@ type CreateApiKeyModalProps = {
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [keyName, setKeyName] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [expirationDate, setExpirationDate] = React.useState('');
+  const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
+    name: '',
+    description: '',
+    expirationDate: '',
+  });
   const [isCreating, setIsCreating] = React.useState(false);
+  const [error, setError] = React.useState<Error | undefined>();
 
-  const minDate = React.useMemo(() => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }, []);
+  const { markFieldTouched } = useZodFormValidation(formData, createApiKeySchema);
 
-  const parseDateString = (dateString: string): Date | null => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return null;
-    }
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    date.setHours(0, 0, 0, 0);
-    return Number.isNaN(date.getTime()) ? null : date;
+  const minDate = React.useMemo(() => getTodaysDate(), []);
+
+  const dateValidator = (date: Date) => {
+    const dateAtMidnight = new Date(date);
+    dateAtMidnight.setHours(0, 0, 0, 0);
+    return dateAtMidnight < minDate ? 'Date must be today or in the future' : '';
   };
 
-  const dateValidator = (date: Date) =>
-    date < minDate ? 'Date is before the allowable range.' : '';
-
-  const isDateInvalid = () => {
-    if (!expirationDate) {
-      return false;
-    }
-    const date = parseDateString(expirationDate);
-    return date === null || date < minDate;
+  const isFormValid = () => {
+    const result = createApiKeySchema.safeParse(formData);
+    return result.success;
   };
 
   const clearForm = () => {
-    setKeyName('');
-    setDescription('');
-    setExpirationDate('');
+    setFormData({
+      name: '',
+      description: '',
+      expirationDate: '',
+    });
+    setError(undefined);
   };
 
   const handleClose = () => {
@@ -68,74 +109,107 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose, 
 
   const handleSubmit = async () => {
     setIsCreating(true);
-    clearForm();
-    setIsCreating(false);
+    setError(undefined);
 
-    onSuccess?.();
-    onClose();
+    try {
+      await createApiKey()(
+        {},
+        {
+          name: formData.name.trim(),
+          description: formData.description?.trim() || undefined,
+          expiration: formData.expirationDate || undefined,
+        },
+      );
+
+      clearForm();
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to create API key'));
+      setIsCreating(false);
+    }
   };
 
   return (
     <Modal variant={ModalVariant.medium} isOpen={isOpen} onClose={handleClose}>
       <ModalHeader title="Create API key" />
       <ModalBody>
-        <Form>
-          <FormGroup label="Name" isRequired fieldId="api-key-name">
-            <TextInput
-              isRequired
-              type="text"
-              id="api-key-name"
-              name="api-key-name"
-              value={keyName}
-              onChange={(_event, value) => setKeyName(value)}
-              data-testid="api-key-name-input"
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>A descriptive name for this API key</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+        <Stack hasGutter>
+          {error && (
+            <StackItem>
+              <Alert
+                data-testid="create-api-key-error-alert"
+                title="Error creating API key"
+                isInline
+                variant="danger"
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          )}
+          <StackItem>
+            <Form>
+              <FormGroup label="Name" isRequired fieldId="api-key-name">
+                <TextInput
+                  isRequired
+                  type="text"
+                  id="api-key-name"
+                  name="api-key-name"
+                  value={formData.name}
+                  onChange={(_event, value) => setFormData({ ...formData, name: value })}
+                  onBlur={() => markFieldTouched(['name'])}
+                  data-testid="api-key-name-input"
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>A descriptive name for this API key</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
 
-          <FormGroup label="Description" fieldId="api-key-description">
-            <TextArea
-              id="api-key-description"
-              name="api-key-description"
-              value={description}
-              onChange={(_event, value) => setDescription(value)}
-              rows={5}
-              data-testid="api-key-description-input"
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Optional description of how this key will be used</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+              <FormGroup label="Description" fieldId="api-key-description">
+                <TextArea
+                  id="api-key-description"
+                  name="api-key-description"
+                  value={formData.description}
+                  onChange={(_event, value) => setFormData({ ...formData, description: value })}
+                  rows={5}
+                  data-testid="api-key-description-input"
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>
+                      Optional description of how this key will be used
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
 
-          <FormGroup label="Expiration date" fieldId="api-key-expiration">
-            <DatePicker
-              id="api-key-expiration"
-              value={expirationDate}
-              onChange={(_event, value) => setExpirationDate(value)}
-              placeholder="YYYY-MM-DD"
-              data-testid="api-key-date-input"
-              validators={[dateValidator]}
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Optional expiration date for this API key</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
-        </Form>
+              <FormGroup label="Expiration date" fieldId="api-key-expiration">
+                <DatePicker
+                  id="api-key-expiration"
+                  value={formData.expirationDate}
+                  onChange={(_event, value) => setFormData({ ...formData, expirationDate: value })}
+                  placeholder="YYYY-MM-DD"
+                  data-testid="api-key-date-input"
+                  validators={[dateValidator]}
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>Optional expiration date for this API key</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
+            </Form>
+          </StackItem>
+        </Stack>
       </ModalBody>
       <ModalFooter>
         <Button
           key="create"
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={!keyName.trim() || isCreating || isDateInvalid()}
+          isDisabled={!isFormValid() || isCreating}
           isLoading={isCreating}
           data-testid="create-api-key-button"
         >
