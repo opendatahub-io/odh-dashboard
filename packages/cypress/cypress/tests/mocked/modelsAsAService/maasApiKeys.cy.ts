@@ -70,6 +70,7 @@ describe('API Keys Page', () => {
     }).as('getApiKeysAfterDelete');
 
     revokeAPIKeyModal.findRevokeButton().click();
+    apiKeysPage.findEmptyState().should('exist');
 
     cy.wait('@deleteAllApiKeys').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);

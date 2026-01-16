@@ -312,6 +312,10 @@ class APIKeysPage {
   findRevokeAllAPIKeysAction(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('revoke-all-api-keys-action');
   }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
