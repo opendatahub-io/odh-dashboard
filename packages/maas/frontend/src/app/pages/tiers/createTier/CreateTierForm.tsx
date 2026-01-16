@@ -35,6 +35,7 @@ type CreateTierFormProps = {
   onSubmit: (tier: Tier) => Promise<void>;
   isSubmitting?: boolean;
   submitError?: string | null;
+  allTiers: Tier[];
 };
 
 const CreateTierForm: React.FC<CreateTierFormProps> = ({
@@ -42,8 +43,28 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   onSubmit,
   isSubmitting = false,
   submitError = null,
+  allTiers,
 }) => {
   const navigate = useNavigate();
+
+  const existingTierLevels = new Map(
+    allTiers
+      .filter((t): t is Tier & { level: number } => t.level !== undefined && t.name !== tier?.name)
+      .map((t) => [t.level, t.displayName ?? t.name ?? '']),
+  );
+
+  // Find the lowest available tier level starting from 0 if no tier is provided
+  let defaultTierLevel = 0;
+  if (!tier) {
+    while (existingTierLevels.has(defaultTierLevel)) {
+      defaultTierLevel++;
+    }
+  }
+
+  const existingTierNames = new Set(
+    allTiers.filter((t) => t.name !== tier?.name).map((t) => t.name),
+  );
+
   const { data, onDataChange } = useK8sNameDescriptionFieldData({
     initialData: tier
       ? {
@@ -77,12 +98,19 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
     tier?.limits?.requestsPerUnit ?? [DEFAULT_REQUEST_LIMIT],
   );
 
-  const [level, setLevel] = React.useState(tier?.level ?? 1);
+  const [level, setLevel] = React.useState(tier?.level ?? defaultTierLevel);
 
   // Get selected group names for validation
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
 
   const isK8sNameValid = isK8sNameDescriptionDataValid(data);
+
+  // Check if level is already taken by another tier
+  const conflictingTierName = existingTierLevels.get(level);
+  const isLevelTaken = conflictingTierName !== undefined;
+
+  // Check if k8sName is already taken by another tier
+  const isK8sNameTaken = existingTierNames.has(data.k8sName.value);
 
   const { isValid: isFormValid, getAllValidationIssues } = useCreateTierFormValidation({
     name: data.name,
@@ -94,7 +122,8 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
     requestLimits,
   });
 
-  const canSubmit = isK8sNameValid && isFormValid && !isSubmitting;
+  const canSubmit =
+    isK8sNameValid && isFormValid && !isLevelTaken && !isK8sNameTaken && !isSubmitting;
 
   const submitButtonText = tier ? 'Update tier' : 'Create tier';
   const submittingText = tier ? 'Updating...' : 'Creating...';
@@ -113,15 +142,18 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
         dataTestId="tier-name-desc"
         nameHelperText='A descriptive name for this tier (e.g., "Premium Tier")'
         descriptionHelperText="Optional description of this tier's purpose and target users"
+        resourceNameTakenHelperText={
+          isK8sNameTaken
+            ? `A tier with the resource name "${data.k8sName.value}" already exists. Use a unique name.`
+            : undefined
+        }
       />
       <FormGroup label="Level" fieldId="tier-level" isRequired>
         <NumberInput
           value={Number.isNaN(level) ? '' : level}
-          min={1}
-          max={999999}
           data-testid="tier-level"
           validated={
-            getAllValidationIssues(['level']).length > 0
+            getAllValidationIssues(['level']).length > 0 || isLevelTaken
               ? ValidatedOptions.error
               : ValidatedOptions.default
           }
@@ -130,6 +162,9 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
             if (inputValue === '') {
               // Allow empty field - store as NaN to indicate empty
               setLevel(NaN);
+            } else if (inputValue === '-') {
+              // Allow typing a minus sign to start a negative number
+              setLevel(NaN);
             } else {
               const newValue = parseInt(inputValue, 10);
               if (!Number.isNaN(newValue)) {
@@ -137,14 +172,28 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
               }
             }
           }}
-          onMinus={() => setLevel(Math.max(1, (level || 1) - 1))}
-          onPlus={() => setLevel((level || 0) + 1)}
+          onMinus={() => setLevel((Number.isNaN(level) ? 0 : level) - 1)}
+          onPlus={() => setLevel((Number.isNaN(level) ? 0 : level) + 1)}
         />
         {getAllValidationIssues(['level']).length > 0 && (
           <FormHelperText>
             <HelperText>
               <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
                 {getAllValidationIssues(['level'])[0].message}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
+        {isLevelTaken && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem
+                icon={<ExclamationCircleIcon />}
+                variant="error"
+                data-testid="tier-level-taken-error"
+              >
+                Level {level} is already assigned to the {conflictingTierName} tier. Use a unique
+                level.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

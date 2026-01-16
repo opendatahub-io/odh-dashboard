@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { HelperTextItem } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 
 type Variants = React.ComponentProps<typeof HelperTextItem>['variant'];
@@ -35,6 +36,20 @@ export const HelperTextItemValidCharacters: HelperTextItemType = ({ k8sName }) =
     <HelperTextItem variant={variant}>
       {k8sName.state.invalidCharsMessage ||
         'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'}
+    </HelperTextItem>
+  );
+};
+
+export const HelperTextItemResourceNameTaken: React.FC<{
+  resourceNameTakenMessage: React.ReactNode;
+}> = ({ resourceNameTakenMessage }) => {
+  return (
+    <HelperTextItem
+      icon={<ExclamationCircleIcon />}
+      variant="error"
+      data-testid="resource-name-taken-error"
+    >
+      {resourceNameTakenMessage}
     </HelperTextItem>
   );
 };

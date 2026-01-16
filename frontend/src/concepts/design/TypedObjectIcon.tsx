@@ -74,6 +74,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.pipelineExperiment:
       Icon = ExperimentIcon;
       break;
+    case ProjectObjectType.mlflow:
+      Icon = ExperimentIcon;
+      break;
     case ProjectObjectType.pipelineExecution:
       Icon = CheckmarkIcon;
       break;

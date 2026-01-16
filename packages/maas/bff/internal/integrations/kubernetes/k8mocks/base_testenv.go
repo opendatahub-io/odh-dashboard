@@ -1,8 +1,10 @@
 package k8mocks
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -474,20 +476,27 @@ func createMaaSLimitPolicies(k8sClient dynamic.Interface, ctx context.Context, n
 		return err
 	}
 
+	// The token-limit-policy.yaml file is multi-document. Using Decoder instead of Unmarshall
 	tokenLimitYaml, err := os.ReadFile("internal/testdata/token-limit-policy.yaml")
 	if err != nil {
 		return err
 	}
 
-	var tokenLimit map[string]interface{}
-	err = yaml.Unmarshal(tokenLimitYaml, &tokenLimit)
-	if err != nil {
-		return err
-	}
+	decoder := yaml.NewDecoder(bytes.NewReader(tokenLimitYaml))
+	for {
+		var tokenLimit map[string]interface{}
+		err = decoder.Decode(&tokenLimit)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to decode token limit policy: %w", err)
+		}
 
-	_, err = k8sClient.Resource(constants.TokenPolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: tokenLimit}, metav1.CreateOptions{})
-	if err != nil {
-		return err
+		_, err = k8sClient.Resource(constants.TokenPolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: tokenLimit}, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create token limit policy: %w", err)
+		}
 	}
 
 	return nil

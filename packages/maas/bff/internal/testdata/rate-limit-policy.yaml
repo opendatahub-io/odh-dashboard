@@ -1,14 +1,16 @@
 apiVersion: kuadrant.io/v1
 kind: RateLimitPolicy
 metadata:
-  name: gateway-rate-limits
+  name: tier-tier0-rate-limits
+  labels:
+    opendatahub.io/dashboard: "true"
 spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: Gateway
     name: maas-default-gateway
   limits:
-    free:
+    tier0-requests:
       rates:
         - limit: 5
           window: 2m
