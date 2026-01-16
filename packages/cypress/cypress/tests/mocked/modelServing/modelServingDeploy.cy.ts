@@ -1017,7 +1017,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('Caikit').should('exist').click();
+    modelServingWizard.selectGlobalScopedTemplateOption('Caikit');
     modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -1745,7 +1745,7 @@ describe('Model Serving Deploy Wizard', () => {
       // Step 3: Override autoselect - manually select Caikit
       modelServingWizard.findServingRuntimeSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption('Caikit').click();
+      modelServingWizard.selectGlobalScopedTemplateOption('Caikit');
       // Verify manual selection is active
       modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
 

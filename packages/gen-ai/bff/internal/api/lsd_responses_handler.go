@@ -94,10 +94,10 @@ type SearchResult struct {
 
 // MCPServer represents MCP server configuration for responses
 type MCPServer struct {
-	ServerLabel  string            `json:"server_label"`            // Label identifier for the MCP server
-	ServerURL    string            `json:"server_url"`              // URL endpoint for the MCP server
-	Headers      map[string]string `json:"headers"`                 // Custom headers for MCP server authentication
-	AllowedTools []string          `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
+	ServerLabel   string   `json:"server_label"`            // Label identifier for the MCP server
+	ServerURL     string   `json:"server_url"`              // URL endpoint for the MCP server
+	Authorization string   `json:"authorization,omitempty"` // OAuth access token for MCP server authentication
+	AllowedTools  []string `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
 }
 
 // CreateResponseRequest represents the request body for creating a response
@@ -218,10 +218,10 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 			// Create MCP server parameter for LlamaStack
 			mcpServerParam := llamastack.MCPServerParam{
-				ServerLabel:  server.ServerLabel,
-				ServerURL:    server.ServerURL,
-				Headers:      make(map[string]string),
-				AllowedTools: server.AllowedTools, // Pass through allowed_tools from MCP server config
+				ServerLabel:   server.ServerLabel,
+				ServerURL:     server.ServerURL,
+				Authorization: server.Authorization,
+				AllowedTools:  server.AllowedTools, // Pass through allowed_tools from MCP server config
 			}
 
 			// Log the allowed_tools being sent to LlamaStack
@@ -233,13 +233,6 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			} else {
 				// Nil/undefined - all tools allowed
 				app.logger.Debug("MCP server with no tool restrictions", "server_label", server.ServerLabel, "allowed_tools", "undefined (all tools allowed)")
-			}
-
-			// Copy provided headers
-			if server.Headers != nil {
-				for k, v := range server.Headers {
-					mcpServerParam.Headers[k] = v
-				}
 			}
 
 			mcpServerParams = append(mcpServerParams, mcpServerParam)

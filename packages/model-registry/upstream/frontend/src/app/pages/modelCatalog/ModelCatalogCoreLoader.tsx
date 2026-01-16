@@ -77,7 +77,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({ customA
             headerIcon={() => (
               <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />
             )}
-            customAction={customAction ?? defaultAction}
+            primaryAction={customAction ?? defaultAction}
           />
         }
         headerContent={null}

@@ -86,24 +86,14 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify the response structure
-		assert.True(t, response.Data.Enabled, "Safety should be enabled")
 		assert.NotNil(t, response.Data.GuardrailModels)
 		assert.Len(t, response.Data.GuardrailModels, 1, "Should have 1 guardrail model from mock")
 
 		// Verify the guardrail model details
 		guardrailModel := response.Data.GuardrailModels[0]
 		assert.Equal(t, "llama-guard-3", guardrailModel.ModelName)
-		assert.Equal(t, "Llama Guard 3", guardrailModel.DisplayName)
 		assert.Equal(t, "trustyai_input", guardrailModel.InputShieldID)
 		assert.Equal(t, "trustyai_output", guardrailModel.OutputShieldID)
-
-		// Verify policies
-		assert.Contains(t, guardrailModel.InputPolicies, "jailbreak")
-		assert.Contains(t, guardrailModel.InputPolicies, "content-moderation")
-		assert.Contains(t, guardrailModel.InputPolicies, "pii")
-		assert.Contains(t, guardrailModel.OutputPolicies, "jailbreak")
-		assert.Contains(t, guardrailModel.OutputPolicies, "content-moderation")
-		assert.Contains(t, guardrailModel.OutputPolicies, "pii")
 	})
 
 	t.Run("should return 400 when namespace is missing from context", func(t *testing.T) {
@@ -194,11 +184,6 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 		dataMap, ok := data.(map[string]interface{})
 		assert.True(t, ok, "Data should be a map")
 
-		// Verify 'enabled' field
-		enabled, exists := dataMap["enabled"]
-		assert.True(t, exists, "Data should contain 'enabled' field")
-		assert.Equal(t, true, enabled)
-
 		// Verify 'guardrail_models' field
 		guardrailModels, exists := dataMap["guardrail_models"]
 		assert.True(t, exists, "Data should contain 'guardrail_models' field")
@@ -211,11 +196,8 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 		firstModel, ok := modelsArray[0].(map[string]interface{})
 		assert.True(t, ok, "Model should be a map")
 		assert.Contains(t, firstModel, "model_name")
-		assert.Contains(t, firstModel, "display_name")
 		assert.Contains(t, firstModel, "input_shield_id")
 		assert.Contains(t, firstModel, "output_shield_id")
-		assert.Contains(t, firstModel, "input_policies")
-		assert.Contains(t, firstModel, "output_policies")
 	})
 
 	t.Run("should work with different namespaces", func(t *testing.T) {
@@ -249,7 +231,6 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Mock returns same config for all namespaces
-				assert.True(t, response.Data.Enabled)
 				assert.Len(t, response.Data.GuardrailModels, 1)
 			})
 		}
@@ -274,50 +255,17 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 	})
 
-	t.Run("should verify guardrail model policies are arrays", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config?namespace=test-namespace", nil)
-		assert.NoError(t, err)
-
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN",
-		})
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		app.LSDSafetyConfigHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response SafetyConfigEnvelope
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		// Verify policies are proper arrays
-		for _, model := range response.Data.GuardrailModels {
-			assert.NotNil(t, model.InputPolicies, "InputPolicies should not be nil")
-			assert.NotNil(t, model.OutputPolicies, "OutputPolicies should not be nil")
-			assert.IsType(t, []string{}, model.InputPolicies, "InputPolicies should be string array")
-			assert.IsType(t, []string{}, model.OutputPolicies, "OutputPolicies should be string array")
-		}
-	})
 }
 
 func TestSafetyConfigEnvelope(t *testing.T) {
 	t.Run("should serialize correctly to JSON", func(t *testing.T) {
 		envelope := SafetyConfigEnvelope{
 			Data: models.SafetyConfigResponse{
-				Enabled: true,
 				GuardrailModels: []models.GuardrailModelConfig{
 					{
 						ModelName:      "test-model",
-						DisplayName:    "Test Model",
 						InputShieldID:  "input_shield",
 						OutputShieldID: "output_shield",
-						InputPolicies:  []string{"policy1", "policy2"},
-						OutputPolicies: []string{"policy3", "policy4"},
 					},
 				},
 			},
@@ -336,8 +284,6 @@ func TestSafetyConfigEnvelope(t *testing.T) {
 		dataMap, ok := data.(map[string]interface{})
 		assert.True(t, ok)
 
-		assert.Equal(t, true, dataMap["enabled"])
-
 		guardrailModels, ok := dataMap["guardrail_models"].([]interface{})
 		assert.True(t, ok)
 		assert.Len(t, guardrailModels, 1)
@@ -345,27 +291,13 @@ func TestSafetyConfigEnvelope(t *testing.T) {
 		model, ok := guardrailModels[0].(map[string]interface{})
 		assert.True(t, ok)
 		assert.Equal(t, "test-model", model["model_name"])
-		assert.Equal(t, "Test Model", model["display_name"])
 		assert.Equal(t, "input_shield", model["input_shield_id"])
 		assert.Equal(t, "output_shield", model["output_shield_id"])
-
-		inputPolicies, ok := model["input_policies"].([]interface{})
-		assert.True(t, ok)
-		assert.Len(t, inputPolicies, 2)
-		assert.Equal(t, "policy1", inputPolicies[0])
-		assert.Equal(t, "policy2", inputPolicies[1])
-
-		outputPolicies, ok := model["output_policies"].([]interface{})
-		assert.True(t, ok)
-		assert.Len(t, outputPolicies, 2)
-		assert.Equal(t, "policy3", outputPolicies[0])
-		assert.Equal(t, "policy4", outputPolicies[1])
 	})
 
 	t.Run("should handle empty guardrail models", func(t *testing.T) {
 		envelope := SafetyConfigEnvelope{
 			Data: models.SafetyConfigResponse{
-				Enabled:         false,
 				GuardrailModels: []models.GuardrailModelConfig{},
 			},
 		}
@@ -378,7 +310,6 @@ func TestSafetyConfigEnvelope(t *testing.T) {
 		assert.NoError(t, err)
 
 		data := decoded["data"].(map[string]interface{})
-		assert.Equal(t, false, data["enabled"])
 
 		guardrailModels, ok := data["guardrail_models"].([]interface{})
 		assert.True(t, ok)
@@ -388,23 +319,16 @@ func TestSafetyConfigEnvelope(t *testing.T) {
 	t.Run("should handle multiple guardrail models", func(t *testing.T) {
 		envelope := SafetyConfigEnvelope{
 			Data: models.SafetyConfigResponse{
-				Enabled: true,
 				GuardrailModels: []models.GuardrailModelConfig{
 					{
 						ModelName:      "model-1",
-						DisplayName:    "Model One",
 						InputShieldID:  "shield_1_input",
 						OutputShieldID: "shield_1_output",
-						InputPolicies:  []string{"jailbreak"},
-						OutputPolicies: []string{"content-moderation"},
 					},
 					{
 						ModelName:      "model-2",
-						DisplayName:    "Model Two",
 						InputShieldID:  "shield_2_input",
 						OutputShieldID: "shield_2_output",
-						InputPolicies:  []string{"pii", "toxicity"},
-						OutputPolicies: []string{"pii"},
 					},
 				},
 			},

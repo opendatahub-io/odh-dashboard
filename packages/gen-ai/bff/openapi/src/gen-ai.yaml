@@ -214,6 +214,52 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
+  /gen-ai/api/v1/lsd/safety/config:
+    summary: Get safety configuration
+    description: >-
+      Retrieves the safety configuration (guardrail models and shields) from the llama-stack-config ConfigMap.
+      Returns configured guardrail models with their input and output shield IDs.
+      Only returns data if trustyai_fms provider is configured.
+      Requires valid Kubernetes authentication token and namespace parameter.
+    get:
+      tags:
+        - LlamaStackDistribution
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to get safety config from
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          description: Safety configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SafetyConfigResponse'
+              example:
+                data:
+                  guardrail_models:
+                    - model_name: 'llama-guard-3'
+                      input_shield_id: 'trustyai_input_llama_guard_3'
+                      output_shield_id: 'trustyai_output_llama_guard_3'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getSafetyConfig
+      summary: Get Safety Config
+      description: Gets the safety configuration with guardrail models and shields.
+
   /gen-ai/api/v1/lsd/install:
     summary: Install LlamaStack Distribution
     description: >-
@@ -1146,6 +1192,37 @@ components:
           example: '1.0.0'
           description: BFF service version
 
+    SafetyConfigResponse:
+      type: object
+      required:
+        - guardrail_models
+      properties:
+        guardrail_models:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuardrailModelConfig'
+          description: List of configured guardrail models with their shields
+
+    GuardrailModelConfig:
+      type: object
+      required:
+        - model_name
+        - input_shield_id
+        - output_shield_id
+      properties:
+        model_name:
+          type: string
+          example: 'llama-guard-3'
+          description: Name of the guardrail model
+        input_shield_id:
+          type: string
+          example: 'trustyai_input_llama_guard_3'
+          description: Shield ID for input content moderation
+        output_shield_id:
+          type: string
+          example: 'trustyai_output_llama_guard_3'
+          description: Shield ID for output content moderation
+
     Error:
       type: object
       required:
@@ -1735,13 +1812,10 @@ components:
           format: uri
           example: 'http://127.0.0.1:13080/sse'
           description: URL endpoint for the MCP server
-        headers:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            Authorization: 'Bearer slack_token_123'
-          description: Custom headers for MCP server authentication
+        authorization:
+          type: string
+          example: 'slack_token_123'
+          description: OAuth access token for MCP server authentication
         allowed_tools:
           type: array
           items:
@@ -1759,8 +1833,7 @@ components:
       example:
         server_label: 'slack'
         server_url: 'http://127.0.0.1:13080/sse'
-        headers:
-          Authorization: 'Bearer slack_token_123'
+        authorization: 'slack_token_123'
         allowed_tools: ['send_message', 'get_channel_history']
 
     # Response Creation Schema
@@ -1844,16 +1917,13 @@ components:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
               allowed_tools: ['send_message', 'get_channel_history']
-              headers:
-                Authorization: 'Bearer slack_token_123'
+              authorization: 'slack_token_123'
             - server_label: 'github'
               server_url: 'http://127.0.0.1:14080/sse'
               allowed_tools: ['get_latest_release']
-              headers:
-                Authorization: 'Bearer github_token_456'
-                X-API-Version: 'v1'
+              authorization: 'github_token_456'
           description: >-
-            MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
+            MCP server configurations for external tool access. Each server can have its own authorization token and provides multiple tools.
             Use the allowed_tools field within each MCP server config to restrict which tools can be used from that server.
         previous_response_id:
           type: string
@@ -2156,8 +2226,7 @@ components:
           example:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
-              headers:
-                Authorization: 'Bearer slack_token_123'
+              authorization: 'slack_token_123'
           description: MCP server configurations for tool integration
         tools:
           type: array

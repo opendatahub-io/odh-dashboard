@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
@@ -423,7 +424,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 			Namespace: namespace,
 		},
 		Data: map[string]string{
-			"run.yaml": `# Llama Stack Configuration
+			constants.LlamaStackConfigYAMLKey: `# Llama Stack Configuration
 version: "2"
 image_name: rh
 apis:
@@ -440,7 +441,7 @@ providers:
   - provider_id: vllm-inference-1
     provider_type: remote::vllm
     config:
-      url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
+      base_url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
       max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
       api_token: ${env.VLLM_API_TOKEN:=fake}
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
@@ -564,7 +565,7 @@ server:
 			Replicas: 1,
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/run.yaml"},
+					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("250m"),
@@ -796,15 +797,11 @@ func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.
 func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
 	// Return hardcoded mock data for testing
 	return &models.SafetyConfigResponse{
-		Enabled: true,
 		GuardrailModels: []models.GuardrailModelConfig{
 			{
 				ModelName:      "llama-guard-3",
-				DisplayName:    "Llama Guard 3",
 				InputShieldID:  "trustyai_input",
 				OutputShieldID: "trustyai_output",
-				InputPolicies:  []string{"jailbreak", "content-moderation", "pii"},
-				OutputPolicies: []string{"jailbreak", "content-moderation", "pii"},
 			},
 		},
 	}, nil

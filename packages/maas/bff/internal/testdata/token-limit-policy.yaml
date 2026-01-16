@@ -1,14 +1,16 @@
 apiVersion: kuadrant.io/v1alpha1
 kind: TokenRateLimitPolicy
 metadata:
-  name: gateway-token-rate-limits
+  name: tier-tier0-token-rate-limits
+  labels:
+    opendatahub.io/dashboard: "true"
 spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: Gateway
     name: maas-default-gateway
   limits:
-    free-user-tokens:
+    tier0-tokens:
       rates:
         - limit: 100
           window: 1m
@@ -17,8 +19,20 @@ spec:
             auth.identity.tier == "tier0"
       counters:
         - expression: auth.identity.userid
-
-    premium-user-tokens:
+---
+apiVersion: kuadrant.io/v1alpha1
+kind: TokenRateLimitPolicy
+metadata:
+  name: tier-tier1-token-rate-limits
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: maas-default-gateway
+  limits:
+    tier1-tokens:
       rates:
         - limit: 50000
           window: 1m
@@ -27,7 +41,20 @@ spec:
             auth.identity.tier == "tier1"
       counters:
         - expression: auth.identity.userid
-    enterprise-user-tokens:
+---
+apiVersion: kuadrant.io/v1alpha1
+kind: TokenRateLimitPolicy
+metadata:
+  name: tier-enterprise-token-rate-limits
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: maas-default-gateway
+  limits:
+    enterprise-tokens:
       rates:
         - limit: 100000
           window: 1m
@@ -36,4 +63,3 @@ spec:
             auth.identity.tier == "enterprise"
       counters:
         - expression: auth.identity.userid
-

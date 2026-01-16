@@ -88,6 +88,7 @@ export const blankDashboardCR: DashboardConfig = {
       mlflow: false,
       trainingJobs: true,
       disableLLMd: false,
+      projectRBAC: false,
     },
     notebookController: {
       enabled: true,

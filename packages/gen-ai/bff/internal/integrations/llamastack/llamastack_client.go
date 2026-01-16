@@ -14,6 +14,7 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -25,7 +26,10 @@ type LlamaStackClient struct {
 }
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
-func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *LlamaStackClient {
+// llama-stack v0.4.0+ removed the `/v1/openai/v1/` routes.
+// All OpenAI-compatible endpoints are now served directly under `/v1/`.
+// See: https://github.com/llamastack/llama-stack/releases/tag/v0.4.0
+func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) *LlamaStackClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
@@ -38,8 +42,9 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
+	// Use the provided apiPath to construct the full base URL
 	client := openai.NewClient(
-		option.WithBaseURL(baseURL+"/v1/openai/v1"),
+		option.WithBaseURL(baseURL+apiPath),
 		option.WithAPIKey(authToken),
 		option.WithHTTPClient(httpClient),
 	)
@@ -349,8 +354,8 @@ type MCPServerParam struct {
 	ServerLabel string
 	// ServerURL is the URL endpoint for the MCP server
 	ServerURL string
-	// Headers contains custom headers for MCP server authentication
-	Headers map[string]string
+	// Authorization is the OAuth access token for MCP server authentication
+	Authorization string
 	// AllowedTools contains list of specific tool names allowed from this server
 	AllowedTools []string
 }
@@ -484,15 +489,21 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 			}
 
 			// Create MCP tool parameter for OpenAI client
-			mcpServerToolParam := responses.ToolUnionParam{
-				OfMcp: &responses.ToolMcpParam{
-					ServerLabel: mcpServer.ServerLabel,
-					ServerURL:   openai.String(mcpServer.ServerURL),
-					Headers:     mcpServer.Headers,
-					AllowedTools: responses.ToolMcpAllowedToolsUnionParam{
-						OfMcpAllowedTools: mcpServer.AllowedTools,
-					},
+			mcpToolParam := &responses.ToolMcpParam{
+				ServerLabel: mcpServer.ServerLabel,
+				ServerURL:   openai.String(mcpServer.ServerURL),
+				AllowedTools: responses.ToolMcpAllowedToolsUnionParam{
+					OfMcpAllowedTools: mcpServer.AllowedTools,
 				},
+			}
+
+			// Set authorization if provided
+			if mcpServer.Authorization != "" {
+				mcpToolParam.Authorization = param.NewOpt(mcpServer.Authorization)
+			}
+
+			mcpServerToolParam := responses.ToolUnionParam{
+				OfMcp: mcpToolParam,
 			}
 			tools = append(tools, mcpServerToolParam)
 		}
