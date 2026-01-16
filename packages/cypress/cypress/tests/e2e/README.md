@@ -2,6 +2,9 @@
 
 This guide provides instructions for setting up Cypress for end-to-end (e2e) testing in your local development environment and guidelines for contributing to the testing framework.
 
+Note that the cypress runner here looks *identical*  to the mock runner; these are for the E2E tests only.
+
+
 ## Table of Contents
 - [Contributing](#contributing)
 - [Documentation](#documentation)
@@ -49,10 +52,18 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-3. **Export the test variables:**
+3. **Export the test variables file path:**
+
+   The test variables are required for the tests to execute properly.  See the file 'test-variables.yml.example' in the packages/cypress directory (three directories up) for a 'fake' example of what this looks like.  Talk to Anthony Coughlin  or ask on the slack dashboard team channel to get the real credentials.
 
    ```bash
    export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'
+   ```
+
+   Example:
+
+   ```bash
+   export CY_TEST_CONFIG=./test-2-vars-ack.yaml
    ```
 
 4. **Navigate to the frontend directory:**
@@ -61,9 +72,16 @@ Before you begin, ensure you have the following installed:
    cd frontend
    ```
 
-   > **NOTE:** Test variables are required to execute tests. Contact the QE Dashboard team for access.
+5. **Do the oc login to the cluster:**
 
-5. **Run Cypress:**
+   Log in to the cluster specified in the `OCP_API_URL` variable.
+
+   ```bash
+   oc login -u <username> -p <password> --server=<serverUrl>
+   ``` 
+
+
+6. **Run Cypress:**
 
    This command launches the Cypress Test Runner, where you can run your tests interactively.
 
