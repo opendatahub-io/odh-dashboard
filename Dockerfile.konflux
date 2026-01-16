@@ -1,0 +1,71 @@
+# Build arguments
+ARG SOURCE_CODE=.
+
+FROM registry.access.redhat.com/ubi9/nodejs-22@sha256:bbd9e582dcb61f1cef28dffdc647f23b63e82674c480fc32be446c8f62b7ad7a as builder
+
+## Build args to be used at this step
+ARG SOURCE_CODE
+
+WORKDIR /usr/src/app
+
+## Copying in source code
+COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
+
+# Change file ownership to the assemble user
+USER default
+
+RUN npm cache clean --force
+
+RUN npm ci --ignore-scripts
+
+ENV TURBO_TELEMETRY_DISABLED=1
+
+# Set Red Hat Openshift AI logo and links
+ENV ODH_LOGO=../images/rhoai-logo.svg
+ENV ODH_LOGO_DARK=../images/rhoai-logo-dark-theme.svg
+ENV ODH_PRODUCT_NAME="Red Hat OpenShift AI"
+ENV ODH_FAVICON="rhoai-favicon.svg"
+ENV DOC_LINK="https://docs.redhat.com/en/documentation/red_hat_openshift_ai/"
+ENV SUPPORT_LINK="https://access.redhat.com/support/cases/#/case/new/open-case?caseCreate=true"
+ENV COMMUNITY_LINK=""
+
+RUN npm run build
+
+# Install only production dependencies
+# This is needed to remove the dev dependencies that were installed in the previous step
+RUN npm prune --omit=dev
+
+FROM registry.access.redhat.com/ubi9/nodejs-22@sha256:bbd9e582dcb61f1cef28dffdc647f23b63e82674c480fc32be446c8f62b7ad7a as runtime
+
+WORKDIR /usr/src/app
+
+RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
+
+USER 1001:0
+
+COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
+COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
+COPY --chown=default:root --from=builder /usr/src/app/backend/node_modules /usr/src/app/backend/node_modules
+COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/package.json /usr/src/app/packages/app-config/package.json
+COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/dist /usr/src/app/packages/app-config/dist
+COPY --chown=default:root --from=builder /usr/src/app/package.json /usr/src/app/package.json
+COPY --chown=default:root --from=builder /usr/src/app/package-lock.json /usr/src/app/package-lock.json
+COPY --chown=default:root --from=builder /usr/src/app/node_modules /usr/src/app/node_modules
+COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/.npmrc
+COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
+COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
+
+WORKDIR /usr/src/app/backend
+
+CMD ["npm", "run", "start"]
+
+LABEL com.redhat.component="odh-dashboard-container" \
+      name="managed-open-data-hub/odh-dashboard-rhel8" \
+      description="odh-dashboard" \
+      summary="odh-dashboard" \
+      maintainer="['managed-open-data-hub@redhat.com']" \
+      io.openshift.expose-services="" \
+      io.k8s.display-name="odh-dashboard" \
+      io.k8s.description="odh-dashboard" \
+      com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"

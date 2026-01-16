@@ -9,6 +9,9 @@ import {
   FormHelperText,
   Stack,
   StackItem,
+  Flex,
+  FlexItem,
+  Label,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
@@ -55,7 +58,7 @@ export const maasEndpointsFieldSchema = z
       return true;
     },
     {
-      message: 'Resource tier names are required',
+      message: 'Tier names are required',
       path: ['tierNamesInput'],
     },
   );
@@ -71,14 +74,14 @@ const getInitialMaaSEndpointsFieldData = (value?: MaaSTierValue): MaaSTierValue 
 type TierDropdownOption = 'all-tiers' | 'no-tiers' | 'specify-tiers';
 
 const TIER_DROPDOWN_OPTIONS: Array<{ key: TierDropdownOption; label: string }> = [
-  { key: 'all-tiers', label: 'All resource tiers' },
-  { key: 'no-tiers', label: 'No resource tiers' },
-  { key: 'specify-tiers', label: 'Specific resource tiers' },
+  { key: 'all-tiers', label: 'All tiers' },
+  { key: 'no-tiers', label: 'No tiers' },
+  { key: 'specify-tiers', label: 'Specific tiers' },
 ];
 
 const getTierDropdownLabel = (key: TierDropdownOption): string => {
   const option = TIER_DROPDOWN_OPTIONS.find((opt) => opt.key === key);
-  return option?.label ?? 'All resource tiers';
+  return option?.label ?? 'All tiers';
 };
 
 //// Component ////
@@ -137,32 +140,43 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
         <Checkbox
           id={id}
           data-testid={id}
-          label={<span className="pf-v6-c-form__label-text">Publish as MaaS endpoint</span>}
+          label={
+            <>
+              <div className="pf-v6-c-form__label-text">Publish as MaaS endpoint</div>
+              <Flex>
+                <FlexItem>
+                  Enable users in any namespace to access this model by adding its endpoint to the{' '}
+                  <span className="pf-v6-c-form__label-text">Models as a service</span> page. This
+                  is best for production models.
+                </FlexItem>
+                <Label isCompact color="yellow" variant="outline">
+                  Tech preview
+                </Label>
+              </Flex>
+            </>
+          }
           body={
             <>
-              Enable users in any namespace to access this model by adding its endpoint to the{' '}
-              <span className="pf-v6-c-form__label-text">Models as a service</span> page. This is
-              best for production models.
               {value.isChecked && (
                 <>
                   <FormGroup
-                    label="Resource tier access"
+                    label="Tier access"
                     fieldId={`${id}-tier-access`}
                     labelHelp={
                       <Popover
-                        aria-label="Resource tier access help"
-                        bodyContent="Resource tiers are admin-defined groups of users who share the same resource limits for MaaS usage."
+                        aria-label="Tier access help"
+                        bodyContent="Tiers are admin-defined groups of users who share the same resource limits for MaaS usage."
                       >
                         <DashboardPopupIconButton
                           icon={<OutlinedQuestionCircleIcon />}
-                          aria-label="Resource tier access help"
+                          aria-label="Tier access help"
                         />
                       </Popover>
                     }
                   >
                     <HelperText>
                       <HelperTextItem>
-                        Choose which resource tiers can use this model deployment
+                        Choose which tiers can use this model deployment
                       </HelperTextItem>
                     </HelperText>
                     <SimpleSelect
@@ -173,7 +187,7 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
                         label: opt.label,
                       }))}
                       isFullWidth
-                      placeholder="Select resource tier access"
+                      placeholder="Select tier access"
                       value={value.tiersDropdownSelection ?? 'all-tiers'}
                       toggleLabel={getTierDropdownLabel(
                         value.tiersDropdownSelection ?? 'all-tiers',
@@ -184,7 +198,7 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({ id, value, onChan
                   </FormGroup>
                   {showTierNamesInput && (
                     <FormGroup
-                      label="Resource tier names"
+                      label="Tier names"
                       fieldId={`${id}-tier-names`}
                       isRequired
                       className="pf-v6-u-pt-md" // Add manual padding b/c the Checkbox body overrides the FormGroup padding
