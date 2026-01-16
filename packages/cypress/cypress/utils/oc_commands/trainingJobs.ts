@@ -171,6 +171,40 @@ export const deleteTrainingRuntime = (
 };
 
 /**
+ * Retrieves the numNodes value from a TrainJob resource.
+ *
+ * @param trainJobName - The name of the TrainJob to query.
+ * @param namespace - The namespace where the TrainJob exists.
+ * @returns A Cypress chainable resolving to the numNodes value.
+ */
+export const getTrainJobNumNodes = (
+  trainJobName: string,
+  namespace: string,
+): Cypress.Chainable<number> => {
+  cy.log(`Getting numNodes for TrainJob ${trainJobName} in namespace ${namespace}`);
+
+  return cy
+    .exec(
+      `oc get trainjob ${trainJobName} -n ${namespace} -o jsonpath='{.spec.trainer.numNodes}'`,
+      {
+        failOnNonZeroExit: false,
+        timeout: 30000,
+      },
+    )
+    .then((result) => {
+      if (result.code !== 0) {
+        throw new Error(`Failed to get TrainJob numNodes: ${result.stderr}`);
+      }
+      const numNodes = parseInt(result.stdout.replace(/'/g, ''), 10);
+      Cypress.log({
+        name: 'numNodes',
+        message: `TrainJob ${trainJobName} has numNodes: ${numNodes}`,
+      });
+      return numNodes;
+    });
+};
+
+/**
  * Verifies that a TrainJob resource has been deleted from the cluster.
  *
  * @param trainJobName - The name of the TrainJob to verify is deleted.
