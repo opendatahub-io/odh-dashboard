@@ -1003,7 +1003,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			Replicas: 1,
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/run.yaml"},
+					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("250m"),
@@ -1079,7 +1079,7 @@ func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.C
 			},
 		},
 		Data: map[string]string{
-			"run.yaml": runYAML,
+			constants.LlamaStackConfigYAMLKey: runYAML,
 		},
 	}
 
@@ -1212,6 +1212,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 		}
 	}
+
+	// Ensure storage field is present before serialization (defensive check)
+	config.EnsureStorageField()
 
 	// Convert the config to YAML
 	configYAML, err := config.ToYAML()
@@ -1569,16 +1572,20 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 		return nil, fmt.Errorf("failed to get configmap: %w", err)
 	}
 
-	runYAML, ok := configMap.Data[constants.LlamaStackRunYAMLKey]
+	// Read config.yaml (llama-stack v0.4.0+)
+	configYAML, ok := configMap.Data[constants.LlamaStackConfigYAMLKey]
 	if !ok {
-		return nil, fmt.Errorf("run.yaml not found in configmap")
+		return nil, fmt.Errorf("config.yaml not found in configmap")
 	}
 
 	// Parse YAML into config
 	var config LlamaStackConfig
-	if err := config.FromYAML(runYAML); err != nil {
+	if err := config.FromYAML(configYAML); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
+
+	config.EnsureStorageField()
+
 	return &config, nil
 }
 
