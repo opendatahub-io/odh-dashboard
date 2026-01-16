@@ -4,6 +4,7 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { mlflowExperimentsPage } from '../../../pages/pipelines/mlflowExperiments';
 
 const mlflowIframeUrl = '/mlflow/#/experiments';
+const mlflowJumpLinkUrl = '/mlflow';
 
 function isIframeElement(element: HTMLElement | undefined): element is HTMLIFrameElement {
   return element?.tagName.toLowerCase() === 'iframe';
@@ -45,8 +46,17 @@ const initIntercepts = () => {
 };
 
 describe('MLflow Experiments', () => {
-  it('should show the MLflow Experiments page and override css components', () => {
+  beforeEach(() => {
     initIntercepts();
+  });
+
+  it('mlflow jump link exists', () => {
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findMlflowJumpLink().should('be.visible');
+    mlflowExperimentsPage.findMlflowJumpLink().should('have.attr', 'href', mlflowJumpLinkUrl);
+  });
+
+  it('should show the MLflow Experiments page and override css components', () => {
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
     mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', mlflowIframeUrl);
