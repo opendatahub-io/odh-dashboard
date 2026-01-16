@@ -97,7 +97,7 @@ describe('Workbenches - status tests', () => {
             notebookRow.findHaveNotebookStatusText().click();
             workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Running);
 
-            // Click on the Events log and validate that successful list messages display
+            // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');
             workbenchStatusModal.findEventlogTab().click();
             workbenchStatusModal.findLogEntry('Created container');
