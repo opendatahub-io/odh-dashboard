@@ -1,59 +1,67 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Bullseye } from '@patternfly/react-core';
-import { WhosMyAdministrator } from 'mod-arch-shared';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
 import ModelCatalogCoreLoader from '~/app/pages/modelCatalog/ModelCatalogCoreLoader';
-import { isAdminCheckExtension } from '~/odh/extension-points';
-import {
-  CATALOG_SETTINGS_PAGE_TITLE,
-  catalogSettingsUrl,
-} from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { isAdminCheckExtension, isCatalogSettingsUrlExtension } from '~/odh/extension-points';
+import { catalogSettingsUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 
-/**
- * ODH-specific override of ModelCatalogCoreLoader that includes admin user detection
- * for showing the appropriate action link in empty states:
- * - Admin users see "Go to AI catalog settings" link
- * - Non-admin users see "Who's my administrator" link
- */
+const ADMIN_EMPTY_STATE_TITLE = 'Configure model sources';
+const ADMIN_EMPTY_STATE_DESCRIPTION = (
+  <>
+    There are no models to display. To add models to the catalog, add model sources to the{' '}
+    <b>Model catalog settings</b> page. If you've already added sources, ensure that filters are not
+    restricting all models from appearing in the catalog.
+  </>
+);
+const MODEL_CATALOG_SETTINGS_LINK_TEXT = 'Model catalog settings';
+
 const OdhModelCatalogCoreLoader: React.FC = () => {
   const [adminCheckExtensions, adminCheckExtensionsLoaded] =
     useResolvedExtensions(isAdminCheckExtension);
+  const catalogSettingsUrlExtensions = useExtensions(isCatalogSettingsUrlExtension);
 
-  // Create the custom action based on admin status
-  const getCustomAction = (isAdmin: boolean): React.ReactNode => {
-    if (isAdmin) {
-      return (
-        <Link to={catalogSettingsUrl()}>
-          Go to <b>{CATALOG_SETTINGS_PAGE_TITLE}</b>
-        </Link>
-      );
+  const getCatalogSettingsUrl = (): string => {
+    if (catalogSettingsUrlExtensions.length > 0) {
+      return catalogSettingsUrlExtensions[0].properties.url;
     }
-    return <WhosMyAdministrator />;
+    return catalogSettingsUrl();
   };
 
-  // Wait for admin check extension to load
+  const adminAction = (
+    <Link to={getCatalogSettingsUrl()}>
+      Go to <b>{MODEL_CATALOG_SETTINGS_LINK_TEXT}</b>
+    </Link>
+  );
+
   if (!adminCheckExtensionsLoaded) {
     return <Bullseye>Loading...</Bullseye>;
   }
 
-  // If an admin check extension is provided and loaded, use it
   if (adminCheckExtensions.length > 0) {
     const AdminCheckComponent = adminCheckExtensions[0].properties.component.default;
     return (
       <AdminCheckComponent>
         {(isAdmin: boolean, loaded: boolean) => {
           if (!loaded) {
-            return <Bullseye>Loading...</Bullseye>;
+            return <ModelCatalogCoreLoader />;
           }
-          return <ModelCatalogCoreLoader customAction={getCustomAction(isAdmin)} />;
+          if (isAdmin) {
+            return (
+              <ModelCatalogCoreLoader
+                customAction={adminAction}
+                customEmptyStateTitle={ADMIN_EMPTY_STATE_TITLE}
+                customEmptyStateDescription={ADMIN_EMPTY_STATE_DESCRIPTION}
+              />
+            );
+          }
+          return <ModelCatalogCoreLoader />;
         }}
       </AdminCheckComponent>
     );
   }
 
-  // Fallback: no admin check extension, default to non-admin view
-  return <ModelCatalogCoreLoader customAction={getCustomAction(false)} />;
+  return <ModelCatalogCoreLoader />;
 };
 
 export default OdhModelCatalogCoreLoader;
