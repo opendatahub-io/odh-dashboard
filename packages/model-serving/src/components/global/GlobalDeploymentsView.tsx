@@ -72,7 +72,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
       description={
         <Flex direction={{ default: 'column' }}>
           <FlexItem>Manage and view the health and performance of your deployed models.</FlexItem>
-          {deploymentsErrors?.length && deploymentsErrors.length > 0 && (
+          {deploymentsErrors && deploymentsErrors.length > 0 && (
             <FlexItem>
               <Alert
                 variant="danger"
