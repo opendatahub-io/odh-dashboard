@@ -433,6 +433,7 @@ export const getBasicFiltersOnly = (
       result[perfKey] = undefined;
     }
   });
+  result[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION] = [];
 
   return result;
 };
