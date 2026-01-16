@@ -508,6 +508,14 @@ class ScaleNodesModal extends Modal {
     return cy.findByTestId('node-count-input');
   }
 
+  findPlusButton() {
+    return this.find().find('button[aria-label="Plus"]');
+  }
+
+  findMinusButton() {
+    return this.find().find('button[aria-label="Minus"]');
+  }
+
   setNodeCount(count: number) {
     this.findNodeCountInput().clear();
     this.findNodeCountInput().type(count.toString());
