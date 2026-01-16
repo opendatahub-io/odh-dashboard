@@ -55,7 +55,11 @@ class ModelTrainingGlobal {
 
   selectProject(projectName: string) {
     this.findProjectSelectorToggle().click();
-    cy.findByRole('menuitem', { name: projectName }).click();
+    this.findProjectMenuItem(projectName).click();
+  }
+
+  findProjectMenuItem(projectName: string) {
+    return cy.findByRole('menuitem', { name: projectName });
   }
 
   findEmptyState() {
