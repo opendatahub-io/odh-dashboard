@@ -6,6 +6,8 @@
 
 # Open Data Hub Dashboard [![codecov](https://codecov.io/gh/opendatahub-io/odh-dashboard/graph/badge.svg)](https://codecov.io/gh/opendatahub-io/odh-dashboard)
 
+<!-- Test E2E workflow - delete this line -->
+
 A dashboard for Open Data Hub components, featuring user flows to navigate and interact with the various component parts of the stack.
 
 ## Contributing
