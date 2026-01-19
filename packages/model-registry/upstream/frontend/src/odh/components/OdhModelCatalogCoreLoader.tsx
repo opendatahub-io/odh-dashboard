@@ -13,7 +13,7 @@ import {
 /**
  * ODH-specific override of ModelCatalogCoreLoader that includes admin user detection
  * for showing the appropriate action link in empty states:
- * - Admin users see "Go to AI catalog settings" link
+ * - Admin users see "Go to AI catalog sources" link
  * - Non-admin users see "Who's my administrator" link
  */
 const OdhModelCatalogCoreLoader: React.FC = () => {

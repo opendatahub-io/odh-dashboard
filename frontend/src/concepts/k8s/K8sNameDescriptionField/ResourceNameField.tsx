@@ -11,6 +11,7 @@ import {
 import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
 import {
   HelperTextItemMaxLength,
+  HelperTextItemResourceNameTaken,
   HelperTextItemValidCharacters,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
 import {
@@ -23,6 +24,7 @@ type ResourceNameFieldProps = {
   dataTestId: string;
   k8sName: K8sNameDescriptionFieldData['k8sName'];
   onDataChange?: K8sNameDescriptionFieldUpdateFunction;
+  resourceNameTakenHelperText?: React.ReactNode;
 };
 
 /** Sub-resource; not for public consumption */
@@ -31,6 +33,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   dataTestId,
   k8sName,
   onDataChange,
+  resourceNameTakenHelperText,
 }) => {
   const formGroupProps: React.ComponentProps<typeof FormGroup> = {
     label: 'Resource name',
@@ -47,9 +50,13 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   }
 
   let validated: ValidatedOptions = ValidatedOptions.default;
-  if (k8sName.state.invalidLength || k8sName.state.invalidCharacters) {
+  if (
+    k8sName.state.invalidLength ||
+    k8sName.state.invalidCharacters ||
+    !!resourceNameTakenHelperText
+  ) {
     validated = ValidatedOptions.error;
-  } else if (k8sName.value.length > 0) {
+  } else if (k8sName.value.length > 0 && !resourceNameTakenHelperText) {
     validated = ValidatedOptions.success;
   }
 
@@ -87,6 +94,9 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
       <HelperText>
         <HelperTextItemMaxLength k8sName={k8sName} />
         <HelperTextItemValidCharacters k8sName={k8sName} />
+        {resourceNameTakenHelperText && (
+          <HelperTextItemResourceNameTaken resourceNameTakenMessage={resourceNameTakenHelperText} />
+        )}
       </HelperText>
     </FormGroup>
   );

@@ -4,7 +4,10 @@ import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import {
+  getGeneratedSecretName,
+  isGeneratedSecretName,
+} from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
@@ -80,7 +83,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   React.useEffect(() => {
     const current = wizardState.state.createConnectionData.data.nameDesc;
-    if (current?.k8sName.value !== secretName) {
+    const shouldSync = !current?.name || isGeneratedSecretName(current.name);
+
+    if (shouldSync && current?.k8sName.value !== secretName) {
       wizardState.state.createConnectionData.setData({
         ...wizardState.state.createConnectionData.data,
         nameDesc: {
@@ -191,71 +196,85 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   );
 
   return (
-    <ApplicationsPage title={title} description={description} loaded empty={false}>
-      {isExitModalOpen && (
-        <ExitDeploymentModal
-          onClose={() => setIsExitModalOpen(false)}
-          onConfirm={handleExitConfirm}
-        />
-      )}
-      <Wizard
-        onClose={() => setIsExitModalOpen(true)}
-        onSave={() => onSave()}
-        footer={wizardFooter}
-        startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
-      >
-        <WizardStep name="Model details" id="source-model-step">
-          {wizardState.loaded.modelSourceLoaded ? (
-            <ModelSourceStepContent wizardState={wizardState} validation={validation.modelSource} />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-        <WizardStep
-          name="Model deployment"
-          id="model-deployment-step"
-          isDisabled={!validation.isModelSourceStepValid}
-        >
-          {wizardState.loaded.modelDeploymentLoaded ? (
-            <ModelDeploymentStepContent
-              projectName={currentProjectName}
-              wizardState={wizardState}
-            />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-        <WizardStep
-          name="Advanced settings"
-          id="advanced-options-step"
-          isDisabled={!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid}
-        >
-          {wizardState.loaded.advancedOptionsLoaded ? (
-            <AdvancedSettingsStepContent
-              wizardState={wizardState}
-              projectName={currentProjectName}
-            />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-        <WizardStep
-          name="Review"
-          id="summary-step"
-          isDisabled={
-            !validation.isModelSourceStepValid ||
-            !validation.isModelDeploymentStepValid ||
-            !validation.isAdvancedSettingsStepValid
+    <>
+      <style>
+        {`
+          body {
+            overflow: hidden !important;
           }
+        `}
+      </style>
+      <ApplicationsPage title={title} description={description} loaded empty={false}>
+        {isExitModalOpen && (
+          <ExitDeploymentModal
+            onClose={() => setIsExitModalOpen(false)}
+            onConfirm={handleExitConfirm}
+          />
+        )}
+        <Wizard
+          onClose={() => setIsExitModalOpen(true)}
+          onSave={() => onSave()}
+          footer={wizardFooter}
+          startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
         >
-          {wizardState.loaded.summaryLoaded ? (
-            <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
-          ) : (
-            <Spinner data-testid="spinner" />
-          )}
-        </WizardStep>
-      </Wizard>
-    </ApplicationsPage>
+          <WizardStep name="Model details" id="source-model-step">
+            {wizardState.loaded.modelSourceLoaded ? (
+              <ModelSourceStepContent
+                wizardState={wizardState}
+                validation={validation.modelSource}
+              />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+          <WizardStep
+            name="Model deployment"
+            id="model-deployment-step"
+            isDisabled={!validation.isModelSourceStepValid}
+          >
+            {wizardState.loaded.modelDeploymentLoaded ? (
+              <ModelDeploymentStepContent
+                projectName={currentProjectName}
+                wizardState={wizardState}
+              />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+          <WizardStep
+            name="Advanced settings"
+            id="advanced-options-step"
+            isDisabled={
+              !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
+            }
+          >
+            {wizardState.loaded.advancedOptionsLoaded ? (
+              <AdvancedSettingsStepContent
+                wizardState={wizardState}
+                projectName={currentProjectName}
+              />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+          <WizardStep
+            name="Review"
+            id="summary-step"
+            isDisabled={
+              !validation.isModelSourceStepValid ||
+              !validation.isModelDeploymentStepValid ||
+              !validation.isAdvancedSettingsStepValid
+            }
+          >
+            {wizardState.loaded.summaryLoaded ? (
+              <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
+            ) : (
+              <Spinner data-testid="spinner" />
+            )}
+          </WizardStep>
+        </Wizard>
+      </ApplicationsPage>
+    </>
   );
 };
 

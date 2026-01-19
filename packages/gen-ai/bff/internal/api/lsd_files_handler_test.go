@@ -57,6 +57,13 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	app, err := NewApp(cfg, logger)
 	assert.NoError(t, err)
+	// Clean up test environment (kube-apiserver processes) when test completes.
+	// Without this, orphaned processes may remain after test execution.
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	// Create test server with full middleware chain
 	server := httptest.NewServer(app.Routes())
@@ -115,7 +122,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -153,7 +160,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -190,7 +197,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -220,7 +227,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -253,7 +260,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock123abc456def", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -306,7 +313,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -342,7 +349,7 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		req.Header.Set("Content-Type", contentType)
 
 		// Do NOT add namespace to context (simulate middleware failure)
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -381,7 +388,7 @@ func TestLlamaStackListFilesHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -415,7 +422,7 @@ func TestLlamaStackListFilesHandler(t *testing.T) {
 
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -442,7 +449,7 @@ func TestLlamaStackListFilesHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, constants.FilesListPath+"?namespace=default&limit=invalid", nil)
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -484,6 +491,13 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	app, err := NewApp(cfg, logger)
 	assert.NoError(t, err)
+	// Clean up test environment (kube-apiserver processes) when test completes.
+	// Without this, orphaned processes may remain after test execution.
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	t.Run("should return pending status for newly created job", func(t *testing.T) {
 		// Create a job first
@@ -714,7 +728,7 @@ func TestLlamaStackDeleteFileHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default&file_id=file-test123", nil)
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -743,7 +757,7 @@ func TestLlamaStackDeleteFileHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default", nil)
 		// Simulate AttachNamespace and AttachLlamaStackClient middleware
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token-mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 

@@ -186,6 +186,76 @@ export const updateStorageClass = (
 };
 
 /**
+ * Set a storage class as the OpenShift default by adding the
+ * storageclass.kubernetes.io/is-default-class annotation.
+ *
+ * @param scName Storage Class name to set as default
+ * @returns Result Object of the operation
+ */
+export const setOpenshiftDefaultStorageClass = (
+  scName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const patchContent = JSON.stringify({
+    metadata: {
+      annotations: {
+        'storageclass.kubernetes.io/is-default-class': 'true',
+      },
+    },
+  });
+
+  cy.log(`Setting ${scName} as the OpenShift default storage class`);
+  return patchOpenShiftResource('storageclass', scName, patchContent);
+};
+
+/**
+ * Ensure an OpenShift default storage class exists.
+ * If no default exists, sets the first available storage class as the default.
+ * If no storage classes exist at all, creates one and sets it as default.
+ *
+ * @returns The name of the OpenShift default storage class
+ */
+export const ensureOpenshiftDefaultStorageClass = (): Cypress.Chainable<string> =>
+  getOpenshiftDefaultStorageClass().then((result) => {
+    const existingDefault = result.stdout.trim();
+    if (existingDefault) {
+      cy.log(`OpenShift default storage class already exists: ${existingDefault}`);
+      return cy.wrap(existingDefault);
+    }
+
+    // No default exists, get list of storage classes and set first one as default
+    cy.log('No OpenShift default storage class found, checking for available storage classes...');
+    return getStorageClassNames().then((scNames: string[]) => {
+      // Filter out empty strings from the result
+      const validScNames = scNames.filter((name) => name.trim() !== '');
+
+      if (validScNames.length === 0) {
+        // No storage classes exist - create one as the default
+        cy.log('No storage classes in cluster - creating a default storage class for testing');
+        const defaultScName = 'test-default-sc';
+        const scReplacement: SCReplacements = {
+          SC_NAME: defaultScName,
+          SC_IS_DEFAULT: 'true',
+          SC_IS_ENABLED: 'true',
+          SC_ACCESS_MODE: JSON.stringify({ ReadWriteOnce: true }),
+          SC_PROVISIONER: StorageProvisioner.CINDER_CSI,
+        };
+        return createStorageClass(scReplacement).then(() =>
+          setOpenshiftDefaultStorageClass(defaultScName).then(() => {
+            cy.log(`Created and set ${defaultScName} as the OpenShift default storage class`);
+            return cy.wrap(defaultScName);
+          }),
+        );
+      }
+
+      const scToSetAsDefault = validScNames[0];
+      return setOpenshiftDefaultStorageClass(scToSetAsDefault).then(() => {
+        cy.log(`Set ${scToSetAsDefault} as the OpenShift default storage class`);
+        return cy.wrap(scToSetAsDefault);
+      });
+    });
+  });
+
+/**
  * Disables all storage classes except for the default one
  * @returns A Cypress.Chainable that resolves when all updates are complete
  */

@@ -26,7 +26,10 @@ type LlamaStackClient struct {
 }
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
-func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *LlamaStackClient {
+// llama-stack v0.4.0+ removed the `/v1/openai/v1/` routes.
+// All OpenAI-compatible endpoints are now served directly under `/v1/`.
+// See: https://github.com/llamastack/llama-stack/releases/tag/v0.4.0
+func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) *LlamaStackClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
@@ -39,8 +42,9 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
+	// Use the provided apiPath to construct the full base URL
 	client := openai.NewClient(
-		option.WithBaseURL(baseURL+"/v1/openai/v1"),
+		option.WithBaseURL(baseURL+apiPath),
 		option.WithAPIKey(authToken),
 		option.WithHTTPClient(httpClient),
 	)

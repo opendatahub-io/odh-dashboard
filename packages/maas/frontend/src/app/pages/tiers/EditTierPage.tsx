@@ -59,6 +59,7 @@ const EditTierPage: React.FC = () => {
           onSubmit={handleSubmit}
           isSubmitting={isUpdating}
           submitError={error}
+          allTiers={tiers}
         />
       </PageSection>
     </ApplicationsPage>
