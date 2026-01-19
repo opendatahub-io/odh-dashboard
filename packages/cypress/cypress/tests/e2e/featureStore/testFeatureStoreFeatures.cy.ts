@@ -13,6 +13,7 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { getAllFeatureStoreCounts } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
+import { getCustomResource } from '../../../utils/oc_commands/customResources';
 
 describe('Feature Store Page Validation', () => {
   let testData: FeatureStoreTestData;
@@ -23,48 +24,78 @@ describe('Feature Store Page Validation', () => {
   let dataSourceCount: number;
   let featureViewCount: number;
   let featureServiceCount: number;
+  let skipTest = false;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
-    cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as FeatureStoreTestData;
-        projectName = `${testData.projectName}-${uuid}`;
-      })
-      .then(() => {
-        cy.log(`Creating Namespace: ${projectName}`);
-        createCleanProject(projectName);
-        createFeatureStoreCR(projectName, testData.feastInstanceName);
-      })
-      .then(() => {
-        // Create route and fetch counts for the Feast instance
-        return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
-          return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
-            (feastInstanceCounts) => {
-              // Assign all counts from the returned object
-              featureCount = feastInstanceCounts.featureCount;
-              entityCount = feastInstanceCounts.entityCount;
-              datasetCount = feastInstanceCounts.datasetCount;
-              dataSourceCount = feastInstanceCounts.dataSourceCount;
-              featureViewCount = feastInstanceCounts.featureViewCount;
-              featureServiceCount = feastInstanceCounts.featureServiceCount;
+    // Skip on ODH (test is RHOAI-specific)
+    cy.step('Check if the operator is RHOAI');
+    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
+      if (!result.stdout.includes('rhods-operator')) {
+        cy.log('RHOAI operator not found, skipping the test (Feature Store is RHOAI-specific).');
+        skipTest = true;
+      } else {
+        cy.log('RHOAI operator confirmed:', result.stdout);
+      }
+    });
 
-              cy.log('Counts assigned successfully:', feastInstanceCounts);
-              return cy.wrap(feastInstanceCounts);
-            },
-          );
+    cy.then(() => {
+      if (skipTest) {
+        return;
+      }
+
+      cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
+        .then((yamlContent: string) => {
+          testData = yaml.load(yamlContent) as FeatureStoreTestData;
+          projectName = `${testData.projectName}-${uuid}`;
+        })
+        .then(() => {
+          cy.log(`Creating Namespace: ${projectName}`);
+          createCleanProject(projectName);
+          createFeatureStoreCR(projectName, testData.feastInstanceName);
+        })
+        .then(() => {
+          // Create route and fetch counts for the Feast instance
+          return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
+            return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
+              (feastInstanceCounts) => {
+                // Assign all counts from the returned object
+                featureCount = feastInstanceCounts.featureCount;
+                entityCount = feastInstanceCounts.entityCount;
+                datasetCount = feastInstanceCounts.datasetCount;
+                dataSourceCount = feastInstanceCounts.dataSourceCount;
+                featureViewCount = feastInstanceCounts.featureViewCount;
+                featureServiceCount = feastInstanceCounts.featureServiceCount;
+
+                cy.log('Counts assigned successfully:', feastInstanceCounts);
+                return cy.wrap(feastInstanceCounts);
+              },
+            );
+          });
         });
-      });
+    });
   });
 
   after(() => {
+    if (skipTest) {
+      cy.log('Skipping cleanup: Tests were skipped');
+      return;
+    }
+
     cy.log(`Deleting Namespace: ${projectName}`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
+  beforeEach(function skipIfNotRHOAI() {
+    if (skipTest) {
+      cy.log('Skipping test - Feature Store is RHOAI-specific and not available on ODH.');
+      this.skip();
+    }
+  });
+
   it(
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
-    { tags: ['@Dashboard', '@FeatureStore', '@FeatureFlagged'] },
+    { tags: ['@Dashboard', '@FeatureStore', '@Sanity', '@SanitySet1'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 

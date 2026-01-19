@@ -100,6 +100,11 @@ func DeleteAllAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	// Return 204 No Content for successful deletion
-	w.WriteHeader(http.StatusNoContent)
+	response := Envelope[None, None]{
+		Data: nil,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }

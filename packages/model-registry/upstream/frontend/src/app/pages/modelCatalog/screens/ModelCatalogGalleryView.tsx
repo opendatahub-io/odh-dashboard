@@ -21,10 +21,15 @@ import {
   getBasicFiltersOnly,
   getActiveLatencyFieldName,
   getSortParams,
+  generateCategoryName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { BASIC_FILTER_KEYS } from '~/concepts/modelCatalog/const';
+import {
+  BASIC_FILTER_KEYS,
+  ModelCatalogNumberFilterKey,
+  parseLatencyFilterKey,
+} from '~/concepts/modelCatalog/const';
 
 type ModelCatalogPageProps = {
   searchTerm: string;
@@ -68,6 +73,24 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     [sortBy, performanceViewEnabled, activeLatencyField],
   );
 
+  // Derive performance params to pass to the models API when performance view is enabled
+  const performanceParams = React.useMemo(() => {
+    if (!performanceViewEnabled) {
+      return undefined;
+    }
+
+    const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+    const latencyProperty = activeLatencyField
+      ? parseLatencyFilterKey(activeLatencyField).propertyKey
+      : undefined;
+
+    return {
+      targetRPS,
+      latencyProperty,
+      recommendations: true,
+    };
+  }, [performanceViewEnabled, filterData, activeLatencyField]);
+
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     '',
     selectedSourceLabel === CategoryName.allModels ? undefined : selectedSourceLabel,
@@ -78,6 +101,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     undefined, // filterQuery - will be computed from filterData and filterOptions
     sortParams.orderBy,
     sortParams.sortOrder,
+    performanceParams,
   );
 
   const loaded = catalogModelsLoaded && filterOptionsLoaded;
@@ -147,9 +171,14 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
         variant={EmptyStateVariant.lg}
         description={
           <>
-            Select the <strong>All models</strong> category to view all models with performance
-            data, or turn <strong>Model performance view</strong> off to view models in the selected
-            category.
+            No models in the{' '}
+            <strong>
+              {selectedSourceLabel === 'null'
+                ? CategoryName.otherModels
+                : generateCategoryName(selectedSourceLabel || '')}
+            </strong>{' '}
+            category have performance data. Select another model category, or turn off model
+            performance view to see models in the selected category.
           </>
         }
         primaryAction={
@@ -159,7 +188,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
         }
         secondaryAction={
           <Button variant="link" onClick={handleDisablePerformanceView}>
-            Turn <strong>Model performance view</strong> off
+            Turn off model performance view
           </Button>
         }
       />
