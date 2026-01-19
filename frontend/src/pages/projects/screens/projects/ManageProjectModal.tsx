@@ -42,6 +42,9 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
 
   const canSubmit = !fetching && isK8sNameDescriptionDataValid(k8sNameDescriptionData.data);
 
+  // resource name checking is only applicable for creation; as
+  // while we are editing the resource name *cannot* be changed
+
   const onBeforeClose = (newProjectName?: string) => {
     onClose(newProjectName);
     if (newProjectName) {
@@ -81,6 +84,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
     }
   };
 
+  const nameChecker = React.useCallback((value: string) => {
+    console.log('would check name uniqueness...', value);
+    return true;
+  }, []);
+
   return (
     <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
       <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
@@ -98,6 +106,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
                 dataTestId="manage-project-modal"
                 maxLength={250}
                 maxLengthDesc={5500}
+                nameChecker={editProjectData ? undefined : nameChecker}
                 {...k8sNameDescriptionData}
               />
             </Form>

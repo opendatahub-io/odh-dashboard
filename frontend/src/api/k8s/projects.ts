@@ -1,10 +1,12 @@
 import {
   k8sCreateResource,
   k8sDeleteResource,
+  k8sGetResource,
   k8sListResource,
   K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { AxiosError } from 'axios';
 import axios from '#~/utilities/axios';
 import { CustomWatchK8sResult } from '#~/types';
 import { K8sAPIOptions, ProjectKind } from '#~/k8sTypes';
@@ -37,6 +39,29 @@ export const getProjects = (withLabel?: string, opts?: K8sAPIOptions): Promise<P
       opts,
     ),
   ).then((listResource) => listResource.items);
+
+export const getProject = (name: string, opts?: K8sAPIOptions): Promise<ProjectKind> =>
+  k8sGetResource<ProjectKind>(
+    applyK8sAPIOptions(
+      {
+        model: ProjectModel,
+        queryOptions: { name },
+      },
+      opts,
+    ),
+  );
+
+export const isProjectNameAvailable = async (name: string): Promise<boolean> => {
+  try {
+    await getProject(name);
+    return false; // Project exists, name is NOT available
+  } catch (e) {
+    if (e instanceof AxiosError && e.response?.status === 404) {
+      return true; // 404 = name is available
+    }
+    throw e; // Re-throw other errors
+  }
+};
 
 export const createProject = (
   username: string,

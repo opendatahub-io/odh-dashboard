@@ -47,6 +47,7 @@ type K8sNameDescriptionFieldProps = {
   maxLength?: number;
   maxLengthDesc?: number;
   resourceNameTakenHelperText?: React.ReactNode;
+  nameChecker?: (resourceName: string) => boolean | null;
 };
 
 /**
@@ -67,13 +68,48 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   maxLengthDesc,
   descriptionHelperText,
   resourceNameTakenHelperText,
+  nameChecker,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
+  const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { name, description, k8sName } = data;
 
   const showNameWarning = maxLength && name.length > maxLength - 10;
   const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
+
+  // Cleanup debounce timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const debouncedNameCheck = React.useCallback(
+    (value: string) => {
+      // Clear existing timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      // Set new timeout for name checking
+      debounceTimeoutRef.current = setTimeout(() => {
+        nameChecker?.(value);
+      }, 200);
+    },
+    [nameChecker],
+  );
+
+  const onDisplayNameChange = (value: string) => {
+    onDataChange?.('name', value);
+
+    if (nameChecker) {
+      debouncedNameCheck(value);
+    }
+  };
 
   return (
     <>
@@ -91,7 +127,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           autoFocus={autoFocusName}
           isRequired
           value={name}
-          onChange={(event, value) => onDataChange?.('name', value)}
+          onChange={(event, value) => onDisplayNameChange(value)}
           maxLength={maxLength}
         />
         {showNameWarning && (
