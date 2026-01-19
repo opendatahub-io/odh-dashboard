@@ -195,7 +195,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 		if app.config.MockLSClient {
 			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
 			// In mock mode, use empty URL since mock factory ignores it
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
@@ -259,7 +259,8 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			}
 
 			// Create LlamaStack client with auth token from identity
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
+			// llama-stack v0.4.0+ uses /v1 for all OpenAI-compatible endpoints
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}
 
 		// Attach ready-to-use client to context

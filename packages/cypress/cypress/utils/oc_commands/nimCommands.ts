@@ -1,4 +1,4 @@
-import { execWithOutput } from './baseCommands';
+import type { PollOptions } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 
 /**
@@ -36,7 +36,13 @@ export const applyNIMApplication = (
   const ocCommand = `oc apply -f cypress/fixtures/e2e/nim/nvidia-nim-app.yaml ${ns}`;
 
   cy.log(`Debug: Applying NIM manifest: ${ocCommand}`);
-  return execWithOutput(ocCommand);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    cy.log(`Command exit code: ${result.code}`);
+    if (result.code !== 0) {
+      throw new Error(`Failed to apply NIM manifest: ${result.stderr || result.stdout}`);
+    }
+    return cy.wrap(result);
+  });
 };
 
 /**
@@ -63,4 +69,70 @@ export const deleteNIMAccount = (
       cy.log('Continuing with test execution...');
     }
   });
+};
+
+/**
+ * Default polling configuration for NIM account validation.
+ * Uses longer timeouts since NVIDIA API validation can take up to 7 minutes.
+ */
+const DEFAULT_NIM_POLL_OPTIONS: Required<PollOptions> = {
+  maxAttempts: 84, // 84 attempts * 5 seconds = 7 minutes total
+  pollIntervalMs: 5000,
+};
+
+/**
+ * Wait for the NIM account to be fully validated by polling the account status.
+ * Checks for the AccountStatus condition to be True with reason AccountSuccessful.
+ * This indicates that all components are ready:
+ * - API key validated (APIKeyValidation)
+ * - Config map created (ConfigMapUpdate)
+ * - Runtime template created (TemplateUpdate)
+ * - Pull secret created (SecretUpdate)
+ * - Account is healthy (AccountStatus)
+ *
+ * @param namespace The namespace where the account exists.
+ * @param options Polling options (maxAttempts, pollIntervalMs).
+ * @returns A Cypress chainable that resolves when validation is complete.
+ */
+export const waitForNIMAccountValidation = (
+  namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
+  options: PollOptions = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { maxAttempts, pollIntervalMs } = { ...DEFAULT_NIM_POLL_OPTIONS, ...options };
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
+    // Check for AccountStatus condition with status=True and reason=AccountSuccessful
+    const command = `oc get account odh-nim-account -n ${namespace} -o jsonpath='{.status.conditions[?(@.type=="AccountStatus")].reason}'`;
+
+    return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+      const reason = result.stdout.trim();
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      if (reason === 'AccountSuccessful') {
+        cy.log(`✅ NIM account AccountStatus reason is AccountSuccessful (after ${elapsedTime}s)`);
+        return cy.wrap(result);
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `NIM account AccountStatus reason not AccountSuccessful after ${maxAttempts} attempts (${elapsedTime}s). Current reason: ${
+            reason || 'not found'
+          }`,
+        );
+      }
+
+      cy.log(
+        `⏳ Waiting for NIM account AccountStatus (attempt ${attemptNumber}/${maxAttempts}, reason: ${
+          reason || 'not found'
+        }, elapsed: ${elapsedTime}s)`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.step(`Polling for NIM account AccountStatus condition (max ${totalTimeout / 1000}s)`);
+  return check();
 };

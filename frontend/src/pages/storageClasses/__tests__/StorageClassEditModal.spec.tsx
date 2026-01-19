@@ -68,10 +68,18 @@ describe('StorageClassEditModal', () => {
         expect(checkbox).toBeEnabled();
       });
 
+      const isKnownProvisioner = provisioner in provisionerAccessModes;
+
       unsupportedModes.forEach((mode) => {
         const checkbox = screen.getByTestId(`edit-sc-access-mode-checkbox-${mode.toLowerCase()}`);
         expect(checkbox).not.toBeChecked();
-        expect(checkbox).toBeEnabled();
+        // For known provisioners, unsupported modes should not be selectable.
+        // For unknown provisioners we don't have a recommendation, so we leave modes enabled.
+        if (isKnownProvisioner) {
+          expect(checkbox).toBeDisabled();
+        } else {
+          expect(checkbox).toBeEnabled();
+        }
       });
     });
   });
