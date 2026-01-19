@@ -695,6 +695,11 @@ func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.C
 	return true, nil
 }
 
+// CanListGuardrailsOrchestrator returns mock permission check for testing
+func (m *TokenKubernetesClientMock) CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	return true, nil
+}
+
 // GetModelProviderInfo returns mock model provider configuration
 // Only returns provider_id, provider_type, and url (no api_token or other config)
 func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error) {
@@ -750,8 +755,8 @@ func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, ident
 
 // GetGuardrailsOrchestratorStatus returns mock GuardrailsOrchestrator status for testing
 func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
-	// Mock data - simulating the "custom-guardrails" CR status
 	return &models.GuardrailsStatus{
+		Name:  "guardrails-orchestrator",
 		Phase: "Ready",
 		Conditions: []gorchv1alpha1.Condition{
 			{

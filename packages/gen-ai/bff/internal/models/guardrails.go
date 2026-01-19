@@ -6,6 +6,7 @@ import (
 
 // GuardrailsStatus represents the status of the GuardrailsOrchestrator CR
 type GuardrailsStatus struct {
+	Name       string                    `json:"name"`
 	Phase      string                    `json:"phase"`
 	Conditions []gorchv1alpha1.Condition `json:"conditions,omitempty"`
 }

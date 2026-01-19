@@ -382,6 +382,50 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	return resp.Status.Allowed, nil
 }
 
+// CanListGuardrailsOrchestrator performs a SubjectAccessReview to check if the user has permission to list GuardrailsOrchestrator resources
+func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	// Create a new config with the token from the request identity
+	config := rest.CopyConfig(kc.Config)
+	config.BearerToken = identity.Token
+	config.BearerTokenFile = ""
+
+	// Create a kubernetes clientset to use the authorization API
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kc.Logger.Error("failed to create kubernetes clientset for SAR", "error", err)
+		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	// Create SelfSubjectAccessReview to check if user can list GuardrailsOrchestrator resources
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "trustyai.opendatahub.io",
+				Resource:  "guardrailsorchestrators",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform GuardrailsOrchestrator list SAR", "error", err)
+		return false, wrapK8sSubjectAccessReviewError(err, namespace)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -472,35 +516,36 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
-// GetGuardrailsOrchestratorStatus fetches the status of the GuardrailsOrchestrator CR
-// using the typed API from github.com/trustyai-explainability/trustyai-service-operator
+// GetGuardrailsOrchestratorStatus lists GuardrailsOrchestrators in the namespace and returns the first one found.
 func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Use typed GuardrailsOrchestrator struct
-	guardrailsCR := &gorchv1alpha1.GuardrailsOrchestrator{}
-
-	// Fetch the specific CR by name
-	err := kc.Client.Get(ctx, client.ObjectKey{
+	guardrailsList := &gorchv1alpha1.GuardrailsOrchestratorList{}
+	listOptions := &client.ListOptions{
 		Namespace: namespace,
-		Name:      constants.GuardrailsOrchestratorName,
-	}, guardrailsCR)
-
-	if err != nil {
-		kc.Logger.Error("failed to get GuardrailsOrchestrator CR", "error", err, "namespace", namespace, "name", constants.GuardrailsOrchestratorName)
-		return nil, fmt.Errorf("guardrailsOrchestrator %q not found in namespace %q: %w", constants.GuardrailsOrchestratorName, namespace, err)
 	}
 
-	// Extract phase from typed status (no more NestedMap/NestedString!)
+	err := kc.Client.List(ctx, guardrailsList, listOptions)
+	if err != nil {
+		kc.Logger.Error("failed to list GuardrailsOrchestrators", "error", err, "namespace", namespace)
+		return nil, NewK8sErrorWithNamespace(ErrCodeInternalError,
+			fmt.Sprintf("failed to list guardrailsOrchestrators: %v", err), namespace, 500)
+	}
+
+	if len(guardrailsList.Items) == 0 {
+		return nil, NewK8sErrorWithNamespace(ErrCodeNotFound,
+			"guardrailsOrchestrator not found", namespace, 404)
+	}
+
+	guardrailsCR := guardrailsList.Items[0]
 	phase := guardrailsCR.Status.Phase
 	if phase == "" {
 		phase = constants.GuardrailsPhaseProgressing
 	}
 
-	kc.Logger.Info("successfully fetched GuardrailsOrchestrator status", "namespace", namespace, "name", constants.GuardrailsOrchestratorName, "phase", phase, "conditionsCount", len(guardrailsCR.Status.Conditions))
-
 	return &models.GuardrailsStatus{
+		Name:       guardrailsCR.Name,
 		Phase:      phase,
 		Conditions: guardrailsCR.Status.Conditions,
 	}, nil

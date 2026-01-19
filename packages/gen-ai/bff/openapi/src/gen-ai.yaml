@@ -307,6 +307,44 @@ paths:
       description: Installs a new LlamaStack Distribution with the specified models.
 
   # =============================================================================
+  # GUARDRAILS ENDPOINTS
+  # =============================================================================
+
+  /gen-ai/api/v1/guardrails/status:
+    summary: Get GuardrailsOrchestrator status
+    description: >-
+      Retrieves the status of GuardrailsOrchestrator CR in the specified namespace.
+      Returns information including name, phase, and conditions.
+      Requires valid Kubernetes authentication token and namespace parameter.
+    get:
+      tags:
+        - Guardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for GuardrailsOrchestrator resources
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/GuardrailsStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getGuardrailsStatus
+      summary: Get Guardrails Status
+      description: Gets the status of GuardrailsOrchestrator in the specified namespace.
+
+  # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
   # =============================================================================
 
@@ -2370,6 +2408,55 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    # GuardrailsOrchestrator Schema
+    GuardrailsStatus:
+      type: object
+      required:
+        - name
+        - phase
+      properties:
+        name:
+          type: string
+          example: 'guardrails-orchestrator'
+          description: Name of the GuardrailsOrchestrator resource
+        phase:
+          type: string
+          example: 'Ready'
+          description: Current phase of the GuardrailsOrchestrator (e.g., Ready, Progressing, Failed)
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuardrailsCondition'
+          description: List of conditions for the GuardrailsOrchestrator
+
+    GuardrailsCondition:
+      type: object
+      required:
+        - type
+        - status
+      properties:
+        type:
+          type: string
+          example: 'Progressing'
+          description: Type of the condition (e.g., Progressing, DeploymentReady, RouteReady, ReconcileComplete)
+        status:
+          type: string
+          example: 'True'
+          description: Status of the condition (True, False, Unknown)
+        reason:
+          type: string
+          example: 'ReconcileInit'
+          description: Machine-readable reason for the condition
+        message:
+          type: string
+          example: 'Initializing GuardrailsOrchestrator resource'
+          description: Human-readable message explaining the condition
+        lastTransitionTime:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+          description: Last time the condition transitioned
+
     BFFConfigModel:
       type: object
       required:
@@ -3227,6 +3314,33 @@ components:
                         status: 'healthy'
                         message: 'Provider is responding normally'
 
+    GuardrailsStatusResponse:
+      description: GuardrailsOrchestrator status information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/GuardrailsStatus'
+            example:
+              data:
+                name: 'guardrails-orchestrator'
+                phase: 'Ready'
+                conditions:
+                  - type: 'Progressing'
+                    status: 'True'
+                    reason: 'ReconcileInit'
+                    message: 'Initializing GuardrailsOrchestrator resource'
+                    lastTransitionTime: '2024-01-15T10:30:00Z'
+                  - type: 'DeploymentReady'
+                    status: 'True'
+                    reason: 'DeploymentReady'
+                    message: 'Deployment is ready'
+                    lastTransitionTime: '2024-01-15T10:31:00Z'
+
     LlamaStackDistributionInstallResponse:
       description: LlamaStack Distribution installation result
       content:
@@ -3614,6 +3728,13 @@ tags:
   - name: Responses
     description: |
       AI response generation with comprehensive parameter support
+
+  # =============================================================================
+  # GUARDRAILS OPERATIONS
+  # =============================================================================
+  - name: Guardrails
+    description: |
+      GuardrailsOrchestrator status and management operations for AI safety
 
   # =============================================================================
   # VECTOR STORE OPERATIONS
