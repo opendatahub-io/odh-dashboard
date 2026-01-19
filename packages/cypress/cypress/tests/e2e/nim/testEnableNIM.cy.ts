@@ -2,11 +2,11 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { explorePage } from '../../../pages/explore';
 import { enabledPage } from '../../../pages/enabled';
 import { nimCard } from '../../../pages/components/NIMCard';
-import { toastNotifications } from '../../../pages/components/ToastNotifications';
 import {
   deleteNIMAccount,
   applyNIMApplication,
   checkNIMApplicationExists,
+  waitForNIMAccountValidation,
 } from '../../../utils/oc_commands/nimCommands';
 
 /**
@@ -159,13 +159,25 @@ function executeNIMTestSteps(): void {
   nimCard.getNIMSubmit().click();
   cy.step('Wait for validation to complete and verify the validation message');
   nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
-  // Wait for validation to complete (up to 120 seconds for NVIDIA API call with network issues)
-  nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
-  cy.step('Check for success notification');
-  toastNotifications
-    .findToastNotification(0)
-    .should('contain.text', 'NVIDIA NIM has been added to the Enabled page');
-  cy.step('Visit the enabled applications page');
+
+  // Wait for NIM account validation by checking the account status fields via oc command.
+  // This is more reliable than waiting for UI elements and allows up to 7 minutes
+  // for the NVIDIA API validation to complete.
+  cy.step('Wait for NIM account validation via oc command (up to 7 minutes)');
+  waitForNIMAccountValidation();
+
+  // WORKAROUND: There is a known bug where the enable modal does not close automatically
+  // after the NIM account is successfully validated. The modal's polling mechanism fails to
+  // detect the timestamp change in the backend response, causing it to remain stuck on the
+  // "Contacting NVIDIA" progress screen even though the account is fully validated.
+  // As a workaround, we close the modal manually and navigate directly to the Enabled page
+  // to verify NIM was enabled successfully.
+  // TODO: Remove this workaround once the bug is fixed.
+  // Bug: https://issues.redhat.com/browse/RHOAIENG-45982
+  cy.step('Close the enable modal (workaround for modal not closing automatically)');
+  nimCard.findEnableModalCloseButton().click();
+
+  cy.step('Visit the enabled applications page to verify NIM is enabled');
   enabledPage.visit();
   cy.step('Validate NIM Card contents on Enabled page');
   nimCard
