@@ -26,3 +26,5 @@ Read more about the Dashboard in one of our documentation links.
 
 * [Dev setup & Requirements]
 * [Dashboard documentation]
+
+<!-- E2E workflow test - Jan 19 2026 -->
