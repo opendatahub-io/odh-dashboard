@@ -613,18 +613,10 @@ func NewBenchmark(benchmarkID, name, benchmarkType string, config map[string]int
 
 // CreateSafetyProvider creates a safety provider configuration from guardrails array
 // This generates the TrustyAI FMS provider with shields for each guardrail model
-func CreateSafetyProvider(guardrails []struct {
-	ModelName      string
-	ProviderID     string // e.g., "vllm-inference-1"
-	TokenEnvVar    string // e.g., "${env.VLLM_API_TOKEN_1:=fake}" - for model API token
-	ModelURL       string
-	DetectorURL    string
-	InputPolicies  []string
-	OutputPolicies []string
-}) Provider {
+func CreateSafetyProvider(guardrails []models.GuardrailInput) Provider {
 	shields := make(map[string]interface{})
 
-	for i, guardrail := range guardrails {
+	for _, guardrail := range guardrails {
 		// Default policies if not provided
 		inputPolicies := guardrail.InputPolicies
 		if len(inputPolicies) == 0 {
@@ -636,8 +628,8 @@ func CreateSafetyProvider(guardrails []struct {
 		}
 
 		// Generate shield IDs based on model name or index
-		inputShieldID := generateShieldID("input", guardrail.ModelName, i)
-		outputShieldID := generateShieldID("output", guardrail.ModelName, i)
+		inputShieldID := generateShieldID("input", guardrail.ModelName)
+		outputShieldID := generateShieldID("output", guardrail.ModelName)
 
 		// Construct guardrail_model in format: provider_id/model_name
 		guardrailModel := fmt.Sprintf("%s/%s", guardrail.ProviderID, guardrail.ModelName)
@@ -701,8 +693,8 @@ func CreateSafetyProvider(guardrails []struct {
 	}
 }
 
-// generateShieldID creates a unique shield ID based on type, model name, and index
-func generateShieldID(shieldType, modelName string, index int) string {
+// generateShieldID creates a unique shield ID based on type and model name
+func generateShieldID(shieldType, modelName string) string {
 	// Sanitize model name for use in shield ID
 	sanitized := strings.ReplaceAll(modelName, "/", "_")
 	sanitized = strings.ReplaceAll(sanitized, " ", "_")
@@ -713,20 +705,12 @@ func generateShieldID(shieldType, modelName string, index int) string {
 }
 
 // CreateShieldsFromGuardrails creates shield registrations for the registered_resources section
-func CreateShieldsFromGuardrails(guardrails []struct {
-	ModelName      string
-	ProviderID     string
-	TokenEnvVar    string
-	ModelURL       string
-	DetectorURL    string
-	InputPolicies  []string
-	OutputPolicies []string
-}) []Shield {
+func CreateShieldsFromGuardrails(guardrails []models.GuardrailInput) []Shield {
 	var shields []Shield
 
-	for i, guardrail := range guardrails {
-		inputShieldID := generateShieldID("input", guardrail.ModelName, i)
-		outputShieldID := generateShieldID("output", guardrail.ModelName, i)
+	for _, guardrail := range guardrails {
+		inputShieldID := generateShieldID("input", guardrail.ModelName)
+		outputShieldID := generateShieldID("output", guardrail.ModelName)
 
 		// Register input shield
 		shields = append(shields, Shield{
@@ -745,15 +729,7 @@ func CreateShieldsFromGuardrails(guardrails []struct {
 }
 
 // AddGuardrailsToConfig adds safety providers and shields based on the guardrails configuration
-func (c *LlamaStackConfig) AddGuardrailsToConfig(guardrails []struct {
-	ModelName      string
-	ProviderID     string
-	TokenEnvVar    string
-	ModelURL       string
-	DetectorURL    string
-	InputPolicies  []string
-	OutputPolicies []string
-}) {
+func (c *LlamaStackConfig) AddGuardrailsToConfig(guardrails []models.GuardrailInput) {
 	if len(guardrails) == 0 {
 		return
 	}

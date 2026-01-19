@@ -28,6 +28,18 @@ type GuardrailModelConfig struct {
 	OutputShieldID string `json:"output_shield_id"` // e.g., "trustyai_output"
 }
 
+// GuardrailInput represents the input configuration for creating guardrail shields
+// Used when configuring safety providers and shields in LlamaStack configuration
+type GuardrailInput struct {
+	ModelName      string   // Name of the guardrail model (e.g., "llama-guard-3")
+	ProviderID     string   // Provider identifier (e.g., "vllm-inference-1")
+	TokenEnvVar    string   // Environment variable for model API token (e.g., "${env.VLLM_API_TOKEN_1:=fake}")
+	ModelURL       string   // URL for the model endpoint
+	DetectorURL    string   // URL for the detector service
+	InputPolicies  []string // Policies for input shields (e.g., ["jailbreak", "content-moderation", "pii"])
+	OutputPolicies []string // Policies for output shields (e.g., ["jailbreak", "content-moderation", "pii"])
+}
+
 // DefaultGuardrailPolicies returns the default policies used for guardrails
 func DefaultGuardrailPolicies() []string {
 	return []string{"jailbreak", "content-moderation", "pii"}

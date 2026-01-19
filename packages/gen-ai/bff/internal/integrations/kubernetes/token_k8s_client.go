@@ -1025,30 +1025,27 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	// Step 1b: If guardrails are enabled, find the guardrails service account token secret
 	// This follows the same pattern as VLLM token discovery
+	// Fail fast if guardrails are enabled but the token is missing - this is a security feature
+	// and users should not have a false sense of protection from a non-functional guardrail setup
 	if enableGuardrails {
 		guardrailsTokenSecret, err := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
 		if err != nil {
-			kc.Logger.Warn("guardrails token secret not found, guardrails authentication may fail", "error", err)
-			// Set a placeholder - guardrails will fail auth but we continue with LSD creation
-			envVars = append(envVars, corev1.EnvVar{
-				Name:  constants.GuardrailAuthTokenEnvName,
-				Value: "guardrails-token-not-found",
-			})
-		} else {
-			// Reference the guardrails service account token secret
-			envVars = append(envVars, corev1.EnvVar{
-				Name: constants.GuardrailAuthTokenEnvName,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: guardrailsTokenSecret,
-						},
-						Key: "token",
-					},
-				},
-			})
-			kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
+			kc.Logger.Error("guardrails enabled but token secret not found", "error", err, "namespace", namespace)
+			return nil, fmt.Errorf("cannot enable guardrails in namespace %s: %w", namespace, err)
 		}
+		// Reference the guardrails service account token secret
+		envVars = append(envVars, corev1.EnvVar{
+			Name: constants.GuardrailAuthTokenEnvName,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: guardrailsTokenSecret,
+					},
+					Key: "token",
+				},
+			},
+		})
+		kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
 	}
 
 	// Step 2: Create LlamaStackDistribution resource first
@@ -1284,15 +1281,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Add guardrails configuration if enabled
 	// When enableGuardrails is true, automatically add safety shields for all selected models
 	if enableGuardrails && len(installModels) > 0 {
-		guardrailConfigs := make([]struct {
-			ModelName      string
-			ProviderID     string
-			TokenEnvVar    string
-			ModelURL       string
-			DetectorURL    string
-			InputPolicies  []string
-			OutputPolicies []string
-		}, len(installModels))
+		guardrailConfigs := make([]models.GuardrailInput, len(installModels))
 
 		// Default policies for all guardrails
 		defaultInputPolicies := models.DefaultGuardrailPolicies()
@@ -1318,15 +1307,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				tokenEnvVar = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 			}
 
-			guardrailConfigs[i] = struct {
-				ModelName      string
-				ProviderID     string
-				TokenEnvVar    string
-				ModelURL       string
-				DetectorURL    string
-				InputPolicies  []string
-				OutputPolicies []string
-			}{
+			guardrailConfigs[i] = models.GuardrailInput{
 				ModelName:      model.ModelName,
 				ProviderID:     providerID,
 				TokenEnvVar:    tokenEnvVar,

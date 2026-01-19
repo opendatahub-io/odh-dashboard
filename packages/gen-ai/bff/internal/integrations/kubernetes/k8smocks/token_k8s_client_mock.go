@@ -854,8 +854,6 @@ func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identit
 				ModelName:      "llama-guard-3",
 				InputShieldID:  "trustyai_input",
 				OutputShieldID: "trustyai_output",
-				InputPolicies:  models.DefaultGuardrailPolicies(),
-				OutputPolicies: models.DefaultGuardrailPolicies(),
 			},
 		},
 	}, nil
