@@ -605,7 +605,7 @@ jobs:
   cleanup-server:
     needs: [e2e-tests]
     runs-on: self-hosted
-    if: always()
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
       - name: Stop Cypress Servers
         run: |
