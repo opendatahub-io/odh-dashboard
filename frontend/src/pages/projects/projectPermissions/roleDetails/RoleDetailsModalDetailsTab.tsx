@@ -39,7 +39,7 @@ const RoleDetailsModalDetailsTab: React.FC<RoleDetailsModalDetailsTabProps> = ({
         <EmptyState
           data-testid="role-details-access-denied"
           headingLevel="h3"
-          titleText="Access permissions needed"
+          titleText="No view access"
           icon={() => <LockIcon />}
           variant={EmptyStateVariant.sm}
         >
@@ -63,12 +63,9 @@ const RoleDetailsModalDetailsTab: React.FC<RoleDetailsModalDetailsTabProps> = ({
         <DescriptionListGroup>
           <DescriptionListTermHelpText>
             <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-              <FlexItem>OpenShift name</FlexItem>
+              <FlexItem>Role name</FlexItem>
               <FlexItem>
-                <Popover
-                  headerContent="OpenShift name"
-                  bodyContent="This is the name of the role in OpenShift."
-                >
+                <Popover bodyContent="This is the name of the role in OpenShift.">
                   <DescriptionListTermHelpTextButton
                     data-testid="openshift-name-help-button"
                     aria-label="More info for OpenShift name"

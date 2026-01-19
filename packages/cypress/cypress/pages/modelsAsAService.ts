@@ -193,6 +193,14 @@ class CreateTierPage {
     return cy.findByTestId(`tier-request-rate-limit-${index}-remove`);
   }
 
+  findNameTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-name-taken-error');
+  }
+
+  findLevelTakenError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('tier-level-taken-error');
+  }
+
   // Form action buttons
   findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-tier-button');
@@ -263,8 +271,65 @@ class MaaSWizardField {
   }
 }
 
+class APIKeysPage {
+  visit(): void {
+    cy.visit('/maas/tokens');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-table');
+  }
+
+  getRow(name: string): APIKeyTableRow {
+    return new APIKeyTableRow(() =>
+      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+}
+
+class APIKeyTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Name"]');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findStatus(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Creation date"]');
+  }
+
+  findExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Expiration date"]');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
 export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
+export const apiKeysPage = new APIKeysPage();

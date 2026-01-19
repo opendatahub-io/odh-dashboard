@@ -6,15 +6,10 @@ import {
   FlexItem,
   MenuToggle,
   MenuToggleElement,
-  Popover,
 } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
 import { ModelCatalogNumberFilterKey } from '~/concepts/modelCatalog/const';
 import { useCatalogNumberFilterState } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import {
-  FALLBACK_RPS_RANGE,
-  SliderRange,
-} from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
+import { MAX_RPS_RANGE } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import SliderWithInput from './SliderWithInput';
 
@@ -23,22 +18,10 @@ const filterKey = ModelCatalogNumberFilterKey.MAX_RPS;
 const MaxRpsFilter: React.FC = () => {
   const { value: rpsFilterValue, setValue: setRpsFilterValue } =
     useCatalogNumberFilterState(filterKey);
-  const { filterOptions } = React.useContext(ModelCatalogContext);
+  const { getPerformanceFilterDefaultValue } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const { minValue, maxValue, isSliderDisabled } = React.useMemo((): SliderRange => {
-    // Always get range from filterOptions (which provides the full range across all artifacts)
-    // Don't use performanceArtifacts since we may not have all of them in memory when paginating
-    const filterValue = filterOptions?.filters?.[ModelCatalogNumberFilterKey.MAX_RPS];
-    if (filterValue && 'range' in filterValue && filterValue.range) {
-      return {
-        minValue: filterValue.range.min ?? FALLBACK_RPS_RANGE.minValue,
-        maxValue: filterValue.range.max ?? FALLBACK_RPS_RANGE.maxValue,
-        isSliderDisabled: false,
-      };
-    }
-    return FALLBACK_RPS_RANGE;
-  }, [filterOptions]);
+  const { minValue, maxValue, isSliderDisabled } = MAX_RPS_RANGE;
 
   const [localValue, setLocalValue] = React.useState<number>(() => rpsFilterValue ?? maxValue);
 
@@ -72,8 +55,11 @@ const MaxRpsFilter: React.FC = () => {
   };
 
   const handleReset = () => {
-    setRpsFilterValue(undefined);
-    setLocalValue(maxValue);
+    // Get default value from namedQueries, fallback to maxValue
+    const defaultValue = getPerformanceFilterDefaultValue(filterKey);
+    const value = typeof defaultValue === 'number' ? defaultValue : maxValue;
+    setRpsFilterValue(value);
+    setLocalValue(value);
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
@@ -96,25 +82,7 @@ const MaxRpsFilter: React.FC = () => {
       flexWrap={{ default: 'wrap' }}
       style={{ width: '500px', padding: '16px' }}
     >
-      <FlexItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsXs' }}>
-          <FlexItem>Max requests per second (RPS)</FlexItem>
-          <FlexItem>
-            <Popover
-              bodyContent="Set the maximum requests per second (RPS) target. This will be used to filter hardware configurations that can meet your throughput requirements."
-              appendTo={() => document.body}
-            >
-              <Button
-                variant="plain"
-                aria-label="More info for max RPS"
-                className="pf-v6-u-p-xs"
-                onClick={(e) => e.stopPropagation()}
-                icon={<HelpIcon />}
-              />
-            </Popover>
-          </FlexItem>
-        </Flex>
-      </FlexItem>
+      <FlexItem>Max requests per second (RPS)</FlexItem>
       <FlexItem>
         <SliderWithInput
           value={clampedValue}
@@ -122,7 +90,6 @@ const MaxRpsFilter: React.FC = () => {
           max={maxValue}
           isDisabled={isSliderDisabled}
           onChange={setLocalValue}
-          suffix="RPS"
           ariaLabel="RPS value input"
         />
       </FlexItem>

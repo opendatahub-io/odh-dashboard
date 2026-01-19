@@ -105,9 +105,18 @@ describe('Tiers Page', () => {
 
     createTierPage.findCreateButton().should('exist').should('be.disabled');
 
-    createTierPage.findNameInput().type('Test Tier');
+    // check the level and names are unique
+    createTierPage.findNameInput().type('free');
+    createTierPage.findNameTakenError().should('exist');
+    createTierPage.findLevelInput().should('have.value', '0');
+    createTierPage.findLevelInput().clear().type('1');
+    createTierPage.findLevelTakenError().should('exist');
+
+    createTierPage.findNameInput().clear().type('Test Tier');
+    createTierPage.findNameTakenError().should('not.exist');
     createTierPage.findDescriptionInput().type('Test tier description');
     createTierPage.findLevelInput().clear().type('5');
+    createTierPage.findLevelTakenError().should('not.exist');
     createTierPage.selectGroupsOption('premium-users');
     createTierPage.findTokenRateLimitCheckbox().click();
     createTierPage.findTokenRateLimitCountInput(0).clear().type('500');

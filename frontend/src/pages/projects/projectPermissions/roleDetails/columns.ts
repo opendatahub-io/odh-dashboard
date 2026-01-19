@@ -35,7 +35,7 @@ const compareRuleListField = (a: ResourceRule, b: ResourceRule, keyField: string
 export const resourceRulesColumns: SortableData<ResourceRule>[] = [
   { field: 'verbs', label: 'Actions', sortable: false, width: 15 },
   { field: 'apiGroups', label: 'API Groups', sortable: compareRuleListField, width: 25 },
-  { field: 'resources', label: 'Resources', sortable: compareRuleListField, width: 35 },
+  { field: 'resources', label: 'Resource type', sortable: compareRuleListField, width: 35 },
   {
     field: 'resourceNames',
     label: 'Resource names',

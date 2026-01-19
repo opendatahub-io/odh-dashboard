@@ -60,7 +60,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -119,7 +119,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -242,7 +242,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -275,7 +275,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -310,7 +310,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -379,7 +379,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -480,7 +480,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -513,7 +513,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -551,7 +551,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -592,7 +592,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -619,7 +619,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -664,7 +664,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -702,7 +702,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -766,7 +766,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Attach LlamaStack client to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -831,7 +831,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		cancel() // Cancel immediately
 
 		// Attach LlamaStack client to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -874,7 +874,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Attach LlamaStack client to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
