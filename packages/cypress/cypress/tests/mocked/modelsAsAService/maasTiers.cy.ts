@@ -8,10 +8,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import {
-  mockConnectionTypeConfigMap,
-  mockModelServingFields,
-} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import {
   ModelLocationSelectOption,
@@ -357,12 +354,6 @@ describe('MaaS Deployment Wizard', () => {
           },
         ],
       }),
-      mockConnectionTypeConfigMap({
-        displayName: 'S3',
-        name: 's3',
-        category: ['existing-category'],
-        fields: mockModelServingFields,
-      }),
     ]).as('getConnectionTypes');
     cy.interceptK8sList(
       TemplateModel,
@@ -391,7 +382,6 @@ describe('MaaS Deployment Wizard', () => {
   };
 
   it('should create an LLMD deployment with MaaS enabled and specific tiers selected from dropdown', () => {
-    asProductAdminUser();
     initMaaSDeploymentIntercepts();
 
     // Mock tiers API for admin user to see available tiers in dropdown
@@ -427,15 +417,15 @@ describe('MaaS Deployment Wizard', () => {
     maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
 
     // Verify default selection is "All resource tiers"
-    maasWizardField.findMaaSTierDropdown().should('contain.text', 'All resource tiers');
+    maasWizardField.findMaaSTierDropdown().should('contain.text', 'All tiers');
 
     // Switch to "No resource tiers"
-    maasWizardField.selectMaaSTierOption('No resource tiers');
-    maasWizardField.findMaaSTierDropdown().should('contain.text', 'No resource tiers');
+    maasWizardField.selectMaaSTierOption('No tiers');
+    maasWizardField.findMaaSTierDropdown().should('contain.text', 'No tiers');
 
     // Switch to "Specific resource tiers" - Next button should be disabled until tiers are selected
-    maasWizardField.selectMaaSTierOption('Specific resource tiers');
-    maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific resource tiers');
+    maasWizardField.selectMaaSTierOption('Specific tiers');
+    maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific tiers');
     maasWizardField.findMaaSTierNamesInput().should('be.visible');
     modelServingWizard.findNextButton().should('be.disabled');
 

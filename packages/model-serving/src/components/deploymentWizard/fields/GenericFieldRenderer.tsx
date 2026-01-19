@@ -6,7 +6,7 @@ import type { ExternalDataMap } from '../ExternalDataLoader';
 type GenericFieldRendererProps = {
   wizardState: UseModelDeploymentWizardState;
   parentId: string;
-  externalData: ExternalDataMap;
+  externalData?: ExternalDataMap;
 };
 
 export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
@@ -31,7 +31,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
                 payload: { id: field.id, data: value },
               });
             },
-            externalData: externalData[field.id],
+            externalData: externalData?.[field.id] ?? undefined,
           })}
         </React.Fragment>
       ))}

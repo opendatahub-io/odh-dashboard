@@ -72,7 +72,7 @@ type AvailableAiAssetsFieldsComponentProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
   wizardState: UseModelDeploymentWizardState;
-  externalData: ExternalDataMap;
+  externalData?: ExternalDataMap;
 };
 
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
