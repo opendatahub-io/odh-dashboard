@@ -28,19 +28,7 @@ func TestMCPStatusHandler(t *testing.T) {
 		logger,
 	)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: logger,
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
-
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, config.EnvConfig{
-		AuthMethod: "user_token",
-	}, logger)
+	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 	require.NoError(t, err)
 
 	app := &App{
