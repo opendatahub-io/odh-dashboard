@@ -22,25 +22,17 @@ import (
 )
 
 func TestLlamaStackListVectorStoresHandler(t *testing.T) {
-	// Setup test environment
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: slog.Default(),
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}()
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	// Create mock factories
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
 	require.NoError(t, err)
 
 	llamaStackClientFactory := lsmocks.NewMockClientFactory()

@@ -4,7 +4,10 @@ import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { getGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import {
+  getGeneratedSecretName,
+  isGeneratedSecretName,
+} from '@odh-dashboard/internal/api/k8s/secrets';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
@@ -80,7 +83,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   React.useEffect(() => {
     const current = wizardState.state.createConnectionData.data.nameDesc;
-    if (current?.k8sName.value !== secretName) {
+    const shouldSync = !current?.name || isGeneratedSecretName(current.name);
+
+    if (shouldSync && current?.k8sName.value !== secretName) {
       wizardState.state.createConnectionData.setData({
         ...wizardState.state.createConnectionData.data,
         nameDesc: {
