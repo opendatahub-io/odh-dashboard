@@ -660,16 +660,16 @@ describe('Model Serving LLMD', () => {
       maasWizardField.findSaveAsMaaSCheckbox().click();
       maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
 
-      // Verify default selection is "All resource tiers"
-      maasWizardField.findMaaSTierDropdown().should('contain.text', 'All resource tiers');
+      // Verify default selection is "All tiers"
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'All tiers');
 
-      // Switch to "No resource tiers"
-      maasWizardField.selectMaaSTierOption('No resource tiers');
-      maasWizardField.findMaaSTierDropdown().should('contain.text', 'No resource tiers');
+      // Switch to "No tiers"
+      maasWizardField.selectMaaSTierOption('No tiers');
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'No tiers');
 
-      // Switch to "Specific resource tiers" - Next button should be disabled until input is provided
-      maasWizardField.selectMaaSTierOption('Specific resource tiers');
-      maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific resource tiers');
+      // Switch to "Specific tiers" - Next button should be disabled until input is provided
+      maasWizardField.selectMaaSTierOption('Specific tiers');
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific tiers');
       maasWizardField.findMaaSTierNamesInput().should('be.visible');
       modelServingWizard.findNextButton().should('be.disabled');
 
