@@ -41,7 +41,6 @@ export const PipelinesDatabaseSection = ({
                   <Alert
                     variant="info"
                     isInline
-                    isPlain
                     title="This default database is for development and testing purposes only. It is not supported by Red Hat for production use cases."
                   />
                 </StackItem>
