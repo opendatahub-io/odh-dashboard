@@ -82,9 +82,7 @@ jobs:
        github.event.workflow_run.conclusion == 'success')
     runs-on: self-hosted
     outputs:
-      cluster_url: ${{ steps.select.outputs.cluster_url }}
       cluster_name: ${{ steps.select.outputs.cluster_name }}
-      dashboard_url: ${{ steps.select.outputs.dashboard_url }}
     steps:
       - name: Download test credentials
         run: |
@@ -178,17 +176,13 @@ jobs:
           echo "🔍 Checking PRIMARY cluster (dash-e2e-int)..."
           if check_dsc_health "$PRIMARY_SERVER" "dash-e2e-int"; then
             echo "✅ PRIMARY cluster is healthy and ready"
-            echo "cluster_url=$PRIMARY_SERVER" >> $GITHUB_OUTPUT
             echo "cluster_name=dash-e2e-int" >> $GITHUB_OUTPUT
-            echo "dashboard_url=$PRIMARY_DASHBOARD" >> $GITHUB_OUTPUT
           else
             echo ""
             echo "⚠️ PRIMARY unavailable or not ready, trying SECONDARY (dash-e2e)..."
             if check_dsc_health "$SECONDARY_SERVER" "dash-e2e"; then
               echo "✅ SECONDARY cluster is healthy and ready"
-              echo "cluster_url=$SECONDARY_SERVER" >> $GITHUB_OUTPUT
               echo "cluster_name=dash-e2e" >> $GITHUB_OUTPUT
-              echo "dashboard_url=$SECONDARY_DASHBOARD" >> $GITHUB_OUTPUT
             else
               echo ""
               echo "❌ All clusters unavailable or unhealthy"
@@ -235,11 +229,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get PR number
+          # Get PR number - try multiple methods for fork PR compatibility
           PR_NUM="${{ github.event.workflow_run.pull_requests[0].number }}"
+          
+          # Method 2: commits API (works for same-repo PRs)
           if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
             PR_NUM=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
               --jq '.[0].number' 2>/dev/null || echo "")
+          fi
+          
+          # Method 3: search API (works for fork PRs)
+          if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
+            PR_NUM=$(gh api "search/issues?q=repo:${{ github.repository }}+is:pr+is:open+sha:${{ github.event.workflow_run.head_sha }}" \
+              --jq '.items[0].number' 2>/dev/null || echo "")
           fi
 
           if [[ -n "$PR_NUM" && "$PR_NUM" != "null" ]]; then
@@ -247,6 +249,8 @@ jobs:
               --jq '[.[].name] | join(",")' 2>/dev/null || echo "")
             echo "labels=$LABELS" >> $GITHUB_OUTPUT
             echo "📋 PR #$PR_NUM labels: $LABELS"
+          else
+            echo "⚠️ Could not find PR number for SHA ${{ github.event.workflow_run.head_sha }}"
           fi
 
       - name: Build test matrix
@@ -311,8 +315,6 @@ jobs:
         tag: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
-      CLUSTER_URL: ${{ needs.select-cluster.outputs.cluster_url }}
-      DASHBOARD_URL: ${{ needs.select-cluster.outputs.dashboard_url }}
     steps:
       - name: Calculate unique port for this workflow run
         run: |
@@ -389,6 +391,9 @@ jobs:
           echo "✅ Downloaded test configuration"
 
       - name: Login to OpenShift cluster
+        env:
+          OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
+          OC_SERVER_SECONDARY: ${{ secrets.OC_SERVER }}
         run: |
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
@@ -397,6 +402,23 @@ jobs:
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
+
+          # Look up server URL based on selected cluster (avoids GitHub secret masking in outputs)
+          if [ "$CLUSTER_NAME" = "dash-e2e-int" ]; then
+            CLUSTER_URL="$OC_SERVER_PRIMARY"
+          elif [ "$CLUSTER_NAME" = "dash-e2e" ]; then
+            CLUSTER_URL="$OC_SERVER_SECONDARY"
+          else
+            echo "❌ Unknown or empty CLUSTER_NAME: '$CLUSTER_NAME'" >&2
+            echo "Expected 'dash-e2e-int' or 'dash-e2e'" >&2
+            exit 1
+          fi
+
+          if [ -z "$CLUSTER_URL" ]; then
+            echo "❌ CLUSTER_URL is empty for cluster '$CLUSTER_NAME'" >&2
+            echo "Check that OC_SERVER_PRIMARY/OC_SERVER secrets are configured" >&2
+            exit 1
+          fi
 
           echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
@@ -411,14 +433,32 @@ jobs:
           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
       - name: Override namespace values
+        env:
+          DASHBOARD_URL_PRIMARY: ${{ secrets.ODH_DASHBOARD_URL_PRIMARY }}
+          DASHBOARD_URL_SECONDARY: ${{ secrets.ODH_DASHBOARD_URL }}
+          ODH_NAMESPACES: ${{ secrets.ODH_NAMESPACES }}
         run: |
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
-          ODH_NAMESPACES="${{ secrets.ODH_NAMESPACES }}"
+
+          # Look up dashboard URL based on selected cluster (secrets passed as step-level env for security)
+          if [ "$CLUSTER_NAME" = "dash-e2e-int" ]; then
+            DASHBOARD_URL="$DASHBOARD_URL_PRIMARY"
+          elif [ "$CLUSTER_NAME" = "dash-e2e" ]; then
+            DASHBOARD_URL="$DASHBOARD_URL_SECONDARY"
+          else
+            echo "❌ Unknown or empty CLUSTER_NAME: '$CLUSTER_NAME'" >&2
+            echo "Expected 'dash-e2e-int' or 'dash-e2e'" >&2
+            exit 1
+          fi
+
+          if [ -z "$DASHBOARD_URL" ]; then
+            echo "❌ DASHBOARD_URL is empty for cluster '$CLUSTER_NAME'" >&2
+            echo "Check that ODH_DASHBOARD_URL_PRIMARY/ODH_DASHBOARD_URL secrets are configured" >&2
+            exit 1
+          fi
 
           # Set dashboard URL for selected cluster
-          if [ -n "$DASHBOARD_URL" ]; then
-            sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
-          fi
+          sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
 
           if [ -z "$ODH_NAMESPACES" ]; then
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
