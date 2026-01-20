@@ -34,6 +34,8 @@ type ManageProjectModalProps = {
 const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData, onClose }) => {
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
+  const defaultNameValidation = editProjectData ? 'valid' : '';
+  const [nameAvailabilityValidation, setNameAvailabilityValidation] = React.useState(defaultNameValidation);
   const [error, setError] = React.useState<Error | undefined>();
   const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
     initialData: editProjectData,
@@ -41,7 +43,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   });
   const { username } = useUser();
 
-  const canSubmit = !fetching && isK8sNameDescriptionDataValid(k8sNameDescriptionData.data);
+  const canSubmit =
+    !fetching &&
+    isK8sNameDescriptionDataValid(k8sNameDescriptionData.data) &&
+    nameAvailabilityValidation === 'valid';
 
   // resource name checking is only applicable for creation; as
   // while we are editing the resource name *cannot* be changed
@@ -107,10 +112,9 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
                 maxLength={250}
                 maxLengthDesc={5500}
                 nameChecker={editProjectData ? undefined : nameChecker}
+                onNameValidationChange={editProjectData ? undefined : setNameAvailabilityValidation}
                 {...k8sNameDescriptionData}
               />
-            </Form>
-          </StackItem>
           {error && (
             <StackItem>
               <Alert

@@ -49,6 +49,7 @@ type K8sNameDescriptionFieldProps = {
   maxLengthDesc?: number;
   resourceNameTakenHelperText?: React.ReactNode;
   nameChecker?: (resourceName: string) => Promise<boolean> | boolean | null;
+  onNameValidationChange?: (status: 'valid' | 'invalid' | 'in progress' | '') => void;
 };
 
 /**
@@ -70,6 +71,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   descriptionHelperText,
   resourceNameTakenHelperText,
   nameChecker,
+  onNameValidationChange,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
   const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,9 +117,12 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         return;
       }
       setIsNameValid('in progress');
+      onNameValidationChange?.('in progress');
       try {
         const result = await nameChecker(resourceName);
-        setIsNameValid(result ? 'valid' : 'invalid');
+        const stringResult = result ? 'valid' : 'invalid';
+        setIsNameValid(stringResult);
+        onNameValidationChange?.(stringResult);
       } catch {
         setIsNameValid('invalid');
       }
