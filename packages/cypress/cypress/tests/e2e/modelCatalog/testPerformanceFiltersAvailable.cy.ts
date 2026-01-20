@@ -63,7 +63,7 @@ describe('Verify Performance Filters are available on RHOAI', () => {
 
   it(
     'Performance view toggle enables filters and shows benchmark data on validated models',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelCatalog'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       if (skipTest) {
         cy.log(
