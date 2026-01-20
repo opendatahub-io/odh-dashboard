@@ -158,8 +158,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Test the MaaS model handling logic
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, mockMaaSClient)
+		// Test the MaaS model handling logic (with empty guardrails)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -199,8 +199,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Test the MaaS model handling logic
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, mockMaaSClient)
+		// Test the MaaS model handling logic (with empty guardrails)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -224,8 +224,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Test the MaaS model handling logic
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, mockMaaSClient)
+		// Test the MaaS model handling logic (with empty guardrails)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
 
 		// This should fail because the model is not found
 		assert.Error(t, err)

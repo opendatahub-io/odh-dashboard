@@ -119,6 +119,58 @@ class ModelCatalog {
       return $body.find('[data-testid="model-catalog-card"]').length > 0;
     });
   }
+
+  findPerformanceViewToggle() {
+    return cy.findByTestId('model-performance-view-toggle');
+  }
+
+  togglePerformanceView() {
+    this.findPerformanceViewToggle().click({ force: true });
+    return this;
+  }
+
+  findWorkloadTypeFilter() {
+    return cy.findByTestId('workload-type-filter');
+  }
+
+  findLatencyFilter() {
+    return cy.findByTestId('latency-filter');
+  }
+
+  findMaxRpsFilter() {
+    return cy.findByTestId('max-rps-filter');
+  }
+
+  findSortDropdown() {
+    return cy.findByTestId('model-catalog-sort');
+  }
+
+  findValidatedModelCard() {
+    cy.findByTestId('validated-model-hardware', { timeout: 10000 }).should('exist');
+    return cy
+      .findAllByTestId('model-catalog-card')
+      .filter(':has([data-testid="validated-model-hardware"])');
+  }
+
+  findValidatedModelCardLink() {
+    return this.findValidatedModelCard().first().findByTestId('model-catalog-detail-link');
+  }
+
+  findValidatedModelHardware() {
+    return cy.findByTestId('validated-model-hardware');
+  }
+
+  findValidatedModelReplicas() {
+    return cy.findByTestId('validated-model-replicas');
+  }
+
+  findValidatedModelLatency() {
+    return cy.findByTestId('validated-model-latency');
+  }
+
+  findValidatedModelBenchmarkLink() {
+    return cy.findByTestId('validated-model-benchmark-link');
+  }
 }
 
 export const modelCatalog = new ModelCatalog();

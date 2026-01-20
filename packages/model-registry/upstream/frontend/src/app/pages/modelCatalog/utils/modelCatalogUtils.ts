@@ -433,6 +433,7 @@ export const getBasicFiltersOnly = (
       result[perfKey] = undefined;
     }
   });
+  result[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION] = [];
 
   return result;
 };
@@ -580,3 +581,6 @@ export const hasSourcesWithModels = (catalogSources: CatalogSourceList | null): 
 
   return catalogSources.items.some((source) => source.status === CatalogSourceStatus.AVAILABLE);
 };
+
+export const generateCategoryName = (name: string): string =>
+  name.toLowerCase().endsWith('models') ? name : `${name} models`;

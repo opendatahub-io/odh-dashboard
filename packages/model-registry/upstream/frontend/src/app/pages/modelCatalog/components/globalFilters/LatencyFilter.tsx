@@ -114,11 +114,8 @@ const LatencyFilter: React.FC = () => {
   }, [currentActiveFilter]);
 
   const { minValue, maxValue, isSliderDisabled } = React.useMemo((): SliderRange => {
-    // Use full filter key for accessing filterOptions
     const filterKey = getLatencyFilterKey(localFilter.metric, localFilter.percentile);
 
-    // Always get range from filterOptions (which provides the full range across all artifacts)
-    // Don't use performanceArtifacts since we may not have all of them in memory when paginating
     const latencyFilter = filterOptions?.filters?.[filterKey];
     if (latencyFilter && 'range' in latencyFilter && latencyFilter.range) {
       return {
@@ -130,6 +127,22 @@ const LatencyFilter: React.FC = () => {
     return FALLBACK_LATENCY_RANGE;
   }, [localFilter.metric, localFilter.percentile, filterOptions]);
 
+  // Reset value to max when metric or percentile changes (range changes)
+  // This ensures the value is always valid for the current range
+  const prevMetricRef = React.useRef(localFilter.metric);
+  const prevPercentileRef = React.useRef(localFilter.percentile);
+
+  React.useEffect(() => {
+    const metricChanged = prevMetricRef.current !== localFilter.metric;
+    const percentileChanged = prevPercentileRef.current !== localFilter.percentile;
+
+    if (metricChanged || percentileChanged) {
+      setLocalFilter((prev) => ({ ...prev, value: maxValue }));
+      prevMetricRef.current = localFilter.metric;
+      prevPercentileRef.current = localFilter.percentile;
+    }
+  }, [localFilter.metric, localFilter.percentile, maxValue]);
+
   const clampedValue = React.useMemo(
     () => Math.min(Math.max(localFilter.value, minValue), maxValue),
     [localFilter.value, minValue, maxValue],
@@ -139,8 +152,8 @@ const LatencyFilter: React.FC = () => {
       // When there's an active filter, show the full specification with actual selected values
       return (
         <>
-          <strong>Latency:</strong> {currentActiveFilter.metric} | {currentActiveFilter.percentile}{' '}
-          | Under {formatLatency(currentActiveFilter.value)}
+          <strong>Latency:</strong> {currentActiveFilter.metric} at {currentActiveFilter.percentile}{' '}
+          ≤ {formatLatency(currentActiveFilter.value)}
         </>
       );
     }
@@ -214,7 +227,7 @@ const LatencyFilter: React.FC = () => {
                   ) {
                     const selectedMetric = METRIC_OPTIONS.find((opt) => opt.value === value);
                     if (selectedMetric) {
-                      setLocalFilter({ ...localFilter, metric: selectedMetric.value });
+                      setLocalFilter((prev) => ({ ...prev, metric: selectedMetric.value }));
                     }
                   }
                   setIsMetricOpen(false);
@@ -273,7 +286,10 @@ const LatencyFilter: React.FC = () => {
                           (opt) => opt.value === value,
                         );
                         if (selectedPercentile) {
-                          setLocalFilter({ ...localFilter, percentile: selectedPercentile.value });
+                          setLocalFilter((prev) => ({
+                            ...prev,
+                            percentile: selectedPercentile.value,
+                          }));
                         }
                       }
                       setIsPercentileOpen(false);
@@ -368,7 +384,7 @@ const LatencyFilter: React.FC = () => {
               onClick={handleApplyFilter}
               isDisabled={isSliderDisabled}
             >
-              Apply filter
+              Apply
             </Button>
           </FlexItem>
           <FlexItem>

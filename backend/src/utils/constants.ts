@@ -82,6 +82,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableFeatureStore: false,
       genAiStudio: false,
       modelAsService: false,
+      maasApiKeys: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
