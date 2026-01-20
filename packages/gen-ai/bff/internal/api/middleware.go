@@ -100,6 +100,50 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	})
 }
 
+// RequireGuardrailAccess validates identity and checks CanListGuardrailsOrchestrator permissions.
+func (app *App) RequireGuardrailAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace != "" {
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			allowed, err := k8sClient.CanListGuardrailsOrchestrator(ctx, identity, namespace)
+			if err != nil {
+				app.handleK8sClientError(w, r, err)
+				return
+			}
+
+			if !allowed {
+				app.forbiddenResponse(w, r, "user does not have permission to access guardrails in this namespace")
+				return
+			}
+		}
+
+		next(w, r, ps)
+	}
+}
+
 func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// If authentication is disabled skip these steps.

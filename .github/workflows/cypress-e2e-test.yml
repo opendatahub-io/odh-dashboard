@@ -114,45 +114,64 @@ jobs:
             local server_url="$1"
             local cluster_name="$2"
             
-            [[ -z "$server_url" ]] && return 1
+            [[ -z "$server_url" ]] && echo "  ❌ Server URL is empty" && return 1
+            
+            echo "  🔗 Attempting login to: $server_url"
             
             # Try to login
-            if ! oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$server_url" --insecure-skip-tls-verify > /dev/null 2>&1; then
+            LOGIN_OUTPUT=$(oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$server_url" --insecure-skip-tls-verify 2>&1) || true
+            if ! oc whoami > /dev/null 2>&1; then
               echo "  ❌ Failed to login to $cluster_name"
+              echo "  📝 Login output: $LOGIN_OUTPUT" | head -5
+              return 1
+            fi
+            echo "  ✅ Login successful"
+            
+            # Get DSC status with full output for debugging
+            echo "  🔍 Fetching DataScienceCluster status..."
+            DSC_JSON=$(oc get datasciencecluster -o json 2>&1)
+            DSC_EXIT_CODE=$?
+            
+            if [[ $DSC_EXIT_CODE -ne 0 ]]; then
+              echo "  ❌ Failed to get DSC (exit code: $DSC_EXIT_CODE)"
+              echo "  📝 Output: $DSC_JSON" | head -5
               return 1
             fi
             
-            # Get DSC status
-            DSC_JSON=$(oc get datasciencecluster -o json 2>/dev/null)
-            if [[ -z "$DSC_JSON" || "$DSC_JSON" == "null" ]]; then
+            if [[ -z "$DSC_JSON" || "$DSC_JSON" == "null" || "$DSC_JSON" == '{"apiVersion":"datasciencecluster.opendatahub.io/v1","items":[],"kind":"List","metadata":{"resourceVersion":""}}' ]]; then
               echo "  ❌ No DataScienceCluster found on $cluster_name"
               return 1
             fi
             
+            # Print DSC name and status for debugging
+            DSC_NAME=$(echo "$DSC_JSON" | jq -r '.items[0].metadata.name // "unknown"')
+            echo "  📦 DSC Name: $DSC_NAME"
+            
             # Check phase - this is the most reliable indicator
             PHASE=$(echo "$DSC_JSON" | jq -r '.items[0].status.phase // "Unknown"')
+            echo "  📊 DSC Phase: $PHASE"
             
-            # If phase is Ready, cluster is healthy - no need to check individual conditions
+            # Print all conditions for debugging
+            echo "  📋 DSC Conditions:"
+            echo "$DSC_JSON" | jq -r '.items[0].status.conditions[]? | "     - \(.type): \(.status) (\(.reason // "no reason"))"' 2>/dev/null || echo "     (no conditions found)"
+            
+            # If phase is Ready, cluster is healthy
             if [[ "$PHASE" == "Ready" ]]; then
-              echo "  ✅ DSC phase: Ready"
+              echo "  ✅ DSC is Ready!"
               return 0
             fi
             
             # Phase not Ready - check conditions for more detail
-            echo "  ⚠️ DSC phase: $PHASE (expected Ready)"
-            
             AVAILABLE=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Available") | .status' 2>/dev/null || echo "")
             DEGRADED=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Degraded") | .status' 2>/dev/null || echo "")
             
-            echo "  📊 Conditions: Available=$AVAILABLE, Degraded=$DEGRADED"
-            
             # Fallback: if conditions show healthy even though phase isn't Ready
             if [[ "$AVAILABLE" == "True" && "$DEGRADED" != "True" ]]; then
-              echo "  ✅ Conditions look healthy despite phase"
+              echo "  ✅ Conditions look healthy despite phase=$PHASE"
               return 0
             fi
             
-            echo "  ❌ DSC not healthy"
+            echo "  ❌ DSC not healthy (Phase: $PHASE, Available: $AVAILABLE, Degraded: $DEGRADED)"
             return 1
           }
 
@@ -181,10 +200,13 @@ jobs:
           rm -f /tmp/test-variables.yml
 
   # ---------------------------------------------------------------------------
-  # Status - Set pending status on PR
+  # Status - Set pending status on PR (independent - runs before cluster selection)
   # ---------------------------------------------------------------------------
   set-pending-status:
-    needs: [select-cluster]
+    if: >-
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.workflow_run.event == 'pull_request' && 
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Set pending status
@@ -194,7 +216,7 @@ jobs:
           gh api repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha || github.sha }} \
             -f state=pending \
             -f context="Cypress E2E Tests" \
-            -f description="Running on ${{ needs.select-cluster.outputs.cluster_name }}" \
+            -f description="E2E tests starting..." \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
@@ -576,22 +598,46 @@ jobs:
   # ---------------------------------------------------------------------------
   set-final-status:
     needs: [select-cluster, e2e-tests]
-    if: always()
+    if: >-
+      always() && 
+      (github.event_name == 'workflow_dispatch' || 
+       (github.event.workflow_run.event == 'pull_request' && 
+        github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-latest
     steps:
       - name: Set final status
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RESULT="${{ needs.e2e-tests.result }}"
+          E2E_RESULT="${{ needs.e2e-tests.result }}"
+          CLUSTER_RESULT="${{ needs.select-cluster.result }}"
           CLUSTER="${{ needs.select-cluster.outputs.cluster_name }}"
           
-          case "$RESULT" in
-            success)   STATE="success"; DESC="All tests passed on $CLUSTER" ;;
-            cancelled) STATE="error";   DESC="Tests cancelled" ;;
-            skipped)   exit 0 ;;
-            *)         STATE="failure"; DESC="Tests failed on $CLUSTER" ;;
-          esac
+          echo "📊 Job results: select-cluster=$CLUSTER_RESULT, e2e-tests=$E2E_RESULT"
+          
+          # Handle cluster selection failure first
+          if [[ "$CLUSTER_RESULT" == "failure" ]]; then
+            STATE="failure"
+            DESC="Cluster health check failed - no healthy cluster available"
+          elif [[ "$E2E_RESULT" == "success" ]]; then
+            STATE="success"
+            DESC="All tests passed on $CLUSTER"
+          elif [[ "$E2E_RESULT" == "cancelled" ]]; then
+            STATE="error"
+            DESC="Tests cancelled"
+          elif [[ "$E2E_RESULT" == "skipped" && "$CLUSTER_RESULT" == "skipped" ]]; then
+            # Both skipped means test.yml failed - don't post status
+            echo "Both jobs skipped (test.yml likely failed) - not posting status"
+            exit 0
+          elif [[ "$E2E_RESULT" == "skipped" ]]; then
+            STATE="failure"
+            DESC="Tests skipped due to upstream failure"
+          else
+            STATE="failure"
+            DESC="Tests failed on ${CLUSTER:-unknown cluster}"
+          fi
+          
+          echo "📝 Posting status: state=$STATE, description=$DESC"
           
           gh api repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha || github.sha }} \
             -f state="$STATE" \
@@ -605,7 +651,7 @@ jobs:
   cleanup-server:
     needs: [e2e-tests]
     runs-on: self-hosted
-    if: always()
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
       - name: Stop Cypress Servers
         run: |
