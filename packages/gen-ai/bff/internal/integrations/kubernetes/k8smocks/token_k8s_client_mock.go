@@ -11,6 +11,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -694,6 +695,11 @@ func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.C
 	return true, nil
 }
 
+// CanListGuardrailsOrchestrator returns mock permission check for testing
+func (m *TokenKubernetesClientMock) CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	return true, nil
+}
+
 // GetModelProviderInfo returns mock model provider configuration
 // Only returns provider_id, provider_type, and url (no api_token or other config)
 func (m *TokenKubernetesClientMock) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error) {
@@ -749,44 +755,44 @@ func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, ident
 
 // GetGuardrailsOrchestratorStatus returns mock GuardrailsOrchestrator status for testing
 func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
-	// Mock data - simulating the "custom-guardrails" CR status
 	return &models.GuardrailsStatus{
+		Name:  "guardrails-orchestrator",
 		Phase: "Ready",
-		Conditions: []models.GuardrailsCondition{
+		Conditions: []gorchv1alpha1.Condition{
 			{
 				Type:               "Progressing",
-				Status:             "True",
+				Status:             corev1.ConditionTrue,
 				Reason:             "ReconcileInit",
 				Message:            "Initializing GuardrailsOrchestrator resource",
-				LastTransitionTime: "2025-12-24T06:40:07Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "InferenceServiceReady",
-				Status:             "False",
+				Status:             corev1.ConditionFalse,
 				Reason:             "InferenceServiceNotReady",
 				Message:            "Inference service is not ready",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "DeploymentReady",
-				Status:             "True",
+				Status:             corev1.ConditionTrue,
 				Reason:             "DeploymentReady",
 				Message:            "Deployment is ready",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "RouteReady",
-				Status:             "False",
+				Status:             corev1.ConditionFalse,
 				Reason:             "RouteNotReady",
 				Message:            "Route is not ready",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 			{
 				Type:               "ReconcileComplete",
-				Status:             "False",
+				Status:             corev1.ConditionFalse,
 				Reason:             "ReconcileFailed",
 				Message:            "Reconcile failed",
-				LastTransitionTime: "2025-12-24T06:40:47Z",
+				LastTransitionTime: metav1.Now(),
 			},
 		},
 	}, nil

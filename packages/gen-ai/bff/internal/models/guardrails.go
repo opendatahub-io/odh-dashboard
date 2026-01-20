@@ -1,18 +1,14 @@
 package models
 
+import (
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+)
+
 // GuardrailsStatus represents the status of the GuardrailsOrchestrator CR
 type GuardrailsStatus struct {
-	Phase      string                `json:"phase"`
-	Conditions []GuardrailsCondition `json:"conditions,omitempty"`
-}
-
-// GuardrailsCondition represents a condition in the GuardrailsOrchestrator status
-type GuardrailsCondition struct {
-	Type               string `json:"type"`
-	Status             string `json:"status"`
-	Reason             string `json:"reason,omitempty"`
-	Message            string `json:"message,omitempty"`
-	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
+	Name       string                    `json:"name"`
+	Phase      string                    `json:"phase"`
+	Conditions []gorchv1alpha1.Condition `json:"conditions,omitempty"`
 }
 
 // SafetyConfigResponse represents the safety configuration from LlamaStack ConfigMap

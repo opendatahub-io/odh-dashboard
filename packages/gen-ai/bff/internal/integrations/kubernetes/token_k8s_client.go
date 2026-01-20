@@ -35,6 +35,8 @@ import (
 	// Import KServe types
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	// Import TrustyAI GuardrailsOrchestrator types
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
 
 const (
@@ -380,6 +382,50 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	return resp.Status.Allowed, nil
 }
 
+// CanListGuardrailsOrchestrator performs a SubjectAccessReview to check if the user has permission to list GuardrailsOrchestrator resources
+func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	// Create a new config with the token from the request identity
+	config := rest.CopyConfig(kc.Config)
+	config.BearerToken = identity.Token
+	config.BearerTokenFile = ""
+
+	// Create a kubernetes clientset to use the authorization API
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kc.Logger.Error("failed to create kubernetes clientset for SAR", "error", err)
+		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	// Create SelfSubjectAccessReview to check if user can list GuardrailsOrchestrator resources
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "trustyai.opendatahub.io",
+				Resource:  "guardrailsorchestrators",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform GuardrailsOrchestrator list SAR", "error", err)
+		return false, wrapK8sSubjectAccessReviewError(err, namespace)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -470,12 +516,39 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
-// GetGuardrailsOrchestratorStatus fetches the status of the GuardrailsOrchestrator CR
-// Real implementation not yet available - returns error
+// GetGuardrailsOrchestratorStatus lists GuardrailsOrchestrators in the namespace and returns the first one found.
 func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
-	// Real implementation not yet available
-	// Use MOCK_K8S_CLIENT=true to test with mock data
-	return nil, fmt.Errorf("guardrailsOrchestrator %q not found in namespace %q", constants.GuardrailsOrchestratorName, namespace)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	guardrailsList := &gorchv1alpha1.GuardrailsOrchestratorList{}
+	listOptions := &client.ListOptions{
+		Namespace: namespace,
+	}
+
+	err := kc.Client.List(ctx, guardrailsList, listOptions)
+	if err != nil {
+		kc.Logger.Error("failed to list GuardrailsOrchestrators", "error", err, "namespace", namespace)
+		return nil, NewK8sErrorWithNamespace(ErrCodeInternalError,
+			fmt.Sprintf("failed to list guardrailsOrchestrators: %v", err), namespace, 500)
+	}
+
+	if len(guardrailsList.Items) == 0 {
+		return nil, NewK8sErrorWithNamespace(ErrCodeNotFound,
+			"guardrailsOrchestrator not found", namespace, 404)
+	}
+
+	guardrailsCR := guardrailsList.Items[0]
+	phase := guardrailsCR.Status.Phase
+	if phase == "" {
+		phase = constants.GuardrailsPhaseProgressing
+	}
+
+	return &models.GuardrailsStatus{
+		Name:       guardrailsCR.Name,
+		Phase:      phase,
+		Conditions: guardrailsCR.Status.Conditions,
+	}, nil
 }
 
 func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {

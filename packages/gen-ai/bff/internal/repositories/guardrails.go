@@ -16,7 +16,7 @@ func NewGuardrailsRepository() *GuardrailsRepository {
 	return &GuardrailsRepository{}
 }
 
-// GetGuardrailsStatus returns the status of the "custom-guardrails" CR from the k8s client
+// GetGuardrailsStatus returns the status of the first GuardrailsOrchestrator CR found in the namespace
 func (r *GuardrailsRepository) GetGuardrailsStatus(
 	k8sClient kubernetes.KubernetesClientInterface,
 	ctx context.Context,

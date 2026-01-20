@@ -2,10 +2,6 @@ package constants
 
 // GuardrailsOrchestrator CR constants
 const (
-	// GuardrailsOrchestratorName is the constant name of the GuardrailsOrchestrator CR
-	// Similar to MCPServerName = "gen-ai-aa-mcp-servers"
-	GuardrailsOrchestratorName = "custom-guardrails"
-
 	// GuardrailsOrchestratorAPIVersion is the API version for the GuardrailsOrchestrator CR
 	GuardrailsOrchestratorAPIVersion = "trustyai.opendatahub.io/v1alpha1"
 
@@ -21,5 +17,4 @@ const (
 	GuardrailsPhaseReady       = "Ready"
 	GuardrailsPhaseProgressing = "Progressing"
 	GuardrailsPhaseFailed      = "Failed"
-	GuardrailsPhaseNotDeployed = "NotDeployed" // CR not found in cluster
 )
