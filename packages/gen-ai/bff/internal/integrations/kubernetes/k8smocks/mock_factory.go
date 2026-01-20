@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -129,6 +130,9 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return nil, err
 	}
 	if err := kservev1beta1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 
