@@ -6,6 +6,7 @@ import {
   HelperTextItem,
   TextArea,
   TextInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import {
   K8sNameDescriptionFieldData,
@@ -138,12 +139,45 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     }
   };
 
+  const getNameValidation = (): ValidatedOptions => {
+    if (!nameChecker) {
+      return ValidatedOptions.default;
+    }
+    switch (isNameValid) {
+      case 'valid':
+        return ValidatedOptions.success;
+      case 'invalid':
+        return ValidatedOptions.error;
+      default:
+        return ValidatedOptions.default;
+    }
+  };
+
   const makeNameFeedback = () => {
     switch (isNameValid) {
+      case 'valid':
+        return (
+          <HelperText>
+            <HelperTextItem variant="success">Resource name available</HelperTextItem>
+          </HelperText>
+        );
       case 'invalid':
-        return <div>name is not valid :(</div>;
+        return (
+          <HelperText>
+            <HelperTextItem variant="error">
+              A project with this resource name already exists. Edit the resource name or try a
+              different project name
+            </HelperTextItem>
+          </HelperText>
+        );
       case 'in progress':
-        return <div>name is being checked....</div>;
+        return (
+          <HelperText>
+            <HelperTextItem variant="indeterminate">
+              Checking resource name availability...
+            </HelperTextItem>
+          </HelperText>
+        );
       default:
         return null;
     }
@@ -167,6 +201,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           autoFocus={autoFocusName}
           isRequired
           isDisabled={isNameValid === 'in progress'}
+          validated={getNameValidation()}
           value={name}
           onChange={(event, value) => onDisplayNameChange(value)}
           maxLength={maxLength}
