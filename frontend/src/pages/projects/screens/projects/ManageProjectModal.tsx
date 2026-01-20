@@ -24,6 +24,7 @@ import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { isProjectNameAvailable } from '#~/api/k8s/projects';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -84,9 +85,11 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
     }
   };
 
-  const nameChecker = React.useCallback((value: string) => {
-    console.log('would check name uniqueness...', value);
-    return true;
+  const nameChecker = React.useCallback(async (value: string) => {
+    console.log('*is* checking name uniqueness...', value);
+    const result = isProjectNameAvailable(value);
+    console.log(`is project name  ${value} available?`, result);
+    return result;
   }, []);
 
   return (
