@@ -22,11 +22,14 @@ import {
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
+  NIMServiceKind,
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
+import { createNIMService, updateNIMService, CreateNIMServiceParams } from '#~/api';
+import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/useNIMServicesEnabled';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -74,6 +77,8 @@ import {
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
 const DEFAULT_MODEL_PATH = '/mnt/models/cache';
+// NIM Operator uses /model-store as the model path
+const NIM_OPERATOR_MODEL_PATH = '/model-store';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -105,6 +110,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 }) => {
   const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
     useGetStorageClassConfig();
+
+  // Check if NIM Operator integration is enabled
+  // When enabled, we create NIMService instead of ServingRuntime + InferenceService
+  const { nimServicesEnabled } = useNIMServicesEnabled();
 
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -280,16 +289,68 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     onBeforeClose(true);
   };
 
-  const submit = () => {
-    setError(undefined);
-    setActionInProgress(true);
+  /**
+   * Submit handler for NIM Operator mode.
+   * Creates NIMService resource - the NIM Operator will automatically create InferenceService.
+   * No ServingRuntime is needed.
+   */
+  const submitNIMService = async (nimPVCName: string): Promise<void> => {
+    // Extract image info from the serving runtime template
+    const imageRepository = createDataServingRuntime.imageName?.split(':')[0] || '';
+    const imageTag = createDataServingRuntime.imageName?.split(':')[1] || 'latest';
 
-    const servingRuntimeName =
-      editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
-      translateDisplayNameForK8s(createDataInferenceService.name, { safeK8sPrefix: 'nim-' });
+    // Build NIMService parameters
+    const nimServiceParams: CreateNIMServiceParams = {
+      name: createDataInferenceService.name,
+      k8sName: createDataInferenceService.k8sName,
+      namespace,
+      imageRepository,
+      imageTag,
+      imagePullSecrets: [NIM_NGC_SECRET_NAME],
+      authSecretName: NIM_SECRET_NAME,
+      pvcName: nimPVCName,
+      pvcSubPath: pvcSubPath || undefined,
+      replicas: createDataInferenceService.minReplicas,
+      servicePort: 8000,
+      tokenAuth: createDataInferenceService.tokenAuth,
+      externalRoute: createDataInferenceService.externalRoute,
+      envVars: createDataInferenceService.servingRuntimeEnvVars?.filter((ev) => ev.name && ev.value) as
+        | { name: string; value: string }[]
+        | undefined,
+    };
 
-    const nimPVCName = pvcMode === 'create-new' ? getUniqueId('nim-pvc') : existingPvcName;
+    // Add resources from hardware profile if available
+    const { podSpecOptions } = podSpecOptionsState;
+    if (podSpecOptions.resources) {
+      nimServiceParams.resources = {
+        limits: podSpecOptions.resources.limits as Record<string, string>,
+        requests: podSpecOptions.resources.requests as Record<string, string>,
+      };
+    }
 
+    // Add node selector and tolerations if available
+    if (podSpecOptions.nodeSelector) {
+      nimServiceParams.nodeSelector = podSpecOptions.nodeSelector;
+    }
+    if (podSpecOptions.tolerations) {
+      nimServiceParams.tolerations = podSpecOptions.tolerations;
+    }
+
+    // Create or update NIMService
+    // Note: For edit mode, we would need to fetch the existing NIMService first
+    // For now, we only support create mode with NIM Operator
+    await createNIMService(nimServiceParams, { dryRun: true });
+    await createNIMService(nimServiceParams, { dryRun: false });
+  };
+
+  /**
+   * Submit handler for legacy mode.
+   * Creates ServingRuntime + InferenceService directly.
+   */
+  const submitLegacyMode = async (
+    nimPVCName: string,
+    servingRuntimeName: string,
+  ): Promise<void> => {
     const finalServingRuntime =
       !editInfo && servingRuntimeSelected
         ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName, pvcSubPath || undefined)
@@ -330,46 +391,71 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       false,
     );
 
-    Promise.all([
+    // Dry run first
+    await Promise.all([
       submitServingRuntimeResources({ dryRun: true }),
       submitInferenceServiceResource({ dryRun: true }),
-    ])
-      .then(async () => {
-        const promises: Promise<void | SecretKind | PersistentVolumeClaimKind>[] = [
-          submitServingRuntimeResources({ dryRun: false }).then(() => undefined),
-          submitInferenceServiceResource({ dryRun: false }).then(() => undefined),
-        ];
+    ]);
 
-        if (!editInfo) {
-          if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false));
-          }
-          if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
-          }
-          if (pvcMode === 'create-new') {
-            promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));
-          }
-        } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
-          const updatePvcData = {
-            size: pvcSize, // New size
-            name: pvc.metadata.name,
-            description: pvc.metadata.annotations?.description || '',
-            storageClassName: pvc.spec.storageClassName,
-          };
-          promises.push(
-            updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, {
-              'runtimes.opendatahub.io/force-redeploy': new Date().toISOString(),
-            }),
-          );
+    // Actual submission
+    await Promise.all([
+      submitServingRuntimeResources({ dryRun: false }),
+      submitInferenceServiceResource({ dryRun: false }),
+    ]);
+
+    // Handle edit mode - restart the inference service
+    if (editInfo?.inferenceServiceEditInfo) {
+      await patchInferenceServiceStoppedStatus(editInfo.inferenceServiceEditInfo, 'false');
+    }
+  };
+
+  const submit = () => {
+    setError(undefined);
+    setActionInProgress(true);
+
+    const servingRuntimeName =
+      editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
+      translateDisplayNameForK8s(createDataInferenceService.name, { safeK8sPrefix: 'nim-' });
+
+    const nimPVCName = pvcMode === 'create-new' ? getUniqueId('nim-pvc') : existingPvcName;
+
+    const submitDeployment = async () => {
+      // Create secrets if needed (common to both modes)
+      if (!editInfo) {
+        if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
+          await createNIMSecret(namespace, 'apiKeySecret', false, false);
         }
-        return Promise.all(promises);
-      })
-      .then(async () => {
-        if (editInfo?.inferenceServiceEditInfo) {
-          await patchInferenceServiceStoppedStatus(editInfo.inferenceServiceEditInfo, 'false');
+        if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
+          await createNIMSecret(namespace, 'nimPullSecret', true, false);
         }
-      })
+        if (pvcMode === 'create-new') {
+          await createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName);
+        }
+      } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
+        // Update PVC size if changed
+        const updatePvcData = {
+          size: pvcSize,
+          name: pvc.metadata.name,
+          description: pvc.metadata.annotations?.description || '',
+          storageClassName: pvc.spec.storageClassName,
+        };
+        await updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, {
+          'runtimes.opendatahub.io/force-redeploy': new Date().toISOString(),
+        });
+      }
+
+      // Choose deployment mode based on feature flag
+      if (nimServicesEnabled && !editInfo) {
+        // NIM Operator mode: Create NIMService only (no ServingRuntime needed)
+        // Note: Edit mode with NIM Operator is not yet supported - would need to fetch existing NIMService
+        await submitNIMService(nimPVCName);
+      } else {
+        // Legacy mode: Create ServingRuntime + InferenceService
+        await submitLegacyMode(nimPVCName, servingRuntimeName);
+      }
+    };
+
+    submitDeployment()
       .then(() => {
         onSuccess();
         watchDeployment();
