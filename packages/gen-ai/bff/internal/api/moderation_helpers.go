@@ -17,6 +17,8 @@ type ModerationResult struct {
 }
 
 func (app *App) checkModeration(ctx context.Context, input string, shieldID string) (*ModerationResult, error) {
+	app.logger.Debug("Moderation check started", "shield_id", shieldID, "input_length", len(input))
+
 	client, err := helper.GetContextLlamaStackClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LlamaStack client: %w", err)
@@ -24,15 +26,18 @@ func (app *App) checkModeration(ctx context.Context, input string, shieldID stri
 
 	response, err := client.CreateModeration(ctx, input, shieldID)
 	if err != nil {
+		app.logger.Debug("Moderation API call error", "error", err)
 		return nil, fmt.Errorf("moderation API call failed: %w", err)
 	}
 
 	// No results means content is not flagged
 	if len(response.Results) == 0 {
+		app.logger.Debug("Moderation returned no results", "shield_id", shieldID)
 		return &ModerationResult{Flagged: false}, nil
 	}
 
 	modResult := response.Results[0]
+	app.logger.Debug("Moderation result", "flagged", modResult.Flagged, "raw_json", modResult.RawJSON())
 	return &ModerationResult{
 		Flagged:         modResult.Flagged,
 		ViolationReason: extractDetectionType(modResult.RawJSON()),
@@ -56,6 +61,37 @@ func extractDetectionType(rawJSON string) string {
 	}
 
 	return result.Metadata.DetectionType
+}
+
+// ShouldTriggerModeration determines if moderation should be triggered based on
+// sentence boundaries (primary) or word count fallback (secondary).
+// This provides better UX by sending readable chunks that end at natural sentence boundaries.
+func ShouldTriggerModeration(accumulatedText string, wordCount int) bool {
+	// Primary: Check for sentence boundaries - provides better readability in UI
+	if EndsWithSentenceBoundary(accumulatedText) && wordCount > 0 {
+		return true
+	}
+
+	// Fallback: Word count threshold for cases without sentence boundaries
+	// (e.g., code blocks, lists, non-English text)
+	if wordCount >= constants.ModerationChunkSize {
+		return true
+	}
+
+	return false
+}
+
+// EndsWithSentenceBoundary checks if the text ends with a sentence-ending punctuation mark.
+// Handles common sentence terminators and accounts for trailing whitespace.
+func EndsWithSentenceBoundary(text string) bool {
+	trimmed := strings.TrimRight(text, " \t")
+	if len(trimmed) == 0 {
+		return false
+	}
+
+	// Check for common sentence-ending punctuation
+	lastChar := trimmed[len(trimmed)-1]
+	return lastChar == '.' || lastChar == '!' || lastChar == '?'
 }
 
 // extractResponseText extracts the text content from a response for moderation

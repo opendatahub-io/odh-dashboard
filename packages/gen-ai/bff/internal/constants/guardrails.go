@@ -58,9 +58,14 @@ func FormatEnvVar(envName string) string {
 
 // Moderation constants
 const (
-	// ModerationChunkSize is the number of words to buffer before running moderation
+	// ModerationChunkSize is the number of words to buffer before running moderation (fallback threshold)
+	// Primary trigger is sentence boundary detection; this is the fallback for code blocks, lists, etc.
 	ModerationChunkSize = 30
 
 	// GuardrailViolationMessage is the message shown when content is blocked by guardrails
 	GuardrailViolationMessage = "I apologize, but I cannot provide a response to this request as it may contain content that violates our safety guidelines."
+
+	// AsyncModerationResultBufferSize is the buffer size for the async moderation result channel
+	// This allows multiple moderation requests to complete without blocking
+	AsyncModerationResultBufferSize = 10
 )

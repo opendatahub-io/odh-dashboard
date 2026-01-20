@@ -338,20 +338,66 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		}
 	}
 
-	// Helper function to send input blocked error response
+	// Helper function to send input guardrail violation in streaming format
+	// Uses the same delta format as output violations for consistency
 	sendInputBlockedError := func() {
+		// Send response.created event
 		sendEvent(map[string]interface{}{
 			"type":            "response.created",
 			"sequence_number": 0,
 			"response": map[string]interface{}{
 				"id":         responseID,
 				"model":      params.Model,
-				"status":     "failed",
+				"status":     "in_progress",
 				"created_at": 1234567890.0,
-				"error": map[string]interface{}{
-					"type":    "guardrail_violation",
-					"message": "Your input was blocked by content moderation. Please rephrase your request.",
+			},
+		})
+		flusher.Flush()
+
+		// Send delta with guardrail violation message
+		sendEvent(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           GuardrailViolationMessage,
+		})
+		flusher.Flush()
+
+		// Send content part done
+		sendEvent(map[string]interface{}{
+			"type":            "response.content_part.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+		})
+		flusher.Flush()
+
+		// Send response.completed with guardrail flag
+		sendEvent(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 3,
+			"response": map[string]interface{}{
+				"id":         responseID,
+				"model":      params.Model,
+				"status":     "completed",
+				"created_at": 1234567890.0,
+				"output": []map[string]interface{}{
+					{
+						"id":     itemID,
+						"type":   "message",
+						"role":   "assistant",
+						"status": "completed",
+						"content": []map[string]interface{}{
+							{
+								"type": "output_text",
+								"text": GuardrailViolationMessage,
+							},
+						},
+					},
 				},
+				"guardrail_triggered": true,
+				"violation_reason":    "Input moderation",
 			},
 		})
 		flusher.Flush()

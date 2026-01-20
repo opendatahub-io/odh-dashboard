@@ -267,11 +267,16 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			app.logger.Info("Input blocked by guardrails",
 				"shield_id", createRequest.InputShieldID,
 				"reason", modResult.ViolationReason)
-			// Return consistent response with guardrail_triggered flag
-			responseData := createGuardrailViolationResponse("", createRequest.Model, modResult.ViolationReason)
-			apiResponse := llamastack.APIResponse{Data: responseData}
-			if err := app.WriteJSON(w, http.StatusCreated, apiResponse, nil); err != nil {
-				app.serverErrorResponse(w, r, err)
+
+			// Use streaming format if stream=true, otherwise return JSON
+			if createRequest.Stream {
+				app.sendInputGuardrailViolationStreaming(w, createRequest.Model, modResult.ViolationReason)
+			} else {
+				responseData := createGuardrailViolationResponse("", createRequest.Model, modResult.ViolationReason)
+				apiResponse := llamastack.APIResponse{Data: responseData}
+				if err := app.WriteJSON(w, http.StatusCreated, apiResponse, nil); err != nil {
+					app.serverErrorResponse(w, r, err)
+				}
 			}
 			return
 		}
@@ -299,7 +304,12 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
-		app.handleStreamingResponse(w, r, ctx, params)
+		// Use async moderation for better streaming performance when output moderation is enabled
+		if createRequest.OutputShieldID != "" {
+			app.handleStreamingResponseAsync(w, r, ctx, params)
+		} else {
+			app.handleStreamingResponse(w, r, ctx, params)
+		}
 	} else {
 		app.handleNonStreamingResponse(w, r, ctx, params)
 	}
@@ -337,98 +347,6 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Chunked moderation state (only used if OutputShieldID is set)
-	var accumulatedText string
-	var pendingEvents []*StreamingEvent
-	var wordCount int
-	moderationEnabled := params.OutputShieldID != ""
-
-	// Helper to send SSE event
-	sendEvent := func(eventData []byte) error {
-		_, err := fmt.Fprintf(w, "data: %s\n\n", eventData)
-		if err != nil {
-			return err
-		}
-		flusher.Flush()
-		return nil
-	}
-
-	// Helper to send guardrail violation in streaming format
-	sendGuardrailViolation := func(responseID string, model string, itemID string, sequenceNum int64, violationReason string) {
-		// Use violation reason if provided, otherwise use default message
-		message := constants.GuardrailViolationMessage
-		if violationReason != "" {
-			message = violationReason
-		}
-
-		// Send guardrail violation message as delta
-		violationEvent := &StreamingEvent{
-			Type:           "response.output_text.delta",
-			SequenceNumber: sequenceNum,
-			ItemID:         itemID,
-			OutputIndex:    0,
-			Delta:          message,
-		}
-		if eventData, err := json.Marshal(violationEvent); err == nil {
-			if err := sendEvent(eventData); err != nil {
-				app.logger.Error("Failed to send guardrail violation delta event", "error", err)
-			}
-		}
-
-		// Send content part done
-		doneEvent := &StreamingEvent{
-			Type:           "response.content_part.done",
-			SequenceNumber: sequenceNum + 1,
-			ItemID:         itemID,
-			OutputIndex:    0,
-		}
-		if eventData, err := json.Marshal(doneEvent); err == nil {
-			if err := sendEvent(eventData); err != nil {
-				app.logger.Error("Failed to send guardrail content part done event", "error", err)
-			}
-		}
-
-		// Send response completed with guardrail flag and violation reason
-		completedEvent := map[string]interface{}{
-			"type":            "response.completed",
-			"sequence_number": 0,
-			"item_id":         "",
-			"output_index":    0,
-			"delta":           "",
-			"response": map[string]interface{}{
-				"id":         responseID,
-				"model":      model,
-				"status":     "completed",
-				"created_at": 0,
-				"output": []map[string]interface{}{
-					{
-						"id":     itemID,
-						"type":   "message",
-						"role":   "assistant",
-						"status": "completed",
-						"content": []map[string]interface{}{
-							{
-								"type": "output_text",
-								"text": message,
-							},
-						},
-					},
-				},
-				"guardrail_triggered": true,
-				"violation_reason":    violationReason,
-			},
-		}
-		if eventData, err := json.Marshal(completedEvent); err == nil {
-			if err := sendEvent(eventData); err != nil {
-				app.logger.Error("Failed to send guardrail completed event", "error", err)
-			}
-		}
-	}
-
-	// Track response metadata for guardrail violation
-	var responseID, responseModel, currentItemID string
-	var lastSequenceNum int64
-
 	// Stream events to client
 	for stream.Next() {
 		// Check if client disconnected
@@ -450,89 +368,6 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
-		// Track metadata from response.created event
-		if streamingEvent.Type == "response.created" && streamingEvent.Response != nil {
-			responseID = streamingEvent.Response.ID
-			responseModel = streamingEvent.Response.Model
-		}
-
-		// Track item ID and sequence number
-		if streamingEvent.ItemID != "" {
-			currentItemID = streamingEvent.ItemID
-		}
-		lastSequenceNum = streamingEvent.SequenceNumber
-
-		// Handle output moderation for text delta events
-		if moderationEnabled && streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
-			// Accumulate text for moderation
-			accumulatedText += streamingEvent.Delta
-			pendingEvents = append(pendingEvents, streamingEvent)
-			wordCount += len(strings.Fields(streamingEvent.Delta))
-
-			// Check if we have enough words for moderation
-			if wordCount >= constants.ModerationChunkSize {
-				modResult, err := app.checkModeration(ctx, accumulatedText, params.OutputShieldID)
-				if err != nil {
-					app.logger.Warn("Output moderation failed during streaming, continuing", "error", err)
-					// Fail open - send pending events
-				} else if modResult.Flagged {
-					app.logger.Info("Output blocked by guardrails during streaming",
-						"shield_id", params.OutputShieldID,
-						"reason", modResult.ViolationReason)
-					// Send guardrail violation and stop streaming
-					sendGuardrailViolation(responseID, responseModel, currentItemID, lastSequenceNum, modResult.ViolationReason)
-					return
-				}
-
-				// Moderation passed - send all pending events
-				for _, pendingEvent := range pendingEvents {
-					eventData, err := json.Marshal(pendingEvent)
-					if err != nil {
-						continue
-					}
-					if err := sendEvent(eventData); err != nil {
-						app.logger.Error("Failed to write streaming event", "error", err)
-						return
-					}
-				}
-				pendingEvents = nil
-				wordCount = 0
-			}
-			continue
-		}
-
-		// For non-delta events or when moderation is disabled, send immediately
-		// But first flush any pending events
-		if len(pendingEvents) > 0 {
-			// Final moderation check before flushing
-			if moderationEnabled && accumulatedText != "" {
-				modResult, err := app.checkModeration(ctx, accumulatedText, params.OutputShieldID)
-				if err != nil {
-					app.logger.Warn("Final output moderation failed, continuing", "error", err)
-				} else if modResult.Flagged {
-					app.logger.Info("Output blocked by guardrails (final check)",
-						"shield_id", params.OutputShieldID,
-						"reason", modResult.ViolationReason)
-					sendGuardrailViolation(responseID, responseModel, currentItemID, lastSequenceNum, modResult.ViolationReason)
-					return
-				}
-			}
-
-			// Send pending events
-			for _, pendingEvent := range pendingEvents {
-				eventData, err := json.Marshal(pendingEvent)
-				if err != nil {
-					continue
-				}
-				if err := sendEvent(eventData); err != nil {
-					app.logger.Error("Failed to write streaming event", "error", err)
-					return
-				}
-			}
-			pendingEvents = nil
-			wordCount = 0
-		}
-
 		// Convert clean streaming event to JSON
 		eventData, err := json.Marshal(streamingEvent)
 		if err != nil {
@@ -545,37 +380,12 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		}
 
 		// Write SSE format
-		if err := sendEvent(eventData); err != nil {
+		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
+		if err != nil {
 			app.logger.Error("Failed to write streaming event", "error", err)
 			return
 		}
-	}
-
-	// Flush any remaining pending events with final moderation check
-	if len(pendingEvents) > 0 {
-		if moderationEnabled && accumulatedText != "" {
-			modResult, err := app.checkModeration(ctx, accumulatedText, params.OutputShieldID)
-			if err != nil {
-				app.logger.Warn("Final output moderation failed, continuing", "error", err)
-			} else if modResult.Flagged {
-				app.logger.Info("Output blocked by guardrails (stream end)",
-					"shield_id", params.OutputShieldID,
-					"reason", modResult.ViolationReason)
-				sendGuardrailViolation(responseID, responseModel, currentItemID, lastSequenceNum, modResult.ViolationReason)
-				return
-			}
-		}
-
-		for _, pendingEvent := range pendingEvents {
-			eventData, err := json.Marshal(pendingEvent)
-			if err != nil {
-				continue
-			}
-			if err := sendEvent(eventData); err != nil {
-				app.logger.Error("Failed to write streaming event", "error", err)
-				return
-			}
-		}
+		flusher.Flush()
 	}
 
 	// Check for stream errors
@@ -635,6 +445,114 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
+// This is used when input moderation flags content and the client requested streaming
+func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string, violationReason string) {
+	// Check if ResponseWriter supports streaming
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// Fallback to JSON if streaming not supported
+		responseData := createGuardrailViolationResponse("", model, violationReason)
+		apiResponse := llamastack.APIResponse{Data: responseData}
+		_ = app.WriteJSON(w, http.StatusCreated, apiResponse, nil) // Best effort - client may have disconnected
+		return
+	}
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	// Use violation reason if provided, otherwise use default message
+	message := constants.GuardrailViolationMessage
+	if violationReason != "" {
+		message = violationReason
+	}
+
+	// Generate IDs for the response
+	responseID := "resp_guardrail_" + fmt.Sprintf("%d", getCurrentTimestamp())
+	itemID := "msg_guardrail"
+
+	// Send response.created event
+	createdEvent := map[string]interface{}{
+		"type":            "response.created",
+		"sequence_number": 0,
+		"response": map[string]interface{}{
+			"id":         responseID,
+			"model":      model,
+			"status":     "in_progress",
+			"created_at": getCurrentTimestamp(),
+		},
+	}
+	if eventData, err := json.Marshal(createdEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+
+	// Send response.output_text.delta with the guardrail message
+	deltaEvent := &StreamingEvent{
+		Type:           "response.output_text.delta",
+		SequenceNumber: 1,
+		ItemID:         itemID,
+		OutputIndex:    0,
+		Delta:          message,
+	}
+	if eventData, err := json.Marshal(deltaEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+
+	// Send response.content_part.done
+	doneEvent := &StreamingEvent{
+		Type:           "response.content_part.done",
+		SequenceNumber: 2,
+		ItemID:         itemID,
+		OutputIndex:    0,
+	}
+	if eventData, err := json.Marshal(doneEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+
+	// Send response.completed with guardrail flag
+	completedEvent := map[string]interface{}{
+		"type":            "response.completed",
+		"sequence_number": 3,
+		"response": map[string]interface{}{
+			"id":         responseID,
+			"model":      model,
+			"status":     "completed",
+			"created_at": getCurrentTimestamp(),
+			"output": []map[string]interface{}{
+				{
+					"id":     itemID,
+					"type":   "message",
+					"role":   "assistant",
+					"status": "completed",
+					"content": []map[string]interface{}{
+						{
+							"type": "output_text",
+							"text": message,
+						},
+					},
+				},
+			},
+			"guardrail_triggered": true,
+			"violation_reason":    violationReason,
+		},
+	}
+	if eventData, err := json.Marshal(completedEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+}
+
+// getCurrentTimestamp returns the current Unix timestamp
+func getCurrentTimestamp() int64 {
+	return int64(0) // Use 0 for consistency with other guardrail responses
 }
 
 // validatePreviousResponse validates that a previous response ID exists and is accessible

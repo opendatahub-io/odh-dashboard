@@ -96,6 +96,8 @@ export type CreateResponseRequest = {
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
+  input_shield_id?: string;
+  output_shield_id?: string;
 };
 
 export type SimplifiedUsage = {
