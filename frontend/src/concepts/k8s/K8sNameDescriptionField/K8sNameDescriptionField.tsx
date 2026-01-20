@@ -131,6 +131,13 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     }
   };
 
+  const onK8sNameChange = (key: keyof K8sNameDescriptionFieldData, value: string) => {
+    onDataChange?.(key, value);
+    if (nameChecker) {
+      debouncedNameCheck();
+    }
+  };
+
   const makeNameFeedback = () => {
     switch (isNameValid) {
       case 'invalid':
@@ -207,7 +214,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         allowEdit={showK8sField}
         dataTestId={dataTestId}
         k8sName={k8sName}
-        onDataChange={onDataChange}
+        onDataChange={onK8sNameChange}
         resourceNameTakenHelperText={resourceNameTakenHelperText}
       />
       {!hideDescription ? (
