@@ -19,10 +19,45 @@ const MlflowEntityNamesContext = React.createContext<MlflowEntityNamesContextTyp
   setName: () => undefined,
 });
 
+const STORAGE_KEY = 'odh.mlflow.entityNames';
+
+const isValidEntries = (data: unknown): data is [string, string][] =>
+  Array.isArray(data) &&
+  data.every(
+    (entry) =>
+      Array.isArray(entry) &&
+      entry.length === 2 &&
+      typeof entry[0] === 'string' &&
+      typeof entry[1] === 'string',
+  );
+
+const loadFromStorage = (): Map<string, string> => {
+  try {
+    const stored = sessionStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed: unknown = JSON.parse(stored);
+      if (isValidEntries(parsed)) {
+        return new Map(parsed);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return new Map();
+};
+
+const saveToStorage = (cache: Map<string, string>): void => {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...cache]));
+  } catch {
+    // ignore
+  }
+};
+
 export const MlflowEntityNamesProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [cache, setCache] = React.useState<Map<string, string>>(new Map());
+  const [cache, setCache] = React.useState<Map<string, string>>(loadFromStorage);
 
   const getName = React.useCallback(
     (type: MlflowEntityType, id: string): string | undefined => cache.get(`${type}:${id}`),
@@ -37,6 +72,7 @@ export const MlflowEntityNamesProvider: React.FC<{ children: React.ReactNode }> 
       }
       const next = new Map(prev);
       next.set(key, name);
+      saveToStorage(next);
       return next;
     });
   }, []);
