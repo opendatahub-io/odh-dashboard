@@ -3,8 +3,6 @@ import {
   Alert,
   Button,
   Form,
-  Stack,
-  StackItem,
   Modal,
   ModalBody,
   ModalHeader,
@@ -35,7 +33,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const defaultNameValidation = editProjectData ? 'valid' : '';
-  const [nameAvailabilityValidation, setNameAvailabilityValidation] = React.useState(defaultNameValidation);
+  const [nameAvailabilityValidation, setNameAvailabilityValidation] =
+    React.useState(defaultNameValidation);
   const [error, setError] = React.useState<Error | undefined>();
   const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
     initialData: editProjectData,
@@ -98,35 +97,31 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
     <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
       <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
       <ModalBody>
-        <Stack hasGutter>
-          <StackItem>
-            <Form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submit();
-              }}
-            >
-              <K8sNameDescriptionField
-                autoFocusName
-                dataTestId="manage-project-modal"
-                maxLength={250}
-                maxLengthDesc={5500}
-                nameChecker={editProjectData ? undefined : nameChecker}
-                onNameValidationChange={editProjectData ? undefined : setNameAvailabilityValidation}
-                {...k8sNameDescriptionData}
-              />
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <K8sNameDescriptionField
+            autoFocusName
+            dataTestId="manage-project-modal"
+            maxLength={250}
+            maxLengthDesc={5500}
+            nameChecker={editProjectData ? undefined : nameChecker}
+            onNameValidationChange={editProjectData ? undefined : setNameAvailabilityValidation}
+            {...k8sNameDescriptionData}
+          />
           {error && (
-            <StackItem>
-              <Alert
-                variant="danger"
-                isInline
-                title={editProjectData ? 'Error updating project' : 'Error creating project'}
-              >
-                {error.message}
-              </Alert>
-            </StackItem>
+            <Alert
+              variant="danger"
+              isInline
+              title={editProjectData ? 'Error updating project' : 'Error creating project'}
+            >
+              {error.message}
+            </Alert>
           )}
-        </Stack>
+        </Form>
       </ModalBody>
       <ModalFooter>
         <Button
