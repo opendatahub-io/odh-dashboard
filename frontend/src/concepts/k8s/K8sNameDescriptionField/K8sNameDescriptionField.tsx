@@ -95,14 +95,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
 
   const debouncedNameCheck = React.useCallback(
     (value: string) => {
-      // Clear existing timeout
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
 
-      // Set new timeout for name checking
       debounceTimeoutRef.current = setTimeout(async () => {
-        console.log('actually (debounced?) checking:', value);
         if (!nameChecker) {
           return;
         }
@@ -112,9 +109,8 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           setIsNameValid(result ? 'valid' : 'invalid');
         } catch {
           setIsNameValid('invalid');
-          console.error('name check failed :(');
         }
-      }, 220);
+      }, 500);
     },
     [nameChecker],
   );
