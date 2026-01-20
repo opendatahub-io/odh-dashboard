@@ -12,7 +12,7 @@ metadata:
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-dashboard
+    appstudio.openshift.io/component: odh-dashboard-ci
     pipelines.appstudio.openshift.io/type: build
   name: odh-dashboard-on-push
   namespace: open-data-hub-tenant
