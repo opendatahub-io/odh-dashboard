@@ -1294,6 +1294,7 @@ export type DashboardCommonConfig = {
   disableServingRuntimeParams: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
+  disableNIMServices: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
   disableLMEval: boolean;
