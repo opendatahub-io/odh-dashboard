@@ -51,6 +51,7 @@ export const modelServingFlags = {
   disableKServeMetrics: false,
   disableKServeRaw: false,
   disableNIMModelServing: false,
+  disableNIMServices: true,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
   disableLLMd: false,
