@@ -19,9 +19,9 @@ import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldApply } from './useWizardFieldApply';
 import type { InitialWizardFormData } from './types';
-import { ExitDeploymentModal } from './exitModel/ExitDeploymentModal';
+import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
-import { useExitDeploymentWizard } from './exitModel/useExitDeploymentWizard';
+import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
