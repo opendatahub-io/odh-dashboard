@@ -75,12 +75,19 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
 
   const { name, description, k8sName } = data;
 
+  // Keep a ref to the latest k8sName.value for async access
+  const k8sNameRef = React.useRef<string>(k8sName.value);
+  React.useEffect(() => {
+    k8sNameRef.current = k8sName.value;
+  }, [k8sName.value]);
+
   const showNameWarning = maxLength && name.length > maxLength - 10;
   const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
-  // nothing:  nothing done yet; *virgin* form
-  // 'invalid'': name is not valid
-  // 'valid': name is valid
-  // 'in progress': name is being checked
+
+  // 'valid': name is available
+  // 'invalid': name is taken
+  // 'in progress': checking...
+  // '': not yet checked
   const [isNameValid, setIsNameValid] = React.useState('');
 
   // Cleanup debounce timeout on unmount
@@ -93,33 +100,34 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     [],
   );
 
-  const debouncedNameCheck = React.useCallback(
-    (value: string) => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
+  const debouncedNameCheck = React.useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
 
-      debounceTimeoutRef.current = setTimeout(async () => {
-        if (!nameChecker) {
-          return;
-        }
-        setIsNameValid('in progress');
-        try {
-          const result = await nameChecker(value);
-          setIsNameValid(result ? 'valid' : 'invalid');
-        } catch {
-          setIsNameValid('invalid');
-        }
-      }, 500);
-    },
-    [nameChecker],
-  );
+    debounceTimeoutRef.current = setTimeout(async () => {
+      if (!nameChecker) {
+        return;
+      }
+      const resourceName = k8sNameRef.current;
+      if (!resourceName) {
+        return;
+      }
+      setIsNameValid('in progress');
+      try {
+        const result = await nameChecker(resourceName);
+        setIsNameValid(result ? 'valid' : 'invalid');
+      } catch {
+        setIsNameValid('invalid');
+      }
+    }, 500);
+  }, [nameChecker]);
 
   const onDisplayNameChange = (value: string) => {
     onDataChange?.('name', value);
 
     if (nameChecker) {
-      debouncedNameCheck(value);
+      debouncedNameCheck();
     }
   };
 
@@ -163,7 +171,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             </HelperTextItem>
           </HelperText>
         )}
-        {nameChecker && !showK8sField && nameFeedback}
+        {nameChecker && nameFeedback}
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
           <HelperText>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
