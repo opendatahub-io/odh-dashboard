@@ -3,6 +3,8 @@ import {
   Alert,
   Button,
   Form,
+  Stack,
+  StackItem,
   Modal,
   ModalBody,
   ModalHeader,
@@ -97,31 +99,37 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
     <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
       <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
       <ModalBody>
-        <Form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-        >
-          <K8sNameDescriptionField
-            autoFocusName
-            dataTestId="manage-project-modal"
-            maxLength={250}
-            maxLengthDesc={5500}
-            nameChecker={editProjectData ? undefined : nameChecker}
-            onNameValidationChange={editProjectData ? undefined : setNameAvailabilityValidation}
-            {...k8sNameDescriptionData}
-          />
-          {error && (
-            <Alert
-              variant="danger"
-              isInline
-              title={editProjectData ? 'Error updating project' : 'Error creating project'}
+        <Stack hasGutter>
+          <StackItem>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
             >
-              {error.message}
-            </Alert>
+              <K8sNameDescriptionField
+                autoFocusName
+                dataTestId="manage-project-modal"
+                maxLength={250}
+                maxLengthDesc={5500}
+                nameChecker={editProjectData ? undefined : nameChecker}
+                onNameValidationChange={editProjectData ? undefined : setNameAvailabilityValidation}
+                {...k8sNameDescriptionData}
+              />
+            </Form>
+          </StackItem>
+          {error && (
+            <StackItem>
+              <Alert
+                variant="danger"
+                isInline
+                title={editProjectData ? 'Error updating project' : 'Error creating project'}
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
           )}
-        </Form>
+        </Stack>
       </ModalBody>
       <ModalFooter>
         <Button

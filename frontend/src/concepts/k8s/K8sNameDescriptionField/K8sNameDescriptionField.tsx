@@ -4,6 +4,7 @@ import {
   FormGroup,
   HelperText,
   HelperTextItem,
+  StackItem,
   TextArea,
   TextInput,
   ValidatedOptions,
@@ -218,7 +219,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             </HelperTextItem>
           </HelperText>
         )}
-        {nameChecker && nameFeedback}
+        {nameChecker && nameFeedback && <div style={{ marginTop: '5px' }}>{nameFeedback}</div>}
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
           <HelperText>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
