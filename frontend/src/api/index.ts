@@ -2,6 +2,7 @@
 
 // Normal SDK/pass-through network API calls
 export * from './k8s/nimAccounts';
+export * from './k8s/nimServices';
 export * from './k8s/auth';
 export * from './k8s/builds';
 export * from './k8s/clusterRoles';
