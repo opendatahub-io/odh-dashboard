@@ -2,12 +2,15 @@ import * as React from 'react';
 import { Route } from 'react-router-dom';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import GlobalMLflowExperimentsPage from '#~/pages/pipelines/global/mlflowExperiments/MLFlowExperimentsPage';
+import { MlflowEntityNamesProvider } from './global/mlflowExperiments/context/MlflowEntityNamesContext';
 
 const GlobalMLflowExperimentsRoutes: React.FC = () => {
   return (
-    <ProjectsRoutes>
-      <Route path="*" element={<GlobalMLflowExperimentsPage />} />
-    </ProjectsRoutes>
+    <MlflowEntityNamesProvider>
+      <ProjectsRoutes>
+        <Route path="*" element={<GlobalMLflowExperimentsPage />} />
+      </ProjectsRoutes>
+    </MlflowEntityNamesProvider>
   );
 };
 

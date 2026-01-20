@@ -1,12 +1,14 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 interface MLflowIframeCSSOverrideProps {
-  children: (iframeRef: React.RefObject<HTMLIFrameElement>) => React.ReactNode;
+  iframeRef: React.RefObject<HTMLIFrameElement>;
+  children: React.ReactNode;
 }
 
-const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ children }) => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
+const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({
+  iframeRef,
+  children,
+}) => {
   const isElementNode = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
 
   const isHTMLElement = (element: Element): element is HTMLElement =>
@@ -90,7 +92,7 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
     return undefined;
   }, []);
 
-  return children(iframeRef);
+  return <>{children}</>;
 };
 
 export default MLflowIframeCSSOverride;

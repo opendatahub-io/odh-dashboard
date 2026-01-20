@@ -5,21 +5,19 @@ import {
   buildParentPathQuery,
   MLFLOW_DEFAULT_PATH,
   normalizePathQuery,
-} from '#~/routes/pipelines/mlflowExperiments.ts';
+} from '#~/routes/pipelines/mlflowExperiments';
+import { useMlflowEntityNames } from '#~/pages/pipelines/global/mlflowExperiments/context/MlflowEntityNamesContext';
 import { buildBreadcrumbsFromMlflowPathQuery } from './utils';
 
 const MLflowExperimentsBreadcrumb: React.FC = () => {
   const { pathname, search } = useLocation();
-
+  const { getName } = useMlflowEntityNames();
   const pathQuery =
     normalizePathQuery(buildParentPathQuery(pathname, search)) || MLFLOW_DEFAULT_PATH;
-
-  const breadcrumbs = buildBreadcrumbsFromMlflowPathQuery(pathQuery);
-
+  const breadcrumbs = buildBreadcrumbsFromMlflowPathQuery(pathQuery, getName);
   if (breadcrumbs.length === 0) {
     return null;
   }
-
   return (
     <Breadcrumb data-testid="mlflow-experiments-breadcrumb">
       {breadcrumbs.map((b, idx) => {

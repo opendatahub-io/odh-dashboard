@@ -1,66 +1,105 @@
 import {
   MLFLOW_DEFAULT_PATH,
   MLFLOW_EXPERIMENTS_ROUTE,
-} from '#~/routes/pipelines/mlflowExperiments.ts';
+} from '#~/routes/pipelines/mlflowExperiments';
+import { MlflowEntityType } from '#~/pages/pipelines/global/mlflowExperiments/context/MlflowEntityNamesContext';
 
 export type BreadcrumbSegment = {
   label: string;
   path: string;
 };
 
-const ROUTE_SEGMENTS = {
+const SEGMENTS = {
+  EXPERIMENTS: 'experiments',
+  RUNS: 'runs',
+  MODELS: 'models',
+  PROMPTS: 'prompts',
+  VERSIONS: 'versions',
+  TRACES: 'traces',
+  DATASETS: 'datasets',
+  CHAT_SESSIONS: 'chat-sessions',
+  EVALUATION_RUNS: 'evaluation-runs',
+  ARTIFACT_PATH: 'artifactPath',
+  METRIC: 'metric',
   COMPARE_RUNS: 'compare-runs',
   COMPARE_EXPERIMENTS: 'compare-experiments',
   COMPARE_MODEL_VERSIONS: 'compare-model-versions',
-  METRIC: 'metric',
-  EXPERIMENTS: 'experiments',
-  PROMPTS: 'prompts',
-  MODELS: 'models',
-  RUNS: 'runs',
-  VERSIONS: 'versions',
-  ARTIFACT_PATH: 'artifactPath',
-  CHAT_SESSIONS: 'chat-sessions',
-  EVALUATION_RUNS: 'evaluation-runs',
-  TRACES: 'traces',
-  DATASETS: 'datasets',
-  SEARCH: 's',
-} as const;
-
-const TAB_LABELS: Record<string, string> = {
-  [ROUTE_SEGMENTS.RUNS]: 'Runs',
-  [ROUTE_SEGMENTS.TRACES]: 'Traces',
-  [ROUTE_SEGMENTS.MODELS]: 'Models',
-  [ROUTE_SEGMENTS.EVALUATION_RUNS]: 'Evaluation Runs',
-  [ROUTE_SEGMENTS.DATASETS]: 'Datasets',
-  [ROUTE_SEGMENTS.CHAT_SESSIONS]: 'Chat Sessions',
-  [ROUTE_SEGMENTS.PROMPTS]: 'Prompts',
-  [ROUTE_SEGMENTS.SEARCH]: 'Search',
 };
 
-const seg = (label: string, path: string): BreadcrumbSegment => ({ label, path });
+type SegmentKey = (typeof SEGMENTS)[keyof typeof SEGMENTS];
+
+const TAB_LABELS: Record<SegmentKey, string> = {
+  [SEGMENTS.RUNS]: 'Runs',
+  [SEGMENTS.TRACES]: 'Traces',
+  [SEGMENTS.MODELS]: 'Models',
+  [SEGMENTS.PROMPTS]: 'Prompts',
+  [SEGMENTS.DATASETS]: 'Datasets',
+  [SEGMENTS.CHAT_SESSIONS]: 'Chat Sessions',
+  [SEGMENTS.EVALUATION_RUNS]: 'Evaluation Runs',
+  [SEGMENTS.COMPARE_RUNS]: 'Compare Runs',
+  [SEGMENTS.COMPARE_EXPERIMENTS]: 'Compare Experiments',
+  [SEGMENTS.COMPARE_MODEL_VERSIONS]: 'Compare Model Versions',
+  [SEGMENTS.EXPERIMENTS]: 'Experiments',
+  [SEGMENTS.VERSIONS]: 'Versions',
+  [SEGMENTS.ARTIFACT_PATH]: 'Artifacts',
+  [SEGMENTS.METRIC]: 'Metric',
+};
+
+export type GetNameFn = (type: MlflowEntityType, id: string) => string | undefined;
+
+const isSegmentKey = (value: string): value is SegmentKey =>
+  Object.values(SEGMENTS).includes(value);
+
+const getLabel = (type: MlflowEntityType, id: string, getName?: GetNameFn): string =>
+  getName?.(type, id) ?? id;
+
+const getExperimentLabel = (id: string, suffix: string, getName?: GetNameFn): string => {
+  const name = getName?.('experiment', id);
+  return name ? `${name}${suffix}` : `Experiment ${id}${suffix}`;
+};
+
+const toPath = (parts: string[], endIndex: number): string =>
+  `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.slice(0, endIndex).join('/')}`;
+
+const createSegment = (
+  key: SegmentKey,
+  prefixOrPartsOrFullPath: string | string[],
+  endIndex?: number,
+): BreadcrumbSegment => {
+  let path: string;
+  if (Array.isArray(prefixOrPartsOrFullPath)) {
+    path = endIndex ? toPath(prefixOrPartsOrFullPath, endIndex) : '';
+  } else if (prefixOrPartsOrFullPath.startsWith(MLFLOW_EXPERIMENTS_ROUTE)) {
+    path = prefixOrPartsOrFullPath;
+  } else {
+    path = `${MLFLOW_EXPERIMENTS_ROUTE}/${prefixOrPartsOrFullPath}/${key}`;
+  }
+  return { label: TAB_LABELS[key], path };
+};
 
 const splitPathQuery = (pathQuery: string): { path: string; query?: string } => {
   const [path, query] = pathQuery.split('?');
   return { path: path || pathQuery, query };
 };
 
-const isIntString = (value: string): boolean => {
-  const n = Number(value);
-  return Number.isInteger(Number(value)) && !Number.isNaN(n);
+const isNumericId = (value: string): boolean => {
+  const num = Number(value);
+  return Number.isInteger(num) && !Number.isNaN(num);
 };
 
-const buildPath = (pathParts: string[], endExclusive: number): string =>
-  `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, endExclusive).join('/')}`;
+const findSegment = (parts: string[], segment: string): number =>
+  parts.findIndex((p) => p === segment);
 
-const parseCompareRunsExperimentId = (queryString?: string): string | null => {
-  if (!queryString) {
-    return null;
-  }
+const getWorkspacePrefix = (parts: string[], segmentIndex: number): string =>
+  parts.slice(0, segmentIndex).join('/');
+
+const parseExperimentIdFromQuery = (queryString?: string): string | null => {
+  if (!queryString) return null;
+
   const params = new URLSearchParams(queryString);
-  const experimentsParam = params.get(ROUTE_SEGMENTS.EXPERIMENTS);
-  if (!experimentsParam) {
-    return null;
-  }
+  const experimentsParam = params.get(SEGMENTS.EXPERIMENTS);
+  if (!experimentsParam) return null;
+
   try {
     const experiments = JSON.parse(experimentsParam);
     if (Array.isArray(experiments) && experiments.length > 0) {
@@ -69,341 +108,300 @@ const parseCompareRunsExperimentId = (queryString?: string): string | null => {
   } catch {
     // ignore
   }
-
   return null;
 };
 
 const buildCompareRunsBreadcrumbs = (
-  pathParts: string[],
-  queryString?: string,
+  parts: string[],
+  query?: string,
+  getName?: GetNameFn,
 ): BreadcrumbSegment[] => {
-  const compareIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.COMPARE_RUNS);
-  const workspacePrefix = pathParts.slice(0, compareIdx).join('/');
-  const experimentId = parseCompareRunsExperimentId(queryString);
-  const segments: BreadcrumbSegment[] = [
-    seg(
-      'Experiments',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.EXPERIMENTS}`,
-    ),
-  ];
+  const idx = findSegment(parts, SEGMENTS.COMPARE_RUNS);
+  const prefix = getWorkspacePrefix(parts, idx);
+  const experimentId = parseExperimentIdFromQuery(query);
+  const breadcrumbs: BreadcrumbSegment[] = [createSegment(SEGMENTS.EXPERIMENTS, prefix)];
 
   if (experimentId) {
-    segments.push(
-      seg(
-        `Experiment ${experimentId} runs`,
-        `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.EXPERIMENTS}/${experimentId}/${ROUTE_SEGMENTS.RUNS}`,
-      ),
-    );
+    breadcrumbs.push({
+      label: getExperimentLabel(experimentId, ` ${SEGMENTS.RUNS}`, getName),
+      path: `${MLFLOW_EXPERIMENTS_ROUTE}/${prefix}/${SEGMENTS.EXPERIMENTS}/${experimentId}/${SEGMENTS.RUNS}`,
+    });
   }
 
-  segments.push(
-    seg(
-      'Compare Runs',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.join('/')}${queryString ? `?${queryString}` : ''}`,
-    ),
-  );
-
-  return segments;
+  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}${query ? `?${query}` : ''}`;
+  breadcrumbs.push(createSegment(SEGMENTS.COMPARE_RUNS, fullPath));
+  return breadcrumbs;
 };
 
-const buildCompareExperimentsBreadcrumbs = (
-  pathParts: string[],
-  compareIdx: number,
-): BreadcrumbSegment[] => {
-  const workspacePrefix = pathParts.slice(0, compareIdx).join('/');
+const buildCompareExperimentsBreadcrumbs = (parts: string[], idx: number): BreadcrumbSegment[] => {
+  const prefix = getWorkspacePrefix(parts, idx);
+  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}`;
   return [
-    seg(
-      'Experiments',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.EXPERIMENTS}`,
-    ),
-    seg('Compare Experiments', `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.join('/')}`),
+    createSegment(SEGMENTS.EXPERIMENTS, prefix),
+    createSegment(SEGMENTS.COMPARE_EXPERIMENTS, fullPath),
   ];
 };
 
 const buildCompareModelVersionsBreadcrumbs = (
-  pathParts: string[],
-  compareIdx: number,
+  parts: string[],
+  idx: number,
 ): BreadcrumbSegment[] => {
-  const workspacePrefix = pathParts.slice(0, compareIdx).join('/');
+  const prefix = getWorkspacePrefix(parts, idx);
+  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}`;
   return [
-    seg('Models', `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.MODELS}`),
-    seg('Compare Versions', `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.join('/')}`),
+    createSegment(SEGMENTS.MODELS, prefix),
+    createSegment(SEGMENTS.COMPARE_MODEL_VERSIONS, fullPath),
   ];
 };
 
-const buildMetricBreadcrumbs = (pathParts: string[], metricIdx: number): BreadcrumbSegment[] => {
-  const workspacePrefix = pathParts.slice(0, metricIdx).join('/');
-  const metricLabel = pathParts.slice(metricIdx + 1).join('/') || 'Metric';
-
+const buildMetricBreadcrumbs = (parts: string[], idx: number): BreadcrumbSegment[] => {
+  const prefix = getWorkspacePrefix(parts, idx);
+  const metricName = parts.slice(idx + 1).join('/') || 'Metric';
   return [
-    seg(
-      'Experiments',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.EXPERIMENTS}`,
-    ),
-    seg(metricLabel, `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.join('/')}`),
+    createSegment(SEGMENTS.EXPERIMENTS, prefix),
+    { label: metricName, path: `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}` },
   ];
 };
 
-const buildPromptsBreadcrumbs = (pathParts: string[], promptsIdx: number): BreadcrumbSegment[] => {
-  const workspacePrefix = pathParts.slice(0, promptsIdx).join('/');
+const buildPromptsBreadcrumbs = (parts: string[], idx: number): BreadcrumbSegment[] => {
+  const prefix = getWorkspacePrefix(parts, idx);
+  const breadcrumbs: BreadcrumbSegment[] = [createSegment(SEGMENTS.PROMPTS, prefix)];
+  if (parts.length > idx + 1) {
+    const promptName = parts[idx + 1];
+    breadcrumbs.push({ label: promptName, path: toPath(parts, idx + 2) });
+  }
+  return breadcrumbs;
+};
 
-  const segments: BreadcrumbSegment[] = [
-    seg('Prompts', `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.PROMPTS}`),
-  ];
+const buildModelsBreadcrumbs = (parts: string[], idx: number): BreadcrumbSegment[] => {
+  const prefix = getWorkspacePrefix(parts, idx);
+  const breadcrumbs: BreadcrumbSegment[] = [createSegment(SEGMENTS.MODELS, prefix)];
+  if (parts.length <= idx + 1) {
+    return breadcrumbs;
+  }
+  const modelName = parts[idx + 1];
+  breadcrumbs.push({ label: modelName, path: toPath(parts, idx + 2) });
 
-  if (pathParts.length > promptsIdx + 1) {
-    const promptName = pathParts[promptsIdx + 1];
-    segments.push(
-      seg(
-        promptName,
-        `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, promptsIdx + 2).join('/')}`,
-      ),
-    );
+  if (parts.length > idx + 3 && parts[idx + 2] === SEGMENTS.VERSIONS) {
+    const version = parts[idx + 3];
+    breadcrumbs.push({ label: `Version ${version}`, path: toPath(parts, idx + 4) });
+    return breadcrumbs;
   }
 
-  return segments;
-};
-
-const buildModelsBreadcrumbs = (pathParts: string[], modelsIdx: number): BreadcrumbSegment[] => {
-  const workspacePrefix = pathParts.slice(0, modelsIdx).join('/');
-
-  const segments: BreadcrumbSegment[] = [
-    seg('Models', `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.MODELS}`),
-  ];
-
-  if (pathParts.length <= modelsIdx + 1) return segments;
-
-  const modelName = pathParts[modelsIdx + 1];
-  segments.push(
-    seg(modelName, `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, modelsIdx + 2).join('/')}`),
-  );
-
-  if (pathParts.length > modelsIdx + 3 && pathParts[modelsIdx + 2] === ROUTE_SEGMENTS.VERSIONS) {
-    const version = pathParts[modelsIdx + 3];
-    segments.push(
-      seg(
-        `Version ${version}`,
-        `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, modelsIdx + 4).join('/')}`,
-      ),
-    );
-    return segments;
-  }
-
-  if (pathParts.length > modelsIdx + 2) {
-    const subpage = pathParts[modelsIdx + 2];
-    segments.push(
-      seg(subpage, `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, modelsIdx + 3).join('/')}`),
-    );
-
-    if (pathParts.length > modelsIdx + 3) {
-      const subpageName = pathParts[modelsIdx + 3];
-      segments.push(
-        seg(
-          subpageName,
-          `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, modelsIdx + 4).join('/')}`,
-        ),
-      );
+  if (parts.length > idx + 2) {
+    const subpage = parts[idx + 2];
+    breadcrumbs.push({ label: subpage, path: toPath(parts, idx + 3) });
+    if (parts.length > idx + 3) {
+      const subpageName = parts[idx + 3];
+      breadcrumbs.push({ label: subpageName, path: toPath(parts, idx + 4) });
     }
   }
 
-  return segments;
+  return breadcrumbs;
 };
 
-const buildDirectRunBreadcrumbs = (pathParts: string[], runsIdx: number): BreadcrumbSegment[] => {
-  const workspacePrefix = pathParts.slice(0, runsIdx).join('/');
-
-  const segments: BreadcrumbSegment[] = [
-    seg(
-      'Experiments',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/${workspacePrefix}/${ROUTE_SEGMENTS.EXPERIMENTS}`,
-    ),
-  ];
-
-  if (pathParts.length > runsIdx + 1) {
-    const runUuid = pathParts[runsIdx + 1];
-    segments.push(
-      seg(runUuid, `${MLFLOW_EXPERIMENTS_ROUTE}/${pathParts.slice(0, runsIdx + 2).join('/')}`),
-    );
+const buildDirectRunBreadcrumbs = (
+  parts: string[],
+  idx: number,
+  getName?: GetNameFn,
+): BreadcrumbSegment[] => {
+  const prefix = getWorkspacePrefix(parts, idx);
+  const breadcrumbs: BreadcrumbSegment[] = [createSegment(SEGMENTS.EXPERIMENTS, prefix)];
+  if (parts.length > idx + 1) {
+    const runId = parts[idx + 1];
+    breadcrumbs.push({ label: getLabel('run', runId, getName), path: toPath(parts, idx + 2) });
   }
 
-  return segments;
+  return breadcrumbs;
 };
 
-const appendRunDetails = (
-  segments: BreadcrumbSegment[],
-  pathParts: string[],
-  runUuidIdx: number,
+const appendRun = (
+  breadcrumbs: BreadcrumbSegment[],
+  parts: string[],
+  runIdx: number,
+  getName?: GetNameFn,
 ): number => {
-  const runUuid = pathParts[runUuidIdx];
-  segments.push(seg(runUuid, buildPath(pathParts, runUuidIdx + 1)));
-  const subIdx = runUuidIdx + 1;
-  if (pathParts.length <= subIdx) return subIdx;
-  const subPart = pathParts[subIdx];
-  if (subPart === ROUTE_SEGMENTS.ARTIFACT_PATH) {
-    segments.push(seg('Artifacts', buildPath(pathParts, subIdx + 1)));
-    return Math.min(subIdx + 2, pathParts.length);
+  const runId = parts[runIdx];
+  breadcrumbs.push({ label: getLabel('run', runId, getName), path: toPath(parts, runIdx + 1) });
+  const nextIdx = runIdx + 1;
+  if (parts.length <= nextIdx) return nextIdx;
+  const nextPart = parts[nextIdx];
+  if (nextPart === SEGMENTS.ARTIFACT_PATH) {
+    breadcrumbs.push(createSegment(SEGMENTS.ARTIFACT_PATH, parts, nextIdx + 1));
+    return Math.min(nextIdx + 2, parts.length);
   }
-  segments.push(seg(subPart, buildPath(pathParts, subIdx + 1)));
-  return subIdx + 1;
+  breadcrumbs.push({ label: nextPart, path: toPath(parts, nextIdx + 1) });
+
+  return nextIdx + 1;
 };
 
-const appendModelDetails = (
-  segments: BreadcrumbSegment[],
-  pathParts: string[],
-  loggedModelIdIdx: number,
+const appendLoggedModel = (
+  breadcrumbs: BreadcrumbSegment[],
+  parts: string[],
+  modelIdx: number,
+  getName?: GetNameFn,
 ): number => {
-  const loggedModelId = pathParts[loggedModelIdIdx];
-  segments.push(seg(loggedModelId, buildPath(pathParts, loggedModelIdIdx + 1)));
-  const tabNameIdx = loggedModelIdIdx + 1;
-  if (pathParts.length > tabNameIdx) {
-    const tabName = pathParts[tabNameIdx];
-    segments.push(seg(tabName, buildPath(pathParts, tabNameIdx + 1)));
-    return tabNameIdx + 1;
+  const modelId = parts[modelIdx];
+  breadcrumbs.push({
+    label: getLabel('loggedModel', modelId, getName),
+    path: toPath(parts, modelIdx + 1),
+  });
+  const tabIdx = modelIdx + 1;
+  if (parts.length > tabIdx) {
+    const tabName = parts[tabIdx];
+    breadcrumbs.push({ label: tabName, path: toPath(parts, tabIdx + 1) });
+    return tabIdx + 1;
   }
-  return loggedModelIdIdx + 1;
+
+  return modelIdx + 1;
 };
 
-const appendSingleId = (
-  segments: BreadcrumbSegment[],
-  pathParts: string[],
+const appendSessionOrPrompt = (
+  breadcrumbs: BreadcrumbSegment[],
+  parts: string[],
   idIdx: number,
+  type: 'session' | 'prompt',
+  getName?: GetNameFn,
 ): number => {
-  segments.push(seg(pathParts[idIdx], buildPath(pathParts, idIdx + 1)));
+  const id = parts[idIdx];
+  const label = getLabel(type, id, getName);
+  breadcrumbs.push({ label, path: toPath(parts, idIdx + 1) });
   return idIdx + 1;
 };
 
-const buildExperimentsSubtreeBreadcrumbs = (
-  pathParts: string[],
+const buildExperimentSubtreeBreadcrumbs = (
+  parts: string[],
   experimentsIdx: number,
+  getName?: GetNameFn,
 ): BreadcrumbSegment[] => {
-  if (experimentsIdx === pathParts.length - 1) return [];
-  const segments: BreadcrumbSegment[] = [
-    seg('Experiments', buildPath(pathParts, experimentsIdx + 1)),
+  if (experimentsIdx === parts.length - 1) return [];
+  const breadcrumbs: BreadcrumbSegment[] = [
+    createSegment(SEGMENTS.EXPERIMENTS, parts, experimentsIdx + 1),
   ];
   let i = experimentsIdx + 1;
-  while (i < pathParts.length) {
-    const part = pathParts[i];
+  while (i < parts.length) {
+    const current = parts[i];
+    const next = parts[i + 1];
+    const prev = parts[i - 1];
 
-    if (isIntString(part)) {
-      const experimentId = part;
-      const tab = pathParts[i + 1];
-      if (tab && TAB_LABELS[tab]) {
-        segments.push(
-          seg(
-            `Experiment ${experimentId} ${TAB_LABELS[tab].toLowerCase()}`,
-            buildPath(pathParts, i + 2),
-          ),
-        );
+    if (isNumericId(current)) {
+      const experimentId = current;
+      if (next && isSegmentKey(next)) {
+        const tabLabel = TAB_LABELS[next].toLowerCase();
+        breadcrumbs.push({
+          label: getExperimentLabel(experimentId, ` ${tabLabel}`, getName),
+          path: toPath(parts, i + 2),
+        });
         i += 2;
-        if (tab === ROUTE_SEGMENTS.RUNS && i < pathParts.length) {
-          i = appendRunDetails(segments, pathParts, i);
-          continue;
+        if (i < parts.length) {
+          if (next === SEGMENTS.RUNS) {
+            i = appendRun(breadcrumbs, parts, i, getName);
+          } else if (next === SEGMENTS.MODELS) {
+            i = appendLoggedModel(breadcrumbs, parts, i, getName);
+          } else if (next === SEGMENTS.CHAT_SESSIONS) {
+            i = appendSessionOrPrompt(breadcrumbs, parts, i, 'session', getName);
+          } else if (next === SEGMENTS.PROMPTS) {
+            i = appendSessionOrPrompt(breadcrumbs, parts, i, 'prompt', getName);
+          }
         }
+        continue;
+      }
+      breadcrumbs.push({
+        label: getExperimentLabel(experimentId, '', getName),
+        path: toPath(parts, i + 1),
+      });
+      i += 1;
+      continue;
+    }
 
-        if (tab === ROUTE_SEGMENTS.MODELS && i < pathParts.length) {
-          i = appendModelDetails(segments, pathParts, i);
+    if (isSegmentKey(current) && prev && !isNumericId(prev)) {
+      breadcrumbs.push(createSegment(current, parts, i + 1));
+
+      if (i + 1 < parts.length) {
+        if (current === SEGMENTS.MODELS) {
+          i = appendLoggedModel(breadcrumbs, parts, i + 1, getName);
           continue;
         }
-        if (
-          (tab === ROUTE_SEGMENTS.CHAT_SESSIONS || tab === ROUTE_SEGMENTS.PROMPTS) &&
-          i < pathParts.length
-        ) {
-          i = appendSingleId(segments, pathParts, i);
+        if (current === SEGMENTS.CHAT_SESSIONS) {
+          i = appendSessionOrPrompt(breadcrumbs, parts, i + 1, 'session', getName);
           continue;
         }
-        continue;
+        if (current === SEGMENTS.PROMPTS) {
+          i = appendSessionOrPrompt(breadcrumbs, parts, i + 1, 'prompt', getName);
+          continue;
+        }
       }
-      segments.push(seg(`Experiment ${experimentId}`, buildPath(pathParts, i + 1)));
       i += 1;
       continue;
     }
-    if (TAB_LABELS[part] && !isIntString(pathParts[i - 1] ?? '')) {
-      segments.push(seg(TAB_LABELS[part], buildPath(pathParts, i + 1)));
-      if (part === ROUTE_SEGMENTS.MODELS && i + 1 < pathParts.length) {
-        i = appendModelDetails(segments, pathParts, i + 1);
-        continue;
-      }
-      if (
-        (part === ROUTE_SEGMENTS.CHAT_SESSIONS || part === ROUTE_SEGMENTS.PROMPTS) &&
-        i + 1 < pathParts.length
-      ) {
-        i = appendSingleId(segments, pathParts, i + 1);
+
+    if (current === SEGMENTS.RUNS && prev && !isNumericId(prev)) {
+      breadcrumbs.push(createSegment(SEGMENTS.RUNS, parts, i + 1));
+      if (i + 1 < parts.length) {
+        i = appendRun(breadcrumbs, parts, i + 1, getName);
         continue;
       }
       i += 1;
       continue;
     }
-    if (part === ROUTE_SEGMENTS.RUNS && !isIntString(pathParts[i - 1] ?? '')) {
-      segments.push(seg('Runs', buildPath(pathParts, i + 1)));
-      if (i + 1 < pathParts.length) {
-        i = appendRunDetails(segments, pathParts, i + 1);
-        continue;
-      }
-      i += 1;
-      continue;
-    }
-    segments.push(seg(part, buildPath(pathParts, i + 1)));
+
+    breadcrumbs.push({ label: current, path: toPath(parts, i + 1) });
     i += 1;
   }
-  return segments;
+
+  return breadcrumbs;
 };
 
-export const buildBreadcrumbsFromMlflowPathQuery = (pathQuery: string): BreadcrumbSegment[] => {
+export const buildBreadcrumbsFromMlflowPathQuery = (
+  pathQuery: string,
+  getName?: GetNameFn,
+): BreadcrumbSegment[] => {
   const { path, query } = splitPathQuery(pathQuery);
+
+  // No breadcrumbs for base path
   if (path === MLFLOW_DEFAULT_PATH) {
     return [];
   }
-  const pathParts = path.split('/').filter(Boolean);
 
-  const compareRunsIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.COMPARE_RUNS);
+  const parts = path.split('/').filter(Boolean);
+
+  const compareRunsIdx = findSegment(parts, SEGMENTS.COMPARE_RUNS);
   if (compareRunsIdx !== -1) {
-    return buildCompareRunsBreadcrumbs(pathParts, query);
+    return buildCompareRunsBreadcrumbs(parts, query, getName);
   }
-
-  const compareExperimentsIdx = pathParts.findIndex(
-    (p) => p === ROUTE_SEGMENTS.COMPARE_EXPERIMENTS,
-  );
+  const compareExperimentsIdx = findSegment(parts, SEGMENTS.COMPARE_EXPERIMENTS);
   if (compareExperimentsIdx !== -1) {
-    return buildCompareExperimentsBreadcrumbs(pathParts, compareExperimentsIdx);
+    return buildCompareExperimentsBreadcrumbs(parts, compareExperimentsIdx);
   }
-  const compareModelVersionsIdx = pathParts.findIndex(
-    (p) => p === ROUTE_SEGMENTS.COMPARE_MODEL_VERSIONS,
-  );
+  const compareModelVersionsIdx = findSegment(parts, SEGMENTS.COMPARE_MODEL_VERSIONS);
   if (compareModelVersionsIdx !== -1) {
-    return buildCompareModelVersionsBreadcrumbs(pathParts, compareModelVersionsIdx);
+    return buildCompareModelVersionsBreadcrumbs(parts, compareModelVersionsIdx);
   }
 
-  const metricIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.METRIC);
+  const metricIdx = findSegment(parts, SEGMENTS.METRIC);
   if (metricIdx !== -1) {
-    return buildMetricBreadcrumbs(pathParts, metricIdx);
+    return buildMetricBreadcrumbs(parts, metricIdx);
   }
 
-  const experimentsIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.EXPERIMENTS);
-
-  const promptsIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.PROMPTS);
+  const experimentsIdx = findSegment(parts, SEGMENTS.EXPERIMENTS);
+  const promptsIdx = findSegment(parts, SEGMENTS.PROMPTS);
   if (promptsIdx !== -1 && (experimentsIdx === -1 || promptsIdx < experimentsIdx)) {
-    if (promptsIdx === pathParts.length - 1) {
-      return [];
-    }
-    return buildPromptsBreadcrumbs(pathParts, promptsIdx);
+    return promptsIdx === parts.length - 1 ? [] : buildPromptsBreadcrumbs(parts, promptsIdx);
   }
 
-  const modelsIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.MODELS);
+  const modelsIdx = findSegment(parts, SEGMENTS.MODELS);
   if (modelsIdx !== -1 && (experimentsIdx === -1 || modelsIdx < experimentsIdx)) {
-    if (modelsIdx === pathParts.length - 1) {
-      return [];
-    }
-    return buildModelsBreadcrumbs(pathParts, modelsIdx);
+    return modelsIdx === parts.length - 1 ? [] : buildModelsBreadcrumbs(parts, modelsIdx);
   }
 
-  const runsIdx = pathParts.findIndex((p) => p === ROUTE_SEGMENTS.RUNS);
+  const runsIdx = findSegment(parts, SEGMENTS.RUNS);
   if (runsIdx !== -1 && (experimentsIdx === -1 || runsIdx < experimentsIdx)) {
-    return buildDirectRunBreadcrumbs(pathParts, runsIdx);
+    return buildDirectRunBreadcrumbs(parts, runsIdx, getName);
   }
 
-  if (experimentsIdx === -1 || experimentsIdx === pathParts.length - 1) {
+  if (experimentsIdx === -1 || experimentsIdx === parts.length - 1) {
     return [];
   }
 
-  return buildExperimentsSubtreeBreadcrumbs(pathParts, experimentsIdx);
+  return buildExperimentSubtreeBreadcrumbs(parts, experimentsIdx, getName);
 };

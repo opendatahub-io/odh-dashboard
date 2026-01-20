@@ -87,7 +87,7 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
       const result = buildBreadcrumbsFromMlflowPathQuery(
         '/workspaces/default/compare-model-versions',
       );
-      expect(labels(result)).toEqual(['Models', 'Compare Versions']);
+      expect(labels(result)).toEqual(['Models', 'Compare Model Versions']);
       expect(paths(result)).toEqual([
         `${ROUTE_PREFIX}/workspaces/default/models`,
         `${ROUTE_PREFIX}/workspaces/default/compare-model-versions`,
