@@ -86,10 +86,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   };
 
   const nameChecker = React.useCallback(async (value: string) => {
-    console.log('*is* checking name uniqueness...', value);
-    const result = isProjectNameAvailable(value);
-    console.log(`is project name  ${value} available?`, result);
-    return result;
+    return isProjectNameAvailable(value);
   }, []);
 
   return (
