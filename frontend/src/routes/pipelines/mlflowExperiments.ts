@@ -2,8 +2,10 @@ export const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 export const MLFLOW_PROXY_BASE_PATH = '/mlflow';
 export const MLFLOW_DEFAULT_PATH = '/experiments';
 
-export const buildIframePathQuery = (hashPathQuery: string): string =>
-  `${MLFLOW_PROXY_BASE_PATH}/#${hashPathQuery}`;
+export const buildIframePathQuery = (hashPathQuery: string, namespace?: string): string =>
+  `${MLFLOW_PROXY_BASE_PATH}/#${
+    namespace ? `/workspaces/${namespace}${hashPathQuery}` : hashPathQuery
+  }`;
 
 export const getIframeHashPathQuery = (iframe: HTMLIFrameElement): string | null => {
   const iframePathQuery = iframe.contentWindow?.location.href;
@@ -67,3 +69,8 @@ export const patchIframeHistory = (
     }
   };
 };
+
+export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
+  !namespace
+    ? MLFLOW_EXPERIMENTS_ROUTE
+    : `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${namespace}/experiments`;
