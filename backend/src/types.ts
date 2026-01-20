@@ -44,6 +44,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
       disableNIMModelServing: boolean;
+      disableNIMServices: boolean;
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
       disableKueue: boolean;

@@ -95,6 +95,9 @@ spec:
                       type: boolean
                     disableNIMModelServing:
                       type: boolean
+                    disableNIMServices:
+                      type: boolean
+                      description: 'When false, Dashboard creates NIMService objects (requires NVIDIA NIM Operator). When true (default), Dashboard creates InferenceService objects directly via KServe.'
                     disableAdminConnectionTypes:
                       type: boolean
                     disableKueue:
