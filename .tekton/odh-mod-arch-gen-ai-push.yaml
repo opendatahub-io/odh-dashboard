@@ -14,7 +14,7 @@ metadata:
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-mod-arch-gen-ai
+    appstudio.openshift.io/component: odh-mod-arch-gen-ai-ci
     pipelines.appstudio.openshift.io/type: build
   name: odh-mod-arch-gen-ai-on-push
   namespace: open-data-hub-tenant
