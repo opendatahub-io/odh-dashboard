@@ -93,22 +93,26 @@ const findSegment = (parts: string[], segment: string): number =>
 const getWorkspacePrefix = (parts: string[], segmentIndex: number): string =>
   parts.slice(0, segmentIndex).join('/');
 
-const parseExperimentIdFromQuery = (queryString?: string): string | null => {
-  if (!queryString) return null;
+const parseArrayFromQueryParam = (queryString: string | undefined, paramName: string): string[] => {
+  if (!queryString) {
+    return [];
+  }
 
   const params = new URLSearchParams(queryString);
-  const experimentsParam = params.get(SEGMENTS.EXPERIMENTS);
-  if (!experimentsParam) return null;
+  const paramValue = params.get(paramName);
+  if (!paramValue) {
+    return [];
+  }
 
   try {
-    const experiments = JSON.parse(experimentsParam);
-    if (Array.isArray(experiments) && experiments.length > 0) {
-      return String(experiments[0]);
+    const parsed = JSON.parse(paramValue);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((e): e is string => typeof e === 'string');
     }
   } catch {
     // ignore
   }
-  return null;
+  return [];
 };
 
 const buildCompareRunsBreadcrumbs = (
@@ -118,28 +122,66 @@ const buildCompareRunsBreadcrumbs = (
 ): BreadcrumbSegment[] => {
   const idx = findSegment(parts, SEGMENTS.COMPARE_RUNS);
   const prefix = getWorkspacePrefix(parts, idx);
-  const experimentId = parseExperimentIdFromQuery(query);
+  const experimentIds = parseArrayFromQueryParam(query, SEGMENTS.EXPERIMENTS);
+  const runIds = parseArrayFromQueryParam(query, SEGMENTS.RUNS);
+  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}${query ? `?${query}` : ''}`;
   const breadcrumbs: BreadcrumbSegment[] = [createSegment(SEGMENTS.EXPERIMENTS, prefix)];
-
-  if (experimentId) {
+  if (experimentIds.length === 1) {
+    const experimentId = experimentIds[0];
     breadcrumbs.push({
       label: getExperimentLabel(experimentId, ` ${SEGMENTS.RUNS}`, getName),
       path: `${MLFLOW_EXPERIMENTS_ROUTE}/${prefix}/${SEGMENTS.EXPERIMENTS}/${experimentId}/${SEGMENTS.RUNS}`,
     });
+    if (runIds.length > 0) {
+      breadcrumbs.push({
+        label: `Comparing ${runIds.length} ${
+          runIds.length === 1 ? TAB_LABELS[SEGMENTS.RUNS].slice(0, -1) : TAB_LABELS[SEGMENTS.RUNS]
+        } from 1 ${TAB_LABELS[SEGMENTS.EXPERIMENTS].slice(0, -1)}`,
+        path: fullPath,
+      });
+    }
+  } else if (experimentIds.length > 1) {
+    const runCount = runIds.length > 0 ? runIds.length : 0;
+    const experimentCount = experimentIds.length;
+    const experimentsParam = encodeURIComponent(JSON.stringify(experimentIds));
+    const compareExperimentsPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${prefix}/${SEGMENTS.COMPARE_EXPERIMENTS}/s?${SEGMENTS.EXPERIMENTS}=${experimentsParam}`;
+    breadcrumbs.push({
+      label: `Displaying ${TAB_LABELS[SEGMENTS.RUNS]} from ${experimentCount} ${
+        experimentCount === 1
+          ? TAB_LABELS[SEGMENTS.EXPERIMENTS].slice(0, -1)
+          : TAB_LABELS[SEGMENTS.EXPERIMENTS]
+      }`,
+      path: compareExperimentsPath,
+    });
+    breadcrumbs.push({
+      label: `Comparing ${runCount} ${
+        runCount === 1 ? TAB_LABELS[SEGMENTS.RUNS].slice(0, -1) : TAB_LABELS[SEGMENTS.RUNS]
+      } from ${experimentCount} ${
+        experimentCount === 1
+          ? TAB_LABELS[SEGMENTS.EXPERIMENTS].slice(0, -1)
+          : TAB_LABELS[SEGMENTS.EXPERIMENTS]
+      }`,
+      path: fullPath,
+    });
   }
-
-  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}${query ? `?${query}` : ''}`;
-  breadcrumbs.push(createSegment(SEGMENTS.COMPARE_RUNS, fullPath));
   return breadcrumbs;
 };
 
-const buildCompareExperimentsBreadcrumbs = (parts: string[], idx: number): BreadcrumbSegment[] => {
+const buildCompareExperimentsBreadcrumbs = (
+  parts: string[],
+  idx: number,
+  query?: string,
+): BreadcrumbSegment[] => {
   const prefix = getWorkspacePrefix(parts, idx);
-  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}`;
-  return [
-    createSegment(SEGMENTS.EXPERIMENTS, prefix),
-    createSegment(SEGMENTS.COMPARE_EXPERIMENTS, fullPath),
-  ];
+  const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}/${parts.join('/')}${query ? `?${query}` : ''}`;
+  const experimentIds = parseArrayFromQueryParam(query, SEGMENTS.EXPERIMENTS);
+  let label = '';
+  label = `Displaying Runs from ${experimentIds.length} ${
+    experimentIds.length === 1
+      ? TAB_LABELS[SEGMENTS.EXPERIMENTS].slice(0, -1)
+      : TAB_LABELS[SEGMENTS.EXPERIMENTS]
+  }`;
+  return [createSegment(SEGMENTS.EXPERIMENTS, prefix), { label, path: fullPath }];
 };
 
 const buildCompareModelVersionsBreadcrumbs = (
@@ -371,7 +413,7 @@ export const buildBreadcrumbsFromMlflowPathQuery = (
   }
   const compareExperimentsIdx = findSegment(parts, SEGMENTS.COMPARE_EXPERIMENTS);
   if (compareExperimentsIdx !== -1) {
-    return buildCompareExperimentsBreadcrumbs(parts, compareExperimentsIdx);
+    return buildCompareExperimentsBreadcrumbs(parts, compareExperimentsIdx, query);
   }
   const compareModelVersionsIdx = findSegment(parts, SEGMENTS.COMPARE_MODEL_VERSIONS);
   if (compareModelVersionsIdx !== -1) {

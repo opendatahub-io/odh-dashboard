@@ -29,11 +29,15 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
   });
 
   describe('compare-runs', () => {
-    it('builds breadcrumbs with valid experiments query param', () => {
+    it('builds breadcrumbs with single experiment in query param', () => {
       const result = buildBreadcrumbsFromMlflowPathQuery(
         '/workspaces/default/compare-runs?experiments=["123"]&runs=["abc","def"]',
       );
-      expect(labels(result)).toEqual(['Experiments', 'Experiment 123 runs', 'Compare Runs']);
+      expect(labels(result)).toEqual([
+        'Experiments',
+        'Experiment 123 runs',
+        'Comparing 2 Runs from 1 Experiment',
+      ]);
       expect(paths(result)).toEqual([
         `${ROUTE_PREFIX}/workspaces/default/experiments`,
         `${ROUTE_PREFIX}/workspaces/default/experiments/123/runs`,
@@ -41,44 +45,61 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
       ]);
     });
 
+    it('builds breadcrumbs with run and experiment count when comparing runs from multiple experiments', () => {
+      const result = buildBreadcrumbsFromMlflowPathQuery(
+        '/workspaces/default/compare-runs?experiments=["3","4","5","6"]&runs=["abc","def"]',
+      );
+      expect(labels(result)).toEqual([
+        'Experiments',
+        'Displaying Runs from 4 Experiments',
+        'Comparing 2 Runs from 4 Experiments',
+      ]);
+      expect(paths(result)).toEqual([
+        `${ROUTE_PREFIX}/workspaces/default/experiments`,
+        `${ROUTE_PREFIX}/workspaces/default/compare-experiments/s?experiments=${encodeURIComponent(
+          '["3","4","5","6"]',
+        )}`,
+        `${ROUTE_PREFIX}/workspaces/default/compare-runs?experiments=["3","4","5","6"]&runs=["abc","def"]`,
+      ]);
+    });
+
     it('builds breadcrumbs with invalid JSON in experiments param', () => {
       const result = buildBreadcrumbsFromMlflowPathQuery(
         '/workspaces/default/compare-runs?experiments=invalid-json',
       );
-      expect(labels(result)).toEqual(['Experiments', 'Compare Runs']);
+      expect(labels(result)).toEqual(['Experiments']);
       expect(paths(result)[0]).toBe(`${ROUTE_PREFIX}/workspaces/default/experiments`);
     });
 
-    it('builds breadcrumbs with missing experiments param', () => {
+    it('builds breadcrumbs with single run singular form', () => {
       const result = buildBreadcrumbsFromMlflowPathQuery(
-        '/workspaces/default/compare-runs?runs=["abc"]',
+        '/workspaces/default/compare-runs?experiments=["1","2"]&runs=["abc"]',
       );
-      expect(labels(result)).toEqual(['Experiments', 'Compare Runs']);
-    });
-
-    it('builds breadcrumbs with empty experiments array', () => {
-      const result = buildBreadcrumbsFromMlflowPathQuery(
-        '/workspaces/default/compare-runs?experiments=[]',
-      );
-      expect(labels(result)).toEqual(['Experiments', 'Compare Runs']);
+      expect(labels(result)).toEqual([
+        'Experiments',
+        'Displaying Runs from 2 Experiments',
+        'Comparing 1 Run from 2 Experiments',
+      ]);
     });
   });
 
   describe('compare-experiments', () => {
-    it('builds breadcrumbs for compare-experiments page', () => {
-      const result = buildBreadcrumbsFromMlflowPathQuery('/workspaces/default/compare-experiments');
-      expect(labels(result)).toEqual(['Experiments', 'Compare Experiments']);
+    it('builds breadcrumbs for compare-experiments with experiment count', () => {
+      const result = buildBreadcrumbsFromMlflowPathQuery(
+        '/workspaces/default/compare-experiments/s?experiments=["3","4","5","6"]&searchFilter=',
+      );
+      expect(labels(result)).toEqual(['Experiments', 'Displaying Runs from 4 Experiments']);
       expect(paths(result)).toEqual([
         `${ROUTE_PREFIX}/workspaces/default/experiments`,
-        `${ROUTE_PREFIX}/workspaces/default/compare-experiments`,
+        `${ROUTE_PREFIX}/workspaces/default/compare-experiments/s?experiments=["3","4","5","6"]&searchFilter=`,
       ]);
     });
 
-    it('builds breadcrumbs for compare-experiments with search string', () => {
+    it('builds breadcrumbs for compare-experiments with single experiment', () => {
       const result = buildBreadcrumbsFromMlflowPathQuery(
-        '/workspaces/default/compare-experiments/searchQuery',
+        '/workspaces/default/compare-experiments/s?experiments=["1"]',
       );
-      expect(labels(result)).toEqual(['Experiments', 'Compare Experiments']);
+      expect(labels(result)).toEqual(['Experiments', 'Displaying Runs from 1 Experiment']);
     });
   });
 
