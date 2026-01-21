@@ -19,6 +19,7 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
+  NameAvailabilityStatus,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   isK8sNameDescriptionDataValid,
@@ -34,7 +35,9 @@ type ManageProjectModalProps = {
 const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData, onClose }) => {
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
-  const defaultNameValidation = editProjectData ? 'valid' : '';
+  const defaultNameValidation = editProjectData
+    ? NameAvailabilityStatus.VALID
+    : NameAvailabilityStatus.UNCHECKED;
   const [nameAvailabilityValidation, setNameAvailabilityValidation] =
     React.useState(defaultNameValidation);
   const [error, setError] = React.useState<Error | undefined>();
@@ -47,7 +50,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   const canSubmit =
     !fetching &&
     isK8sNameDescriptionDataValid(k8sNameDescriptionData.data) &&
-    nameAvailabilityValidation === 'valid';
+    nameAvailabilityValidation === NameAvailabilityStatus.VALID;
 
   // resource name checking is only applicable for creation; as
   // while we are editing the resource name *cannot* be changed
