@@ -25,6 +25,7 @@ type ResourceNameFieldProps = {
   k8sName: K8sNameDescriptionFieldData['k8sName'];
   onDataChange?: K8sNameDescriptionFieldUpdateFunction;
   resourceNameTakenHelperText?: React.ReactNode;
+  nameAvailabilityValidation?: ValidatedOptions;
 };
 
 /** Sub-resource; not for public consumption */
@@ -34,6 +35,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   k8sName,
   onDataChange,
   resourceNameTakenHelperText,
+  nameAvailabilityValidation,
 }) => {
   const formGroupProps: React.ComponentProps<typeof FormGroup> = {
     label: 'Resource name',
@@ -49,8 +51,10 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
     return null;
   }
 
+  console.log('avo9: got name availability v?', nameAvailabilityValidation);
   let validated: ValidatedOptions = ValidatedOptions.default;
   if (
+    nameAvailabilityValidation === ValidatedOptions.error ||
     k8sName.state.invalidLength ||
     k8sName.state.invalidCharacters ||
     !!resourceNameTakenHelperText
@@ -59,6 +63,8 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   } else if (k8sName.value.length > 0 && !resourceNameTakenHelperText) {
     validated = ValidatedOptions.success;
   }
+
+  console.log('avo9: validated???', validated);
 
   const usePrefix = k8sName.state.staticPrefix && !!k8sName.state.safePrefix;
   const textInput = (

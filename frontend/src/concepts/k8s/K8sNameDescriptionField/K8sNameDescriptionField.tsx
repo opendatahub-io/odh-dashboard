@@ -256,6 +256,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         k8sName={k8sName}
         onDataChange={onK8sNameChange}
         resourceNameTakenHelperText={resourceNameTakenHelperText}
+        nameAvailabilityValidation={getNameValidation()}
       />
       {!hideDescription ? (
         <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
