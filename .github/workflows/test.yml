@@ -1,7 +1,7 @@
 name: Test
 on: [push, pull_request]
 env:
-  NODE_VERSION: 18.x
+  NODE_VERSION: 20.x
 jobs:
   Tests:
     runs-on: ubuntu-latest
