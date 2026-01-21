@@ -109,6 +109,8 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     }
 
     debounceTimeoutRef.current = setTimeout(async () => {
+      // not strictly needed because this is called inside a guard,
+      // but eslint wants it b/c nameChecker is invoked later in this method
       if (!nameChecker) {
         return;
       }
