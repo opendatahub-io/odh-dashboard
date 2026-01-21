@@ -95,7 +95,7 @@ describe('[Automation Bug: RHOAIENG-46761] Feature Store Page Validation', () =>
 
   it(
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
-    { tags: ['@Dashboard', '@FeatureStore', '@Sanity', '@SanitySet1','@Maintain'] },
+    { tags: ['@Dashboard', '@FeatureStore', '@Sanity', '@SanitySet1', '@Maintain'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
