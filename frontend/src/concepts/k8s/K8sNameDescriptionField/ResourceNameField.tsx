@@ -13,6 +13,7 @@ import {
   HelperTextItemMaxLength,
   HelperTextItemResourceNameTaken,
   HelperTextItemValidCharacters,
+  HelperTextUniqueName,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
 import {
   K8sNameDescriptionFieldData,
@@ -99,6 +100,9 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
         textInput
       )}
       <HelperText>
+        {nameAvailabilityStatus && (
+          <HelperTextUniqueName nameAvailabilityStatus={nameAvailabilityStatus} />
+        )}
         <HelperTextItemMaxLength k8sName={k8sName} />
         <HelperTextItemValidCharacters k8sName={k8sName} />
         {resourceNameTakenHelperText && (
