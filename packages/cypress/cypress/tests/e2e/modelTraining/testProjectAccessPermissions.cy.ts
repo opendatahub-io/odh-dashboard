@@ -16,7 +16,7 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import type { TrainJobTestData } from '../../../types';
 
-describe('Verify project access for user types in Training Jobs', () => {
+describe('[Automation Task: RHOAIENG-46611] Verify project access for user types in Training Jobs', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -156,7 +156,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Regular user can access project after admin grants permission',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Maintain'] },
     () => {
       cy.step('Grant edit role to regular user via oc command');
       addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'edit');
