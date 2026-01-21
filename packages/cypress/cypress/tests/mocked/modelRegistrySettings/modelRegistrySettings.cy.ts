@@ -28,6 +28,7 @@ const groupSubjects: RoleBindingSubject[] = [
 
 const sampleCertificatePath = './cypress/tests/mocked/modelRegistrySettings/mockCertificate.pem';
 const unSupportedFilePath = './cypress/tests/mocked/modelRegistrySettings/unSupportedFile.txt';
+const MODEL_REGISTRIES_NAMESPACE = Cypress.env('APPLICATIONS_NAMESPACE') || 'odh-model-registries';
 
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
@@ -58,7 +59,7 @@ const setupMocksForMRSettingAccess = ({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: 'odh-model-registries',
+          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
@@ -337,7 +338,7 @@ describe('CreateModal', () => {
 
   it('should enable submit button if fields are valid', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -370,7 +371,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'image',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'valid-mr-name',
@@ -397,7 +398,7 @@ describe('CreateModal', () => {
       failedToLoadCertificates: true,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -419,7 +420,7 @@ describe('CreateModal', () => {
       disableModelRegistrySecureDB: false,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
 
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
@@ -436,7 +437,7 @@ describe('CreateModal', () => {
       configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['odh-ca-bundle.crt'] }],
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -459,7 +460,7 @@ describe('CreateModal', () => {
       configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['ca-bundle.crt', 'odh-ca-bundle.crt'] }],
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -482,7 +483,7 @@ describe('CreateModal', () => {
       configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['ca-bundle.crt'] }],
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -501,7 +502,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'valid-mr-name',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'valid-mr-name',
@@ -529,7 +530,7 @@ describe('CreateModal', () => {
       configMaps: [{ name: 'odh-trusted-ca-bundle', keys: ['odh-ca-bundle.crt'] }],
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -550,7 +551,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'valid-mr-name',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'valid-mr-name',
@@ -580,7 +581,7 @@ describe('CreateModal', () => {
       disableModelRegistrySecureDB: false,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -620,7 +621,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'valid-mr-name',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'valid-mr-name',
@@ -647,7 +648,7 @@ describe('CreateModal', () => {
       disableModelRegistrySecureDB: false,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -686,7 +687,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'valid-mr-name',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'valid-mr-name',
@@ -713,7 +714,7 @@ describe('CreateModal', () => {
       disableModelRegistrySecureDB: false,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findAddSecureDbMRCheckbox().should('exist');
     modelRegistrySettings.findAddSecureDbMRCheckbox().check();
@@ -744,7 +745,7 @@ describe('CreateModal', () => {
       disableModelRegistrySecureDB: false,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -765,7 +766,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'valid-mr-name',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'valid-mr-name',
@@ -793,7 +794,7 @@ describe('CreateModal', () => {
       disableModelRegistrySecureDB: false,
     });
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('valid-mr-name');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).type('host');
@@ -816,23 +817,23 @@ describe('CreateModal', () => {
 
   it('should show database source options with Default selected by default', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
     modelRegistrySettings.findDatabaseSourceExternalRadio().should('not.be.checked');
     modelRegistrySettings.findDefaultDatabaseAlert().should('exist');
     // External database fields should not be visible when Default is selected
-    modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('not.exist');
-    modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('not.exist');
-    modelRegistrySettings.findFormField(FormFieldSelector.USERNAME).should('not.exist');
-    modelRegistrySettings.findFormField(FormFieldSelector.PASSWORD).should('not.exist');
+    modelRegistrySettings.queryFormField(FormFieldSelector.HOST).should('not.exist');
+    modelRegistrySettings.queryFormField(FormFieldSelector.PORT).should('not.exist');
+    modelRegistrySettings.queryFormField(FormFieldSelector.USERNAME).should('not.exist');
+    modelRegistrySettings.queryFormField(FormFieldSelector.PASSWORD).should('not.exist');
   });
 
   it('should show external database fields when External database is selected', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().should('be.checked');
-    modelRegistrySettings.findDefaultDatabaseAlert().should('not.exist');
+    modelRegistrySettings.queryDefaultDatabaseAlert().should('not.exist');
     // External database fields should be visible
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('exist');
     modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('exist');
@@ -843,7 +844,7 @@ describe('CreateModal', () => {
 
   it('should switch between database sources', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
 
     // Initially Default is selected
     modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
@@ -852,40 +853,42 @@ describe('CreateModal', () => {
     // Switch to External
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().should('be.checked');
-    modelRegistrySettings.findDefaultDatabaseAlert().should('not.exist');
+    modelRegistrySettings.queryDefaultDatabaseAlert().should('not.exist');
     modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('exist');
 
     // Switch back to Default
     modelRegistrySettings.findDatabaseSourceDefaultRadio().click();
     modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
     modelRegistrySettings.findDefaultDatabaseAlert().should('exist');
-    modelRegistrySettings.findFormField(FormFieldSelector.HOST).should('not.exist');
+    modelRegistrySettings.queryFormField(FormFieldSelector.HOST).should('not.exist');
   });
 
   it('should update port when database type is changed', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
 
     // Default type is MySQL with port 3306
     modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '3306');
 
     // Change to PostgreSQL - port should update to 5432
-    modelRegistrySettings.selectDatabaseType(DatabaseType.POSTGRES);
+    modelRegistrySettings.findDatabaseTypeDropdown().click();
+    modelRegistrySettings.findDatabaseTypeOption(DatabaseType.POSTGRES).click();
     modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '5432');
 
     // Change back to MySQL - port should update to 3306
-    modelRegistrySettings.selectDatabaseType(DatabaseType.MYSQL);
+    modelRegistrySettings.findDatabaseTypeDropdown().click();
+    modelRegistrySettings.findDatabaseTypeOption(DatabaseType.MYSQL).click();
     modelRegistrySettings.findFormField(FormFieldSelector.PORT).should('have.value', '3306');
   });
 
   it('create a model registry with Default database', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('default-db-registry');
     modelRegistrySettings.findDatabaseSourceDefaultRadio().should('be.checked');
     // Default database uses a predefined database name - no database field is shown
-    modelRegistrySettings.findFormField(FormFieldSelector.DATABASE).should('not.exist');
+    modelRegistrySettings.queryFormField(FormFieldSelector.DATABASE).should('not.exist');
     modelRegistrySettings.findSubmitButton().should('be.enabled');
     modelRegistrySettings.findSubmitButton().click();
 
@@ -894,7 +897,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'default-db-registry',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'default-db-registry',
@@ -914,7 +917,7 @@ describe('CreateModal', () => {
 
   it('create a model registry with External PostgreSQL database', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('postgres-registry');
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     modelRegistrySettings.selectDatabaseType(DatabaseType.POSTGRES);
@@ -932,7 +935,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'postgres-registry',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'postgres-registry',
@@ -955,7 +958,7 @@ describe('CreateModal', () => {
 
   it('create a model registry with External MySQL database', () => {
     modelRegistrySettings.visit(true);
-    cy.findByText('Create model registry').click();
+    modelRegistrySettings.findCreateButton().click();
     modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('mysql-registry');
     modelRegistrySettings.findDatabaseSourceExternalRadio().click();
     // MySQL is the default type for external
@@ -973,7 +976,7 @@ describe('CreateModal', () => {
         modelRegistry: {
           metadata: {
             name: 'mysql-registry',
-            namespace: 'odh-model-registries',
+            namespace: MODEL_REGISTRIES_NAMESPACE,
             annotations: {
               'openshift.io/description': '',
               'openshift.io/display-name': 'mysql-registry',
