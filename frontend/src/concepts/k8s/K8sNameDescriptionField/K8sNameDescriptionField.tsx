@@ -19,6 +19,13 @@ import { handleUpdateLogic, setupDefaults } from '#~/concepts/k8s/K8sNameDescrip
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
 import ResourceNameField from './ResourceNameField';
 
+export enum NameAvailabilityStatus {
+  UNCHECKED = '',
+  VALID = 'valid',
+  INVALID = 'invalid',
+  IN_PROGRESS = 'in progress',
+}
+
 /** Companion data hook */
 export const useK8sNameDescriptionFieldData = (
   configuration: UseK8sNameDescriptionDataConfiguration = {},
@@ -49,7 +56,7 @@ type K8sNameDescriptionFieldProps = {
   maxLengthDesc?: number;
   resourceNameTakenHelperText?: React.ReactNode;
   nameChecker?: (resourceName: string) => Promise<boolean> | boolean | null;
-  onNameValidationChange?: (status: 'valid' | 'invalid' | 'in progress' | '') => void;
+  onNameValidationChange?: (status: NameAvailabilityStatus) => void;
 };
 
 /**
@@ -87,11 +94,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const showNameWarning = maxLength && name.length > maxLength - 10;
   const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
 
-  // 'valid': name is available
-  // 'invalid': name is taken
-  // 'in progress': checking...
-  // '': not yet checked
-  const [isNameValid, setIsNameValid] = React.useState('');
+  const [nameAvailability, setNameAvailability] = React.useState(NameAvailabilityStatus.UNCHECKED);
 
   // Cleanup debounce timeout on unmount
   React.useEffect(
@@ -118,15 +121,15 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       if (!resourceName) {
         return;
       }
-      setIsNameValid('in progress');
-      onNameValidationChange?.('in progress');
+      setNameAvailability(NameAvailabilityStatus.IN_PROGRESS);
+      onNameValidationChange?.(NameAvailabilityStatus.IN_PROGRESS);
       try {
         const result = await nameChecker(resourceName);
-        const stringResult = result ? 'valid' : 'invalid';
-        setIsNameValid(stringResult);
-        onNameValidationChange?.(stringResult);
+        const status = result ? NameAvailabilityStatus.VALID : NameAvailabilityStatus.INVALID;
+        setNameAvailability(status);
+        onNameValidationChange?.(status);
       } catch {
-        setIsNameValid('invalid');
+        setNameAvailability(NameAvailabilityStatus.INVALID);
       }
     }, 500);
   }, [nameChecker]);
@@ -150,10 +153,10 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     if (!nameChecker) {
       return ValidatedOptions.default;
     }
-    switch (isNameValid) {
-      case 'valid':
+    switch (nameAvailability) {
+      case NameAvailabilityStatus.VALID:
         return ValidatedOptions.success;
-      case 'invalid':
+      case NameAvailabilityStatus.INVALID:
         return ValidatedOptions.error;
       default:
         return ValidatedOptions.default;
@@ -161,14 +164,14 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   };
 
   const makeNameFeedback = () => {
-    switch (isNameValid) {
-      case 'valid':
+    switch (nameAvailability) {
+      case NameAvailabilityStatus.VALID:
         return (
           <HelperText>
             <HelperTextItem variant="success">Resource name available</HelperTextItem>
           </HelperText>
         );
-      case 'invalid':
+      case NameAvailabilityStatus.INVALID:
         return (
           <HelperText>
             <HelperTextItem variant="error">
@@ -177,7 +180,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             </HelperTextItem>
           </HelperText>
         );
-      case 'in progress':
+      case NameAvailabilityStatus.IN_PROGRESS:
         return (
           <HelperText>
             <HelperTextItem variant="indeterminate">
@@ -207,7 +210,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           name={`${dataTestId}-name`}
           autoFocus={autoFocusName}
           isRequired
-          isDisabled={isNameValid === 'in progress'}
+          isDisabled={nameAvailability === NameAvailabilityStatus.IN_PROGRESS}
           validated={getNameValidation()}
           value={name}
           onChange={(event, value) => onDisplayNameChange(value)}
