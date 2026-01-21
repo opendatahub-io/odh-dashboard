@@ -51,7 +51,6 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
     return null;
   }
 
-  console.log('avo9: got name availability v?', nameAvailabilityValidation);
   let validated: ValidatedOptions = ValidatedOptions.default;
   if (
     nameAvailabilityValidation === ValidatedOptions.error ||
@@ -63,8 +62,6 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   } else if (k8sName.value.length > 0 && !resourceNameTakenHelperText) {
     validated = ValidatedOptions.success;
   }
-
-  console.log('avo9: validated???', validated);
 
   const usePrefix = k8sName.state.staticPrefix && !!k8sName.state.safePrefix;
   const textInput = (
