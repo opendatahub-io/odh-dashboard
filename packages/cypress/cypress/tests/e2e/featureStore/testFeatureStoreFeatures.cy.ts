@@ -15,7 +15,7 @@ import { getAllFeatureStoreCounts } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 
-describe('Feature Store Page Validation', () => {
+describe('[Automation Bug: RHOAIENG-46761] Feature Store Page Validation', () => {
   let testData: FeatureStoreTestData;
   let projectName: string;
   let featureCount: number;
@@ -95,7 +95,7 @@ describe('Feature Store Page Validation', () => {
 
   it(
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
-    { tags: ['@Dashboard', '@FeatureStore', '@Sanity', '@SanitySet1'] },
+    { tags: ['@Dashboard', '@FeatureStore', '@Sanity', '@SanitySet1','@Maintain'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
