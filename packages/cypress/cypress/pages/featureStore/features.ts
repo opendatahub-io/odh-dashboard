@@ -65,6 +65,11 @@ class FeatureToolbar extends Contextual<HTMLElement> {
   findClearFiltersButton() {
     return this.find().findByRole('button', { name: 'Clear all filters' });
   }
+
+  findTagFilterChip(tag: string) {
+    const testId = `tag-filter-chip-${tag.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    return cy.findByTestId(testId).closest('.pf-v6-c-label');
+  }
 }
 
 class FeatureTableRow extends TableRow {
@@ -92,12 +97,21 @@ class FeatureTableRow extends TableRow {
     return this.findFeatureView().find('a');
   }
 
+  findTags() {
+    return this.find().find('[data-label="Tags"]');
+  }
+
   findOwner() {
     return this.find().find('[data-label="Owner"]');
   }
 
   shouldHaveFeatureName(name: string) {
     this.findFeatureName().should('contain.text', name);
+    return this;
+  }
+
+  shouldHaveTag(tag: string) {
+    this.findTags().should('contain.text', tag);
     return this;
   }
 

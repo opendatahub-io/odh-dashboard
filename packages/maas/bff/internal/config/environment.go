@@ -113,4 +113,10 @@ type EnvConfig struct {
 	// Use DeploymentMode instead
 	StandaloneMode    bool
 	FederatedPlatform bool
+
+	// MaaS
+	TiersConfigMapNamespace string
+	TiersConfigMapName      string
+	GatewayNamespace        string
+	GatewayName             string
 }

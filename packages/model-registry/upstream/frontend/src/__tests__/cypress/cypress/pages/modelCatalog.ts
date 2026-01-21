@@ -135,20 +135,8 @@ class ModelCatalog {
     return cy.get('img[alt="model logo"]');
   }
 
-  findVersionIcon() {
-    return cy.get('.pf-v6-c-icon');
-  }
-
-  findFrameworkLabel() {
-    return cy.contains('PyTorch');
-  }
-
   findTaskLabel() {
     return cy.contains('text-generation');
-  }
-
-  findLicenseLabel() {
-    return cy.contains('apache-2.0');
   }
 
   findProviderLabel() {
@@ -234,46 +222,33 @@ class ModelCatalog {
     return cy.get('[data-testid="hardware-configuration-table"] tbody tr');
   }
 
-  findHardwareConfigurationTableData() {
-    return cy.get('[data-testid="hardware-configuration-table"] tbody td');
-  }
-
   findHardwareConfigurationColumn(columnName: string) {
     return cy.get(`[data-testid="hardware-configuration-table"] [data-label="${columnName}"]`);
-  }
-
-  findHardwareConfigurationSortButton(columnName: string) {
-    return cy.get(`[data-testid="hardware-configuration-table"] th`).contains(columnName);
-  }
-
-  findHardwareConfigurationPagination() {
-    return cy.get('[data-testid="hardware-configuration-table"] .pf-v6-c-pagination');
   }
 
   findValidatedModelHardware() {
     return cy.findByTestId('validated-model-hardware');
   }
 
-  findValidatedModelRps() {
-    return cy.findByTestId('validated-model-rps');
+  findValidatedModelReplicas() {
+    return cy.findByTestId('validated-model-replicas');
   }
 
-  findValidatedModelTtft() {
-    return cy.findByTestId('validated-model-ttft');
+  findValidatedModelLatency() {
+    return cy.findByTestId('validated-model-latency');
   }
 
   findWorkloadTypeFilter() {
     return cy.findByTestId('workload-type-filter');
   }
 
-  findWorkloadTypeOption(label: string) {
-    // Workload type uses checkboxes in a panel, not menu items
-    // Find checkbox by its label within the dropdown panel
-    return cy.contains('label', label).parent().find('input[type="checkbox"]');
+  findWorkloadTypeOption(useCaseValue: string) {
+    // WorkloadTypeFilter is now single-select dropdown with data-testid
+    return cy.findByTestId(`workload-type-filter-${useCaseValue}`);
   }
 
-  selectWorkloadType(label: string) {
-    this.findWorkloadTypeOption(label).click();
+  selectWorkloadType(useCaseValue: string) {
+    this.findWorkloadTypeOption(useCaseValue).click();
   }
 
   findPerformanceViewToggle() {
@@ -300,6 +275,139 @@ class ModelCatalog {
   dismissPerformanceFiltersUpdatedAlert() {
     this.findPerformanceFiltersUpdatedAlertCloseButton().click();
     return this;
+  }
+
+  // Model card content helpers for toggle-based display
+  findValidatedModelBenchmarksCount() {
+    return cy.findAllByTestId('validated-model-benchmarks');
+  }
+
+  // Latency filter helpers
+  findLatencyFilter() {
+    return cy.findByTestId('latency-filter');
+  }
+
+  openLatencyFilter() {
+    this.findLatencyFilter().click();
+    // Wait for dropdown content to appear
+    cy.findByTestId('latency-filter-content').should('be.visible');
+    return this;
+  }
+
+  findLatencyMetricSelect() {
+    return cy.findByTestId('latency-metric-select');
+  }
+
+  findLatencyPercentileSelect() {
+    return cy.findByTestId('latency-percentile-select');
+  }
+
+  selectLatencyMetric(metric: string) {
+    this.findLatencyMetricSelect().click();
+    // Wait for menu to appear and click the option
+    cy.findByTestId('latency-metric-options').contains(metric).click();
+    return this;
+  }
+
+  selectLatencyPercentile(percentile: string) {
+    this.findLatencyPercentileSelect().click();
+    // Wait for menu to appear and click the option
+    cy.findByTestId('latency-percentile-options').contains(percentile).click();
+    return this;
+  }
+
+  findApplyFilterButton() {
+    return cy.findByTestId('latency-apply-filter');
+  }
+
+  findResetFilterButton() {
+    return cy.findByTestId('latency-reset-filter');
+  }
+
+  findEmptyStateResetFiltersButton() {
+    return this.findModelCatalogEmptyState().findByRole('button', { name: /Reset filters/i });
+  }
+
+  clickApplyFilter() {
+    this.findApplyFilterButton().click();
+    return this;
+  }
+
+  clickResetFilter() {
+    this.findResetFilterButton().click();
+    return this;
+  }
+
+  // Compression Comparison Card
+  findCompressionComparisonCard() {
+    return cy.findByTestId('compression-comparison-card');
+  }
+
+  findCompressionComparisonLoading() {
+    return cy.findByTestId('compression-comparison-loading');
+  }
+
+  findCompressionComparisonError() {
+    return cy.findByTestId('compression-comparison-error');
+  }
+
+  findCompressionComparisonEmpty() {
+    return cy.findByTestId('compression-comparison-empty');
+  }
+
+  findCompressionVariant(index: number) {
+    return cy.findByTestId(`compression-variant-${index}`);
+  }
+
+  findCompressionVariantLogo(index: number) {
+    return cy.findByTestId(`compression-logo-${index}`);
+  }
+
+  findCompressionVariantSkeleton(index: number) {
+    return cy.findByTestId(`compression-skeleton-${index}`);
+  }
+
+  findCompressionVariantLink(index: number) {
+    return cy.findByTestId(`compression-link-${index}`);
+  }
+
+  findCompressionTensorType(index: number) {
+    return cy.findByTestId(`compression-tensor-type-${index}`);
+  }
+
+  findCompressionCurrentModelName() {
+    return cy.findByTestId('compression-current-model-name');
+  }
+
+  findCompressionCurrentLabel() {
+    return cy.findByTestId('compression-current-label');
+  }
+
+  findAllCompressionCurrentLabels() {
+    return cy.findAllByTestId('compression-current-label');
+  }
+
+  findCompressionDivider(index: number) {
+    return cy.findByTestId(`compression-divider-${index}`);
+  }
+
+  findAllCompressionVariants() {
+    return cy.get('[data-testid^="compression-variant-"]');
+  }
+
+  // Performance Empty State
+  findPerformanceEmptyState() {
+    return cy.findByTestId('performance-empty-state');
+  }
+
+  findSetPerformanceOffLink() {
+    return this.findPerformanceEmptyState().contains('button', /Turn off model performance view/i);
+  }
+
+  findSelectAllModelsCategoryButton() {
+    return this.findPerformanceEmptyState().findByRole('button', {
+      name: /View all models with performance data/i,
+    });
   }
 }
 

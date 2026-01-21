@@ -11,6 +11,7 @@ import {
   updateClusterStorageModal,
 } from '../../../../pages/clusterStorage';
 import type { ClusterStorageAccessModesTestData } from '../../../../types';
+import { AccessMode, AccessModeLabelMap } from '../../../../types';
 import { loadClusterStorageAccessModesFixture } from '../../../../utils/dataLoader';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -233,8 +234,10 @@ describe('Cluster Storage Access Modes Tests', () => {
 
       cy.step('Verify access mode is displayed in read-only format like "ReadWriteMany (RWX)"');
       updateClusterStorageModal.findExistingAccessMode().should('exist');
-      updateClusterStorageModal.findExistingAccessMode().should('contain.text', 'ReadWriteMany');
-      updateClusterStorageModal.findExistingAccessMode().should('contain.text', 'RWX');
+      updateClusterStorageModal.findExistingAccessMode().should('contain.text', AccessMode.RWX);
+      updateClusterStorageModal
+        .findExistingAccessMode()
+        .should('contain.text', AccessModeLabelMap[AccessMode.RWX]);
 
       cy.step('Verify that access mode radio buttons are not available for editing');
       updateClusterStorageModal.findRWOAccessMode().should('not.exist');

@@ -100,6 +100,50 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	})
 }
 
+// RequireGuardrailAccess validates identity and checks CanListGuardrailsOrchestrator permissions.
+func (app *App) RequireGuardrailAccess(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace != "" {
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			allowed, err := k8sClient.CanListGuardrailsOrchestrator(ctx, identity, namespace)
+			if err != nil {
+				app.handleK8sClientError(w, r, err)
+				return
+			}
+
+			if !allowed {
+				app.forbiddenResponse(w, r, "user does not have permission to access guardrails in this namespace")
+				return
+			}
+		}
+
+		next(w, r, ps)
+	}
+}
+
 func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// If authentication is disabled skip these steps.
@@ -136,7 +180,7 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			// This ensures users have proper permissions to access any service in the namespace
 			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
 			if err != nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to check LlamaStackDistribution permissions: %w", err))
+				app.handleK8sClientError(w, r, err)
 				return
 			}
 
@@ -195,7 +239,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 		if app.config.MockLSClient {
 			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
 			// In mock mode, use empty URL since mock factory ignores it
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		} else {
 			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
@@ -259,7 +303,8 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			}
 
 			// Create LlamaStack client with auth token from identity
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
+			// llama-stack v0.4.0+ uses /v1 for all OpenAI-compatible endpoints
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}
 
 		// Attach ready-to-use client to context

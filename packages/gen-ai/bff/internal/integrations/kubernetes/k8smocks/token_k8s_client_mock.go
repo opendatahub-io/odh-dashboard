@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -24,6 +27,33 @@ import (
 const (
 	mockLSDName = "mock-lsd"
 )
+
+// generateMockShieldID creates a unique shield ID based on type, model name, and index
+func generateMockShieldID(shieldType, modelName string, index int) string {
+	// Sanitize model name for use in shield ID
+	sanitized := strings.ReplaceAll(modelName, "/", "_")
+	sanitized = strings.ReplaceAll(sanitized, " ", "_")
+	sanitized = strings.ReplaceAll(sanitized, "-", "_")
+	sanitized = strings.ToLower(sanitized)
+
+	return fmt.Sprintf("trustyai_%s_%s", shieldType, sanitized)
+}
+
+// formatPoliciesYAML formats a slice of policies as a YAML inline array
+func formatPoliciesYAML(policies []string) string {
+	if len(policies) == 0 {
+		return "[]"
+	}
+	result := "["
+	for i, p := range policies {
+		if i > 0 {
+			result += ", "
+		}
+		result += p
+	}
+	result += "]"
+	return result
+}
 
 type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
@@ -343,7 +373,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
@@ -365,6 +395,81 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
+	// Build safety section based on enableGuardrails flag
+	// When enabled, guardrails are automatically added for all selected models
+	safetySection := "  safety: []"
+	shieldsSection := "  shields: []"
+
+	if enableGuardrails && len(installModels) > 0 {
+		// Build shields config for each model when guardrails are enabled
+		shieldsConfig := ""
+		shieldsList := ""
+
+		// Default policies for all models
+		inputPolicies := models.DefaultGuardrailPolicies()
+		outputPolicies := models.DefaultGuardrailPolicies()
+		detectorURL := constants.DefaultDetectorURL
+
+		for i, model := range installModels {
+			modelName := model.ModelName
+			guardrailModelURL := "http://" + modelName + "-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
+
+			// Generate shield IDs
+			inputShieldID := generateMockShieldID("input", modelName, i)
+			outputShieldID := generateMockShieldID("output", modelName, i)
+
+			// Format policies as YAML array
+			inputPoliciesYAML := formatPoliciesYAML(inputPolicies)
+			outputPoliciesYAML := formatPoliciesYAML(outputPolicies)
+
+			// Add shields config
+			// auth_token uses GUARDRAIL_AUTH_TOKEN from guardrails-service-account secret
+			shieldsConfig += `
+        ` + inputShieldID + `:
+          type: content
+          detector_url: "` + detectorURL + `"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
+          detector_params:
+            custom:
+              input_guardrail:
+                input_policies: ` + inputPoliciesYAML + `
+                guardrail_model: ` + modelName + `
+                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
+                guardrail_model_url: "` + guardrailModelURL + `"
+        ` + outputShieldID + `:
+          type: content
+          detector_url: "` + detectorURL + `"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
+          detector_params:
+            custom:
+              output_guardrail:
+                output_policies: ` + outputPoliciesYAML + `
+                guardrail_model: ` + modelName + `
+                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
+                guardrail_model_url: "` + guardrailModelURL + `"`
+
+			// Add shield registrations
+			shieldsList += `
+    - shield_id: ` + inputShieldID + `
+      provider_id: trustyai_fms
+    - shield_id: ` + outputShieldID + `
+      provider_id: trustyai_fms`
+		}
+
+		safetySection = `  safety:
+  - provider_id: trustyai_fms
+    provider_type: remote::trustyai_fms
+    module: llama_stack_provider_trustyai_fms==0.3.2
+    config:
+      shields:` + shieldsConfig
+
+		shieldsSection = `  shields:` + shieldsList
+	}
+
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -372,13 +477,14 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 			Namespace: namespace,
 		},
 		Data: map[string]string{
-			"run.yaml": `# Llama Stack Configuration
+			constants.LlamaStackConfigYAMLKey: `# Llama Stack Configuration
 version: "2"
 image_name: rh
 apis:
 - datasetio
 - files
 - inference
+- safety
 - scoring
 - telemetry
 - tool_runtime
@@ -388,7 +494,7 @@ providers:
   - provider_id: vllm-inference-1
     provider_type: remote::vllm
     config:
-      url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
+      base_url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
       max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
       api_token: ${env.VLLM_API_TOKEN:=fake}
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
@@ -403,7 +509,7 @@ providers:
       persistence:
         namespace: vector_io::milvus
         backend: kv_default
-  safety: []
+` + safetySection + `
   eval: []
   files:
   - provider_id: meta-reference-files
@@ -465,25 +571,26 @@ storage:
     conversations:
       table_name: openai_conversations
       backend: sql_default
-models:
-  - metadata:
-      embedding_dimension: 768
-    model_id: granite-embedding-125m
-    provider_id: sentence-transformers
-    provider_model_id: ibm-granite/granite-embedding-125m-english
-    model_type: embedding
-  - metadata: {}
-    model_id: mock-model
-    provider_id: vllm-inference-1
-    model_type: llm
-shields: []
-vector_dbs: []
-datasets: []
-scoring_fns: []
-benchmarks: []
-tool_groups:
-- toolgroup_id: builtin::rag
-  provider_id: rag-runtime
+registered_resources:
+  models:
+    - metadata:
+        embedding_dimension: 768
+      model_id: granite-embedding-125m
+      provider_id: sentence-transformers
+      provider_model_id: ibm-granite/granite-embedding-125m-english
+      model_type: embedding
+    - metadata: {}
+      model_id: mock-model
+      provider_id: vllm-inference-1
+      model_type: llm
+` + shieldsSection + `
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+    - toolgroup_id: builtin::rag
+      provider_id: rag-runtime
 server:
   port: 8321`,
 		},
@@ -511,7 +618,7 @@ server:
 			Replicas: 1,
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/run.yaml"},
+					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("250m"),
@@ -625,6 +732,10 @@ func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *
   "description": "GitHub Copilot MCP server with advanced kubectl tools.",
 			"logo": "https://github.com/images/modules/logos_page/GitHub-Mark.png"
 		}`,
+			"high-tools-server": `{
+  "url": "http://localhost:9094/high-tools",
+  "description": "Server with 5 tools for testing"
+}`,
 		},
 	}, nil
 }
@@ -633,6 +744,11 @@ func (m *TokenKubernetesClientMock) GetConfigMap(ctx context.Context, identity *
 func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	// For testing purposes, always return true to allow LlamaStackDistribution listing
 	// In real scenarios, this would perform a SubjectAccessReview
+	return true, nil
+}
+
+// CanListGuardrailsOrchestrator returns mock permission check for testing
+func (m *TokenKubernetesClientMock) CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	return true, nil
 }
 
@@ -687,4 +803,64 @@ func (m *TokenKubernetesClientMock) CanListNamespaces(ctx context.Context, ident
 	// For testing purposes, always return true to allow namespace listing
 	// In real scenarios, this would perform a SubjectAccessReview for cluster-scoped namespace access
 	return true, nil
+}
+
+// GetGuardrailsOrchestratorStatus returns mock GuardrailsOrchestrator status for testing
+func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
+	return &models.GuardrailsStatus{
+		Name:  "guardrails-orchestrator",
+		Phase: "Ready",
+		Conditions: []gorchv1alpha1.Condition{
+			{
+				Type:               "Progressing",
+				Status:             corev1.ConditionTrue,
+				Reason:             "ReconcileInit",
+				Message:            "Initializing GuardrailsOrchestrator resource",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               "InferenceServiceReady",
+				Status:             corev1.ConditionFalse,
+				Reason:             "InferenceServiceNotReady",
+				Message:            "Inference service is not ready",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               "DeploymentReady",
+				Status:             corev1.ConditionTrue,
+				Reason:             "DeploymentReady",
+				Message:            "Deployment is ready",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               "RouteReady",
+				Status:             corev1.ConditionFalse,
+				Reason:             "RouteNotReady",
+				Message:            "Route is not ready",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               "ReconcileComplete",
+				Status:             corev1.ConditionFalse,
+				Reason:             "ReconcileFailed",
+				Message:            "Reconcile failed",
+				LastTransitionTime: metav1.Now(),
+			},
+		},
+	}, nil
+}
+
+// GetSafetyConfig returns mock safety configuration for testing
+// Returns hardcoded mock data simulating guardrails configuration
+func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
+	// Return hardcoded mock data for testing
+	return &models.SafetyConfigResponse{
+		GuardrailModels: []models.GuardrailModelConfig{
+			{
+				ModelName:      "llama-guard-3",
+				InputShieldID:  "trustyai_input",
+				OutputShieldID: "trustyai_output",
+			},
+		},
+	}, nil
 }

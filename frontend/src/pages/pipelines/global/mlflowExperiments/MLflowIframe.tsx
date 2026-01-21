@@ -1,13 +1,14 @@
 import * as React from 'react';
-import { mlflowIframeUrl } from '#~/routes/pipelines/mlflowExperiments';
+import { useMlflowPathSync } from './useMlflowPathSync';
 
 const MlflowIframe = React.forwardRef<HTMLIFrameElement>((_, ref) => {
+  const { iframeRef, initIframeSrc } = useMlflowPathSync(ref);
+
   return (
     <iframe
-      ref={ref}
+      ref={iframeRef}
       title="MLflow Experiments Interface"
-      // TODO: Replace with the actual MLflow URL when the fork deployment is ready
-      src={mlflowIframeUrl}
+      src={initIframeSrc}
       data-testid="mlflow-iframe"
       style={{
         width: '100%',

@@ -34,7 +34,7 @@ const yamlDefaultFormData: ManageSourceFormData = {
   name: 'Source 1',
   organization: '',
   sourceType: CatalogSourceType.YAML,
-  yamlContent: 'models:\n  - name: model1',
+  yamlContent: '',
 };
 const hfFormData: ManageSourceFormData = {
   accessToken: 'apikey',
@@ -72,7 +72,18 @@ describe('catalogSourceConfigToFormData', () => {
     expect(catalogSourceConfigToFormData(catalogSourceDefaultConfigYAMLMock)).toEqual(
       yamlDefaultFormData,
     );
-    expect(catalogSourceConfigToFormData(catalogSourceConfigYAMLMock)).toEqual(yamlFormData);
+    expect(catalogSourceConfigToFormData(catalogSourceConfigYAMLMock)).toEqual({
+      accessToken: '',
+      allowedModels: '',
+      enabled: true,
+      excludedModels: '',
+      id: 'sample_source_1',
+      isDefault: false,
+      name: 'Source 1',
+      organization: '',
+      sourceType: CatalogSourceType.YAML,
+      yamlContent: '',
+    });
     expect(catalogSourceConfigToFormData(catalogSourceConfigHFMock)).toEqual(hfFormData);
   });
 });
@@ -86,6 +97,24 @@ describe('transformFormDataToConfig', () => {
       isDefault: false,
       type: CatalogSourceType.YAML,
       yaml: 'models:\n  - name: model1',
+      yamlCatalogPath: undefined,
+      includedModels: [],
+      excludedModels: [],
+    });
+  });
+
+  it('should transform YAML form data with existing source config including yamlCatalogPath', () => {
+    const existingConfig = mockYamlCatalogSourceConfig({
+      yamlCatalogPath: 'sample_source_1.yaml',
+    });
+    expect(transformFormDataToConfig(yamlFormData, existingConfig)).toEqual({
+      id: 'sample_source_1',
+      name: 'Source 1',
+      enabled: true,
+      isDefault: false,
+      type: CatalogSourceType.YAML,
+      yaml: 'models:\n  - name: model1',
+      yamlCatalogPath: 'sample_source_1.yaml',
       includedModels: [],
       excludedModels: [],
     });
@@ -112,7 +141,8 @@ describe('transformFormDataToConfig', () => {
       enabled: true,
       isDefault: true,
       type: CatalogSourceType.YAML,
-      yaml: 'models:\n  - name: model1',
+      yaml: '',
+      yamlCatalogPath: undefined,
       includedModels: [],
       excludedModels: [],
     });

@@ -6,7 +6,7 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 
-type OverviewCardProps = {
+export type OverviewCardProps = {
   objectType: ProjectObjectType;
   sectionType: SectionType;
   title?: string;
@@ -16,6 +16,7 @@ type OverviewCardProps = {
   children: React.ReactNode;
   id?: string;
 };
+
 const OverviewCard: React.FC<OverviewCardProps> = ({
   objectType,
   sectionType,

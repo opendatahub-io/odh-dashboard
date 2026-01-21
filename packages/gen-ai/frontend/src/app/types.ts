@@ -83,7 +83,7 @@ export type ChatContextMessage = {
 export type MCPServerConfig = {
   server_label: string;
   server_url: string;
-  headers: Record<string, string>;
+  authorization?: string;
   allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
@@ -204,6 +204,20 @@ export type VectorStoreFile = {
 export type FileUploadResult = {
   file_id: string;
   vector_store_file: VectorStoreFile;
+};
+
+export type FileUploadJobResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+};
+
+export type FileUploadStatusResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: FileUploadResult;
+  error?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type FileModel = {
@@ -364,6 +378,7 @@ export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
+  enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
 };
 
 export type DeleteLSDRequest = {
@@ -380,6 +395,7 @@ export type GenAiAPIs = {
   deleteVectorStoreFile: DeleteVectorStoreFile;
   createVectorStore: CreateVectorStore;
   uploadSource: UploadSource;
+  getFileUploadStatus: GetFileUploadStatus;
   createResponse: CreateResponse;
   getLSDModels: GetLSDModels;
   exportCode: ExportCode;
@@ -413,7 +429,8 @@ type ListVectorStoreFiles = ModArchRestGET<VectorStoreFile[]>;
 type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest>;
 type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
 type GetLSDModels = ModArchRestGET<LlamaModel[]>;
-type UploadSource = ModArchRestCREATE<FileUploadResult, FormData>;
+type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
+type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },

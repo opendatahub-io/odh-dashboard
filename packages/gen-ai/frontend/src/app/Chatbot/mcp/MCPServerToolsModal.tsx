@@ -14,6 +14,11 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { Table, useCheckboxTableBase } from 'mod-arch-shared';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
 import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -27,6 +32,8 @@ interface MCPServerToolsModalProps {
   server: MCPServer;
   mcpBearerToken?: string;
 }
+
+const MCP_TOOLS_EVENT_NAME = 'Playground MCP Tools';
 
 const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   isOpen,
@@ -46,6 +53,28 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
 
   const [searchValue, setSearchValue] = React.useState('');
+  const hasTrackedSearch = React.useRef(false);
+
+  const handleSearchChange = React.useCallback(
+    (_event: React.FormEvent<HTMLInputElement>, value: string) => {
+      setSearchValue(value);
+      // Track search usage once per modal open when user starts typing
+      if (value && !hasTrackedSearch.current) {
+        fireMiscTrackingEvent('Playground MCP Tools Search', {
+          mcpServerName: server.name,
+        });
+        hasTrackedSearch.current = true;
+      }
+    },
+    [server.name],
+  );
+
+  // Reset search tracking when modal closes/opens
+  React.useEffect(() => {
+    if (!isOpen) {
+      hasTrackedSearch.current = false;
+    }
+  }, [isOpen]);
 
   const tools: MCPTool[] = React.useMemo(
     () =>
@@ -121,8 +150,31 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       isAllToolsSelected ? undefined : selectedToolNames,
     );
 
+    fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
+      outcome: TrackingOutcome.submit,
+      mcpServerName: server.name,
+      selectedToolsCount: selectedToolNames.length,
+      totalToolsCount: tools.length,
+    });
+
     onClose();
-  }, [namespaceName, selections, tools.length, saveToolSelections, server.connectionUrl, onClose]);
+  }, [
+    namespaceName,
+    selections,
+    tools.length,
+    saveToolSelections,
+    server.connectionUrl,
+    server.name,
+    onClose,
+  ]);
+
+  const handleCancel = React.useCallback(() => {
+    fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+      mcpServerName: server.name,
+    });
+    onClose();
+  }, [server.name, onClose]);
 
   return (
     <Modal
@@ -189,7 +241,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
                         aria-label="Find by name"
                         placeholder="Find by name"
                         value={searchValue}
-                        onChange={(_event, value) => setSearchValue(value)}
+                        onChange={handleSearchChange}
                         onClear={() => setSearchValue('')}
                       />
                     </ToolbarItem>
@@ -211,7 +263,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
           <Button key="save" variant="primary" onClick={handleSave}>
             Save
           </Button>
-          <Button key="cancel" variant="link" onClick={onClose}>
+          <Button key="cancel" variant="link" onClick={handleCancel}>
             Cancel
           </Button>
         </ModalFooter>

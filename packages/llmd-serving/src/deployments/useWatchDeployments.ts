@@ -3,7 +3,11 @@ import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sType
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { getLLMdDeploymentEndpoints } from './endpoints';
-import { getLlmdDeploymentStatus as getLLMdDeploymentStatus } from './status';
+import {
+  calculateGracePeriod,
+  getLLMdDeploymentStatus,
+  useLLMInferenceServicePods,
+} from './status';
 import {
   LLMInferenceServiceModel,
   type LLMdDeployment,
@@ -16,7 +20,7 @@ export const useWatchDeployments = (
   labelSelectors?: { [key: string]: string },
   filterFn?: (llmInferenceService: LLMInferenceServiceKind) => boolean,
   opts?: K8sAPIOptions,
-): [LLMdDeployment[] | undefined, boolean, Error | undefined] => {
+): [LLMdDeployment[] | undefined, boolean, Error[] | undefined] => {
   const [llmInferenceServices, llmInferenceServiceLoaded, llmInferenceServiceError] =
     useK8sWatchResourceList<LLMInferenceServiceKind[]>(
       {
@@ -29,28 +33,49 @@ export const useWatchDeployments = (
       opts,
     );
 
-  const effectivelyLoaded =
-    llmInferenceServiceLoaded ||
-    (llmInferenceServiceError ? llmInferenceServiceError.message.includes('forbidden') : false);
+  const filteredLLMInferenceServices = React.useMemo(
+    () => (filterFn ? llmInferenceServices.filter(filterFn) : llmInferenceServices),
+    [llmInferenceServices, filterFn],
+  );
 
-  const filteredLlmInferenceServices = React.useMemo(() => {
-    if (!filterFn) {
-      return llmInferenceServices;
-    }
-    return llmInferenceServices.filter(filterFn);
-  }, [llmInferenceServices, filterFn]);
+  const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useLLMInferenceServicePods(
+    project.metadata.name,
+    opts,
+  );
 
-  const deployments: LLMdDeployment[] = React.useMemo(
-    () =>
-      filteredLlmInferenceServices.map((llmInferenceService) => ({
+  const deployments = React.useMemo(() => {
+    return filteredLLMInferenceServices.map((llmInferenceService) => {
+      const pods = deploymentPods.filter(
+        (pod) =>
+          pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceService.metadata.name &&
+          pod.metadata.labels['app.kubernetes.io/component'] === 'llminferenceservice-workload',
+      );
+      const lastActivity = new Date(
+        llmInferenceService.status?.conditions?.find((c) => c.type === 'Ready')
+          ?.lastTransitionTime ?? '',
+      );
+
+      const gracePeriod = calculateGracePeriod(lastActivity);
+      return {
         modelServingPlatformId: LLMD_SERVING_ID,
         model: llmInferenceService,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
-        status: getLLMdDeploymentStatus(llmInferenceService),
-      })),
-    [filteredLlmInferenceServices],
+        status: getLLMdDeploymentStatus(llmInferenceService, pods, gracePeriod),
+      };
+    });
+  }, [filteredLLMInferenceServices, deploymentPods]);
+
+  const effectivelyLoaded = Boolean(
+    (llmInferenceServiceLoaded || llmInferenceServiceError) &&
+      (deploymentPodsLoaded || deploymentPodsError),
   );
 
-  return [deployments, effectivelyLoaded, llmInferenceServiceError];
+  const errors = React.useMemo(() => {
+    return [llmInferenceServiceError, deploymentPodsError].filter((error): error is Error =>
+      Boolean(error),
+    );
+  }, [llmInferenceServiceError, deploymentPodsError]);
+
+  return [deployments, effectivelyLoaded, errors];
 };

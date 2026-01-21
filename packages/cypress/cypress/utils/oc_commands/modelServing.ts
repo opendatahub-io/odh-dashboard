@@ -64,6 +64,15 @@ type InferenceServiceState = {
 };
 
 /**
+ * Type for LLMInferenceService State
+ */
+type LLMInferenceServiceState = {
+  status?: {
+    conditions?: InferenceServiceCondition[];
+  };
+};
+
+/**
  * Type for Condition Check
  */
 type ConditionCheck = {
@@ -101,7 +110,7 @@ export const checkInferenceServiceState = (
   namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o json`;
+  const ocCommand = `oc get InferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
@@ -273,6 +282,154 @@ export const checkInferenceServiceState = (
   return checkState();
 };
 
+export const checkLLMInferenceServiceState = (
+  serviceName: string,
+  namespace: string,
+  options: ConditionCheckOptions = {},
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc get LLMInferenceService ${serviceName} -n ${namespace} -o json`;
+  const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<Cypress.Exec> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts++;
+
+      // Log raw command output for debugging
+      cy.log(`Raw command output (attempt ${attempts}):
+        Exit code: ${result.code}
+        Stdout length: ${result.stdout.length}
+        Stderr: ${result.stderr || 'none'}`);
+
+      // Check if the command failed
+      if (result.code !== 0) {
+        const errorMsg = `Command failed with exit code ${result.code}: ${result.stderr}`;
+        cy.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      // Check if stdout is empty
+      if (!result.stdout.trim()) {
+        const errorMsg = 'Command succeeded but returned empty output';
+        cy.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      let serviceState: LLMInferenceServiceState;
+      try {
+        // Log the first 100 characters of stdout for debugging
+        cy.log(`Attempting to parse JSON (first 100 chars): ${result.stdout.substring(0, 100)}...`);
+        serviceState = JSON.parse(result.stdout) as LLMInferenceServiceState;
+      } catch (error) {
+        const errorMsg = `Failed to parse LLMInferenceService JSON: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`;
+        cy.log(`❌ ${errorMsg}`);
+        cy.log(`Raw stdout: ${result.stdout}`);
+        throw new Error(errorMsg);
+      }
+      const conditions = serviceState.status?.conditions || [];
+
+      // Detailed initial logging
+      cy.log(`🧐 Attempt ${attempts}: Checking LLMInferenceService state
+        Service Name: ${serviceName}
+        Total Conditions: ${conditions.length}`);
+
+      // Prepare condition checks with logging
+      const conditionChecks: ConditionCheck[] = [];
+
+      // Only add condition checks that are explicitly enabled
+      if (options.checkLatestDeploymentReady) {
+        conditionChecks.push({
+          type: 'LatestDeploymentReady',
+          expectedStatus: 'True',
+          check: (condition) =>
+            condition.type === 'LatestDeploymentReady' && condition.status === 'True',
+          name: 'Latest Deployment Ready',
+        });
+      }
+
+      if (options.checkReady) {
+        conditionChecks.push({
+          type: 'Ready',
+          expectedStatus: 'True',
+          check: (condition) => condition.type === 'Ready' && condition.status === 'True',
+          name: 'Service Ready',
+        });
+      }
+
+      // If no condition checks are specified, skip condition validation
+      const shouldValidateConditions = conditionChecks.length > 0;
+
+      // Perform condition checks with detailed logging
+      const checkedConditions = conditionChecks.map((condCheck) => {
+        const foundCondition = conditions.find((condition) => condition.type === condCheck.type);
+
+        const isPassed = foundCondition ? condCheck.check(foundCondition) : false;
+
+        // Detailed condition logging
+        cy.log(`🔍 Condition Check: ${condCheck.name}
+          Type: ${condCheck.type}
+          Expected Status: ${condCheck.expectedStatus}
+          Found Condition: ${foundCondition ? 'Yes' : 'No'}
+          Status: ${safeString(foundCondition?.status)}
+          Reason: ${safeString(foundCondition?.reason)}
+          Passed: ${isPassed ? '✅' : '❌'}`);
+
+        return {
+          ...condCheck,
+          foundCondition,
+          isPassed,
+        };
+      });
+
+      // Determine overall success
+      const allConditionsPassed =
+        !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
+
+      if (allConditionsPassed) {
+        cy.log(
+          `✅ LLMInferenceService ${serviceName} meets all conditions after ${attempts} attempts`,
+        );
+        return cy.wrap(result);
+      }
+
+      if (attempts >= maxAttempts) {
+        // Prepare detailed error message with full condition details
+        const conditionDetails = conditions
+          .map(
+            (condition) =>
+              `Type: ${safeString(condition.type)}, Status: ${safeString(
+                condition.status,
+              )}, Reason: ${safeString(condition.reason)}, Message: ${safeString(
+                condition.message,
+              )}`,
+          )
+          .join('\n');
+
+        const errorMessage = `❌ LLMInferenceService ${serviceName} did not meet all conditions within 8 minutes
+          Condition Checks:
+          ${checkedConditions
+            .map(
+              (check) =>
+                `${check.name}: ${check.isPassed ? '✅' : '❌'} (Status: ${safeString(
+                  check.foundCondition?.status,
+                )})`,
+            )
+            .join('\n')}
+          
+          Full Condition Details:
+          ${conditionDetails}`;
+
+        cy.log(errorMessage);
+        throw new Error(errorMessage);
+      } else {
+        return cy.wait(5000).then(() => checkState());
+      }
+    });
+
+  return checkState();
+};
 /**
  * Extracts the external URL of a model from its InferenceService and performs a test request.
  * Retries the request every 5 seconds for up to 30 seconds if the initial request fails.
@@ -534,10 +691,13 @@ export const verifyModelExternalToken = (
             return cy.wrap({ url, response });
           }
 
-          // Retry on 503 (Service Unavailable) or 502 (Bad Gateway) - external route not ready yet
-          if ((response.status === 503 || response.status === 502) && attemptNumber < maxAttempts) {
+          // Retry on 503 (Service Unavailable), 502 (Bad Gateway), or 400 (Bad Request) - external route/model not ready yet
+          if (
+            (response.status === 503 || response.status === 502 || response.status === 400) &&
+            attemptNumber < maxAttempts
+          ) {
             cy.log(
-              `Service unavailable (${response.status}), retrying in ${waitTime / 1000} seconds...`,
+              `Service not ready (${response.status}), retrying in ${waitTime / 1000} seconds...`,
             );
             return cy
               .wait(waitTime)

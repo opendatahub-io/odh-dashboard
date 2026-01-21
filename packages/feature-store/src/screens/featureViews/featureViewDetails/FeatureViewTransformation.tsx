@@ -21,9 +21,11 @@ import React from 'react';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { FeatureView, OnDemandFeatureView } from '../../../types/featureView';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
-import { featureDataSourceRoute } from '../../../routes';
+import { featureDataSourceRoute, featureViewRoute } from '../../../routes';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { formatOnDemandFeatureViewSources } from '../utils';
+
+type FormattedSource = ReturnType<typeof formatOnDemandFeatureViewSources>[number];
 
 type FeatureViewTransformationProps = {
   featureView: FeatureView;
@@ -35,21 +37,35 @@ type DetailsItemProps = {
   testId?: string;
   className?: string;
   project?: string;
+  sourceType?: FormattedSource['sourceType'];
 };
 
-const DetailsItem: React.FC<DetailsItemProps> = ({ label, value, testId, className, project }) => (
-  <DescriptionListGroup>
-    <DescriptionListTerm data-testid={testId ? `${testId}-label` : undefined}>
-      {label}
-    </DescriptionListTerm>
-    <DescriptionListDescription
-      data-testid={testId ? `${testId}-value` : undefined}
-      className={className}
-    >
-      <Link to={featureDataSourceRoute(project ?? '', value)}>{value}</Link>
-    </DescriptionListDescription>
-  </DescriptionListGroup>
-);
+const DetailsItem: React.FC<DetailsItemProps> = ({
+  label,
+  value,
+  testId,
+  className,
+  project,
+  sourceType,
+}) => {
+  const route =
+    sourceType === 'featureViewProjection'
+      ? featureViewRoute(value, project ?? '')
+      : featureDataSourceRoute(value, project ?? '');
+  return (
+    <DescriptionListGroup>
+      <DescriptionListTerm data-testid={testId ? `${testId}-label` : undefined}>
+        {label}
+      </DescriptionListTerm>
+      <DescriptionListDescription
+        data-testid={testId ? `${testId}-value` : undefined}
+        className={className}
+      >
+        <Link to={route}>{value}</Link>
+      </DescriptionListDescription>
+    </DescriptionListGroup>
+  );
+};
 
 const isOnDemandFeatureView = (featureView: FeatureView): featureView is OnDemandFeatureView =>
   featureView.type === 'onDemandFeatureView';
@@ -66,15 +82,15 @@ const FeatureViewTransformation: React.FC<FeatureViewTransformationProps> = ({ f
         width="100%"
         height="100%"
         icon={PlusCircleIcon}
-        title="No transformation data"
-        titleText="No transformation data"
+        title="No transformations defined"
+        titleText="No transformations defined"
         headingLevel="h1"
         variant={EmptyStateVariant.sm}
         data-testid="no-transformation-empty-state"
       >
         <EmptyStateBody>
-          Check if the transformation is enabled in feature definition. Modify feature definition to
-          enable transformation
+          This feature view doesn’t include any transformations. Transformations are defined in the
+          code that creates this feature view, using your SDK.
         </EmptyStateBody>
       </EmptyState>
     </Flex>
@@ -146,6 +162,7 @@ const FeatureViewTransformation: React.FC<FeatureViewTransformationProps> = ({ f
                       }
                       value={source.name}
                       project={currentProject ?? ''}
+                      sourceType={source.sourceType}
                       testId={`feature-view-inputs-${source.sourceKey}`}
                     />
                     {source.sourceType === 'requestDataSource' && source.schema && (

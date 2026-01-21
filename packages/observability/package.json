@@ -31,6 +31,9 @@
       }
     ]
   },
+  "cypress": {
+    "mocked": "cypress/tests/mocked/**/*.cy.ts"
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -69,8 +72,13 @@
     "use-query-params": "^2.2.1"
   },
   "devDependencies": {
+    "@odh-dashboard/cypress": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "react": "^18",
+    "react-dom": "^18"
   }
 }

@@ -5,6 +5,7 @@
 # misc
 .DS_Store
 Thumbs.db
+.envrc
 
 .env*.local
 
@@ -32,3 +33,6 @@ dist
 
 # Contract test results 
 contract-test-results
+
+# Temporary files
+tmp/

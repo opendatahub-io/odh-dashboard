@@ -49,15 +49,27 @@ type TestEnvInput struct {
 }
 
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+	var binaryAssetsDir string
+
+	// Check for explicit envtest assets directory (used in Docker)
+	if envDir := os.Getenv("ENVTEST_ASSETS_DIR"); envDir != "" {
+		// Construct full path with OS/ARCH suffix
+		binaryAssetsDir = filepath.Join(envDir, "k8s",
+			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH))
+	} else {
+		// Fall back to project root detection (local development)
+		projectRoot, err := getProjectRoot()
+		if err != nil {
+			input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
+			input.Cancel()
+			os.Exit(1)
+		}
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s",
+			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
 	testEnv := &envtest.Environment{
-		BinaryAssetsDirectory: filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: binaryAssetsDir,
 	}
 
 	cfg, err := testEnv.Start()
@@ -228,9 +240,8 @@ catalogs:
 			Namespace: namespace,
 		},
 		Data: map[string]string{
-			k8s.CatalogSourceKey:             raw,
-			"dora_ai_models.yaml":            "models:\n - name: ai_model1",
-			"bella_ai_validated_models.yaml": "models:\n - name: ai_model2",
+			k8s.CatalogSourceKey:  raw,
+			"dora_ai_models.yaml": "models:\n - name: ai_model1",
 		},
 	}
 
@@ -254,11 +265,11 @@ catalogs:
     enabled: true
     properties:
       yamlCatalogPath: custom_yaml_models.yaml
-      includedModels:
-        - model-*
-        - model-2-*
-      excludedModels:
-        - sample-model-*
+    includedModels:
+      - model-*
+      - model-2-*
+    excludedModels:
+      - sample-model-*
     labels:
       - Dora AI
 
@@ -268,27 +279,27 @@ catalogs:
     enabled: false
     properties:
       yamlCatalogPath: sample_source_models.yaml
-      includedModels:
-        - model-*
-        - model-2-*
-      excludedModels:
-        - sample-model-*
+    includedModels:
+      - model-*
+      - model-2-*
+    excludedModels:
+      - sample-model-*
     labels:
       - Bella AI validated
       - Dora AI
 
   - name: Hugging face source
     id: hugging_face_source
-    type: huggingface
+    type: hf
     enabled: true
     properties:
       apiKey: hugging-face-source-secret
       allowedOrganization: org
-      includedModels:
-        - model-*
-        - model-2-*
-      excludedModels:
-        - sample-model-*
+    includedModels:
+      - model-*
+      - model-2-*
+    excludedModels:
+      - sample-model-*
     labels:
       - Bella AI validated
 `)

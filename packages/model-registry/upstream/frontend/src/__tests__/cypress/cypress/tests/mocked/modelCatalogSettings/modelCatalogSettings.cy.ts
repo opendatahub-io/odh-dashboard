@@ -16,6 +16,7 @@ import {
   type CatalogSource,
   type CatalogSourceConfigList,
 } from '~/app/modelCatalogTypes';
+import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
 
 const NAMESPACE = 'kubeflow';
 const userMock = {
@@ -143,7 +144,7 @@ describe('Catalog Source Configs Table', () => {
   it('should render table column headers correctly', () => {
     modelCatalogSettings.visit();
     modelCatalogSettings.findTable().should('be.visible');
-    modelCatalogSettings.findTable().contains('th', 'Name').should('be.visible');
+    modelCatalogSettings.findTable().contains('th', 'Source name').should('be.visible');
     modelCatalogSettings.findTable().contains('th', 'Organization').should('be.visible');
     modelCatalogSettings.findTable().contains('th', 'Model visibility').should('be.visible');
     modelCatalogSettings.findTable().contains('th', 'Source type').should('be.visible');
@@ -156,8 +157,8 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible').and('contain', 'Default Catalog');
-      row.shouldHaveOrganization('-');
-      row.shouldHaveModelVisibility('Unfiltered');
+      row.shouldHaveOrganization(EMPTY_CUSTOM_PROPERTY_VALUE);
+      row.shouldHaveModelVisibility('All models');
       row.shouldHaveSourceType('YAML file');
     });
 
@@ -175,7 +176,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Custom YAML');
       row.findName().should('be.visible').and('contain', 'Custom YAML');
-      row.shouldHaveOrganization('-');
+      row.shouldHaveOrganization(EMPTY_CUSTOM_PROPERTY_VALUE);
       row.shouldHaveModelVisibility('Filtered');
       row.shouldHaveSourceType('YAML file');
       row.shouldHaveEnableState(false);
@@ -403,11 +404,11 @@ describe('Catalog Source Configs Table', () => {
       row.findModelVisibility().should('be.visible').and('contain', 'Filtered');
     });
 
-    it('should show "Unfiltered" badge when source has no filters', () => {
+    it('should show "All models" badge when source has no filters', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible');
-      row.findModelVisibility().should('be.visible').and('contain', 'Unfiltered');
+      row.findModelVisibility().should('be.visible').and('contain', 'All models');
       row
         .findModelVisibility()
         .find('[data-testid*="model-visibility-unfiltered"]')
@@ -421,7 +422,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible');
-      row.shouldHaveValidationStatus('-');
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
     });
 
     it('should show "-" for disabled sources', () => {
@@ -429,7 +430,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible');
-      row.shouldHaveValidationStatus('-');
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
     });
 
     it('should show "Connected" status for available sources', () => {
@@ -593,7 +594,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should show Hugging Face fields by default', () => {
-      manageSourcePage.visitAddSource();
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.findSourceTypeHuggingFace().should('be.checked');
       manageSourcePage.findCredentialsSection().should('exist');
       manageSourcePage.findAccessTokenInput().should('exist');
@@ -628,7 +629,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should enable Add button when all required HF fields are filled', () => {
-      manageSourcePage.visitAddSource();
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.fillSourceName('Test Source');
       manageSourcePage.fillAccessToken('test-token-123');
       manageSourcePage.fillOrganization('Google');
@@ -636,7 +637,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should enable Preview button when HF credentials are filled', () => {
-      manageSourcePage.visitAddSource();
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.fillAccessToken('test-token-123');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('not.be.disabled');
@@ -657,11 +658,8 @@ describe('Manage Source Page', () => {
       manageSourcePage.findPreviewButton().should('not.be.disabled');
     });
 
-    it('should show validation errors for HF fields when touched', () => {
+    it('should show validation errors for HF organization when touched', () => {
       manageSourcePage.visitAddSource();
-      manageSourcePage.findAccessTokenInput().focus().blur();
-      manageSourcePage.findAccessTokenError().should('exist');
-      manageSourcePage.findAccessTokenError().should('contain', 'Access token is required');
 
       manageSourcePage.findOrganizationInput().focus().blur();
       manageSourcePage.findOrganizationError().should('exist');
@@ -723,26 +721,22 @@ describe('Manage Source Page', () => {
 
       // Trigger validation errors
       manageSourcePage.findNameInput().focus().blur();
-      manageSourcePage.findAccessTokenInput().focus().blur();
       manageSourcePage.findOrganizationInput().focus().blur();
 
       manageSourcePage.findNameError().should('exist');
-      manageSourcePage.findAccessTokenError().should('exist');
       manageSourcePage.findOrganizationError().should('exist');
 
       // Fill fields
       manageSourcePage.fillSourceName('Test Source');
-      manageSourcePage.fillAccessToken('test-token');
       manageSourcePage.fillOrganization('Google');
 
       // Errors should be cleared
       manageSourcePage.findNameError().should('not.exist');
-      manageSourcePage.findAccessTokenError().should('not.exist');
       manageSourcePage.findOrganizationError().should('not.exist');
     });
 
     it('should maintain form state when switching between source types', () => {
-      manageSourcePage.visitAddSource();
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
 
       // Fill name and HF fields
       manageSourcePage.fillSourceName('Test Source');
@@ -822,7 +816,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should enable all three preview buttons when credentials are filled', () => {
-      manageSourcePage.visitAddSource();
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.fillAccessToken('test-token');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('not.be.disabled');
@@ -871,7 +865,7 @@ describe('Manage Source Page', () => {
       cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_configs', {
         data: mockHuggingFaceCatalogSourceConfig({}),
       }).as('addSourcewithHuggingFaceType');
-      manageSourcePage.visitAddSource();
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.findNameInput().type('sample source');
       manageSourcePage.selectSourceType('huggingface');
       manageSourcePage.findSourceTypeHuggingFace().should('be.checked');
@@ -939,6 +933,7 @@ describe('Manage Source Page', () => {
           includedModels: ['model1', 'model2'],
           excludedModels: ['model3'],
           enabled: false,
+          yaml: 'models:\n  - name: model1',
         }),
       });
       manageSourcePage.visitManageSource(catalogSourceId);
@@ -975,6 +970,7 @@ describe('Manage Source Page', () => {
         includedModels: ['model1', 'model2'],
         excludedModels: ['model3'],
         enabled: false,
+        yaml: 'models:\n  - name: model1',
       }),
     });
 
@@ -1089,7 +1085,9 @@ describe('Manage Source Page', () => {
       },
     ).as('manageSourcewithHuggingFaceType');
 
-    manageSourcePage.visitManageSource('huggingface_source_3');
+    manageSourcePage.visitManageSource('huggingface_source_3', {
+      enableTempDevCatalogHuggingFaceApiKeyFeature: true,
+    });
     manageSourcePage.findNameInput().should('have.value', 'Huggingface source 3');
 
     manageSourcePage.findAccessTokenInput().should('have.value', 'apikey');

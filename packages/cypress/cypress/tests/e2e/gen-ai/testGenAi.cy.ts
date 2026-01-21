@@ -30,7 +30,7 @@ import {
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('[Product Bug: RHOAIENG-41634] Verify Gen AI Namespace - Creation and Connection', () => {
+describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
@@ -126,7 +126,7 @@ describe('[Product Bug: RHOAIENG-41634] Verify Gen AI Namespace - Creation and C
   it(
     'Create custom serving runtime for Gen AI',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime', '@Bug'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime'],
     },
     () => {
       if (skipTest) {
@@ -175,7 +175,7 @@ describe('[Product Bug: RHOAIENG-41634] Verify Gen AI Namespace - Creation and C
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@Bug'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment'],
     },
     () => {
       if (skipTest) {
@@ -253,7 +253,7 @@ describe('[Product Bug: RHOAIENG-41634] Verify Gen AI Namespace - Creation and C
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@Bug'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground'],
     },
     () => {
       if (skipTest) {

@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { EmptyState, Spinner, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
+import {
+  Alert,
+  EmptyState,
+  Spinner,
+  EmptyStateBody,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
 import { CubesIcon, UnknownIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
 import {
@@ -35,6 +41,7 @@ interface MCPServersPanelProps {
   onSelectionChange?: (selectedServers: string[]) => void;
   initialSelectedServerIds?: string[];
   initialServerStatuses?: Map<string, ServerStatusInfo>;
+  onToolsWarningChange?: (showWarning: boolean) => void;
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
@@ -49,6 +56,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   onSelectionChange,
   initialSelectedServerIds,
   initialServerStatuses,
+  onToolsWarningChange,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
@@ -128,6 +136,28 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     [namespace?.name, toolsManagement.serverToolsCount, getToolSelections],
   );
 
+  // Calculate total active tools across all connected AND selected servers
+  const totalActiveTools = React.useMemo(() => {
+    let total = 0;
+    selection.selectedServers.forEach((server) => {
+      const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+      const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+
+      if (isAuthenticated) {
+        const { selectedToolsCount } = getToolCounts(server.connectionUrl);
+        total += selectedToolsCount ?? 0;
+      }
+    });
+    return total;
+  }, [selection.selectedServers, tokenManagement, getToolCounts]);
+
+  const showToolsWarning = totalActiveTools > 40;
+
+  // Notify parent when tools warning state changes
+  React.useEffect(() => {
+    onToolsWarningChange?.(showToolsWarning);
+  }, [showToolsWarning, onToolsWarningChange]);
+
   const handleConfigModalClose = React.useCallback(() => {
     configModal.closeModal();
     fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
@@ -199,11 +229,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
         data-testid="ai-assets-empty-state"
         icon={CubesIcon}
         headingLevel="h6"
-        titleText="No MCP configuration found"
+        titleText="No MCP servers available"
       >
         <EmptyStateBody>
-          This playground does not have an MCP configuration. Contact your cluster administrator to
-          add MCP servers.
+          Contact your cluster administrator to request that MCP servers be configured for use in
+          the playground.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -229,6 +259,15 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   return (
     <>
       <div className="mcp-servers-panel">
+        {showToolsWarning && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Performance may be degraded with more than 40 active tools."
+            className="pf-v6-u-mb-md"
+            data-testid="mcp-tools-warning-alert"
+          />
+        )}
         <Table
           data={transformedServers}
           columns={MCPPanelColumns}

@@ -56,7 +56,7 @@ async function fetchFeatureStoreCRDs(
   try {
     const response = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
       'feast.dev',
-      'v1alpha1',
+      'v1',
       namespace,
       'featurestores',
     )) as CustomObjectResponse;

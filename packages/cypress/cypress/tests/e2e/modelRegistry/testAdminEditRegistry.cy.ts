@@ -17,7 +17,7 @@ import {
   FormFieldSelector as SettingsFormFieldSelector,
 } from '../../../pages/modelRegistrySettings';
 
-describe('[Product Bug: RHOAIENG-41476] Verify that admin users can edit a model registry', () => {
+describe('Verify that admin users can edit a model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let originalRegistryName: string;
@@ -56,7 +56,9 @@ describe('[Product Bug: RHOAIENG-41476] Verify that admin users can edit a model
 
   it(
     'Logs in as admin user and edits an existing model registry',
-    { tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent', '@Bug'] },
+    {
+      tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
+    },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

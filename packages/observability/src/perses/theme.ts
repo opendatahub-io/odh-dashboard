@@ -388,6 +388,20 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
           },
         },
       },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            // Hide Query Viewer button (aria-label contains "query view")
+            '&[aria-label*="query view" i]': {
+              display: 'none',
+            },
+            // Hide Export CSV button
+            '&[aria-label="Export time series data as CSV"]': {
+              display: 'none',
+            },
+          },
+        },
+      },
     },
   };
 };

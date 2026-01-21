@@ -4,6 +4,7 @@ import {
   featureDataSourceRoute,
   featureViewRoute,
   featureServiceRoute,
+  featureDataSetRoute,
 } from '../../../routes';
 import type { ISearchItem } from '../hooks/useSearchHandlers';
 
@@ -24,6 +25,8 @@ export const getFeatureStoreRoute = (
       return featureViewRoute(name, project);
     case 'featureService':
       return featureServiceRoute(name, project);
+    case 'savedDataset':
+      return featureDataSetRoute(name, project);
     default:
       return `/develop-train/feature-store/${project}`;
   }

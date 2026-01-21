@@ -33,6 +33,14 @@ export const useCatalogModelsBySources = (
   searchQuery = '',
   filterData?: ModelCatalogFilterStates,
   filterOptions?: CatalogFilterOptionsList | null,
+  filterQuery?: string,
+  sortBy?: string | null,
+  sortOrder?: string,
+  performanceParams?: {
+    targetRPS?: number;
+    latencyProperty?: string;
+    recommendations?: boolean;
+  },
 ): ModelList => {
   const { api, apiAvailable } = useModelCatalogAPI();
 
@@ -51,13 +59,32 @@ export const useCatalogModelsBySources = (
         opts,
         sourceId,
         sourceLabel,
-        { pageSize: pageSize.toString() },
+        {
+          pageSize: pageSize.toString(),
+          ...(sortBy && { orderBy: sortBy }),
+          ...(sortOrder && { sortOrder }),
+        },
         searchQuery.trim() || undefined,
         filterData,
         filterOptions,
+        filterQuery,
+        performanceParams,
       );
     },
-    [api, apiAvailable, sourceId, pageSize, searchQuery, filterData, filterOptions, sourceLabel],
+    [
+      api,
+      apiAvailable,
+      sourceId,
+      pageSize,
+      searchQuery,
+      filterData,
+      filterOptions,
+      sourceLabel,
+      filterQuery,
+      sortBy,
+      sortOrder,
+      performanceParams,
+    ],
   );
 
   const [firstPageData, loaded, error, refetch] = useFetchState(
@@ -89,10 +116,14 @@ export const useCatalogModelsBySources = (
         {
           pageSize: pageSize.toString(),
           nextPageToken,
+          ...(sortBy && { orderBy: sortBy }),
+          ...(sortOrder && { sortOrder }),
         },
         searchQuery.trim() || undefined,
         filterData,
         filterOptions,
+        filterQuery,
+        performanceParams,
       );
 
       setAllItems((prev) => [...prev, ...response.items]);
@@ -116,6 +147,10 @@ export const useCatalogModelsBySources = (
     sourceLabel,
     filterData,
     filterOptions,
+    filterQuery,
+    sortBy,
+    sortOrder,
+    performanceParams,
   ]);
 
   React.useEffect(() => {
@@ -123,7 +158,17 @@ export const useCatalogModelsBySources = (
     setTotalSize(0);
     setNextPageToken('');
     setIsLoadingMore(false);
-  }, [sourceId, searchQuery, sourceLabel, filterData, filterOptions]);
+  }, [
+    sourceId,
+    searchQuery,
+    sourceLabel,
+    filterData,
+    filterOptions,
+    filterQuery,
+    sortBy,
+    sortOrder,
+    performanceParams,
+  ]);
 
   const refresh = React.useCallback(() => {
     setAllItems([]);

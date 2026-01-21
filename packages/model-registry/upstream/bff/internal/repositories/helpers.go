@@ -41,6 +41,27 @@ func FilterPageValues(values url.Values) url.Values {
 	if v := values.Get("artifactType"); v != "" {
 		result.Set("artifactType", v)
 	}
+	if v := values.Get("targetRPS"); v != "" {
+		result.Set("targetRPS", v)
+	}
+	if v := values.Get("recommendations"); v != "" {
+		result.Set("recommendations", v)
+	}
+	if v := values.Get("rpsProperty"); v != "" {
+		result.Set("rpsProperty", v)
+	}
+	if v := values.Get("latencyProperty"); v != "" {
+		result.Set("latencyProperty", v)
+	}
+	if v := values.Get("hardwareCountProperty"); v != "" {
+		result.Set("hardwareCountProperty", v)
+	}
+	if v := values.Get("hardwareTypeProperty"); v != "" {
+		result.Set("hardwareTypeProperty", v)
+	}
+	if v := values.Get("filterStatus"); v != "" {
+		result.Set("filterStatus", v)
+	}
 
 	return result
 }
@@ -62,12 +83,14 @@ func ParseCatalogYaml(raw string, isDefault bool) ([]models.CatalogSourceConfig,
 	// Internal struct to match YAML structure
 	var parsed struct {
 		Catalogs []struct {
-			Name       string                 `yaml:"name"`
-			Id         string                 `yaml:"id"`
-			Type       string                 `yaml:"type"`
-			Enabled    *bool                  `yaml:"enabled"`
-			Properties map[string]interface{} `yaml:"properties"`
-			Labels     []string               `yaml:"labels"`
+			Name           string                 `yaml:"name"`
+			Id             string                 `yaml:"id"`
+			Type           string                 `yaml:"type"`
+			Enabled        *bool                  `yaml:"enabled"`
+			Properties     map[string]interface{} `yaml:"properties"`
+			Labels         []string               `yaml:"labels"`
+			IncludedModels []string               `yaml:"includedModels"`
+			ExcludedModels []string               `yaml:"excludedModels"`
 		} `yaml:"catalogs"`
 	}
 
@@ -78,23 +101,17 @@ func ParseCatalogYaml(raw string, isDefault bool) ([]models.CatalogSourceConfig,
 	catalogs := make([]models.CatalogSourceConfig, 0, len(parsed.Catalogs))
 	for _, c := range parsed.Catalogs {
 		entry := models.CatalogSourceConfig{
-			Id:        c.Id,
-			Name:      c.Name,
-			Type:      c.Type,
-			Enabled:   c.Enabled,
-			Labels:    c.Labels,
-			IsDefault: &isDefault,
+			Id:             c.Id,
+			Name:           c.Name,
+			Type:           c.Type,
+			Enabled:        c.Enabled,
+			Labels:         c.Labels,
+			IsDefault:      &isDefault,
+			IncludedModels: c.IncludedModels,
+			ExcludedModels: c.ExcludedModels,
 		}
 
 		if c.Properties != nil {
-			if includedModels, ok := c.Properties["includedModels"]; ok {
-				entry.IncludedModels = ExtractStringSlice(includedModels)
-			}
-
-			if excludedModels, ok := c.Properties["excludedModels"]; ok {
-				entry.ExcludedModels = ExtractStringSlice(excludedModels)
-			}
-
 			if apiKey, ok := c.Properties[ApiKey].(string); ok {
 				entry.ApiKey = &apiKey
 			}
@@ -133,12 +150,14 @@ func FindCatalogSourceById(sourceYAML string, catalogId string, isDefault bool) 
 
 	var parsed struct {
 		Catalogs []struct {
-			Id         string                 `yaml:"id"`
-			Name       string                 `yaml:"name"`
-			Type       string                 `yaml:"type"`
-			Enabled    *bool                  `yaml:"enabled"`
-			Labels     []string               `yaml:"labels"`
-			Properties map[string]interface{} `yaml:"properties"`
+			Id             string                 `yaml:"id"`
+			Name           string                 `yaml:"name"`
+			Type           string                 `yaml:"type"`
+			Enabled        *bool                  `yaml:"enabled"`
+			Labels         []string               `yaml:"labels"`
+			Properties     map[string]interface{} `yaml:"properties"`
+			IncludedModels []string               `yaml:"includedModels"`
+			ExcludedModels []string               `yaml:"excludedModels"`
 		} `yaml:"catalogs"`
 	}
 
@@ -150,21 +169,17 @@ func FindCatalogSourceById(sourceYAML string, catalogId string, isDefault bool) 
 		if catalog.Id == catalogId {
 			isDefaultVal := isDefault
 			result := &models.CatalogSourceConfig{
-				Id:        catalog.Id,
-				Name:      catalog.Name,
-				Type:      catalog.Type,
-				Enabled:   catalog.Enabled,
-				Labels:    catalog.Labels,
-				IsDefault: &isDefaultVal,
+				Id:             catalog.Id,
+				Name:           catalog.Name,
+				Type:           catalog.Type,
+				Enabled:        catalog.Enabled,
+				Labels:         catalog.Labels,
+				IsDefault:      &isDefaultVal,
+				IncludedModels: catalog.IncludedModels,
+				ExcludedModels: catalog.ExcludedModels,
 			}
 
 			if catalog.Properties != nil {
-				if included, ok := catalog.Properties["includedModels"]; ok {
-					result.IncludedModels = ExtractStringSlice(included)
-				}
-				if excluded, ok := catalog.Properties["excludedModels"]; ok {
-					result.ExcludedModels = ExtractStringSlice(excluded)
-				}
 				if org, ok := catalog.Properties["allowedOrganization"].(string); ok {
 					result.AllowedOrganization = &org
 				}
@@ -204,16 +219,17 @@ func ConvertSourceConfigToYamlEntry(payload models.CatalogSourceConfigPayload,
 
 	}
 
-	if len(payload.IncludedModels) > 0 {
-		properties["includedModels"] = payload.IncludedModels
-	}
-	if len(payload.ExcludedModels) > 0 {
-		properties["excludedModels"] = payload.ExcludedModels
-	}
-
 	if len(properties) > 0 {
 		entry["properties"] = properties
 	}
+
+	if len(payload.IncludedModels) > 0 {
+		entry["includedModels"] = payload.IncludedModels
+	}
+	if len(payload.ExcludedModels) > 0 {
+		entry["excludedModels"] = payload.ExcludedModels
+	}
+
 	return entry
 }
 
@@ -327,16 +343,16 @@ func UpdateCatalogSourceInYAML(
 
 			if payload.IncludedModels != nil {
 				if len(payload.IncludedModels) > 0 {
-					properties["includedModels"] = payload.IncludedModels
+					catalogSource["includedModels"] = payload.IncludedModels
 				} else {
-					delete(properties, "includedModels")
+					delete(catalogSource, "includedModels")
 				}
 			}
 			if payload.ExcludedModels != nil {
 				if len(payload.ExcludedModels) > 0 {
-					properties["excludedModels"] = payload.ExcludedModels
+					catalogSource["excludedModels"] = payload.ExcludedModels
 				} else {
-					delete(properties, "excludedModels")
+					delete(catalogSource, "excludedModels")
 				}
 			}
 			if payload.AllowedOrganization != nil {
@@ -379,17 +395,11 @@ func BuildOverrideEntryForDefaultSource(catalogId string, payload models.Catalog
 		entry["enabled"] = *payload.Enabled
 	}
 
-	properties := make(map[string]interface{})
-
 	if len(payload.IncludedModels) > 0 {
-		properties["includedModels"] = payload.IncludedModels
+		entry["includedModels"] = payload.IncludedModels
 	}
 	if len(payload.ExcludedModels) > 0 {
-		properties["excludedModels"] = payload.ExcludedModels
-	}
-
-	if len(properties) > 0 {
-		entry["properties"] = properties
+		entry["excludedModels"] = payload.ExcludedModels
 	}
 
 	return entry

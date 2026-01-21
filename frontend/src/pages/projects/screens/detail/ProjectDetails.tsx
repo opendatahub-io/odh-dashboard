@@ -19,6 +19,7 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
+import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
@@ -31,7 +32,7 @@ import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import FeatureStoreIntegration from '#~/pages/projects/featureStoreConfig/FeatureStoreIntegration';
+import { PermissionsContextProvider } from '#~/concepts/permissions/PermissionsContext';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -49,7 +50,7 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const featureStoreEnabled = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
+  const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -176,23 +177,27 @@ const ProjectDetails: React.FC = () => {
               title: 'Connections',
               component: <ConnectionsList />,
             },
-            ...(featureStoreEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.FEATURE_STORE,
-                    title: 'Feature store integration',
-                    component: <FeatureStoreIntegration />,
-                  },
-                ]
-              : []),
             ...(projectSharingEnabled && allowCreate
-              ? [
-                  {
-                    id: ProjectSectionID.PERMISSIONS,
-                    title: 'Permissions',
-                    component: <ProjectSharing />,
-                  },
-                ]
+              ? projectRBACEnabled
+                ? [
+                    {
+                      id: ProjectSectionID.PERMISSIONS,
+                      title: 'Permissions',
+                      component: (
+                        <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                          <ProjectPermissions />
+                        </PermissionsContextProvider>
+                      ),
+                      label: 'Tech preview',
+                    },
+                  ]
+                : [
+                    {
+                      id: ProjectSectionID.PERMISSIONS,
+                      title: 'Permissions',
+                      component: <ProjectSharing />,
+                    },
+                  ]
               : []),
             ...(biasMetricsAreaAvailable && allowCreate
               ? [
@@ -207,7 +212,6 @@ const ProjectDetails: React.FC = () => {
           [
             allowCreate,
             biasMetricsAreaAvailable,
-            featureStoreEnabled,
             pipelinesEnabled,
             projectSharingEnabled,
             workbenchEnabled,

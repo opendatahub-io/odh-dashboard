@@ -1,4 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
+import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
 export const DASHBOARD_QUERY_PARAM = 'dashboard';
@@ -33,13 +34,20 @@ export function filterDashboards(
 }
 
 /**
- * Build URL for the dashboard page
+ * Build URL for the dashboard page, preserving existing query params (like time range)
  * @param projectName - Selected project name (empty string for "All projects")
  * @param dashboardName - Selected dashboard name
+ * @param currentSearch - Optional current URL search string to preserve other params
  */
-export const buildDashboardUrl = (projectName: string, dashboardName: string): string => {
+export const buildDashboardUrl = (
+  projectName: string,
+  dashboardName: string,
+  currentSearch?: string,
+): string => {
   const path = projectName ? `${BASE_PATH}/${encodeURIComponent(projectName)}` : BASE_PATH;
-  return `${path}?${DASHBOARD_QUERY_PARAM}=${encodeURIComponent(dashboardName)}`;
+  const params = new URLSearchParams(currentSearch);
+  params.set(DASHBOARD_QUERY_PARAM, dashboardName);
+  return `${path}?${params.toString()}`;
 };
 
 /**
@@ -47,3 +55,11 @@ export const buildDashboardUrl = (projectName: string, dashboardName: string): s
  */
 export const getDashboardDisplayName = (dashboard: DashboardResource): string =>
   dashboard.spec.display?.name || dashboard.metadata.name;
+
+/**
+ * Check if a dashboard uses any of the known cluster details variables
+ */
+export const hasClusterDetailsVariables = (dashboard: DashboardResource): boolean => {
+  const { variables = [] } = dashboard.spec;
+  return variables.some((variable) => isClusterDetailsVariable(variable.spec.name));
+};

@@ -1,4 +1,7 @@
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTolerationsTestData } from '../../../../types';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
@@ -31,6 +34,8 @@ let modelName: string;
 let modelFilePath: string;
 let hardwareProfileResourceName: string;
 let tolerationValue: string;
+let modelFormat: string;
+let servingRuntime: string;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
@@ -53,6 +58,8 @@ describe('ModelServing - tolerations tests', () => {
         modelFilePath = testData.modelFilePath;
         hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
         tolerationValue = testData.tolerationValue;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -132,7 +139,7 @@ describe('ModelServing - tolerations tests', () => {
         'Launch a Single Serving Model using OpenVINO Model Server and by selecting the Hardware Profile',
       );
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
@@ -143,8 +150,8 @@ describe('ModelServing - tolerations tests', () => {
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
       );
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');

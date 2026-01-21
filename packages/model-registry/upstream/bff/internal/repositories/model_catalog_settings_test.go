@@ -9,6 +9,7 @@ import (
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 var _ = Describe("ModelCatalogSettingRepository", func() {
@@ -63,18 +64,20 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 	})
 
 	Describe("GetCatalogSourceConfig", func() {
-		It("should return Yaml content for yaml type source config", func() {
+		It("should return Yaml content and YamlCatalogPath for yaml type source config", func() {
 			catalog, err := repo.GetCatalogSourceConfig(ctx, k8sClient, "kubeflow", "dora_ai_models")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(catalog.Type).To(Equal("yaml"))
 			Expect(catalog.Yaml).NotTo(BeNil())
 			Expect(*catalog.Yaml).NotTo(BeEmpty())
+			Expect(catalog.YamlCatalogPath).NotTo(BeNil())
+			Expect(*catalog.YamlCatalogPath).To(Equal("dora_ai_models.yaml"))
 		})
 
 		It("should return apiKey for the huggingFace type source config", func() {
 			catalog, err := repo.GetCatalogSourceConfig(ctx, k8sClient, "kubeflow", "hugging_face_source")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(catalog.Type).To(Equal("huggingface"))
+			Expect(catalog.Type).To(Equal("hf"))
 			Expect(catalog.ApiKey).To(BeNil())
 		})
 
@@ -154,16 +157,16 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 			Expect(err.Error()).To(ContainSubstring("yaml field is required"))
 		})
 
-		It("should fail when apiKey is missing for huggingface-type", func() {
+		It("should fail when allowedOrganization is missing for huggingface-type", func() {
 			payload := models.CatalogSourceConfigPayload{
 				Id:      "test_id",
 				Name:    "Test",
-				Type:    "huggingface",
+				Type:    "hf",
 				Enabled: boolPtr(true),
 			}
 			_, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("apiKey is required"))
+			Expect(err.Error()).To(ContainSubstring("allowedOrganization is required"))
 		})
 
 		It("should fail for unsupported type", func() {
@@ -208,11 +211,12 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 			longId := strings.Repeat("a", 239)
 
 			payload := models.CatalogSourceConfigPayload{
-				Id:      longId,
-				Name:    "Test Long ID",
-				Type:    "huggingface",
-				Enabled: boolPtr(true),
-				ApiKey:  stringPtr("hf_test_key"),
+				Id:                  longId,
+				Name:                "Test Long ID",
+				Type:                "hf",
+				Enabled:             boolPtr(true),
+				ApiKey:              stringPtr("hf_test_key"),
+				AllowedOrganization: stringPtr("test-org"),
 			}
 			_, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload)
 			Expect(err).To(HaveOccurred())
@@ -223,11 +227,12 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 			maxLengthId := strings.Repeat("b", 238)
 
 			payload := models.CatalogSourceConfigPayload{
-				Id:      maxLengthId,
-				Name:    "Test Max Length ID",
-				Type:    "huggingface",
-				Enabled: boolPtr(true),
-				ApiKey:  stringPtr("hf_test_key"),
+				Id:                  maxLengthId,
+				Name:                "Test Max Length ID",
+				Type:                "hf",
+				Enabled:             boolPtr(true),
+				ApiKey:              stringPtr("hf_test_key"),
+				AllowedOrganization: stringPtr("test-org"),
 			}
 			result, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload)
 			Expect(err).NotTo(HaveOccurred())
@@ -251,11 +256,12 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 
 		It("should create huggingface-type source successfully", func() {
 			payload := models.CatalogSourceConfigPayload{
-				Id:      "test_hf_create",
-				Name:    "Test HF Create",
-				Type:    "huggingface",
-				Enabled: boolPtr(true),
-				ApiKey:  stringPtr("hf_test_key"),
+				Id:                  "test_hf_create",
+				Name:                "Test HF Create",
+				Type:                "hf",
+				Enabled:             boolPtr(true),
+				ApiKey:              stringPtr("hf_test_key"),
+				AllowedOrganization: stringPtr("test-org"),
 			}
 			result, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload)
 			Expect(err).NotTo(HaveOccurred())
@@ -328,7 +334,7 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 
 		It("should fail, when trying to update the source type", func() {
 			payload := models.CatalogSourceConfigPayload{
-				Type: "huggingface",
+				Type: "hf",
 			}
 			_, err := repo.UpdateCatalogSourceConfig(ctx, k8sClient, "kubeflow", "custom_yaml_models", payload)
 			Expect(err).To(HaveOccurred())
@@ -464,10 +470,57 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 				ExcludedModels: emptyModels,
 			}
 
-			result, err := repo.UpdateCatalogSourceConfig(ctx, k8sClient, "kubeflow", "test_clear_models", updatePayload)
+			result, err := repo.UpdateCatalogSourceConfig(ctx, k8sClient, "kubeflow", "test_clear_excluded_models", updatePayload)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.ExcludedModels).To(BeEmpty())
 			Expect(result.IncludedModels).To(Equal([]string{"*"}))
+		})
+
+		It("should return conflict error when concurrent updates occur with stale resourceVersion", func() {
+			// First, create a source to test with
+			createPayload := models.CatalogSourceConfigPayload{
+				Id:      "concurrency_test_source",
+				Name:    "Concurrency Test Source",
+				Type:    "yaml",
+				Enabled: boolPtr(true),
+				Yaml:    stringPtr("models: []"),
+			}
+			_, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", createPayload)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Simulate two concurrent requests by reading the configmap state twice
+			// Request A reads the current state
+			_, cmA, err := k8sClient.GetAllCatalogSourceConfigs(ctx, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+			resourceVersionA := cmA.ResourceVersion
+			Expect(resourceVersionA).NotTo(BeEmpty(), "ConfigMap should have a resourceVersion")
+
+			// Request B reads the same state (before A updates)
+			_, cmB, err := k8sClient.GetAllCatalogSourceConfigs(ctx, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+			resourceVersionB := cmB.ResourceVersion
+			Expect(resourceVersionB).To(Equal(resourceVersionA), "Both requests should see the same resourceVersion")
+
+			// Request A updates successfully
+			payloadA := models.CatalogSourceConfigPayload{
+				Name: "Updated by Request A",
+			}
+			_, err = repo.UpdateCatalogSourceConfig(ctx, k8sClient, "kubeflow", "concurrency_test_source", payloadA)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify the resourceVersion has changed after A's update
+			_, cmAfterA, err := k8sClient.GetAllCatalogSourceConfigs(ctx, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cmAfterA.ResourceVersion).NotTo(Equal(resourceVersionA), "resourceVersion should change after update")
+
+			// Request B tries to update with stale resourceVersion
+			// This simulates B modifying its local copy (cmB) and trying to update
+			cmB.Data[k8s.CatalogSourceKey] = "catalogs:\n  - id: concurrency_test_source\n    name: Updated by Request B\n    type: yaml\n    enabled: true"
+			err = k8sClient.UpdateCatalogSourceConfig(ctx, "kubeflow", &cmB)
+
+			// Should fail with a conflict error because cmB has stale resourceVersion
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsConflict(err)).To(BeTrue(), "Expected conflict error due to stale resourceVersion, got: %v", err)
 		})
 	})
 
@@ -504,11 +557,12 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 		It("should delete user huggingface source and its secret", func() {
 			// First create
 			createPayload := models.CatalogSourceConfigPayload{
-				Id:      "delete_test_hf",
-				Name:    "Delete HF Test",
-				Type:    "huggingface",
-				Enabled: boolPtr(true),
-				ApiKey:  stringPtr("hf_delete_test"),
+				Id:                  "delete_test_hf",
+				Name:                "Delete HF Test",
+				Type:                "hf",
+				Enabled:             boolPtr(true),
+				ApiKey:              stringPtr("hf_delete_test"),
+				AllowedOrganization: stringPtr("test-org"),
 			}
 			_, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", createPayload)
 			Expect(err).NotTo(HaveOccurred())

@@ -41,15 +41,21 @@ export type MockDashboardConfigType = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
+  maasApiKeys?: boolean;
   trainingJobs?: boolean;
-  aiCatalogSettings?: boolean;
+  observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  projectRBAC?: boolean;
+  embedMLflow?: boolean;
+  disableLLMd?: boolean;
 };
 
 export const mockDashboardConfig = ({
   mlflow = false,
+  projectRBAC = false,
+  embedMLflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -58,6 +64,7 @@ export const mockDashboardConfig = ({
   disableISVBadges = false,
   genAiStudio = false,
   modelAsService = true,
+  maasApiKeys = false,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -83,8 +90,9 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
-  trainingJobs = false,
-  aiCatalogSettings = false,
+  trainingJobs = true,
+  observabilityDashboard = false,
+  disableLLMd = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -209,6 +217,8 @@ export const mockDashboardConfig = ({
   spec: {
     dashboardConfig: {
       mlflow,
+      projectRBAC,
+      embedMLflow,
       enablement: true,
       disableInfo,
       disableSupport,
@@ -230,6 +240,7 @@ export const mockDashboardConfig = ({
       disableKServe,
       genAiStudio,
       modelAsService,
+      maasApiKeys,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -246,7 +257,8 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       trainingJobs,
-      aiCatalogSettings,
+      observabilityDashboard,
+      disableLLMd,
     },
     notebookController: {
       enabled: !disableNotebookController,

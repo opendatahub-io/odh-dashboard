@@ -5,13 +5,16 @@ export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
   modelAsService: false,
-  aiCatalogSettings: false,
+  maasApiKeys: false,
   mlflow: false,
+  projectRBAC: false,
+  observabilityDashboard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  embedMLflow: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -48,6 +51,7 @@ export const modelServingFlags = {
   disableNIMModelServing: false,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
+  disableLLMd: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines
@@ -59,7 +63,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
-  trainingJobs: false,
+  trainingJobs: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -116,6 +120,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.K_SERVE_RAW]: {
     featureFlags: ['disableKServeRaw'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.LLMD_SERVING]: {
+    featureFlags: ['disableLLMd'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.MODEL_SERVING]: {
@@ -191,12 +199,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
-  },
-  [SupportedArea.AI_CATALOG_SETTINGS]: {
-    featureFlags: ['aiCatalogSettings'],
+    requiredComponents: [DataScienceStackComponent.TRAINER],
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
+  },
+  [SupportedArea.PROJECT_RBAC_SETTINGS]: {
+    featureFlags: ['projectRBAC'],
+  },
+  [SupportedArea.EMBED_MLFLOW]: {
+    featureFlags: ['embedMLflow'],
   },
 };
 
@@ -212,4 +224,5 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
+  [DataScienceStackComponent.TRAINER]: 'Trainer',
 };

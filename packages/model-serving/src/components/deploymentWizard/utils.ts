@@ -3,6 +3,16 @@ import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
 } from '@odh-dashboard/internal/concepts/k8s/utils';
+import {
+  getConnectionTypeRef,
+  getModelServingCompatibility,
+  getModelServingConnectionTypeName,
+  ModelServingCompatibleTypes,
+} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import {
+  Connection,
+  ConnectionTypeConfigMapObj,
+} from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
@@ -15,7 +25,11 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import type {
+  Deployment,
+  DeploymentEndpoint,
+  DeploymentAssemblyFn,
+} from '../../../extension-points';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
@@ -77,12 +91,14 @@ export const deployModel = async (
     secretName?: string,
     overwrite?: boolean,
     initialWizardData?: InitialWizardFormData,
+    applyFieldData?: DeploymentAssemblyFn,
   ) => Promise<Deployment>,
   existingDeployment?: Deployment,
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
+  applyFieldData?: DeploymentAssemblyFn,
 ): Promise<void> => {
   const { projectName } = wizardState.state.project;
   if (!projectName) {
@@ -110,6 +126,7 @@ export const deployModel = async (
             undefined,
             undefined,
             initialWizardData,
+            applyFieldData,
           ),
         ]
       : []),
@@ -143,6 +160,7 @@ export const deployModel = async (
     actualSecretName,
     overwrite,
     initialWizardData,
+    applyFieldData,
   );
 
   if (!wizardState.state.modelLocationData.data || !deploymentResult) {
@@ -159,4 +177,39 @@ export const deployModel = async (
   );
 
   exitWizard();
+};
+
+export const resolveConnectionType = (
+  connection: Connection,
+  connectionTypes: ConnectionTypeConfigMapObj[],
+): ConnectionTypeConfigMapObj | undefined => {
+  const connectionTypeRef = getConnectionTypeRef(connection);
+  const connectionType = connectionTypes.find((ct) => ct.metadata.name === connectionTypeRef);
+  // If we find the connection type, return it
+  if (connectionType) {
+    return connectionType;
+  }
+  const compatibleTypes = getModelServingCompatibility(connection);
+
+  // If we don't find the connection type, return the first compatible type
+  switch (compatibleTypes[0]) {
+    case ModelServingCompatibleTypes.S3ObjectStorage:
+      return connectionTypes.find(
+        (ct) =>
+          ct.metadata.name ===
+          getModelServingConnectionTypeName(ModelServingCompatibleTypes.S3ObjectStorage),
+      );
+    case ModelServingCompatibleTypes.OCI:
+      return connectionTypes.find(
+        (ct) =>
+          ct.metadata.name === getModelServingConnectionTypeName(ModelServingCompatibleTypes.OCI),
+      );
+    case ModelServingCompatibleTypes.URI:
+      return connectionTypes.find(
+        (ct) =>
+          ct.metadata.name === getModelServingConnectionTypeName(ModelServingCompatibleTypes.URI),
+      );
+    default:
+      return undefined;
+  }
 };

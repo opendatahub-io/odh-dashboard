@@ -47,6 +47,7 @@ export const assembleNotebook = (
     volumeMounts: formVolumeMounts,
     connections,
     hardwareProfileOptions,
+    feastData,
   } = data;
   const {
     name: notebookName,
@@ -97,6 +98,7 @@ export const assembleNotebook = (
         'opendatahub.io/odh-managed': 'true',
         'opendatahub.io/user': translatedUsername,
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+        ...(feastData?.labels || {}),
       },
       annotations: {
         'openshift.io/display-name': notebookName.trim(),
@@ -107,6 +109,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
         'opendatahub.io/connections': connectionsAnnotation ?? '',
+        ...(feastData?.annotations || {}),
       },
       name: notebookId,
       namespace: projectName,
@@ -287,6 +290,11 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.affinity = {};
   oldNotebook.spec.template.spec.nodeSelector = {};
   container.resources = {};
+
+  // Clear old volumes and volumeMounts to prevent lodash merge from
+  // merging them by array index, which creates corrupted volumes with multiple types
+  oldNotebook.spec.template.spec.volumes = [];
+  container.volumeMounts = [];
 
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(

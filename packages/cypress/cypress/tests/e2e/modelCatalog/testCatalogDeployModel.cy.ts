@@ -1,15 +1,21 @@
+import * as yaml from 'js-yaml';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
-import type { DataScienceProjectData } from '../../../types';
+import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { loadDSPFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { provisionProjectForModelServing } from '../../../utils/oc_commands/modelServing';
+import {
+  ensureModelCatalogSourceEnabled,
+  waitForModelCatalogCards,
+} from '../../../utils/oc_commands/modelCatalog';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { modelCatalog } from '../../../pages/modelCatalog/modelCatalog';
 
 let testData: DataScienceProjectData;
+let sourceData: ModelCatalogSourceTestData;
 let projectName: string;
 let modelName: string;
 const awsBucket = 'BUCKET_1' as const;
@@ -17,34 +23,43 @@ const uuid = generateTestUUID();
 
 // TODO: Update this to check for model readiness once vLLM CPU works: https://issues.redhat.com/browse/RHAIRFE-28
 // and make it RHOAI-specific, unless the vLLM CPU image works on ODH at that time
-describe('[Product Bug: RHOAIENG-40654] Verify a model can be deployed from model catalog', () => {
-  retryableBefore(() =>
-    // Setup: Load test data and ensure clean state
-    loadDSPFixture('e2e/modelCatalog/testModelCatalog.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
-        testData = fixtureData;
-        projectName = `${testData.projectResourceName}-${uuid}`;
-        modelName = testData.singleModelName;
+describe('Verify a model can be deployed from model catalog', () => {
+  retryableBefore(() => {
+    // Load source fixture and ensure model catalog source is enabled
+    return cy
+      .fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        sourceData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
+        return ensureModelCatalogSourceEnabled(sourceData.redhatAiSourceId);
+      })
+      .then(() => {
+        // Setup: Load test data and ensure clean state
+        return loadDSPFixture('e2e/modelCatalog/testModelCatalog.yaml').then(
+          (fixtureData: DataScienceProjectData) => {
+            testData = fixtureData;
+            projectName = `${testData.projectResourceName}-${uuid}`;
+            modelName = testData.singleModelName;
 
-        if (!projectName) {
-          throw new Error('Project name is undefined or empty in the loaded fixture');
-        }
-        cy.log(`Loaded project name: ${projectName}`);
-        // Create a Project for pipelines
-        provisionProjectForModelServing(
-          projectName,
-          awsBucket,
-          'resources/yaml/data_connection_model_serving.yaml',
+            if (!projectName) {
+              throw new Error('Project name is undefined or empty in the loaded fixture');
+            }
+            cy.log(`Loaded project name: ${projectName}`);
+            // Create a Project for pipelines
+            provisionProjectForModelServing(
+              projectName,
+              awsBucket,
+              'resources/yaml/data_connection_model_serving.yaml',
+            );
+          },
         );
-      },
-    ),
-  );
+      });
+  });
   after(() => {
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true, timeout: 300000 });
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@Bug'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
@@ -55,6 +70,9 @@ describe('[Product Bug: RHOAIENG-40654] Verify a model can be deployed from mode
 
       cy.step('Navigate to Model Catalog');
       modelCatalog.visit();
+
+      cy.step('Wait for model catalog cards to appear');
+      waitForModelCatalogCards();
 
       // Find the first model card and click on the detail link
       modelCatalog.findFirstModelCatalogCard().should('exist');

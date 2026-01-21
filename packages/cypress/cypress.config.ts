@@ -19,6 +19,7 @@ import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';
 import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
+import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -78,10 +79,10 @@ export default defineConfig({
     baseUrl: BASE_URL,
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
     specPattern: env.CY_MOCK
-      ? `cypress/tests/mocked/**/*.cy.ts`
+      ? ['cypress/tests/mocked/**/*.cy.ts', ...getCypressTestPatterns('mocked')]
       : env.CY_RECORD
-      ? `cypress/tests/mocked/**/*.scy.ts`
-      : `cypress/tests/e2e/**/*.cy.ts`,
+      ? 'cypress/tests/mocked/**/*.scy.ts'
+      : ['cypress/tests/e2e/**/*.cy.ts', ...getCypressTestPatterns('e2e')],
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
       registerCypressGrep(config);

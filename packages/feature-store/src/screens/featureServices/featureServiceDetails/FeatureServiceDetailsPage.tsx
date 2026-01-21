@@ -128,27 +128,13 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
         </Flex>
       </FlexItem>
 
-      {featureService.featureDefinition && (
+      {featureService.featureDefinition && hasContent(featureService.featureDefinition) && (
         <FlexItem>
-          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-            <FlexItem>
-              <Title headingLevel="h3" data-testid="feature-interactive-example">
-                Interactive example
-              </Title>
-            </FlexItem>
-            <FlexItem>
-              {hasContent(featureService.featureDefinition) ? (
-                <FeatureStoreCodeBlock
-                  content={featureService.featureDefinition}
-                  id={featureService.spec.name}
-                />
-              ) : (
-                <Content component="p" className={text.textColorDisabled}>
-                  No interactive example
-                </Content>
-              )}
-            </FlexItem>
-          </Flex>
+          <FeatureStoreCodeBlock
+            content={featureService.featureDefinition}
+            id={featureService.spec.name}
+            featureStoreType="feature service"
+          />
         </FlexItem>
       )}
     </Flex>

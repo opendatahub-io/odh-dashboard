@@ -834,7 +834,7 @@ class ModelServingSection {
     return cy.findByTestId('section-model-server');
   }
 
-  private findKServeTable() {
+  findKServeTable() {
     return this.find().findByTestId('kserve-inference-service-table');
   }
 
@@ -1025,6 +1025,10 @@ class ModelServingWizard extends Wizard {
     return cy.get('body').contains('Project-scoped serving runtimes');
   }
 
+  selectGlobalScopedTemplateOption(name: string) {
+    return this.findGlobalScopedTemplateOption(name).should('exist').click({ force: true });
+  }
+
   findProjectScopedLabel() {
     return cy.findByTestId('project-scoped-serving-runtime-template-label');
   }
@@ -1051,6 +1055,14 @@ class ModelServingWizard extends Wizard {
 
   findModelLocationSelectOption(name: string) {
     return this.findModelLocationSelect().findSelectOption(name);
+  }
+
+  findCustomModelLocationSelect() {
+    return cy.findByTestId('custom-type-select');
+  }
+
+  findCustomModelLocationSelectOption(name: string) {
+    return this.findCustomModelLocationSelect().findSelectOption(name);
   }
 
   findLocationPathInput() {
@@ -1120,6 +1132,32 @@ class ModelServingWizard extends Wizard {
 
   findPrefillAlert() {
     return cy.findByTestId('prefill-alert');
+  }
+
+  findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-select');
+  }
+
+  selectProfile(name: string): void {
+    this.findHardProfileSelection().click();
+    cy.findByRole('option', { name }).click();
+  }
+
+  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
+    const dropdown = this.findHardProfileSelection();
+
+    dropdown.then(($el) => {
+      if ($el.prop('disabled')) {
+        // If disabled, verify it contains the base profile name
+        const nameToCheck = profileDisplayName;
+        cy.wrap($el).contains(nameToCheck).should('exist');
+        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+      } else {
+        // If enabled, proceed with selection as before using the full display name
+        dropdown.click();
+        cy.findByTestId(`${profileDisplayName}`).click();
+      }
+    });
   }
 
   findExternalRouteCheckbox() {
@@ -1206,10 +1244,6 @@ class ModelServingWizard extends Wizard {
 
   findSaveAiAssetCheckbox() {
     return cy.findByTestId('save-as-ai-asset-checkbox');
-  }
-
-  findSaveAsMaaSCheckbox() {
-    return cy.findByTestId('save-as-maas-checkbox');
   }
 
   findUseCaseInput() {

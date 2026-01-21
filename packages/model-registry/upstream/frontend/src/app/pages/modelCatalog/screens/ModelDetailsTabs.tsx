@@ -1,17 +1,8 @@
 import * as React from 'react';
 import { Tabs, Tab, TabTitleText, PageSection } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import {
-  CatalogArtifactList,
-  CatalogArtifactType,
-  CatalogModel,
-  CatalogPerformanceMetricsArtifact,
-  MetricsType,
-} from '~/app/modelCatalogTypes';
-import {
-  shouldShowValidatedInsights,
-  filterArtifactsByType,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
+import { shouldShowValidatedInsights } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import ModelDetailsView from './ModelDetailsView';
 import PerformanceInsightsView from './PerformanceInsightsView';
@@ -38,15 +29,7 @@ const ModelDetailsTabs = ({
 }: ModelDetailsTabsProps): React.JSX.Element => {
   const navigate = useNavigate();
 
-  const performanceArtifacts = React.useMemo(
-    () =>
-      filterArtifactsByType<CatalogPerformanceMetricsArtifact>(
-        artifacts.items,
-        CatalogArtifactType.metricsArtifact,
-        MetricsType.performanceMetrics,
-      ),
-    [artifacts.items],
-  );
+  // Check if this is a validated model that needs performance insights
   const showValidatedInsights = shouldShowValidatedInsights(model, artifacts.items);
 
   const handleTabClick = (
@@ -117,10 +100,7 @@ const ModelDetailsTabs = ({
           data-testid="performance-insights-tab-content"
           padding={{ default: 'noPadding' }}
         >
-          <PerformanceInsightsView
-            performanceArtifacts={performanceArtifacts}
-            isLoading={!artifactLoaded}
-          />
+          <PerformanceInsightsView model={model} />
         </PageSection>
       </Tab>
     </Tabs>

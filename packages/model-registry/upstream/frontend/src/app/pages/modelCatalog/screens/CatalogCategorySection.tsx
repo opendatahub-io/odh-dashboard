@@ -14,7 +14,10 @@ import { ArrowRightIcon, SearchIcon } from '@patternfly/react-icons';
 import { CatalogSourceList } from '~/app/modelCatalogTypes';
 import { useCatalogModelsBySources } from '~/app/hooks/modelCatalog/useCatalogModelsBySource';
 import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
-import { getSourceFromSourceId } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  generateCategoryName,
+  getSourceFromSourceId,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogCard from '~/app/pages/modelCatalog/components/ModelCatalogCard';
 
 type CategorySectionProps = {
@@ -43,6 +46,10 @@ const CatalogCategorySection: React.FC<CategorySectionProps> = ({
 
   const itemsToDisplay = catalogModels.items.slice(0, pageSize);
 
+  // Helper to format category title - only append "models" if not already present
+  const name = displayName ?? label;
+  const categoryTitle = generateCategoryName(name);
+
   return (
     <>
       <StackItem className="pf-v6-u-pb-xl">
@@ -53,7 +60,7 @@ const CatalogCategorySection: React.FC<CategorySectionProps> = ({
         >
           <FlexItem>
             <Title headingLevel="h3" size="lg" data-testid={`title ${label}`}>
-              {`${displayName ?? label} models`}
+              {categoryTitle}
             </Title>
           </FlexItem>
 
@@ -68,7 +75,7 @@ const CatalogCategorySection: React.FC<CategorySectionProps> = ({
                 data-testid={`show-more-button ${label.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={() => onShowMore(label)}
               >
-                Show all {displayName ?? label} models
+                Show all {categoryTitle}
               </Button>
             </FlexItem>
           )}
@@ -77,7 +84,7 @@ const CatalogCategorySection: React.FC<CategorySectionProps> = ({
         {catalogModelsLoadError ? (
           <Alert
             variant="danger"
-            title={`Failed to load ${displayName ?? label} models`}
+            title={`Failed to load ${categoryTitle}`}
             data-testid={`error-state ${label}`}
           >
             {catalogModelsLoadError.message}

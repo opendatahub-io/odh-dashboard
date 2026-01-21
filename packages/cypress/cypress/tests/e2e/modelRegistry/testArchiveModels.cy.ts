@@ -30,7 +30,7 @@ import {
   FormFieldSelector as VersionFormFieldSelector,
 } from '../../../pages/modelRegistry/registerVersionPage';
 
-describe('[Product Bug: RHOAIENG-41476] Verify that models and versions can be archived and restored via model registry', () => {
+describe('Verify that models and versions can be archived and restored via model registry', () => {
   let testData: ModelRegistryTestData;
   let registryName: string;
   let deploymentName: string;
@@ -73,7 +73,9 @@ describe('[Product Bug: RHOAIENG-41476] Verify that models and versions can be a
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'] },
+    {
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
+    },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

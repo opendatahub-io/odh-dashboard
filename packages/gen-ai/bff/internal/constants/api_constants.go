@@ -20,6 +20,7 @@ const (
 	ResponsesPath                     = ApiPathPrefix + "/lsd/responses"
 	FilesListPath                     = ApiPathPrefix + "/lsd/files"
 	FilesUploadPath                   = ApiPathPrefix + "/lsd/files/upload"
+	FilesUploadStatusPath             = ApiPathPrefix + "/lsd/files/upload/status"
 	FilesDeletePath                   = ApiPathPrefix + "/lsd/files/delete"
 	VectorStoreFilesListPath          = ApiPathPrefix + "/lsd/vectorstores/files"
 	VectorStoreFilesUploadPath        = ApiPathPrefix + "/lsd/vectorstores/files/upload"
@@ -45,4 +46,10 @@ const (
 	// Model as a Service (MaaS) endpoints
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
+
+	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
+
+	// LSD Safety Config endpoint - returns configured guardrail models and shields
+	// Parsed from llama-stack-config ConfigMap
+	LSDSafetyConfigPath = ApiPathPrefix + "/lsd/safety/config"
 )

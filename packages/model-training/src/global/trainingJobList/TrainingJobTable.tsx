@@ -14,6 +14,7 @@ type TrainingJobTableProps = {
   onSelectJob: (job: TrainJobKind) => void;
   clearFilters?: () => void;
   onClearFilters: () => void;
+  togglingJobId?: string;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
@@ -24,6 +25,7 @@ const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
   clearFilters,
   onClearFilters,
   toolbarContent,
+  togglingJobId,
 }) => {
   const [deleteTrainingJob, setDeleteTrainingJob] = React.useState<TrainJobKind>();
 
@@ -43,6 +45,7 @@ const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
         rowRenderer={(job: TrainJobKind) => {
           const jobId = job.metadata.uid || job.metadata.name;
           const jobStatus = jobStatuses?.get(jobId);
+          const isExternallyToggling = togglingJobId === jobId;
 
           return (
             <TrainingJobTableRow
@@ -52,6 +55,7 @@ const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
               onStatusUpdate={onStatusUpdate}
               onSelectJob={onSelectJob}
               onDelete={(trainingJob) => setDeleteTrainingJob(trainingJob)}
+              isExternallyToggling={isExternallyToggling}
             />
           );
         }}

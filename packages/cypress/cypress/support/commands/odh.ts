@@ -27,6 +27,7 @@ import type {
   CatalogModel,
   CatalogModelList,
 } from '@odh-dashboard/model-registry/types/modelCatalogTypes';
+import type { Tier } from '@odh-dashboard/maas/types/tier';
 import type {
   BaseMetricCreationResponse,
   BaseMetricListResponse,
@@ -90,6 +91,7 @@ import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockN
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import type { APIKey } from '@odh-dashboard/maas/types/api-key';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -847,20 +849,18 @@ declare global {
         ((
           type: 'GET /api/featurestores/workbench-integration',
           response: OdhResponse<{
-            clientConfigs: Array<{
-              namespace: string;
-              configName: string;
-              configMap: ConfigMapKind | null;
-              hasAccessToFeatureStore: boolean;
-            }>;
             namespaces: Array<{
               namespace: string;
-              clientConfigs: string[];
+              clientConfigs: Array<{
+                configName: string;
+                projectName: string;
+                hasAccessToFeatureStore: boolean;
+              }>;
             }>;
           }>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/k8s/apis/feast.dev/v1alpha1/namespaces/*/featurestores',
+          type: 'GET /api/k8s/apis/feast.dev/v1/namespaces/*/featurestores',
           options: {
             query?: { labelSelector: string };
           },
@@ -1089,6 +1089,28 @@ declare global {
             query?: { query: string; projects: string; page?: string; limit?: string };
           },
           response: OdhResponse<GlobalSearchResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/tiers',
+          response: { data: OdhResponse<Tier[]> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/tier',
+          response: { data: OdhResponse<Tier> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/tier/:name',
+          options: { path: { name: string } },
+          response: { data: null },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/tier/:name',
+          options: { path: { name: string } },
+          response: { data: OdhResponse<Tier> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/api-keys',
+          response: { data: OdhResponse<APIKey[]> },
         ) => Cypress.Chainable<null>);
     }
   }

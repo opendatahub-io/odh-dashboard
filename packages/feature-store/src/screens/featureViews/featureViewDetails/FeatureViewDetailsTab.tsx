@@ -14,6 +14,7 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import React from 'react';
 import { Link } from 'react-router';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import IndentSection from '@odh-dashboard/internal/pages/projects/components/IndentSection';
 import { FeatureView } from '../../../types/featureView';
 import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
@@ -244,22 +245,16 @@ const FeatureViewDetailsView: React.FC<FeatureViewDetailsViewProps> = ({ feature
           )}
         </FlexItem>
         <FlexItem>
-          <Title
-            headingLevel="h3"
-            data-testid="feature-view-interactive-example-title"
-            style={{ margin: '1em 0' }}
-          >
-            Interactive example
-          </Title>
           {featureView.featureDefinition && hasContent(featureView.featureDefinition) ? (
             <FeatureStoreCodeBlock
               lang={featureView.spec.mode}
               content={featureView.featureDefinition}
               id={featureView.spec.name}
+              featureStoreType="feature view"
             />
           ) : (
             <Content component="p" className={text.textColorDisabled}>
-              No interactive example
+              No code snippet
             </Content>
           )}
         </FlexItem>

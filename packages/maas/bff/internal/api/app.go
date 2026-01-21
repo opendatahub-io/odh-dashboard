@@ -10,10 +10,13 @@ import (
 	"path"
 	"strings"
 
-	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
-	k8mocks "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes/k8mocks"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	k8mocks "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes/k8mocks"
 
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 
@@ -26,10 +29,9 @@ import (
 const (
 	Version         = "1.0.0"
 	PathPrefix      = "/maas"
-	ApiPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	UserPath        = constants.ApiPathPrefix + "/user"
+	NamespacePath   = constants.ApiPathPrefix + "/namespaces"
 )
 
 type App struct {
@@ -88,8 +90,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockK8Client {
 		//mock all k8s calls with 'env test'
 		var clientset kubernetes.Interface
+		var dynamicClient dynamic.Interface
 		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+		testEnv, clientset, dynamicClient, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
 			Logger: logger,
 			Ctx:    ctx,
 			Cancel: cancel,
@@ -98,7 +101,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
 		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, dynamicClient, testEnv, cfg, logger)
 
 	} else {
 		//create kubernetes client factory
@@ -113,7 +116,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
+		repositories:            repositories.NewRepositories(logger, k8sFactory, cfg),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 	}
@@ -137,7 +140,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// Minimal Kubernetes-backed starter endpoints
+	// MaaS routes
+
+	attachTierHandlers(apiRouter, app)
+	if app.config.MockHTTPClient {
+		attachAPIKeyHandlers(apiRouter, app)
+	}
+
+	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
@@ -145,8 +155,8 @@ func (app *App) Routes() http.Handler {
 	appMux := http.NewServeMux()
 
 	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	appMux.Handle(constants.ApiPathPrefix+"/", apiRouter)
+	appMux.Handle(PathPrefix+constants.ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)

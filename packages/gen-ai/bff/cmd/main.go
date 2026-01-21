@@ -29,7 +29,7 @@ func main() {
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
-	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "DEBUG")), "Sets server log level, possible values: error, warn, info, debug")
+	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "INFO")), "Sets server log level, possible values: error, warn, info, debug")
 	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock Llama Stack client")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
@@ -64,13 +64,13 @@ func main() {
 		log.SetLogger(zap.New(zap.UseDevMode(true)))
 		klog.SetLogger(log.Log)
 		if err := flag.Set("v", "4"); err != nil {
-			fmt.Println("failed to set klog verbosity", "error", err)
+			slog.Error("failed to set klog verbosity", "error", err)
 		}
 	} else {
 		log.SetLogger(zap.New(zap.UseDevMode(false)))
 		klog.SetLogger(log.Log)
 		if err := flag.Set("v", "1"); err != nil {
-			fmt.Println("failed to set klog verbosity", "error", err)
+			slog.Error("failed to set klog verbosity", "error", err)
 		}
 	}
 

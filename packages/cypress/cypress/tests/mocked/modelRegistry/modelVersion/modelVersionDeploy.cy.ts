@@ -17,7 +17,10 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockModelRegistryService';
 import { mockModelArtifactList } from '@odh-dashboard/internal/__mocks__/mockModelArtifactList';
 import { mockModelArtifact } from '@odh-dashboard/internal/__mocks__/mockModelArtifact';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelRegistry } from '../../../../pages/modelRegistry';
 import { modelVersionDeployModal } from '../../../../pages/modelRegistry/modelVersionDeployModal';
 import { ServiceModel } from '../../../../utils/models';
@@ -408,7 +411,10 @@ describe('Deploy model version', () => {
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().type('https://registry.redhat.io/rhel/private:test');
     modelServingWizard.findSaveConnectionCheckbox().click();
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
@@ -469,7 +475,10 @@ describe('Deploy model version', () => {
 
     // Step 1: Model source
     modelServingWizard.findModelSourceStep().should('be.enabled');
-    modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
     modelServingWizard.findUrilocationInput().type('https://registry.redhat.io/rhel/private:test');
     modelServingWizard.findSaveConnectionCheckbox().click();
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();

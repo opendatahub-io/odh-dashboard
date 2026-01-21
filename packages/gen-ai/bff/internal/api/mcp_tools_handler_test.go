@@ -29,19 +29,16 @@ func TestMCPToolsHandler(t *testing.T) {
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: logger,
 		Ctx:    ctx,
 		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
+	})
 	require.NoError(t, err)
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
+	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, config.EnvConfig{
 		AuthMethod: "user_token",
 	}, logger)
 	require.NoError(t, err)
@@ -123,7 +120,7 @@ func TestMCPToolsHandler(t *testing.T) {
 			name:               "successful tools retrieval from github copilot server",
 			serverURL:          "https://api.githubcopilot.com/mcp",
 			expectedStatus:     "success",
-			expectedToolsCount: 5,
+			expectedToolsCount: 40,
 			expectedServerName: "generic-mcp-server",
 			expectedStatusCode: 200,
 		},

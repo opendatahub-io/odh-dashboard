@@ -15,7 +15,8 @@ import {
 } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
 import { handleUpdateLogic, setupDefaults } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
-import ResourceNameField from '#~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
+import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
+import ResourceNameField from './ResourceNameField';
 
 /** Companion data hook */
 export const useK8sNameDescriptionFieldData = (
@@ -42,8 +43,10 @@ type K8sNameDescriptionFieldProps = {
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
+  descriptionHelperText?: React.ReactNode;
   maxLength?: number;
   maxLengthDesc?: number;
+  resourceNameTakenHelperText?: React.ReactNode;
 };
 
 /**
@@ -62,6 +65,8 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   hideDescription,
   maxLength,
   maxLengthDesc,
+  descriptionHelperText,
+  resourceNameTakenHelperText,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
@@ -116,6 +121,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
                     Edit resource name
                   </Button>{' '}
                   <ResourceNameDefinitionTooltip />
+                  {resourceNameTakenHelperText && (
+                    <HelperTextItemResourceNameTaken
+                      resourceNameTakenMessage={resourceNameTakenHelperText}
+                    />
+                  )}
                 </HelperTextItem>
               </>
             )}
@@ -127,6 +137,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         dataTestId={dataTestId}
         k8sName={k8sName}
         onDataChange={onDataChange}
+        resourceNameTakenHelperText={resourceNameTakenHelperText}
       />
       {!hideDescription ? (
         <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>
@@ -146,6 +157,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
                 Cannot exceed {maxLengthDesc} characters ({maxLengthDesc - description.length}{' '}
                 remaining)
               </HelperTextItem>
+            </HelperText>
+          )}
+          {descriptionHelperText && (
+            <HelperText>
+              <HelperTextItem>{descriptionHelperText}</HelperTextItem>
             </HelperText>
           )}
         </FormGroup>

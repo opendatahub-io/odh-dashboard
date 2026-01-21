@@ -131,18 +131,15 @@ const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
           </Content>
         )}
       </FlexItem>
-      <FlexItem>
-        <Title
-          headingLevel="h3"
-          data-testid="entity-interactive-example"
-          style={{ margin: '1em 0' }}
-        >
-          Interactive example
-        </Title>
-        {entity.featureDefinition && (
-          <FeatureStoreCodeBlock content={entity.featureDefinition} id={entity.spec.name} />
-        )}
-      </FlexItem>
+      {entity.featureDefinition && hasContent(entity.featureDefinition) && (
+        <FlexItem>
+          <FeatureStoreCodeBlock
+            content={entity.featureDefinition}
+            id={entity.spec.name}
+            featureStoreType="entity"
+          />
+        </FlexItem>
+      )}
     </Flex>
   </PageSection>
 );
