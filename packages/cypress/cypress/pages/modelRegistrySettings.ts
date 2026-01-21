@@ -92,6 +92,10 @@ class ModelRegistrySettings {
     return cy.get(selector);
   }
 
+  queryFormField(selector: FormFieldSelector) {
+    return cy.get('body').find(selector);
+  }
+
   clearFormFields() {
     Object.values(FormFieldSelector).forEach((selector) => {
       this.findFormField(selector).clear();
@@ -203,13 +207,21 @@ class ModelRegistrySettings {
     return cy.findByTestId('mr-database-type');
   }
 
+  findDatabaseTypeOption(type: DatabaseType) {
+    return cy.findByRole('option', { name: type === DatabaseType.MYSQL ? 'MySQL' : 'PostgreSQL' });
+  }
+
   findDefaultDatabaseAlert() {
     return cy.findByTestId('mr-default-database-alert');
   }
 
+  queryDefaultDatabaseAlert() {
+    return cy.get('body').findByTestId('mr-default-database-alert');
+  }
+
   selectDatabaseType(type: DatabaseType) {
     this.findDatabaseTypeDropdown().click();
-    cy.findByRole('option', { name: type === DatabaseType.MYSQL ? 'MySQL' : 'PostgreSQL' }).click();
+    this.findDatabaseTypeOption(type).click();
   }
 }
 
