@@ -26,4 +26,3 @@ func ListModelsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 		app.serverErrorResponse(w, r, err)
 	}
 }
-

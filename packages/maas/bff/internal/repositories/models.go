@@ -22,4 +22,3 @@ func (r *ModelsRepository) ListModels(ctx context.Context) ([]models.MaaSModel, 
 	r.logger.Debug("Listing MaaS models")
 	return mocks.GetMockMaaSModels(), nil
 }
-
