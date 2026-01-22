@@ -23,15 +23,13 @@ describe('Verify that admin users can edit model registry database configuration
   let registryName: string;
   let originalRegistryName: string;
   let deploymentName: string;
+  let databaseName: string;
+  let newDatabaseHost: string;
+  let newDatabasePort: string;
+  let newDatabaseName: string;
+  let newDatabaseUsername: string;
+  let newDatabasePassword: string;
   const uuid = generateTestUUID();
-  const databaseName = `model-registry-db-${uuid}`;
-
-  // New database configuration values for testing
-  const newDatabaseHost = `${databaseName}-new`;
-  const newDatabasePort = '3307';
-  const newDatabaseName = 'model_registry_updated';
-  const newDatabaseUsername = 'mlmduser_updated';
-  const newDatabasePassword = 'NewTestPassword123';
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -40,6 +38,12 @@ describe('Verify that admin users can edit model registry database configuration
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       originalRegistryName = registryName;
       deploymentName = testData.operatorDeploymentName;
+      databaseName = testData.databaseName;
+      newDatabaseHost = testData.newDatabaseHost;
+      newDatabasePort = testData.newDatabasePort;
+      newDatabaseName = testData.newDatabaseName;
+      newDatabaseUsername = testData.newDatabaseUsername;
+      newDatabasePassword = testData.newDatabasePassword;
 
       cy.step('Ensure operator has optimal memory for testing');
       ensureOperatorMemoryLimit(deploymentName).should('be.true');

@@ -2,6 +2,7 @@ import { RecursivePartial } from '#~/typeHelpers';
 import { ConfigSecretItem, ModelRegistryKind } from '#~/k8sTypes';
 import {
   CA_BUNDLE_CRT,
+  DatabaseSource,
   DatabaseType,
   ODH_CA_BUNDLE_CRT,
   ODH_TRUSTED_BUNDLE,
@@ -89,4 +90,66 @@ export const isOpenshiftCAbundleEnabled = (existingCertConfigMaps: ConfigSecretI
       configMap.name === ODH_TRUSTED_BUNDLE && configMap.keys.includes(ODH_CA_BUNDLE_CRT),
   );
   return !!openshiftCAbundle;
+};
+
+/**
+ * Validates that the port is a numeric integer between 1 and 65535.
+ * @param value - The port value to validate
+ * @returns true if the port is valid, false otherwise
+ */
+export const isValidPort = (value: string): boolean => {
+  const portNum = Number(value);
+  return !Number.isNaN(portNum) && Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
+};
+
+/**
+ * Builds the database specification object based on the selected database source and type.
+ * For Default source: Returns PostgreSQL config with generateDeployment=true
+ * For External source: Returns MySQL or PostgreSQL config based on databaseType
+ *
+ * @param databaseSource - Whether using default or external database
+ * @param databaseType - The type of database (MySQL or PostgreSQL)
+ * @param config - External database configuration (host, port, database, username)
+ * @returns Database specification with either mysql or postgres configuration (and the other set to undefined)
+ */
+export const buildDatabaseSpec = (
+  databaseSource: DatabaseSource,
+  databaseType: DatabaseType,
+  config?: {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+  },
+): Pick<ModelRegistryKind['spec'], 'mysql' | 'postgres'> => {
+  if (databaseSource === DatabaseSource.DEFAULT) {
+    // Default in-cluster PostgreSQL database
+    // When using generateDeployment, only that field should be set
+    return {
+      postgres: {
+        generateDeployment: true,
+      },
+      mysql: undefined,
+    };
+  }
+
+  // External database configuration
+  if (!config) {
+    throw new Error(
+      'External database configuration is required when using external database source',
+    );
+  }
+
+  const dbConfig = {
+    host: config.host,
+    port: config.port,
+    database: config.database,
+    username: config.username,
+    skipDBCreation: false,
+  };
+
+  if (databaseType === DatabaseType.POSTGRES) {
+    return { postgres: dbConfig, mysql: undefined };
+  }
+  return { mysql: dbConfig, postgres: undefined };
 };
