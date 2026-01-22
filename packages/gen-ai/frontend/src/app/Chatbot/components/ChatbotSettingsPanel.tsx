@@ -20,7 +20,7 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
-import { ACCORDION_ITEMS, DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
 import {
   useChatbotConfigStore,
@@ -87,10 +87,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
 
   // Consume store directly using configId
-  const systemInstruction =
-    useChatbotConfigStore(selectSystemInstruction(configId)) ?? DEFAULT_SYSTEM_INSTRUCTIONS;
-  const temperature = useChatbotConfigStore(selectTemperature(configId)) ?? 0.1;
-  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId)) ?? true;
+  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);

@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { useChatbotConfigStore } from '../useChatbotConfigStore';
-import { DEFAULT_CONFIGURATION } from '../types';
+import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
+import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 
 describe('useChatbotConfigStore', () => {
   beforeEach(() => {
