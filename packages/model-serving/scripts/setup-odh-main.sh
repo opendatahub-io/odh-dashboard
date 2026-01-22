@@ -301,12 +301,13 @@ update_deployment_manifest() {
 
     # Replace the image placeholder with the actual image
     # The deployment.yaml uses $(odh-dashboard-image) as a placeholder
+    # Note: Using -i.bak with rm for cross-platform compatibility (BSD/GNU sed)
     if grep -q '$(odh-dashboard-image)' "${temp_deployment}"; then
-        sed -i "s|\$(odh-dashboard-image)|${image}|g" "${temp_deployment}"
+        sed -i.bak "s|\$(odh-dashboard-image)|${image}|g" "${temp_deployment}" && rm -f "${temp_deployment}.bak"
         log_info "Replaced \$(odh-dashboard-image) with ${image}"
     elif grep -q 'image:.*quay.io/opendatahub/odh-dashboard' "${temp_deployment}"; then
         # If there's already a concrete image, replace it
-        sed -i "s|image:.*quay.io/opendatahub/odh-dashboard:[^[:space:]]*|image: ${image}|g" "${temp_deployment}"
+        sed -i.bak "s|image:.*quay.io/opendatahub/odh-dashboard:[^[:space:]]*|image: ${image}|g" "${temp_deployment}" && rm -f "${temp_deployment}.bak"
         log_info "Updated existing dashboard image to ${image}"
     else
         log_warn "Could not find image placeholder or existing image in deployment.yaml"
