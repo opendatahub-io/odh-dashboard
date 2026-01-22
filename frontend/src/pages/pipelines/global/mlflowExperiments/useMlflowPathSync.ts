@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   buildIframePathQuery,
   buildParentPathQuery,
@@ -15,7 +15,9 @@ export const useMlflowPathSync = (
 ): { iframeRef: React.RefCallback<HTMLIFrameElement>; initIframeSrc: string } => {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
+  const { namespace } = useParams<{ namespace: string }>();
   const parentPathQuery = buildParentPathQuery(pathname, search);
+  const initIframeSrc = buildIframePathQuery(MLFLOW_DEFAULT_PATH, namespace);
   const syncLock = React.useRef(false);
   const internalIframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const iframeRef = React.useCallback(
@@ -39,9 +41,7 @@ export const useMlflowPathSync = (
         const iframePathQuery = getIframeHashPathQuery(iframe);
         const isSynced =
           normalizePathQuery(iframePathQuery) === normalizePathQuery(parentPathQuery);
-        const isInitialRedirect =
-          iframePathQuery === MLFLOW_DEFAULT_PATH && parentPathQuery.endsWith(MLFLOW_DEFAULT_PATH);
-        if (!isSynced && !isInitialRedirect) {
+        if (!isSynced) {
           iframe.contentWindow.location.replace(buildIframePathQuery(parentPathQuery));
         }
       }
@@ -78,5 +78,5 @@ export const useMlflowPathSync = (
     };
   }, [navigate, parentPathQuery]);
 
-  return { iframeRef, initIframeSrc: buildIframePathQuery(MLFLOW_DEFAULT_PATH) };
+  return { iframeRef, initIframeSrc };
 };

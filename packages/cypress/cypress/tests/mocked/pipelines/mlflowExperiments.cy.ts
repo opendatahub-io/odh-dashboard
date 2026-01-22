@@ -1,18 +1,30 @@
 // This override is needed because eslint seems to think that the expect() statements are not used.
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import {
+  mockDashboardConfig,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+} from '@odh-dashboard/internal/__mocks__';
 import { mlflowExperimentsPage } from '../../../pages/pipelines/mlflowExperiments';
+import { ProjectModel } from '../../../utils/models';
 
 const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 const MLFLOW_PROXY_BASE_PATH = '/mlflow';
-const MLFLOW_DEFAULT_PATH = '/experiments';
-const MLFLOW_DEFAULT_IFRAME_SRC = `${MLFLOW_PROXY_BASE_PATH}/#${MLFLOW_DEFAULT_PATH}`;
+const TEST_PROJECT_NAME = 'test-project';
+const TEST_PROJECT_NAME_2 = 'test-project-2';
+const MLFLOW_WORKSPACE_IFRAME_SRC = `${MLFLOW_PROXY_BASE_PATH}/#/workspaces/${TEST_PROJECT_NAME}/experiments`;
 
 function isIframeElement(element: HTMLElement | undefined): element is HTMLIFrameElement {
   return element?.tagName.toLowerCase() === 'iframe';
 }
 
-const initIntercepts = () => {
+type InitInterceptsOptions = {
+  hasMultipleProjects?: boolean;
+  hasNoProjects?: boolean;
+};
+
+const initIntercepts = (options: InitInterceptsOptions = {}) => {
+  const { hasMultipleProjects = false, hasNoProjects = false } = options;
   cy.intercept('GET', `${MLFLOW_PROXY_BASE_PATH}/**`, {
     statusCode: 200,
     headers: {
@@ -45,6 +57,25 @@ const initIntercepts = () => {
       embedMLflow: true,
     }),
   );
+
+  if (hasNoProjects) {
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([]));
+  } else if (hasMultipleProjects) {
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({ k8sName: TEST_PROJECT_NAME, displayName: 'Test Project' }),
+        mockProjectK8sResource({ k8sName: TEST_PROJECT_NAME_2, displayName: 'Test Project 2' }),
+      ]),
+    );
+  } else {
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({ k8sName: TEST_PROJECT_NAME, displayName: 'Test Project' }),
+      ]),
+    );
+  }
 };
 
 describe('MLflow Experiments', () => {
@@ -52,7 +83,9 @@ describe('MLflow Experiments', () => {
     initIntercepts();
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
-    mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', MLFLOW_DEFAULT_IFRAME_SRC);
+    mlflowExperimentsPage
+      .findMlflowIframe()
+      .should('have.attr', 'src', MLFLOW_WORKSPACE_IFRAME_SRC);
     cy.wait('@mlflowIframe');
 
     mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
@@ -96,14 +129,16 @@ describe('MLflow Experiments', () => {
     const experimentId = '1';
     const runsParam = `runs=${encodeURIComponent(JSON.stringify(runIds))}`;
     const experimentsParam = `experiments=${encodeURIComponent(JSON.stringify([experimentId]))}`;
-    const testPath = `/workspaces/default/compare-runs?${runsParam}&${experimentsParam}`;
+    const testPath = `/workspaces/${TEST_PROJECT_NAME}/compare-runs?${runsParam}&${experimentsParam}`;
 
     mlflowExperimentsPage.visit(testPath);
-    mlflowExperimentsPage.findMlflowIframe().should('have.attr', 'src', MLFLOW_DEFAULT_IFRAME_SRC);
+    mlflowExperimentsPage
+      .findMlflowIframe()
+      .should('have.attr', 'src', MLFLOW_WORKSPACE_IFRAME_SRC);
 
     mlflowExperimentsPage.getMlflowPath().then((mlflowPath) => {
       const [pathname, queryString] = mlflowPath.split('?');
-      expect(pathname).to.equal('/workspaces/default/compare-runs');
+      expect(pathname).to.equal(`/workspaces/${TEST_PROJECT_NAME}/compare-runs`);
 
       const params = new URLSearchParams(queryString);
       const actualRuns = JSON.parse(params.get('runs') || '[]');
@@ -118,8 +153,7 @@ describe('MLflow Experiments', () => {
     mlflowExperimentsPage.visit();
     cy.wait('@mlflowIframe');
 
-    const iframeHashPath =
-      '/workspaces/default/experiments/1/runs?searchFilter=&orderByKey=tags.%60mlflow.runName%60&orderByAsc=true&startTime=ALL&lifecycleFilter=Active&modelVersionFilter=All+Runs&datasetsFilter=W10%3D';
+    const iframeHashPath = `/workspaces/${TEST_PROJECT_NAME}/experiments/1/runs?searchFilter=&orderByKey=tags.%60mlflow.runName%60&orderByAsc=true&startTime=ALL&lifecycleFilter=Active&modelVersionFilter=All+Runs&datasetsFilter=W10%3D`;
 
     mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
       const iframe = $iframe[0];
@@ -135,7 +169,7 @@ describe('MLflow Experiments', () => {
       });
       mlflowExperimentsPage.getMlflowPath().then((mlflowPath) => {
         const [pathname, queryString] = mlflowPath.split('?');
-        expect(pathname).to.equal('/workspaces/default/experiments/1/runs');
+        expect(pathname).to.equal(`/workspaces/${TEST_PROJECT_NAME}/experiments/1/runs`);
 
         const params = new URLSearchParams(queryString);
         expect(params.get('searchFilter')).to.equal('');
@@ -151,10 +185,12 @@ describe('MLflow Experiments', () => {
 
   it('should handle URL encoding differences correctly', () => {
     initIntercepts();
-    const pathWithQuery = '/workspaces/default/compare-runs?runs=%5B%22abc%22%5D';
+    const pathWithQuery = `/workspaces/${TEST_PROJECT_NAME}/compare-runs?runs=%5B%22abc%22%5D`;
     mlflowExperimentsPage.visit(pathWithQuery);
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
-    mlflowExperimentsPage.getMlflowPath().should('include', '/workspaces/default/compare-runs');
+    mlflowExperimentsPage
+      .getMlflowPath()
+      .should('include', `/workspaces/${TEST_PROJECT_NAME}/compare-runs`);
   });
 
   it('should not create duplicate history entries on internal redirects', () => {
@@ -176,7 +212,11 @@ describe('MLflow Experiments', () => {
           cy.wrap(iframe).then(() => {
             const iframeWindow = iframe.contentWindow;
             if (iframeWindow) {
-              iframeWindow.history.replaceState({}, '', '#/workspaces/default/experiments');
+              iframeWindow.history.replaceState(
+                {},
+                '',
+                `#/workspaces/${TEST_PROJECT_NAME}/experiments`,
+              );
             }
           });
           cy.window().its('history.length').should('equal', initialLength);
@@ -204,19 +244,66 @@ describe('MLflow Experiments', () => {
           cy.wrap(iframe).then(() => {
             const iframeWindow = iframe.contentWindow;
             if (iframeWindow) {
-              iframeWindow.history.replaceState({}, '', '#/workspaces/default/experiments');
+              iframeWindow.history.replaceState(
+                {},
+                '',
+                `#/workspaces/${TEST_PROJECT_NAME}/experiments`,
+              );
             }
           });
 
-          cy.url().should('include', MLFLOW_EXPERIMENTS_ROUTE);
+          cy.url().should(
+            'include',
+            `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
+          );
           mlflowExperimentsPage
             .getMlflowPath()
-            .should('include', '/workspaces/default/experiments');
+            .should('include', `/workspaces/${TEST_PROJECT_NAME}/experiments`);
 
           cy.window()
             .its('history.length')
             .should('equal', initialLength + 1);
         });
       });
+  });
+
+  it('should display the project selector', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findProjectSelect().should('be.visible');
+    mlflowExperimentsPage.findProjectSelect().should('contain.text', 'Test Project');
+  });
+
+  it('should select a different project and navigate to the new workspace', () => {
+    initIntercepts({ hasMultipleProjects: true });
+    mlflowExperimentsPage.visit();
+    cy.url().should(
+      'include',
+      `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
+    );
+
+    mlflowExperimentsPage.selectProjectByName('Test Project 2');
+    cy.url().should(
+      'include',
+      `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME_2}/experiments`,
+    );
+    mlflowExperimentsPage.findMlflowIframe().should('be.visible');
+  });
+
+  it('should show an empty state when no projects exist', () => {
+    initIntercepts({ hasNoProjects: true });
+    cy.visitWithLogin(`${MLFLOW_EXPERIMENTS_ROUTE}`);
+    mlflowExperimentsPage.findEmptyState().should('be.visible');
+    mlflowExperimentsPage.findEmptyState().should('contain.text', 'No projects');
+  });
+
+  it('should redirect to workspace URL when visiting base route', () => {
+    initIntercepts();
+    cy.visitWithLogin(`${MLFLOW_EXPERIMENTS_ROUTE}`);
+    cy.url().should(
+      'include',
+      `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
+    );
+    mlflowExperimentsPage.findMlflowIframe().should('be.visible');
   });
 });
