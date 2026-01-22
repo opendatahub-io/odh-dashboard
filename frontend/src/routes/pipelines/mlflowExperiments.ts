@@ -7,13 +7,17 @@ export const buildIframePathQuery = (hashPathQuery: string, namespace?: string):
     namespace ? `/workspaces/${namespace}${hashPathQuery}` : hashPathQuery
   }`;
 
+const getHashPath = (url: string): string | null => {
+  const hashIndex = url.indexOf('#');
+  return hashIndex !== -1 ? url.slice(hashIndex + 1) : null;
+};
+
 export const getIframeHashPathQuery = (iframe: HTMLIFrameElement): string | null => {
   const iframePathQuery = iframe.contentWindow?.location.href;
   if (!iframePathQuery) {
     return null;
   }
-  const hashIndex = iframePathQuery.indexOf('#');
-  return hashIndex !== -1 ? iframePathQuery.slice(hashIndex + 1) : null;
+  return getHashPath(iframePathQuery);
 };
 
 export const buildParentPathQuery = (pathname: string, search: string): string => {
@@ -74,3 +78,51 @@ export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
   !namespace
     ? MLFLOW_EXPERIMENTS_ROUTE
     : `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${namespace}/experiments`;
+
+export const isMlflowLink = (url: string): boolean => {
+  try {
+    const parsedUrl = new URL(url);
+    const currentOrigin = window.location.origin;
+    return (
+      parsedUrl.origin === currentOrigin && parsedUrl.pathname.startsWith(MLFLOW_PROXY_BASE_PATH)
+    );
+  } catch {
+    return false;
+  }
+};
+
+export const convertMlflowToOdhUrl = (mlflowUrl: string): string => {
+  try {
+    const hashPath = getHashPath(mlflowUrl) || '';
+    return `${window.location.origin}${MLFLOW_EXPERIMENTS_ROUTE}${hashPath}`;
+  } catch {
+    return mlflowUrl;
+  }
+};
+
+export const getClickedLink = (event: MouseEvent): HTMLAnchorElement | null => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const target = event.target as Element;
+  return target.closest('a');
+};
+
+export const handleInterceptLink = (iframe: HTMLIFrameElement, event: MouseEvent): void => {
+  const link = getClickedLink(event);
+  if (link?.href) {
+    const defaultNewTab = link.getAttribute('target') === '_blank';
+    const userForcedNewTab = event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1;
+    const mlflowLink = isMlflowLink(link.href);
+    if (defaultNewTab && !userForcedNewTab && mlflowLink) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (iframe.contentWindow) {
+        iframe.contentWindow.location.assign(link.href);
+      }
+    } else if (userForcedNewTab) {
+      event.preventDefault();
+      event.stopPropagation();
+      const url = mlflowLink ? convertMlflowToOdhUrl(link.href) : link.href;
+      window.open(url, '_blank');
+    }
+  }
+};
