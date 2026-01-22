@@ -4,8 +4,19 @@ const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 const MLFLOW_DEFAULT_PATH = '/experiments';
 
 class MLflowExperimentsPage {
-  visit(mlflowPath?: string) {
-    const url = mlflowPath ? `${MLFLOW_EXPERIMENTS_ROUTE}${mlflowPath}` : MLFLOW_EXPERIMENTS_ROUTE;
+  visit(mlflowPath?: string, namespace?: string) {
+    const ns = namespace || 'test-project';
+    const baseUrl = `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${ns}/experiments`;
+    let url: string;
+    if (mlflowPath) {
+      if (mlflowPath.startsWith('/workspaces/')) {
+        url = `${MLFLOW_EXPERIMENTS_ROUTE}${mlflowPath}`;
+      } else {
+        url = `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${ns}${mlflowPath}`;
+      }
+    } else {
+      url = baseUrl;
+    }
     cy.visitWithLogin(url);
     this.wait();
   }
@@ -36,6 +47,23 @@ class MLflowExperimentsPage {
       name: 'Experiments (MLflow)',
       rootSection: 'Develop & train',
     });
+  }
+
+  findProjectSelect() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  selectProjectByName(name: string) {
+    this.findProjectSelect().click();
+    cy.findByTestId('project-selector-search').fill(name);
+    cy.findByTestId('project-selector-menuList')
+      .contains('button', name)
+      .should('be.visible')
+      .click();
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('mlflow-no-projects-empty-state');
   }
 }
 
