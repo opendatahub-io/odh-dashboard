@@ -7,8 +7,12 @@ import {
   HelperTextItem,
   TextInputGroupMain,
   TextInputGroup,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
 import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
 import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
@@ -90,18 +94,36 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
     />
   );
 
+  const autofillConnectionButtonExtensions = useExtensions(isAutofillConnectionButtonExtension);
+  const autofillConnectionButtons = autofillConnectionButtonExtensions.map((extension) => (
+    <SplitItem>
+      <LazyCodeRefComponent
+        component={extension.properties.component}
+        props={{
+          modelLocationType,
+          setData,
+        }}
+      />
+    </SplitItem>
+  ));
+
   return (
     <>
-      <Radio
-        isChecked={modelLocationType === ModelLocationType.ObjectStorage}
-        name="location-type-object-storage"
-        isDisabled={isCatalogModel}
-        onChange={() => {
-          setData('modelLocationType', ModelLocationType.ObjectStorage);
-        }}
-        label="Object storage"
-        id="location-type-object-storage"
-      />
+      <Split>
+        <SplitItem isFilled>
+          <Radio
+            isChecked={modelLocationType === ModelLocationType.ObjectStorage}
+            name="location-type-object-storage"
+            isDisabled={isCatalogModel}
+            onChange={() => {
+              setData('modelLocationType', ModelLocationType.ObjectStorage);
+            }}
+            label="Object storage"
+            id="location-type-object-storage"
+          />
+        </SplitItem>
+        {modelLocationType === ModelLocationType.ObjectStorage && <>{autofillConnectionButtons}</>}
+      </Split>
       {modelLocationType === ModelLocationType.ObjectStorage && (
         <>
           <FormGroup
@@ -133,22 +155,30 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
           </FormGroup>
         </>
       )}
-      <Radio
-        isChecked={modelLocationType === ModelLocationType.URI}
-        name="location-type-uri"
-        onChange={() => {
-          setData('modelLocationType', ModelLocationType.URI);
-        }}
-        label="URI"
-        id="location-type-uri"
-      />
-      {modelLocationType === ModelLocationType.URI && (
-        <>
+      <Split>
+        <SplitItem isFilled>
+          <Radio
+            isChecked={modelLocationType === ModelLocationType.URI}
+            name="location-type-uri"
+            onChange={() => {
+              setData('modelLocationType', ModelLocationType.URI);
+            }}
+            label="URI"
+            id="location-type-uri"
+          />
+        </SplitItem>
+        {modelLocationType === ModelLocationType.URI && !isCatalogModel && (
+          <>{autofillConnectionButtons}</>
+        )}
+      </Split>
+      {modelLocationType === ModelLocationType.URI &&
+        (!isCatalogModel ? (
           <FormGroup className={spacing.mlLg} label="URI" isRequired fieldId="location-uri">
             <FormFieldset component={uriInput} field="URI" />
           </FormGroup>
-        </>
-      )}
+        ) : (
+          formData.modelLocationURI
+        ))}
     </>
   );
 };
