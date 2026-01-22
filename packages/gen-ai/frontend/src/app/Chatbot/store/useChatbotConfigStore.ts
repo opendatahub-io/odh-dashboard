@@ -3,15 +3,6 @@ import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { ChatbotConfigStore, DEFAULT_CONFIGURATION } from './types';
 
-/**
- * Main configuration store for llama stack settings.
- *
- * Architecture decisions:
- * 1. Plain object storage for O(1) lookups and easy serialization
- * 2. Immer middleware for immutable updates
- * 3. DevTools middleware for debugging
- * 4. Field-specific updaters for granular subscriptions
- */
 export const useChatbotConfigStore = create<ChatbotConfigStore>()(
   devtools(
     immer((set, get) => ({
@@ -20,7 +11,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
 
       // TODO: ADD/REMOVE/DUPLICATE CONFIGS
 
-      // Field-specific updaters (critical for rerender prevention)
+      // Field-specific updaters
       updateSystemInstruction: (id: string, value: string) => {
         set((state) => {
           const config = state.configurations[id];
