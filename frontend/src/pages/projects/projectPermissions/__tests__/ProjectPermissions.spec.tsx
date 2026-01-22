@@ -3,6 +3,14 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { SubjectScopeFilter } from '#~/pages/projects/projectPermissions/const';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => jest.fn(),
+  };
+});
+
 jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
   usePermissionsContext: () => ({ loaded: true, error: undefined }),
 }));
