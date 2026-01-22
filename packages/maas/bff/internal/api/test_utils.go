@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 
@@ -39,14 +40,22 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	}
 
 	envConfig := config.EnvConfig{
-		AllowedOrigins: []string{"*"},
-		AuthMethod:     config.AuthMethodInternal,
+		AllowedOrigins:          []string{"*"},
+		AuthMethod:              config.AuthMethodInternal,
+		TiersConfigMapNamespace: "maas-api",
+		TiersConfigMapName:      "tier-to-group-mapping",
+		GatewayNamespace:        "openshift-ingress",
+		GatewayName:             "maas-default-gateway",
+		MockHTTPClient:          true,
 	}
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	app := &App{
 		config:                  envConfig,
 		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(nil, k8Factory, envConfig),
+		repositories:            repositories.NewRepositories(logger, k8Factory, envConfig),
+		logger:                  logger,
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -65,7 +74,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	}
 	var out T
 	if err := json.Unmarshal(data, &out); err != nil && err != io.EOF {
-		return empty, nil, err
+		return empty, res, err
 	}
 	return out, res, nil
 }
