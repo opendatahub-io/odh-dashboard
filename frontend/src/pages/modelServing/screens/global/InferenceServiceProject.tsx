@@ -3,7 +3,7 @@ import { HelperText, HelperTextItem, Label, Skeleton } from '@patternfly/react-c
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 
 type InferenceServiceProjectProps = {
   inferenceService: InferenceServiceKind;

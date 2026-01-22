@@ -4,7 +4,7 @@ import { deletePvc, deleteSecret, listNIMAccounts, listServingRuntimes, getPvc }
 import {
   fetchNIMAccountTemplateName,
   getNIMResourcesToDelete,
-} from '#~/pages/modelServing/screens/projects/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__';
 

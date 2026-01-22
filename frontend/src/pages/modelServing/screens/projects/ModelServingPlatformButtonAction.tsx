@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, ButtonProps, Content, Tooltip } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';

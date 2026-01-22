@@ -148,3 +148,9 @@ aliases:
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
+
+  # NIM / Ecosystem Engineering
+  nim-serving-approvers:
+    -
+  nim-serving-reviewers:
+    -
