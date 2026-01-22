@@ -8,6 +8,7 @@ import {
   HelperText,
   HelperTextItem,
   Radio,
+  Stack,
   Spinner,
   TextInput,
   Modal,
@@ -32,11 +33,13 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
+  buildDatabaseSpec,
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
+  isValidPort,
 } from '#~/pages/modelRegistrySettings/utils';
 import { RecursivePartial } from '#~/typeHelpers';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -231,40 +234,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     setDatabaseType(newType);
   };
 
-  /**
-   * Builds the database specification object based on the selected database source and type.
-   * For Default source: Returns PostgreSQL config with generateDeployment=true
-   * For External source: Returns MySQL or PostgreSQL config based on databaseType
-   * @returns Database specification with either mysql or postgres configuration (and the other set to undefined)
-   */
-  const buildDatabaseSpec = (): Pick<ModelRegistryKind['spec'], 'mysql' | 'postgres'> => {
-    if (databaseSource === DatabaseSource.DEFAULT) {
-      // Default in-cluster PostgreSQL database
-      return {
-        postgres: {
-          database: DEFAULT_DATABASE_NAME,
-          generateDeployment: true,
-          skipDBCreation: false,
-        },
-        mysql: undefined,
-      };
-    }
-
-    // External database configuration
-    const dbConfig = {
-      host,
-      port: Number(port),
-      database,
-      username,
-      skipDBCreation: false,
-    };
-
-    if (databaseType === DatabaseType.POSTGRES) {
-      return { postgres: dbConfig, mysql: undefined };
-    }
-    return { mysql: dbConfig, postgres: undefined };
-  };
-
   const onSubmit = async () => {
     setIsSubmitting(true);
     setError(undefined);
@@ -273,7 +242,18 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       addSecureDB && secureDBInfo.type === SecureDBRType.NEW ? secureDBInfo.certificate : undefined;
 
     if (mr) {
-      const dbSpec = buildDatabaseSpec();
+      const dbSpec = buildDatabaseSpec(
+        databaseSource,
+        databaseType,
+        databaseSource === DatabaseSource.EXTERNAL
+          ? {
+              host,
+              port: Number(port),
+              database,
+              username,
+            }
+          : undefined,
+      );
       const data: RecursivePartial<ModelRegistryKind> = {
         metadata: {
           annotations: {
@@ -316,7 +296,18 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         setIsSubmitting(false);
       }
     } else {
-      const dbSpec = buildDatabaseSpec();
+      const dbSpec = buildDatabaseSpec(
+        databaseSource,
+        databaseType,
+        databaseSource === DatabaseSource.EXTERNAL
+          ? {
+              host,
+              port: Number(port),
+              database,
+              username,
+            }
+          : undefined,
+      );
       const data: ModelRegistryKind = {
         apiVersion: kindApiVersion(ModelRegistryModel),
         kind: 'ModelRegistry',
@@ -345,8 +336,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
       // Add SSL configuration for external databases
       if (databaseSource === DatabaseSource.EXTERNAL && addSecureDB) {
-        const dbKey = databaseType === DatabaseType.POSTGRES ? 'postgres' : 'mysql';
-        const dbConfig = data.spec[dbKey];
+        const dbConfig = data.spec[databaseType];
         if (dbConfig) {
           if (secureDBInfo.resourceType === ResourceType.Secret) {
             dbConfig.sslRootCertificateSecret = {
@@ -387,16 +377,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
-  /**
-   * Validates that the port is a numeric integer between 1 and 65535.
-   * @param value - The port value to validate
-   * @returns true if the port is valid, false otherwise
-   */
-  const isValidPort = (value: string): boolean => {
-    const portNum = Number(value);
-    return !Number.isNaN(portNum) && Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
-  };
-
   const canSubmit = () => {
     const isValidName = isValidK8sName(
       nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
@@ -434,175 +414,171 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
           <FormSection title="Database" description="Choose where to store model data.">
             <FormGroup role="radiogroup" fieldId="mr-database-source">
-              <Radio
-                isChecked={databaseSource === DatabaseSource.DEFAULT}
-                name="database-source"
-                onChange={() => setDatabaseSource(DatabaseSource.DEFAULT)}
-                label="Default database (non-production)"
-                description="PostgreSQL database enabled by default on the cluster."
-                id="database-source-default"
-                data-testid="mr-database-source-default"
-              />
-              <Radio
-                isChecked={databaseSource === DatabaseSource.EXTERNAL}
-                name="database-source"
-                onChange={() => setDatabaseSource(DatabaseSource.EXTERNAL)}
-                label="External database"
-                description="Connect a MySQL or PostgreSQL database."
-                id="database-source-external"
-                data-testid="mr-database-source-external"
-              />
-            </FormGroup>
-
-            {databaseSource === DatabaseSource.DEFAULT && (
-              <Alert
-                variant="info"
-                isInline
-                title="This default database is for development and testing purposes only. It is not supported by Red Hat for production use cases."
-                data-testid="mr-default-database-alert"
-              />
-            )}
-          </FormSection>
-
-          {databaseSource === DatabaseSource.EXTERNAL && (
-            <FormSection
-              title={`Connect to external ${
-                databaseType === DatabaseType.POSTGRES ? 'PostgreSQL' : 'MySQL'
-              } database`}
-              description="This external database is where model data is stored."
-            >
-              <FormGroup label="Database type" isRequired fieldId="mr-database-type">
-                <SimpleSelect
-                  dataTestId="mr-database-type"
-                  toggleProps={{ id: 'mr-database-type-toggle' }}
-                  isFullWidth
-                  options={databaseTypeOptions}
-                  value={databaseType}
-                  onChange={(key) => handleDatabaseTypeChange(key)}
-                />
-              </FormGroup>
-              <FormGroup label="Host" isRequired fieldId="mr-host">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="mr-host"
-                  name="mr-host"
-                  data-testid="mr-host-input"
-                  value={host}
-                  onBlur={() => setIsHostTouched(true)}
-                  onChange={(_e, value) => setHost(value)}
-                  validated={isHostTouched && !hasContent(host) ? 'error' : 'default'}
-                />
-                {isHostTouched && !hasContent(host) && (
-                  <HelperText>
-                    <HelperTextItem variant="error" data-testid="mr-host-error">
-                      Host cannot be empty
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-              </FormGroup>
-              <FormGroup label="Port" isRequired fieldId="mr-port">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="mr-port"
-                  name="mr-port"
-                  data-testid="mr-port-input"
-                  value={port}
-                  onBlur={() => setIsPortTouched(true)}
-                  onChange={(_e, value) => setPort(value)}
-                  validated={
-                    isPortTouched && (!hasContent(port) || !isValidPort(port)) ? 'error' : 'default'
+              <Stack hasGutter>
+                <Radio
+                  isChecked={databaseSource === DatabaseSource.DEFAULT}
+                  name="database-source"
+                  onChange={() => setDatabaseSource(DatabaseSource.DEFAULT)}
+                  label="Default database (non-production)"
+                  description="PostgreSQL database enabled by default on the cluster."
+                  id="database-source-default"
+                  data-testid="mr-database-source-default"
+                  body={
+                    databaseSource === DatabaseSource.DEFAULT && (
+                      <Alert
+                        variant="info"
+                        isInline
+                        title="This default database is for development and testing purposes only. It is not supported by Red Hat for production use cases."
+                        data-testid="mr-default-database-alert"
+                      />
+                    )
                   }
                 />
-                {isPortTouched && !hasContent(port) && (
-                  <HelperText>
-                    <HelperTextItem variant="error" data-testid="mr-port-error">
-                      Port cannot be empty
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-                {isPortTouched && hasContent(port) && !isValidPort(port) && (
-                  <HelperText>
-                    <HelperTextItem variant="error" data-testid="mr-port-error">
-                      Port must be a number between 1 and 65535
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-              </FormGroup>
-              <FormGroup label="Username" isRequired fieldId="mr-username">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="mr-username"
-                  name="mr-username"
-                  data-testid="mr-username-input"
-                  value={username}
-                  onBlur={() => setIsUsernameTouched(true)}
-                  onChange={(_e, value) => setUsername(value)}
-                  validated={isUsernameTouched && !hasContent(username) ? 'error' : 'default'}
+                <Radio
+                  isChecked={databaseSource === DatabaseSource.EXTERNAL}
+                  name="database-source"
+                  onChange={() => setDatabaseSource(DatabaseSource.EXTERNAL)}
+                  label="External database"
+                  description="Connect a MySQL or PostgreSQL database."
+                  id="database-source-external"
+                  data-testid="mr-database-source-external"
+                  body={
+                    databaseSource === DatabaseSource.EXTERNAL && (
+                      <Stack hasGutter>
+                        <FormGroup label="Database type" isRequired fieldId="mr-database-type">
+                          <SimpleSelect
+                            dataTestId="mr-database-type"
+                            toggleProps={{ id: 'mr-database-type-toggle' }}
+                            isFullWidth
+                            options={databaseTypeOptions}
+                            value={databaseType}
+                            onChange={(key) => handleDatabaseTypeChange(key)}
+                          />
+                        </FormGroup>
+                        <FormGroup label="Host" isRequired fieldId="mr-host">
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="mr-host"
+                            name="mr-host"
+                            data-testid="mr-host-input"
+                            value={host}
+                            onBlur={() => setIsHostTouched(true)}
+                            onChange={(_e, value) => setHost(value)}
+                            validated={isHostTouched && !hasContent(host) ? 'error' : 'default'}
+                          />
+                          {isHostTouched && !hasContent(host) && (
+                            <HelperText>
+                              <HelperTextItem variant="error" data-testid="mr-host-error">
+                                Host cannot be empty
+                              </HelperTextItem>
+                            </HelperText>
+                          )}
+                        </FormGroup>
+                        <FormGroup label="Port" isRequired fieldId="mr-port">
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="mr-port"
+                            name="mr-port"
+                            data-testid="mr-port-input"
+                            value={port}
+                            onBlur={() => setIsPortTouched(true)}
+                            onChange={(_e, value) => setPort(value)}
+                            validated={
+                              isPortTouched && (!hasContent(port) || !isValidPort(port))
+                                ? 'error'
+                                : 'default'
+                            }
+                          />
+                          {isPortTouched && !hasContent(port) && (
+                            <HelperText>
+                              <HelperTextItem variant="error" data-testid="mr-port-error">
+                                Port cannot be empty
+                              </HelperTextItem>
+                            </HelperText>
+                          )}
+                          {isPortTouched && hasContent(port) && !isValidPort(port) && (
+                            <HelperText>
+                              <HelperTextItem variant="error" data-testid="mr-port-error">
+                                Port must be a number between 1 and 65535
+                              </HelperTextItem>
+                            </HelperText>
+                          )}
+                        </FormGroup>
+                        <FormGroup label="Username" isRequired fieldId="mr-username">
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="mr-username"
+                            name="mr-username"
+                            data-testid="mr-username-input"
+                            value={username}
+                            onBlur={() => setIsUsernameTouched(true)}
+                            onChange={(_e, value) => setUsername(value)}
+                            validated={
+                              isUsernameTouched && !hasContent(username) ? 'error' : 'default'
+                            }
+                          />
+                          {isUsernameTouched && !hasContent(username) && (
+                            <HelperText>
+                              <HelperTextItem variant="error" data-testid="mr-username-error">
+                                Username cannot be empty
+                              </HelperTextItem>
+                            </HelperText>
+                          )}
+                        </FormGroup>
+                        <FormGroup label="Password" isRequired fieldId="mr-password">
+                          <ModelRegistryDatabasePassword
+                            password={password || ''}
+                            setPassword={setPassword}
+                            isPasswordTouched={isPasswordTouched}
+                            setIsPasswordTouched={setIsPasswordTouched}
+                            showPassword={showPassword}
+                            editRegistry={mr}
+                          />
+                        </FormGroup>
+                        <FormGroup label="Database" isRequired fieldId="mr-database">
+                          <TextInput
+                            isRequired
+                            type="text"
+                            id="mr-database"
+                            name="mr-database"
+                            data-testid="mr-database-input"
+                            value={database}
+                            onBlur={() => setIsDatabaseTouched(true)}
+                            onChange={(_e, value) => setDatabase(value)}
+                            validated={
+                              isDatabaseTouched && !hasContent(database) ? 'error' : 'default'
+                            }
+                          />
+                          {isDatabaseTouched && !hasContent(database) && (
+                            <HelperText>
+                              <HelperTextItem variant="error" data-testid="mr-database-error">
+                                Database cannot be empty
+                              </HelperTextItem>
+                            </HelperText>
+                          )}
+                        </FormGroup>
+                        {secureDbEnabled && (
+                          <FormGroup>
+                            <Checkbox
+                              label="Add CA certificate to secure database connection"
+                              isChecked={addSecureDB}
+                              onChange={(_e, value) => setAddSecureDB(value)}
+                              id="add-secure-db"
+                              data-testid="add-secure-db-mr-checkbox"
+                              name="add-secure-db"
+                            />
+                          </FormGroup>
+                        )}
+                      </Stack>
+                    )
+                  }
                 />
-                {isUsernameTouched && !hasContent(username) && (
-                  <HelperText>
-                    <HelperTextItem variant="error" data-testid="mr-username-error">
-                      Username cannot be empty
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-              </FormGroup>
-              <FormGroup label="Password" isRequired fieldId="mr-password">
-                <ModelRegistryDatabasePassword
-                  password={password || ''}
-                  setPassword={setPassword}
-                  isPasswordTouched={isPasswordTouched}
-                  setIsPasswordTouched={setIsPasswordTouched}
-                  showPassword={showPassword}
-                  editRegistry={mr}
-                />
-              </FormGroup>
-            </FormSection>
-          )}
-
-          {databaseSource === DatabaseSource.EXTERNAL && (
-            <FormSection
-              title="Database settings"
-              description="Configure database-specific settings."
-            >
-              <FormGroup label="Database" isRequired fieldId="mr-database">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="mr-database"
-                  name="mr-database"
-                  data-testid="mr-database-input"
-                  value={database}
-                  onBlur={() => setIsDatabaseTouched(true)}
-                  onChange={(_e, value) => setDatabase(value)}
-                  validated={isDatabaseTouched && !hasContent(database) ? 'error' : 'default'}
-                />
-                {isDatabaseTouched && !hasContent(database) && (
-                  <HelperText>
-                    <HelperTextItem variant="error" data-testid="mr-database-error">
-                      Database cannot be empty
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-              </FormGroup>
-            </FormSection>
-          )}
-
-          {databaseSource === DatabaseSource.EXTERNAL && secureDbEnabled && (
-            <FormGroup>
-              <Checkbox
-                label="Add CA certificate to secure database connection"
-                isChecked={addSecureDB}
-                onChange={(_e, value) => setAddSecureDB(value)}
-                id="add-secure-db"
-                data-testid="add-secure-db-mr-checkbox"
-                name="add-secure-db"
-              />
+              </Stack>
             </FormGroup>
-          )}
+          </FormSection>
 
           {databaseSource === DatabaseSource.EXTERNAL &&
             secureDbEnabled &&
