@@ -172,6 +172,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
+  // TODO: This will need to be changed to an object or array when implementing compare mode
   const chatbotMessages = useChatbotMessages({
     modelId: selectedModel,
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
