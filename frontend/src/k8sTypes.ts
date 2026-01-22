@@ -1545,8 +1545,8 @@ export type ModelRegistryKind = K8sResourceCommon & {
   } & EitherNotBoth<
     {
       mysql?: {
-        database: string;
-        host: string;
+        database?: string;
+        host?: string;
         passwordSecret?: {
           key: string;
           name: string;
@@ -1571,7 +1571,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
     },
     {
       postgres?: {
-        database: string;
+        database?: string;
         host?: string;
         passwordSecret?: {
           key: string;

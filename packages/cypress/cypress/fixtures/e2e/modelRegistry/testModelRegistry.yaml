@@ -43,3 +43,11 @@ deployProjectNamePrefix: "test-deploy-project"
 permissionsRegistryNamePrefix: "test-mr-permissions-registry"
 testProjectNamePrefix: "test-mr-permissions-project"
 rhodsUsersGroup: "rhods-users"
+
+# Database configuration testing
+databaseName: "model-registry-db-test"
+newDatabaseHost: "model-registry-db-test-new"
+newDatabasePort: "3307"
+newDatabaseName: "model_registry_updated"
+newDatabaseUsername: "mlmduser_updated"
+newDatabasePassword: "NewTestPassword123"
