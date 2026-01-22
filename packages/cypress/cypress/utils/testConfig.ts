@@ -86,7 +86,6 @@ const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
-const CLUSTER_OIDC_ISSUER = testConfig?.CLUSTER_OIDC_ISSUER;
 
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
@@ -103,7 +102,6 @@ export const cypressEnv = {
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
   CLUSTER_AUTH,
-  CLUSTER_OIDC_ISSUER,
 };
 
 // re-export the updated process env

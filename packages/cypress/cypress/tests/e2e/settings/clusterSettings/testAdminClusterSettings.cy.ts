@@ -30,6 +30,7 @@ import {
   getClusterRoleBinding,
   deleteClusterRoleBinding,
 } from '../../../../utils/oc_commands/roleBindings';
+import { skipIfBYOIDC } from '../../../../utils/skipUtils';
 
 // Default PVC size constant (matches frontend/src/pages/clusterSettings/const.ts)
 const DEFAULT_PVC_SIZE = 20;
@@ -203,7 +204,13 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   it(
     'Cluster Admin user can access all Settings pages',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-1688', '@Dashboard'] },
-    () => {
+    function testClusterAdminSettingsAccess() {
+      // Skip on BYOIDC clusters - User Management page requires groups API which returns 404 on BYOIDC
+      skipIfBYOIDC(
+        this,
+        'User Management page requires groups API not available on BYOIDC clusters',
+      );
+
       cy.step(`Log into the application as ${testUserName}`);
       cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 

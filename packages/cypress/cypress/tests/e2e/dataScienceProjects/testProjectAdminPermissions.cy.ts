@@ -11,6 +11,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { skipIfBYOIDC } from '../../../utils/skipUtils';
 
 describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
@@ -88,7 +89,9 @@ describe('Verify that users can provide admin project permissions to non-admin u
         '@NonConcurrent',
       ],
     },
-    () => {
+    function testGroupPermissions() {
+      skipIfBYOIDC(this, 'Groups API not available on BYOIDC clusters');
+
       // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
