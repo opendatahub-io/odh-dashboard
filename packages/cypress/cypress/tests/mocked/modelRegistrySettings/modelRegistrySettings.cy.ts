@@ -905,9 +905,7 @@ describe('CreateModal', () => {
           },
           spec: {
             postgres: {
-              database: 'model-registry',
               generateDeployment: true,
-              skipDBCreation: false,
             },
           },
         },
