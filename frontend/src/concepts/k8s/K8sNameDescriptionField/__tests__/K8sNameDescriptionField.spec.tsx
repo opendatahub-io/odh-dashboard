@@ -233,6 +233,7 @@ describe('K8sNameDescriptionField', () => {
           expect(
             screen.getByText(/A project with this resource name already exists/),
           ).toBeInTheDocument();
+          expect(screen.getByTestId('resource-name-unique')).toBeInTheDocument();
         });
 
         // The ResourceNameField input should have error validation styling
