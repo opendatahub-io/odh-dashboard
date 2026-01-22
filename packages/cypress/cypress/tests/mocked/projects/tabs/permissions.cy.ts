@@ -125,7 +125,7 @@ describe('Permissions tab', () => {
   it('should not allow deep-link access to Assign roles page for non-project admins', () => {
     asProjectEditUser();
     initIntercepts({ isEmpty: false });
-    cy.visit('/projects/test-project/permissions/assign');
+    permissions.visitAssignRoles('test-project');
     cy.url().should('include', '/projects/test-project?section=overview');
   });
 
@@ -518,7 +518,7 @@ describe('Permissions tab (projectRBAC)', () => {
 
     projectRbacPermissions.findAssignRolesButton().should('be.enabled').click();
     cy.url().should('include', `/projects/${namespace}/permissions/assign`);
-    cy.findByTestId('project-permissions-assign-roles-page').should('exist');
+    projectRbacPermissions.findAssignRolesPage().should('exist');
   });
 
   it('should render Users/Groups role tables and allow filtering by friendly role names', () => {

@@ -84,6 +84,10 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId('permissions-assign-roles-button');
   }
 
+  findAssignRolesPage() {
+    return cy.findByTestId('project-permissions-assign-roles-page');
+  }
+
   findUsersTable() {
     return this.getUsersTable().find();
   }

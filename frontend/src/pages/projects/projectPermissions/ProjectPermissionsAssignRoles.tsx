@@ -51,10 +51,19 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
       empty={false}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/projects">Projects</Link>} />
           <BreadcrumbItem
             render={() => (
-              <Link to={`/projects/${currentProject.metadata.name}?section=permissions`}>
+              <Link to="/projects" data-testid="assign-roles-breadcrumb-projects">
+                Projects
+              </Link>
+            )}
+          />
+          <BreadcrumbItem
+            render={() => (
+              <Link
+                to={`/projects/${currentProject.metadata.name}?section=permissions`}
+                data-testid="assign-roles-breadcrumb-project"
+              >
                 {getDisplayNameFromK8sResource(currentProject)}
               </Link>
             )}
@@ -68,7 +77,7 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
         variant={PageSectionVariants.default}
         isFilled
       >
-        <Form>
+        <Form data-testid="assign-roles-form">
           <FormSection title="Subject">
             <Content component={ContentVariants.p}>
               Select a subject with existing roles or enter a new subject.
