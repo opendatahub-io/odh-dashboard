@@ -2,6 +2,10 @@ import React from 'react';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { DeployPrefillData } from '@odh-dashboard/model-registry/model-catalog-deploy';
 import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
+import {
+  LimitNameResourceType,
+  resourceTypeLimits,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   ConnectionTypeRefs,
@@ -13,7 +17,8 @@ import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizar
 export const useNavigateToDeploymentWizardWithData = (
   deployPrefillData: DeployPrefillData,
 ): ((projectName?: string) => void) => {
-  const resourceName = translateDisplayNameForK8s(deployPrefillData.modelName);
+  const maxLength = resourceTypeLimits[LimitNameResourceType.MODEL_DEPLOYMENT];
+  const resourceName = translateDisplayNameForK8s(deployPrefillData.modelName, { maxLength });
 
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
   const uri = deployPrefillData.modelUri;
