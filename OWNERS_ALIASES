@@ -151,8 +151,6 @@ aliases:
 
   # NIM / Ecosystem Engineering
   nim-serving-approvers:
-    - mtalvi
-    - TheiaSurette
+    - TomerFi
   nim-serving-reviewers:
-    - mtalvi
-    - TheiaSurette
+    - TomerFi
