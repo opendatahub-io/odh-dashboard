@@ -17,7 +17,7 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 
 	models, err := app.repositories.Models.ListModels(ctx)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
