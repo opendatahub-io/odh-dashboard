@@ -15,6 +15,7 @@ filters:
       - quality-e2e-testing-approvers
       - workbenches-approvers
       - gen-ai-approvers
+      - nim-serving-approvers
 
   # Catchall
   '.*':
