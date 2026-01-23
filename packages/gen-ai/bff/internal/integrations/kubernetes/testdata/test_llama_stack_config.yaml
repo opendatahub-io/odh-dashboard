@@ -125,6 +125,11 @@ storage:
     conversations:
       table_name: openai_conversations
       backend: sql_default
+vector_stores:
+  default_provider_id: milvus
+  default_embedding_model:
+    provider_id: sentence-transformers
+    model_id: ibm-granite/granite-embedding-125m-english
 registered_resources:
   models:
     - metadata:
@@ -147,14 +152,14 @@ registered_resources:
       model_id: facebook/opt-125m
       provider_id: maas-vllm-inference-1
       model_type: llm
-shields: []
-vector_dbs: []
-datasets: []
-scoring_fns: []
-benchmarks: []
-tool_groups:
-- toolgroup_id: builtin::rag
-  provider_id: rag-runtime
+  shields: []
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+    - toolgroup_id: builtin::rag
+      provider_id: rag-runtime
 external_providers_dir: /opt/app-root/.llama/providers.d
 server:
   port: 8321

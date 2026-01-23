@@ -11,6 +11,8 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
 import { useGetArtifactsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
+import { getGenericErrorCode } from '#~/api/errorUtils';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { ArtifactsTable } from './ArtifactsTable';
 
 export const ArtifactsList: React.FC = () => {
@@ -20,6 +22,9 @@ export const ArtifactsList: React.FC = () => {
   const filterQueryRef = React.useRef(filterQuery);
 
   if (artifactsError) {
+    if (getGenericErrorCode(artifactsError) === 403) {
+      return <UnauthorizedError accessDomain="artifacts" />;
+    }
     return (
       <Bullseye>
         <EmptyState

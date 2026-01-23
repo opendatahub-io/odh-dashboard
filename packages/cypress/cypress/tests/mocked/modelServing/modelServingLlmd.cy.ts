@@ -23,7 +23,10 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import {
   HardwareProfileModel,
@@ -40,6 +43,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { maasWizardField } from '../../../pages/modelsAsAService';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -66,6 +70,7 @@ const initIntercepts = ({
       disableKServe: false,
       genAiStudio: true,
       modelAsService: true, // Enable MaaS for testing
+      disableLLMd: false,
     }),
   );
   cy.interceptOdh('GET /api/components', null, []);
@@ -240,6 +245,72 @@ describe('Model Serving LLMD', () => {
         .should('contain', 'KServe Test Model');
     });
 
+    it('should show LLMD deployments and runtime options when LLMD is enabled but not when disabled', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-llmd-model',
+            displayName: 'Test LLM Inference Service',
+            replicas: 2,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableLLMd: true,
+        }),
+      );
+      modelServingSection.visit('test-project');
+
+      cy.step('Verify LLMD deployment is not displayed');
+      modelServingSection.findKServeTable().should('have.length', 0);
+      modelServingSection.findDeployModelButton().should('exist');
+      modelServingSection.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Verify LLMD runtime option is not displayed');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('not.exist');
+
+      //Just to close the runtime template search selector
+      modelServingWizard.findModelDeploymentNameInput().click();
+      modelServingWizard.findCancelButton().click();
+      modelServingWizard.findDiscardButton().click();
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableLLMd: false,
+        }),
+      );
+      cy.reload();
+      cy.step('Verify LLMD deployment is displayed when LLMD is enabled');
+      modelServingSection.findKServeTable().should('have.length', 1);
+      modelServingSection.findDeployModelButton().should('exist');
+      modelServingSection.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Verify LLMD runtime option is displayed when LLMD is enabled');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist');
+    });
+
     it('should handle LLMD deployment with error status', () => {
       initIntercepts({
         llmInferenceServices: [
@@ -273,7 +344,7 @@ describe('Model Serving LLMD', () => {
 
       // Step 1: Model source
       modelServingWizard
-        .findModelLocationSelectOption('Existing connection')
+        .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
         .should('exist')
         .click();
       modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
@@ -425,7 +496,7 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
 
       // Step 1: Model source
-      modelServingWizardEdit.findModelLocationSelectOption('URI').click();
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
 
       modelServingWizardEdit
@@ -559,7 +630,7 @@ describe('Model Serving LLMD', () => {
   });
 
   describe('Deploy LLMD with MaaS enabled', () => {
-    it('should create an LLMD deployment with MaaS enabled', () => {
+    it('should create an LLMD deployment with MaaS enabled and specific tiers', () => {
       initIntercepts({});
 
       // Navigate to wizard and set up basic deployment
@@ -567,7 +638,7 @@ describe('Model Serving LLMD', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Quick setup: Model source and deployment
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
@@ -581,11 +652,30 @@ describe('Model Serving LLMD', () => {
       // Focus on MaaS feature testing
       // uncheck token auth to simplify test
       modelServingWizard.findTokenAuthenticationCheckbox().click();
-      modelServingWizard.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
-      modelServingWizard.findSaveAsMaaSCheckbox().click();
-      modelServingWizard.findSaveAsMaaSCheckbox().should('be.checked');
-      modelServingWizard.findUseCaseInput().should('be.visible').type('Test MaaS use case');
-      modelServingWizard.findNextButton().click();
+
+      // Verify MaaS checkbox is unchecked by default
+      maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+
+      // Check the MaaS checkbox
+      maasWizardField.findSaveAsMaaSCheckbox().click();
+      maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+
+      // Verify default selection is "All tiers"
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'All tiers');
+
+      // Switch to "No tiers"
+      maasWizardField.selectMaaSTierOption('No tiers');
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'No tiers');
+
+      // Switch to "Specific tiers" - Next button should be disabled until input is provided
+      maasWizardField.selectMaaSTierOption('Specific tiers');
+      maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific tiers');
+      maasWizardField.findMaaSTierNamesInput().should('be.visible');
+      modelServingWizard.findNextButton().should('be.disabled');
+
+      // Enter tier names to enable Next button
+      maasWizardField.findMaaSTierNamesInput().type('tier-1, tier-2');
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Submit and verify MaaS-specific annotations and gateway refs
       modelServingWizard.findSubmitButton().click();
@@ -593,10 +683,10 @@ describe('Model Serving LLMD', () => {
       cy.wait('@createLLMInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
 
-        // Verify MaaS-specific configuration
+        // Verify MaaS-specific configuration with specific tiers
+        // The tiers annotation is a JSON stringified array
         expect(interception.request.body.metadata.annotations).to.containSubset({
-          'alpha.maas.opendatahub.io/tiers': '[]',
-          'opendatahub.io/genai-use-case': 'Test MaaS use case',
+          'alpha.maas.opendatahub.io/tiers': JSON.stringify(['tier-1', 'tier-2']),
         });
 
         expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([

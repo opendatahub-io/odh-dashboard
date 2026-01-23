@@ -16,10 +16,12 @@ import {
 } from '../../utils/lineageDataConverter';
 import { FeatureStoreLineageSearchFilters } from '../../types/toolbarTypes';
 import { FeatureStoreLineage, FeatureViewLineage } from '../../types/lineage';
+import { FeatureView } from '../../types/featureView';
 
 interface FeatureStoreLineageComponentProps {
   project?: string;
   featureViewName?: string;
+  featureViewType?: FeatureView['type'];
   emptyStateTitle?: string;
   emptyStateMessage?: string;
   height?: string;
@@ -28,8 +30,9 @@ interface FeatureStoreLineageComponentProps {
 const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> = ({
   project,
   featureViewName,
-  emptyStateTitle = 'Select a feature store repository',
-  emptyStateMessage = 'Select a feature store repository to view its lineage.',
+  featureViewType,
+  emptyStateTitle = 'Select a feature store',
+  emptyStateMessage = 'Select a feature store to view its lineage.',
   height = '100%',
 }) => {
   if (!project) {
@@ -88,6 +91,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           lineageData as FeatureViewLineage,
           featureViewName,
+          featureViewType,
         );
 
         const filteredResult = applyLineageFilters(baseResult, {
@@ -130,6 +134,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     hideNodesWithoutRelationships,
     searchFilters,
     featureViewName,
+    featureViewType,
   ]);
 
   // Trigger centering when filters change - but only after data is processed
@@ -167,7 +172,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   );
 
   const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => (
-    <FeatureStoreLineageNodePopover {...props} />
+    <FeatureStoreLineageNodePopover {...props} featureViewName={featureViewName} />
   );
 
   return (
@@ -187,7 +192,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
         emptyStateMessage={
           featureViewName
             ? 'No lineage data available for this feature view'
-            : 'No lineage data available for this feature store repository'
+            : 'No lineage data available for this feature store'
         }
         height="100%"
         componentFactory={componentFactory}

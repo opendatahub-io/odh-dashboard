@@ -63,7 +63,7 @@ describe('MaaSModelTableRowEndpoint', () => {
   });
 
   describe('API Token generation', () => {
-    it('should show "Generate API token" button initially', async () => {
+    it('should show "Generate API Key" button initially', async () => {
       const user = userEvent.setup();
       const model = createMockMaaSModel();
       render(<MaaSModelTableRowEndpoint model={model} />);
@@ -71,10 +71,10 @@ describe('MaaSModelTableRowEndpoint', () => {
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
 
-      expect(screen.getByText('Generate API token')).toBeInTheDocument();
+      expect(screen.getByText('Generate API Key')).toBeInTheDocument();
     });
 
-    it('should call generateToken when "Generate API token" is clicked', async () => {
+    it('should call generateToken when "Generate API Key" is clicked', async () => {
       const user = userEvent.setup();
       const mockGenerateToken = jest.fn();
       mockUseGenerateMaaSToken.mockReturnValue({
@@ -91,7 +91,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
 
-      const generateButton = screen.getByText('Generate API token');
+      const generateButton = screen.getByText('Generate API Key');
       await user.click(generateButton);
 
       expect(mockGenerateToken).toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
 
-      const generateButton = screen.getByText('Generate API token').closest('button');
+      const generateButton = screen.getByText('Generate API Key').closest('button');
       expect(generateButton).toBeDisabled();
     });
 
@@ -174,7 +174,7 @@ describe('MaaSModelTableRowEndpoint', () => {
       const viewButton = screen.getByText('View');
       await user.click(viewButton);
 
-      expect(screen.queryByText('Generate API token')).not.toBeInTheDocument();
+      expect(screen.queryByText('Generate API Key')).not.toBeInTheDocument();
       expect(screen.getByDisplayValue('existing-token')).toBeInTheDocument();
     });
   });

@@ -14,21 +14,25 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 type MockedKubernetesClientFactory interface {
 	k8s.KubernetesClientFactory
 }
 
-func NewMockedKubernetesClientFactory(clientset client.Client, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+func NewMockedKubernetesClientFactory(clientset client.Client, testEnvState *TestEnvState, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	if testEnvState == nil || testEnvState.Env == nil {
+		return nil, fmt.Errorf("testEnvState and testEnvState.Env must not be nil")
+	}
+
 	switch cfg.AuthMethod {
 	case config.AuthMethodUser:
-		k8sFactory, err := NewTokenClientFactory(clientset, testEnv.Config, logger)
+		k8sFactory, err := NewTokenClientFactory(clientset, testEnvState.Env.Config, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create static client factory: %w", err)
 		}
@@ -126,6 +130,9 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return nil, err
 	}
 	if err := kservev1beta1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 

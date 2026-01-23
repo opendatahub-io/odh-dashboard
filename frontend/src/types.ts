@@ -108,12 +108,13 @@ export type ClusterSettingsType = {
   pvcSize: number;
   cullerTimeout: number;
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
-  useDistributedInferencing?: boolean;
+  isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
 };
 
 export type ModelServingPlatformEnabled = {
   kServe: boolean;
+  LLMd: boolean;
 };
 
 /** @deprecated -- use SDK type */
@@ -631,6 +632,12 @@ export type Volume = {
   secret?: {
     secretName: string;
     optional?: boolean;
+    defaultMode?: number;
+  };
+  configMap?: {
+    name: string;
+    optional?: boolean;
+    defaultMode?: number;
   };
 };
 

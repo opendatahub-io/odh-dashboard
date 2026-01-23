@@ -13,6 +13,21 @@ class ModelTrainingGlobal {
     }
   }
 
+  navigate() {
+    // Wait for the sidebar to be visible and ready
+    appChrome.findSideBar().should('be.visible');
+    appChrome.findMainContent().should('be.visible');
+
+    appChrome
+      .findNavItem({
+        name: 'Training jobs',
+        rootSection: 'Develop & train',
+      })
+      .click();
+
+    this.wait();
+  }
+
   private wait() {
     this.findAppPage();
     cy.testA11y();
@@ -35,12 +50,16 @@ class ModelTrainingGlobal {
   }
 
   findProjectSelectorToggle() {
-    return cy.findByTestId('project-selector-dropdown-toggle');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   selectProject(projectName: string) {
     this.findProjectSelectorToggle().click();
-    cy.findByRole('menuitem', { name: projectName }).click();
+    this.findProjectMenuItem(projectName).click();
+  }
+
+  findProjectMenuItem(projectName: string) {
+    return cy.findByRole('menuitem', { name: projectName });
   }
 
   findEmptyState() {
@@ -95,6 +114,10 @@ class TrainingJobTable {
   shouldBeEmpty() {
     this.findEmptyResults().should('exist');
     return this;
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-state-body');
   }
 }
 
@@ -483,6 +506,14 @@ class ScaleNodesModal extends Modal {
 
   findNodeCountInput() {
     return cy.findByTestId('node-count-input');
+  }
+
+  findPlusButton() {
+    return this.find().find('button[aria-label="Plus"]');
+  }
+
+  findMinusButton() {
+    return this.find().find('button[aria-label="Minus"]');
   }
 
   setNodeCount(count: number) {

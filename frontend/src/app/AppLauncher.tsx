@@ -16,9 +16,12 @@ import { ApplicationAction, Section } from '#~/types';
 import './AppLauncher.scss';
 import { SupportedArea } from '#~/concepts/areas/types';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useAppContext } from './AppContext';
 
 const appConsoleLinkNames = ['rhodslink', 'odhlink'];
+export const isMLflowConsoleLink = (linkName?: string): boolean =>
+  !!linkName && linkName.startsWith('mlflow');
 
 export const getOCMAction = (
   clusterID?: string,
@@ -70,14 +73,13 @@ const AppLauncher: React.FC = () => {
   const isMLflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
 
   const { disableClusterManager } = dashboardConfig.spec.dashboardConfig;
-
   const applicationSections = React.useMemo<Section[]>(() => {
     const applicationLinks = consoleLinks
       .filter(
         (link) =>
           link.spec.location === 'ApplicationMenu' &&
           !appConsoleLinkNames.includes(link.metadata?.name ?? '') &&
-          (isMLflowEnabled || link.metadata?.name !== 'mlflowlink'),
+          (isMLflowEnabled || !isMLflowConsoleLink(link.metadata?.name)),
       )
       .toSorted((a, b) => a.spec.text.localeCompare(b.spec.text));
 
@@ -107,13 +109,15 @@ const AppLauncher: React.FC = () => {
         href: link.spec.href,
         image: <img src={link.spec.applicationMenu?.imageURL} alt={`${link.spec.text} logo`} />,
       };
-      const section = acc.find(
-        (currentSection) => currentSection.label === link.spec.applicationMenu?.section,
-      );
+      const sectionLabel =
+        isMLflowEnabled && isMLflowConsoleLink(link.metadata?.name)
+          ? 'Applications'
+          : link.spec.applicationMenu?.section;
+      const section = acc.find((currentSection) => currentSection.label === sectionLabel);
       if (section) {
         section.actions.push(action);
       } else {
-        acc.push({ label: link.spec.applicationMenu?.section, actions: [action] });
+        acc.push({ label: sectionLabel, actions: [action] });
       }
       return acc;
     }, getODHApplications());
@@ -138,6 +142,12 @@ const AppLauncher: React.FC = () => {
         key={action.label}
         to={action.href}
         icon={action.image}
+        onClick={() => {
+          fireLinkTrackingEvent('Application Launcher Item Clicked', {
+            name: action.label,
+            href: action.href,
+          });
+        }}
       >
         {action.label}
       </DropdownItem>

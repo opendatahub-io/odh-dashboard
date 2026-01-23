@@ -4,6 +4,7 @@ import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
@@ -81,13 +82,17 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
           {enabledModel ? (
             <Button
               variant={ButtonVariant.secondary}
-              onClick={() =>
+              onClick={() => {
+                fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                  assetType: 'maas_model',
+                  assetId: model.id,
+                });
                 navigate(genAiChatPlaygroundRoute(namespace?.name), {
                   state: {
                     model: enabledModel.id,
                   },
-                })
-              }
+                });
+              }}
               isDisabled={!model.ready}
             >
               Try in playground

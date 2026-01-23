@@ -7,7 +7,7 @@ This document describes how to configure logging for the BFF (Backend for Fronte
 The BFF supports four log levels, controlled by the `LOG_LEVEL` environment variable:
 
 - `DEBUG` - Detailed diagnostic information (default for development)
-- `INFO` - General informational messages
+- `INFO` - General informational messages (default for production)
 - `WARN` - Warning messages for potentially harmful situations
 - `ERROR` - Error messages for failures
 
@@ -17,7 +17,9 @@ The BFF supports four log levels, controlled by the `LOG_LEVEL` environment vari
 
 Sets the server log level for the BFF component.
 
-**Default:** `DEBUG`
+**Default:** 
+- **Production**: `INFO` (cleaner logs, important events only)
+- **Development**: `debug` (set explicitly in Makefile for `make dev-start`)
 
 **Example:**
 ```bash

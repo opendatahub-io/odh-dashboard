@@ -13,6 +13,10 @@ class ModelCatalogSettings {
     this.wait();
   }
 
+  visitExpectDenied() {
+    cy.visit('/settings/model-resources-operations/model-catalog', { failOnStatusCode: false });
+  }
+
   private wait() {
     this.findHeading();
     cy.testA11y();
@@ -20,12 +24,12 @@ class ModelCatalogSettings {
 
   private findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('AI catalog settings');
+    cy.findByTestId('app-page-title').contains('AI catalog sources');
   }
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'AI catalog settings',
+      name: 'AI catalog sources',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -37,6 +41,14 @@ class ModelCatalogSettings {
 
   findAddSourceButton() {
     return cy.findByTestId('add-source-button');
+  }
+
+  findTable() {
+    return cy.findByTestId('catalog-source-configs-table');
+  }
+
+  findEnableToggle(sourceId: string) {
+    return cy.findByTestId(`enable-toggle-${sourceId}`);
   }
 }
 

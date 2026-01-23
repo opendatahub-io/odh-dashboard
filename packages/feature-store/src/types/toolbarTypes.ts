@@ -19,7 +19,7 @@ export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentPr
 // Common types for toolbar functionality
 export type FilterLabel = {
   key: string;
-  node: string;
+  node: string | React.ReactNode;
   props?: { 'data-testid': string };
 };
 

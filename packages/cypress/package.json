@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Cypress tests for the ODH Dashboard.",
+  "types": "./cypress/support/commands/index.ts",
   "scripts": {
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
@@ -25,6 +26,7 @@
     "@odh-dashboard/feature-store": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/llmd-serving": "*",
+    "@odh-dashboard/maas": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/model-training": "*",

@@ -13,8 +13,8 @@ import {
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
-import { ModelServerSelectFieldData, isModelAvailabilityField } from '../types';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { GenericFieldRenderer } from './GenericFieldRenderer';
+import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
@@ -41,16 +41,10 @@ export const modelAvailabilityFieldsSchema = z.custom<ModelAvailabilityFieldsDat
 export const useModelAvailabilityFields = (
   existingData?: ModelAvailabilityFieldsData,
   modelType?: ModelTypeFieldData,
-  modelServer?: ModelServerSelectFieldData,
 ): ModelAvailabilityFields => {
-  const modelAvailabilityExtension = useWizardFieldFromExtension(isModelAvailabilityField, {
-    modelType: { data: modelType },
-    modelServer: { data: modelServer },
-  });
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
-      saveAsMaaS: undefined,
       useCase: '',
     },
   );
@@ -70,24 +64,23 @@ export const useModelAvailabilityFields = (
     data: AiAssetData,
     setData,
     showField: modelType === ServingRuntimeModelType.GENERATIVE,
-    showSaveAsMaaS: modelAvailabilityExtension?.showSaveAsMaaS,
   };
 };
 
 type AvailableAiAssetsFieldsComponentProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
-  showSaveAsMaaS?: boolean;
+  wizardState: UseModelDeploymentWizardState;
 };
 
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
   data,
   setData,
-  showSaveAsMaaS,
+  wizardState,
 }) => {
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
-      if (!newData.saveAsAiAsset && !newData.saveAsMaaS) {
+      if (!newData.saveAsAiAsset) {
         setData({ ...newData, useCase: '' });
       } else {
         setData(newData);
@@ -122,32 +115,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
           />
         </StackItem>
-        {showSaveAsMaaS && (
-          <StackItem>
-            <Checkbox
-              id="save-as-maas-checkbox"
-              data-testid="save-as-maas-checkbox"
-              label={
-                <>
-                  <div className="pf-v6-c-form__label-text">Add as MaaS endpoint</div>
-                  <Flex>
-                    <FlexItem>
-                      Enable users in any namespace to access this model by adding its endpoint to
-                      the <span className="pf-v6-c-form__label-text">Models as a service</span>{' '}
-                      page. This is best for production models.
-                    </FlexItem>
-                    <Label isCompact color="yellow" variant="outline">
-                      Developer preview
-                    </Label>
-                  </Flex>
-                </>
-              }
-              isChecked={data.saveAsMaaS}
-              onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsMaaS: checked })}
-            />
-          </StackItem>
-        )}
-        {(data.saveAsAiAsset || (showSaveAsMaaS && data.saveAsMaaS)) && (
+        {data.saveAsAiAsset && (
           <StackItem>
             <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
               <FormGroup label="Use case">
@@ -165,6 +133,7 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             </div>
           </StackItem>
         )}
+        <GenericFieldRenderer parentId="model-playground-availability" wizardState={wizardState} />
       </Stack>
     </StackItem>
   );

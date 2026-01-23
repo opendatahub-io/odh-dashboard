@@ -17,12 +17,14 @@ import {
   Skeleton,
   Label,
 } from '@patternfly/react-core';
+import { ChartBarIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
   decodeParams,
   getModelName,
   hasModelArtifacts,
   isModelValidated,
+  isRedHatModel,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -149,8 +151,15 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                     <FlexItem>{getModelName(model.name)}</FlexItem>
                     {isModelValidated(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                        <Label color="purple" isClickable>
+                        <Label color="purple" isClickable icon={<ChartBarIcon />}>
                           Validated
+                        </Label>
+                      </Popover>
+                    )}
+                    {isRedHatModel(model) && (
+                      <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
+                        <Label color="grey" isClickable>
+                          Red Hat
                         </Label>
                       </Popover>
                     )}

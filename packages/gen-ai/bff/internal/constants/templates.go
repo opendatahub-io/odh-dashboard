@@ -93,12 +93,8 @@ tools = [
     {
       "type": "mcp",
       "server_label": "{{.ServerLabel}}",
-      "server_url": "{{.ServerURL}}"{{- if .Headers }},
-      "headers": {
-        {{- range $key, $value := .Headers }}
-        "{{$key}}": "{{$value}}",
-        {{- end }}
-      }{{- end }}{{- if ne .AllowedTools nil }},
+      "server_url": "{{.ServerURL}}"{{- if .Authorization }},
+      "authorization": "{{.Authorization}}"{{- end }}{{- if ne .AllowedTools nil }},
       "allowed_tools": [
         {{- range $i, $tool := .AllowedTools }}
         {{- if $i }},{{ end }}

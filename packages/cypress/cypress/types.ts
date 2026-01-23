@@ -226,6 +226,7 @@ export type DataScienceProjectData = {
   pvStorageDescription: string;
   pvStorageNameEdited: string;
   invalidResourceNames: string[];
+  modelFormat: string;
   servingRuntime: string;
   modelStatus: string;
   hardwareProfileName: string;
@@ -310,6 +311,18 @@ export type OOTBConnectionTypesData = {
   s3: OOTBConnectionTypes.s3;
   uri: OOTBConnectionTypes.uri;
   oci: OOTBConnectionTypes.oci;
+  projectResourceName: string;
+  connectionTypeName: string;
+  connectionTypeDescription: string;
+  connectionTypeCategory: string[];
+  connectionTypeModelServingCompatibleType: string[];
+  connectionTypeSectionHeading: string;
+  connectionTypeSectionHeadingDescription: string;
+  connectionTypeAddFieldName: string;
+  connectionTypeAddFieldDescription: string;
+  connectionTypeAddFieldType: string;
+  connectionTypeAddFieldDefaultValue: string;
+  modelLocation: string;
 };
 
 export type WorkloadMetricsTestData = {
@@ -327,6 +340,8 @@ export type DeployOCIModelData = {
   connectionName: string;
   ociRegistryHost: string;
   modelDeploymentName: string;
+  modelFormat: string;
+  servingRuntime: string;
 };
 
 export type ModelTolerationsTestData = {
@@ -337,6 +352,8 @@ export type ModelTolerationsTestData = {
   hardwareProfileDeploymentSize: string;
   modelName: string;
   modelFilePath: string;
+  modelFormat: string;
+  servingRuntime: string;
 };
 
 export type NotebookTolerationsTestData = {
@@ -371,6 +388,8 @@ export type ModelRegistryTestData = {
   modelFormatPytorch: string;
   formatVersion2_0: string;
   uriPrimary: string;
+  modelFormat: string;
+  servingRuntime: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
@@ -401,6 +420,21 @@ export enum AccessMode {
   RWX = 'ReadWriteMany',
   ROX = 'ReadOnlyMany',
   RWOP = 'ReadWriteOncePod',
+}
+
+export const AccessModeLabelMap: Record<AccessMode, string> = {
+  [AccessMode.RWO]: 'RWO',
+  [AccessMode.RWX]: 'RWX',
+  [AccessMode.ROX]: 'ROX',
+  [AccessMode.RWOP]: 'RWOP',
+};
+
+export enum NotebookStatusLabel {
+  Running = 'Running',
+  Starting = 'Starting',
+  Stopping = 'Stopping',
+  Stopped = 'Stopped',
+  Failed = 'Failed',
 }
 
 export type SCAccessMode = {
@@ -437,4 +471,23 @@ export type GenAiTestData = {
   hardwareProfileDeploymentSize: string;
   configMapName: string;
   playgroundServiceName: string;
+};
+
+export type ModelCatalogSourceTestData = {
+  sourceName: string;
+  redhatAiSourceId: string;
+  sourceName2: string;
+  redhatAiSourceId2: string;
+};
+
+export type TrainJobTestData = {
+  projectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
 };

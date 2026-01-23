@@ -1,5 +1,10 @@
 import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+  ModelStateLabel,
+  ModelStateToggleLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import {
   modelServingGlobal,
   modelServingSection,
@@ -22,10 +27,12 @@ let testData: DataScienceProjectData;
 let projectName: string;
 let modelFilePath: string;
 let modelName: string;
+let modelFormat: string;
+let servingRuntime: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', () => {
+describe('A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -34,6 +41,8 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
         modelFilePath = testData.modelOpenVinoExamplePath;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -58,15 +67,7 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@ci-dashboard-set-2',
-        '@Maintain',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -91,15 +92,15 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
@@ -114,24 +115,22 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
       checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-      cy.reload();
       //Stop the model with the modal
       cy.step('Stop the model');
       //Ensure the modal is shown
       cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
 
-      kServeRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
       kServeRow.findConfirmStopModal().should('exist');
       kServeRow.findConfirmStopModalCheckbox().should('exist');
       kServeRow.findConfirmStopModalCheckbox().should('not.be.checked');
       kServeRow.findConfirmStopModalCheckbox().click();
       kServeRow.findConfirmStopModalCheckbox().should('be.checked');
       kServeRow.findConfirmStopModalButton().click();
-      cy.reload();
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', /Stopping|Stopped/);
+        .should('match', new RegExp(`${ModelStateLabel.STOPPING}|${ModelStateLabel.STOPPED}`));
 
       //Verify the model is stopped
       // Verify model is stopped
@@ -140,13 +139,12 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
         checkStopped: true,
         requireLoadedState: false,
       });
-      kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
+      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
       cy.step('Restart the model');
-      kServeRow.findStateActionToggle().should('have.text', 'Start').click();
-      cy.reload();
-      kServeRow.findStatusLabel('Starting').should('exist');
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
+      kServeRow.findStatusLabel(ModelStateLabel.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
 
       //Verify the model is running again
       // Verify model deployment is ready
@@ -154,7 +152,7 @@ describe('[Automation Bug: RHOAIENG-42003] A model can be stopped and started', 
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', /Starting|Started/);
+        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.STARTED}`));
     },
   );
 });

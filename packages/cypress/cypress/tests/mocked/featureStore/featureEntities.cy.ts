@@ -268,10 +268,7 @@ describe('Feature Entities for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitEntities();
     featureEntitiesTable.findTable().should('be.visible');
-    featureEntitiesTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureEntitiesTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureEntitiesTable.findRow('user_id').shouldHaveProject(fsProjectName);
     featureEntitiesTable.findRow('transaction_id').shouldHaveProject(fsProjectName2);
   });
@@ -300,7 +297,7 @@ describe('Feature Entities for all projects', () => {
       .shouldHaveValueType('STRING')
       .shouldHaveJoinKey('user_id');
     featureEntityDetails.findTags().should('be.visible');
-    featureEntityDetails.findInteractiveExample().should('be.visible');
+    featureEntityDetails.findDefinitionTitle().should('be.visible');
     featureEntityDetails.findBreadcrumbLink().should('be.visible');
     featureEntityDetails.findBreadcrumbItem().should('contain.text', 'user_id');
   });
@@ -531,7 +528,11 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchInput().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchInput()
-      .should('have.attr', 'placeholder', 'Search resources by name or description.');
+      .should(
+        'have.attr',
+        'placeholder',
+        'Search by name, description, or tag (Example: team=platform)',
+      );
   });
 
   it('should perform global search and display results', () => {
@@ -594,7 +595,7 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchNoResults().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchNoResultsText()
-      .should('contain.text', 'No results found for query "nonexistent" from All repositories');
+      .should('contain.text', 'No results found for query "nonexistent" from All feature stores');
   });
 
   it('should show loading spinner during search', () => {
@@ -629,5 +630,132 @@ describe('Global Search in Feature Entities', () => {
 
     featureStoreGlobal.findGlobalSearchInput().clear();
     featureStoreGlobal.findGlobalSearchMenu().should('not.exist');
+  });
+
+  it('should display matched tags in search results', () => {
+    const searchResponseWithMatchedTags = mockComprehensiveSearchResponse('risk', fsProjectName);
+    const featureViewIndex = searchResponseWithMatchedTags.results.findIndex(
+      (result) => result.type === 'featureView',
+    );
+    if (featureViewIndex !== -1) {
+      searchResponseWithMatchedTags.results[featureViewIndex] = {
+        ...searchResponseWithMatchedTags.results[featureViewIndex],
+        matched_tags: {
+          computation: 'derived',
+        },
+      };
+    }
+
+    cy.intercept(
+      'GET',
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponseWithMatchedTags,
+    ).as('globalSearchWithTags');
+
+    featureStoreGlobal.visitEntities();
+    featureStoreGlobal.findGlobalSearchInput().clear().type('risk');
+    cy.wait('@globalSearchWithTags');
+
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchItem('featureView', 'risk_features').should('be.visible');
+
+    featureStoreGlobal.findGlobalSearchMatchedTag('computation').should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('computation')
+      .should('contain.text', 'computation=derived');
+  });
+
+  it('should display multiple matched tags in search results', () => {
+    const searchResponseWithMultipleTags = mockComprehensiveSearchResponse('risk', fsProjectName);
+    const featureViewIndex = searchResponseWithMultipleTags.results.findIndex(
+      (result) => result.type === 'featureView',
+    );
+    if (featureViewIndex !== -1) {
+      searchResponseWithMultipleTags.results[featureViewIndex] = {
+        ...searchResponseWithMultipleTags.results[featureViewIndex],
+        matched_tags: {
+          computation: 'derived',
+          source: 'external',
+          category: 'risk',
+        },
+      };
+    }
+
+    cy.intercept(
+      'GET',
+      `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
+      searchResponseWithMultipleTags,
+    ).as('globalSearchWithMultipleTags');
+
+    featureStoreGlobal.visitEntities();
+    featureStoreGlobal.findGlobalSearchInput().clear().type('risk');
+    cy.wait('@globalSearchWithMultipleTags');
+
+    featureStoreGlobal.findGlobalSearchMenu().should('be.visible');
+    featureStoreGlobal.findGlobalSearchItem('featureView', 'risk_features').should('be.visible');
+
+    featureStoreGlobal.findGlobalSearchMatchedTag('computation').should('be.visible');
+    featureStoreGlobal.findGlobalSearchMatchedTag('source').should('be.visible');
+    featureStoreGlobal.findGlobalSearchMatchedTag('category').should('be.visible');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('computation')
+      .should('contain.text', 'computation=derived');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('source')
+      .should('contain.text', 'source=external');
+    featureStoreGlobal
+      .findGlobalSearchMatchedTag('category')
+      .should('contain.text', 'category=risk');
+  });
+
+  describe('Global Search Tooltip functionality', () => {
+    it('should display tooltip on hover when search input is empty', () => {
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+
+      featureStoreGlobal.findGlobalSearchInput().clear();
+      featureStoreGlobal.findGlobalSearchContainer().trigger('mouseenter');
+      featureStoreGlobal
+        .findGlobalSearchTooltip()
+        .should('be.visible')
+        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+    });
+
+    it('should display tooltip on click when search input is empty', () => {
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+      featureStoreGlobal.findGlobalSearchInput().clear();
+      featureStoreGlobal.findGlobalSearchContainer().click();
+      featureStoreGlobal
+        .findGlobalSearchTooltip()
+        .should('be.visible')
+        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+    });
+
+    it('should hide tooltip when user starts typing', () => {
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().should('be.visible');
+      featureStoreGlobal.findGlobalSearchInput().clear();
+      featureStoreGlobal.findGlobalSearchContainer().trigger('mouseenter');
+      featureStoreGlobal.findGlobalSearchTooltip().should('be.visible');
+      featureStoreGlobal.findGlobalSearchInput().type('test');
+      featureStoreGlobal.findGlobalSearchTooltip().should('not.exist');
+    });
+
+    it('should not show tooltip when search input has value', () => {
+      const searchResponse = mockComprehensiveSearchResponse('user', fsProjectName);
+
+      cy.intercept(
+        'GET',
+        `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/search*`,
+        searchResponse,
+      ).as('globalSearch');
+
+      featureStoreGlobal.visitEntities();
+      featureStoreGlobal.findGlobalSearchInput().clear().type('user');
+      cy.wait('@globalSearch');
+      featureStoreGlobal.findGlobalSearchContainer().trigger('mouseenter');
+      featureStoreGlobal.findGlobalSearchTooltip().should('not.exist');
+    });
   });
 });

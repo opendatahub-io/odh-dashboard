@@ -46,4 +46,10 @@ const (
 	// Model as a Service (MaaS) endpoints
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
+
+	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
+
+	// LSD Safety Config endpoint - returns configured guardrail models and shields
+	// Parsed from llama-stack-config ConfigMap
+	LSDSafetyConfigPath = ApiPathPrefix + "/lsd/safety/config"
 )

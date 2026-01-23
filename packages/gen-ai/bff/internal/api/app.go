@@ -22,7 +22,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/cache"
@@ -46,6 +45,8 @@ type App struct {
 	rootCAs                 *x509.CertPool
 	clusterDomain           string
 	fileUploadJobTracker    *services.FileUploadJobTracker
+	// Used only when MockK8sClient is enabled
+	testEnvState *k8smocks.TestEnvState
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -121,23 +122,33 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	var k8sFactory k8s.KubernetesClientFactory
-	// used only on mocked k8s client
-	var testEnv *envtest.Environment
-
+	var testEnvState *k8smocks.TestEnvState
 	if cfg.MockK8sClient {
 		logger.Info("Using mocked Kubernetes client")
 		var ctrlClient client.Client
 		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, ctrlClient, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+		testEnvState, ctrlClient, err = k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 			Users:  k8smocks.DefaultTestUsers,
 			Logger: logger,
 			Ctx:    ctx,
 			Cancel: cancel,
 		})
 		if err != nil {
+			// No cleanup needed: SetupEnvTest calls os.Exit(1) on internal failures,
+			// making the error return unreachable. The cancel() call is defensive
+			// for potential future signature changes.
+			cancel()
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
-		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnv, cfg, logger)
+		k8sFactory, err = k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvState, cfg, logger)
+		if err != nil {
+			// Clean up partially initialized test environment
+			k8smocks.CleanupTestEnvState(testEnvState,
+				func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+				func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+			)
+			return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
+		}
 	} else {
 		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 	}
@@ -160,7 +171,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
-	logger.Info("Initialized shared memory store")
+	logger.Debug("Initialized shared memory store")
 
 	// Initialize file upload job tracker with memory store and logger
 	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
@@ -191,13 +202,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		rootCAs:                 rootCAs,
 		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
+		testEnvState:            testEnvState,
 	}
 	return app, nil
 }
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
-	// Add any cleanup logic here if needed
+
+	if app.testEnvState != nil {
+		app.logger.Info("stopping test environment...")
+		k8smocks.CleanupTestEnvState(
+			app.testEnvState,
+			func(format string, args ...interface{}) {
+				app.logger.Error(fmt.Sprintf(format, args...))
+			},
+			func(format string, args ...interface{}) {
+				app.logger.Info(fmt.Sprintf(format, args...))
+			},
+		)
+	}
+
 	return nil
 }
 
@@ -273,6 +298,9 @@ func (app *App) Routes() http.Handler {
 	// Llama Stack Distribution delete endpoint
 	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
+	// LSD Safety Config endpoint - returns configured guardrail models and shields
+	apiRouter.GET(constants.LSDSafetyConfigPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
 	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
@@ -286,6 +314,9 @@ func (app *App) Routes() http.Handler {
 	// Tokens (MaaS)
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// Guardrails API route
+	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

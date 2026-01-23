@@ -74,6 +74,21 @@ const (
 	ModelCatalogSettingsSourceConfigListPath = ModelCatalogSettingsPathPrefix + "/source_configs"
 	ModelCatalogSettingsSourceConfigPath     = ModelCatalogSettingsSourceConfigListPath + "/:" + CatalogSourceId
 	CatalogSourcePreviewPath                 = ModelCatalogSettingsPathPrefix + "/source_preview"
+
+	// Kubernetes resource endpoints (downstream-only implementations)
+	KubernetesServicesListPath = SettingsPath + "/services"
+)
+
+const (
+	// TODO(upstream): Keep handler IDs unexported so the extension mechanism stays agnostic of downstream overrides.
+	handlerModelRegistrySettingsListID   HandlerID = "modelRegistrySettings:list"
+	handlerModelRegistrySettingsCreateID HandlerID = "modelRegistrySettings:create"
+	handlerModelRegistrySettingsGetID    HandlerID = "modelRegistrySettings:get"
+	handlerModelRegistrySettingsUpdateID HandlerID = "modelRegistrySettings:update"
+	handlerModelRegistrySettingsDeleteID HandlerID = "modelRegistrySettings:delete"
+
+	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
+	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
 )
 
 type App struct {
@@ -253,11 +268,46 @@ func (app *App) Routes() http.Handler {
 		// SettingsPath endpoints are used to manage the model registry settings and create new model registries
 		// We are still discussing the best way to create model registries in the community
 		// But in the meantime, those endpoints are STUBs endpoints used to unblock the frontend development
-		apiRouter.GET(ModelRegistrySettingsListPath, app.AttachNamespace(app.GetAllModelRegistriesSettingsHandler))
-		apiRouter.POST(ModelRegistrySettingsListPath, app.AttachNamespace(app.CreateModelRegistrySettingsHandler))
-		apiRouter.GET(ModelRegistrySettingsPath, app.AttachNamespace(app.GetModelRegistrySettingsHandler))
-		apiRouter.PATCH(ModelRegistrySettingsPath, app.AttachNamespace(app.UpdateModelRegistrySettingsHandler))
-		apiRouter.DELETE(ModelRegistrySettingsPath, app.AttachNamespace(app.DeleteModelRegistrySettingsHandler))
+		apiRouter.GET(
+			ModelRegistrySettingsListPath,
+			app.handlerWithOverride(handlerModelRegistrySettingsListID, func() httprouter.Handle {
+				return app.AttachNamespace(app.GetAllModelRegistriesSettingsHandler)
+			}),
+		)
+		apiRouter.POST(
+			ModelRegistrySettingsListPath,
+			app.handlerWithOverride(handlerModelRegistrySettingsCreateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.CreateModelRegistrySettingsHandler)
+			}),
+		)
+		apiRouter.GET(
+			ModelRegistrySettingsPath,
+			app.handlerWithOverride(handlerModelRegistrySettingsGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.GetModelRegistrySettingsHandler)
+			}),
+		)
+		apiRouter.PATCH(
+			ModelRegistrySettingsPath,
+			app.handlerWithOverride(handlerModelRegistrySettingsUpdateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.UpdateModelRegistrySettingsHandler)
+			}),
+		)
+		apiRouter.DELETE(
+			ModelRegistrySettingsPath,
+			app.handlerWithOverride(handlerModelRegistrySettingsDeleteID, func() httprouter.Handle {
+				return app.AttachNamespace(app.DeleteModelRegistrySettingsHandler)
+			}),
+		)
+
+		// Kubernetes resources endpoints - downstream-only implementations
+		// These endpoints have no upstream implementation and return 501 Not Implemented by default.
+		// Downstream packages must register overrides to provide real implementations.
+		apiRouter.GET(
+			KubernetesServicesListPath,
+			app.handlerWithOverride(handlerKubernetesServicesListID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("Kubernetes services list"))
+			}),
+		)
 
 		//SettingsPath: Certificate endpoints
 		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.GetCertificatesHandler))
@@ -281,7 +331,6 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.GetCatalogSourceConfigHandler))
 		apiRouter.PATCH(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.UpdateCatalogSourceConfigHandler))
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.DeleteCatalogSourceConfigHandler))
-
 		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler)))
 	}
 

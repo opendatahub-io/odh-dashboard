@@ -5,9 +5,10 @@ export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
   modelAsService: false,
-  aiCatalogSettings: false,
+  maasApiKeys: false,
   mlflow: false,
   projectRBAC: false,
+  observabilityDashboard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -50,6 +51,7 @@ export const modelServingFlags = {
   disableNIMModelServing: false,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
+  disableLLMd: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines
@@ -61,7 +63,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
-  trainingJobs: false,
+  trainingJobs: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -118,6 +120,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.K_SERVE_RAW]: {
     featureFlags: ['disableKServeRaw'],
+    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.LLMD_SERVING]: {
+    featureFlags: ['disableLLMd'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.MODEL_SERVING]: {
@@ -194,9 +200,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
-  },
-  [SupportedArea.AI_CATALOG_SETTINGS]: {
-    featureFlags: ['aiCatalogSettings'],
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],

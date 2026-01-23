@@ -1,4 +1,7 @@
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -21,6 +24,8 @@ let secretDetailsFile: string;
 let ociRegistryHost: string;
 let modelDeploymentURI: string;
 let modelDeploymentName: string;
+let modelFormat: string;
+let servingRuntime: string;
 const uuid = generateTestUUID();
 
 const updateSecretDetailsFile = (
@@ -42,7 +47,7 @@ const updateSecretDetailsFile = (
 };
 
 describe(
-  '[Automation Task: RHOAIENG-42003] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -62,7 +67,8 @@ describe(
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
-
+          modelFormat = testData.modelFormat;
+          servingRuntime = testData.servingRuntime;
           cy.log(`Loaded project name: ${projectName}`);
           createCleanProject(projectName);
         },
@@ -78,14 +84,7 @@ describe(
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
       {
-        tags: [
-          '@Smoke',
-          '@SmokeSet3',
-          '@Dashboard',
-          '@ModelServing',
-          '@NonConcurrent',
-          '@Maintain',
-        ],
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -116,15 +115,17 @@ describe(
         modelServingGlobal.findDeployModelButton().click();
 
         cy.step('Step 1: Model details');
-        modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+        modelServingWizard
+          .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+          .click();
         modelServingWizard.findOCIModelURI().clear().type(modelDeploymentURI);
         modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 2: Model deployment');
         modelServingWizard.findModelDeploymentNameInput().clear().type(modelDeploymentName);
-        modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-        modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 3: Advanced settings');
@@ -137,7 +138,6 @@ describe(
         cy.step('Verify that the Model is running');
         // Verify model deployment is ready
         checkInferenceServiceState(modelDeploymentName, projectName, { checkReady: true });
-        cy.reload();
         modelServingSection.findModelMetricsLink(modelDeploymentName);
       },
     );

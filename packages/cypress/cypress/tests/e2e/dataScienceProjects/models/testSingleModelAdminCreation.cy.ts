@@ -1,4 +1,7 @@
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import type { DataScienceProjectData } from '../../../../types';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
@@ -22,10 +25,12 @@ let testData: DataScienceProjectData;
 let projectName: string;
 let modelName: string;
 let modelFilePath: string;
+let modelFormat: string;
+let servingRuntime: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-42335] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -34,6 +39,8 @@ describe('[Product Bug: RHOAIENG-42335] Verify Admin Single Model Creation and V
         projectName = `${testData.projectSingleModelAdminResourceName}-${uuid}`;
         modelName = testData.singleModelAdminName;
         modelFilePath = testData.modelOpenVinoPath;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -57,15 +64,7 @@ describe('[Product Bug: RHOAIENG-42335] Verify Admin Single Model Creation and V
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2626',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -88,15 +87,15 @@ describe('[Product Bug: RHOAIENG-42335] Verify Admin Single Model Creation and V
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');

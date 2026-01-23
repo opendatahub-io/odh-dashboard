@@ -83,7 +83,7 @@ export type ChatContextMessage = {
 export type MCPServerConfig = {
   server_label: string;
   server_url: string;
-  headers: Record<string, string>;
+  authorization?: string;
   allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
@@ -378,6 +378,7 @@ export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
+  enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
 };
 
 export type DeleteLSDRequest = {

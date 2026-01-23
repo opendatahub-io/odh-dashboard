@@ -31,6 +31,7 @@ const extensions: (
     properties: {
       id: LLMD_SERVING_ID,
       reliantAreas: [SupportedArea.K_SERVE],
+      featureFlags: ['disableLLMd'],
     },
   },
   {

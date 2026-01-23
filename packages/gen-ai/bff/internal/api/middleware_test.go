@@ -28,7 +28,7 @@ type CapturingMockClientFactory struct {
 	CapturedURL string
 }
 
-func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) llamastack.LlamaStackClientInterface {
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) llamastack.LlamaStackClientInterface {
 	f.CapturedURL = baseURL
 	return lsmocks.NewMockLlamaStackClient()
 }
@@ -84,20 +84,17 @@ func TestAttachLlamaStackClient(t *testing.T) {
 
 	t.Run("should retrieve service url from LlamaStackDistribution when no env provided", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+		testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 			Users: k8smocks.DefaultTestUsers, Logger: slog.Default(), Ctx: ctx, Cancel: cancel,
 		})
 		require.NoError(t, err)
-		defer func() {
-			_ = testEnv.Stop()
-		}()
+		defer k8smocks.TeardownEnvTest(t, testEnvState)
 
-		k8sFactory, _ := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
+		k8sFactory, _ := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
 		mockFactory := &CapturingMockClientFactory{}
 
 		app := App{
+			logger:                  slog.Default(),
 			kubernetesClientFactory: k8sFactory,
 			llamaStackClientFactory: mockFactory,
 			repositories:            repositories.NewRepositories(),

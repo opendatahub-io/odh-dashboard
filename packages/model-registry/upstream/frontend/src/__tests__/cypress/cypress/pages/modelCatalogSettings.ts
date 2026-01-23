@@ -1,3 +1,4 @@
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import { appChrome } from './appChrome';
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
@@ -56,7 +57,7 @@ class CatalogSourceConfigRow extends TableRow {
       .findByRole('button', { name: 'Manage source' });
   }
 
-  shouldHaveModelVisibility(visibility: 'Filtered' | 'Unfiltered') {
+  shouldHaveModelVisibility(visibility: 'Filtered' | 'All models') {
     this.findModelVisibility().contains(visibility);
     return this;
   }
@@ -112,7 +113,13 @@ class CatalogSourceConfigRow extends TableRow {
 }
 
 class ModelCatalogSettings {
-  visit(wait = true) {
+  visit({
+    wait = true,
+    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
+  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
+    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
+      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
+    }
     cy.visit('/model-catalog-settings');
     if (wait) {
       this.wait();
@@ -135,7 +142,7 @@ class ModelCatalogSettings {
 
   findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model catalog settings');
+    cy.findByTestId('app-page-title').contains('Model catalog sources');
   }
 
   findNavItem() {
@@ -143,7 +150,9 @@ class ModelCatalogSettings {
   }
 
   findDescription() {
-    return cy.contains('Manage model catalog sources for your organization.');
+    return cy.contains(
+      'Add and manage model sources that populate the model catalog for users in your organization.',
+    );
   }
 
   findAddSourceButton() {
@@ -194,14 +203,29 @@ class ModelCatalogSettings {
 }
 
 class ManageSourcePage {
-  visitAddSource(wait = true) {
+  visitAddSource({
+    wait = true,
+    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
+  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
+    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
+      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
+    }
     cy.visit('/model-catalog-settings/add-source');
     if (wait) {
       this.wait();
     }
   }
 
-  visitManageSource(catalogSourceId: string, wait = true) {
+  visitManageSource(
+    catalogSourceId: string,
+    {
+      wait = true,
+      enableTempDevCatalogHuggingFaceApiKeyFeature = false,
+    }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {},
+  ) {
+    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
+      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
+    }
     cy.visit(`/model-catalog-settings/manage-source/${encodeURIComponent(catalogSourceId)}`);
     if (wait) {
       this.wait();
@@ -218,7 +242,7 @@ class ManageSourcePage {
   }
 
   findBreadcrumb() {
-    return cy.get('a[href="/model-catalog-settings"]').contains('Model catalog settings');
+    return cy.get('a[href="/model-catalog-settings"]').contains('Model catalog sources');
   }
 
   findBreadcrumbAction() {

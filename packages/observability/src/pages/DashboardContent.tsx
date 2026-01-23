@@ -7,11 +7,14 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
 import HeaderProjectSelector from './HeaderProjectSelector';
+import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
 import PersesWrapper from '../perses/PersesWrapper';
 import PersesBoard from '../perses/PersesBoard';
+import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
 import {
   buildDashboardUrl,
   getDashboardDisplayName,
+  hasClusterDetailsVariables,
   DASHBOARD_QUERY_PARAM,
 } from '../utils/dashboardUtils';
 
@@ -28,6 +31,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
   const { '*': projectName = '' } = useParams();
   const [searchParams] = useSearchParams();
   const { projects } = React.useContext(ProjectsContext);
+
+  // Intercept relative link clicks in the Perses dashboard and use React Router navigation
+  const setRelativeLinkHandlerRef = useRelativeLinkHandler();
 
   // Get dashboard name from query param
   const dashboardNameFromUrl = searchParams.get(DASHBOARD_QUERY_PARAM) || '';
@@ -55,62 +61,76 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
   const activeDashboard = dashboards[activeDashboardIndex] || dashboards[0];
   const activeDashboardName = activeDashboard.metadata.name;
 
-  // Handle tab selection - prevent default anchor behavior and use React Router
+  // Check if the active dashboard needs cluster details variables
+  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
+
+  // Handle tab selection - use React Router for normal clicks, allow browser default for cmd/ctrl+click
   const handleTabSelect = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, eventKey: string | number) => {
+      // Allow cmd+click (Mac) or ctrl+click (Windows/Linux) to open in new tab
+      if (event.metaKey || event.ctrlKey) {
+        return;
+      }
       event.preventDefault();
-      navigate(buildDashboardUrl(projectName, String(eventKey)));
+      navigate(buildDashboardUrl(projectName, String(eventKey), searchParams.toString()));
     },
-    [navigate, projectName],
+    [navigate, projectName, searchParams],
   );
 
   // Handle project change - update URL path
   const handleProjectChange = React.useCallback(
     (newProject: string) => {
-      // Keep the current dashboard selection when changing projects
-      navigate(buildDashboardUrl(newProject, activeDashboardName));
+      navigate(buildDashboardUrl(newProject, activeDashboardName, searchParams.toString()));
     },
-    [navigate, activeDashboardName],
+    [navigate, activeDashboardName, searchParams],
   );
 
   return (
-    <PersesWrapper key={activeDashboardName} dashboardResource={activeDashboard}>
-      <ApplicationsPage
-        title={DASHBOARD_PAGE_TITLE}
-        description={DASHBOARD_PAGE_DESCRIPTION}
-        loaded
-        empty={false}
-        headerAction={<HeaderTimeRangeControls />}
-        headerContent={
-          <HeaderProjectSelector
-            selectedProject={projectName}
-            onProjectChange={handleProjectChange}
-            allProjectNames={allProjectNames}
-          />
-        }
-      >
-        <Tabs
-          activeKey={activeDashboardName}
-          onSelect={handleTabSelect}
-          aria-label="Dashboard tabs"
-          mountOnEnter
-          unmountOnExit
+    <div ref={setRelativeLinkHandlerRef}>
+      <PersesWrapper key={activeDashboardName} dashboardResource={activeDashboard}>
+        {needsClusterDetails && <ClusterDetailsVariablesProvider />}
+        <ApplicationsPage
+          title={DASHBOARD_PAGE_TITLE}
+          description={DASHBOARD_PAGE_DESCRIPTION}
+          loaded
+          empty={false}
+          headerAction={<HeaderTimeRangeControls />}
+          headerContent={
+            <HeaderProjectSelector
+              selectedProject={projectName}
+              onProjectChange={handleProjectChange}
+              allProjectNames={allProjectNames}
+            />
+          }
         >
-          {dashboards.map((dashboard) => (
-            <Tab
-              key={dashboard.metadata.name}
-              eventKey={dashboard.metadata.name}
-              title={<TabTitleText>{getDashboardDisplayName(dashboard)}</TabTitleText>}
-              href={buildDashboardUrl(projectName, dashboard.metadata.name)}
-            >
-              <PageSection hasBodyWrapper={false} isFilled>
-                <PersesBoard />
-              </PageSection>
-            </Tab>
-          ))}
-        </Tabs>
-      </ApplicationsPage>
-    </PersesWrapper>
+          <Tabs
+            data-testid="observability-dashboard-tabs"
+            activeKey={activeDashboardName}
+            onSelect={handleTabSelect}
+            aria-label="Observability dashboard tabs"
+            mountOnEnter
+            unmountOnExit
+          >
+            {dashboards.map((dashboard) => (
+              <Tab
+                key={dashboard.metadata.name}
+                eventKey={dashboard.metadata.name}
+                title={<TabTitleText>{getDashboardDisplayName(dashboard)}</TabTitleText>}
+                href={buildDashboardUrl(
+                  projectName,
+                  dashboard.metadata.name,
+                  searchParams.toString(),
+                )}
+              >
+                <PageSection hasBodyWrapper={false} isFilled>
+                  <PersesBoard />
+                </PageSection>
+              </Tab>
+            ))}
+          </Tabs>
+        </ApplicationsPage>
+      </PersesWrapper>
+    </div>
   );
 };
 

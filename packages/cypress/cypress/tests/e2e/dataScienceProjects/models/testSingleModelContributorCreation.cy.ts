@@ -1,4 +1,7 @@
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
 import type { DataScienceProjectData } from '../../../../types';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
@@ -22,10 +25,12 @@ let projectName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
+let modelFormat: string;
+let servingRuntime: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-42335] Verify Model Creation and Validation using the UI', () => {
+describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
     loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
@@ -35,6 +40,8 @@ describe('[Product Bug: RHOAIENG-42335] Verify Model Creation and Validation usi
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         modelName = testData.singleModelName;
         modelFilePath = testData.modelFilePath;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -59,15 +66,7 @@ describe('[Product Bug: RHOAIENG-42335] Verify Model Creation and Validation usi
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2552',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -90,15 +89,15 @@ describe('[Product Bug: RHOAIENG-42335] Verify Model Creation and Validation usi
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
-      modelServingWizard.selectServingRuntimeOption('OpenVINO Model Server');
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');

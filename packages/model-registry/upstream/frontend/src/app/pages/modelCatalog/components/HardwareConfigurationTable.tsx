@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { Spinner } from '@patternfly/react-core';
+import { Button, Spinner } from '@patternfly/react-core';
+import { ColumnsIcon } from '@patternfly/react-icons';
 import { OuterScrollContainer } from '@patternfly/react-table';
 import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import {
-  filterHardwareConfigurationArtifacts,
-  clearAllFilters,
-} from '~/app/pages/modelCatalog/utils/hardwareConfigurationFilterUtils';
-import { hardwareConfigColumns } from './HardwareConfigurationTableColumns';
+import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { ManageColumnsModal } from '~/app/shared/components/manageColumns/ManageColumnsModal';
 import HardwareConfigurationTableRow from './HardwareConfigurationTableRow';
 import HardwareConfigurationFilterToolbar from './HardwareConfigurationFilterToolbar';
+import { useHardwareConfigColumns } from './useHardwareConfigColumns';
 
 type HardwareConfigurationTableProps = {
   performanceArtifacts: CatalogPerformanceMetricsArtifact[];
@@ -21,46 +20,74 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
   performanceArtifacts,
   isLoading = false,
 }) => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
+  const { filterData, resetPerformanceFiltersToDefaults } = React.useContext(ModelCatalogContext);
 
-  // Apply filters to the artifacts
-  const filteredArtifacts = React.useMemo(
-    () => filterHardwareConfigurationArtifacts(performanceArtifacts, filterData),
-    [performanceArtifacts, filterData],
-  );
+  // Note: Filtering is now done server-side via the /performance_artifacts endpoint.
+  // The performanceArtifacts prop contains pre-filtered data from the server.
+
+  // Get the active latency filter field name (if any)
+  const activeLatencyField = getActiveLatencyFieldName(filterData);
+
+  // Use the custom hook that combines manage columns with latency filter effects
+  const { columns, manageColumnsResult } = useHardwareConfigColumns(activeLatencyField);
 
   if (isLoading) {
     return <Spinner size="lg" />;
   }
 
-  const toolbarContent = (
-    <HardwareConfigurationFilterToolbar performanceArtifacts={performanceArtifacts} />
-  );
   const handleClearFilters = () => {
-    clearAllFilters(setFilterData);
+    // On details page, reset performance filters to defaults (not basic filters from landing page)
+    resetPerformanceFiltersToDefaults();
   };
 
+  const manageColumnsButton = (
+    <Button
+      variant="link"
+      icon={<ColumnsIcon />}
+      onClick={manageColumnsResult.openModal}
+      data-testid="manage-columns-button"
+    >
+      Customize columns
+    </Button>
+  );
+
+  const toolbarContent = (
+    <HardwareConfigurationFilterToolbar
+      onResetAllFilters={handleClearFilters}
+      includePerformanceFilters
+      toolbarActions={manageColumnsButton}
+    />
+  );
+
   return (
-    <OuterScrollContainer>
-      <Table
-        data-testid="hardware-configuration-table"
-        variant="compact"
-        isStickyHeader
-        hasStickyColumns
-        data={filteredArtifacts}
-        columns={hardwareConfigColumns}
-        toolbarContent={toolbarContent}
-        onClearFilters={handleClearFilters}
-        defaultSortColumn={0}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={handleClearFilters} />}
-        rowRenderer={(artifact) => (
-          <HardwareConfigurationTableRow
-            key={artifact.customProperties.config_id?.string_value}
-            performanceArtifact={artifact}
-          />
-        )}
+    <>
+      <OuterScrollContainer>
+        <Table
+          data-testid="hardware-configuration-table"
+          variant="compact"
+          isStickyHeader
+          hasStickyColumns
+          data={performanceArtifacts}
+          columns={columns}
+          toolbarContent={toolbarContent}
+          onClearFilters={handleClearFilters}
+          defaultSortColumn={0}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={handleClearFilters} />}
+          rowRenderer={(artifact) => (
+            <HardwareConfigurationTableRow
+              key={artifact.customProperties?.config_id?.string_value}
+              performanceArtifact={artifact}
+              columns={columns}
+            />
+          )}
+        />
+      </OuterScrollContainer>
+      <ManageColumnsModal
+        manageColumnsResult={manageColumnsResult}
+        description="Manage the columns that appear in the hardware configuration table."
+        dataTestId="hardware-config-manage-columns"
       />
-    </OuterScrollContainer>
+    </>
   );
 };
 

@@ -283,10 +283,7 @@ describe('Feature Data Sources for all projects', () => {
   it('should display project column when viewing all projects', () => {
     featureStoreGlobal.visitDataSources();
     featureDataSourcesTable.findTable().should('be.visible');
-    featureDataSourcesTable
-      .findTable()
-      .find('thead')
-      .should('contain.text', 'Feature store repository');
+    featureDataSourcesTable.findTable().find('thead').should('contain.text', 'Feature store');
     featureDataSourcesTable.findRow('loan_data').shouldHaveProject(fsProjectName);
     featureDataSourcesTable.findRow('transaction_data').shouldHaveProject(fsProjectName2);
   });
@@ -317,7 +314,7 @@ describe('Feature Data Sources for all projects', () => {
       )
       .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
-    featureDataSourceDetails.findInteractiveExample().should('be.visible');
+    featureDataSourceDetails.findDefinitionTitle().should('be.visible');
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
     featureDataSourceDetails.findBreadcrumbItem().should('contain.text', 'loan_data');
   });
@@ -337,7 +334,7 @@ describe('Feature Data Sources for all projects', () => {
       )
       .shouldHaveDataSourceConnector('File source')
       .shouldHaveOwner('risk-team@company.com');
-    featureDataSourceDetails.findInteractiveExample().should('be.visible');
+    featureDataSourceDetails.findDefinitionTitle().should('be.visible');
 
     featureDataSourceDetails.findBreadcrumbLink().should('be.visible');
     featureDataSourceDetails.findBreadcrumbItem().should('contain.text', 'loan_data');

@@ -93,6 +93,8 @@ describe('searchUtils', () => {
       type: string,
       project: string = TEST_PROJECTS.DEFAULT,
       featureView?: string,
+      // eslint-disable-next-line camelcase
+      matched_tags?: Record<string, string>,
     ): ISearchItem => ({
       id,
       category,
@@ -101,6 +103,8 @@ describe('searchUtils', () => {
       type,
       project,
       featureView,
+      // eslint-disable-next-line camelcase
+      matched_tags,
     });
 
     const createRealisticMockData = (): ISearchItem[] => [
@@ -458,6 +462,84 @@ describe('searchUtils', () => {
       const allProjects = result.flatMap((group) => group.items.map((item) => item.project));
       expect(allProjects).toContain(TEST_PROJECTS.SECONDARY);
       expect(allProjects).toContain(TEST_PROJECTS.PRIMARY);
+    });
+
+    it('should preserve matched_tag property when grouping items', () => {
+      const items = [
+        createMockSearchItem(
+          '1',
+          FEATURE_STORE_TYPE_TO_CATEGORY.featureView,
+          'risk_features',
+          'featureView',
+          TEST_PROJECTS.PRIMARY,
+          undefined,
+          { computation: 'derived' },
+        ),
+        createMockSearchItem(
+          '2',
+          FEATURE_STORE_TYPE_TO_CATEGORY.featureView,
+          'loan_features',
+          'featureView',
+          TEST_PROJECTS.PRIMARY,
+          undefined,
+          { computation: 'aggregated', source: 'external' },
+        ),
+        createMockSearchItem(
+          '3',
+          FEATURE_STORE_TYPE_TO_CATEGORY.entity,
+          'user_id',
+          'entity',
+          TEST_PROJECTS.PRIMARY,
+        ),
+      ];
+
+      const result = groupResultsByCategory(items);
+
+      expect(result).toHaveLength(2);
+
+      const featureViewGroup = result.find(
+        (g) => g.category === FEATURE_STORE_TYPE_TO_CATEGORY.featureView,
+      );
+      expect(featureViewGroup).toBeDefined();
+      expect(featureViewGroup?.items).toHaveLength(2);
+
+      // Verify matched_tag is preserved for first item
+      // eslint-disable-next-line camelcase
+      expect(featureViewGroup?.items[0].matched_tags).toEqual({ computation: 'derived' });
+      expect(featureViewGroup?.items[0].title).toBe('risk_features');
+
+      // Verify matched_tag is preserved for second item
+      // eslint-disable-next-line camelcase
+      expect(featureViewGroup?.items[1].matched_tags).toEqual({
+        computation: 'aggregated',
+        source: 'external',
+      });
+      expect(featureViewGroup?.items[1].title).toBe('loan_features');
+
+      // Verify item without matched_tag doesn't have it
+      const entityGroup = result.find((g) => g.category === FEATURE_STORE_TYPE_TO_CATEGORY.entity);
+      // eslint-disable-next-line camelcase
+      expect(entityGroup?.items[0].matched_tags).toBeUndefined();
+    });
+
+    it('should handle items with empty matched_tag object', () => {
+      const items = [
+        createMockSearchItem(
+          '1',
+          FEATURE_STORE_TYPE_TO_CATEGORY.featureView,
+          'test_features',
+          'featureView',
+          TEST_PROJECTS.PRIMARY,
+          undefined,
+          {},
+        ),
+      ];
+
+      const result = groupResultsByCategory(items);
+
+      expect(result).toHaveLength(1);
+      // eslint-disable-next-line camelcase
+      expect(result[0].items[0].matched_tags).toEqual({});
     });
   });
 });
