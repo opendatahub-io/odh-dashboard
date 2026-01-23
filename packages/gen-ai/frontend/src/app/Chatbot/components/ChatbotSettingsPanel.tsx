@@ -27,6 +27,7 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
+  selectSelectedModel,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
@@ -41,8 +42,6 @@ import ModelParameterFormGroup from './ModelParameterFormGroup';
 
 interface ChatbotSettingsPanelProps {
   configId?: string; // Defaults to 'default' for single-window mode
-  selectedModel: string;
-  onModelChange: (value: string) => void;
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
@@ -65,8 +64,6 @@ interface ChatbotSettingsPanelProps {
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = 'default', // Default to 'default' for single-window mode
-  selectedModel,
-  onModelChange,
   alerts,
   sourceManagement,
   fileManagement,
@@ -90,11 +87,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
+  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -109,6 +108,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateTemperature(configId, value);
     },
     [configId, updateTemperature],
+  );
+
+  const handleModelChange = React.useCallback(
+    (value: string) => {
+      updateSelectedModel(configId, value);
+    },
+    [configId, updateSelectedModel],
   );
 
   const handleStreamingToggle = React.useCallback(
@@ -179,7 +185,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 <FormGroup label="Model" fieldId="model-details">
                   <ModelDetailsDropdown
                     selectedModel={selectedModel}
-                    onModelChange={onModelChange}
+                    onModelChange={handleModelChange}
                   />
                 </FormGroup>
                 <FormGroup

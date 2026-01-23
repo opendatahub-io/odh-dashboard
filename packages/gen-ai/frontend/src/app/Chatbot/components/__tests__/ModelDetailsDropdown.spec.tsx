@@ -58,8 +58,6 @@ const createContextValue = (
   lsdStatusLoaded: true,
   lsdStatusError: undefined,
   refresh: jest.fn(),
-  selectedModel: '',
-  setSelectedModel: jest.fn(),
   lastInput: '',
   setLastInput: jest.fn(),
 });

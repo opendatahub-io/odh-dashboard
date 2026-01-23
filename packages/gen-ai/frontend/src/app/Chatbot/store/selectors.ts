@@ -16,3 +16,11 @@ export const selectStreamingEnabled =
   (configId: string) =>
   (state: ChatbotConfigStore): boolean =>
     state.configurations[configId]?.isStreamingEnabled ?? DEFAULT_CONFIGURATION.isStreamingEnabled;
+
+export const selectSelectedModel =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.selectedModel ?? DEFAULT_CONFIGURATION.selectedModel;
+
+// Configuration management selectors
+export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

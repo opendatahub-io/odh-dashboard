@@ -33,6 +33,8 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
+  selectSelectedModel,
+  selectConfigIds,
 } from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
@@ -57,26 +59,26 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
   const { getToolSelections } = useMCPToolSelections();
-  const {
-    models,
-    modelsLoaded,
-    aiModels,
-    maasModels,
-    selectedModel,
-    setSelectedModel,
-    lastInput,
-    setLastInput,
-  } = React.useContext(ChatbotContext);
+  const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
+    React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
 
+  const configIds = useChatbotConfigStore(selectConfigIds);
   // Get configuration to reference, there will only be one before comparison mode
-  const configId = 'default';
+  const configId = configIds[0];
 
   // NOTE: This will need to be updated when doing comparison mode
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const setSelectedModel = React.useCallback(
+    (model: string) => {
+      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
+    },
+    [configId],
+  );
 
   const isDarkMode = useDarkMode();
 
@@ -152,6 +154,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     mcpServersFromRoute,
   ]);
 
+  React.useEffect(() => {
+    if (selectedAAModel) {
+      setSelectedModel(selectedAAModel);
+    }
+  }, [selectedAAModel, setSelectedModel]);
+
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
 
@@ -220,9 +228,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
-      configId="default"
-      selectedModel={selectedModel}
-      onModelChange={setSelectedModel}
+      configId={configId} // You can render multiple of these for each config in our global store
       alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
       sourceManagement={sourceManagement}
       fileManagement={fileManagement}

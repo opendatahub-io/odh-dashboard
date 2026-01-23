@@ -8,6 +8,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
     immer((set, get) => ({
       // Initial state
       configurations: { default: { ...DEFAULT_CONFIGURATION } },
+      configIds: ['default'],
 
       // TODO: ADD/REMOVE/DUPLICATE CONFIGS
 
@@ -35,6 +36,15 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           const config = state.configurations[id];
           if (config) {
             config.isStreamingEnabled = value;
+          }
+        });
+      },
+
+      updateSelectedModel: (id: string, value: string) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.selectedModel = value;
           }
         });
       },
