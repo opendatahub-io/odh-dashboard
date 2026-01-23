@@ -1,0 +1,480 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: dashboard-1-model
+spec:
+  display:
+    name: Model
+  duration: 1h
+  variables:
+    - kind: TextVariable
+      spec:
+        name: namespace
+        value: ".*"
+        display:
+          name: Namespace
+          hidden: true
+    - kind: ListVariable
+      spec:
+        name: modelDeployment
+        display:
+          name: Model Deployment
+          description: Filter by model deployment
+        allowMultipleValue: true
+        allowAllValue: true
+        defaultValue: ".*"
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            labelName: model
+            matchers:
+              - inference_model_request_total{namespace=~"$namespace"}
+  panels:
+    # Model Deployments Table with Mocked Data
+    modelDeploymentsTable:
+      kind: Panel
+      spec:
+        display:
+          name: Model deployments
+          description: Active model deployments with real-time performance and resource metrics
+        plugin:
+          kind: Table
+          spec:
+            density: compact
+            columnSettings:
+              - name: timestamp
+                hide: true
+              - name: value
+                hide: true
+              - name: model_deployment
+                header: Model deployment
+              - name: project
+                header: Project
+              - name: runtime
+                header: Runtime
+              - name: total_requests
+                header: Total requests
+              - name: p90_latency
+                header: P90 E2E Latency
+              - name: error_rate
+                header: Error rate
+              - name: hardware_profile
+                header: Hardware profile
+              - name: gpu_utilization
+                header: GPU utilization
+              - name: cpu_utilization
+                header: CPU utilization
+              - name: status
+                header: Status
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: |
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(1),
+                      "model_deployment", "mistral-7b-instruct-v2", "", ""),
+                      "project", "KonText PTE", "", ""),
+                      "runtime", "vLLM", "", ""),
+                      "total_requests", "377962", "", ""),
+                      "p90_latency", "199.56", "", ""),
+                      "error_rate", "3.98%", "", ""),
+                      "hardware_profile", "NVIDIA A100 40GB", "", ""),
+                      "gpu_utilization", "50%", "", ""),
+                      "cpu_utilization", "67%", "", ""),
+                      "status", "Running", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(2),
+                      "model_deployment", "stable-diffusion-xl-beta", "", ""),
+                      "project", "AI Research", "", ""),
+                      "runtime", "KServer", "", ""),
+                      "total_requests", "377962", "", ""),
+                      "p90_latency", "199.56", "", ""),
+                      "error_rate", "3.98%", "", ""),
+                      "hardware_profile", "NVIDIA A100 40GB", "", ""),
+                      "gpu_utilization", "43%", "", ""),
+                      "cpu_utilization", "43%", "", ""),
+                      "status", "Running", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(3),
+                      "model_deployment", "llama-70b-chat-v4", "", ""),
+                      "project", "ML Production", "", ""),
+                      "runtime", "Bind", "", ""),
+                      "total_requests", "377962", "", ""),
+                      "p90_latency", "199.56", "", ""),
+                      "error_rate", "3.98%", "", ""),
+                      "hardware_profile", "NVIDIA A100 80GB", "", ""),
+                      "gpu_utilization", "100%", "", ""),
+                      "cpu_utilization", "67%", "", ""),
+                      "status", "Scaling", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(4),
+                      "model_deployment", "mistral-7b-instruct-v2", "", ""),
+                      "project", "AI Research", "", ""),
+                      "runtime", "vLLM", "", ""),
+                      "total_requests", "377962", "", ""),
+                      "p90_latency", "199.56", "", ""),
+                      "error_rate", "3.98%", "", ""),
+                      "hardware_profile", "NVIDIA V100 32GB", "", ""),
+                      "gpu_utilization", "100%", "", ""),
+                      "cpu_utilization", "86%", "", ""),
+                      "status", "Failed", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(5),
+                      "model_deployment", "mistral-7b-instruct-v2", "", ""),
+                      "project", "ML Production", "", ""),
+                      "runtime", "vLLM", "", ""),
+                      "total_requests", "377962", "", ""),
+                      "p90_latency", "199.56", "", ""),
+                      "error_rate", "3.98%", "", ""),
+                      "hardware_profile", "NVIDIA V100 32GB", "", ""),
+                      "gpu_utilization", "100%", "", ""),
+                      "cpu_utilization", "86%", "", ""),
+                      "status", "Degraded", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(6),
+                      "model_deployment", "codellama-34b-instruct", "", ""),
+                      "project", "KonText PTE", "", ""),
+                      "runtime", "vLLM", "", ""),
+                      "total_requests", "156240", "", ""),
+                      "p90_latency", "245.78", "", ""),
+                      "error_rate", "2.15%", "", ""),
+                      "hardware_profile", "NVIDIA A100 40GB", "", ""),
+                      "gpu_utilization", "75%", "", ""),
+                      "cpu_utilization", "55%", "", ""),
+                      "status", "Running", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(7),
+                      "model_deployment", "whisper-large-v3", "", ""),
+                      "project", "AI Research", "", ""),
+                      "runtime", "KServer", "", ""),
+                      "total_requests", "89523", "", ""),
+                      "p90_latency", "156.34", "", ""),
+                      "error_rate", "1.23%", "", ""),
+                      "hardware_profile", "NVIDIA T4 16GB", "", ""),
+                      "gpu_utilization", "62%", "", ""),
+                      "cpu_utilization", "48%", "", ""),
+                      "status", "Running", "", "")
+                    or
+                    label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(
+                      vector(8),
+                      "model_deployment", "falcon-180b", "", ""),
+                      "project", "ML Production", "", ""),
+                      "runtime", "vLLM", "", ""),
+                      "total_requests", "523641", "", ""),
+                      "p90_latency", "312.45", "", ""),
+                      "error_rate", "4.56%", "", ""),
+                      "hardware_profile", "NVIDIA A100 80GB", "", ""),
+                      "gpu_utilization", "95%", "", ""),
+                      "cpu_utilization", "82%", "", ""),
+                      "status", "Running", "", "")
+    # Performance Metrics - Line Charts
+    requestQueueLength:
+      kind: Panel
+      spec:
+        display:
+          name: Request queue length
+          description: Number of requests waiting in queue per model
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Number of requests waiting in queue per model (from inference gateway)
+                  query: sum by (model) (inference_pool_average_queue_size{namespace=~"$namespace", model=~"$modelDeployment"})
+                  seriesNameFormat: "{{model}}"
+    replicaCount:
+      kind: Panel
+      spec:
+        display:
+          name: Replica count
+          description: Number of ready pods per model
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Ready pods per model from inference gateway metrics
+                  query: sum by (model) (inference_pool_ready_pods{namespace=~"$namespace", model=~"$modelDeployment"})
+                  seriesNameFormat: "{{model}}"
+    requestLatency:
+      kind: Panel
+      spec:
+        display:
+          name: E2E Latency (P95)
+          description: P95 end-to-end request latency per model (ms)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: milliseconds
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # P95 end-to-end request latency (seconds converted to ms)
+                  query: histogram_quantile(0.95, sum by (model, le) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model=~"$modelDeployment"}[$__rate_interval]))) * 1000
+                  seriesNameFormat: "{{model}}"
+    timeToFirstToken:
+      kind: Panel
+      spec:
+        display:
+          name: Time to First Token (P95)
+          description: P95 time to first token latency per model
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: milliseconds
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # P95 time to first token (seconds converted to ms)
+                  query: histogram_quantile(0.95, sum by (model, le) (rate(kserve_vllm:time_to_first_token_seconds_bucket{namespace=~"$namespace", model=~"$modelDeployment"}[$__rate_interval]))) * 1000
+                  seriesNameFormat: "{{model}}"
+    tokenGenerationRate:
+      kind: Panel
+      spec:
+        display:
+          name: Token Generation Rate
+          description: Token generation rate per model (tok/s)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Token generation rate (tokens per second)
+                  query: sum by (model) (rate(kserve_vllm:generation_tokens_total{namespace=~"$namespace", model=~"$modelDeployment"}[$__rate_interval]))
+                  seriesNameFormat: "{{model}}"
+    throughput:
+      kind: Panel
+      spec:
+        display:
+          name: Throughput (requests/sec)
+          description: Request throughput per model
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Request throughput (requests per second)
+                  query: sum by (model) (rate(inference_model_request_total{namespace=~"$namespace", model=~"$modelDeployment"}[$__rate_interval]))
+                  seriesNameFormat: "{{model}}"
+    responseTimeDistribution:
+      kind: Panel
+      spec:
+        display:
+          name: Response Time Distribution
+          description: Distribution of response times
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 1
+              connectNulls: false
+              display: line
+              lineWidth: 0.25
+              stack: all
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Distribution of response times over selected time range
+                  query: sum by (le) (increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model=~"$modelDeployment"}[$__rate_interval]))
+                  seriesNameFormat: "{{le}}"
+  layouts:
+    # Model Deployments Table Section
+    - kind: Grid
+      spec:
+        display:
+          title: Model deployments
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 24
+            height: 11
+            content:
+              '$ref': '#/spec/panels/modelDeploymentsTable'
+    # Performance Metrics Section
+    - kind: Grid
+      spec:
+        display:
+          title: Performance metrics
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/requestQueueLength'
+          - x: 12
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/replicaCount'
+          - x: 0
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/requestLatency'
+          - x: 12
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/timeToFirstToken'
+          - x: 0
+            'y': 16
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/tokenGenerationRate'
+          - x: 12
+            'y': 16
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/throughput'
+          - x: 0
+            'y': 24
+            width: 24
+            height: 10
+            content:
+              '$ref': '#/spec/panels/responseTimeDistribution'
