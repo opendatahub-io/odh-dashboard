@@ -13,14 +13,10 @@ import (
 type LlamaStackError struct {
 	Code       string `json:"code"`
 	Message    string `json:"message"`
-	ServiceURL string `json:"service_url,omitempty"`
 	StatusCode int    `json:"-"`
 }
 
 func (e *LlamaStackError) Error() string {
-	if e.ServiceURL != "" {
-		return fmt.Sprintf("LlamaStack error [%s] for service %s: %s", e.Code, e.ServiceURL, e.Message)
-	}
 	return fmt.Sprintf("LlamaStack error [%s]: %s", e.Code, e.Message)
 }
 
@@ -28,7 +24,6 @@ func (e *LlamaStackError) Error() string {
 const (
 	ErrCodeConnectionFailed  = "CONNECTION_FAILED"
 	ErrCodeTimeout           = "TIMEOUT"
-	ErrCodeInvalidResponse   = "INVALID_RESPONSE"
 	ErrCodeServerUnavailable = "SERVER_UNAVAILABLE"
 	ErrCodeUnauthorized      = "UNAUTHORIZED"
 	ErrCodeInvalidRequest    = "INVALID_REQUEST"
@@ -36,7 +31,6 @@ const (
 	ErrCodeInternalError     = "INTERNAL_ERROR"
 )
 
-// NewLlamaStackError creates a new LlamaStack error
 func NewLlamaStackError(code, message string, statusCode int) *LlamaStackError {
 	return &LlamaStackError{
 		Code:       code,
@@ -45,47 +39,22 @@ func NewLlamaStackError(code, message string, statusCode int) *LlamaStackError {
 	}
 }
 
-// NewLlamaStackErrorWithService creates a new LlamaStack error with service URL
-func NewLlamaStackErrorWithService(code, message, serviceURL string, statusCode int) *LlamaStackError {
-	return &LlamaStackError{
-		Code:       code,
-		Message:    message,
-		ServiceURL: serviceURL,
-		StatusCode: statusCode,
-	}
+func NewConnectionError(message string) *LlamaStackError {
+	return NewLlamaStackError(ErrCodeConnectionFailed, message, 502)
 }
 
-// NewConnectionError creates a connection-related error
-func NewConnectionError(serviceURL, message string) *LlamaStackError {
-	return NewLlamaStackErrorWithService(ErrCodeConnectionFailed, message, serviceURL, 503)
+func NewServerUnavailableError(message string) *LlamaStackError {
+	return NewLlamaStackError(ErrCodeServerUnavailable, message, 503)
 }
 
-// NewTimeoutError creates a timeout error
-func NewTimeoutError(serviceURL string) *LlamaStackError {
-	return NewLlamaStackErrorWithService(ErrCodeTimeout, "Request timed out", serviceURL, 408)
-}
-
-// NewInvalidResponseError creates an invalid response error
-func NewInvalidResponseError(serviceURL, message string) *LlamaStackError {
-	return NewLlamaStackErrorWithService(ErrCodeInvalidResponse, message, serviceURL, 502)
-}
-
-// NewServerUnavailableError creates a server unavailable error
-func NewServerUnavailableError(serviceURL string) *LlamaStackError {
-	return NewLlamaStackErrorWithService(ErrCodeServerUnavailable, "LlamaStack service is unavailable", serviceURL, 503)
-}
-
-// NewUnauthorizedError creates an unauthorized error
 func NewUnauthorizedError(message string) *LlamaStackError {
 	return NewLlamaStackError(ErrCodeUnauthorized, message, 401)
 }
 
-// NewInvalidRequestError creates an invalid request error
 func NewInvalidRequestError(message string) *LlamaStackError {
 	return NewLlamaStackError(ErrCodeInvalidRequest, message, 400)
 }
 
-// NewNotFoundError creates a not found error
 func NewNotFoundError(message string) *LlamaStackError {
 	return NewLlamaStackError(ErrCodeNotFound, message, 404)
 }
@@ -104,7 +73,7 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {
 		message := fmt.Sprintf("failed to connect to LlamaStack server on operation %s: %s", operation, urlErr.Err.Error())
-		return NewConnectionError("LlamaStack server", message)
+		return NewConnectionError(message)
 	}
 
 	// Check for API-level errors (status codes from LlamaStack service)

@@ -45,9 +45,9 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 		},
 		{
 			name:                 "LlamaStackError with ConnectionFailed code",
-			inputError:           llamastack.NewConnectionError("http://localhost:8080", "connection refused"),
-			expectedStatusCode:   http.StatusServiceUnavailable,
-			expectedBodyContains: "service_unavailable",
+			inputError:           llamastack.NewConnectionError("connection refused"),
+			expectedStatusCode:   http.StatusBadGateway,
+			expectedBodyContains: "bad_gateway",
 		},
 		{
 			name:                 "Generic error (not LlamaStackError)",
@@ -99,24 +99,19 @@ func TestGetDefaultStatusCodeForLlamaStackClientError(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:               "ConnectionFailed code returns 503",
-			errorCode:          llamastack.ErrCodeConnectionFailed,
-			expectedStatusCode: http.StatusServiceUnavailable,
-		},
-		{
 			name:               "Timeout code returns 503",
 			errorCode:          llamastack.ErrCodeTimeout,
 			expectedStatusCode: http.StatusServiceUnavailable,
 		},
 		{
+			name:               "ConnectionFailed code returns 502",
+			errorCode:          llamastack.ErrCodeConnectionFailed,
+			expectedStatusCode: http.StatusBadGateway,
+		},
+		{
 			name:               "ServerUnavailable code returns 503",
 			errorCode:          llamastack.ErrCodeServerUnavailable,
 			expectedStatusCode: http.StatusServiceUnavailable,
-		},
-		{
-			name:               "InvalidResponse code returns 502",
-			errorCode:          llamastack.ErrCodeInvalidResponse,
-			expectedStatusCode: http.StatusBadGateway,
 		},
 		{
 			name:               "Unknown code returns 500",
@@ -172,20 +167,12 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			expectedMessage:    "resource not found",
 		},
 		{
-			name:               "service unavailable error",
-			lsErr:              llamastack.NewConnectionError("http://localhost:8080", "connection refused"),
-			statusCode:         http.StatusServiceUnavailable,
-			expectedCode:       "service_unavailable",
-			expectedStatusCode: http.StatusServiceUnavailable,
-			expectedMessage:    "connection refused",
-		},
-		{
-			name:               "bad gateway error",
-			lsErr:              llamastack.NewInvalidResponseError("http://localhost:8080", "invalid JSON"),
+			name:               "connection error (bad gateway)",
+			lsErr:              llamastack.NewConnectionError("connection refused"),
 			statusCode:         http.StatusBadGateway,
 			expectedCode:       "bad_gateway",
 			expectedStatusCode: http.StatusBadGateway,
-			expectedMessage:    "invalid JSON",
+			expectedMessage:    "connection refused",
 		},
 		{
 			name:               "internal server error",

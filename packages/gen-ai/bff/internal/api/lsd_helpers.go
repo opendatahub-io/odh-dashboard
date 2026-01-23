@@ -34,10 +34,10 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 		return http.StatusUnauthorized
 	case llamastack.ErrCodeNotFound:
 		return http.StatusNotFound
-	case llamastack.ErrCodeConnectionFailed, llamastack.ErrCodeTimeout, llamastack.ErrCodeServerUnavailable:
-		return http.StatusServiceUnavailable
-	case llamastack.ErrCodeInvalidResponse:
+	case llamastack.ErrCodeConnectionFailed:
 		return http.StatusBadGateway
+	case llamastack.ErrCodeTimeout, llamastack.ErrCodeServerUnavailable:
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
