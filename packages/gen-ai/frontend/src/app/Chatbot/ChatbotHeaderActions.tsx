@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { CodeIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
   onViewCode: () => void;
@@ -27,7 +28,10 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onDeletePlayground,
   onNewChat,
 }) => {
-  const { lsdStatus, lastInput, selectedModel } = React.useContext(ChatbotContext);
+  const { lsdStatus, lastInput } = React.useContext(ChatbotContext);
+  // Might need to iterate through selectedModels for each config during comparison mode
+  const configIds = useChatbotConfigStore(selectConfigIds);
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
 
