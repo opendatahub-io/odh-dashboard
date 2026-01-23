@@ -154,11 +154,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     mcpServersFromRoute,
   ]);
 
+  // Reset configuration on mount and unmount
   React.useEffect(() => {
-    if (selectedAAModel) {
-      setSelectedModel(selectedAAModel);
-    }
-  }, [selectedAAModel, setSelectedModel]);
+    // Reset on mount (before setting router state or defaults)
+    useChatbotConfigStore.getState().resetConfiguration();
+
+    // Reset on unmount
+    return () => {
+      useChatbotConfigStore.getState().resetConfiguration();
+    };
+  }, [configId]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();

@@ -41,6 +41,9 @@ export interface ChatbotConfigStoreActions {
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
 
+  // Configuration management
+  resetConfiguration: () => void;
+
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;
 }

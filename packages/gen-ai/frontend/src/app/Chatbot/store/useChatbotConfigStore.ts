@@ -3,13 +3,14 @@ import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { ChatbotConfigStore, DEFAULT_CONFIGURATION } from './types';
 
+const initialState = {
+  configurations: { default: { ...DEFAULT_CONFIGURATION } },
+  configIds: ['default'],
+};
 export const useChatbotConfigStore = create<ChatbotConfigStore>()(
   devtools(
     immer((set, get) => ({
-      // Initial state
-      configurations: { default: { ...DEFAULT_CONFIGURATION } },
-      configIds: ['default'],
-
+      ...initialState,
       // TODO: ADD/REMOVE/DUPLICATE CONFIGS
 
       // Field-specific updaters
@@ -47,6 +48,11 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
             config.selectedModel = value;
           }
         });
+      },
+
+      // Configuration management
+      resetConfiguration: () => {
+        set(() => ({ ...initialState }));
       },
 
       // Utility
