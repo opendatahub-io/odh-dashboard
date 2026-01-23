@@ -28,6 +28,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             namespace: backend.service.namespace ?? process.env.OC_PROJECT,
           },
           local: backend.localService,
+          headers: backend.headers,
           onError: (reply, error) => {
             if (
               'code' in error.error &&
@@ -60,6 +61,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             namespace: proxy.service.namespace ?? process.env.OC_PROJECT,
           },
           local: proxy.localService,
+          headers: proxy.headers,
         });
       });
     });

@@ -15,6 +15,7 @@ export type ProxyService = {
     namespace: string;
     port: number;
   };
+  headers?: Record<string, string>;
 };
 
 export type ModuleFederationConfig = {
