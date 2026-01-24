@@ -62,6 +62,27 @@ const applyRoutingToInferenceService = (
   return updateInferenceService;
 };
 
+const applyTimeoutToInferenceService = (
+  inferenceService: InferenceServiceKind,
+  timeoutConfig?: CreatingInferenceServiceObject['timeoutConfig'],
+) => {
+  const updateInferenceService = structuredClone(inferenceService);
+  if (!updateInferenceService.metadata.annotations) {
+    updateInferenceService.metadata.annotations = {};
+  }
+  delete updateInferenceService.metadata.annotations['security.opendatahub.io/auth-proxy-type'];
+  delete updateInferenceService.spec.predictor.timeout;
+
+  if (timeoutConfig?.enableTimeoutConfig && timeoutConfig.timeout !== undefined) {
+    updateInferenceService.spec.predictor.timeout = timeoutConfig.timeout;
+  }
+  if (timeoutConfig?.enableTimeoutConfig && timeoutConfig.redirectOnTokenExpiry === true) {
+    updateInferenceService.metadata.annotations['security.opendatahub.io/auth-proxy-type'] =
+      'kube-rbac-proxy';
+  }
+  return updateInferenceService;
+};
+
 export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   secretKey?: string,
@@ -199,6 +220,13 @@ export const assembleInferenceService = (
     isModelMesh,
     data.isKServeRawDeployment,
   );
+  // call applyTimeoutToInferenceService only if the timeout config is enabled to avoid clearing the existing timeout config
+  if (data.timeoutConfig?.enableTimeoutConfig) {
+    updatedInferenceService = applyTimeoutToInferenceService(
+      updatedInferenceService,
+      data.timeoutConfig,
+    );
+  }
 
   if (!isModelMesh && podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;

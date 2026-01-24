@@ -62,6 +62,7 @@ import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import usePvcs from '#~/pages/modelServing/usePvcs';
+import { TimeoutField } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/TimeoutField';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -494,6 +495,26 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
               />
+              {createDataInferenceService.timeoutConfig?.enableTimeoutConfig && (
+                <TimeoutField
+                  timeoutValue={createDataInferenceService.timeoutConfig.timeout ?? 0}
+                  onChangeTimeoutValue={(value: number) =>
+                    setCreateDataInferenceService('timeoutConfig', {
+                      ...createDataInferenceService.timeoutConfig,
+                      timeout: value,
+                    })
+                  }
+                  redirectOnTokenExpiry={
+                    createDataInferenceService.timeoutConfig.redirectOnTokenExpiry ?? false
+                  }
+                  onChangeRedirectOnTokenExpiry={(value: boolean) =>
+                    setCreateDataInferenceService('timeoutConfig', {
+                      ...createDataInferenceService.timeoutConfig,
+                      redirectOnTokenExpiry: value,
+                    })
+                  }
+                />
+              )}
             </FormSection>
           )}
         </Form>

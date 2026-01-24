@@ -97,6 +97,8 @@ spec:
                       type: boolean
                     disableFeatureStore:
                       type: boolean
+                    enableKServeTimeoutAlternate:
+                      type: boolean
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'

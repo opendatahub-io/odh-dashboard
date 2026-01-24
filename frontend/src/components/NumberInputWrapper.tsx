@@ -8,6 +8,7 @@ type NumberInputWrapperProps = {
   onBlur?: (blurValue: number | undefined) => void;
   onChange?: (newValue: number | undefined) => void;
   intOnly?: boolean;
+  increment?: number;
   fullWidth?: boolean;
 } & Omit<React.ComponentProps<typeof NumberInput>, 'onChange' | 'onPlus' | 'onMinus'>;
 
@@ -15,6 +16,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onBlur,
   onChange,
   intOnly = true,
+  increment = 1,
   fullWidth = false,
   value,
   validated,
@@ -64,7 +66,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
     onPlus={
       onChange
         ? () => {
-            const newVal = (value || 0) + 1;
+            const newVal = (value || 0) + increment;
             onChange(min ? Math.max(newVal, min) : newVal);
           }
         : undefined
@@ -72,7 +74,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
     onMinus={
       onChange
         ? () => {
-            const newVal = (value || 0) - 1;
+            const newVal = (value || 0) - increment;
             onChange(max ? Math.min(newVal, max) : newVal);
           }
         : undefined

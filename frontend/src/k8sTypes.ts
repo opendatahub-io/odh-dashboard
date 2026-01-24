@@ -513,6 +513,7 @@ export type InferenceServiceAnnotations = DisplayNameAnnotations &
     'opendatahub.io/hardware-profile-name': string;
     'opendatahub.io/hardware-profile-namespace': string;
     'opendatahub.io/legacy-hardware-profile-name': string;
+    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | string;
   }>;
 
 export type InferenceServiceLabels = Partial<{
@@ -534,6 +535,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   spec: {
     predictor: {
       annotations?: Record<string, string>;
+      timeout?: number;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
       model?: {
@@ -1275,6 +1277,7 @@ export type DashboardCommonConfig = {
   disableKServeAuth: boolean;
   disableKServeMetrics: boolean;
   disableKServeRaw: boolean;
+  enableKServeTimeoutAlternate: boolean;
   disableModelMesh: boolean;
   disableAcceleratorProfiles: boolean;
   disableHardwareProfiles: boolean;

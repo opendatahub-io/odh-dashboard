@@ -46,6 +46,8 @@ type MockResourceConfigType = {
   predictorAnnotations?: Record<string, string>;
   storageUri?: string;
   modelType?: ServingRuntimeModelType;
+  timeout?: number;
+  authProxyType?: 'kube-rbac-proxy';
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -124,6 +126,8 @@ export const mockInferenceServiceK8sResource = ({
   predictorAnnotations = undefined,
   storageUri = undefined,
   modelType,
+  timeout = undefined,
+  authProxyType = undefined,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -149,6 +153,7 @@ export const mockInferenceServiceK8sResource = ({
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
       }),
       ...(modelType && { 'opendatahub.io/model-type': modelType }),
+      ...(authProxyType && { 'security.opendatahub.io/auth-proxy-type': authProxyType }),
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
@@ -172,6 +177,7 @@ export const mockInferenceServiceK8sResource = ({
       imagePullSecrets,
       ...(tolerations && { tolerations }),
       ...(nodeSelector && { nodeSelector }),
+      ...(timeout !== undefined && { timeout }),
       model: {
         modelFormat: {
           name: 'onnx',

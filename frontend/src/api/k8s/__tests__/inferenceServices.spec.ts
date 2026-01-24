@@ -630,6 +630,120 @@ describe('assembleInferenceService', () => {
     expect(result.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
     expect(result.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
   });
+
+  describe('timeout config', () => {
+    it('should set timeout and auth-proxy-type annotation when timeoutConfig is enabled', () => {
+      const inferenceService = assembleInferenceService(
+        mockInferenceServiceModalData({
+          timeoutConfig: {
+            enableTimeoutConfig: true,
+            timeout: 60,
+            redirectOnTokenExpiry: true,
+          },
+        }),
+      );
+
+      expect(inferenceService.spec.predictor.timeout).toBe(60);
+      expect(
+        inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
+      ).toBe('kube-rbac-proxy');
+    });
+
+    it('should set timeout without auth-proxy-type annotation when redirectOnTokenExpiry is false', () => {
+      const inferenceService = assembleInferenceService(
+        mockInferenceServiceModalData({
+          timeoutConfig: {
+            enableTimeoutConfig: true,
+            timeout: 120,
+            redirectOnTokenExpiry: false,
+          },
+        }),
+      );
+
+      expect(inferenceService.spec.predictor.timeout).toBe(120);
+      expect(
+        inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
+      ).toBeUndefined();
+    });
+
+    it('should update existing timeout value when editing', () => {
+      const existingInferenceService = mockInferenceServiceK8sResource({
+        timeout: 30,
+        authProxyType: 'kube-rbac-proxy',
+      });
+
+      const inferenceService = assembleInferenceService(
+        mockInferenceServiceModalData({
+          timeoutConfig: {
+            enableTimeoutConfig: true,
+            timeout: 90,
+            redirectOnTokenExpiry: false,
+          },
+        }),
+        undefined,
+        undefined,
+        false,
+        existingInferenceService,
+      );
+
+      expect(inferenceService.spec.predictor.timeout).toBe(90);
+      expect(
+        inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
+      ).toBeUndefined();
+    });
+
+    it('should remove timeout and auth-proxy-type when enableTimeoutConfig is true but timeout is undefined', () => {
+      const existingInferenceService = mockInferenceServiceK8sResource({
+        timeout: 60,
+        authProxyType: 'kube-rbac-proxy',
+      });
+
+      const inferenceService = assembleInferenceService(
+        mockInferenceServiceModalData({
+          timeoutConfig: {
+            enableTimeoutConfig: true,
+            timeout: undefined,
+            redirectOnTokenExpiry: false,
+          },
+        }),
+        undefined,
+        undefined,
+        false,
+        existingInferenceService,
+      );
+
+      expect(inferenceService.spec.predictor.timeout).toBeUndefined();
+      expect(
+        inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
+      ).toBeUndefined();
+    });
+
+    it('should keep existing timeout untouched when enableTimeoutConfig is false (feature flag disabled)', () => {
+      const existingInferenceService = mockInferenceServiceK8sResource({
+        timeout: 45,
+        authProxyType: 'kube-rbac-proxy',
+      });
+
+      const inferenceService = assembleInferenceService(
+        mockInferenceServiceModalData({
+          timeoutConfig: {
+            enableTimeoutConfig: false,
+            timeout: 100,
+            redirectOnTokenExpiry: false,
+          },
+        }),
+        undefined,
+        undefined,
+        false,
+        existingInferenceService,
+      );
+
+      expect(inferenceService.spec.predictor.timeout).toBe(45);
+      expect(
+        inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
+      ).toBe('kube-rbac-proxy');
+    });
+  });
 });
 
 describe('listInferenceService', () => {

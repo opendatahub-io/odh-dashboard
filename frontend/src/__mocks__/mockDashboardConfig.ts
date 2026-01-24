@@ -45,6 +45,7 @@ export type MockDashboardConfigType = {
   disableFeatureStore?: boolean;
   disableModelTraining?: boolean;
   disableDeploymentWizard?: boolean;
+  enableKServeTimeoutAlternate?: boolean;
   hardwareProfileOrder?: string[];
 };
 
@@ -86,6 +87,7 @@ export const mockDashboardConfig = ({
   disableFeatureStore = true,
   disableModelTraining = true,
   disableDeploymentWizard = true,
+  enableKServeTimeoutAlternate = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -248,6 +250,7 @@ export const mockDashboardConfig = ({
       disableFeatureStore,
       disableModelTraining,
       disableDeploymentWizard,
+      enableKServeTimeoutAlternate,
     },
     notebookController: {
       enabled: !disableNotebookController,
