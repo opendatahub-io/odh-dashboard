@@ -16,7 +16,7 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import type { TrainJobTestData } from '../../../types';
 
-describe('[Automation Bug: RHOAIENG-46611] Verify project access for user types in Training Jobs', () => {
+describe('Verify project access for user types in Training Jobs', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -155,7 +155,7 @@ describe('[Automation Bug: RHOAIENG-46611] Verify project access for user types 
   );
 
   it(
-    'Regular user can access project after admin grants permission',
+    '[Automation Bug: RHOAIENG-46611] Regular user can access project after admin grants permission',
     { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Maintain'] },
     () => {
       cy.step('Grant edit role to regular user via oc command');
