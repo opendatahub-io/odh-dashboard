@@ -46,6 +46,8 @@ import {
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { SupportedArea } from '#~/concepts/areas/types';
+import { useIsAreaAvailable } from '#~/concepts/areas/index';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
@@ -192,11 +194,21 @@ export const useCreateInferenceServiceObject = (
 ] => {
   const { defaultMode } = useKServeDeploymentMode();
   const { dashboardNamespace } = useDashboardNamespace();
+  const isTimeoutFieldAvailable = useIsAreaAvailable(
+    SupportedArea.K_SERVER_TIMEOUT_ALTERNATE,
+  ).status;
 
   const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
     ...defaultInferenceService,
     isKServeRawDeployment: defaultMode === DeploymentMode.RawDeployment,
     dashboardNamespace,
+    timeoutConfig: isTimeoutFieldAvailable
+      ? {
+          enableTimeoutConfig: true,
+          timeout: 30,
+          return401: false,
+        }
+      : undefined,
   });
 
   const [, setCreateData] = createInferenceServiceState;
@@ -222,6 +234,9 @@ export const useCreateInferenceServiceObject = (
   const existingPvcConnection = existingUri ? getPVCNameFromURI(existingUri) : undefined;
   const existingExternalRoute = !!existingData && isInferenceServiceRouteEnabled(existingData);
   const existingTokenAuth = !!existingData && isInferenceServiceTokenEnabled(existingData);
+  const existingTimeout = existingData?.spec.predictor.timeout;
+  const existingAuthProxyType =
+    existingData?.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'];
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(secrets));
 
@@ -262,6 +277,16 @@ export const useCreateInferenceServiceObject = (
       setCreateData('servingRuntimeArgs', existingServingRuntimeArgs);
       setCreateData('servingRuntimeEnvVars', existingServingRuntimeEnvVars);
       setCreateData('imagePullSecrets', existingImagePullSecrets);
+      setCreateData(
+        'timeoutConfig',
+        isTimeoutFieldAvailable
+          ? {
+              enableTimeoutConfig: true,
+              timeout: existingTimeout ?? 30,
+              return401: existingAuthProxyType === 'kube-rbac-proxy',
+            }
+          : undefined,
+      );
     }
   }, [
     existingName,
@@ -281,6 +306,9 @@ export const useCreateInferenceServiceObject = (
     existingIsKServeRaw,
     existingImagePullSecrets,
     existingPvcConnection,
+    isTimeoutFieldAvailable,
+    existingTimeout,
+    existingAuthProxyType,
   ]);
 
   return [...createInferenceServiceState];

@@ -68,6 +68,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableKServeAuth: false,
       disableKServeMetrics: false,
       disableKServeRaw: false,
+      enableKServeTimeoutAlternate: false,
       disableModelMesh: false,
       disableAcceleratorProfiles: false,
       disableHardwareProfiles: true,

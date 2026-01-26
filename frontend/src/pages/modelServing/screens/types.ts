@@ -86,6 +86,11 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   isKServeRawDeployment?: boolean;
   imagePullSecrets?: ImagePullSecret[];
   dashboardNamespace?: string;
+  timeoutConfig?: {
+    enableTimeoutConfig?: boolean; // a very clear way to know if the timeout config is enabled
+    timeout?: number;
+    return401?: boolean;
+  };
 };
 
 export type CreatingModelServingObjectCommon = {

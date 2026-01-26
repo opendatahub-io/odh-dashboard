@@ -55,6 +55,7 @@ export enum SupportedArea {
   K_SERVE_AUTH = 'kserve-auth',
   K_SERVE_METRICS = 'kserve-metrics',
   K_SERVE_RAW = 'kserve-raw',
+  K_SERVER_TIMEOUT_ALTERNATE = 'kserve-timeout-alternate',
   MODEL_MESH = 'model-mesh',
   BIAS_METRICS = 'bias-metrics',
   PERFORMANCE_METRICS = 'performance-metrics',
