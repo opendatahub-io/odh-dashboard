@@ -689,9 +689,6 @@ create_model_registry() {
         oc create namespace "${MODEL_REGISTRY_NAMESPACE}" || true
     fi
 
-    # Switch to model registry namespace
-    oc project "${MODEL_REGISTRY_NAMESPACE}"
-
     # Check if Model Registry already exists
     if oc get modelregistries.modelregistry.opendatahub.io modelregistry-public -n "${MODEL_REGISTRY_NAMESPACE}" &> /dev/null; then
         log_info "Model Registry 'modelregistry-public' already exists."

@@ -117,6 +117,11 @@ install_leaderworkerset_operator() {
     fi
     
     log_info "Installing LeaderWorkerSet operator..."
+
+    if ! oc get namespace openshift-lws-operator &> /dev/null; then
+        log_info "Creating namespace openshift-lws-operator..."
+        oc create namespace openshift-lws-operator
+    fi
     
     cat <<EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
@@ -140,7 +145,7 @@ EOF
     local attempt=0
     while [[ $attempt -lt $max_attempts ]]; do
         local csv_status
-        csv_status=$(oc get csv -n openshift-operators -l operators.coreos.com/leader-worker-set.openshift-operators -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "")
+        csv_status=$(oc get csv -n openshift-lws-operator -l operators.coreos.com/leader-worker-set.openshift-lws-operator -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "")
         if [[ "$csv_status" == "Succeeded" ]]; then
             log_info "LeaderWorkerSet operator installed successfully."
             return 0
