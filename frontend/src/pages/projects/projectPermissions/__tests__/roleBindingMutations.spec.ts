@@ -4,7 +4,6 @@ import type { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
   upsertRoleBinding,
   findRoleBindingForRoleRef,
-  moveSubjectRoleBinding,
   removeSubjectFromRoleBinding,
 } from '#~/pages/projects/projectPermissions/roleBindingMutations';
 
@@ -202,41 +201,6 @@ describe('project permissions roleBindingMutations', () => {
       expect(deleteRoleBindingMock).not.toHaveBeenCalled();
       expect(patchRoleBindingSubjectsMock).toHaveBeenCalledTimes(1);
       expect(patchRoleBindingSubjectsMock).toHaveBeenCalledWith('rb-1', namespace, [other]);
-    });
-  });
-
-  describe('moveSubjectRoleBinding', () => {
-    it('ensures target role and then removes from source role', async () => {
-      const fromRb = mockRoleBindingK8sResource({
-        name: 'rb-from',
-        namespace,
-        roleRefKind: 'ClusterRole',
-        roleRefName: 'admin',
-        subjects: [subject],
-      });
-
-      // Ensure uses patch path: there is an existing RB for edit with empty subjects.
-      const existingTo = mockRoleBindingK8sResource({
-        name: 'rb-to',
-        namespace,
-        roleRefKind: 'ClusterRole',
-        roleRefName: 'edit',
-        subjects: [],
-      });
-
-      await moveSubjectRoleBinding({
-        roleBindings: [fromRb, existingTo],
-        namespace,
-        subjectKind: 'User',
-        subject,
-        fromRoleBinding: fromRb,
-        toRoleRef: roleRefEdit,
-      });
-
-      // add to target first
-      expect(patchRoleBindingSubjectsMock).toHaveBeenCalledWith('rb-to', namespace, [subject]);
-      // remove from source (now empty -> delete)
-      expect(deleteRoleBindingMock).toHaveBeenCalledWith('rb-from', namespace);
     });
   });
 });
