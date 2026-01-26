@@ -10,6 +10,7 @@ import {
 } from '../../../pages/modelRegistry/registerModelPage';
 import { modelRegistry } from '../../../pages/modelRegistry';
 import { retryableBefore } from '../../../utils/retryableHooks';
+import { isBYOIDCCluster, skipSuiteIfBYOIDC } from '../../../utils/skipUtils';
 import {
   checkModelExistsInDatabase,
   cleanupModelRegistryComponents,
@@ -30,6 +31,9 @@ import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
 describe('Verify models can be deployed from model registry', () => {
+  // Skip entire suite on BYOIDC clusters
+  skipSuiteIfBYOIDC('Multiple permissions management tests are not supported on BYOIDC clusters');
+
   let testData: ModelRegistryTestData;
   let registryName: string;
   let modelName: string;
@@ -68,6 +72,12 @@ describe('Verify models can be deployed from model registry', () => {
   });
 
   after(() => {
+    // Skip cleanup on BYOIDC clusters since setup was skipped
+    if (isBYOIDCCluster()) {
+      cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
+      return;
+    }
+
     cy.clearCookies();
     cy.clearLocalStorage();
 
