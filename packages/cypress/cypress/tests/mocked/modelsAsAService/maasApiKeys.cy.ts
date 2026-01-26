@@ -1,7 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { apiKeysPage } from '../../../pages/modelsAsAService';
+import { apiKeysPage, revokeAPIKeyModal } from '../../../pages/modelsAsAService';
 import { mockAPIKeys } from '../../../utils/maasUtils';
 
 describe('API Keys Page', () => {
@@ -50,5 +50,31 @@ describe('API Keys Page', () => {
     ciPipelineRow.findStatus().should('contain.text', 'Active');
     ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
+  });
+
+  it('should revoke api keys', () => {
+    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage.findRevokeAllAPIKeysAction().click();
+
+    revokeAPIKeyModal.shouldBeOpen();
+    revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+    revokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
+    revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+    revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('revoke');
+    revokeAPIKeyModal.findRevokeButton().should('be.enabled');
+
+    cy.interceptOdh('DELETE /maas/api/v1/api-keys', { data: null }).as('deleteAllApiKeys');
+    cy.interceptOdh('GET /maas/api/v1/api-keys', {
+      data: [],
+    }).as('getApiKeysAfterDelete');
+
+    revokeAPIKeyModal.findRevokeButton().click();
+    apiKeysPage.findEmptyState().should('exist');
+
+    cy.wait('@deleteAllApiKeys').then((interception) => {
+      expect(interception.response?.statusCode).to.eq(200);
+    });
+    cy.wait('@getApiKeysAfterDelete');
   });
 });
