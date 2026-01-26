@@ -23,7 +23,7 @@ export const TimeoutField: React.FC<TimeoutFieldProps> = ({
           min={0}
           max={1000000}
           value={timeoutValue}
-          onChange={(newValue?: number) => onChangeTimeoutValue(newValue ?? 0)}
+          onChange={(newValue?: number) => onChangeTimeoutValue(newValue ?? 30)}
           increment={5}
           unit="seconds"
         />

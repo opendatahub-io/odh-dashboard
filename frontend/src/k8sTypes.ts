@@ -513,7 +513,7 @@ export type InferenceServiceAnnotations = DisplayNameAnnotations &
     'opendatahub.io/hardware-profile-name': string;
     'opendatahub.io/hardware-profile-namespace': string;
     'opendatahub.io/legacy-hardware-profile-name': string;
-    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | string;
+    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | 'oauth-proxy' | string; // 'oauth-procy' is the default behind the scenes if no annotation specified
   }>;
 
 export type InferenceServiceLabels = Partial<{
