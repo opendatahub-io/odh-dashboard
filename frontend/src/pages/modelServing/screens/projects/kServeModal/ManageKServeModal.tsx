@@ -495,24 +495,25 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 data={createDataInferenceService}
                 setData={setCreateDataInferenceService}
               />
-              {createDataInferenceService.timeoutConfig?.enableTimeoutConfig && (
-                <TimeoutField
-                  timeoutValue={createDataInferenceService.timeoutConfig.timeout ?? 0}
-                  onChangeTimeoutValue={(value: number) =>
-                    setCreateDataInferenceService('timeoutConfig', {
-                      ...createDataInferenceService.timeoutConfig,
-                      timeout: value,
-                    })
-                  }
-                  return401={createDataInferenceService.timeoutConfig.return401 ?? false}
-                  onChangeReturn401={(value: boolean) =>
-                    setCreateDataInferenceService('timeoutConfig', {
-                      ...createDataInferenceService.timeoutConfig,
-                      return401: value,
-                    })
-                  }
-                />
-              )}
+              {createDataInferenceService.timeoutConfig?.enableTimeoutConfig &&
+                createDataInferenceService.isKServeRawDeployment && (
+                  <TimeoutField
+                    timeoutValue={createDataInferenceService.timeoutConfig.timeout ?? 0}
+                    onChangeTimeoutValue={(value: number) =>
+                      setCreateDataInferenceService('timeoutConfig', {
+                        ...createDataInferenceService.timeoutConfig,
+                        timeout: value,
+                      })
+                    }
+                    return401={createDataInferenceService.timeoutConfig.return401 ?? false}
+                    onChangeReturn401={(value: boolean) =>
+                      setCreateDataInferenceService('timeoutConfig', {
+                        ...createDataInferenceService.timeoutConfig,
+                        return401: value,
+                      })
+                    }
+                  />
+                )}
             </FormSection>
           )}
         </Form>

@@ -632,9 +632,10 @@ describe('assembleInferenceService', () => {
   });
 
   describe('timeout config', () => {
-    it('should set timeout and auth-proxy-type annotation when timeoutConfig is enabled', () => {
+    it('should set timeout and auth-proxy-type annotation when timeoutConfig is enabled for kserve raw', () => {
       const inferenceService = assembleInferenceService(
         mockInferenceServiceModalData({
+          isKServeRawDeployment: true,
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: 60,
@@ -649,9 +650,10 @@ describe('assembleInferenceService', () => {
       ).toBe('kube-rbac-proxy');
     });
 
-    it('should set timeout without auth-proxy-type annotation when redirectOnTokenExpiry is false', () => {
+    it('should set timeout without auth-proxy-type annotation when return401 is false for kserve raw', () => {
       const inferenceService = assembleInferenceService(
         mockInferenceServiceModalData({
+          isKServeRawDeployment: true,
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: 120,
@@ -666,14 +668,16 @@ describe('assembleInferenceService', () => {
       ).toBeUndefined();
     });
 
-    it('should update existing timeout value when editing', () => {
+    it('should update existing timeout value when editing for kserve raw', () => {
       const existingInferenceService = mockInferenceServiceK8sResource({
+        isKserveRaw: true,
         timeout: 30,
         authProxyType: 'kube-rbac-proxy',
       });
 
       const inferenceService = assembleInferenceService(
         mockInferenceServiceModalData({
+          isKServeRawDeployment: true,
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: 90,
@@ -692,14 +696,16 @@ describe('assembleInferenceService', () => {
       ).toBeUndefined();
     });
 
-    it('should remove timeout and auth-proxy-type when enableTimeoutConfig is true but timeout is undefined', () => {
+    it('should remove timeout and auth-proxy-type when enableTimeoutConfig is true but timeout is undefined for kserve raw', () => {
       const existingInferenceService = mockInferenceServiceK8sResource({
+        isKserveRaw: true,
         timeout: 60,
         authProxyType: 'kube-rbac-proxy',
       });
 
       const inferenceService = assembleInferenceService(
         mockInferenceServiceModalData({
+          isKServeRawDeployment: true,
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: undefined,
@@ -720,12 +726,14 @@ describe('assembleInferenceService', () => {
 
     it('should keep existing timeout untouched when enableTimeoutConfig is false (feature flag disabled)', () => {
       const existingInferenceService = mockInferenceServiceK8sResource({
+        isKserveRaw: true,
         timeout: 45,
         authProxyType: 'kube-rbac-proxy',
       });
 
       const inferenceService = assembleInferenceService(
         mockInferenceServiceModalData({
+          isKServeRawDeployment: true,
           timeoutConfig: {
             enableTimeoutConfig: false,
             timeout: 100,
@@ -742,6 +750,24 @@ describe('assembleInferenceService', () => {
       expect(
         inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
       ).toBe('kube-rbac-proxy');
+    });
+
+    it('should not apply timeout config for serverless mode even when timeoutConfig is enabled', () => {
+      const inferenceService = assembleInferenceService(
+        mockInferenceServiceModalData({
+          isKServeRawDeployment: false,
+          timeoutConfig: {
+            enableTimeoutConfig: true,
+            timeout: 60,
+            return401: true,
+          },
+        }),
+      );
+
+      expect(inferenceService.spec.predictor.timeout).toBeUndefined();
+      expect(
+        inferenceService.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'],
+      ).toBeUndefined();
     });
   });
 });

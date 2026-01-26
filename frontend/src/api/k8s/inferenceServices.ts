@@ -221,7 +221,7 @@ export const assembleInferenceService = (
     data.isKServeRawDeployment,
   );
   // call applyTimeoutToInferenceService only if the timeout config is enabled to avoid clearing the existing timeout config
-  if (data.timeoutConfig?.enableTimeoutConfig) {
+  if (data.timeoutConfig?.enableTimeoutConfig && data.isKServeRawDeployment) {
     updatedInferenceService = applyTimeoutToInferenceService(
       updatedInferenceService,
       data.timeoutConfig,
