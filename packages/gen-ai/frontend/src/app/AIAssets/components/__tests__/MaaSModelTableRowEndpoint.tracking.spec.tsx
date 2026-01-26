@@ -72,6 +72,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org', // eslint-disable-line camelcase
   ready: true,
   url: 'https://maas.example.com/model',
+  display_name: 'Test MaaS Model', // eslint-disable-line camelcase
+  description: 'A test MaaS model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 

@@ -344,6 +344,11 @@ export interface MaaSModel {
   owned_by: string;
   ready: boolean;
   url: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
 }
 
 export type MaaSTokenRequest = {
