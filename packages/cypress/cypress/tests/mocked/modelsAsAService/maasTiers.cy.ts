@@ -263,6 +263,11 @@ describe('Tiers Page', () => {
     createTierPage.findRequestRateLimitTimeInput(0).clear().type('2');
     createTierPage.findRequestRateLimitUnitSelect(0).should('contain.text', 'minute');
     createTierPage.selectRequestRateLimitUnit(0, 'hour');
+
+    //disable token rate limit to ensure it gets disabled
+    createTierPage.findTokenRateLimitCheckbox().click();
+    createTierPage.findTokenRateLimitCheckbox().should('not.be.checked');
+
     createTierPage.findUpdateButton().should('exist').should('be.enabled').click();
 
     cy.wait('@updateTier').then((interception) => {
@@ -273,7 +278,7 @@ describe('Tiers Page', () => {
         level: 5,
         groups: ['all-users', 'enterprise-users'],
         limits: {
-          tokensPerUnit: [{ count: 2000000, time: 2, unit: 'minute' }],
+          tokensPerUnit: [],
           requestsPerUnit: [{ count: 20000, time: 2, unit: 'hour' }],
         },
       });
