@@ -1,4 +1,8 @@
 .odh-number-input-wrapper {
+  .pf-v6-c-number-input__unit {
+    white-space: nowrap;
+  }
+
   &.m-full-width {
     width: 100%;
     display: flex;
@@ -7,9 +11,6 @@
       .pf-v6-c-form-control {
         width: 100%;
       }
-    }
-    .pf-v6-c-number-input__unit {
-      white-space: nowrap;
     }
   }
 }

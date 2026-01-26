@@ -25,7 +25,7 @@ export const TimeoutField: React.FC<TimeoutFieldProps> = ({
           value={timeoutValue}
           onChange={(newValue?: number) => onChangeTimeoutValue(newValue ?? 0)}
           increment={5}
-          unit="s"
+          unit="seconds"
         />
       </FormGroup>
       <FormGroup
