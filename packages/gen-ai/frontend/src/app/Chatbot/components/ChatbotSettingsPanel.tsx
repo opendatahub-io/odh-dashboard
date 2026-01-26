@@ -22,6 +22,13 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
 import useAccordionState from '~/app/Chatbot/hooks/useAccordionState';
+import {
+  useChatbotConfigStore,
+  selectSystemInstruction,
+  selectTemperature,
+  selectStreamingEnabled,
+  selectSelectedModel,
+} from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
@@ -34,8 +41,7 @@ import SystemPromptFormGroup from './SystemInstructionFormGroup';
 import ModelParameterFormGroup from './ModelParameterFormGroup';
 
 interface ChatbotSettingsPanelProps {
-  selectedModel: string;
-  onModelChange: (value: string) => void;
+  configId?: string; // Defaults to 'default' for single-window mode
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
@@ -43,12 +49,6 @@ interface ChatbotSettingsPanelProps {
   };
   sourceManagement: UseSourceManagementReturn;
   fileManagement: UseFileManagementReturn;
-  systemInstruction: string;
-  onSystemInstructionChange: (value: string) => void;
-  isStreamingEnabled: boolean;
-  onStreamingToggle: (enabled: boolean) => void;
-  temperature: number;
-  onTemperatureChange: (value: number) => void;
   onMcpServersChange?: (serverIds: string[]) => void;
   initialSelectedServerIds?: string[];
   initialServerStatuses?: Map<string, ServerStatusInfo>;
@@ -63,17 +63,10 @@ interface ChatbotSettingsPanelProps {
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
-  selectedModel,
-  onModelChange,
+  configId = 'default', // Default to 'default' for single-window mode
   alerts,
   sourceManagement,
   fileManagement,
-  systemInstruction,
-  onSystemInstructionChange,
-  isStreamingEnabled,
-  onStreamingToggle,
-  temperature,
-  onTemperatureChange,
   onMcpServersChange,
   initialSelectedServerIds,
   initialServerStatuses,
@@ -89,6 +82,47 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const accordionState = useAccordionState();
   const isDarkMode = useDarkMode();
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
+
+  // Consume store directly using configId
+  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+
+  // Get updater functions from store
+  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
+  const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
+  const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
+  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
+
+  // Create callback handlers that include configId
+  const handleSystemInstructionChange = React.useCallback(
+    (value: string) => {
+      updateSystemInstruction(configId, value);
+    },
+    [configId, updateSystemInstruction],
+  );
+
+  const handleTemperatureChange = React.useCallback(
+    (value: number) => {
+      updateTemperature(configId, value);
+    },
+    [configId, updateTemperature],
+  );
+
+  const handleModelChange = React.useCallback(
+    (value: string) => {
+      updateSelectedModel(configId, value);
+    },
+    [configId, updateSelectedModel],
+  );
+
+  const handleStreamingToggle = React.useCallback(
+    (enabled: boolean) => {
+      updateStreamingEnabled(configId, enabled);
+    },
+    [configId, updateStreamingEnabled],
+  );
 
   const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
   const DEFAULT_WIDTH = '460px';
@@ -151,7 +185,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 <FormGroup label="Model" fieldId="model-details">
                   <ModelDetailsDropdown
                     selectedModel={selectedModel}
-                    onModelChange={onModelChange}
+                    onModelChange={handleModelChange}
                   />
                 </FormGroup>
                 <FormGroup
@@ -161,7 +195,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 >
                   <SystemPromptFormGroup
                     systemInstruction={systemInstruction}
-                    onSystemInstructionChange={onSystemInstructionChange}
+                    onSystemInstructionChange={handleSystemInstructionChange}
                   />
                 </FormGroup>
 
@@ -172,7 +206,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   helpText="This controls the randomness of the model's output."
                   value={temperature}
                   onChange={(value) => {
-                    onTemperatureChange(value);
+                    handleTemperatureChange(value);
                     fireMiscTrackingEvent('Playground Model Parameter Changed', {
                       parameter: 'temperature',
                       value,
@@ -185,7 +219,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                     id="streaming-switch"
                     label="Streaming"
                     isChecked={isStreamingEnabled}
-                    onChange={(_event, checked) => onStreamingToggle(checked)}
+                    onChange={(_event, checked) => handleStreamingToggle(checked)}
                     aria-label="Toggle streaming responses"
                   />
                 </FormGroup>

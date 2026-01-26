@@ -20,7 +20,7 @@ import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
-import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
+import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -28,6 +28,14 @@ import useChatbotMessages from './hooks/useChatbotMessages';
 import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import {
+  useChatbotConfigStore,
+  selectSystemInstruction,
+  selectTemperature,
+  selectStreamingEnabled,
+  selectSelectedModel,
+  selectConfigIds,
+} from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -51,24 +59,27 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
   const { getToolSelections } = useMCPToolSelections();
-  const {
-    models,
-    modelsLoaded,
-    aiModels,
-    maasModels,
-    selectedModel,
-    setSelectedModel,
-    lastInput,
-    setLastInput,
-  } = React.useContext(ChatbotContext);
+  const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
+    React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
 
-  const [systemInstruction, setSystemInstruction] = React.useState<string>(
-    DEFAULT_SYSTEM_INSTRUCTIONS,
+  const configIds = useChatbotConfigStore(selectConfigIds);
+  // Get configuration to reference, there will only be one before comparison mode
+  const configId = configIds[0];
+
+  // NOTE: This will need to be updated when doing comparison mode
+  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const setSelectedModel = React.useCallback(
+    (model: string) => {
+      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
+    },
+    [configId],
   );
-  const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
-  const [temperature, setTemperature] = React.useState<number>(0.1);
+
   const isDarkMode = useDarkMode();
 
   const location = useLocation();
@@ -106,6 +117,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       ),
     [location.state],
   );
+
+  React.useEffect(() => {
+    // Reset configuration
+    useChatbotConfigStore.getState().resetConfiguration();
+
+    return () => {
+      useChatbotConfigStore.getState().resetConfiguration();
+    };
+  }, [configId]);
 
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
@@ -163,6 +183,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
+  // TODO: This will need to be changed to an object or array when implementing compare mode
   const chatbotMessages = useChatbotMessages({
     modelId: selectedModel,
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
@@ -210,17 +231,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
-      selectedModel={selectedModel}
-      onModelChange={setSelectedModel}
+      configId={configId} // You can render multiple of these for each config in our global store
       alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
       sourceManagement={sourceManagement}
       fileManagement={fileManagement}
-      systemInstruction={systemInstruction}
-      onSystemInstructionChange={setSystemInstruction}
-      isStreamingEnabled={isStreamingEnabled}
-      onStreamingToggle={setIsStreamingEnabled}
-      temperature={temperature}
-      onTemperatureChange={setTemperature}
       onMcpServersChange={setSelectedMcpServerIds}
       initialSelectedServerIds={mcpServersFromRoute}
       initialServerStatuses={mcpServerStatusesFromRoute}

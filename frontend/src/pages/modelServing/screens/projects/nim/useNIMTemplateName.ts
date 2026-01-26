@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fetchNIMAccountTemplateName } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { fetchNIMAccountTemplateName } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 
 export const useNIMTemplateName = (): string | undefined => {

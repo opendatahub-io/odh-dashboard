@@ -80,6 +80,14 @@ class ProjectRbacPermissionsTab {
     projectDetails.visitSection(projectName, 'permissions');
   }
 
+  findAssignRolesButton() {
+    return cy.findByTestId('permissions-assign-roles-button');
+  }
+
+  findAssignRolesPage() {
+    return cy.findByTestId('project-permissions-assign-roles-page');
+  }
+
   findUsersTable() {
     return this.getUsersTable().find();
   }
@@ -123,42 +131,6 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId('clear-filters-button');
   }
 
-  findAddUserButton() {
-    return cy.findByTestId('add-user-button');
-  }
-
-  findAddGroupButton() {
-    return cy.findByTestId('add-group-button');
-  }
-
-  findAddRow(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-row`);
-  }
-
-  findAddRowSubjectTypeaheadToggle(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-subject-typeahead-toggle`);
-  }
-
-  findAddRowSubjectInput(subjectKind: 'user' | 'group') {
-    return this.findAddRowSubjectTypeaheadToggle(subjectKind).find('input');
-  }
-
-  findAddRowRoleSelectToggle(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-role-select-toggle`);
-  }
-
-  findAddRowSaveButton(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-save`);
-  }
-
-  findAddRowCancelButton(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-cancel`);
-  }
-
-  findAddRowSaveError(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-save-error`);
-  }
-
   // For PatternFly typeahead, options are rendered in a popper and not in the table DOM subtree.
   // Keep this as a simple global query by role (more consistent than wiring ids into the component).
   findTypeaheadOption(optionLabel: string | RegExp) {
@@ -167,23 +139,6 @@ class ProjectRbacPermissionsTab {
 
   findTypeaheadOptions(optionLabel: string | RegExp) {
     return cy.findAllByRole('option', { name: optionLabel, hidden: true });
-  }
-
-  selectAddRowSubject(subjectKind: 'user' | 'group', subjectName: string) {
-    const name = subjectName.trim();
-
-    // Typing will open the popper menu and filter options.
-    this.findAddRowSubjectInput(subjectKind).clear().type(name);
-
-    // Click whichever option (existing or creatable) contains the typed text.
-    // Use `contains` to handle text split across nested elements.
-    return cy.contains('[role="option"], [role="menuitem"]', name).first().click();
-  }
-
-  selectAddRowRole(subjectKind: 'user' | 'group', roleRefKey: string) {
-    this.findAddRowRoleSelectToggle(subjectKind).click();
-    // SimpleSelect renders a non-clickable list-item wrapper for each option. Click the inner button.
-    return cy.findByTestId(roleRefKey).should('not.be.disabled').find('button').click();
   }
 
   findEditRowRoleSelectToggle(subjectKind: 'user' | 'group') {

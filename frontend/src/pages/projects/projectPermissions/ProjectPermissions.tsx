@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   Bullseye,
+  Button,
   Divider,
   PageSection,
   SearchInput,
@@ -13,11 +14,13 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import FilterToolbar from '#~/components/FilterToolbar';
 import SimpleSelect from '#~/components/SimpleSelect';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import SubjectRolesTableSection from './SubjectRolesTableSection';
 import RoleDetailsModal from './roleDetails/RoleDetailsModal';
 import {
@@ -31,7 +34,9 @@ import {
 } from './const';
 
 const ProjectPermissions: React.FC = () => {
+  const navigate = useNavigate();
   const { loaded, error } = usePermissionsContext();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const [subjectScope, setSubjectScope] = React.useState<SubjectScopeFilter>(
     SubjectScopeFilter.all,
   );
@@ -122,6 +127,17 @@ const ProjectPermissions: React.FC = () => {
                       }));
                     }}
                   />
+                  <ToolbarItem>
+                    <Button
+                      variant="primary"
+                      data-testid="permissions-assign-roles-button"
+                      onClick={() =>
+                        navigate(`/projects/${currentProject.metadata.name}/permissions/assign`)
+                      }
+                    >
+                      Assign roles
+                    </Button>
+                  </ToolbarItem>
                 </ToolbarContent>
               </Toolbar>
             </StackItem>
