@@ -62,13 +62,13 @@ export const useNavigateToDeploymentWizardWithData = (
             immutable: false,
             invalidCharacters: false,
             invalidLength: false,
-            maxLength: 253,
+            maxLength,
             touched: false,
           },
         },
       },
     }),
-    [deployPrefillData, connectionTypeObject, resourceName],
+    [deployPrefillData, connectionTypeObject, resourceName, maxLength],
   );
   const navigateToWizardInner = useNavigateToDeploymentWizard(
     null,

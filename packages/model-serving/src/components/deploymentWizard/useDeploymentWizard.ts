@@ -1,7 +1,11 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import {
+  extractK8sNameDescriptionFieldData,
+  LimitNameResourceType,
+  resourceTypeLimits,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -56,9 +60,15 @@ export const useModelDeploymentWizard = (
   }, [modelLocationData.connectionTypesLoaded, modelLocationData.isLoadingSecretData]);
 
   // Step 2: Model Deployment
+  const limitNameResourceType =
+    initialData?.k8sNameDesc?.k8sName.state.maxLength ===
+    resourceTypeLimits[LimitNameResourceType.MODEL_DEPLOYMENT]
+      ? LimitNameResourceType.MODEL_DEPLOYMENT
+      : undefined;
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
+    limitNameResourceType,
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
