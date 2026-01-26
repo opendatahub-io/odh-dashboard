@@ -14,6 +14,7 @@ type Repositories struct {
 	Namespace   *NamespaceRepository
 	Tiers       *TiersRepository
 	APIKeys     *APIKeysRepository
+	Models      *ModelsRepository
 }
 
 func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) *Repositories {
@@ -29,5 +30,6 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.GatewayNamespace,
 			config.GatewayName),
 		APIKeys: NewAPIKeysRepository(logger),
+		Models:  NewModelsRepository(logger),
 	}
 }
