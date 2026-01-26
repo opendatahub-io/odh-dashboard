@@ -206,7 +206,7 @@ export const useCreateInferenceServiceObject = (
       ? {
           enableTimeoutConfig: true,
           timeout: 30,
-          redirectOnTokenExpiry: false,
+          return401: false,
         }
       : undefined,
   });
@@ -283,7 +283,7 @@ export const useCreateInferenceServiceObject = (
           ? {
               enableTimeoutConfig: true,
               timeout: existingTimeout ?? 30,
-              redirectOnTokenExpiry: existingAuthProxyType === 'kube-rbac-proxy',
+              return401: existingAuthProxyType === 'kube-rbac-proxy',
             }
           : undefined,
       );

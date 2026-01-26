@@ -504,13 +504,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                       timeout: value,
                     })
                   }
-                  redirectOnTokenExpiry={
-                    createDataInferenceService.timeoutConfig.redirectOnTokenExpiry ?? false
-                  }
-                  onChangeRedirectOnTokenExpiry={(value: boolean) =>
+                  return401={createDataInferenceService.timeoutConfig.return401 ?? false}
+                  onChangeReturn401={(value: boolean) =>
                     setCreateDataInferenceService('timeoutConfig', {
                       ...createDataInferenceService.timeoutConfig,
-                      redirectOnTokenExpiry: value,
+                      return401: value,
                     })
                   }
                 />

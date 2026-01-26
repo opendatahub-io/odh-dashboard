@@ -638,7 +638,7 @@ describe('assembleInferenceService', () => {
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: 60,
-            redirectOnTokenExpiry: true,
+            return401: true,
           },
         }),
       );
@@ -655,7 +655,7 @@ describe('assembleInferenceService', () => {
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: 120,
-            redirectOnTokenExpiry: false,
+            return401: false,
           },
         }),
       );
@@ -677,7 +677,7 @@ describe('assembleInferenceService', () => {
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: 90,
-            redirectOnTokenExpiry: false,
+            return401: false,
           },
         }),
         undefined,
@@ -703,7 +703,7 @@ describe('assembleInferenceService', () => {
           timeoutConfig: {
             enableTimeoutConfig: true,
             timeout: undefined,
-            redirectOnTokenExpiry: false,
+            return401: false,
           },
         }),
         undefined,
@@ -729,7 +729,7 @@ describe('assembleInferenceService', () => {
           timeoutConfig: {
             enableTimeoutConfig: false,
             timeout: 100,
-            redirectOnTokenExpiry: false,
+            return401: false,
           },
         }),
         undefined,

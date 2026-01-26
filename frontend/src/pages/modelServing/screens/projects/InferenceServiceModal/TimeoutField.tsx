@@ -6,15 +6,15 @@ import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip.tsx
 type TimeoutFieldProps = {
   timeoutValue: number;
   onChangeTimeoutValue: (value: number) => void;
-  redirectOnTokenExpiry: boolean;
-  onChangeRedirectOnTokenExpiry: (value: boolean) => void;
+  return401: boolean;
+  onChangeReturn401: (value: boolean) => void;
 };
 
 export const TimeoutField: React.FC<TimeoutFieldProps> = ({
   timeoutValue,
   onChangeTimeoutValue,
-  redirectOnTokenExpiry,
-  onChangeRedirectOnTokenExpiry: onChangeUseKubeRBAC,
+  return401,
+  onChangeReturn401,
 }) => {
   return (
     <>
@@ -29,26 +29,25 @@ export const TimeoutField: React.FC<TimeoutFieldProps> = ({
         />
       </FormGroup>
       <FormGroup
-        label="RBAC"
-        fieldId="use-kubernetes-rbac-for-authentication"
+        label="Authentication failure handling"
+        fieldId="auth-failure-handling"
         labelHelp={
           <DashboardHelpTooltip
             content={
               <>
-                Delegates authentication to the Kubernetes API using <code>kube-rbac-proxy</code>.
-                This ensures unauthorized requests return an HTTP 401 status code instead of an HTTP
-                302 redirect.
+                If enabled, unauthorized requests will return a 401 Unauthorized status, instead of
+                redirecting to the login page.
               </>
             }
           />
         }
       >
         <Checkbox
-          label="Use Kubernetes RBAC for authentication"
-          id="use-kubernetes-rbac-for-authentication"
-          name="use-kubernetes-rbac-for-authentication"
-          isChecked={redirectOnTokenExpiry}
-          onChange={(e, checked) => onChangeUseKubeRBAC(checked)}
+          label="Return 401 API Response"
+          id="return-401-api-response"
+          name="return-401-api-response"
+          isChecked={return401}
+          onChange={(e, checked) => onChangeReturn401(checked)}
         />
       </FormGroup>
     </>

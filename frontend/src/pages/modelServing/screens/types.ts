@@ -89,7 +89,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   timeoutConfig?: {
     enableTimeoutConfig?: boolean; // a very clear way to know if the timeout config is enabled
     timeout?: number;
-    redirectOnTokenExpiry?: boolean;
+    return401?: boolean;
   };
 };
 

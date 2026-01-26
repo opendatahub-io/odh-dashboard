@@ -76,7 +76,7 @@ const applyTimeoutToInferenceService = (
   if (timeoutConfig?.enableTimeoutConfig && timeoutConfig.timeout !== undefined) {
     updateInferenceService.spec.predictor.timeout = timeoutConfig.timeout;
   }
-  if (timeoutConfig?.enableTimeoutConfig && timeoutConfig.redirectOnTokenExpiry === true) {
+  if (timeoutConfig?.enableTimeoutConfig && timeoutConfig.return401 === true) {
     updateInferenceService.metadata.annotations['security.opendatahub.io/auth-proxy-type'] =
       'kube-rbac-proxy';
   }
