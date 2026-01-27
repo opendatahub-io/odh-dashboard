@@ -1,6 +1,5 @@
 import { DeleteModal } from './components/DeleteModal';
 import { Modal } from './components/Modal';
-import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
 class TierTableRow extends TableRow {

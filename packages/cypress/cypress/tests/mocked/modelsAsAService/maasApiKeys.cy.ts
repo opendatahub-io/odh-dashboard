@@ -1,7 +1,12 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { apiKeysPage, revokeAPIKeyModal, copyApiKeyModal, createApiKeyModal } from '../../../pages/modelsAsAService';
+import {
+  apiKeysPage,
+  revokeAPIKeyModal,
+  copyApiKeyModal,
+  createApiKeyModal,
+} from '../../../pages/modelsAsAService';
 import { mockAPIKeys, mockCreateAPIKeyResponse } from '../../../utils/maasUtils';
 
 describe('API Keys Page', () => {
