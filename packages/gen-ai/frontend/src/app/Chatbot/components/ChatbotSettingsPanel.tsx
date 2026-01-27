@@ -15,6 +15,8 @@ import {
   Flex,
   FlexItem,
   Icon,
+  Tabs,
+  Tab,
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -143,6 +145,17 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
   };
 
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const handleTabClick = (
+    event:
+      | React.MouseEvent<HTMLButtonElement>
+      | React.KeyboardEvent<HTMLButtonElement>
+      | MouseEvent,
+    tabIndex: string | number,
+  ) => {
+    setActiveTabKey(tabIndex);
+  };
+
   return (
     <DrawerPanelContent
       isResizable
@@ -151,6 +164,28 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       onResize={handlePanelResize}
     >
       <DrawerPanelBody>
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={handleTabClick}
+          aria-label="Chatbot settings page tabs"
+          role="region"
+        >
+          <Tab eventKey={0} title="Model">
+            Model details content here
+          </Tab>
+          <Tab eventKey={1} title="Prompt">
+            Prompt content here
+          </Tab>
+          <Tab eventKey={2} title="Knowledge">
+            Knowledge content here
+          </Tab>
+          <Tab eventKey={3} title="MCP">
+            MCP content here
+          </Tab>
+          <Tab eventKey={4} title="Guardrails">
+            Guardrails content here
+          </Tab>
+        </Tabs>
         <Accordion asDefinitionList={false}>
           {/* Model Details Accordion Item */}
           <AccordionItem
