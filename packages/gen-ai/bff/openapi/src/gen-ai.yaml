@@ -438,6 +438,18 @@ paths:
                         url:
                           type: string
                           example: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local'
+                        display_name:
+                          type: string
+                          description: Human-readable display name for the model
+                          example: 'Llama 2 7B Chat'
+                        description:
+                          type: string
+                          description: Detailed description of the model and its capabilities
+                          example: 'Meta Llama 2 7B model fine-tuned for conversational AI and chat applications'
+                        usecase:
+                          type: string
+                          description: Primary use cases for the model
+                          example: 'Chat, Question answering'
                       required:
                         - id
                         - object

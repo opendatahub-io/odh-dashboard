@@ -12,6 +12,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org',
   ready: true,
   url: 'https://example.com/model',
+  display_name: 'Test MaaS Model',
+  description: 'A test MaaS model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 
