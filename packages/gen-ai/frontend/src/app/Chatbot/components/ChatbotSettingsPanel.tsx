@@ -166,20 +166,21 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           onSelect={handleTabClick}
           aria-label="Chatbot settings page tabs"
           role="region"
+          data-testid="chatbot-settings-page-tabs"
         >
-          <Tab eventKey={0} title="Model">
+          <Tab eventKey={0} title="Model" data-testid="chatbot-settings-page-tab-model">
             Model details content here
           </Tab>
-          <Tab eventKey={1} title="Prompt">
+          <Tab eventKey={1} title="Prompt" data-testid="chatbot-settings-page-tab-prompt">
             Prompt content here
           </Tab>
-          <Tab eventKey={2} title="Knowledge">
+          <Tab eventKey={2} title="Knowledge" data-testid="chatbot-settings-page-tab-knowledge">
             Knowledge content here
           </Tab>
-          <Tab eventKey={3} title="MCP">
+          <Tab eventKey={3} title="MCP" data-testid="chatbot-settings-page-tab-mcp">
             MCP content here
           </Tab>
-          <Tab eventKey={4} title="Guardrails">
+          <Tab eventKey={4} title="Guardrails" data-testid="chatbot-settings-page-tab-guardrails">
             Guardrails content here
           </Tab>
         </Tabs>
