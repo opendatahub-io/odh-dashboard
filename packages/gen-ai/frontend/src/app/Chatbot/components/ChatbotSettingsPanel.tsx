@@ -147,10 +147,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const handleTabClick = (
-    event:
-      | React.MouseEvent<HTMLButtonElement>
-      | React.KeyboardEvent<HTMLButtonElement>
-      | MouseEvent,
+    _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     tabIndex: string | number,
   ) => {
     setActiveTabKey(tabIndex);
