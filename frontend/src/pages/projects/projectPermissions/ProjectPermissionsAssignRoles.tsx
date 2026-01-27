@@ -96,12 +96,12 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
           }}
         >
           <FormSection title="Subject">
-            {!isManageMode ? (
+            {!isManageMode && (
               <Content component={ContentVariants.p}>
                 Select a subject with existing roles or enter a new subject.
               </Content>
-            ) : null}
-            {!isManageMode ? (
+            )}
+            {!isManageMode && (
               <FormGroup label="Subject kind" isInline fieldId="subject-kind">
                 <Radio
                   id="subject-kind-user"
@@ -126,7 +126,7 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
                   data-testid="assign-roles-subject-kind-group"
                 />
               </FormGroup>
-            ) : null}
+            )}
             <FormGroup
               label={subjectKind === 'user' ? 'User name' : 'Group name'}
               isRequired
