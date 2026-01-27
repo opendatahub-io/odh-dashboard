@@ -22,7 +22,13 @@ const AllApiKeysPage: React.FC = () => {
       emptyStatePage={<EmptyApiKeysPage />}
       headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
     >
-      <CreateApiKeyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CreateApiKeyModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          refresh();
+        }}
+      />
 
       {loaded && (
         <PageSection isFilled>

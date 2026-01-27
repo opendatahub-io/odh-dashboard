@@ -37,19 +37,23 @@ import { createApiKey } from '../../api/api-keys';
 
 const getTodaysDate = () => {
   const date = new Date();
-  date.setHours(0, 0, 0, 0);
   return date;
 };
 
 const dateToGoDuration = (selectedDate: Date): string => {
   const today = getTodaysDate();
   const selected = new Date(selectedDate);
-  selected.setHours(0, 0, 0, 0);
+  selected.setHours(23, 59, 59, 999);
 
   const diffMs = selected.getTime() - today.getTime();
-  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const totalMinutes = Math.round(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
-  return `${totalHours}h`;
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${minutes}m`;
 };
 
 const createApiKeySchema = z.object({
@@ -200,11 +204,18 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
                         {formData.name}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                    {formData.expirationDate && (
+                    {formData.expirationDate ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Expiration</DescriptionListTerm>
                         <DescriptionListDescription data-testid="api-key-display-expiration">
                           {formData.expirationDate.toISOString().split('T')[0]}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Expiration</DescriptionListTerm>
+                        <DescriptionListDescription data-testid="api-key-display-expiration">
+                          4 hours
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     )}
@@ -288,7 +299,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
                   />
                   <FormHelperText>
                     <HelperText>
-                      <HelperTextItem>Optional expiration date for this API key</HelperTextItem>
+                      <HelperTextItem>
+                        Optional expiration date for this API key. If not specified, the API key
+                        will expire in 4 hours.
+                      </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>

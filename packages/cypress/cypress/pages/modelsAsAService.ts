@@ -1,5 +1,6 @@
 import { DeleteModal } from './components/DeleteModal';
 import { Modal } from './components/Modal';
+import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
 class TierTableRow extends TableRow {
@@ -314,6 +315,10 @@ class APIKeysPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state-title');
   }
+
+  findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-api-key-button');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
@@ -352,6 +357,81 @@ class RevokeAPIKeyModal extends Modal {
   }
 }
 
+class CreateApiKeyModal extends Modal {
+  constructor() {
+    super('Create API key');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Find the dialog that contains the API key name input (unique to this modal)
+    return cy.findByTestId('api-key-name-input').closest('[role="dialog"]');
+  }
+
+  shouldBeOpen(open = true): void {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+  }
+
+  findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-name-input');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-description-input');
+  }
+
+  findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-date-input');
+  }
+
+  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('create-api-key-button');
+  }
+}
+
+class CopyApiKeyModal extends Modal {
+  constructor() {
+    super('API key created');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Find the dialog that contains the API key token copy (unique to this modal)
+    return cy.findByTestId('api-key-token-copy').closest('[role="dialog"]');
+  }
+
+  shouldBeOpen(open = true): void {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      this.find().should('not.exist');
+    }
+  }
+
+  findApiKeyTokenCopy(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-token-copy');
+  }
+
+  findApiKeyTokenCopyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findApiKeyTokenCopy().findByRole('button', { name: 'Copy' });
+  }
+
+  findApiKeyTokenInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    // Find the read-only input field inside the ClipboardCopy component
+    return this.findApiKeyTokenCopy().find('input[type="text"]');
+  }
+
+  findApiKeyName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-display-name');
+  }
+
+  findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-display-expiration');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -359,3 +439,5 @@ export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
 export const apiKeysPage = new APIKeysPage();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
+export const createApiKeyModal = new CreateApiKeyModal();
+export const copyApiKeyModal = new CopyApiKeyModal();

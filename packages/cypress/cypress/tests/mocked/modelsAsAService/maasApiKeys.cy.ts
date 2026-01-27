@@ -1,8 +1,8 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { apiKeysPage, revokeAPIKeyModal } from '../../../pages/modelsAsAService';
-import { mockAPIKeys } from '../../../utils/maasUtils';
+import { apiKeysPage, revokeAPIKeyModal, copyApiKeyModal, createApiKeyModal } from '../../../pages/modelsAsAService';
+import { mockAPIKeys, mockCreateAPIKeyResponse } from '../../../utils/maasUtils';
 
 describe('API Keys Page', () => {
   beforeEach(() => {
@@ -76,5 +76,36 @@ describe('API Keys Page', () => {
       expect(interception.response?.statusCode).to.eq(200);
     });
     cy.wait('@getApiKeysAfterDelete');
+  });
+
+  it('should create a new API key', () => {
+    const now = new Date(2026, 0, 14).getTime(); // January 14, 2026
+    // Set the clock to the same day every time so the expiration date is always the same
+    cy.clock(now);
+
+    cy.interceptOdh('POST /maas/api/v1/api-key', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
+    createApiKeyModal.findExpirationDateInput().type('2026-01-20');
+    createApiKeyModal.findCreateButton().click();
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.response?.body?.data).to.include({
+        name: 'production-backend',
+        description: 'Production API key for backend service',
+        expiration: '4h',
+        expiresAt: 1769544565,
+      });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    // Verify the token is displayed correctly in the ClipboardCopy input
+    copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().token);
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '2026-01-20');
   });
 });
