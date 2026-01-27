@@ -26,6 +26,7 @@ const TabContentWrapper: React.FunctionComponent<TabContentWrapperProps> = ({
         ? 'var(--pf-v6-c-page__main-section--BackgroundColor)'
         : 'var(--pf-t--global--background--color--100)',
       padding: '1rem',
+      /** Sets the max width for all tab content */
       maxWidth: '550px',
     }),
     [isDarkMode],

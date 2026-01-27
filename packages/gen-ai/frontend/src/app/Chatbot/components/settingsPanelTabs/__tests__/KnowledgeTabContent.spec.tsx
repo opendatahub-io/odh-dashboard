@@ -55,11 +55,21 @@ describe('KnowledgeTabContent', () => {
   const createMockSourceManagement = (
     overrides?: Partial<UseSourceManagementReturn>,
   ): UseSourceManagementReturn => ({
+    selectedSourceSettings: null,
+    isSourceSettingsOpen: false,
     isRawUploaded: false,
+    filesWithSettings: [],
+    currentFileForSettings: null,
+    pendingFiles: [],
+    isUploading: false,
+    uploadProgress: { current: 0, total: 0 },
     setIsRawUploaded: jest.fn(),
     handleSourceDrop: jest.fn(),
     removeUploadedSource: jest.fn(),
-    filesWithSettings: [],
+    handleSourceSettingsSubmit: jest.fn(),
+    handleModalClose: jest.fn(),
+    setIsSourceSettingsOpen: jest.fn(),
+    setSelectedSourceSettings: jest.fn(),
     ...overrides,
   });
 
@@ -72,6 +82,7 @@ describe('KnowledgeTabContent', () => {
     error: null,
     deleteFileById: jest.fn(),
     refreshFiles: jest.fn(),
+    currentVectorStoreId: null,
     ...overrides,
   });
 

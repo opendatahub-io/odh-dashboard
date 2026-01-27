@@ -42,6 +42,7 @@ jest.mock('~/app/Chatbot/mcp/MCPServersPanel', () => ({
 describe('MCPTabContent', () => {
   const mockCheckMcpServerStatus = jest.fn().mockResolvedValue({
     status: 'connected',
+    message: 'Connected successfully',
     tools: [],
   } as ServerStatusInfo);
 
@@ -71,10 +72,24 @@ describe('MCPTabContent', () => {
   });
 
   it('renders MCPServersPanel with correct props', () => {
-    const servers = [
-      { id: 'server-1', name: 'Server 1' },
-      { id: 'server-2', name: 'Server 2' },
-    ] as MCPServerFromAPI[];
+    const servers: MCPServerFromAPI[] = [
+      {
+        name: 'Server 1',
+        url: 'http://server-1.com',
+        transport: 'sse',
+        description: 'Test Server 1',
+        logo: null,
+        status: 'healthy',
+      },
+      {
+        name: 'Server 2',
+        url: 'http://server-2.com',
+        transport: 'sse',
+        description: 'Test Server 2',
+        logo: null,
+        status: 'healthy',
+      },
+    ];
 
     render(
       <MCPTabContent
