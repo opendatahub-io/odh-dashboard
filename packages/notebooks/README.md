@@ -28,22 +28,16 @@ This guide outlines how to run the upstream Notebooks and integrate it with a lo
     make dev-start-federated
     ```
 
-    Now you need to port forward the Model Catalog service to allow the Notebooks to communicate with it. In a separate terminal, run:
+## Notebooks Setup
 
-    ```bash
-    kubectl port-forward svc/model-catalog 8086:8443 -n <model-catalog-namespace>
-    ```
-
-## Model Registry Setup
-
-For detailed instructions on how to run the Model Registry itself (covering local deployment, Kubeflow development, etc.), please refer to the official [Model Registry Documentation](./upstream/kubeflow/model-registry/docs/README.md).
+For detailed instructions on how to run the Notebooks itself (covering local deployment, Kubeflow development, etc.), please refer to the official [Notebooks Documentation](./upstream/README.md).
 
 ## ODH Integration Point
 
-The integration of this upstream Model Registry with Open Data Hub is managed via plugin extensions. The primary extension definitions for this integration can be found in:
-[./kubeflow/model-registry/frontend/src/extensions.ts](./upstream/kubeflow/model-registry/frontend/src/extensions.ts)
+The integration of this upstream Notebooks with Open Data Hub is managed via plugin extensions. The primary extension definitions for this integration can be found in:
+[./kubeflow/notebooks/frontend/src/odh/extensions.ts](./upstream/workspaces/frontend/src/odh/extensions.ts)
 
-This file declares how the Model Registry UI components and routes are exposed to and loaded by the ODH dashboard.
+This file declares how the Notebooks UI components and routes are exposed to and loaded by the ODH dashboard.
 
 ## Docker Workspace Build
 
@@ -57,30 +51,30 @@ This package uses a workspace-aware Dockerfile to handle Module Federation depen
 # Ensure you're at the repository root
 pwd  # should show the root of odh-dashboard
 
-# Build the model-registry image
-docker build --file ./packages/model-registry/Dockerfile.workspace --tag model-registry:latest .
+# Build the notebooks image
+docker build --file ./packages/notebooks/Dockerfile.workspace --tag notebooks:latest .
 
 # Build with custom module name (if using the template)
-docker build --file ./packages/model-registry/Dockerfile.workspace --build-arg MODULE_NAME=model-registry --tag model-registry:latest .
+docker build --file ./packages/notebooks/Dockerfile.workspace --build-arg MODULE_NAME=notebooks --tag notebooks:latest .
 ```
 
 ### Running the Container
 
 ```bash
 # Run the container
-docker run -p 8080:8080 model-registry:latest
+docker run -p 8080:8080 notebooks:latest
 
 # Run with environment variables
-docker run -p 8080:8080 -e DEPLOYMENT_MODE=production model-registry:latest
+docker run -p 8080:8080 -e DEPLOYMENT_MODE=production notebooks:latest
 ```
 
 ### Build Arguments
 
 The Dockerfile supports several build arguments for customization:
 
-- `MODULE_NAME`: Name of the module to build (default: model-registry)
-- `UI_SOURCE_CODE`: Path to the UI source code (default: ./packages/${MODULE_NAME}/upstream/frontend)
-- `BFF_SOURCE_CODE`: Path to the BFF source code (default: ./packages/${MODULE_NAME}/upstream/bff)
+- `MODULE_NAME`: Name of the module to build (default: notebooks)
+- `UI_SOURCE_CODE`: Path to the UI source code (default: ./packages/${MODULE_NAME}/upstream/workspaces/frontend)
+- `BFF_SOURCE_CODE`: Path to the BFF source code (default: ./packages/${MODULE_NAME}/upstream/workspaces/backend)
 - `NODE_BASE_IMAGE`: Base image for Node.js build stage
 - `GOLANG_BASE_IMAGE`: Base image for Go build stage
 - `DISTROLESS_BASE_IMAGE`: Base image for final runtime stage
