@@ -15,6 +15,7 @@ import {
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  GuardrailsStatus,
   LlamaModel,
   LlamaStackDistributionModel,
   MaaSModel,
@@ -24,6 +25,7 @@ import {
   MCPServersResponse,
   MCPToolsStatus,
   OutputItem,
+  SafetyConfigResponse,
   SimplifiedResponseData,
   SourceItem,
   VectorStore,
@@ -555,3 +557,6 @@ export const getMaaSModels = modArchRestGET<MaaSModel[]>('/maas/models');
 export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>(
   '/maas/tokens',
 );
+
+export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
+export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety/config');
