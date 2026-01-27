@@ -1,11 +1,9 @@
----
-description: Creating Jira issues in RHOAIENG project with proper formatting and field configuration
-globs: 
-alwaysApply: false
----
-# .cursorrules - Creating Jira Issues in RHOAIENG Project
+# Creating Jira Issues in RHOAIENG Project
 
-## Trigger:
+Guidelines for creating Jira issues in the RHOAIENG project with proper formatting and field configuration.
+
+## Trigger
+
 User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bug", "create a story for X").
 
 ## General Information & Best Practices
@@ -24,7 +22,7 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
 * **Labels**: Use the `labels` parameter in `additional_fields` as a list of strings. E.g., `{"labels": ["needs-info", "enhancement"]}`.
 * **Priority**: Set priority using `additional_fields`. E.g., `{"priority": {"name": "Major"}}`.
 * **Markdown Formatting**: The mcp-atlassian server automatically converts markdown to Jira syntax. Use proper markdown formatting in descriptions.
-* **Underlying Tool**: This rule uses the [mcp-atlassian server](mdc:https:/github.com/sooperset/mcp-atlassian) for Jira issue creation and management.
+* **Underlying Tool**: This rule uses the [mcp-atlassian server](https://github.com/sooperset/mcp-atlassian) for Jira issue creation and management.
 * **Label Usage**: Only use labels that are strictly defined in Appendix B unless the user specifically requests additional labels.
 
 ---
@@ -34,16 +32,19 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
 The mcp-atlassian server automatically converts markdown to Jira syntax using the `markdown_to_jira` method. Use the following markdown formatting for optimal conversion:
 
 ### Headers
+
 - Use `##` for section headers (converts to `h2.` in Jira)
 - Use `###` for subsection headers (converts to `h3.` in Jira)
 - Use `####` for sub-subsection headers (converts to `h4.` in Jira)
 
 ### Text Formatting
+
 - **Bold**: Use `**text**` (converts to `*text*` in Jira)
 - *Italic*: Use `*text*` (converts to `_text_` in Jira)
 - ~~Strikethrough~~: Use `~~text~~` (converts to `-text-` in Jira)
 
 ### Lists
+
 - **Bullet lists:**
   Use `- Item` for each item. Indent nested items with 2 spaces per level.
   ```markdown
@@ -66,48 +67,58 @@ The mcp-atlassian server automatically converts markdown to Jira syntax using th
   Do **not** use `*`, `#`, or other symbols for lists. Use only `-` for bullets and `1.` for numbers, with the correct indentation, for best results with the mcp-atlassian preprocessor.
 
 ### Code
+
 - **Inline code**: Use `` `code` `` (converts to `{{code}}` in Jira)
-- **Code blocks**: Use ```language\ncode\n``` (converts to `{code:language}...{code}` in Jira)
+- **Code blocks**: Use ` ```language\ncode\n``` ` (converts to `{code:language}...{code}` in Jira)
 
 ### Links
-- Use `[link text](mdc:url)` (converts to `[link text|url]` in Jira)
+
+- Use `[link text](url)` (converts to `[link text|url]` in Jira)
 
 ### Images
+
 - **Without alt text**: Use `![](url)` (converts to `!url!` in Jira)
-- **With alt text**: Use `![alt text](mdc:url)` (converts to `!url|alt=alt text!` in Jira)
+- **With alt text**: Use `![alt text](url)` (converts to `!url|alt=alt text!` in Jira)
 
 ### Blockquotes
+
 - **Recommended:** Use Jira markup directly:
-  ```
+  ```text
   bq. This is a blockquote in Jira
   ```
 - **Do NOT use:** `> text` (standard markdown blockquote), as it will not be converted.
 
 ### Tables
+
 - Use standard markdown table format with `|` separators
 - The preprocessor will automatically convert to Jira table format with `||` headers
 
 ### Special Characters
+
 - **Superscript**: Use `<sup>text</sup>` (converts to `^text^` in Jira)
 - **Subscript**: Use `<sub>text</sub>` (converts to `~text~` in Jira)
 - **Inserted text**: Use `<ins>text</ins>` (converts to `+text+` in Jira)
 - **Citation**: Use `<cite>text</cite>` (converts to `??text??` in Jira)
 
 ### Color Text
+
 - Use `<span style="color:#color">text</span>` (converts to `{color:#color}text{color}` in Jira)
 
 ---
 
 ## I. Creating a Bug
 
-### Definition:
+### Definition
+
 A defect in the product — e.g., something should be working but it is not. This often time is against requirements, direct ask, or "common sense" breaks.
+
 * **Bugs are NOT**:
   * New functionality that is unlike existing functionality.
   * A way to "improve" things outside of "expected functionality" - e.g., "A form should submit cleanly and report k8s errors on the form" (expected) vs "A form should scroll to where the error is in the form" (new functionality).
   * Tests that are broken (these should be Tasks).
 
-### Information Gathering:
+### Information Gathering
+
 1. **Summary**: From user. Should be concise and clearly state the problem.
 2. **Description**: From user. This should be a markdown string structured as follows:
    ```markdown
@@ -138,6 +149,7 @@ A defect in the product — e.g., something should be working but it is not. Thi
 5. **Labels**: Consider `needs-info` (if unclear), `needs-ux` (if UI presentation is part of the bug), `needs-advisor` (if fix is complex).
 
 ### Tool call possible params
+
 ```python
 project_key="RHOAIENG",
 issue_type="Bug",
@@ -155,13 +167,16 @@ additional_fields={
 
 ## II. Creating a Story
 
-### Definition:
+### Definition
+
 A user-impact addition/change to the product — e.g., feature work to add partial or whole pages, or update existing items to include additional functionality.
+
 * **Stories are NOT**:
   * Test additions (outside of expected tests accompanying new work - these are Tasks).
   * Fixes to defects in the product (these are Bugs).
 
-### Information Gathering:
+### Information Gathering
+
 1. **Summary**: From user. Should clearly state the user value or feature.
 2. **Description**: From user. This should be a markdown string structured as follows:
    ```markdown
@@ -183,6 +198,7 @@ A user-impact addition/change to the product — e.g., feature work to add parti
 4. **Labels**: Consider `enhancement`, `needs-info`, `needs-ux`, `needs-pm`, `needs-advisor`.
 
 ### Tool call possible params
+
 ```python
 project_key="RHOAIENG",
 issue_type="Story",
@@ -200,12 +216,15 @@ additional_fields={
 
 ## III. Creating a Task
 
-### Definition:
+### Definition
+
 A non-user facing change to the product — e.g., add a test, fix a test, or a refactor of code that does not impact the user (code cleanness / DRY / etc).
+
 * **Tasks are NOT**:
   * New product functionality visible to the user.
 
-### Information Gathering:
+### Information Gathering
+
 1. **Summary**: From user. Should clearly state the technical work.
 2. **Description**: From user. This should be a markdown string structured as follows:
    ```markdown
@@ -226,6 +245,7 @@ A non-user facing change to the product — e.g., add a test, fix a test, or a r
 4. **Labels**: Consider `tech-debt`, `advisor-tech-debt`.
 
 ### Tool call possible params
+
 ```python
 project_key="RHOAIENG",
 issue_type="Task",
@@ -243,10 +263,12 @@ additional_fields={
 
 ## IV. Creating a Story under an Epic
 
-### Definition:
+### Definition
+
 A user-impact Story that is part of a larger Epic. Follows Story definition above.
 
-### Information Gathering:
+### Information Gathering
+
 1. **Parent Epic Key**: (e.g., `RHOAIENG-123`). From user or context. **REQUIRED**.
 2. **Summary**: From user.
 3. **Description**: From user (as per updated Story guidelines, including formatted markdown for Description, AC, Additional Info).
@@ -254,6 +276,7 @@ A user-impact Story that is part of a larger Epic. Follows Story definition abov
 5. **Labels**: As per Story guidelines.
 
 ### Tool call possible params
+
 ```python
 # Infer PROJECT_KEY from PARENT_EPIC_KEY (e.g., "RHOAIENG" from "RHOAIENG-123")
 # PARENT_EPIC_KEY is the full key like "RHOAIENG-XXXX"
@@ -271,16 +294,19 @@ additional_fields={
 	"labels": ["enhancement", "..."]
 }
 ```
+
 * **Epic Link**: Do **NOT** use the `parent` field in `additional_fields` for linking Stories to Epics. Use the Epic Link custom field (`customfield_12311140`).
 
 ---
 
 ## V. Creating a Task under an Epic
 
-### Definition:
+### Definition
+
 A non-user facing Task that is part of a larger Epic. Follows Task definition above.
 
-### Information Gathering:
+### Information Gathering
+
 1. **Parent Epic Key**: (e.g., `RHOAIENG-123`). From user or context. **REQUIRED**.
 2. **Summary**: From user.
 3. **Description**: From user (as per updated Task guidelines, including formatted markdown for Description, AC, Additional Info).
@@ -288,6 +314,7 @@ A non-user facing Task that is part of a larger Epic. Follows Task definition ab
 5. **Labels**: As per Task guidelines.
 
 ### Tool call possible params
+
 ```python
 # Infer PROJECT_KEY from PARENT_EPIC_KEY
 # PARENT_EPIC_KEY is the full key like "RHOAIENG-XXXX"
@@ -306,18 +333,21 @@ additional_fields={
 }
 
 ```
+
 * **Epic Link**: Do **NOT** use the `parent` field in `additional_fields` for linking Tasks to Epics. Use the Epic Link custom field (`customfield_12311140`).
 
 ---
 
 ## VI. Creating an Epic
 
-### Context:
-* Epics in `RHOAIENG` are typically cloned from the template: [https://issues.redhat.com/browse/RHOAIENG-8770](mdc:https:/issues.redhat.com/browse/RHOAIENG-8770).
+### Context
+
+* Epics in `RHOAIENG` are typically cloned from the template: [https://issues.redhat.com/browse/RHOAIENG-8770](https://issues.redhat.com/browse/RHOAIENG-8770).
   * **Recommendation**: For creating new Epic shells, it's often safest to have the user clone the template manually in the Jira UI first. You can then assist with structuring and creating its child issues.
 * The Epic itself should primarily define **what the Epic aims to accomplish** at a high level.
 
-### AI's Role in Structuring an Epic's Child Issues:
+### AI's Role in Structuring an Epic's Child Issues
+
 * When a user requests an Epic and outlines its goals, or provides a detailed solution/task list for it, your primary role is to help **structure the *child issues* (Stories and/or Tasks) that will achieve the Epic's overall aim.**
 * **Analyze User Input for Child Issue Decomposition**: Carefully review the user's description of the Epic's goals, proposed solutions, features, and tasks to identify potential child issues.
 * **Propose Child Issue Structure**: Based on this analysis, suggest a logical structure of child Stories and Tasks.
@@ -333,14 +363,16 @@ additional_fields={
 * **Interaction & Refinement on Child Structure**: Present this proposed child issue decomposition to the user. Be prepared to discuss, refine, and adjust the breakdown based on their feedback and deeper domain knowledge.
 * **Epic Shell Description**: The description for the parent Epic issue itself should remain a **concise, high-level statement of what the Epic aims to accomplish**. It might briefly mention the main work streams if helpful, but the detailed breakdown lives in its child issues.
 
-### Information Gathering (for Epic Shell Creation - if using API or confirming details for a cloned Epic):
+### Information Gathering (for Epic Shell Creation - if using API or confirming details for a cloned Epic)
+
 1. **Summary (Epic Name)**: From user.
 2. **Description**: From user, a concise statement focusing on **what the Epic aims to accomplish**.
 3. **Priority**: Determine based on guidelines in Appendix A.
 4. **Labels**: Any standard labels for Epics.
 5. **Other template-specific fields**: If creating via API (less common), review `RHOAIENG-8770` for other custom fields (e.g., Strategic Alignment, Goals) and their field IDs that might be necessary.
 
-### Tool Call (Example for Epic Shell Creation - use with caution, prefer manual clone by user):
+### Tool Call (Example for Epic Shell Creation - use with caution, prefer manual clone by user)
+
 ```python
 project_key="RHOAIENG",
 issue_type="Epic",
@@ -355,7 +387,8 @@ additional_fields={
 
 ```
 
-### Creating Child Issues for the Epic:
+### Creating Child Issues for the Epic
+
 * Once the Epic exists (either cloned by user or created via API) and its key is known (e.g., `RHOAIENG-XXXX`):
 * For each agreed-upon decomposed piece of work, create a child Story or Task using the guidelines in:
   * **Section IV: Creating a Story under an Epic**
@@ -367,6 +400,7 @@ additional_fields={
 ## Appendix A: Triaging, Severity, and Priority Guidelines
 
 ### Triaging a Ticket (General Steps if creating and immediately triaging)
+
 These steps are typically for issues already created, but the principles guide field setting during creation.
 
 1. **Clear & Understandable?**
@@ -392,7 +426,8 @@ These steps are typically for issues already created, but the principles guide f
 
 ## Appendix B: Common Labels
 
-### General Purpose Labels:
+### General Purpose Labels
+
 * `needs-info`: More information required from reporter or other sources.
 * `needs-ux`: Requires input or mocks from the UX team.
 * `needs-pm`: Requires input or clarification from Product Management.

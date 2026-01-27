@@ -1,9 +1,6 @@
----
-description: Comprehensive guidelines for creating and maintaining Cypress mock tests with fully mocked backends for fast, isolated component and integration testing
-globs: 
-alwaysApply: false
----
 # Cypress Mock Test Rules
+
+Comprehensive guidelines for creating and maintaining Cypress mock tests with fully mocked backends for fast, isolated component and integration testing.
 
 ## Test Sources & Context Requirements
 
@@ -23,6 +20,7 @@ alwaysApply: false
 - Refactoring that requires validation of existing behavior
 
 ### Required Context for New Features
+
 1. **JIRA ticket and requirements** - Understand the feature scope and acceptance criteria
 2. **UI/UX specifications** - Review designs, user flows, and interaction patterns
 3. **API contracts** - Understand backend endpoints and data structures
@@ -30,12 +28,14 @@ alwaysApply: false
 5. **Related page objects** - Identify existing page objects or need for new ones
 
 ### Mock Tests vs E2E Tests
+
 - **Mock Tests**: Fast, isolated tests with all network requests mocked. Run without cluster access. Test UI logic, state management, and component interactions.
 - **E2E Tests**: Full integration tests against live clusters with real backend APIs. Test end-to-end workflows and actual system integration.
 - **Use mock tests for**: Component behavior, form validation, table interactions, modal flows, routing, permission checks, API error handling.
 - **Use E2E tests for**: Actual cluster operations, real data persistence, cross-service workflows, production-like scenarios.
 
 ### Implementation Approach
+
 1. **Gather Context** - Always ask for and review all context before starting
 2. **Review Existing Tests** - Search for similar tests in the mocked directory first
 3. **Review Existing Mocks** - Check `__mocks__` folder for reusable mock data
@@ -49,7 +49,8 @@ alwaysApply: false
 ### Folder Structure
 
 **Main Dashboard Tests** (`packages/cypress/cypress/`):
-```
+
+```text
 packages/cypress/cypress/
 ├── fixtures/mocked/       # Test fixture files (rarely used for mocks)
 ├── pages/                 # Page Object Model files (shared with E2E)
@@ -59,7 +60,8 @@ packages/cypress/cypress/
 ```
 
 **Module-Based Tests** (e.g., `packages/gen-ai/frontend/src/__tests__/cypress/cypress/`):
-```
+
+```text
 packages/<module-name>/frontend/src/__tests__/cypress/cypress/
 ├── __mocks__/             # Module-specific mock functions (TypeScript)
 ├── fixtures/mocked/       # Module-specific test data (YAML/JSON)
@@ -123,7 +125,8 @@ Some modules like `gen-ai`, `model-registry`, etc. have a **BFF (Backend For Fro
 Unless specifically testing BFF logic, mock tests should run WITHOUT the BFF using pure Cypress intercepts. This is faster and provides true component isolation.
 
 **Example - Gen AI Module Structure:**
-```
+
+```text
 packages/gen-ai/
 ├── bff/                           # Go backend service
 │   ├── cmd/                       # BFF entry point
@@ -173,6 +176,7 @@ Each module may have specific setup requirements. Always check:
 - Mock functions should accept partial data and merge with defaults
 
 **Example mock usage**:
+
 ```typescript
 import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
@@ -199,12 +203,13 @@ cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
 - One file per page or feature area
 
 **MANDATORY: Use proper describe/it structure**:
+
 ```typescript
 describe('Feature Name', () => {
   beforeEach(() => {
     // Common setup for all tests in this describe block
     asProductAdminUser(); // or appropriate user mock
-    
+
     // Common intercepts that ALL tests need
     cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/some-resource', []);
@@ -213,17 +218,17 @@ describe('Feature Name', () => {
   it('should describe specific behavior', () => {
     // Test-specific intercepts
     cy.interceptOdh('POST /api/resource', { success: true }).as('createResource');
-    
+
     // Visit the page
     somePage.visit();
-    
+
     // Test implementation
     somePage.findButton().click();
-    
+
     // Wait and assert
     cy.wait('@createResource');
   });
-  
+
   it('should handle another scenario', () => {
     // Another test with its own specific setup
   });
@@ -231,6 +236,7 @@ describe('Feature Name', () => {
 ```
 
 **Access control testing pattern**:
+
 ```typescript
 it('Feature should not be available for non-admin users', () => {
   asProjectAdminUser(); // Non-admin user
@@ -244,7 +250,7 @@ describe('Feature (admin access)', () => {
     asProductAdminUser(); // Admin user
     // ... intercepts
   });
-  
+
   it('should be accessible for admin users', () => {
     somePage.visit();
     somePage.findNavItem().should('exist');
@@ -253,17 +259,18 @@ describe('Feature (admin access)', () => {
 ```
 
 **Feature flag testing pattern**:
+
 ```typescript
 it('Feature should be hidden by feature flag', () => {
   asProductAdminUser();
-  
+
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableFeatureName: true, // Feature disabled
     }),
   );
-  
+
   somePage.visit();
   somePage.shouldBeEmpty(); // or appropriate validation
 });
@@ -289,21 +296,8 @@ Before writing tests, review existing tests of similar features to learn establi
 
 **Exception**: The **GenAI module** uses tags and `cy.step()` in their mock tests (team decision). When working on GenAI tests, follow the existing patterns in `mcpServers.cy.ts`.
 
-**APPROACH WITH STEPS/TAGS (E2E-style with tags and cy.step):**
-```typescript
-it('should do something', { tags: ['@Feature', '@Smoke'] }, () => {
-  cy.step('Setup the test');
-  somePage.visit();
-  
-  cy.step('Perform action');
-  somePage.clickButton();
-  
-  cy.step('Verify result');
-  somePage.verifyResult();
-});
-```
-
 **GOOD (Mock test style - clean and simple):**
+
 ```typescript
 it('should do something', () => {
   somePage.visit();
@@ -313,6 +307,7 @@ it('should do something', () => {
 ```
 
 **Example: Good test coverage (focused)**
+
 ```typescript
 describe('User Management', () => {
   beforeEach(() => {
@@ -343,10 +338,10 @@ describe('User Management', () => {
     const userGroupSection = userManagement.getUserGroupSection();
     userGroupSection.clearMultiChipItem();
     userGroupSection.selectMultiGroup('odh-admins');
-    
+
     const mockedAuth = mockAuth({ allowedGroups: ['odh-admins'] });
     cy.interceptK8s('PATCH', AuthModel, mockedAuth).as('saveGroupSetting');
-    
+
     userManagement.findSubmitButton().click();
     cy.wait('@saveGroupSetting').then((interception) => {
       // Validate the actual PATCH payload structure
@@ -364,28 +359,6 @@ describe('User Management', () => {
     cy.findByTestId('app-page-title').contains('User management');
     cy.url().should('include', '/settings/user-management');
   });
-});
-```
-
-**Example: Over-testing (avoid this)**
-```typescript
-describe('Group Settings', () => {
-  // ❌ BAD: 15 separate micro-tests for every small interaction
-  it('should display group settings page', () => { /* ... */ });
-  it('should show administrator info alert', () => { /* ... */ });
-  it('should enable save button when admin groups change', () => { /* ... */ });
-  it('should enable save button when user groups change', () => { /* ... */ });
-  it('should save group settings successfully', () => { /* ... */ });
-  it('should prevent saving with empty admin groups', () => { /* ... */ });
-  it('should prevent saving with empty user groups', () => { /* ... */ });
-  it('should allow creating new admin group', () => { /* ... */ });
-  it('should allow creating new user group', () => { /* ... */ });
-  it('should handle save error', () => { /* ... */ });
-  it('should handle loading error', () => { /* ... */ });
-  it('should display existing group selections', () => { /* ... */ });
-  it('should show helper text for both sections', () => { /* ... */ });
-  it('should disable save button while saving', () => { /* ... */ });
-  // This is too granular - combine related tests into comprehensive flows!
 });
 ```
 
@@ -436,7 +409,7 @@ cy.wait('@saveGroupSetting').then((interception) => {
 // ❌ BAD: Just checks that patches exist
 cy.wait('@patchAuth').then((interception) => {
   expect(interception.request.body).to.have.property('patches');
-  const patches = interception.request.body.patches;
+  const { patches } = interception.request.body;
   expect(patches).to.be.an('array');
 });
 ```
@@ -448,7 +421,7 @@ cy.wait('@patchAuth').then((interception) => {
 **CRITICAL RULE: Always add `data-testid` to components first, then create page object methods**
 
 - **NEVER use `cy.findByTestId()` directly in tests** - Always use page object methods
-- **NEVER use `cy.findByRole()` directly in tests** - Always use page object methods  
+- **NEVER use `cy.findByRole()` directly in tests** - Always use page object methods
 - **NEVER use `cy.get()` directly in test files** - Always use page object methods
 - **NEVER use brittle selectors** (text, placeholders, CSS classes) - Add testIDs instead
 
@@ -493,32 +466,36 @@ Search existing page objects first before creating new ones
 4. ❌ **NEVER USE**: DOM structure, CSS classes, placeholders, parent().find() chains
 
 **Examples of CORRECT testID usage**:
+
 ```typescript
-// ✅ BEST: data-testid on component
-// Component: <Button data-testid="save-button">Save</Button>
-findSaveButton() {
-  return cy.findByTestId('save-button');
-}
+class ExamplePage {
+  // ✅ BEST: data-testid on component
+  // Component: <Button data-testid="save-button">Save</Button>
+  findSaveButton() {
+    return cy.findByTestId('save-button');
+  }
 
-// ✅ BEST: data-testid on input
-// Component: <TextInput data-testid="temperature-input" />
-findTemperatureInput() {
-  return cy.findByTestId('temperature-input');
-}
+  // ✅ BEST: data-testid on input
+  // Component: <TextInput data-testid="temperature-input" />
+  findTemperatureInput() {
+    return cy.findByTestId('temperature-input');
+  }
 
-// ✅ BEST: data-testid on section
-// Component: <Title data-testid="rag-section-title">RAG</Title>
-findRAGSection() {
-  return cy.findByTestId('rag-section-title').parent();
-}
+  // ✅ BEST: data-testid on section
+  // Component: <Title data-testid="rag-section-title">RAG</Title>
+  findRAGSection() {
+    return cy.findByTestId('rag-section-title').parent();
+  }
 
-// ✅ ACCEPTABLE: Semantic query ONLY if testID cannot be added
-findSystemInstructionInput() {
-  return cy.findByLabelText(/System instructions/i);
+  // ✅ ACCEPTABLE: Semantic query ONLY if testID cannot be added
+  findSystemInstructionInput() {
+    return cy.findByLabelText(/System instructions/i);
+  }
 }
 ```
 
 **Examples of INCORRECT selectors (DO NOT DO THIS)**:
+
 ```typescript
 // ❌ BAD: Placeholder text
 cy.get('textarea[placeholder*="Send"]')
@@ -536,49 +513,8 @@ cy.findByRole('button', { name: /Delete/i })
 cy.get('.pf-chatbot__message--bot')
 ```
 
-**Component testID examples**:
-```tsx
-// ✅ Button with testID
-<Button data-testid="create-playground-button" onClick={handleCreate}>
-  Create playground
-</Button>
-
-// ✅ Input with testID
-<TextInput 
-  id="temperature-input"
-  data-testid="temperature-input"
-  value={temperature}
-/>
-
-// ✅ Toggle with testID
-<MenuToggle
-  data-testid="header-kebab-menu-toggle"
-  aria-label="Actions"
->
-  <EllipsisVIcon />
-</MenuToggle>
-
-// ✅ Section title with testID
-<Title data-testid="mcp-servers-section-title">
-  MCP servers
-</Title>
-
-// ✅ Menu item with testID
-<DropdownItem
-  data-testid="delete-playground-menu-item"
-  onClick={onDelete}
->
-  Delete playground
-</DropdownItem>
-```
-
-**When you encounter missing testIDs**:
-1. **DO NOT** write tests with brittle selectors
-2. **DO** add `data-testid` to the React component first
-3. **DO** commit the component changes along with the test
-4. **DO** inform the user if you added testIDs to components
-
 **Page object pattern** (stored in `pages/` directory):
+
 ```typescript
 class FeaturePage {
   visit() {
@@ -618,6 +554,7 @@ export const featurePage = new FeaturePage();
 **CRITICAL: Never add timeouts to page object methods**
 
 ❌ **BAD - Timeout in page object**:
+
 ```typescript
 class ChatbotPage {
   findMessageInput() {
@@ -628,6 +565,7 @@ class ChatbotPage {
 ```
 
 ✅ **GOOD - Timeout in test**:
+
 ```typescript
 class ChatbotPage {
   findMessageInput() {
@@ -656,6 +594,7 @@ it('should load message input', () => {
 - **Always specify timeout at the test level, never in page objects**
 
 **Table row page object pattern**:
+
 ```typescript
 class FeatureTableRow extends TableRow {
   findName() {
@@ -685,393 +624,6 @@ class FeaturePage {
 }
 ```
 
-**CRITICAL: Avoid Brittle Locators - Add testIDs Instead**
-
-❌ **BAD - Brittle selectors without testIDs (NEVER DO THIS)**:
-```typescript
-// ❌ Placeholder text (breaks when placeholder changes)
-cy.get('textarea[placeholder*="Send"]').type('message');
-cy.findByPlaceholderText(/Send a message/i).type('test');
-
-// ❌ Text + DOM traversal (breaks when structure or text changes)
-cy.findByText(/Temperature/i).parent().find('input').clear();
-cy.findByText(/RAG/i).parent().find('input[type="checkbox"]');
-
-// ❌ Generic selectors (breaks with any DOM changes)
-cy.get('input[type="checkbox"]').uncheck();
-cy.get('textarea').type('message');
-
-// ❌ Button text matching (breaks when button text changes)
-cy.findByRole('button', { name: /Create playground/i }).click();
-cy.findByRole('button', { name: /Delete/i }).click();
-
-// ❌ CSS classes (breaks when styling changes)
-cy.get('.pf-chatbot__message--bot').should('contain', 'response');
-cy.get('[class*="kebab"]').click();
-```
-
-✅ **CORRECT - Add testIDs to components, then use them in page objects**:
-
-**Step 1: Add testIDs to React components**:
-```tsx
-// Component file: ChatbotPlayground.tsx
-<textarea 
-  placeholder="Send a message..."
-  data-testid="chatbot-message-bar"  // ← ADD THIS
-/>
-
-<TextInput 
-  id="temperature-input"
-  data-testid="temperature-input"  // ← ADD THIS
-  type="number"
-/>
-
-<Switch
-  id="rag-toggle"
-  data-testid="rag-toggle-switch"  // ← ADD THIS
-/>
-
-<Button
-  onClick={onCreate}
-  data-testid="empty-state-action-button"  // ← ADD THIS
->
-  Create playground
-</Button>
-
-<MenuToggle
-  aria-label="Actions"
-  data-testid="header-kebab-menu-toggle"  // ← ADD THIS
-/>
-```
-
-**Step 2: Use testIDs in page object methods**:
-```typescript
-class ChatbotPage {
-  // ✅ GOOD: Using testID
-  findMessageInput() {
-    return cy.findByTestId('chatbot-message-bar');
-  }
-
-  // ✅ GOOD: Using testID
-  findTemperatureInput() {
-    return cy.findByTestId('temperature-input');
-  }
-
-  // ✅ GOOD: Using testID
-  findRAGToggle() {
-    return cy.findByTestId('rag-toggle-switch');
-  }
-
-  // ✅ GOOD: Using testID
-  findCreatePlaygroundButton() {
-    return cy.findByTestId('empty-state-action-button');
-  }
-
-  // ✅ GOOD: Using testID
-  findKebabMenuButton() {
-    return cy.findByTestId('header-kebab-menu-toggle');
-  }
-
-  // ✅ GOOD: Action methods using testID-based finders
-  setTemperature(value: string) {
-    this.findTemperatureInput().clear().type(value);
-  }
-
-  toggleRAG(enable: boolean) {
-    if (enable) {
-      this.findRAGToggle().check();
-    } else {
-      this.findRAGToggle().uncheck();
-    }
-  }
-
-  openKebabMenu() {
-    this.findKebabMenuButton().click();
-  }
-}
-```
-
-**Step 3: Use page object methods in tests**:
-```typescript
-it('should interact with chatbot settings', () => {
-  chatbotPage.visit();
-  chatbotPage.setTemperature('0.8');
-  chatbotPage.toggleRAG(true);
-  chatbotPage.openKebabMenu();
-});
-```
-
-**Real-world example from Gen AI chatbot tests**:
-
-Before (brittle):
-```typescript
-// ❌ BAD: Multiple brittle selectors
-cy.findByPlaceholderText(/Send a message/i).type('Hello');
-cy.findByText(/Temperature/i).parent().find('input[type="number"]').clear().type('0.8');
-cy.findByText(/RAG/i).parent().find('input[type="checkbox"]').check();
-cy.findByRole('button', { name: /kebab/i }).click();
-cy.findByText(/Delete/i).click();
-```
-
-After (robust with testIDs):
-```typescript
-// ✅ GOOD: testID-based page object methods
-chatbotPage.findMessageInput().type('Hello');
-chatbotPage.setTemperature('0.8');
-chatbotPage.toggleRAG(true);
-chatbotPage.openKebabMenu();
-chatbotPage.findDeleteMenuItem().click();
-```
-
-Components updated:
-```tsx
-// ModelParameterFormGroup.tsx - Added data-testid
-<TextInput data-testid="temperature-input" />
-
-// ChatbotSettingsPanel.tsx - Added data-testid
-<Title data-testid="rag-section-title">RAG</Title>
-<Switch data-testid="rag-toggle-switch" />
-
-// ChatbotHeaderActions.tsx - Added data-testid
-<MenuToggle data-testid="header-kebab-menu-toggle" />
-<DropdownItem data-testid="delete-playground-menu-item">Delete</DropdownItem>
-```
-
-**Extract Common Patterns to Page Objects**
-
-When you see repeated patterns like:
-```typescript
-// ❌ BAD: Repeated DOM traversal in tests
-cy.findByText(/Temperature/i).parent().within(() => {
-  cy.get('input[type="number"]').clear().type('0.8');
-});
-```
-
-Extract to reusable page object methods:
-```typescript
-// ✅ GOOD: Page object with finder + action methods
-class ChatbotPage {
-  findTemperatureSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText(/Temperature/i).parent();
-  }
-
-  findTemperatureInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTemperatureSection().find('input[type="number"]');
-  }
-
-  setTemperature(value: string): void {
-    this.findTemperatureInput().clear().type(value);
-  }
-}
-
-// In test:
-chatbotPage.setTemperature('0.8');
-```
-
-**Benefits**:
-- Single source of truth for selectors
-- Easier to update when UI changes
-- More readable tests
-- Reusable across multiple tests
-
-**Using page objects in tests**:
-```typescript
-it('should interact with table row', () => {
-  featurePage.visit();
-  
-  const row = featurePage.getTableRow('Test Item');
-  row.shouldHaveName('Test Item');
-  row.findKebabAction('Delete').click();
-  
-  deleteModal.findSubmitButton().click();
-});
-```
-
-### Advanced Page Object Patterns
-
-**CRITICAL: Learn from existing tests before creating new page objects**
-
-Before creating a new page object:
-1. Search for existing tests of the same page or similar functionality
-2. Review the existing page object patterns and reuse them
-3. Check for `Contextual` pattern usage for reusable sections
-4. Avoid duplicating logic that already exists
-
-**Contextual pattern for reusable sections**:
-
-When a page has multiple instances of the same UI pattern (e.g., multiple form sections, multiple settings groups), use the `Contextual` pattern:
-
-```typescript
-import { Contextual } from './components/Contextual';
-
-// Reusable section class that can be instantiated multiple times
-class GroupSettingSection extends Contextual<HTMLElement> {
-  clearMultiChipItem() {
-    this.find().findByRole('button', { name: 'Clear input value' }).click();
-  }
-
-  findMultiGroupInput() {
-    return this.find().find('input');
-  }
-
-  findMultiGroupOptions(name: string) {
-    // Use .document() to search outside the component context (e.g., for dropdowns)
-    return this.find().document().findByRole('option', { name });
-  }
-
-  private findChipGroup() {
-    return this.find().findByRole('list', { name: 'Current selections' });
-  }
-
-  findChipItem(name: string | RegExp) {
-    return this.findChipGroup().find('li').contains('span', name);
-  }
-
-  removeChipItem(name: string) {
-    this.findChipGroup()
-      .find('li')
-      .findByRole('button', { name: `Close ${name}` })
-      .click();
-  }
-
-  selectMultiGroup(name: string) {
-    this.findMultiGroupSelectButton().click();
-    this.findMultiGroupOptions(name).click();
-  }
-}
-
-// Main page object that creates section instances
-class UserManagement {
-  visit(wait = true) {
-    cy.visitWithLogin('/settings/user-management');
-    if (wait) {
-      this.wait();
-    }
-  }
-
-  private wait() {
-    // Validate specific content, not just existence
-    cy.findByTestId('app-page-title').should('have.text', 'User management');
-    cy.testA11y();
-  }
-
-  // Create section instances for different areas of the page
-  getAdministratorGroupSection() {
-    return new GroupSettingSection(() => cy.findByTestId('data-science-administrator-groups'));
-  }
-
-  getUserGroupSection() {
-    return new GroupSettingSection(() => cy.findByTestId('data-science-user-groups'));
-  }
-}
-```
-
-**Benefits of the Contextual pattern**:
-- Eliminates duplication (one class for multiple similar sections)
-- Encapsulates section-specific logic
-- Makes tests more readable and maintainable
-- Follows DRY principles
-
-**Using Contextual sections in tests**:
-```typescript
-it('Administrator group setting', () => {
-  const administratorGroupSection = userManagement.getAdministratorGroupSection();
-  
-  administratorGroupSection.findChipItem(/^odh-admins$/).should('exist');
-  administratorGroupSection.clearMultiChipItem();
-  administratorGroupSection.selectMultiGroup('odh-admins');
-  administratorGroupSection.removeChipItem('odh-admins');
-});
-```
-
-**Navigation and appChrome usage**:
-
-For finding navigation items, use `appChrome` with structured parameters instead of simple test IDs:
-
-```typescript
-import { appChrome } from './appChrome';
-
-class MyPage {
-  findNavItem() {
-    // ✅ GOOD: Uses appChrome with structure
-    return appChrome.findNavItem({ 
-      name: 'User management', 
-      rootSection: 'Settings' 
-    });
-  }
-  
-  navigate() {
-    this.findNavItem().click();
-    this.wait();
-  }
-}
-
-// ❌ BAD: Simple testId lookup
-findNavItem() {
-  return cy.findByTestId('settings-nav-item');
-}
-```
-
-**Wait methods with specific validation**:
-
-Always validate specific content in wait methods, not just existence:
-
-```typescript
-class MyPage {
-  private wait() {
-    // ✅ GOOD: Validates specific text content
-    cy.findByTestId('app-page-title').should('have.text', 'User management');
-    cy.testA11y();
-  }
-}
-
-// ❌ BAD: Only checks existence
-private wait() {
-  cy.findByTestId('app-page-title');
-  cy.testA11y();
-}
-```
-
-**Success/Error validation patterns**:
-
-Use semantic HTML roles and accessible names for robust validation:
-
-```typescript
-class MyPage {
-  shouldHaveSuccessAlertMessage() {
-    // ✅ GOOD: Uses alert role and accessible name
-    cy.findByRole('heading', { 
-      name: 'Success alert: Group settings changes saved' 
-    }).should('exist');
-    return this;
-  }
-}
-
-// ❌ BAD: Simple text search
-shouldHaveSuccessMessage() {
-  cy.findByText('Group settings changes saved').should('exist');
-  return this;
-}
-```
-
-**Scope management with .document()**:
-
-When elements appear outside the component context (e.g., dropdown menus, popovers), use `.document()` to search from document root:
-
-```typescript
-class MySection extends Contextual<HTMLElement> {
-  findDropdownOption(name: string) {
-    // ✅ GOOD: Searches from document root for portaled content
-    return this.find().document().findByRole('option', { name });
-  }
-}
-
-// ❌ BAD: Searches within component only, misses portaled dropdowns
-findDropdownOption(name: string) {
-  return this.find().findByRole('option', { name });
-}
-```
-
 ### Backend Mocking with Interceptors
 
 **MANDATORY: Mock ALL network requests**:
@@ -1081,6 +633,7 @@ findDropdownOption(name: string) {
 - NEVER make real network requests in mock tests
 
 **ODH API interceptor patterns**:
+
 ```typescript
 // GET request
 cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
@@ -1113,6 +666,7 @@ cy.interceptOdh('POST /api/connection-types', {
 ```
 
 **Kubernetes API interceptor patterns**:
+
 ```typescript
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
@@ -1141,6 +695,7 @@ cy.interceptK8s(
 ```
 
 **Waiting for requests and validating payloads**:
+
 ```typescript
 cy.interceptOdh('POST /api/connection-types', { success: true }).as('createConnection');
 
@@ -1168,6 +723,7 @@ cy.wait('@createConnection').then((interception) => {
 ### Validation and Assertion Patterns
 
 **Use page objects for all validations**:
+
 ```typescript
 // Good: Through page object
 featurePage.findStatus().should('have.text', 'Active');
@@ -1179,6 +735,7 @@ cy.findByTestId('status').should('have.text', 'Active');
 ```
 
 **Use helper utilities for common assertions**:
+
 ```typescript
 import { be } from '../../../utils/should';
 
@@ -1193,17 +750,18 @@ alert.findAlert().should(be.warning);
 ```
 
 **Form validation pattern**:
+
 ```typescript
 it('should validate form inputs', () => {
   featurePage.visit();
-  
+
   // Initially disabled
   featurePage.findSubmitButton().should('be.disabled');
-  
+
   // Fill required fields
   featurePage.findNameInput().type('Test Name');
   featurePage.findSubmitButton().should('be.enabled');
-  
+
   // Clear and check validation
   featurePage.findNameInput().clear();
   featurePage.findSubmitButton().should('be.disabled');
@@ -1212,199 +770,20 @@ it('should validate form inputs', () => {
 ```
 
 **Error handling pattern**:
+
 ```typescript
 it('should display error message on API failure', () => {
   cy.interceptOdh('POST /api/resource', {
     success: false,
     error: 'Resource already exists',
   });
-  
+
   featurePage.visit();
   featurePage.findNameInput().type('Test');
   featurePage.findSubmitButton().click();
-  
+
   featurePage.findFooterError().should('contain.text', 'Resource already exists');
   featurePage.findSubmitButton().should('be.enabled'); // Can retry
-});
-```
-
-### Testing Patterns for Common Scenarios
-
-**Table sorting**:
-```typescript
-it('should sort table columns', () => {
-  featurePage.visit();
-  
-  // Sort by name ascending
-  featurePage.findTableHeaderButton('Name').click();
-  featurePage.findTableHeaderButton('Name').should(be.sortAscending);
-  
-  // Sort by name descending
-  featurePage.findTableHeaderButton('Name').click();
-  featurePage.findTableHeaderButton('Name').should(be.sortDescending);
-  
-  // Sort by status
-  featurePage.findTableHeaderButton('Status').click();
-  featurePage.findTableHeaderButton('Status').should(be.sortAscending);
-});
-```
-
-**Table pagination**:
-```typescript
-import { testPagination } from '../../../utils/pagination';
-
-it('should paginate table results', () => {
-  const totalItems = 50;
-  const mockItems = Array.from({ length: totalItems }, (_, i) =>
-    mockItem({ name: `Item ${i}` }),
-  );
-  
-  cy.interceptOdh('GET /api/items', mockItems);
-  featurePage.visit();
-  
-  testPagination({ 
-    totalItems, 
-    firstElement: 'Item 0', 
-    paginationVariant: 'top' 
-  });
-});
-```
-
-**Modal interactions**:
-```typescript
-it('should delete item with confirmation', () => {
-  cy.interceptOdh(
-    'DELETE /api/items/:name',
-    { path: { name: 'test-item' } },
-    { success: true },
-  ).as('deleteItem');
-  
-  featurePage.visit();
-  
-  const row = featurePage.getTableRow('Test Item');
-  row.findKebabAction('Delete').click();
-  
-  // Modal validations
-  deleteModal.shouldBeOpen();
-  deleteModal.findSubmitButton().should('be.disabled');
-  deleteModal.findInput().fill('Test Item');
-  deleteModal.findSubmitButton().should('be.enabled').click();
-  
-  // Wait for API call
-  cy.wait('@deleteItem');
-  
-  // Modal should close
-  deleteModal.shouldBeOpen(false);
-});
-```
-
-**Switch/Toggle interactions**:
-```typescript
-it('should toggle feature on/off', () => {
-  cy.interceptOdh('PUT /api/items/:name', { success: true }).as('updateItem');
-  
-  featurePage.visit();
-  
-  const row = featurePage.getTableRow('Test Item');
-  row.findEnableSwitch().should('not.be.checked');
-  row.findEnableSwitch().check();
-  
-  cy.wait('@updateItem').then((interception) => {
-    expect(interception.request.body).to.containSubset({
-      enabled: true,
-    });
-  });
-});
-```
-
-**Drag and drop**:
-```typescript
-it('should reorder items with drag and drop', () => {
-  featurePage.visit();
-  
-  featurePage.getFieldsTableRow(0).findName().should('contain.text', 'Item 1');
-  featurePage.getFieldsTableRow(1).findName().should('contain.text', 'Item 2');
-  
-  // Drag row 0 to position 2
-  featurePage.getFieldsTableRow(0).dragToIndex(2);
-  
-  featurePage.getFieldsTableRow(0).findName().should('contain.text', 'Item 2');
-  featurePage.getFieldsTableRow(1).findName().should('contain.text', 'Item 1');
-  
-  // Submit button should be enabled after change
-  featurePage.findSubmitButton().should('be.enabled');
-});
-```
-
-**Route redirect testing**:
-```typescript
-it('should redirect from old v2 route to new v3 route', () => {
-  cy.visitWithLogin('/oldPath/feature');
-  cy.findByTestId('app-page-title').should('have.text', 'Feature Name');
-  cy.url().should('include', '/newPath/feature');
-});
-```
-
-### Helper Utilities and Reusable Functions
-
-**User mocking**:
-```typescript
-import { asProductAdminUser, asProjectAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
-
-// Product admin (full access)
-asProductAdminUser();
-
-// Project admin (limited access)
-asProjectAdminUser();
-
-// Project editor (minimal access)
-asProjectEditUser();
-```
-
-**Common test utilities**:
-```typescript
-import { be } from '../../../utils/should';
-import { testPagination } from '../../../utils/pagination';
-
-// Assertion helpers
-element.should(be.sortAscending);
-element.should(be.sortDescending);
-element.should(be.error);
-element.should(be.warning);
-element.should(be.default);
-
-// Pagination testing
-testPagination({ totalItems, firstElement, paginationVariant });
-```
-
-**Init intercepts pattern**:
-```typescript
-type HandlersProps = {
-  items?: Item[];
-  config?: ConfigType;
-};
-
-const initIntercepts = ({
-  items = [mockItem({}), mockItem({ name: 'item-2' })],
-  config = mockDashboardConfig({}),
-}: HandlersProps) => {
-  cy.interceptOdh('GET /api/config', config);
-  cy.interceptOdh('GET /api/items', items);
-  // ... other common intercepts
-};
-
-describe('Feature', () => {
-  beforeEach(() => {
-    asProductAdminUser();
-    initIntercepts({}); // Use defaults
-  });
-
-  it('should work with custom data', () => {
-    // Override defaults for specific test
-    initIntercepts({ items: [mockItem({ name: 'custom' })] });
-    featurePage.visit();
-    // ... test
-  });
 });
 ```
 
@@ -1435,6 +814,7 @@ describe('Feature', () => {
 - Default test data needs to be consistent across tests
 
 **Mock function pattern** (in `frontend/src/__mocks__` folder, exposed as `@odh-dashboard/internal/__mocks__`):
+
 ```typescript
 // mockFeature.ts
 import type { Feature } from '#~/types';
@@ -1448,16 +828,17 @@ export const mockFeature = (options?: Partial<Feature>): Feature => ({
   ...options, // Override with provided options
 });
 
-export const mockFeatureList = (count: number = 3): Feature[] =>
+export const mockFeatureList = (count = 3): Feature[] =>
   Array.from({ length: count }, (_, i) =>
-    mockFeature({ 
+    mockFeature({
       id: `feature-${i}`,
-      name: `Feature ${i}` 
+      name: `Feature ${i}`
     }),
   );
 ```
 
 **Using mock functions in tests**:
+
 ```typescript
 import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeature';
 
@@ -1494,6 +875,7 @@ cy.interceptOdh('GET /api/features', [
 ### Accessibility Testing
 
 **MANDATORY: All page visits should include accessibility testing**:
+
 ```typescript
 class FeaturePage {
   visit() {
@@ -1509,6 +891,7 @@ class FeaturePage {
 ```
 
 **Additional accessibility testing**:
+
 ```typescript
 // Test accessibility after modal opens
 modal.shouldBeOpen();
@@ -1524,6 +907,7 @@ cy.testA11y();
 ### Running Mock Tests
 
 **From workspace root**:
+
 ```bash
 # Run all mock tests (build + start server + run tests)
 npm run test:cypress-ci
@@ -1533,6 +917,7 @@ npm run test:cypress-ci -- --spec "**/featureName.cy.ts"
 ```
 
 **Development workflow** (requires separate terminals):
+
 ```bash
 cd frontend
 
@@ -1550,6 +935,7 @@ npm run cypress:run:mock -- --spec "**/featureName.cy.ts"
 ```
 
 **Production-like testing**:
+
 ```bash
 # Build frontend once
 npm run cypress:server:build
@@ -1586,6 +972,7 @@ npm run cypress:run:mock
    - Use `.containSubset()` for partial matching
 
 **Debugging commands**:
+
 ```bash
 # Open Cypress GUI with memory optimization
 npm run cypress:open:mock -- --config numTestsKeptInMemory=0
@@ -1597,6 +984,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 ## Implementation Checklist
 
 ### Before writing any test:
+
 - [ ] Gathered all required context (JIRA, requirements, designs)
 - [ ] Searched for similar tests in `tests/mocked/` directory
 - [ ] Reviewed existing page objects in `pages/` directory
@@ -1605,6 +993,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 - [ ] Planned test scenarios and edge cases
 
 ### During implementation:
+
 - [ ] Use `beforeEach` for common setup
 - [ ] Use `describe` and `it` blocks properly
 - [ ] Mock ALL network requests with interceptors
@@ -1619,6 +1008,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 - [ ] Include accessibility testing (`cy.testA11y()`)
 
 ### After implementation:
+
 - [ ] Run linting: `cd packages/cypress && npm run lint -- --fix`
 - [ ] Fix ALL linting errors
 - [ ] Run test locally: `npm run test:cypress-ci -- --spec "**/yourTest.cy.ts"`
@@ -1629,6 +1019,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 - [ ] Clean up any commented code or console.logs
 
 ### Quality gates:
+
 - [ ] No direct `cy.findByTestId`, `cy.findByRole`, or `cy.get` in tests
 - [ ] All selectors are in page objects
 - [ ] All mock data comes from `@odh-dashboard/internal/__mocks__`
@@ -1638,141 +1029,6 @@ DEBUG=cypress:* npm run cypress:run:mock
 - [ ] Accessibility testing included
 - [ ] Zero linting errors
 - [ ] Test passes consistently
-
-## Common Patterns Reference
-
-### Test Structure Template
-```typescript
-import { mockResource } from '@odh-dashboard/internal/__mocks__/mockResource';
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
-import { featurePage } from '../../../pages/feature';
-import { asProductAdminUser } from '../../../utils/mockUsers';
-
-// Access control test (outside describe block)
-it('Feature should not be available for non-admins', () => {
-  asProjectAdminUser();
-  cy.visitWithLogin('/feature-path');
-  pageNotfound.findPage().should('exist');
-  featurePage.findNavItem().should('not.exist');
-});
-
-describe('Feature Name', () => {
-  beforeEach(() => {
-    asProductAdminUser();
-    
-    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-    cy.interceptOdh('GET /api/resources', [mockResource({})]);
-  });
-
-  it('should display resources', () => {
-    featurePage.visit();
-    featurePage.findTable().should('exist');
-    featurePage.getTableRow('Resource 1').shouldHaveStatus('Active');
-  });
-
-  it('should create new resource', () => {
-    cy.interceptOdh('POST /api/resources', { success: true }).as('createResource');
-    
-    featurePage.visit();
-    featurePage.findCreateButton().click();
-    featurePage.findNameInput().type('New Resource');
-    featurePage.findSubmitButton().click();
-    
-    cy.wait('@createResource').then((interception) => {
-      expect(interception.request.body).to.containSubset({
-        name: 'New Resource',
-      });
-    });
-  });
-
-  it('should handle creation error', () => {
-    cy.interceptOdh('POST /api/resources', {
-      success: false,
-      error: 'Resource already exists',
-    });
-    
-    featurePage.visit();
-    featurePage.findCreateButton().click();
-    featurePage.findNameInput().type('Duplicate');
-    featurePage.findSubmitButton().click();
-    
-    featurePage.findErrorAlert().should('contain.text', 'Resource already exists');
-  });
-});
-```
-
-### Page Object Template
-```typescript
-import { appChrome } from './appChrome';
-import { TableRow } from './components/table';
-
-class FeatureTableRow extends TableRow {
-  findName() {
-    return this.find().findByTestId('row-name');
-  }
-
-  findStatus() {
-    return this.find().findByTestId('row-status');
-  }
-
-  shouldHaveStatus(status: string) {
-    this.findStatus().should('have.text', status);
-    return this;
-  }
-}
-
-class FeaturePage {
-  visit() {
-    cy.visitWithLogin('/feature-path');
-    this.wait();
-  }
-
-  private wait() {
-    cy.findByTestId('app-page-title');
-    cy.testA11y();
-  }
-
-  findNavItem() {
-    return appChrome.findNavItem({
-      name: 'Feature Name',
-      rootSection: 'Section',
-    });
-  }
-
-  findTable() {
-    return cy.findByTestId('feature-table');
-  }
-
-  getTableRow(name: string) {
-    return new FeatureTableRow(() =>
-      this.findTable().findAllByTestId('table-row-title').contains(name).parents('tr'),
-    );
-  }
-
-  findCreateButton() {
-    return cy.findByTestId('create-button');
-  }
-
-  findNameInput() {
-    return cy.findByTestId('name-input');
-  }
-
-  findSubmitButton() {
-    return cy.findByTestId('submit-button');
-  }
-
-  findErrorAlert() {
-    return cy.findByTestId('error-alert');
-  }
-
-  shouldBeEmpty() {
-    cy.findByTestId('empty-state').should('exist');
-    return this;
-  }
-}
-
-export const featurePage = new FeaturePage();
-```
 
 ## Differences from E2E Tests
 
@@ -1866,7 +1122,7 @@ describe('My GenAI Feature Test', () => {
 
 **Key Principles (using GenAI as example)**:
 - Use helper functions when they exist (`initIntercepts()` consolidates 10+ mocks into one call)
-- Follow navigation helpers (`navigateToChatbot()`) for consistent page state  
+- Follow navigation helpers (`navigateToChatbot()`) for consistent page state
 - ALWAYS wait for UI readiness after navigation before interacting with elements
 - Use module-specific intercepts (`cy.interceptGenAi()` vs `cy.interceptOdh()`)
 
@@ -1880,6 +1136,7 @@ describe('My GenAI Feature Test', () => {
 ### Common Mistakes (All Modules)
 
 ❌ **Setting up mocks manually when helpers exist**
+
 ```typescript
 // Antipattern - hard to maintain, easy to forget mocks
 cy.interceptApi('GET /endpoint1', mock1());
@@ -1888,12 +1145,14 @@ cy.interceptApi('GET /endpoint2', mock2());
 ```
 
 ✅ **Use helper functions**
+
 ```typescript
 // Correct - consistent, maintainable
 setupBaseHelpers({ config, ...options });
 ```
 
 ❌ **Navigating without waiting for UI**
+
 ```typescript
 // Antipattern - race conditions, flaky tests
 myPage.visit();
@@ -1901,6 +1160,7 @@ myPage.clickButton(); // May fail!
 ```
 
 ✅ **Wait for specific UI elements**
+
 ```typescript
 // Correct - reliable, explicit
 myPage.visit();

@@ -1,9 +1,6 @@
----
-description: Comprehensive guidelines for creating and maintaining Cypress E2E tests including Robot Framework migrations and new feature testing
-globs: 
-alwaysApply: false
----
 # Cypress E2E Test Rules
+
+Comprehensive guidelines for creating and maintaining Cypress E2E tests including Robot Framework migrations and new feature testing.
 
 ## Test Sources & Context Requirements
 
@@ -22,23 +19,27 @@ alwaysApply: false
 - References to new UI components or workflows
 
 ### Required Context for Robot Conversions
+
 1. **Original Robot Framework test code** - Get the complete .robot file content
 2. **JIRA URL context** - Review the original ODS tickets and current migration ticket
 3. **Original test purpose** - Understand the user journey, edge cases, and validation points
 4. **Environment setup** - What test data, users, and cluster state is required
 
 ### Required Context for New Features
+
 1. **JIRA epic and related tickets** - Understand the full feature scope
 2. **Miro boards or design docs** - Review the intended user experience
 3. **Feature documentation** - Check for API changes, new components, or workflows
 4. **Existing mock tests** - Verify if component-level tests already exist
 
 ### E2E vs Mock Tests
+
 - **E2E Tests**: End-to-end user journeys on live clusters with real backend APIs
 - **Mock Tests**: Component testing with mocked backends for faster, isolated testing
 - Both serve different purposes - E2E tests verify full system integration
 
 ### Implementation Approach
+
 1. **Gather Context** - Always ask for and review all context before starting
 2. **Review Existing Tests** - Search for similar tests in the e2e directory first
 3. **Plan Structure** - Break down into utilities, fixtures, and test scenarios
@@ -48,7 +49,8 @@ alwaysApply: false
 ## Framework Structure and Standards
 
 ### Folder Structure
-```
+
+```text
 packages/cypress/cypress/
 ├── fixtures/e2e/           # Test data files (YAML only)
 ├── pages/                  # Page Object Model files
@@ -77,7 +79,6 @@ packages/cypress/cypress/
 **Tagging convention**:
 - Tags should be specified in the test file, in the `it()` block options, e.g. `it('...', { tags: ['@Tag'] }, ...)`
 - Never include tags in fixture files.
-- See [project tagging guidelines](#) for more details (update with actual link if available).
 
 **No interfaces for test data**:
 - Don't create TypeScript interfaces for test data
@@ -91,10 +92,11 @@ packages/cypress/cypress/
 - Group related tests in feature directories
 
 **Test structure**:
+
 ```typescript
 describe('Feature Name', () => {
   // No beforeEach - not standard pattern
-  
+
   before(() => {
     // Setup only what's absolutely necessary
   });
@@ -133,7 +135,7 @@ describe('Feature Name', () => {
 - Follow navigation patterns from existing tests
 
 **Step documentation**:
-- Use `cy.step('Description')` instead of `cy.log()` 
+- Use `cy.step('Description')` instead of `cy.log()`
 - Steps auto-number and provide better test reporting
 - Be descriptive about what each step accomplishes
 
@@ -146,6 +148,7 @@ describe('Feature Name', () => {
 - Use retryable assertions with should() statements
 
 **OC command waiting**:
+
 ```typescript
 // Wait for resource readiness using OC commands
 cy.exec('oc wait --for=condition=Ready pod/my-pod --timeout=300s');
@@ -159,6 +162,7 @@ cy.exec('oc wait --for=condition=Ready pod/my-pod --timeout=300s');
 - Text can change, test IDs provide stable selectors
 
 **Validation examples**:
+
 ```typescript
 // Good: Test ID validation through page objects
 pageObject.findStatusIndicator().should('have.attr', 'data-testid', 'status-ready');
@@ -255,6 +259,7 @@ pageObject.findStatusText().should('contain', 'Running');
 When quarantining a test, add TWO markers to clearly identify it:
 
 **1. Add Product/Automation Bug prefix to describe block**:
+
 ```typescript
 // For product bugs (issue in the application code):
 describe('[Product Bug: RHOAIENG-12345] Feature Name', () => {
@@ -268,6 +273,7 @@ describe('[Automation Bug: RHOAIENG-12345] Feature Name', () => {
 ```
 
 **2. Add @Bug or @Maintain tag to test tags**:
+
 ```typescript
 it(
   'should test specific behavior',
@@ -286,17 +292,19 @@ it(
 ```
 
 **Alternative tag**: Use `@Maintain` for tests that need automation improvements:
+
 ```typescript
 tags: ['@Smoke', '@Dashboard', '@Maintain']
 ```
 
 **Complete quarantine example**:
+
 ```typescript
 describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
   it(
     'should launch notebook from project page',
-    { 
-      tags: ['@Smoke', '@Dashboard', '@Bug'] 
+    {
+      tags: ['@Smoke', '@Dashboard', '@Bug']
     },
     () => {
       // test implementation
@@ -345,19 +353,19 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
 
 3. **Remove quarantine markers** (both required):
    - **Remove bug prefix from describe block**:
-   ```typescript
+   ```text
    // Before:
-   describe('[Product Bug: RHOAIENG-12345] Feature Name', () => {
-   
+   describe('[Product Bug: RHOAIENG-12345] Feature Name', () => { ... });
+
    // After:
-   describe('Feature Name', () => {
+   describe('Feature Name', () => { ... });
    ```
-   
+
    - **Remove @Bug/@Maintain tag from tags array**:
    ```typescript
    // Before:
    tags: ['@Smoke', '@Dashboard', '@Bug']
-   
+
    // After:
    tags: ['@Smoke', '@Dashboard']
    ```
@@ -386,12 +394,12 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
    ```bash
    git add .
    git commit -m "test(e2e): Remove tests from quarantine - RHOAIENG-XXXXX
-   
+
    Tests validated stable across RHOAI and ODH clusters:
    - testFeatureName1.cy.ts
    - testFeatureName2.cy.ts
    - testFeatureName3.cy.ts
-   
+
    All tests passed consistently on both cluster types
    over multiple runs. Product bugs resolved."
    ```
@@ -399,6 +407,7 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
 ### Quarantine Removal Checklist
 
 Before removing tests from quarantine:
+
 - [ ] Test passes on RHOAI cluster (minimum 3 consecutive runs)
 - [ ] Test passes on ODH cluster (minimum 3 consecutive runs)
 - [ ] JIRA issue referenced in quarantine is resolved
@@ -414,18 +423,19 @@ Before removing tests from quarantine:
 ### Example: Complete Quarantine Removal
 
 **Before (quarantined)**:
+
 ```typescript
 describe('[Product Bug: RHOAIENG-33609] Verify Notebook Launch', () => {
   it(
     'should launch notebook successfully',
-    { 
+    {
       tags: [
         '@Smoke',
         '@SmokeSet1',
         '@Dashboard',
         '@Notebooks',
         '@Bug',  // Quarantine marker
-      ] 
+      ]
     },
     () => {
       // test code
@@ -435,18 +445,19 @@ describe('[Product Bug: RHOAIENG-33609] Verify Notebook Launch', () => {
 ```
 
 **After (removed from quarantine)**:
+
 ```typescript
 describe('Verify Notebook Launch', () => {
   it(
     'should launch notebook successfully',
-    { 
+    {
       tags: [
         '@Smoke',
         '@SmokeSet1',
         '@Dashboard',
         '@Notebooks',
         // @Bug removed - test is stable
-      ] 
+      ]
     },
     () => {
       // test code
@@ -468,6 +479,7 @@ describe('Verify Notebook Launch', () => {
 ## Implementation Checklist
 
 Before writing any test:
+
 - [ ] Gathered all required context (Robot code, JIRA details, etc.)
 - [ ] Searched for existing similar tests to reuse patterns
 - [ ] Reviewed existing page objects and utilities
@@ -475,6 +487,7 @@ Before writing any test:
 - [ ] Identified reusable components and utilities needed
 
 During implementation:
+
 - [ ] Use page objects for ALL UI interactions (no direct cy.findByTestId, cy.findByRole, cy.get)
 - [ ] Create page object methods for any missing test IDs or UI elements
 - [ ] Follow navigation patterns (.navigate() over cy.visit())
@@ -485,6 +498,7 @@ During implementation:
 - [ ] Never include tags in fixture files
 
 After implementation:
+
 - [ ] Run linting: `npm run lint -- --fix` (from the packages/cypress directory)
 - [ ] Fix ALL linting errors before claiming test is complete
 - [ ] Verify test independence and cleanup
@@ -512,6 +526,7 @@ After implementation:
    - Do not proceed with test execution until these details are confirmed.
 
 **Checklist Before Running E2E Test:**
+
 - [ ] Updated `test-variables.yml` with correct users and cluster details
 - [ ] Confirmed connection to the correct cluster (`oc whoami`, `oc config current-context`)
 - [ ] User has provided/confirmed all required test variable and cluster details
@@ -534,6 +549,7 @@ After implementation:
      - Recommend running the test in Cypress open mode (`cypress open`) to allow the user to observe the test execution live and assist with debugging.
 
 **Checklist:**
+
 - [ ] Run E2E test(s) after user confirmation
 - [ ] If test fails, analyze output and suggest fixes
 - [ ] Offer Cypress open mode for live debugging
@@ -541,6 +557,7 @@ After implementation:
 ## Namespace Handling for OC Commands
 
 **MANDATORY: Never hardcode namespaces in tests or utilities.**
+
 - Always derive namespaces from test variables, typically using `Cypress.env('APPLICATIONS_NAMESPACE')` or similar environment variables loaded from `test-variables.yml`.
 - This ensures tests are portable between RHOAI and ODH environments, where namespaces may differ.
 - When writing or updating utilities, accept the namespace as a parameter or use the environment variable as the default.
