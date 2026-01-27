@@ -227,6 +227,13 @@ export const assembleNIMService = (
     nimService.spec.tolerations = tolerations;
   }
 
+  // Set spec.labels - these are propagated to the InferenceService by the NIM Operator
+  // This is critical for the Dashboard to recognize and display the deployment
+  nimService.spec.labels = {
+    ...nimService.spec.labels,
+    [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+  };
+
   return nimService;
 };
 
