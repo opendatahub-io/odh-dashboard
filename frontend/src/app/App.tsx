@@ -14,6 +14,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import ErrorBoundary from '#~/components/error/ErrorBoundary';
+import RHOAIAssistantWidget from '#~/components/RHOAIAssistantWidget/RHOAIAssistantWidget';
 import ToastNotifications from '#~/components/ToastNotifications';
 import { useWatchBuildStatus } from '#~/utilities/useWatchBuildStatus';
 import { useUser } from '#~/redux/selectors';
@@ -43,7 +44,6 @@ import QuickStarts from './QuickStarts';
 import SessionExpiredModal from './SessionExpiredModal';
 import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
 import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
-
 import './App.scss';
 
 const App: React.FC = () => {
@@ -187,6 +187,7 @@ const App: React.FC = () => {
               <ToastNotifications />
               <TelemetrySetup />
             </ErrorBoundary>
+            <RHOAIAssistantWidget />
           </Page>
         </AccessReviewProvider>
       </AreaContextProvider>

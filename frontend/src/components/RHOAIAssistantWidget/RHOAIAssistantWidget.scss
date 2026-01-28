@@ -1,0 +1,98 @@
+.rhoai-assistant-overlay {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+}
+
+.rhoai-assistant-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &.is-open {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+}
+
+.rhoai-assistant-panel {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 380px;
+  height: 500px;
+  background: var(--pf-t--global--background--color--primary--default);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rhoai-assistant-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.rhoai-assistant-welcome {
+  text-align: center;
+  padding: 20px;
+
+  p {
+    margin: 12px 0 20px;
+    color: var(--pf-t--global--text--color--subtle);
+  }
+}
+
+.rhoai-assistant-suggestions {
+  margin-top: 16px;
+}
+
+.rhoai-assistant-message {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 85%;
+  white-space: pre-wrap;
+  line-height: 1.5;
+
+  &.user {
+    background: var(--pf-t--global--color--brand--default);
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+
+  &.assistant {
+    background: var(--pf-t--global--background--color--secondary--default);
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+  }
+}
+
+.rhoai-assistant-input {
+  padding: 12px;
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+
+  textarea {
+    resize: none;
+  }
+}
