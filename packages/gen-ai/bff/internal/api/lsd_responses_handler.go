@@ -27,6 +27,8 @@ var supportedEventTypes = map[string]bool{
 	"response.output_text.delta":  true, // Text delta/chunk for streaming text
 	"response.content_part.done":  true, // Content part completed
 	"response.completed":          true, // Response generation completed
+	"response.refusal.delta":      true, // Refusal text
+	"response.refusal.done":       true, // Refusal text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -42,11 +44,13 @@ type ChatContextMessage struct {
 
 // StreamingEvent represents a streaming event
 type StreamingEvent struct {
-	Delta          string        `json:"delta"`
+	Delta          string        `json:"delta,omitempty"`
+	Refusal        string        `json:"refusal,omitempty"` // For response.refusal.done events (OpenAI standard)
 	SequenceNumber int64         `json:"sequence_number"`
 	Type           string        `json:"type"`
-	ItemID         string        `json:"item_id"`
+	ItemID         string        `json:"item_id,omitempty"`
 	OutputIndex    int           `json:"output_index"`
+	ContentIndex   int           `json:"content_index,omitempty"` // For refusal events
 	Response       *ResponseData `json:"response,omitempty"`
 }
 
@@ -58,8 +62,6 @@ type ResponseData struct {
 	CreatedAt          int64        `json:"created_at"`
 	Output             []OutputItem `json:"output,omitempty"`
 	PreviousResponseID string       `json:"previous_response_id,omitempty"` // Reference to previous response in conversation thread
-	GuardrailTriggered bool         `json:"guardrail_triggered,omitempty"`  // True if response was blocked by guardrails
-	ViolationReason    string       `json:"violation_reason,omitempty"`     // Reason for guardrail violation (from moderation API)
 }
 
 // OutputItem represents an output item with essential fields
@@ -83,7 +85,8 @@ type OutputItem struct {
 // ContentItem represents content with essential fields
 type ContentItem struct {
 	Type        string        `json:"type"`
-	Text        string        `json:"text"`
+	Text        string        `json:"text,omitempty"`        // For output_text content type
+	Refusal     string        `json:"refusal,omitempty"`     // For refusal content type (OpenAI standard for guardrails)
 	Annotations []interface{} `json:"annotations,omitempty"` // For content annotations
 }
 
@@ -261,9 +264,11 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	if createRequest.InputShieldID != "" {
 		modResult, err := app.checkModeration(ctx, createRequest.Input, createRequest.InputShieldID)
 		if err != nil {
-			app.logger.Warn("Input moderation failed, continuing without moderation", "error", err)
-			// Fail open - continue processing if moderation service is unavailable
-		} else if modResult.Flagged {
+			app.logger.Error("Input moderation failed", "error", err, "shield_id", createRequest.InputShieldID)
+			app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
+			return
+		}
+		if modResult.Flagged {
 			app.logger.Info("Input blocked by guardrails",
 				"shield_id", createRequest.InputShieldID,
 				"reason", modResult.ViolationReason)
@@ -420,9 +425,11 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		if outputText != "" {
 			modResult, err := app.checkModeration(ctx, outputText, params.OutputShieldID)
 			if err != nil {
-				app.logger.Warn("Output moderation failed, continuing without moderation", "error", err)
-				// Fail open - continue with original response if moderation service is unavailable
-			} else if modResult.Flagged {
+				app.logger.Error("Output moderation failed", "error", err, "shield_id", params.OutputShieldID)
+				app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
+				return
+			}
+			if modResult.Flagged {
 				app.logger.Info("Output blocked by guardrails",
 					"shield_id", params.OutputShieldID,
 					"reason", modResult.ViolationReason)
@@ -448,7 +455,8 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 }
 
 // sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
-// This is used when input moderation flags content and the client requested streaming
+// using the OpenAI standard refusal content type and streaming events.
+// This is used when input moderation flags content and the client requested streaming.
 func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string, violationReason string) {
 	// Check if ResponseWriter supports streaming
 	flusher, ok := w.(http.Flusher)
@@ -477,14 +485,14 @@ func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, mode
 	itemID := "msg_guardrail"
 
 	// Send response.created event
-	createdEvent := map[string]interface{}{
-		"type":            "response.created",
-		"sequence_number": 0,
-		"response": map[string]interface{}{
-			"id":         responseID,
-			"model":      model,
-			"status":     "in_progress",
-			"created_at": getCurrentTimestamp(),
+	createdEvent := &StreamingEvent{
+		Type:           "response.created",
+		SequenceNumber: 0,
+		Response: &ResponseData{
+			ID:        responseID,
+			Model:     model,
+			Status:    "in_progress",
+			CreatedAt: getCurrentTimestamp(),
 		},
 	}
 	if eventData, err := json.Marshal(createdEvent); err == nil {
@@ -492,56 +500,57 @@ func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, mode
 		flusher.Flush()
 	}
 
-	// Send response.output_text.delta with the guardrail message
-	deltaEvent := &StreamingEvent{
-		Type:           "response.output_text.delta",
+	// Send response.refusal.delta with the guardrail message (OpenAI standard)
+	refusalDeltaEvent := &StreamingEvent{
+		Type:           "response.refusal.delta",
 		SequenceNumber: 1,
 		ItemID:         itemID,
 		OutputIndex:    0,
+		ContentIndex:   0,
 		Delta:          message,
 	}
-	if eventData, err := json.Marshal(deltaEvent); err == nil {
+	if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
 		fmt.Fprintf(w, "data: %s\n\n", eventData)
 		flusher.Flush()
 	}
 
-	// Send response.content_part.done
-	doneEvent := &StreamingEvent{
-		Type:           "response.content_part.done",
+	// Send response.refusal.done (OpenAI standard)
+	refusalDoneEvent := &StreamingEvent{
+		Type:           "response.refusal.done",
 		SequenceNumber: 2,
 		ItemID:         itemID,
 		OutputIndex:    0,
+		ContentIndex:   0,
+		Refusal:        message,
 	}
-	if eventData, err := json.Marshal(doneEvent); err == nil {
+	if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
 		fmt.Fprintf(w, "data: %s\n\n", eventData)
 		flusher.Flush()
 	}
 
-	// Send response.completed with guardrail flag
-	completedEvent := map[string]interface{}{
-		"type":            "response.completed",
-		"sequence_number": 3,
-		"response": map[string]interface{}{
-			"id":         responseID,
-			"model":      model,
-			"status":     "completed",
-			"created_at": getCurrentTimestamp(),
-			"output": []map[string]interface{}{
+	// Send response.completed with refusal content type (OpenAI standard)
+	completedEvent := &StreamingEvent{
+		Type:           "response.completed",
+		SequenceNumber: 3,
+		Response: &ResponseData{
+			ID:        responseID,
+			Model:     model,
+			Status:    "completed",
+			CreatedAt: getCurrentTimestamp(),
+			Output: []OutputItem{
 				{
-					"id":     itemID,
-					"type":   "message",
-					"role":   "assistant",
-					"status": "completed",
-					"content": []map[string]interface{}{
+					ID:     itemID,
+					Type:   "message",
+					Role:   "assistant",
+					Status: "completed",
+					Content: []ContentItem{
 						{
-							"type": "output_text",
-							"text": message,
+							Type:    "refusal",
+							Refusal: message,
 						},
 					},
 				},
 			},
-			"guardrail_triggered": true,
-			"violation_reason":    violationReason,
 		},
 	}
 	if eventData, err := json.Marshal(completedEvent); err == nil {

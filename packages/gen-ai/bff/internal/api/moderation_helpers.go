@@ -82,16 +82,15 @@ func ShouldTriggerModeration(accumulatedText string, wordCount int) bool {
 }
 
 // EndsWithSentenceBoundary checks if the text ends with a sentence-ending punctuation mark.
-// Handles common sentence terminators and accounts for trailing whitespace.
+// Handles common sentence terminators, newlines, and accounts for trailing whitespace.
 func EndsWithSentenceBoundary(text string) bool {
 	trimmed := strings.TrimRight(text, " \t")
 	if len(trimmed) == 0 {
 		return false
 	}
 
-	// Check for common sentence-ending punctuation
 	lastChar := trimmed[len(trimmed)-1]
-	return lastChar == '.' || lastChar == '!' || lastChar == '?'
+	return lastChar == '.' || lastChar == '!' || lastChar == '?' || lastChar == '\n'
 }
 
 // extractResponseText extracts the text content from a response for moderation
@@ -109,7 +108,6 @@ func extractResponseText(response *ResponseData) string {
 	return strings.Join(textParts, " ")
 }
 
-// createGuardrailViolationResponse creates a response indicating guardrail violation
 func createGuardrailViolationResponse(responseID string, model string, violationReason string) ResponseData {
 	// Use the violation reason from moderation API, or fall back to default message
 	message := constants.GuardrailViolationMessage
@@ -118,12 +116,10 @@ func createGuardrailViolationResponse(responseID string, model string, violation
 	}
 
 	return ResponseData{
-		ID:                 responseID,
-		Model:              model,
-		Status:             "completed",
-		CreatedAt:          0,
-		GuardrailTriggered: true,
-		ViolationReason:    violationReason,
+		ID:        responseID,
+		Model:     model,
+		Status:    "completed",
+		CreatedAt: 0,
 		Output: []OutputItem{
 			{
 				ID:     "msg_guardrail",
@@ -132,8 +128,8 @@ func createGuardrailViolationResponse(responseID string, model string, violation
 				Status: "completed",
 				Content: []ContentItem{
 					{
-						Type: "output_text",
-						Text: message,
+						Type:    "refusal",
+						Refusal: message,
 					},
 				},
 			},

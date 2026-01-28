@@ -339,7 +339,7 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 	}
 
 	// Helper function to send input guardrail violation in streaming format
-	// Uses the same delta format as output violations for consistency
+	// Uses OpenAI standard refusal content type and streaming events
 	sendInputBlockedError := func() {
 		// Send response.created event
 		sendEvent(map[string]interface{}{
@@ -356,24 +356,27 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 
 		// Send delta with guardrail violation message
 		sendEvent(map[string]interface{}{
-			"type":            "response.output_text.delta",
+			"type":            "response.refusal.delta",
 			"sequence_number": 1,
 			"item_id":         itemID,
 			"output_index":    0,
+			"content_index":   0,
 			"delta":           GuardrailViolationMessage,
 		})
 		flusher.Flush()
 
-		// Send content part done
+		// Send response.refusal.done (OpenAI standard)
 		sendEvent(map[string]interface{}{
-			"type":            "response.content_part.done",
+			"type":            "response.refusal.done",
 			"sequence_number": 2,
 			"item_id":         itemID,
 			"output_index":    0,
+			"content_index":   0,
+			"refusal":         GuardrailViolationMessage,
 		})
 		flusher.Flush()
 
-		// Send response.completed with guardrail flag
+		// Send response.completed with refusal content type (OpenAI standard)
 		sendEvent(map[string]interface{}{
 			"type":            "response.completed",
 			"sequence_number": 3,
@@ -390,14 +393,12 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 						"status": "completed",
 						"content": []map[string]interface{}{
 							{
-								"type": "output_text",
-								"text": GuardrailViolationMessage,
+								"type":    "refusal",
+								"refusal": GuardrailViolationMessage,
 							},
 						},
 					},
 				},
-				"guardrail_triggered": true,
-				"violation_reason":    "Input moderation",
 			},
 		})
 		flusher.Flush()
@@ -424,28 +425,30 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
 	}
 
-	// Helper function to send guardrail violation and complete response
+	// Helper function to send guardrail violation and complete response using OpenAI standard refusal events
 	sendGuardrailViolation := func(sequenceNum int, accumulatedText string) {
-		// Send the guardrail violation message as the response
+		// Send response.refusal.delta with the guardrail violation message (OpenAI standard)
 		sendEvent(map[string]interface{}{
-			"type":            "response.output_text.delta",
+			"type":            "response.refusal.delta",
 			"sequence_number": sequenceNum,
 			"item_id":         itemID,
 			"output_index":    0,
+			"content_index":   0,
 			"delta":           GuardrailViolationMessage,
 		})
 		flusher.Flush()
 
-		// Content part done
+		// Send response.refusal.done (OpenAI standard)
 		sendEvent(map[string]interface{}{
-			"type":            "response.content_part.done",
+			"type":            "response.refusal.done",
 			"sequence_number": sequenceNum + 1,
 			"item_id":         itemID,
 			"output_index":    0,
-			"delta":           "",
+			"content_index":   0,
+			"refusal":         GuardrailViolationMessage,
 		})
 
-		// Response completed with guardrail status
+		// Response completed with refusal content type (OpenAI standard)
 		sendEvent(map[string]interface{}{
 			"type":            "response.completed",
 			"sequence_number": 0,
@@ -465,14 +468,12 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 						"status": "completed",
 						"content": []map[string]interface{}{
 							{
-								"type": "output_text",
-								"text": GuardrailViolationMessage,
+								"type":    "refusal",
+								"refusal": GuardrailViolationMessage,
 							},
 						},
 					},
 				},
-				"guardrail_triggered": true,
-				"blocked_content":     accumulatedText,
 			},
 		})
 	}

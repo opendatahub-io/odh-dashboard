@@ -115,11 +115,13 @@ func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChu
 
 		modResult, err := app.checkModeration(s.ctx, chunk.Text, shieldID)
 		if err != nil {
-			// Fail open - treat as safe if moderation service is unavailable
-			s.logger.Warn("Async moderation failed, treating as safe",
+			// Fail closed - treat as unsafe if moderation service is unavailable
+			s.logger.Error("Async moderation failed",
 				"error", err,
-				"chunk", chunk.SequenceNum)
-			result.Safe = true
+				"chunk", chunk.SequenceNum,
+				"shield_id", shieldID)
+			result.Safe = false
+			result.ViolationReason = "Guardrails service unavailable"
 			result.Err = err
 		} else if modResult.Flagged {
 			result.Safe = false
@@ -294,12 +296,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 				}
 			}
 		}
-		// Check if this is a model not found error
-		if ModelNotFoundError(err) {
-			app.modelNotFoundResponse(w, r, params.Model)
-			return
-		}
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 	defer stream.Close()
@@ -370,60 +367,58 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		}
 	}()
 
-	// Helper to send guardrail violation in streaming format
+	// Helper to send guardrail violation in streaming format using OpenAI standard refusal events
 	sendGuardrailViolation := func(violationReason string) {
 		message := constants.GuardrailViolationMessage
 		if violationReason != "" {
 			message = violationReason
 		}
 
-		// Send guardrail violation message as delta
-		violationEvent := &StreamingEvent{
-			Type:           "response.output_text.delta",
+		// Send response.refusal.delta with the guardrail message (OpenAI standard)
+		refusalDeltaEvent := &StreamingEvent{
+			Type:           "response.refusal.delta",
 			SequenceNumber: lastSequenceNum,
 			ItemID:         currentItemID,
 			OutputIndex:    0,
+			ContentIndex:   0,
 			Delta:          message,
 		}
-		if eventData, err := json.Marshal(violationEvent); err == nil {
+		if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
 			_ = sendEvent(eventData) // Best effort - client may have disconnected
 		}
 
-		// Send content part done
-		doneEvent := &StreamingEvent{
-			Type:           "response.content_part.done",
+		// Send response.refusal.done (OpenAI standard)
+		refusalDoneEvent := &StreamingEvent{
+			Type:           "response.refusal.done",
 			SequenceNumber: lastSequenceNum + 1,
 			ItemID:         currentItemID,
 			OutputIndex:    0,
+			ContentIndex:   0,
+			Refusal:        message,
 		}
-		if eventData, err := json.Marshal(doneEvent); err == nil {
+		if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
 			_ = sendEvent(eventData) // Best effort - client may have disconnected
 		}
 
-		// Send response completed with guardrail flag
-		completedEvent := map[string]interface{}{
-			"type":            "response.completed",
-			"sequence_number": 0,
-			"item_id":         "",
-			"output_index":    0,
-			"delta":           "",
-			"response": map[string]interface{}{
-				"id":                  responseID,
-				"model":               responseModel,
-				"status":              "completed",
-				"created_at":          0,
-				"guardrail_triggered": true,
-				"violation_reason":    violationReason,
-				"output": []map[string]interface{}{
+		// Send response.completed with refusal content type (OpenAI standard)
+		completedEvent := &StreamingEvent{
+			Type:           "response.completed",
+			SequenceNumber: 0,
+			Response: &ResponseData{
+				ID:        responseID,
+				Model:     responseModel,
+				Status:    "completed",
+				CreatedAt: 0,
+				Output: []OutputItem{
 					{
-						"id":     currentItemID,
-						"type":   "message",
-						"role":   "assistant",
-						"status": "completed",
-						"content": []map[string]interface{}{
+						ID:     currentItemID,
+						Type:   "message",
+						Role:   "assistant",
+						Status: "completed",
+						Content: []ContentItem{
 							{
-								"type": "output_text",
-								"text": message,
+								Type:    "refusal",
+								Refusal: message,
 							},
 						},
 					},
