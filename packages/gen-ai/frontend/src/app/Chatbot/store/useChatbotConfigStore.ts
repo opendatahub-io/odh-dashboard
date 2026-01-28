@@ -50,6 +50,15 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         });
       },
 
+      updateGuardrailsEnabled: (id: string, value: boolean) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrailsEnabled = value;
+          }
+        });
+      },
+
       // Configuration management
       resetConfiguration: () => {
         set(() => ({ ...initialState }));

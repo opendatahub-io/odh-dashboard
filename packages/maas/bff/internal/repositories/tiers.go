@@ -263,7 +263,16 @@ func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) (*mo
 		return nil, err
 	}
 
-	if !t.isEmptyLimits(tier.Limits) {
+	hasTokenLimits := t.hasTokenLimits(tier.Limits)
+	hasRequestLimits := t.hasRequestLimits(tier.Limits)
+
+	// Always reset policies, then recreate only what is requested.
+	// Prevents mismatches when one limit is cleared and the other stays.
+	if err = t.deleteTierRateLimitPolicies(ctx, tier.Name, true, true); err != nil {
+		return nil, err
+	}
+
+	if hasTokenLimits || hasRequestLimits {
 		err = t.createOrUpdateRateLimitPolicies(ctx, tier.Name, tier.Limits)
 		if err != nil {
 			return nil, err
@@ -294,7 +303,7 @@ func (t *TiersRepository) DeleteTierByName(ctx context.Context, name string) err
 	// TODO: Delete side effects? (e.g. models belonging to the tier)
 
 	// Clean up rate limit policy resources associated with this tier
-	if err := t.deleteTierRateLimitPolicies(ctx, name); err != nil {
+	if err := t.deleteTierRateLimitPolicies(ctx, name, true, true); err != nil {
 		t.logger.Warn("Failed to cleanup tier rate limit policies", "tier", name, "error", err)
 		return err
 	}
@@ -303,7 +312,7 @@ func (t *TiersRepository) DeleteTierByName(ctx context.Context, name string) err
 }
 
 // deleteTierRateLimitPolicies removes all rate limit policy resources associated with a tier
-func (t *TiersRepository) deleteTierRateLimitPolicies(ctx context.Context, tierName string) error {
+func (t *TiersRepository) deleteTierRateLimitPolicies(ctx context.Context, tierName string, deleteTokenPolicy, deleteRequestPolicy bool) error {
 	var errs []error
 
 	client, err := t.k8sFactory.GetClient(ctx)
@@ -313,28 +322,32 @@ func (t *TiersRepository) deleteTierRateLimitPolicies(ctx context.Context, tierN
 
 	kubeClient := client.GetDynamicClient()
 
-	// Delete RateLimitPolicy if it exists
-	ratePolicyName := "tier-" + tierName + "-rate-limits"
-	err = kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, ratePolicyName, metav1.DeleteOptions{})
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			t.logger.Warn("Failed to delete RateLimitPolicy", "tier", tierName, "policy", ratePolicyName, "error", err)
-			errs = append(errs, err)
+	// Delete RateLimitPolicy if it exists and is empty
+	if deleteRequestPolicy {
+		ratePolicyName := "tier-" + tierName + "-rate-limits"
+		err = kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, ratePolicyName, metav1.DeleteOptions{})
+		if err != nil {
+			if !k8sErrors.IsNotFound(err) {
+				t.logger.Warn("Failed to delete RateLimitPolicy", "tier", tierName, "policy", ratePolicyName, "error", err)
+				errs = append(errs, err)
+			}
+		} else {
+			t.logger.Info("Deleted RateLimitPolicy", "tier", tierName, "policy", ratePolicyName)
 		}
-	} else {
-		t.logger.Info("Deleted RateLimitPolicy", "tier", tierName, "policy", ratePolicyName)
 	}
 
-	// Delete TokenRateLimitPolicy if it exists
-	tokenPolicyName := "tier-" + tierName + "-token-rate-limits"
-	err = kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, tokenPolicyName, metav1.DeleteOptions{})
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			t.logger.Warn("Failed to delete TokenRateLimitPolicy", "tier", tierName, "policy", tokenPolicyName, "error", err)
-			errs = append(errs, err)
+	// Delete TokenRateLimitPolicy if it exists and is empty
+	if deleteTokenPolicy {
+		tokenPolicyName := "tier-" + tierName + "-token-rate-limits"
+		err = kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, tokenPolicyName, metav1.DeleteOptions{})
+		if err != nil {
+			if !k8sErrors.IsNotFound(err) {
+				t.logger.Warn("Failed to delete TokenRateLimitPolicy", "tier", tierName, "policy", tokenPolicyName, "error", err)
+				errs = append(errs, err)
+			}
+		} else {
+			t.logger.Info("Deleted TokenRateLimitPolicy", "tier", tierName, "policy", tokenPolicyName)
 		}
-	} else {
-		t.logger.Info("Deleted TokenRateLimitPolicy", "tier", tierName, "policy", tokenPolicyName)
 	}
 
 	if len(errs) > 0 {
@@ -347,6 +360,16 @@ func (t *TiersRepository) deleteTierRateLimitPolicies(ctx context.Context, tierN
 // isEmptyLimits checks if the provided TierLimits structure contains any rate limits
 func (t *TiersRepository) isEmptyLimits(limits models.TierLimits) bool {
 	return len(limits.TokensPerUnit) == 0 && len(limits.RequestsPerUnit) == 0
+}
+
+// isTokenLimitsEmpty checks if the provided TokenLimits structure contains any rate limits
+func (t *TiersRepository) hasTokenLimits(limits models.TierLimits) bool {
+	return len(limits.TokensPerUnit) > 0
+}
+
+// isRequestLimitsEmpty checks if the provided RequestLimits structure contains any rate limits
+func (t *TiersRepository) hasRequestLimits(limits models.TierLimits) bool {
+	return len(limits.RequestsPerUnit) > 0
 }
 
 // convertPolicyToRateLimits extracts rate limits from a policy resource

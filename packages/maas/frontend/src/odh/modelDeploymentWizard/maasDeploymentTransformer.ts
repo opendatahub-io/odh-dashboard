@@ -25,11 +25,7 @@ const convertTierValueToAnnotation = (tierValue: MaaSTierValue): string | undefi
     case 'no-tiers':
       return 'null';
     case 'specify-tiers': {
-      const tierNames = (tierValue.tierNamesInput ?? '')
-        .split(',')
-        .map((name) => name.trim())
-        .filter((name) => name.length > 0);
-      return JSON.stringify(tierNames);
+      return JSON.stringify(tierValue.selectedTierNames ?? []);
     }
     case 'all-tiers':
     default:
@@ -51,7 +47,7 @@ const convertAnnotationToTierValue = (
     return {
       isChecked: true,
       tiersDropdownSelection: 'no-tiers',
-      tierNamesInput: '',
+      selectedTierNames: undefined,
     };
   }
 
@@ -62,14 +58,14 @@ const convertAnnotationToTierValue = (
         return {
           isChecked: true,
           tiersDropdownSelection: 'all-tiers',
-          tierNamesInput: '',
+          selectedTierNames: [],
         };
       }
       // Specific tiers
       return {
         isChecked: true,
         tiersDropdownSelection: 'specify-tiers',
-        tierNamesInput: parsed.join(', '),
+        selectedTierNames: parsed,
       };
     }
   } catch {

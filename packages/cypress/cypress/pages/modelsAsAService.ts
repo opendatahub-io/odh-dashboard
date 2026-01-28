@@ -268,6 +268,29 @@ class MaaSWizardField {
   findMaaSTierNamesInput() {
     return cy.findByTestId('maas/save-as-maas-checkbox-tier-names');
   }
+
+  findMaaSTierNamesOption(tierName: string) {
+    return cy.findByRole('option', { name: tierName });
+  }
+
+  selectMaaSTierNames(tierNames: string[]) {
+    this.findMaaSTierNamesInput().click();
+    tierNames.forEach((tierName) => {
+      this.findMaaSTierNamesOption(tierName).click();
+    });
+    // Close the dropdown by pressing escape
+    cy.get('body').type('{esc}');
+  }
+
+  findMaaSTierChipGroup() {
+    return this.findMaaSTierNamesInput()
+      .parent()
+      .findByRole('list', { name: 'Current selections' });
+  }
+
+  findMaaSTierChip(tierName: string) {
+    return this.findMaaSTierChipGroup().find('li').contains('span', tierName);
+  }
 }
 
 class APIKeysPage {
