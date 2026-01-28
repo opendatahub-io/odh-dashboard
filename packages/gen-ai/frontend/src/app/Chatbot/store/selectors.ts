@@ -27,5 +27,11 @@ export const selectGuardrailsEnabled =
   (state: ChatbotConfigStore): boolean =>
     state.configurations[configId]?.guardrailsEnabled ?? DEFAULT_CONFIGURATION.guardrailsEnabled;
 
+export const selectSelectedMcpServerIds =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string[] =>
+    state.configurations[configId]?.selectedMcpServerIds ??
+    DEFAULT_CONFIGURATION.selectedMcpServerIds;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

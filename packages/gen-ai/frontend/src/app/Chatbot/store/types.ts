@@ -10,6 +10,7 @@ export interface ChatbotConfiguration {
   isStreamingEnabled: boolean;
   selectedModel: string;
   guardrailsEnabled: boolean;
+  selectedMcpServerIds: string[];
 }
 
 /**
@@ -21,6 +22,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   isStreamingEnabled: true,
   selectedModel: '',
   guardrailsEnabled: false,
+  selectedMcpServerIds: [],
 };
 
 /**
@@ -43,9 +45,10 @@ export interface ChatbotConfigStoreActions {
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
   updateGuardrailsEnabled: (id: string, value: boolean) => void;
+  updateSelectedMcpServerIds: (id: string, value: string[]) => void;
 
   // Configuration management
-  resetConfiguration: () => void;
+  resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;

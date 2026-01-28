@@ -35,6 +35,7 @@ import {
   selectStreamingEnabled,
   selectSelectedModel,
   selectConfigIds,
+  selectSelectedMcpServerIds,
 } from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
@@ -73,6 +74,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+
   const setSelectedModel = React.useCallback(
     (model: string) => {
       useChatbotConfigStore.getState().updateSelectedModel(configId, model);
@@ -93,10 +96,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     const statuses = location.state?.mcpServerStatuses;
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
-
-  // Handle router state for MCP servers - initialize state with router value
-  const [selectedMcpServerIds, setSelectedMcpServerIds] =
-    React.useState<string[]>(mcpServersFromRoute);
 
   // MCP hooks - fetch servers and manage statuses
   const {
@@ -119,13 +118,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
 
   React.useEffect(() => {
-    // Reset configuration
-    useChatbotConfigStore.getState().resetConfiguration();
+    // Reset configuration with initial values from router
+    useChatbotConfigStore.getState().resetConfiguration({
+      selectedMcpServerIds: mcpServersFromRoute,
+    });
 
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [configId]);
+  }, [configId, mcpServersFromRoute, selectedAAModel]);
 
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
@@ -235,10 +236,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
       sourceManagement={sourceManagement}
       fileManagement={fileManagement}
-      onMcpServersChange={setSelectedMcpServerIds}
-      initialSelectedServerIds={mcpServersFromRoute}
       initialServerStatuses={mcpServerStatusesFromRoute}
-      selectedServersCount={selectedMcpServerIds.length}
       mcpServers={mcpServers}
       mcpServersLoaded={mcpServersLoaded}
       mcpServersLoadError={mcpServersLoadError}

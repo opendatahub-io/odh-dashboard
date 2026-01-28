@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
-import { ChatbotConfigStore, DEFAULT_CONFIGURATION } from './types';
+import { ChatbotConfigStore, ChatbotConfiguration, DEFAULT_CONFIGURATION } from './types';
 
 const initialState = {
   configurations: { default: { ...DEFAULT_CONFIGURATION } },
@@ -59,9 +59,26 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         });
       },
 
+      updateSelectedMcpServerIds: (id: string, value: string[]) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.selectedMcpServerIds = value;
+          }
+        });
+      },
+
       // Configuration management
-      resetConfiguration: () => {
-        set(() => ({ ...initialState }));
+      resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
+        set(() => ({
+          ...initialState,
+          configurations: {
+            default: {
+              ...DEFAULT_CONFIGURATION,
+              ...initialValues,
+            },
+          },
+        }));
       },
 
       // Utility
