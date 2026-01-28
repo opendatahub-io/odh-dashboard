@@ -12,6 +12,7 @@ import {
 import { AIModel } from '~/app/types';
 import { chatbotConfigurationColumns } from './columns';
 import ChatbotConfigurationTableRow from './ChatbotConfigurationTableRow';
+import { GuardrailsNotConfiguredAlert } from './GuardrailsNotConfiguredAlert';
 
 type ChatbotConfigurationTableProps = {
   allModels: AIModel[];
@@ -75,6 +76,9 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
 
   return (
     <Stack hasGutter>
+      <StackItem>
+        <GuardrailsNotConfiguredAlert />
+      </StackItem>
       <StackItem>
         <Title headingLevel="h2" size="md">
           Available models
