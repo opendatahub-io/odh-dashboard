@@ -14,10 +14,6 @@ const TEST_PROJECT_NAME = 'test-project';
 const TEST_PROJECT_NAME_2 = 'test-project-2';
 const MLFLOW_WORKSPACE_IFRAME_SRC = `${MLFLOW_PROXY_BASE_PATH}/#/workspaces/${TEST_PROJECT_NAME}/experiments`;
 
-function isIframeElement(element: HTMLElement | undefined): element is HTMLIFrameElement {
-  return element?.tagName.toLowerCase() === 'iframe';
-}
-
 type InitInterceptsOptions = {
   hasMultipleProjects?: boolean;
   hasNoProjects?: boolean;
@@ -43,6 +39,11 @@ const initIntercepts = (options: InitInterceptsOptions = {}) => {
             <div id="mlflow-experiments-page">
               <h1>MLflow Experiments</h1>
               <div>Test content for MLflow experiments</div>
+              <div id="test-links">
+                <a id="regular-link" href="${MLFLOW_PROXY_BASE_PATH}/#/workspaces/${TEST_PROJECT_NAME}/experiments/1">Regular Link</a>
+                <a id="blank-target-link" href="${MLFLOW_PROXY_BASE_PATH}/#/workspaces/${TEST_PROJECT_NAME}/experiments/2" target="_blank">Blank Target Link</a>
+                <a id="external-link" href="https://external-docs.example.com/guide" target="_blank">External Docs</a>
+              </div>
             </div>
           </main>
         </body>
@@ -91,7 +92,7 @@ describe('MLflow Experiments', () => {
     mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
       const iframe = $iframe[0];
 
-      if (!isIframeElement(iframe)) {
+      if (!mlflowExperimentsPage.isIframeElement(iframe)) {
         throw new Error('Expected element to be an iframe');
       }
 
@@ -157,7 +158,7 @@ describe('MLflow Experiments', () => {
 
     mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
       const iframe = $iframe[0];
-      if (!isIframeElement(iframe)) {
+      if (!mlflowExperimentsPage.isIframeElement(iframe)) {
         throw new Error('Expected element to be an iframe');
       }
       cy.wrap(iframe).should(() => {
@@ -203,7 +204,7 @@ describe('MLflow Experiments', () => {
       .then((initialLength) => {
         mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
           const iframe = $iframe[0];
-          if (!isIframeElement(iframe)) {
+          if (!mlflowExperimentsPage.isIframeElement(iframe)) {
             throw new Error('Expected element to be an iframe');
           }
           cy.wrap(iframe).should(() => {
@@ -237,7 +238,7 @@ describe('MLflow Experiments', () => {
         cy.wait('@mlflowIframe');
         mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
           const iframe = $iframe[0];
-          if (!isIframeElement(iframe)) {
+          if (!mlflowExperimentsPage.isIframeElement(iframe)) {
             throw new Error('Expected element to be an iframe');
           }
 
@@ -305,5 +306,106 @@ describe('MLflow Experiments', () => {
       `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
     );
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
+  });
+
+  it('should redirect MLflow target="_blank" links within the iframe instead of opening new tab', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.withReadyIframe((iframe) => {
+      cy.wrap(iframe).should(() => {
+        const blankLink = iframe.contentDocument?.querySelector(
+          '#blank-target-link',
+        ) as HTMLAnchorElement;
+        expect(blankLink).to.not.be.null;
+        expect(blankLink.getAttribute('target')).to.equal('_blank');
+      });
+      const tracker = mlflowExperimentsPage.setupWindowOpenStub();
+      mlflowExperimentsPage.clickLinkInIframe(iframe, '#blank-target-link');
+      cy.wrap(null).should(() => {
+        expect(tracker.wasCalled()).to.be.false;
+      });
+      cy.url().should('include', MLFLOW_EXPERIMENTS_ROUTE);
+    });
+  });
+
+  it('should not intercept external target="_blank" links', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.withReadyIframe((iframe) => {
+      cy.wrap(iframe).should(() => {
+        const externalLink = iframe.contentDocument?.querySelector(
+          '#external-link',
+        ) as HTMLAnchorElement;
+        expect(externalLink).to.not.be.null;
+        expect(externalLink.getAttribute('target')).to.equal('_blank');
+      });
+
+      const tracker = mlflowExperimentsPage.setupWindowOpenStub();
+      mlflowExperimentsPage.clickLinkInIframe(iframe, '#external-link');
+
+      cy.wrap(null).should(() => {
+        expect(tracker.wasCalled()).to.be.false;
+      });
+    });
+  });
+
+  it('should not intercept regular link clicks without modifiers', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.withReadyIframe((iframe) => {
+      cy.wrap(iframe).should(() => {
+        const regularLink = iframe.contentDocument?.querySelector(
+          '#regular-link',
+        ) as HTMLAnchorElement;
+        expect(regularLink).to.not.be.null;
+        expect(regularLink.getAttribute('target')).to.be.null;
+      });
+
+      const tracker = mlflowExperimentsPage.setupWindowOpenStub();
+      mlflowExperimentsPage.clickLinkInIframe(iframe, '#regular-link');
+
+      cy.wrap(null).should(() => {
+        expect(tracker.wasCalled()).to.be.false;
+      });
+    });
+  });
+
+  it('should convert MLflow links to ODH URLs when Ctrl+click', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.withReadyIframe((iframe) => {
+      const tracker = mlflowExperimentsPage.setupWindowOpenStub();
+      mlflowExperimentsPage.clickLinkInIframe(iframe, '#regular-link', { ctrlKey: true });
+
+      cy.wrap(null).should(() => {
+        expect(tracker.wasCalled()).to.be.true;
+        expect(tracker.getUrl()).to.include(MLFLOW_EXPERIMENTS_ROUTE);
+        expect(tracker.getUrl()).to.not.include(MLFLOW_PROXY_BASE_PATH);
+      });
+    });
+  });
+
+  it('should open external links as-is when Ctrl+click', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    cy.wait('@mlflowIframe');
+
+    mlflowExperimentsPage.withReadyIframe((iframe) => {
+      const tracker = mlflowExperimentsPage.setupWindowOpenStub();
+      mlflowExperimentsPage.clickLinkInIframe(iframe, '#external-link', { ctrlKey: true });
+
+      cy.wrap(null).should(() => {
+        expect(tracker.wasCalled()).to.be.true;
+        expect(tracker.getUrl()).to.equal('https://external-docs.example.com/guide');
+      });
+    });
   });
 });

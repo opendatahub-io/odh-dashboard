@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { handleInterceptLink } from '#~/routes/pipelines/mlflowExperiments';
 
 interface MLflowIframeCSSOverrideProps {
   children: (iframeRef: React.RefObject<HTMLIFrameElement>) => React.ReactNode;
@@ -16,6 +17,7 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
 
   useEffect(() => {
     let observer: MutationObserver | null = null;
+    let clickIntercept: ((event: MouseEvent) => void) | null = null;
 
     const applyHiddenStylesToElement = (element: Element) => {
       if (isHTMLElement(element)) {
@@ -50,6 +52,8 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
 
           hideElements(doc);
           overrideMainElementStyles(doc);
+          clickIntercept = (event) => handleInterceptLink(iframe, event);
+          doc.body.addEventListener('click', clickIntercept, true);
 
           observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -85,6 +89,9 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
       return () => {
         iframe.removeEventListener('load', handleIframeLoad);
         observer?.disconnect();
+        if (clickIntercept && iframe.contentDocument?.body) {
+          iframe.contentDocument.body.removeEventListener('click', clickIntercept, true);
+        }
       };
     }
     return undefined;
