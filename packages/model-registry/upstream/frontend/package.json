@@ -25,9 +25,9 @@
     "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src",
     "test:type-check": "tsc --noEmit",
     "cypress:open": "cypress open --project src/__tests__/cypress",
-    "cypress:open:mock": "CY_MOCK=1 npm run cypress:open -- ",
+    "cypress:open:mock": "cross-env CY_MOCK=1 npm run cypress:open -- ",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
-    "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
+    "cypress:run:mock": "cross-env CY_MOCK=1 npm run cypress:run -- ",
     "cypress:server:build": "cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=standalone npm run build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L"
   },
