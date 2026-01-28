@@ -9,7 +9,7 @@
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
-    "cypress:server:build": "cd upstream/frontend && DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
     "cypress:server:dev": "cd upstream/frontend && DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
@@ -64,6 +64,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-tests": "*"
+    "@odh-dashboard/contract-tests": "*",
+    "cross-env": "^10.1.0"
   }
 }
