@@ -19,6 +19,7 @@ import {
   selectStreamingEnabled,
   selectSelectedModel,
   selectGuardrailsEnabled,
+  selectSelectedMcpServerIds,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
@@ -41,10 +42,7 @@ interface ChatbotSettingsPanelProps {
   };
   sourceManagement: UseSourceManagementReturn;
   fileManagement: UseFileManagementReturn;
-  onMcpServersChange?: (serverIds: string[]) => void;
-  initialSelectedServerIds?: string[];
   initialServerStatuses?: Map<string, ServerStatusInfo>;
-  selectedServersCount: number;
   mcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
   mcpServersLoadError?: Error | null;
@@ -61,10 +59,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   alerts,
   sourceManagement,
   fileManagement,
-  onMcpServersChange,
-  initialSelectedServerIds,
   initialServerStatuses,
-  selectedServersCount,
   mcpServers,
   mcpServersLoaded,
   mcpServersLoadError,
@@ -78,6 +73,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Consume store directly using configId
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const guardrailsEnabled = useChatbotConfigStore(selectGuardrailsEnabled(configId));
@@ -223,9 +219,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 <FlexItem>
                   <TabTitleText>MCP</TabTitleText>
                 </FlexItem>
-                {selectedServersCount > 0 && (
+                {selectedMcpServerIds.length > 0 && (
                   <FlexItem>
-                    <Badge>{selectedServersCount}</Badge>
+                    <Badge>{selectedMcpServerIds.length}</Badge>
                   </FlexItem>
                 )}
                 {showMcpToolsWarning && (
@@ -242,14 +238,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-mcp"
           >
             <MCPTabContent
+              configId={configId}
               mcpServers={mcpServers}
               mcpServersLoaded={mcpServersLoaded}
               mcpServersLoadError={mcpServersLoadError}
               mcpServerTokens={mcpServerTokens}
               onMcpServerTokensChange={onMcpServerTokensChange}
               checkMcpServerStatus={checkMcpServerStatus}
-              onMcpServersChange={onMcpServersChange}
-              initialSelectedServerIds={initialSelectedServerIds}
               initialServerStatuses={initialServerStatuses}
               activeToolsCount={activeToolsCount}
               onActiveToolsCountChange={setActiveToolsCount}

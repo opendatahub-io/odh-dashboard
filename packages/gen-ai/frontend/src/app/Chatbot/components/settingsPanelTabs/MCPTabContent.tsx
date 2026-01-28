@@ -6,14 +6,13 @@ import MCPServersPanel from '~/app/Chatbot/mcp/MCPServersPanel';
 import TabContentWrapper from './TabContentWrapper';
 
 interface MCPTabContentProps {
+  configId: string;
   mcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
   mcpServersLoadError?: Error | null;
   mcpServerTokens: Map<string, TokenInfo>;
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
-  onMcpServersChange?: (serverIds: string[]) => void;
-  initialSelectedServerIds?: string[];
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   activeToolsCount: number;
   onActiveToolsCountChange: (count: number) => void;
@@ -21,14 +20,13 @@ interface MCPTabContentProps {
 }
 
 const MCPTabContent: React.FunctionComponent<MCPTabContentProps> = ({
+  configId,
   mcpServers,
   mcpServersLoaded,
   mcpServersLoadError,
   mcpServerTokens,
   onMcpServerTokensChange,
   checkMcpServerStatus,
-  onMcpServersChange,
-  initialSelectedServerIds,
   initialServerStatuses,
   activeToolsCount,
   onActiveToolsCountChange,
@@ -48,14 +46,13 @@ const MCPTabContent: React.FunctionComponent<MCPTabContentProps> = ({
       titleTestId="mcp-servers-section-title"
     >
       <MCPServersPanel
+        configId={configId}
         servers={mcpServers}
         serversLoaded={mcpServersLoaded}
         serversLoadError={mcpServersLoadError}
         serverTokens={mcpServerTokens}
         onServerTokensChange={onMcpServerTokensChange}
         checkServerStatus={checkMcpServerStatus}
-        onSelectionChange={onMcpServersChange}
-        initialSelectedServerIds={initialSelectedServerIds}
         initialServerStatuses={initialServerStatuses}
         onToolsWarningChange={onToolsWarningChange}
         onActiveToolsCountChange={onActiveToolsCountChange}
