@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 
@@ -17,67 +17,68 @@ describe('useChatbotConfigStore', () => {
 
   describe('initialization', () => {
     it('should initialize with default configuration', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
+      const state = useChatbotConfigStore.getState();
 
-      expect(result.current.configurations.default).toEqual(DEFAULT_CONFIGURATION);
+      expect(state.configurations.default).toEqual(DEFAULT_CONFIGURATION);
     });
   });
 
   describe('field-specific updaters', () => {
     it('should update systemInstruction', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
-
       act(() => {
-        result.current.updateSystemInstruction('default', 'New instruction');
+        useChatbotConfigStore.getState().updateSystemInstruction('default', 'New instruction');
       });
 
-      expect(result.current.configurations.default?.systemInstruction).toBe('New instruction');
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.systemInstruction).toBe('New instruction');
     });
 
     it('should update temperature', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
-
       act(() => {
-        result.current.updateTemperature('default', 0.7);
+        useChatbotConfigStore.getState().updateTemperature('default', 0.7);
       });
 
-      expect(result.current.configurations.default?.temperature).toBe(0.7);
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.temperature).toBe(0.7);
     });
 
     it('should update isStreamingEnabled', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
-
       act(() => {
-        result.current.updateStreamingEnabled('default', false);
+        useChatbotConfigStore.getState().updateStreamingEnabled('default', false);
       });
 
-      expect(result.current.configurations.default?.isStreamingEnabled).toBe(false);
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.isStreamingEnabled).toBe(false);
+    });
+
+    it('should update guardrailsEnabled', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateGuardrailsEnabled('default', true);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.guardrailsEnabled).toBe(true);
     });
 
     it('should not update non-existent config', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
-
       act(() => {
-        result.current.updateSystemInstruction('non-existent', 'New instruction');
+        useChatbotConfigStore.getState().updateSystemInstruction('non-existent', 'New instruction');
       });
 
-      expect(result.current.configurations['non-existent']).toBeUndefined();
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations['non-existent']).toBeUndefined();
     });
   });
 
   describe('getConfiguration', () => {
     it('should return configuration by ID', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
-
-      const config = result.current.getConfiguration('default');
+      const config = useChatbotConfigStore.getState().getConfiguration('default');
 
       expect(config).toEqual(DEFAULT_CONFIGURATION);
     });
 
     it('should return undefined for non-existent ID', () => {
-      const { result } = renderHook(() => useChatbotConfigStore());
-
-      const config = result.current.getConfiguration('non-existent');
+      const config = useChatbotConfigStore.getState().getConfiguration('non-existent');
 
       expect(config).toBeUndefined();
     });
