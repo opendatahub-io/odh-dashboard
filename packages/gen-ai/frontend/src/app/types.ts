@@ -18,6 +18,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   is_maas_model: boolean;
+  max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
 export type FileCounts = {

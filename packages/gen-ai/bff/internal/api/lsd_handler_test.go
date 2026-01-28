@@ -472,6 +472,205 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Equal(t, "mock-lsd", dataMap["name"])
 		assert.Equal(t, "200", dataMap["httpStatus"])
 	})
+
+	// Test max_tokens validation - minimum value
+	t.Run("should reject max_tokens below minimum (128)", func(t *testing.T) {
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 127},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+		assert.Contains(t, errorMap["message"], "max_tokens must be at least 128")
+	})
+
+	// Test max_tokens validation - maximum value
+	t.Run("should reject max_tokens above maximum (128000)", func(t *testing.T) {
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 128001},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		errorData, exists := response["error"]
+		assert.True(t, exists, "Response should contain 'error' field")
+		errorMap, ok := errorData.(map[string]interface{})
+		assert.True(t, ok, "Error should be a map")
+		assert.Contains(t, errorMap["message"], "max_tokens must not exceed 128000")
+	})
+
+	// Test max_tokens validation - valid values
+	t.Run("should accept valid max_tokens values", func(t *testing.T) {
+		// Use a unique namespace for this test to avoid ConfigMap conflicts
+		testNamespace := fmt.Sprintf("max-tokens-valid-test-%d", time.Now().UnixNano())
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 8192},
+				{"model_name": "granite-embedding-125m", "is_maas_model": true, "max_tokens": 4096},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		rs := rr.Result()
+		defer func() { _ = rs.Body.Close() }()
+
+		body, err := io.ReadAll(rs.Body)
+		assert.NoError(t, err)
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		if rr.Code != http.StatusOK {
+			t.Logf("Unexpected status code %d, response body: %s", rr.Code, string(body))
+		}
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		data, exists := response["data"]
+		assert.True(t, exists, "Response should contain 'data' field")
+		dataMap, ok := data.(map[string]interface{})
+		assert.True(t, ok, "Data should be a map")
+		assert.Equal(t, "mock-lsd", dataMap["name"])
+	})
+
+	// Test max_tokens validation - boundary values
+	t.Run("should accept boundary max_tokens values (128 and 128000)", func(t *testing.T) {
+		// Use a unique namespace for this test to avoid ConfigMap conflicts
+		testNamespace := fmt.Sprintf("max-tokens-boundary-test-%d", time.Now().UnixNano())
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 128},
+				{"model_name": "granite-embedding-125m", "is_maas_model": true, "max_tokens": 128000},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		if rr.Code != http.StatusOK {
+			body, _ := io.ReadAll(rr.Body)
+			t.Logf("Unexpected status code %d, response body: %s", rr.Code, string(body))
+		}
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	// Test max_tokens validation - optional field (can be omitted)
+	t.Run("should accept models without max_tokens (optional field)", func(t *testing.T) {
+		// Use a unique namespace for this test to avoid ConfigMap conflicts
+		testNamespace := fmt.Sprintf("max-tokens-optional-test-%d", time.Now().UnixNano())
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
+				{"model_name": "granite-embedding-125m", "is_maas_model": true, "max_tokens": 4096},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		if rr.Code != http.StatusOK {
+			body, _ := io.ReadAll(rr.Body)
+			t.Logf("Unexpected status code %d, response body: %s", rr.Code, string(body))
+		}
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
 }
 
 func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
