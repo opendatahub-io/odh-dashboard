@@ -30,7 +30,7 @@ describe('SubjectRolesTable', () => {
       row={row}
       subjectNameRowSpan={rowSpan}
       onRoleClick={onRoleClick}
-      onEdit={() => undefined}
+      onManageRoles={() => undefined}
       onRemove={() => undefined}
     />
   );

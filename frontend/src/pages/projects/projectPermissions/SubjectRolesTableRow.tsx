@@ -12,13 +12,12 @@ import { RoleRef } from '#~/concepts/permissions/types';
 import { relativeTime } from '#~/utilities/time';
 import { SubjectRoleRow } from './types';
 import RoleLabel from './components/RoleLabel';
-import { isReversibleRoleRef } from './utils';
 
 type SubjectRolesTableRowProps = {
   row: SubjectRoleRow;
   subjectNameRowSpan: number;
   onRoleClick?: (roleRef: RoleRef) => void;
-  onEdit: () => void;
+  onManageRoles: () => void;
   onRemove: () => void;
 };
 
@@ -26,16 +25,15 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
   row,
   subjectNameRowSpan,
   onRoleClick,
-  onEdit,
+  onManageRoles,
   onRemove,
 }) => {
   const createdDate = row.roleBindingCreationTimestamp
     ? new Date(row.roleBindingCreationTimestamp)
     : undefined;
 
-  const isEditable = isReversibleRoleRef(row.roleRef);
   const actionItems = [
-    ...(isEditable ? [{ title: 'Edit', onClick: onEdit }, { isSeparator: true }] : []),
+    { title: 'Manage roles', onClick: onManageRoles },
     { title: 'Unassign', onClick: onRemove },
   ];
 
