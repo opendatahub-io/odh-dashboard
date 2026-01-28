@@ -1,0 +1,2522 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This API provides endpoints to manage notebooks in a Kubernetes cluster.\nFor more information, visit https://www.kubeflow.org/docs/components/notebooks/",
+        "title": "Kubeflow Notebooks API",
+        "contact": {},
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "host": "localhost:4000",
+    "basePath": "/api/v1",
+    "paths": {
+        "/healthcheck": {
+            "get": {
+                "description": "Provides a healthcheck response indicating the status of key services.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "healthcheck"
+                ],
+                "summary": "Returns the health status of the application",
+                "operationId": "getHealthcheck",
+                "responses": {
+                    "200": {
+                        "description": "Successful healthcheck response",
+                        "schema": {
+                            "$ref": "#/definitions/health_check.HealthCheck"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/namespaces": {
+            "get": {
+                "description": "Provides a list of all namespaces that the user has access to",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "namespaces"
+                ],
+                "summary": "Returns a list of all namespaces",
+                "operationId": "listNamespaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful namespaces response",
+                        "schema": {
+                            "$ref": "#/definitions/api.NamespaceListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/secrets/{namespace}": {
+            "get": {
+                "description": "Provides a list of all secrets that the user has access to in the specified namespace",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Returns a list of all secrets in a namespace",
+                "operationId": "listSecrets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "my-namespace",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful secrets response",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new secret in the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Creates a new secret",
+                "operationId": "createSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Secret creation request",
+                        "name": "secret",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretCreateEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Secret created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretCreateEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Secret already exists",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/secrets/{namespace}/{name}": {
+            "get": {
+                "description": "Provides details of a specific secret by name and namespace",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Returns a specific secret",
+                "operationId": "getSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-secret",
+                        "description": "Secret name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful secret response",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates an existing secret in the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Updates an existing secret",
+                "operationId": "updateSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Secret name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Secret update request",
+                        "name": "secret",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/secrets.SecretUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Secret updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a secret from the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Deletes a secret",
+                "operationId": "deleteSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "my-namespace",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-secret",
+                        "description": "Secret name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds": {
+            "get": {
+                "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "List workspace kinds",
+                "operationId": "listWorkspaceKinds",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns a list of all available workspace kinds.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to list workspace kinds.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new workspace kind.",
+                "consumes": [
+                    "application/yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Create workspace kind",
+                "operationId": "createWorkspaceKind",
+                "parameters": [
+                    {
+                        "description": "Kubernetes YAML manifest of a WorkspaceKind",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "WorkspaceKind created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to create WorkspaceKind.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. WorkspaceKind with the same name already exists.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds/{name}": {
+            "get": {
+                "description": "Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Get workspace kind",
+                "operationId": "getWorkspaceKind",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "jupyterlab",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns the requested workspace kind details.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid workspace kind name format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace kind.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace kind does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces": {
+            "get": {
+                "description": "Returns a list of all workspaces across all namespaces.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "List all workspaces",
+                "operationId": "listAllWorkspaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns a list of all workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to list workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}": {
+            "get": {
+                "description": "Returns a list of workspaces in a specific namespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "List workspaces by namespace",
+                "operationId": "listWorkspacesByNamespace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to filter workspaces",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns a list of workspaces in the specified namespace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to list workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new workspace in the specified namespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Create workspace",
+                "operationId": "createWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace for the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workspace creation configuration",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceCreateEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Workspace created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceCreateEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to create workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. Workspace with the same name already exists.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{name}": {
+            "put": {
+                "description": "Updates an existing workspace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Update workspace",
+                "operationId": "updateWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workspace update configuration",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to update workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. Current workspace revision is newer than provided.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{workspaceName}/actions/pause": {
+            "post": {
+                "description": "Pauses or unpauses a workspace, stopping or resuming all associated pods.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Pause or unpause a workspace",
+                "operationId": "updateWorkspacePauseState",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "default",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspaceName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Intended pause state of the workspace",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceActionPauseEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful action. Returns the current pause state.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceActionPauseEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. Workspace not in valid state for action.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{workspace_name}": {
+            "get": {
+                "description": "Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace",
+                "operationId": "getWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspace_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns the requested workspace details with new revision.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a specific workspace identified by namespace and workspace name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Delete workspace",
+                "operationId": "deleteWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspace_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Workspace deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to delete the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "actions.WorkspaceActionPause": {
+            "type": "object",
+            "required": [
+                "paused"
+            ],
+            "properties": {
+                "paused": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "api.ConflictError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "description": "A human-readable description of the cause of the error.\nThis field may be presented as-is to a reader.",
+                    "type": "string"
+                },
+                "origin": {
+                    "description": "Origin indicates where the conflict error originated.\nIf value is empty, the origin is unknown.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/api.ErrorCauseOrigin"
+                        }
+                    ]
+                }
+            }
+        },
+        "api.ErrorCause": {
+            "type": "object",
+            "properties": {
+                "conflict_cause": {
+                    "description": "ConflictCauses contains details about conflict errors that caused the request to fail.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ConflictError"
+                    }
+                },
+                "validation_errors": {
+                    "description": "ValidationErrors contains details about validation errors that caused the request to fail.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ValidationError"
+                    }
+                }
+            }
+        },
+        "api.ErrorCauseOrigin": {
+            "type": "string",
+            "enum": [
+                "INTERNAL",
+                "KUBERNETES"
+            ],
+            "x-enum-varnames": [
+                "OriginInternal",
+                "OriginKubernetes"
+            ]
+        },
+        "api.ErrorEnvelope": {
+            "type": "object",
+            "required": [
+                "error"
+            ],
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/api.HTTPError"
+                }
+            }
+        },
+        "api.HTTPError": {
+            "type": "object",
+            "required": [
+                "code",
+                "message"
+            ],
+            "properties": {
+                "cause": {
+                    "description": "Cause contains detailed information about the cause of the error.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/api.ErrorCause"
+                        }
+                    ]
+                },
+                "code": {
+                    "description": "Code is a string representation of the HTTP status code.",
+                    "type": "string"
+                },
+                "message": {
+                    "description": "Message is a human-readable description of the error.",
+                    "type": "string"
+                }
+            }
+        },
+        "api.NamespaceListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/namespaces.Namespace"
+                    }
+                }
+            }
+        },
+        "api.SecretCreateEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/secrets.SecretCreate"
+                }
+            }
+        },
+        "api.SecretEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/secrets.SecretUpdate"
+                }
+            }
+        },
+        "api.SecretListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/secrets.SecretListItem"
+                    }
+                }
+            }
+        },
+        "api.ValidationError": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "description": "The field of the resource that has caused this error, as named by its JSON serialization.\nMay include dot and postfix notation for nested attributes.\nArrays are zero-indexed.\nFields may appear more than once in an array of causes due to fields having multiple errors.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\"",
+                    "type": "string"
+                },
+                "message": {
+                    "description": "A human-readable description of the cause of the error.\nThis field may be presented as-is to a reader.",
+                    "type": "string"
+                },
+                "origin": {
+                    "description": "Origin indicates where the validation error originated.\nIf value is empty, the origin is unknown.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/api.ErrorCauseOrigin"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "A machine-readable description of the cause of the error.\nIf value is empty, there is no information available.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/field.ErrorType"
+                        }
+                    ]
+                }
+            }
+        },
+        "api.WorkspaceActionPauseEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/actions.WorkspaceActionPause"
+                }
+            }
+        },
+        "api.WorkspaceCreateEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspaces.WorkspaceCreate"
+                }
+            }
+        },
+        "api.WorkspaceEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspaces.WorkspaceUpdate"
+                }
+            }
+        },
+        "api.WorkspaceKindEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKind"
+                }
+            }
+        },
+        "api.WorkspaceKindListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.WorkspaceKind"
+                    }
+                }
+            }
+        },
+        "api.WorkspaceListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.WorkspaceListItem"
+                    }
+                }
+            }
+        },
+        "common.Audit": {
+            "type": "object",
+            "required": [
+                "createdAt",
+                "createdBy",
+                "deletedAt",
+                "updatedAt",
+                "updatedBy"
+            ],
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "field.ErrorType": {
+            "type": "string",
+            "enum": [
+                "FieldValueNotFound",
+                "FieldValueRequired",
+                "FieldValueDuplicate",
+                "FieldValueInvalid",
+                "FieldValueNotSupported",
+                "FieldValueForbidden",
+                "FieldValueTooLong",
+                "FieldValueTooMany",
+                "InternalError",
+                "FieldValueTypeInvalid"
+            ],
+            "x-enum-varnames": [
+                "ErrorTypeNotFound",
+                "ErrorTypeRequired",
+                "ErrorTypeDuplicate",
+                "ErrorTypeInvalid",
+                "ErrorTypeNotSupported",
+                "ErrorTypeForbidden",
+                "ErrorTypeTooLong",
+                "ErrorTypeTooMany",
+                "ErrorTypeInternal",
+                "ErrorTypeTypeInvalid"
+            ]
+        },
+        "health_check.HealthCheck": {
+            "type": "object",
+            "required": [
+                "status",
+                "systemInfo"
+            ],
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/health_check.ServiceStatus"
+                },
+                "systemInfo": {
+                    "$ref": "#/definitions/health_check.SystemInfo"
+                }
+            }
+        },
+        "health_check.ServiceStatus": {
+            "type": "string",
+            "enum": [
+                "Healthy",
+                "Unhealthy"
+            ],
+            "x-enum-varnames": [
+                "ServiceStatusHealthy",
+                "ServiceStatusUnhealthy"
+            ]
+        },
+        "health_check.SystemInfo": {
+            "type": "object",
+            "required": [
+                "version"
+            ],
+            "properties": {
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "namespaces.Namespace": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretCreate": {
+            "type": "object",
+            "required": [
+                "contents",
+                "immutable",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "contents": {
+                    "$ref": "#/definitions/secrets.SecretData"
+                },
+                "immutable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretData": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/secrets.SecretValue"
+            }
+        },
+        "secrets.SecretListItem": {
+            "type": "object",
+            "required": [
+                "audit",
+                "canMount",
+                "canUpdate",
+                "immutable",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "audit": {
+                    "$ref": "#/definitions/common.Audit"
+                },
+                "canMount": {
+                    "type": "boolean"
+                },
+                "canUpdate": {
+                    "type": "boolean"
+                },
+                "immutable": {
+                    "type": "boolean"
+                },
+                "mounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/secrets.SecretMount"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretMount": {
+            "type": "object",
+            "required": [
+                "group",
+                "kind",
+                "name"
+            ],
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretUpdate": {
+            "type": "object",
+            "required": [
+                "contents",
+                "immutable",
+                "type"
+            ],
+            "properties": {
+                "contents": {
+                    "$ref": "#/definitions/secrets.SecretData"
+                },
+                "immutable": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretValue": {
+            "type": "object",
+            "properties": {
+                "base64": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ImageConfig": {
+            "type": "object",
+            "required": [
+                "default",
+                "values"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ImageConfigValue"
+                    }
+                }
+            }
+        },
+        "workspacekinds.ImageConfigValue": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "hidden",
+                "id",
+                "labels"
+            ],
+            "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.OptionLabel"
+                    }
+                },
+                "redirect": {
+                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                }
+            }
+        },
+        "workspacekinds.ImageRef": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.OptionLabel": {
+            "type": "object",
+            "required": [
+                "key",
+                "value"
+            ],
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.OptionRedirect": {
+            "type": "object",
+            "required": [
+                "to"
+            ],
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/workspacekinds.RedirectMessage"
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.PodConfig": {
+            "type": "object",
+            "required": [
+                "default",
+                "values"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.PodConfigValue"
+                    }
+                }
+            }
+        },
+        "workspacekinds.PodConfigValue": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "hidden",
+                "id",
+                "labels"
+            ],
+            "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.OptionLabel"
+                    }
+                },
+                "redirect": {
+                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                }
+            }
+        },
+        "workspacekinds.PodMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspacekinds.PodTemplate": {
+            "type": "object",
+            "required": [
+                "options",
+                "podMetadata",
+                "volumeMounts"
+            ],
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/workspacekinds.PodTemplateOptions"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspacekinds.PodMetadata"
+                },
+                "volumeMounts": {
+                    "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
+                }
+            }
+        },
+        "workspacekinds.PodTemplateOptions": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ImageConfig"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.PodConfig"
+                }
+            }
+        },
+        "workspacekinds.PodVolumeMounts": {
+            "type": "object",
+            "required": [
+                "home"
+            ],
+            "properties": {
+                "home": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.RedirectMessage": {
+            "type": "object",
+            "required": [
+                "level",
+                "text"
+            ],
+            "properties": {
+                "level": {
+                    "$ref": "#/definitions/workspacekinds.RedirectMessageLevel"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.RedirectMessageLevel": {
+            "type": "string",
+            "enum": [
+                "Info",
+                "Warning",
+                "Danger"
+            ],
+            "x-enum-varnames": [
+                "RedirectMessageLevelInfo",
+                "RedirectMessageLevelWarning",
+                "RedirectMessageLevelDanger"
+            ]
+        },
+        "workspacekinds.WorkspaceKind": {
+            "type": "object",
+            "required": [
+                "deprecated",
+                "deprecationMessage",
+                "description",
+                "displayName",
+                "hidden",
+                "icon",
+                "logo",
+                "name",
+                "podTemplate"
+            ],
+            "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
+                "deprecated": {
+                    "type": "boolean"
+                },
+                "deprecationMessage": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "icon": {
+                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                },
+                "logo": {
+                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspacekinds.PodTemplate"
+                }
+            }
+        },
+        "workspacekinds.clusterMetrics": {
+            "type": "object",
+            "required": [
+                "workspacesCount"
+            ],
+            "properties": {
+                "workspacesCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.Activity": {
+            "type": "object",
+            "required": [
+                "lastActivity",
+                "lastUpdate"
+            ],
+            "properties": {
+                "lastActivity": {
+                    "description": "Unix Epoch time",
+                    "type": "integer"
+                },
+                "lastProbe": {
+                    "$ref": "#/definitions/workspaces.LastProbeInfo"
+                },
+                "lastUpdate": {
+                    "description": "Unix Epoch time",
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.HttpService": {
+            "type": "object",
+            "required": [
+                "displayName",
+                "httpPath"
+            ],
+            "properties": {
+                "displayName": {
+                    "type": "string"
+                },
+                "httpPath": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.ImageConfig": {
+            "type": "object",
+            "required": [
+                "current"
+            ],
+            "properties": {
+                "current": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "desired": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "redirectChain": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.RedirectStep"
+                    }
+                }
+            }
+        },
+        "workspaces.ImageRef": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.LastProbeInfo": {
+            "type": "object",
+            "required": [
+                "endTimeMs",
+                "message",
+                "result",
+                "startTimeMs"
+            ],
+            "properties": {
+                "endTimeMs": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "result": {
+                    "$ref": "#/definitions/workspaces.ProbeResult"
+                },
+                "startTimeMs": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.OptionInfo": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "id",
+                "labels"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.OptionLabel"
+                    }
+                }
+            }
+        },
+        "workspaces.OptionLabel": {
+            "type": "object",
+            "required": [
+                "key",
+                "value"
+            ],
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodConfig": {
+            "type": "object",
+            "required": [
+                "current"
+            ],
+            "properties": {
+                "current": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "desired": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "redirectChain": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.RedirectStep"
+                    }
+                }
+            }
+        },
+        "workspaces.PodMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspaces.PodMetadataMutate": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspaces.PodSecretInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodSecretMount": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodTemplate": {
+            "type": "object",
+            "required": [
+                "options",
+                "podMetadata",
+                "volumes"
+            ],
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/workspaces.PodTemplateOptions"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspaces.PodMetadata"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/workspaces.PodVolumes"
+                }
+            }
+        },
+        "workspaces.PodTemplateMutate": {
+            "type": "object",
+            "required": [
+                "options",
+                "podMetadata",
+                "volumes"
+            ],
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/workspaces.PodTemplateOptionsMutate"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspaces.PodMetadataMutate"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/workspaces.PodVolumesMutate"
+                }
+            }
+        },
+        "workspaces.PodTemplateOptions": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspaces.ImageConfig"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspaces.PodConfig"
+                }
+            }
+        },
+        "workspaces.PodTemplateOptionsMutate": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "type": "string"
+                },
+                "podConfig": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodVolumeInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName",
+                "readOnly"
+            ],
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspaces.PodVolumeMount": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName"
+            ],
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspaces.PodVolumes": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                    }
+                },
+                "home": {
+                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodSecretInfo"
+                    }
+                }
+            }
+        },
+        "workspaces.PodVolumesMutate": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodVolumeMount"
+                    }
+                },
+                "home": {
+                    "type": "string"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodSecretMount"
+                    }
+                }
+            }
+        },
+        "workspaces.ProbeResult": {
+            "type": "string",
+            "enum": [
+                "Success",
+                "Failure",
+                "Timeout"
+            ],
+            "x-enum-varnames": [
+                "ProbeResultSuccess",
+                "ProbeResultFailure",
+                "ProbeResultTimeout"
+            ]
+        },
+        "workspaces.RedirectMessage": {
+            "type": "object",
+            "required": [
+                "level",
+                "text"
+            ],
+            "properties": {
+                "level": {
+                    "$ref": "#/definitions/workspaces.RedirectMessageLevel"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.RedirectMessageLevel": {
+            "type": "string",
+            "enum": [
+                "Info",
+                "Warning",
+                "Danger"
+            ],
+            "x-enum-varnames": [
+                "RedirectMessageLevelInfo",
+                "RedirectMessageLevelWarning",
+                "RedirectMessageLevelDanger"
+            ]
+        },
+        "workspaces.RedirectStep": {
+            "type": "object",
+            "required": [
+                "sourceId",
+                "targetId"
+            ],
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/workspaces.RedirectMessage"
+                },
+                "sourceId": {
+                    "type": "string"
+                },
+                "targetId": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.Service": {
+            "type": "object",
+            "properties": {
+                "httpService": {
+                    "$ref": "#/definitions/workspaces.HttpService"
+                }
+            }
+        },
+        "workspaces.WorkspaceCreate": {
+            "type": "object",
+            "required": [
+                "kind",
+                "name",
+                "paused",
+                "podTemplate"
+            ],
+            "properties": {
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "paused": {
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplateMutate"
+                }
+            }
+        },
+        "workspaces.WorkspaceKindInfo": {
+            "type": "object",
+            "required": [
+                "icon",
+                "logo",
+                "missing",
+                "name"
+            ],
+            "properties": {
+                "icon": {
+                    "$ref": "#/definitions/workspaces.ImageRef"
+                },
+                "logo": {
+                    "$ref": "#/definitions/workspaces.ImageRef"
+                },
+                "missing": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.WorkspaceListItem": {
+            "type": "object",
+            "required": [
+                "activity",
+                "audit",
+                "name",
+                "namespace",
+                "paused",
+                "pausedTime",
+                "pendingRestart",
+                "podTemplate",
+                "services",
+                "state",
+                "stateMessage",
+                "workspaceKind"
+            ],
+            "properties": {
+                "activity": {
+                    "$ref": "#/definitions/workspaces.Activity"
+                },
+                "audit": {
+                    "$ref": "#/definitions/common.Audit"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "paused": {
+                    "type": "boolean"
+                },
+                "pausedTime": {
+                    "type": "integer"
+                },
+                "pendingRestart": {
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplate"
+                },
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.Service"
+                    }
+                },
+                "state": {
+                    "$ref": "#/definitions/workspaces.WorkspaceState"
+                },
+                "stateMessage": {
+                    "type": "string"
+                },
+                "workspaceKind": {
+                    "$ref": "#/definitions/workspaces.WorkspaceKindInfo"
+                }
+            }
+        },
+        "workspaces.WorkspaceState": {
+            "type": "string",
+            "enum": [
+                "Running",
+                "Terminating",
+                "Paused",
+                "Pending",
+                "Error",
+                "Unknown"
+            ],
+            "x-enum-varnames": [
+                "WorkspaceStateRunning",
+                "WorkspaceStateTerminating",
+                "WorkspaceStatePaused",
+                "WorkspaceStatePending",
+                "WorkspaceStateError",
+                "WorkspaceStateUnknown"
+            ]
+        },
+        "workspaces.WorkspaceUpdate": {
+            "type": "object",
+            "required": [
+                "paused",
+                "podTemplate",
+                "revision"
+            ],
+            "properties": {
+                "paused": {
+                    "description": "TODO: remove `paused` once we have an \"actions\" api for pausing workspaces",
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplateMutate"
+                },
+                "revision": {
+                    "description": "Revision is an opaque token that can be treated like an etag.\n- Clients receive this value from GET requests and must include it\n  in update requests to ensure they are updating the expected version.\n- Clients must not parse, interpret, or compare revision values\n  other than for equality, as the format is not guaranteed to be stable.",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
