@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 
@@ -40,7 +42,8 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	repositories            *repositories.Repositories
 	//used only on mocked k8s client
-	testEnv *envtest.Environment
+	testEnv        *envtest.Environment
+	maasFakeServer *httptest.Server
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 }
@@ -52,6 +55,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// used only on mocked k8s client
 	var testEnv *envtest.Environment
 	var rootCAs *x509.CertPool
+	var maasFakeServer *httptest.Server
 
 	// Initialize CA pool if bundle paths are provided
 	if len(cfg.BundlePaths) > 0 {
@@ -108,16 +112,28 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 	}
 
+	if cfg.MockHTTPClient {
+		maasFakeServer = maas.CreateMaasFakeServer()
+		logger.Info("MaaS Fake API Server is running", "url", maasFakeServer.URL)
+		cfg.MaasApiUrl = maasFakeServer.URL
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create repositories: %w", err)
 	}
 
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(logger, k8sFactory, cfg),
+		repositories:            repos,
 		testEnv:                 testEnv,
+		maasFakeServer:          maasFakeServer,
 		rootCAs:                 rootCAs,
 	}
 	return app, nil
@@ -125,12 +141,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
-	if app.testEnv == nil {
-		return nil
+	if app.testEnv != nil {
+		//shutdown the envtest control plane when we are in the mock mode.
+		app.logger.Info("shutting env test...")
+		return app.testEnv.Stop()
 	}
-	//shutdown the envtest control plane when we are in the mock mode.
-	app.logger.Info("shutting env test...")
-	return app.testEnv.Stop()
+
+	if app.maasFakeServer != nil {
+		app.logger.Info("shutting down MaaS Fake API Server...")
+		app.maasFakeServer.Close()
+	}
+
+	return nil
 }
 
 func (app *App) Routes() http.Handler {
@@ -143,9 +165,7 @@ func (app *App) Routes() http.Handler {
 	// MaaS routes
 
 	attachTierHandlers(apiRouter, app)
-	if app.config.MockHTTPClient {
-		attachAPIKeyHandlers(apiRouter, app)
-	}
+	attachAPIKeyHandlers(apiRouter, app)
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)

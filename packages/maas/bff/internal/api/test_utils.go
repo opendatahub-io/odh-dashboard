@@ -43,10 +43,14 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		AuthMethod:     config.AuthMethodInternal,
 	}
 
+	repos, err := repositories.NewRepositories(nil, k8Factory, envConfig)
+	if err != nil {
+		return empty, nil, err
+	}
 	app := &App{
 		config:                  envConfig,
 		kubernetesClientFactory: k8Factory,
-		repositories:            repositories.NewRepositories(nil, k8Factory, envConfig),
+		repositories:            repos,
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
