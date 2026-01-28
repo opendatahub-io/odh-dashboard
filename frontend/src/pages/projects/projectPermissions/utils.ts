@@ -9,6 +9,7 @@ import {
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { RoleLabelType } from '#~/concepts/permissions/types';
 import { DEFAULT_ROLE_REFS } from './const';
+import { AssignmentStatus } from './types';
 
 const buildDashboardRoleRefs = (roles: RoleKind[], clusterRoles: ClusterRoleKind[]): RoleRef[] => {
   const toRoleRef = (kind: RoleRef['kind'], name: string): RoleRef => ({ kind, name });
@@ -63,17 +64,17 @@ export const getAssignmentStatus = (
   roleRef: RoleRef,
   assignedRoleRefs: RoleRef[],
   selectedRoleRefs: RoleRef[],
-): string => {
+): AssignmentStatus | '' => {
   const wasAssigned = hasRoleRef(assignedRoleRefs, roleRef);
   const isSelected = hasRoleRef(selectedRoleRefs, roleRef);
   if (wasAssigned && isSelected) {
-    return 'Currently assigned';
+    return AssignmentStatus.CurrentlyAssigned;
   }
   if (!wasAssigned && isSelected) {
-    return 'Assigning';
+    return AssignmentStatus.Assigning;
   }
   if (wasAssigned && !isSelected) {
-    return 'Unassigning';
+    return AssignmentStatus.Unassigning;
   }
   return '';
 };

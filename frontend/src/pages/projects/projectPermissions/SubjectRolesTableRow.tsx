@@ -43,7 +43,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
       >
         <Split hasGutter>
           <SplitItem>
-            <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
+            <RoleDetailsLink roleRef={row.roleRef} role={row.role} showAssigneesTab />
           </SplitItem>
           <SplitItem>
             <RoleLabel roleRef={row.roleRef} role={row.role} isCompact />

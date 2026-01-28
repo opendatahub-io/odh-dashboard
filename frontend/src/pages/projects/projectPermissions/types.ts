@@ -9,3 +9,9 @@ export type SubjectRoleRow = {
   roleBindingName: string;
   roleBindingCreationTimestamp?: string;
 };
+
+export enum AssignmentStatus {
+  CurrentlyAssigned = 'Currently assigned',
+  Assigning = 'Assigning',
+  Unassigning = 'Unassigning',
+}

@@ -1,7 +1,14 @@
 import * as React from 'react';
-import { Label } from '@patternfly/react-core';
+import { HelperText, HelperTextItem, Label } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { getRoleDescription, hasRoleRef } from '#~/concepts/permissions/utils';
+import {
+  getRoleDescription,
+  getRoleLabelTypeForRole,
+  getRoleLabelTypeForRoleRef,
+  hasRoleRef,
+} from '#~/concepts/permissions/utils';
+import { RoleLabelType } from '#~/concepts/permissions/types';
+import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import RoleDetailsLink from '#~/pages/projects/projectPermissions/components/RoleDetailsLink';
@@ -19,33 +26,54 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
   row,
   selections,
   onToggle,
-}) => (
-  <Tr data-testid={`manage-roles-row-${row.roleRef.kind}-${row.roleRef.name}`}>
-    <Td
-      select={{
-        rowIndex,
-        isSelected: hasRoleRef(selections, row.roleRef),
-        onSelect: () => onToggle(row.roleRef),
-      }}
-      aria-label={`Toggle ${row.displayName}`}
-    />
-    <Td dataLabel="Role">
-      <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
-    </Td>
-    <Td dataLabel="Description">{getRoleDescription(row.roleRef, row.role) ?? '--'}</Td>
-    <Td dataLabel="Role type">
-      <RoleLabel roleRef={row.roleRef} role={row.role} isCompact />
-    </Td>
-    <Td dataLabel="Assignment status">
-      {row.statusLabel ? (
-        <Label variant="outline" isCompact>
-          {row.statusLabel}
-        </Label>
-      ) : (
-        '--'
-      )}
-    </Td>
-  </Tr>
-);
+}) => {
+  const labelType = row.role
+    ? getRoleLabelTypeForRole(row.role)
+    : getRoleLabelTypeForRoleRef(row.roleRef);
+  const isCustomUnassign =
+    row.statusLabel === AssignmentStatus.Unassigning && labelType === RoleLabelType.OpenshiftCustom;
+
+  return (
+    <Tr data-testid={`manage-roles-row-${row.roleRef.kind}-${row.roleRef.name}`}>
+      <Td
+        select={{
+          rowIndex,
+          isSelected: hasRoleRef(selections, row.roleRef),
+          onSelect: () => onToggle(row.roleRef),
+        }}
+        aria-label={`Toggle ${row.displayName}`}
+      />
+      <Td dataLabel="Role">
+        <RoleDetailsLink roleRef={row.roleRef} role={row.role} showAssigneesTab={false} />
+      </Td>
+      <Td dataLabel="Description">{getRoleDescription(row.roleRef, row.role) ?? '-'}</Td>
+      <Td dataLabel="Role type">
+        <RoleLabel roleRef={row.roleRef} role={row.role} isCompact />
+      </Td>
+      <Td dataLabel="Assignment status">
+        {row.statusLabel ? (
+          <>
+            <Label
+              variant={isCustomUnassign ? 'filled' : 'outline'}
+              color={row.statusLabel === AssignmentStatus.CurrentlyAssigned ? 'green' : 'red'}
+              isCompact
+            >
+              {row.statusLabel}
+            </Label>
+            {isCustomUnassign && (
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  Role can only be re-assigned in OpenShift
+                </HelperTextItem>
+              </HelperText>
+            )}
+          </>
+        ) : (
+          '-'
+        )}
+      </Td>
+    </Tr>
+  );
+};
 
 export default ManageRolesTableRow;
