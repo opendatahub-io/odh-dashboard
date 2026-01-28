@@ -1,7 +1,10 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { extractK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import {
+  extractK8sNameDescriptionFieldData,
+  LimitNameResourceType,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -62,6 +65,7 @@ export const useModelDeploymentWizard = (
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
+    limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
