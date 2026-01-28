@@ -247,7 +247,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
             <FeatureStoreCodeBlock
               content={dataSet.featureDefinition}
               id={dataSet.spec.name}
-              featureStoreType="data set"
+              featureStoreType="dataset"
             />
           ) : (
             <Content component="p" className={text.textColorDisabled}>
