@@ -31,6 +31,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 import SubjectNameTypeaheadSelect from './components/SubjectNameTypeaheadSelect';
+import ManageRolesTable from './manageRoles/ManageRolesTable';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
 
 const ProjectPermissionsAssignRolesForm: React.FC = () => {
@@ -167,6 +168,11 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
               )}
             </FormGroup>
           </FormSection>
+          <ManageRolesTable
+            subjectKind={subjectKind}
+            subjectName={subjectName}
+            existingSubjectNames={existingSubjectNames}
+          />
         </Form>
       </PageSection>
       <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>

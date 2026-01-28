@@ -14,7 +14,6 @@ import {
   getRoleByRef,
   getRoleDescription,
   getRoleDisplayName,
-  getRoleLabelTypeForRoleRef,
 } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
@@ -59,7 +58,7 @@ const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({ roleRef, onClose })
           >
             <FlexItem>{getRoleDisplayName(roleRef, role)}</FlexItem>
             <FlexItem>
-              <RoleLabel type={getRoleLabelTypeForRoleRef(roleRef, role)} />
+              <RoleLabel roleRef={roleRef} role={role} />
             </FlexItem>
           </Flex>
         }
