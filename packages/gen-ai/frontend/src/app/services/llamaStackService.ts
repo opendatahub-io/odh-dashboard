@@ -224,6 +224,8 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   instructions: r.instructions,
   stream: r.stream,
   mcp_servers: r.mcp_servers,
+  input_shield_id: r.input_shield_id,
+  output_shield_id: r.output_shield_id,
 });
 
 const postCreateResponse = (

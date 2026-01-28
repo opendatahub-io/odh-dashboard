@@ -24,6 +24,9 @@ type LlamaStackClientInterface interface {
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
 	CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error)
 	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
+	// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
+	// Returns the SDK type directly for simplicity.
+	CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error)
 }
 
 // LlamaStackClientFactory interface for creating LlamaStack clients
