@@ -1,13 +1,38 @@
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import {
+  mockDashboardConfig,
+  mockDscStatus,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+  mockSecretK8sResource,
+} from '@odh-dashboard/internal/__mocks__';
+import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   createTierPage,
   deleteTierModal,
+  maasWizardField,
   tierDetailsPage,
   tiersPage,
 } from '../../../pages/modelsAsAService';
+import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { mockTier, mockTiers } from '../../../utils/maasUtils';
+import {
+  HardwareProfileModel,
+  InferenceServiceModel,
+  LLMInferenceServiceModel,
+  ProjectModel,
+  SecretModel,
+  ServingRuntimeModel,
+  TemplateModel,
+} from '../../../utils/models';
 
 describe('Tiers Page', () => {
   beforeEach(() => {
@@ -279,5 +304,161 @@ describe('Tiers Page', () => {
       });
     });
     tiersPage.findTable().should('exist');
+  });
+});
+
+describe('MaaS Deployment Wizard', () => {
+  const initMaaSDeploymentIntercepts = () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableNIMModelServing: true,
+        disableKServe: false,
+        genAiStudio: true,
+        modelAsService: true,
+        disableLLMd: false,
+      }),
+    );
+    cy.interceptOdh('GET /api/components', null, []);
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    );
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({ name: 'test-s3-secret', displayName: 'test-s3-secret' }),
+      ]),
+    );
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        displayName: 'URI - v1',
+        name: 'uri-v1',
+        category: ['existing-category'],
+        fields: [
+          {
+            type: 'uri',
+            name: 'URI',
+            envVar: 'URI',
+            required: true,
+            properties: {},
+          },
+        ],
+      }),
+    ]).as('getConnectionTypes');
+    cy.interceptK8sList(
+      TemplateModel,
+      mockK8sResourceList(mockStandardModelServingTemplateK8sResources(), {
+        namespace: 'opendatahub',
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([mockProjectK8sResource({ enableKServe: true })]),
+    );
+    cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList([]));
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
+    cy.interceptK8s(
+      'POST',
+      {
+        model: LLMInferenceServiceModel,
+        ns: 'test-project',
+      },
+      {
+        statusCode: 200,
+        body: mockLLMInferenceServiceK8sResource({ name: 'test-llmd-model' }),
+      },
+    ).as('createLLMInferenceService');
+  };
+
+  it('should create an LLMD deployment with MaaS enabled and specific tiers selected from dropdown', () => {
+    initMaaSDeploymentIntercepts();
+
+    // Mock tiers API for admin user to see available tiers in dropdown
+    cy.interceptOdh('GET /maas/api/v1/tiers', {
+      data: mockTiers(),
+    }).as('getTiers');
+
+    // Navigate to wizard and set up basic deployment
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Quick setup: Model source and deployment
+    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+    modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
+    modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+    modelServingWizard.findNextButton().click();
+
+    modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
+    modelServingWizard.findNextButton().click();
+
+    // Focus on MaaS feature testing
+    // uncheck token auth to simplify test
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+    // Verify MaaS checkbox is unchecked by default
+    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+
+    // Check the MaaS checkbox
+    maasWizardField.findSaveAsMaaSCheckbox().click();
+    maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+
+    // Verify default selection is "All resource tiers"
+    maasWizardField.findMaaSTierDropdown().should('contain.text', 'All tiers');
+
+    // Switch to "No resource tiers"
+    maasWizardField.selectMaaSTierOption('No tiers');
+    maasWizardField.findMaaSTierDropdown().should('contain.text', 'No tiers');
+
+    // Switch to "Specific resource tiers" - Next button should be disabled until tiers are selected
+    maasWizardField.selectMaaSTierOption('Specific tiers');
+    maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific tiers');
+    maasWizardField.findMaaSTierNamesInput().should('be.visible');
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    // Select tiers from the dropdown (admin has list of available tiers)
+    maasWizardField.selectMaaSTierNames(['Free Tier', 'Premium Tier']);
+
+    // Verify selected tiers appear as chips
+    maasWizardField.findMaaSTierChip('Free Tier').should('exist');
+    maasWizardField.findMaaSTierChip('Premium Tier').should('exist');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Submit and verify MaaS-specific annotations and gateway refs
+    modelServingWizard.findSubmitButton().click();
+
+    cy.wait('@createLLMInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+
+      // Verify MaaS-specific configuration with specific tiers
+      // The tiers annotation is a JSON stringified array with tier names (not display names)
+      expect(interception.request.body.metadata.annotations).to.containSubset({
+        'alpha.maas.opendatahub.io/tiers': JSON.stringify(['free', 'premium']),
+      });
+
+      expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([
+        {
+          name: 'maas-default-gateway',
+          namespace: 'openshift-ingress',
+        },
+      ]);
+    });
+
+    cy.wait('@createLLMInferenceService'); // Actual request
+    cy.get('@createLLMInferenceService.all').should('have.length', 2);
   });
 });
