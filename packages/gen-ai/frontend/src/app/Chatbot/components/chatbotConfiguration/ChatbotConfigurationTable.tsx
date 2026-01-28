@@ -3,12 +3,16 @@ import { DashboardEmptyTableView, Table, useCheckboxTableBase } from 'mod-arch-s
 import {
   Content,
   Flex,
+  FlexItem,
   SearchInput,
   Stack,
   StackItem,
+  Switch,
   Title,
   ToolbarItem,
 } from '@patternfly/react-core';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import useFetchGuardrailsStatus from '~/app/hooks/useFetchGuardrailsStatus';
 import { AIModel } from '~/app/types';
 import { chatbotConfigurationColumns } from './columns';
 import ChatbotConfigurationTableRow from './ChatbotConfigurationTableRow';
@@ -20,6 +24,8 @@ type ChatbotConfigurationTableProps = {
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
   maxTokensMap: Map<string, number | undefined>;
   onMaxTokensChange: (modelName: string, value: number | undefined) => void;
+  enableGuardrails?: boolean;
+  setEnableGuardrails?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
@@ -28,7 +34,13 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   setSelectedModels,
   maxTokensMap,
   onMaxTokensChange,
+  enableGuardrails = false,
+  setEnableGuardrails,
 }) => {
+  // Gate all guardrails UI behind the guardrails feature flag
+  const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
+  const { isReady: isGuardrailsReady, loaded: guardrailsStatusLoaded } = useFetchGuardrailsStatus();
+
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
     selectedModels,
@@ -79,6 +91,34 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
       <StackItem>
         <GuardrailsNotConfiguredAlert />
       </StackItem>
+      {/* Only show guardrails toggle when feature flag is enabled */}
+      {isGuardrailsFeatureEnabled && guardrailsStatusLoaded && (
+        <StackItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Title headingLevel="h3" size="md">
+                Guardrails
+              </Title>
+            </FlexItem>
+            <FlexItem>
+              <Switch
+                id="guardrails-toggle"
+                label=""
+                aria-label="Toggle guardrails"
+                isChecked={enableGuardrails}
+                onChange={(_, checked) => {
+                  if (setEnableGuardrails) {
+                    setEnableGuardrails(checked);
+                  }
+                }}
+                // Ensure the toggle is disabled when status ≠ Ready
+                isDisabled={!isGuardrailsReady}
+                data-testid="guardrails-toggle-switch"
+              />
+            </FlexItem>
+          </Flex>
+        </StackItem>
+      )}
       <StackItem>
         <Title headingLevel="h2" size="md">
           Available models
