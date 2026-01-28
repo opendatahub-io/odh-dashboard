@@ -54,7 +54,7 @@ interface ChatbotSettingsPanelProps {
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
-const DEFAULT_WIDTH = '460px';
+const DEFAULT_WIDTH = '550px';
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = 'default',

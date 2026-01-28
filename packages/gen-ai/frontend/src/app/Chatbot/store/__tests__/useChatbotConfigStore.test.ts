@@ -51,6 +51,15 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations.default?.isStreamingEnabled).toBe(false);
     });
 
+    it('should update guardrailsEnabled', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateGuardrailsEnabled('default', true);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.guardrailsEnabled).toBe(true);
+    });
+
     it('should not update non-existent config', () => {
       act(() => {
         useChatbotConfigStore.getState().updateSystemInstruction('non-existent', 'New instruction');
