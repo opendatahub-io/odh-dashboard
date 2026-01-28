@@ -1,9 +1,6 @@
----
-description: Comprehensive guidelines for creating and maintaining contract tests for ODH Dashboard modules
-globs: 
-alwaysApply: false
----
 # Contract Test Rules
+
+Comprehensive guidelines for creating and maintaining contract tests for ODH Dashboard modules.
 
 ## What Are Contract Tests?
 
@@ -59,7 +56,7 @@ Before implementing contract tests, ensure your module has:
    - Must expose `/healthcheck` endpoint
    - Must support OpenShift build structure
 
-2. **OpenAPI Specification** 
+2. **OpenAPI Specification**
    - Store in `bff/openapi/src/*.yaml` OR `upstream/api/openapi/*.yaml`
    - Must define all endpoints with request/response schemas
    - Must follow OpenAPI 3.0+ specification
@@ -112,7 +109,7 @@ Add a single script to your module's `package.json`:
 
 Create the following structure in your module:
 
-```
+```text
 your-module/
 ├── contract-tests/           # Contract tests directory
 │   └── __tests__/
@@ -394,7 +391,7 @@ describe('Empty Responses', () => {
 
 Your Mock BFF must have the following structure:
 
-```
+```text
 bff/
 ├── cmd/
 │   └── main.go              # Entry point
@@ -429,15 +426,15 @@ type Config struct {
 
 func main() {
     cfg := &Config{}
-    
+
     // REQUIRED flags
     flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
     flag.BoolVar(&cfg.MockMRClient, "mock-mr-client", false, "Use mock Model Registry client")
     flag.IntVar(&cfg.Port, "port", 8080, "API server port")
     flag.StringVar(&cfg.AllowedOrigins, "allowed-origins", "*", "CORS allowed origins")
-    
+
     flag.Parse()
-    
+
     // Initialize with mock clients when flags are set
     // ...
 }
@@ -456,7 +453,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
         "status": "healthy",
         "timestamp": time.Now().Unix(),
     }
-    
+
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(response)
@@ -521,7 +518,7 @@ components:
       required:
         - id
         - name
-    
+
     ModelList:
       type: object
       properties:
@@ -534,7 +531,7 @@ components:
       required:
         - models
         - total
-    
+
     Error:
       type: object
       properties:
@@ -553,7 +550,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ModelList'
-    
+
     NotFoundError:
       description: Resource not found
       content:
@@ -831,6 +828,7 @@ describe('Model Registry List Endpoint', () => {
 ## Implementation Checklist
 
 ### Before Implementation
+
 - [ ] Verified module has a Mock BFF with required structure
 - [ ] Confirmed BFF accepts required mock flags
 - [ ] Verified BFF has `/healthcheck` endpoint
@@ -838,6 +836,7 @@ describe('Model Registry List Endpoint', () => {
 - [ ] Reviewed existing contract test implementations
 
 ### During Implementation
+
 - [ ] Added `@odh-dashboard/contract-tests` to `devDependencies`
 - [ ] Added single `test:contract` script to `package.json`
 - [ ] Created `contract-tests/__tests__/` directory
@@ -849,6 +848,7 @@ describe('Model Registry List Endpoint', () => {
 - [ ] Did NOT create jest.config or custom utilities in module
 
 ### After Implementation
+
 - [ ] Ran tests locally: `npm run test:contract`
 - [ ] Verified all tests pass
 - [ ] Checked tests run via Turbo: `npx turbo run test:contract --filter=@odh-dashboard/your-module`
@@ -865,13 +865,13 @@ The framework provides `toMatchContract`, but you can add additional assertions:
 ```typescript
 it('should return valid data structure', async () => {
   const result = await apiClient.get('/api/v1/models');
-  
+
   // Contract validation
   expect(result).toMatchContract(apiSchema, {
     ref: '#/components/responses/ModelsResponse/content/application/json/schema',
     status: 200,
   });
-  
+
   // Additional assertions
   expect(result.data.models).toBeInstanceOf(Array);
   expect(result.data.models.length).toBeGreaterThan(0);
