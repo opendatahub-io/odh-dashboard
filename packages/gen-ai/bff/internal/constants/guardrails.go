@@ -62,8 +62,11 @@ const (
 	// Primary trigger is sentence boundary detection; this is the fallback for code blocks, lists, etc.
 	ModerationChunkSize = 30
 
-	// GuardrailViolationMessage is the message shown when content is blocked by guardrails
-	GuardrailViolationMessage = "I apologize, but I cannot provide a response to this request as it may contain content that violates our safety guidelines."
+	// InputGuardrailViolationMessage is the message shown when user input is blocked by guardrails
+	InputGuardrailViolationMessage = "I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII)."
+
+	// OutputGuardrailViolationMessage is the message shown when model output is blocked by guardrails
+	OutputGuardrailViolationMessage = "The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII)."
 
 	// AsyncModerationResultBufferSize is the buffer size for the async moderation result channel
 	// This allows multiple moderation requests to complete without blocking

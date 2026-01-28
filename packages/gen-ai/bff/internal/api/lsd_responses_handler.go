@@ -275,9 +275,9 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 			// Use streaming format if stream=true, otherwise return JSON
 			if createRequest.Stream {
-				app.sendInputGuardrailViolationStreaming(w, createRequest.Model, modResult.ViolationReason)
+				app.sendInputGuardrailViolationStreaming(w, createRequest.Model)
 			} else {
-				responseData := createGuardrailViolationResponse("", createRequest.Model, modResult.ViolationReason)
+				responseData := createGuardrailViolationResponse("", createRequest.Model, true)
 				apiResponse := llamastack.APIResponse{Data: responseData}
 				if err := app.WriteJSON(w, http.StatusCreated, apiResponse, nil); err != nil {
 					app.serverErrorResponse(w, r, err)
@@ -434,7 +434,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 					"shield_id", params.OutputShieldID,
 					"reason", modResult.ViolationReason)
 				// Replace response with guardrail violation message
-				responseData = createGuardrailViolationResponse(responseData.ID, responseData.Model, modResult.ViolationReason)
+				responseData = createGuardrailViolationResponse(responseData.ID, responseData.Model, false)
 			}
 		}
 	}
@@ -457,12 +457,12 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 // sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
 // using the OpenAI standard refusal content type and streaming events.
 // This is used when input moderation flags content and the client requested streaming.
-func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string, violationReason string) {
+func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string) {
 	// Check if ResponseWriter supports streaming
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		// Fallback to JSON if streaming not supported
-		responseData := createGuardrailViolationResponse("", model, violationReason)
+		responseData := createGuardrailViolationResponse("", model, true)
 		apiResponse := llamastack.APIResponse{Data: responseData}
 		_ = app.WriteJSON(w, http.StatusCreated, apiResponse, nil) // Best effort - client may have disconnected
 		return
@@ -474,11 +474,7 @@ func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, mode
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Use violation reason if provided, otherwise use default message
-	message := constants.GuardrailViolationMessage
-	if violationReason != "" {
-		message = violationReason
-	}
+	message := constants.InputGuardrailViolationMessage
 
 	// Generate IDs for the response
 	responseID := "resp_guardrail_" + fmt.Sprintf("%d", getCurrentTimestamp())

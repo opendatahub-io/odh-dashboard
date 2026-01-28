@@ -148,6 +148,9 @@ func TestChunkOrdering_InOrder(t *testing.T) {
 	chunk2.Events = []*StreamingEvent{{Delta: "Third sentence."}}
 	state.RegisterChunk(chunk2)
 
+	// Start processing results in background
+	go state.ProcessResults(sendFunc)
+
 	// Simulate moderation results arriving in order
 	go func() {
 		time.Sleep(10 * time.Millisecond)
@@ -159,7 +162,7 @@ func TestChunkOrdering_InOrder(t *testing.T) {
 	}()
 
 	// Wait for all pending chunks
-	violation := state.WaitForAllPending(sendFunc)
+	violation := state.WaitForAllPending(func(_ []*StreamingEvent) error { return nil })
 	assert.Empty(t, violation)
 
 	// Verify events were sent in order
@@ -215,6 +218,9 @@ func TestChunkOrdering_OutOfOrder(t *testing.T) {
 	chunk2.Events = []*StreamingEvent{{Delta: "Third"}}
 	state.RegisterChunk(chunk2)
 
+	// Start processing results in background
+	go state.ProcessResults(sendFunc)
+
 	// Simulate moderation results arriving OUT OF ORDER: 2, 0, 1
 	go func() {
 		time.Sleep(10 * time.Millisecond)
@@ -229,7 +235,7 @@ func TestChunkOrdering_OutOfOrder(t *testing.T) {
 	}()
 
 	// Wait for all pending chunks
-	violation := state.WaitForAllPending(sendFunc)
+	violation := state.WaitForAllPending(func(_ []*StreamingEvent) error { return nil })
 	assert.Empty(t, violation)
 
 	// Verify events were sent in CORRECT order (0, 1, 2) despite arriving out of order
@@ -264,6 +270,9 @@ func TestChunkOrdering_BatchRelease(t *testing.T) {
 		state.RegisterChunk(chunk)
 	}
 
+	// Start processing results in background
+	go state.ProcessResults(sendFunc)
+
 	// Chunks 1 and 2 complete first, then 0
 	go func() {
 		time.Sleep(10 * time.Millisecond)
@@ -275,7 +284,7 @@ func TestChunkOrdering_BatchRelease(t *testing.T) {
 		state.resultChan <- AsyncModerationResult{SequenceNum: 0, Safe: true}
 	}()
 
-	violation := state.WaitForAllPending(sendFunc)
+	violation := state.WaitForAllPending(func(_ []*StreamingEvent) error { return nil })
 	assert.Empty(t, violation)
 
 	// All three chunks should have been sent (possibly in separate calls due to timing)
@@ -317,6 +326,9 @@ func TestGuardrailViolation_StopsProcessing(t *testing.T) {
 	chunk2.Events = []*StreamingEvent{{Delta: "More content."}}
 	state.RegisterChunk(chunk2)
 
+	// Start processing results in background
+	go state.ProcessResults(sendFunc)
+
 	// Chunk 0 is safe, chunk 1 is flagged
 	go func() {
 		time.Sleep(10 * time.Millisecond)
@@ -328,7 +340,7 @@ func TestGuardrailViolation_StopsProcessing(t *testing.T) {
 		state.resultChan <- AsyncModerationResult{SequenceNum: 2, Safe: true}
 	}()
 
-	violation := state.WaitForAllPending(sendFunc)
+	violation := state.WaitForAllPending(func(_ []*StreamingEvent) error { return nil })
 
 	// Should return violation reason
 	assert.Equal(t, "Content policy violation", violation)
@@ -356,13 +368,16 @@ func TestGuardrailViolation_FirstChunkFlagged(t *testing.T) {
 	chunk0.Events = []*StreamingEvent{{Delta: "Harmful content."}}
 	state.RegisterChunk(chunk0)
 
+	// Start processing results in background
+	go state.ProcessResults(sendFunc)
+
 	// First chunk is flagged
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		state.resultChan <- AsyncModerationResult{SequenceNum: 0, Safe: false, ViolationReason: "Harmful content detected"}
 	}()
 
-	violation := state.WaitForAllPending(sendFunc)
+	violation := state.WaitForAllPending(func(_ []*StreamingEvent) error { return nil })
 
 	// Should return violation reason
 	assert.Equal(t, "Harmful content detected", violation)
@@ -508,12 +523,15 @@ func TestEmptyChunk(t *testing.T) {
 	chunk.Events = []*StreamingEvent{} // Empty
 	state.RegisterChunk(chunk)
 
+	// Start processing results in background
+	go state.ProcessResults(sendFunc)
+
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		state.resultChan <- AsyncModerationResult{SequenceNum: 0, Safe: true}
 	}()
 
-	state.WaitForAllPending(sendFunc)
+	state.WaitForAllPending(func(_ []*StreamingEvent) error { return nil })
 
 	// No events should be sent for empty chunk
 	assert.Equal(t, 0, sentCount)

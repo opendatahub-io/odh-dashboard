@@ -368,11 +368,8 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	}()
 
 	// Helper to send guardrail violation in streaming format using OpenAI standard refusal events
-	sendGuardrailViolation := func(violationReason string) {
-		message := constants.GuardrailViolationMessage
-		if violationReason != "" {
-			message = violationReason
-		}
+	sendGuardrailViolation := func() {
+		message := constants.OutputGuardrailViolationMessage
 
 		// Send response.refusal.delta with the guardrail message (OpenAI standard)
 		refusalDeltaEvent := &StreamingEvent{
@@ -445,7 +442,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			app.logger.Info("Output blocked by guardrails (async)",
 				"shield_id", params.OutputShieldID,
 				"reason", violation)
-			sendGuardrailViolation(violation)
+			sendGuardrailViolation()
 			return
 		default:
 			// Continue processing
@@ -524,7 +521,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 				app.logger.Info("Output blocked by guardrails (final check)",
 					"shield_id", params.OutputShieldID,
 					"reason", violation)
-				sendGuardrailViolation(violation)
+				sendGuardrailViolation()
 				return
 			}
 
@@ -546,7 +543,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		app.logger.Info("Output blocked by guardrails (stream end)",
 			"shield_id", params.OutputShieldID,
 			"reason", violation)
-		sendGuardrailViolation(violation)
+		sendGuardrailViolation()
 		return
 	}
 

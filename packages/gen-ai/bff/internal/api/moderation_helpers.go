@@ -108,11 +108,10 @@ func extractResponseText(response *ResponseData) string {
 	return strings.Join(textParts, " ")
 }
 
-func createGuardrailViolationResponse(responseID string, model string, violationReason string) ResponseData {
-	// Use the violation reason from moderation API, or fall back to default message
-	message := constants.GuardrailViolationMessage
-	if violationReason != "" {
-		message = violationReason
+func createGuardrailViolationResponse(responseID string, model string, isInput bool) ResponseData {
+	message := constants.OutputGuardrailViolationMessage
+	if isInput {
+		message = constants.InputGuardrailViolationMessage
 	}
 
 	return ResponseData{
