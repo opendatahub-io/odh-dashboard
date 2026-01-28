@@ -1,6 +1,16 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
 /**
+ * MCP tool selections map structure:
+ * {
+ *   "namespace-name": {
+ *     "http://server-url": ["tool1", "tool2"]
+ *   }
+ * }
+ */
+export type McpToolSelectionsMap = Record<string, Record<string, string[]> | undefined>;
+
+/**
  * Configuration for a single chatbot instance.
  * This represents one "slot" in comparison mode.
  */
@@ -11,6 +21,7 @@ export interface ChatbotConfiguration {
   selectedModel: string;
   guardrailsEnabled: boolean;
   selectedMcpServerIds: string[];
+  mcpToolSelections: McpToolSelectionsMap;
 }
 
 /**
@@ -23,6 +34,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   selectedModel: '',
   guardrailsEnabled: false,
   selectedMcpServerIds: [],
+  mcpToolSelections: {},
 };
 
 /**
@@ -46,6 +58,15 @@ export interface ChatbotConfigStoreActions {
   updateSelectedModel: (id: string, value: string) => void;
   updateGuardrailsEnabled: (id: string, value: boolean) => void;
   updateSelectedMcpServerIds: (id: string, value: string[]) => void;
+
+  // MCP tool selections (per-config state)
+  getToolSelections: (id: string, namespace: string, serverUrl: string) => string[] | undefined;
+  saveToolSelections: (
+    id: string,
+    namespace: string,
+    serverUrl: string,
+    toolNames: string[] | undefined,
+  ) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

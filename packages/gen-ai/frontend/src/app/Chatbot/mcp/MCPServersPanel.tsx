@@ -16,7 +16,6 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
@@ -61,10 +60,16 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections } = useMCPToolSelections();
 
   // Get initial selected server IDs from store
   const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+
+  // Get tool selections callback from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
 
   const statusesLoading = React.useMemo(() => new Set<string>(), []);
 
@@ -350,6 +355,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       )}
       {toolsModal.selectedItem && (
         <MCPServerToolsModal
+          configId={configId}
           isOpen={toolsModal.isOpen}
           onClose={handleToolsModalClose}
           server={toolsModal.selectedItem}

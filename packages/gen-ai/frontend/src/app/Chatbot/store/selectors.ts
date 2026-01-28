@@ -1,4 +1,4 @@
-import { ChatbotConfigStore, DEFAULT_CONFIGURATION } from './types';
+import { ChatbotConfigStore, DEFAULT_CONFIGURATION, McpToolSelectionsMap } from './types';
 
 // Field-specific selectors
 // Each selector takes a configId parameter
@@ -32,6 +32,12 @@ export const selectSelectedMcpServerIds =
   (state: ChatbotConfigStore): string[] =>
     state.configurations[configId]?.selectedMcpServerIds ??
     DEFAULT_CONFIGURATION.selectedMcpServerIds;
+
+// MCP tool selections selectors
+export const selectMcpToolSelections =
+  (configId: string) =>
+  (state: ChatbotConfigStore): McpToolSelectionsMap =>
+    state.configurations[configId]?.mcpToolSelections ?? {};
 
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

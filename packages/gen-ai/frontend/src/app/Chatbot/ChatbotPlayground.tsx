@@ -19,7 +19,6 @@ import { isLlamaModelEnabled } from '~/app/utilities';
 import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -59,7 +58,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections } = useMCPToolSelections();
   const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
@@ -183,6 +181,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     uploadedFiles: fileManagement.files,
     isFilesLoading: fileManagement.isLoading,
   });
+
+  // Get tool selections callback from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
 
   // TODO: This will need to be changed to an object or array when implementing compare mode
   const chatbotMessages = useChatbotMessages({

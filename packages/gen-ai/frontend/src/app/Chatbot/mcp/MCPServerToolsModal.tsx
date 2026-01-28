@@ -20,13 +20,14 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPTool } from '~/app/types';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import MCPToolsColumns from './MCPToolsColumns';
 import MCPToolsTableRow from './MCPToolsTableRow';
 
 interface MCPServerToolsModalProps {
+  configId: string;
   isOpen: boolean;
   onClose: () => void;
   server: MCPServer;
@@ -36,13 +37,28 @@ interface MCPServerToolsModalProps {
 const MCP_TOOLS_EVENT_NAME = 'Playground MCP Tools';
 
 const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
+  configId,
   isOpen,
   onClose,
   server,
   mcpBearerToken,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections, saveToolSelections } = useMCPToolSelections();
+
+  // Get tool selections functions from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
+  const saveToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string, toolNames: string[] | undefined) => {
+      useChatbotConfigStore
+        .getState()
+        .saveToolSelections(configId, namespaceName, serverUrl, toolNames);
+    },
+    [configId],
+  );
 
   const {
     tools: apiTools,
