@@ -74,7 +74,6 @@ type SubjectRolesTableProps = {
   subjectKind: 'user' | 'group';
   filterData: FilterDataType;
   onClearFilters: () => void;
-  onRoleClick?: (roleRef: RoleRef) => void;
   footerRow?: (pageNumber: number) => React.ReactElement | null;
 };
 
@@ -136,7 +135,6 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   subjectKind,
   filterData,
   onClearFilters,
-  onRoleClick,
   footerRow,
 }) => {
   const navigate = useNavigate();
@@ -233,7 +231,6 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
               key={row.key}
               row={row}
               subjectNameRowSpan={rowSpan}
-              onRoleClick={onRoleClick}
               onManageRoles={() => handleManageRoles(row)}
               onRemove={() => {
                 setRemoveError(undefined);

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
-import { OutlinedStarIcon } from '@patternfly/react-icons';
+import AiExperienceIcon from '#~/images/icons/AiExperienceIcon.ts';
 
 export const AILabel: React.FC = () => (
-  <Label icon={<OutlinedStarIcon />} variant="outline" data-testid="ai-project-label" isCompact>
+  <Label icon={<AiExperienceIcon />} variant="outline" data-testid="ai-project-label" isCompact>
     AI
   </Label>
 );

@@ -1,5 +1,6 @@
 import { SimpleSelectOption } from '#~/components/SimpleSelect';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { DEFAULT_CLUSTER_ROLE_NAMES } from '#~/concepts/permissions/const';
 
 export enum SubjectScopeFilter {
   all = 'all',
@@ -38,7 +39,7 @@ export const initialFilterData: FilterDataType = {
 export const ROLE_BINDING_DATE_CREATED_TOOLTIP =
   'The date the role binding was created. This can differ from when the user or group was assigned the role.';
 
-export const DEFAULT_ROLE_REFS: RoleRef[] = [
-  { kind: 'ClusterRole', name: 'admin' },
-  { kind: 'ClusterRole', name: 'edit' },
-];
+export const DEFAULT_ROLE_REFS: RoleRef[] = DEFAULT_CLUSTER_ROLE_NAMES.map((name) => ({
+  kind: 'ClusterRole',
+  name,
+}));

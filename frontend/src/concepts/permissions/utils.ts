@@ -8,6 +8,7 @@ import type {
 import { KnownLabels } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
+  DEFAULT_CLUSTER_ROLE_NAMES,
   DEFAULT_ROLE_DESCRIPTIONS,
   OPENSHIFT_BOOTSTRAPPING_DEFAULT_VALUE,
   OPENSHIFT_BOOTSTRAPPING_LABEL_KEY,
@@ -78,7 +79,7 @@ export const hasRoleRef = (roleRefs: RoleRef[], target: RoleRef): boolean =>
  * - OpenShift default roles: RoleLabelType.OpenshiftDefault (bootstrapped RBAC defaults).
  * - OpenShift custom roles: RoleLabelType.OpenshiftCustom (everything else).
  */
-const getRoleLabelType = (role: RoleKind | ClusterRoleKind): RoleLabelType => {
+export const getRoleLabelTypeForRole = (role: RoleKind | ClusterRoleKind): RoleLabelType => {
   const labels = role.metadata.labels ?? {};
   if (labels[KnownLabels.DASHBOARD_RESOURCE] === 'true') {
     return RoleLabelType.Dashboard;
@@ -97,15 +98,9 @@ const getRoleLabelType = (role: RoleKind | ClusterRoleKind): RoleLabelType => {
  * - admin/edit ClusterRoles are treated as OpenShift default even when unreadable.
  * - other unreadable roles are treated as OpenShift custom.
  */
-export const getRoleLabelTypeForRoleRef = (
-  roleRef: RoleRef,
-  role?: RoleKind | ClusterRoleKind,
-): RoleLabelType => {
-  if (role) {
-    return getRoleLabelType(role);
-  }
+export const getRoleLabelTypeForRoleRef = (roleRef: RoleRef): RoleLabelType => {
   const name = roleRef.name.toLowerCase();
-  if (roleRef.kind === 'ClusterRole' && (name === 'admin' || name === 'edit')) {
+  if (roleRef.kind === 'ClusterRole' && DEFAULT_CLUSTER_ROLE_NAMES.includes(name)) {
     return RoleLabelType.OpenshiftDefault;
   }
   return RoleLabelType.OpenshiftCustom;

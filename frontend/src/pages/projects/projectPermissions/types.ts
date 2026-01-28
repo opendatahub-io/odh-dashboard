@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { RoleLabelType, RoleRef } from '#~/concepts/permissions/types';
+import { RoleRef } from '#~/concepts/permissions/types';
 import { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 
 export type SubjectRoleRow = {
@@ -11,8 +10,8 @@ export type SubjectRoleRow = {
   roleBindingCreationTimestamp?: string;
 };
 
-export type RoleDisplay = {
-  name: string;
-  labelType?: RoleLabelType;
-  description?: ReactNode;
-};
+export enum AssignmentStatus {
+  CurrentlyAssigned = 'Currently assigned',
+  Assigning = 'Assigning',
+  Unassigning = 'Unassigning',
+}
