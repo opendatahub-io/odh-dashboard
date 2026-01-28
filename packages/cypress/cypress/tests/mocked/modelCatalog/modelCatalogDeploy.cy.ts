@@ -15,6 +15,7 @@ import {
   mockCatalogSourceList,
 } from '@odh-dashboard/model-registry/mocks/mockCatalogSourceList';
 import type { ModelCatalogSource } from '@odh-dashboard/internal/concepts/modelCatalog/types';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import { modelServingWizard } from '../../../pages/modelServing';
 import { initDeployPrefilledModelIntercepts } from '../../../utils/modelServingUtils';
@@ -124,6 +125,22 @@ const initIntercepts = ({
       }),
     },
   ).as('loadArtifacts');
+  cy.interceptOdh('GET /api/connection-types', [
+    mockConnectionTypeConfigMap({
+      displayName: 'URI - v1',
+      name: 'uri-v1',
+      category: ['existing-category'],
+      fields: [
+        {
+          type: 'uri',
+          name: 'URI',
+          envVar: 'URI',
+          required: true,
+          properties: {},
+        },
+      ],
+    }),
+  ]).as('getConnectionTypes');
 };
 
 describe('Deploy catalog model', () => {
@@ -158,10 +175,13 @@ describe('Deploy catalog model', () => {
     modelDetailsPage.visit();
 
     cy.wait('@loadModel');
+    cy.wait('@getConnectionTypes');
     cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().should('be.enabled');
-    modelDetailsPage.findDeployModelButton().should('not.have.attr', 'aria-disabled', 'true');
-    modelDetailsPage.findDeployModelButton().click();
+    modelDetailsPage
+      .findDeployModelButton()
+      .should('not.have.attr', 'aria-disabled', 'true')
+      .click();
     modelServingWizard.findPrefillAlert().should('exist');
     modelServingWizard.findModelSourceStep().should('be.enabled');
     modelServingWizard.findModelDeploymentStep().should('be.enabled');
