@@ -91,7 +91,7 @@ import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockN
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { APIKey } from '@odh-dashboard/maas/types/api-key';
+import type { APIKey, CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1115,6 +1115,10 @@ declare global {
         ((
           type: 'DELETE /maas/api/v1/api-keys',
           response: { data: null },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/api-key',
+          response: { data: OdhResponse<CreateAPIKeyResponse> },
         ) => Cypress.Chainable<null>);
     }
   }

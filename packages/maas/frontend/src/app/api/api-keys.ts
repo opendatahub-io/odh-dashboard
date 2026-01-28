@@ -1,7 +1,9 @@
 import {
   APIOptions,
+  assembleModArchBody,
   handleRestFailures,
   isModArchResponse,
+  restCREATE,
   restDELETE,
   restGET,
 } from 'mod-arch-core';
@@ -16,6 +18,40 @@ export const getApiKeys =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<APIKey[]>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export type CreateAPIKeyRequest = {
+  name?: string;
+  description?: string;
+  expiration?: string;
+};
+
+export type CreateAPIKeyResponse = {
+  token: string;
+  expiration: string;
+  expiresAt: number;
+  jti: string;
+  name?: string;
+  description?: string;
+};
+
+/** POST /api/v1/api-key - Create a new API key */
+export const createApiKey =
+  (hostPath = '') =>
+  (opts: APIOptions, request: CreateAPIKeyRequest): Promise<CreateAPIKeyResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-key`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CreateAPIKeyResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

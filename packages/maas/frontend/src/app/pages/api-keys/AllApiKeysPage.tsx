@@ -1,13 +1,16 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { PageSection } from '@patternfly/react-core';
+import { Button, PageSection } from '@patternfly/react-core';
+import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
+import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysActions from './ApiKeysActions';
 
 const AllApiKeysPage: React.FC = () => {
   const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   return (
     <ApplicationsPage
@@ -19,9 +22,29 @@ const AllApiKeysPage: React.FC = () => {
       emptyStatePage={<EmptyApiKeysPage />}
       headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
     >
+      <CreateApiKeyModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          refresh();
+        }}
+      />
+
       {loaded && (
         <PageSection isFilled>
-          <ApiKeysTable apiKeys={apiKeys} />
+          <ApiKeysTable
+            apiKeys={apiKeys}
+            toolbarContent={
+              <Button
+                variant="primary"
+                icon={<PlusIcon />}
+                onClick={() => setIsModalOpen(true)}
+                data-testid="create-api-key-button"
+              >
+                Create API key
+              </Button>
+            }
+          />
         </PageSection>
       )}
     </ApplicationsPage>
