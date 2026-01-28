@@ -267,7 +267,6 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({
                         setValue={handleTierSelectionChange}
                         isCreatable={!hasViewTiersPermission}
                         createOptionMessage={(tierName) => `Create "${tierName}"`}
-                        // selectionRequired
                         noSelectedOptionsMessage="At least one resource tier must be selected"
                         popperProps={{ appendTo: 'inline' }}
                       />
