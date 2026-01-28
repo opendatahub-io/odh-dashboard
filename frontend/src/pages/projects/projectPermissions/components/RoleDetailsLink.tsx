@@ -8,9 +8,10 @@ import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/R
 type RoleDetailsLinkProps = {
   roleRef: RoleRef;
   role?: RoleKind | ClusterRoleKind;
+  showAssigneesTab?: boolean;
 };
 
-const RoleDetailsLink: React.FC<RoleDetailsLinkProps> = ({ roleRef, role }) => {
+const RoleDetailsLink: React.FC<RoleDetailsLinkProps> = ({ roleRef, role, showAssigneesTab }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -18,7 +19,13 @@ const RoleDetailsLink: React.FC<RoleDetailsLinkProps> = ({ roleRef, role }) => {
       <Button variant="link" isInline onClick={() => setIsOpen(true)} data-testid="role-link">
         {getRoleDisplayName(roleRef, role)}
       </Button>
-      {isOpen ? <RoleDetailsModal roleRef={roleRef} onClose={() => setIsOpen(false)} /> : null}
+      {isOpen ? (
+        <RoleDetailsModal
+          roleRef={roleRef}
+          onClose={() => setIsOpen(false)}
+          showAssigneesTab={showAssigneesTab}
+        />
+      ) : null}
     </>
   );
 };

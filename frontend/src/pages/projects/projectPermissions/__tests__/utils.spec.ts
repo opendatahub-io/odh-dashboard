@@ -10,6 +10,7 @@ import {
 import { mockRoleK8sResource, mockClusterRoleK8sResource } from '#~/__mocks__';
 import { KnownLabels } from '#~/k8sTypes';
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
+import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
 
 describe('project permissions utils', () => {
   const roleRefAdmin: RoleRef = { kind: 'ClusterRole', name: 'admin' };
@@ -107,9 +108,11 @@ describe('project permissions utils', () => {
     const assigned = [roleRefAdmin];
     const selected = [roleRefAdmin, roleRefEdit];
 
-    expect(getAssignmentStatus(roleRefAdmin, assigned, selected)).toBe('Currently assigned');
-    expect(getAssignmentStatus(roleRefEdit, assigned, selected)).toBe('Assigning');
-    expect(getAssignmentStatus(roleRefAdmin, assigned, [])).toBe('Unassigning');
+    expect(getAssignmentStatus(roleRefAdmin, assigned, selected)).toBe(
+      AssignmentStatus.CurrentlyAssigned,
+    );
+    expect(getAssignmentStatus(roleRefEdit, assigned, selected)).toBe(AssignmentStatus.Assigning);
+    expect(getAssignmentStatus(roleRefAdmin, assigned, [])).toBe(AssignmentStatus.Unassigning);
     expect(getAssignmentStatus({ kind: 'Role', name: 'custom' }, assigned, selected)).toBe('');
   });
 });

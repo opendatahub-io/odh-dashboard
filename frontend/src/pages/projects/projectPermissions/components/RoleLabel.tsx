@@ -22,13 +22,7 @@ const RoleLabel: React.FC<RoleLabelProps> = ({ roleRef, role, isCompact = false 
   const showAiRole = isDashboard || isDefault;
   if (showAiRole) {
     labels.push(
-      <Label
-        icon={<AiExperienceIcon />}
-        key="ai-role"
-        variant="outline"
-        isCompact={isCompact}
-        color="green"
-      >
+      <Label icon={<AiExperienceIcon />} key="ai-role" variant="outline" isCompact={isCompact}>
         AI role
       </Label>,
     );
@@ -39,7 +33,6 @@ const RoleLabel: React.FC<RoleLabelProps> = ({ roleRef, role, isCompact = false 
         key="openshift-default"
         variant="outline"
         isCompact={isCompact}
-        color="blue"
         icon={<OpenshiftIcon />}
       >
         OpenShift default role
@@ -52,7 +45,6 @@ const RoleLabel: React.FC<RoleLabelProps> = ({ roleRef, role, isCompact = false 
         key="openshift-custom"
         variant="outline"
         isCompact={isCompact}
-        color="purple"
         icon={<OpenshiftIcon />}
       >
         OpenShift custom role
