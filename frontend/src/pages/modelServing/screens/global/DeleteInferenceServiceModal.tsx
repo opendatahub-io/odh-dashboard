@@ -1,13 +1,14 @@
 import * as React from 'react';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { deleteInferenceService, deleteServingRuntime } from '#~/api';
+import { deleteInferenceService, deleteNIMService, deleteServingRuntime } from '#~/api';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import {
   getNIMResourcesToDelete,
   isProjectNIMSupported,
-} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nimUtils';
+import { getNIMServiceOwner } from './nimOperatorUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;
@@ -44,18 +45,45 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
 
     setIsDeleting(true);
     try {
-      const nimResourcesToDelete =
-        isKServeNIMEnabled && project && servingRuntime
-          ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)
-          : [];
+      // Check if this InferenceService is managed by the NIM Operator
+      const nimServiceOwner = getNIMServiceOwner(inferenceService);
 
-      await Promise.all([
-        deleteInferenceService(inferenceService.metadata.name, inferenceService.metadata.namespace),
-        ...(servingRuntime
-          ? [deleteServingRuntime(servingRuntime.metadata.name, servingRuntime.metadata.namespace)]
-          : []),
-        ...nimResourcesToDelete,
-      ]);
+      if (nimServiceOwner) {
+        // NIM Operator deployment: Delete the NIMService CR
+        // The NIM Operator will handle cascading deletion of the InferenceService
+        // Note: We still need to clean up Dashboard-managed resources (PVCs, secrets)
+        const nimResourcesToDelete =
+          isKServeNIMEnabled && project && servingRuntime
+            ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)
+            : [];
+
+        await Promise.all([
+          deleteNIMService(nimServiceOwner.name, inferenceService.metadata.namespace),
+          ...nimResourcesToDelete,
+        ]);
+      } else {
+        // Legacy NIM deployment (no NIM Operator): Delete InferenceService and ServingRuntime
+        const nimResourcesToDelete =
+          isKServeNIMEnabled && project && servingRuntime
+            ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)
+            : [];
+
+        await Promise.all([
+          deleteInferenceService(
+            inferenceService.metadata.name,
+            inferenceService.metadata.namespace,
+          ),
+          ...(servingRuntime
+            ? [
+                deleteServingRuntime(
+                  servingRuntime.metadata.name,
+                  servingRuntime.metadata.namespace,
+                ),
+              ]
+            : []),
+          ...nimResourcesToDelete,
+        ]);
+      }
 
       onBeforeClose(true);
     } catch (e: unknown) {
