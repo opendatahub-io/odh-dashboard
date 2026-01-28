@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
 import { TableBase } from '#~/components/table';
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
@@ -10,18 +11,11 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import SubjectRolesTableRow from './SubjectRolesTableRow';
-import SubjectRolesEditRow from './SubjectRolesEditRow';
 import SubjectRolesRemoveRoleModal from './SubjectRolesRemoveRoleModal';
 import { columns } from './columns';
 import { SubjectRoleRow } from './types';
 import { FilterDataType, SubjectsFilterOptions } from './const';
-import { getEditableRoleRefOptions, isReversibleRoleRef } from './utils';
-import { useRoleAssignmentData } from './useRoleAssignmentData';
-import {
-  buildRoleBindingSubject,
-  moveSubjectRoleBinding,
-  removeSubjectFromRoleBinding,
-} from './roleBindingMutations';
+import { buildRoleBindingSubject, removeSubjectFromRoleBinding } from './roleBindingMutations';
 
 type SubjectRolesTableBaseProps = {
   ariaLabel: string;
@@ -145,15 +139,14 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   onRoleClick,
   footerRow,
 }) => {
+  const navigate = useNavigate();
   const {
     currentProject: {
       metadata: { name: namespace },
     },
   } = React.useContext(ProjectDetailsContext);
   const { roles, clusterRoles, roleBindings } = usePermissionsContext();
-  const { assignedRolesBySubject } = useRoleAssignmentData(subjectKind);
 
-  const [editingRowKey, setEditingRowKey] = React.useState<string>();
   const [removingRow, setRemovingRow] = React.useState<SubjectRoleRow>();
   const [isRemoving, setIsRemoving] = React.useState(false);
   const [removeError, setRemoveError] = React.useState<Error>();
@@ -192,26 +185,6 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
   const findRoleBindingByName = (roleBindingName: string): RoleBindingKind | undefined =>
     roleBindings.data.find((rb) => rb.metadata.name === roleBindingName);
 
-  const handleSaveEdit = async (row: SubjectRoleRow, nextRoleRef: RoleRef) => {
-    const subject = buildRoleBindingSubject(subjectK8sKind, row.subjectName);
-    const oldRb = findRoleBindingByName(row.roleBindingName);
-    if (!oldRb) {
-      throw new Error('RoleBinding not found');
-    }
-
-    await moveSubjectRoleBinding({
-      roleBindings: roleBindings.data,
-      namespace,
-      subjectKind: subjectK8sKind,
-      subject,
-      fromRoleBinding: oldRb,
-      toRoleRef: nextRoleRef,
-    });
-
-    await roleBindings.refresh();
-    setEditingRowKey(undefined);
-  };
-
   const handleConfirmRemove = async () => {
     if (!removingRow) {
       return;
@@ -237,6 +210,15 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
     }
   };
 
+  const handleManageRoles = (row: SubjectRoleRow) => {
+    navigate(`/projects/${namespace}/permissions/assign`, {
+      state: {
+        subjectKind,
+        subjectName: row.subjectName,
+      },
+    });
+  };
+
   return (
     <>
       <SubjectRolesTableBase
@@ -246,38 +228,13 @@ const SubjectRolesTable: React.FC<SubjectRolesTableProps> = ({
         emptyTableView={emptyTableView}
         footerRow={footerRow}
         rowRenderer={(row, rowSpan) => {
-          if (row.key === editingRowKey) {
-            const assigned = assignedRolesBySubject.get(row.subjectName) ?? [];
-            const assignedWithoutCurrent = assigned.filter(
-              (r) => !(r.kind === row.roleRef.kind && r.name === row.roleRef.name),
-            );
-            const availableRoles = getEditableRoleRefOptions(row.roleRef);
-
-            return (
-              <SubjectRolesEditRow
-                key={row.key}
-                row={row}
-                subjectKind={subjectKind}
-                subjectNameRowSpan={rowSpan}
-                availableRoles={availableRoles}
-                assignedRoles={assignedWithoutCurrent}
-                onCancel={() => setEditingRowKey(undefined)}
-                onSave={(next) => handleSaveEdit(row, next)}
-              />
-            );
-          }
-
           return (
             <SubjectRolesTableRow
               key={row.key}
               row={row}
               subjectNameRowSpan={rowSpan}
               onRoleClick={onRoleClick}
-              onEdit={() => {
-                if (isReversibleRoleRef(row.roleRef)) {
-                  setEditingRowKey(row.key);
-                }
-              }}
+              onManageRoles={() => handleManageRoles(row)}
               onRemove={() => {
                 setRemoveError(undefined);
                 setRemovingRow(row);

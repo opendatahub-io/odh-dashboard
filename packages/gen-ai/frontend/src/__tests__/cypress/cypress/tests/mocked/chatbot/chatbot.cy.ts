@@ -151,9 +151,9 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
     );
   });
 
-  describe('MCP Servers Panel', () => {
+  describe('MCP Servers Tab', () => {
     it(
-      'should display MCP servers panel with configuration',
+      'should display MCP servers tab with configuration',
       { tags: ['@GenAI', '@Chatbot', '@MCP'] },
       () => {
         cy.step('Navigate to chatbot');
@@ -168,7 +168,7 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         cy.step('Verify RAG section is present');
         chatbotPage.findRAGSection().should('be.visible');
 
-        cy.step('Test completed - MCP servers panel is visible');
+        cy.step('Test completed - MCP servers tab is visible');
       },
     );
   });

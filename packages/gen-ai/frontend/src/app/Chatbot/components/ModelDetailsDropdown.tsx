@@ -47,7 +47,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
       onOpenChange={(isOpenChange: boolean) => setIsOpen(isOpenChange)}
       popperProps={{
         appendTo: () => document.body,
-        position: 'right',
+        position: 'left',
       }}
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle

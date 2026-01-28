@@ -5,19 +5,6 @@ import { getId } from '~/app/utilities/utils';
 // Alert and notification constants
 export const ALERT_TIMEOUT_MS = 8000;
 
-// Accordion item identifiers
-export const ACCORDION_ITEMS = {
-  MODEL_DETAILS: 'model-details-item',
-  SOURCES: 'sources-item',
-  MCP_SERVERS: 'mcp-servers-item',
-} as const;
-
-// Default expanded accordion items
-export const DEFAULT_EXPANDED_ACCORDION_ITEMS = [
-  ACCORDION_ITEMS.MODEL_DETAILS,
-  ACCORDION_ITEMS.MCP_SERVERS,
-];
-
 // Query configuration constants
 export const QUERY_CONFIG = {
   CHUNK_TEMPLATE: 'Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n',

@@ -282,7 +282,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           setIsNewChatModalOpen(false);
         }}
       />
-      <Drawer isExpanded isInline position="right">
+      <Drawer isExpanded isInline position="left">
         <Divider />
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
@@ -294,7 +294,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     : 'var(--pf-t--global--background--color--100)',
                 }}
               >
-                <MessageBox position="bottom">
+                <MessageBox position="top">
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
                     description="Welcome to the model playground."
@@ -313,7 +313,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   backgroundColor: isDarkMode
                     ? 'var(--pf-t--global--dark--background--color--100)'
                     : 'var(--pf-t--global--background--color--100)',
-                  borderTop: '1px solid var(--pf-t--global--border--color--default)',
                   paddingTop: '1rem',
                 }}
               >

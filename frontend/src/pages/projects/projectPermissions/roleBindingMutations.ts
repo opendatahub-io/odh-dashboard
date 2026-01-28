@@ -110,31 +110,3 @@ export const removeSubjectFromRoleBinding = async ({
 
   await patchRoleBindingSubjects(roleBinding.metadata.name, namespace, remainingSubjects);
 };
-
-// Moves a single subject from one RoleBinding to another roleRef in a subject-scoped way:
-// 1) Add subject to the target roleRef (patch existing RB or create a new RB)
-// 2) Remove subject from the source RB (patch subjects or delete RB if it becomes empty)
-export const moveSubjectRoleBinding = async ({
-  roleBindings,
-  namespace,
-  subjectKind,
-  subject,
-  fromRoleBinding,
-  toRoleRef,
-}: {
-  roleBindings: RoleBindingKind[];
-  namespace: string;
-  subjectKind: SupportedSubjectKind;
-  subject: RoleBindingSubject;
-  fromRoleBinding: RoleBindingKind;
-  toRoleRef: RoleRef;
-}): Promise<void> => {
-  await upsertRoleBinding({
-    roleBindings,
-    namespace,
-    subjectKind,
-    subject,
-    roleRef: toRoleRef,
-  });
-  await removeSubjectFromRoleBinding({ namespace, roleBinding: fromRoleBinding, subject });
-};

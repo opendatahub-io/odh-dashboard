@@ -1,7 +1,7 @@
-import { mcpPanel } from './playgroundPage/mcpPanel';
+import { mcpTab } from './playgroundPage/mcpTab';
 
 class PlaygroundPage {
-  mcpPanel = mcpPanel;
+  mcpTab = mcpTab;
 
   visit(namespace?: string): void {
     cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground');

@@ -22,5 +22,10 @@ export const selectSelectedModel =
   (state: ChatbotConfigStore): string =>
     state.configurations[configId]?.selectedModel ?? DEFAULT_CONFIGURATION.selectedModel;
 
+export const selectGuardrailsEnabled =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.guardrailsEnabled ?? DEFAULT_CONFIGURATION.guardrailsEnabled;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

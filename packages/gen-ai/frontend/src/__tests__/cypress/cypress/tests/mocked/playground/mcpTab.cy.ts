@@ -42,7 +42,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Verify server exists and is unauthenticated');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.find().should('be.visible');
       serverRow.findToolsButton().should('have.attr', 'aria-disabled', 'true');
 
@@ -103,7 +103,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Verify server exists and is unauthenticated');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.find().should('be.visible');
       serverRow.findToolsButton().should('have.attr', 'aria-disabled', 'true');
 
@@ -143,7 +143,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Click configure button');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
       cy.step('Verify token modal opens');
@@ -182,7 +182,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Open configure modal and enter invalid token');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
       mcpTokenAuthModal.findTokenInput().clear().type(invalidToken);
@@ -220,7 +220,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Open configure modal and enter token');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
       mcpTokenAuthModal.findTokenInput().clear().type(testToken);
@@ -258,7 +258,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Attempt authentication with invalid credentials');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findConfigureButton().click();
 
       mcpTokenAuthModal.findTokenInput().clear().type(invalidToken);
@@ -286,7 +286,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Verify tools button is disabled for unauthenticated server');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findToolsButton().should('exist').should('have.attr', 'aria-disabled', 'true');
 
       cy.step('Verify configure button is available for unauthenticated server');
@@ -316,18 +316,18 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Verify both servers are visible');
-      playgroundPage.mcpPanel.getServerRow(github.name, github.url).find().should('be.visible');
-      playgroundPage.mcpPanel
+      playgroundPage.mcpTab.getServerRow(github.name, github.url).find().should('be.visible');
+      playgroundPage.mcpTab
         .getServerRow(kubernetes.name, kubernetes.url)
         .find()
         .should('be.visible');
 
       cy.step('Verify server rows contain expected text');
-      playgroundPage.mcpPanel
+      playgroundPage.mcpTab
         .getServerRow(github.name, github.url)
         .find()
         .should('contain', 'GitHub');
-      playgroundPage.mcpPanel
+      playgroundPage.mcpTab
         .getServerRow(kubernetes.name, kubernetes.url)
         .find()
         .should('contain', 'Kubernetes');
@@ -352,12 +352,12 @@ describe('Playground - MCP Servers', () => {
 
       navigateToPlayground(namespace);
 
-      cy.step('Verify Kubernetes server is visible in the MCP panel');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      cy.step('Verify Kubernetes server is visible in the MCP tab');
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.find().should('be.visible');
 
       cy.step('Verify no modal is shown before selection');
-      playgroundPage.mcpPanel.verifyNoModalShown();
+      playgroundPage.mcpTab.verifyNoModalShown();
 
       cy.step('Select the Kubernetes server by checking the checkbox');
       serverRow.findCheckbox().check();
@@ -367,11 +367,11 @@ describe('Playground - MCP Servers', () => {
       cy.wait('@toolsRequestAutoConnect', { timeout: 15000 });
 
       cy.step('Verify connection successful modal is shown with server name');
-      playgroundPage.mcpPanel.verifySuccessModalVisible();
-      playgroundPage.mcpPanel.verifySuccessModalContainsServerName(serverName);
+      playgroundPage.mcpTab.verifySuccessModalVisible();
+      playgroundPage.mcpTab.verifySuccessModalContainsServerName(serverName);
 
       cy.step('Close the success modal');
-      playgroundPage.mcpPanel.closeSuccessModal();
+      playgroundPage.mcpTab.closeSuccessModal();
       mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify tools button is enabled after closing modal');
@@ -451,13 +451,13 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Select server to trigger auto-unlock');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findCheckbox().check();
       cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
       cy.wait('@toolsRequestAutoConnect', { timeout: 10000 });
 
       cy.step('Close success modal and open tools modal');
-      playgroundPage.mcpPanel.closeSuccessModal();
+      playgroundPage.mcpTab.closeSuccessModal();
       serverRow.findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');
@@ -582,8 +582,8 @@ describe('Playground - MCP Servers', () => {
 
       navigateToPlayground(namespace);
 
-      cy.step('Verify server is visible in the MCP panel');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      cy.step('Verify server is visible in the MCP tab');
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.find().should('be.visible');
 
       cy.step('Verify warning is NOT shown before connecting');
@@ -597,9 +597,9 @@ describe('Playground - MCP Servers', () => {
       cy.wait('@toolsRequestHighCount', { timeout: 10000 });
 
       cy.step('Close success modal');
-      playgroundPage.mcpPanel.closeSuccessModal();
+      playgroundPage.mcpTab.closeSuccessModal();
 
-      cy.step('Verify warning alert is shown in MCP panel');
+      cy.step('Verify warning alert is shown in MCP tab');
       cy.get('[data-testid="mcp-tools-warning-alert"]')
         .should('be.visible')
         .and('contain.text', 'Performance may be degraded with more than 40 active tools');
@@ -631,7 +631,7 @@ describe('Playground - MCP Servers', () => {
       navigateToPlayground(namespace);
 
       cy.step('Select server to trigger auto-unlock');
-      const serverRow = playgroundPage.mcpPanel.getServerRow(serverName, serverUrl);
+      const serverRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       serverRow.findCheckbox().check();
 
       cy.step('Wait for auto-unlock status check and tools fetch');
@@ -639,7 +639,7 @@ describe('Playground - MCP Servers', () => {
       cy.wait('@toolsRequestHighCount', { timeout: 10000 });
 
       cy.step('Close success modal');
-      playgroundPage.mcpPanel.closeSuccessModal();
+      playgroundPage.mcpTab.closeSuccessModal();
 
       cy.step('Verify warning alert is NOT shown (40 tools is the threshold, not exceeding)');
       cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
