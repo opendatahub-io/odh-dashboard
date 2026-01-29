@@ -108,7 +108,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [primaryConfigId, mcpServersFromRoute, selectedAAModel]);
+  }, [mcpServersFromRoute, selectedAAModel]);
 
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
