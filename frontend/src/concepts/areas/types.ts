@@ -91,6 +91,8 @@ export enum SupportedArea {
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
+
+  PIPELINE_SAMPLES = 'pipeline-samples',
 }
 
 export type SupportedAreaType = SupportedArea | string;
