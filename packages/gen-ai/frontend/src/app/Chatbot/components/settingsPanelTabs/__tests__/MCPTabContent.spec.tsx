@@ -12,29 +12,21 @@ jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
 jest.mock('~/app/Chatbot/mcp/MCPServersPanel', () => ({
   __esModule: true,
   default: ({
+    configId,
     servers,
     serversLoaded,
     serversLoadError,
-    onSelectionChange,
-    initialSelectedServerIds,
   }: {
+    configId: string;
     servers: MCPServerFromAPI[];
     serversLoaded: boolean;
     serversLoadError?: Error | null;
-    onSelectionChange?: (serverIds: string[]) => void;
-    initialSelectedServerIds?: string[];
   }) => (
     <div data-testid="mcp-servers-panel">
+      <span data-testid="config-id">{configId}</span>
       <span data-testid="servers-count">{servers.length}</span>
       <span data-testid="servers-loaded">{serversLoaded.toString()}</span>
       <span data-testid="servers-error">{serversLoadError?.message || 'none'}</span>
-      <span data-testid="initial-selected">{initialSelectedServerIds?.join(',') || 'none'}</span>
-      <button
-        data-testid="select-servers-button"
-        onClick={() => onSelectionChange?.(['server-1', 'server-2'])}
-      >
-        Select Servers
-      </button>
     </div>
   ),
 }));
@@ -47,14 +39,13 @@ describe('MCPTabContent', () => {
   } as ServerStatusInfo);
 
   const defaultProps = {
+    configId: 'default',
     mcpServers: [] as MCPServerFromAPI[],
     mcpServersLoaded: true,
     mcpServersLoadError: null,
     mcpServerTokens: new Map<string, TokenInfo>(),
     onMcpServerTokensChange: jest.fn(),
     checkMcpServerStatus: mockCheckMcpServerStatus,
-    onMcpServersChange: jest.fn(),
-    initialSelectedServerIds: [] as string[],
     initialServerStatuses: new Map<string, ServerStatusInfo>(),
     activeToolsCount: 0,
     onActiveToolsCountChange: jest.fn(),
@@ -91,18 +82,12 @@ describe('MCPTabContent', () => {
       },
     ];
 
-    render(
-      <MCPTabContent
-        {...defaultProps}
-        mcpServers={servers}
-        initialSelectedServerIds={['server-1']}
-      />,
-    );
+    render(<MCPTabContent {...defaultProps} mcpServers={servers} />);
 
     expect(screen.getByTestId('mcp-servers-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('config-id')).toHaveTextContent('default');
     expect(screen.getByTestId('servers-count')).toHaveTextContent('2');
     expect(screen.getByTestId('servers-loaded')).toHaveTextContent('true');
-    expect(screen.getByTestId('initial-selected')).toHaveTextContent('server-1');
   });
 
   it('passes serversLoaded false when not loaded', () => {
@@ -151,30 +136,9 @@ describe('MCPTabContent', () => {
     expect(screen.getByTestId('active-tools-count-badge')).toHaveTextContent('42 tools enabled');
   });
 
-  it('calls onMcpServersChange when servers are selected', async () => {
-    const mockOnMcpServersChange = jest.fn();
-    render(<MCPTabContent {...defaultProps} onMcpServersChange={mockOnMcpServersChange} />);
+  it('passes custom configId to MCPServersPanel', () => {
+    render(<MCPTabContent {...defaultProps} configId="test-config" />);
 
-    const selectButton = screen.getByTestId('select-servers-button');
-    selectButton.click();
-
-    expect(mockOnMcpServersChange).toHaveBeenCalledWith(['server-1', 'server-2']);
-  });
-
-  it('renders with empty initial selected server ids', () => {
-    render(<MCPTabContent {...defaultProps} initialSelectedServerIds={[]} />);
-
-    expect(screen.getByTestId('initial-selected')).toHaveTextContent('none');
-  });
-
-  it('renders with multiple initial selected server ids', () => {
-    render(
-      <MCPTabContent
-        {...defaultProps}
-        initialSelectedServerIds={['server-a', 'server-b', 'server-c']}
-      />,
-    );
-
-    expect(screen.getByTestId('initial-selected')).toHaveTextContent('server-a,server-b,server-c');
+    expect(screen.getByTestId('config-id')).toHaveTextContent('test-config');
   });
 });
