@@ -1,3 +1,4 @@
+import React from 'react';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
@@ -70,6 +71,14 @@ export enum ModelStateToggleLabel {
   START = 'Start',
   STOP = 'Stop',
 }
+
+export enum WizardStepTitle {
+  MODEL_DETAILS = 'Model details',
+  MODEL_DEPLOYMENT = 'Model deployment',
+  ADVANCED_SETTINGS = 'Advanced settings',
+  REVIEW = 'Review',
+}
+
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
@@ -135,6 +144,19 @@ export type WizardFormData = {
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
   } & Record<string, unknown>;
 };
+
+export type WizardReviewItem = {
+  key: string;
+  label: string;
+  value: (wizardState: WizardFormData['state']) => React.ReactNode;
+  optional?: boolean;
+  isVisible?: (wizardState: WizardFormData['state']) => boolean;
+};
+
+export type WizardReviewSection = {
+  title?: string;
+  items: WizardReviewItem[];
+};
 // wizard form data
 
 // Export field data types
@@ -193,6 +215,11 @@ export type WizardField<
     onChange: (value: FieldData) => void;
     externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
   }>;
+  getReviewSections?: (
+    value: FieldData,
+    wizardState: WizardFormData['state'],
+    externalData?: ExternalData,
+  ) => WizardReviewSection[];
 };
 
 // actual fields
