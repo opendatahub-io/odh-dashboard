@@ -13,7 +13,7 @@ import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { AIModel } from '~/app/types';
 import { chatbotConfigurationColumns } from './columns';
 import ChatbotConfigurationTableRow from './ChatbotConfigurationTableRow';
-import { GuardrailsNotConfiguredAlert } from './GuardrailsNotConfiguredAlert';
+import { GuardrailsUnavailableAlert } from './GuardrailsUnavailableAlert';
 
 type ChatbotConfigurationTableProps = {
   allModels: AIModel[];
@@ -86,7 +86,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
     <Stack hasGutter>
       {guardrailsEnabled && !guardrailsAvailable && (
         <StackItem>
-          <GuardrailsNotConfiguredAlert />
+          <GuardrailsUnavailableAlert />
         </StackItem>
       )}
       <StackItem>
