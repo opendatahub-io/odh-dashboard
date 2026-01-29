@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import { AssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
 
 type FilterData = Record<string, string | undefined>;
