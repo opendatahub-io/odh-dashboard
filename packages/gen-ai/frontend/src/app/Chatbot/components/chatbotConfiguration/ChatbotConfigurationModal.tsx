@@ -9,6 +9,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useFetchGuardrailsAvailable from '~/app/hooks/useFetchGuardrailsAvailable';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
@@ -26,7 +27,6 @@ type ChatbotConfigurationModalProps = {
   extraSelectedModels?: AIModel[];
   /** Whether show the button in the modal to redirect to the playground after configuration */
   redirectToPlayground?: boolean;
-  guardrailsAvailable?: boolean;
 };
 
 const SETUP_PLAYGROUND_EVENT_NAME = 'Playground Setup';
@@ -40,10 +40,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   existingModels = [],
   extraSelectedModels,
   redirectToPlayground,
-  guardrailsAvailable = false,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
+  const { guardrailsAvailable } = useFetchGuardrailsAvailable();
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
