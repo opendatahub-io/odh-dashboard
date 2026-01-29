@@ -140,11 +140,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 }
 
 func (app *App) Shutdown() error {
+	var testEnvStopErr error
+
 	app.logger.Info("shutting down app...")
 	if app.testEnv != nil {
 		//shutdown the envtest control plane when we are in the mock mode.
 		app.logger.Info("shutting env test...")
-		return app.testEnv.Stop()
+		testEnvStopErr = app.testEnv.Stop()
 	}
 
 	if app.maasFakeServer != nil {
@@ -152,7 +154,7 @@ func (app *App) Shutdown() error {
 		app.maasFakeServer.Close()
 	}
 
-	return nil
+	return testEnvStopErr
 }
 
 func (app *App) Routes() http.Handler {
