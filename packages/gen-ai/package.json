@@ -29,7 +29,7 @@
     "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9102 -s -L",
-    "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9102 npm run start:dev",
+    "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9102 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9102"
   },
   "dependencies": {

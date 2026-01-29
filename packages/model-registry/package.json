@@ -10,12 +10,12 @@
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
-    "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
+    "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
-    "cypress:server:dev": "cd upstream/frontend && DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100",
     "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
-    "start:dev:ext": "cd upstream/frontend && DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
