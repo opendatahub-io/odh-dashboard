@@ -23,6 +23,7 @@ type ChatbotConfigurationTableProps = {
   onMaxTokensChange: (modelName: string, value: number | undefined) => void;
   enableGuardrails?: boolean;
   setEnableGuardrails?: React.Dispatch<React.SetStateAction<boolean>>;
+  guardrailsAvailable?: boolean;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
@@ -31,6 +32,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   setSelectedModels,
   maxTokensMap,
   onMaxTokensChange,
+  guardrailsAvailable,
 }) => {
   // Gate all guardrails UI behind the guardrails feature flag
   const guardrailsFeatureEnabled = useGuardrailsEnabled();
@@ -79,10 +81,9 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
       return prev.filter((m) => !availableIds.has(m.model_name));
     });
   };
-
   return (
     <Stack hasGutter>
-      {guardrailsFeatureEnabled && (
+      {guardrailsFeatureEnabled && !guardrailsAvailable && (
         <StackItem>
           <GuardrailsNotConfiguredAlert />
         </StackItem>
