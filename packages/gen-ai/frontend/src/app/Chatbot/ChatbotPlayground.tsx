@@ -20,7 +20,7 @@ import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
-import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
+import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES, sampleWelcomePrompts } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -297,8 +297,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 <MessageBox position="top">
                   <ChatbotWelcomePrompt
                     title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the model playground."
+                    description="Welcome to the playground"
                     data-testid="chatbot-welcome-prompt"
+                    style={{
+                      cursor: 'default',
+                      pointerEvents: 'none',
+                    }}
+                    prompts={sampleWelcomePrompts}
                   />
                   <ChatbotMessages
                     messageList={chatbotMessages.messages}

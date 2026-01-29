@@ -85,7 +85,7 @@ class ChatbotPage {
   }
 
   findWelcomeMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText(/Welcome to the model playground/i);
+    return cy.findByText(/Welcome to the playground/i);
   }
 
   findMessage(text: string): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -1,4 +1,4 @@
-import { MessageProps } from '@patternfly/chatbot';
+import { MessageProps, WelcomePrompt } from '@patternfly/chatbot';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
 
@@ -22,11 +22,24 @@ export const SAMPLING_STRATEGY = {
 export const initialBotMessage = (): MessageProps => ({
   id: getId(),
   role: 'bot',
-  content: 'Send a message to test your configuration',
+  content:
+    'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
   name: 'Bot',
   avatar: botAvatar,
   timestamp: new Date().toLocaleString(),
 });
+
+export const sampleWelcomePrompts: WelcomePrompt[] = [
+  {
+    title: 'Code Explanation',
+    message: 'Explain how binary search works and write a Python implementation with comments.',
+  },
+  {
+    title: 'Data Structuring',
+    message:
+      'Convert this text into a JSON array: "The meeting is on Monday at 2pm in Room 405 with John, Sarah, and Mike to discuss the Q1 budget."',
+  },
+];
 
 // File upload constants
 export const FILE_UPLOAD_CONFIG = {
