@@ -82,7 +82,6 @@ describe('KnowledgeTabContent', () => {
     error: null,
     deleteFileById: jest.fn(),
     refreshFiles: jest.fn(),
-    currentVectorStoreId: null,
     ...overrides,
   });
 
