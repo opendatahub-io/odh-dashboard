@@ -42,7 +42,7 @@ func sendFakeResponse(path string, status int, w http.ResponseWriter) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		pwd, _ := os.Getwd()
-		_, err = w.Write([]byte(`{"error": "Failed to read file", "pwd": "` + pwd + `" "description": "` + err.Error() + `"}`))
+		_, err = w.Write([]byte(`{"error": "Failed to read file", "pwd": "` + pwd + `", "description": "` + err.Error() + `"}`))
 		if err != nil {
 			panic(err)
 		}
