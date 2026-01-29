@@ -63,6 +63,7 @@ export const advancedAIMLFlags = {
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
+  defaultSamplePipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object

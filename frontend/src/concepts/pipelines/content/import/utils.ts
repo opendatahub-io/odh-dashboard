@@ -7,6 +7,7 @@ export const generatePipelineVersionName = (pipeline?: PipelineKF | null): strin
 export enum PipelineUploadOption {
   URL_IMPORT,
   FILE_UPLOAD,
+  SAMPLE_PIPELINE,
 }
 
 // Utility function to extract Kind from Pipeline YAML
