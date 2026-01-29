@@ -203,21 +203,27 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     />
   );
 
-  // Settings panel content. You'll want to render one of these for each of the configs
+  // Settings panel content - render one for each config
+  // TODO: This will need to be redone for compare MODE
   const settingsPanelContent = (
-    <ChatbotSettingsPanel
-      configId={primaryConfigId}
-      alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
-      sourceManagement={sourceManagement}
-      fileManagement={fileManagement}
-      initialServerStatuses={mcpServerStatusesFromRoute}
-      mcpServers={mcpServers}
-      mcpServersLoaded={mcpServersLoaded}
-      mcpServersLoadError={mcpServersLoadError}
-      mcpServerTokens={mcpServerTokens}
-      onMcpServerTokensChange={setMcpServerTokens}
-      checkMcpServerStatus={checkMcpServerStatus}
-    />
+    <>
+      {configIds.map((configId) => (
+        <ChatbotSettingsPanel
+          key={`${configId}-settings-panel`}
+          configId={configId}
+          alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
+          sourceManagement={sourceManagement}
+          fileManagement={fileManagement}
+          initialServerStatuses={mcpServerStatusesFromRoute}
+          mcpServers={mcpServers}
+          mcpServersLoaded={mcpServersLoaded}
+          mcpServersLoadError={mcpServersLoadError}
+          mcpServerTokens={mcpServerTokens}
+          onMcpServerTokensChange={setMcpServerTokens}
+          checkMcpServerStatus={checkMcpServerStatus}
+        />
+      ))}
+    </>
   );
 
   return (
@@ -267,7 +273,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               >
                 {configIds.map((configId, index) => (
                   <ChatbotConfigInstance
-                    key={configId}
+                    key={`${configId}-chatbot-instance`}
                     configId={configId}
                     username={username}
                     selectedSourceSettings={sourceManagement.selectedSourceSettings}

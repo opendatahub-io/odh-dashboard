@@ -178,10 +178,27 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         // Generate a unique ID based on timestamp
         const newId = `config-${Date.now()}`;
 
-        // Create a deep copy of the configuration
-        const newConfig = {
-          ...sourceConfig,
-          mcpToolSelections: { ...sourceConfig.mcpToolSelections },
+        // Create a deep copy of the configuration (including nested mcpToolSelections and arrays)
+        const mcpToolSelectionsCopy: McpToolSelectionsMap = {};
+        Object.entries(sourceConfig.mcpToolSelections).forEach(([namespace, serverMap]) => {
+          if (serverMap) {
+            // Deep copy the server map, including the tool arrays
+            const serverMapCopy: Record<string, string[]> = {};
+            Object.entries(serverMap).forEach(([serverUrl, toolNames]) => {
+              serverMapCopy[serverUrl] = [...toolNames]; // Copy the array
+            });
+            mcpToolSelectionsCopy[namespace] = serverMapCopy;
+          }
+        });
+
+        const newConfig: ChatbotConfiguration = {
+          systemInstruction: sourceConfig.systemInstruction,
+          temperature: sourceConfig.temperature,
+          isStreamingEnabled: sourceConfig.isStreamingEnabled,
+          selectedModel: sourceConfig.selectedModel,
+          guardrailsEnabled: sourceConfig.guardrailsEnabled,
+          selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
+          mcpToolSelections: mcpToolSelectionsCopy,
         };
 
         set(
@@ -197,7 +214,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         );
 
         // Duplicate MCP tool selections in sessionStorage
-        saveMcpToolSelectionsForConfig(newId, sourceConfig.mcpToolSelections);
+        saveMcpToolSelectionsForConfig(newId, newConfig.mcpToolSelections);
 
         return newId;
       },
@@ -273,7 +290,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           (state) => {
             const config = state.configurations[id];
             if (config) {
-              config.selectedMcpServerIds = value;
+              // Create a new array to avoid shared references
+              config.selectedMcpServerIds = [...value];
             }
           },
           false,

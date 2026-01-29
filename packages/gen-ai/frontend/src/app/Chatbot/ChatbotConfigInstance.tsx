@@ -3,7 +3,14 @@ import { MessageBox, ChatbotWelcomePrompt } from '@patternfly/chatbot';
 import { ChatbotSourceSettings, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
-import { useChatbotConfigStore, selectSystemInstruction, selectTemperature, selectStreamingEnabled, selectSelectedModel, selectSelectedMcpServerIds } from './store';
+import {
+  useChatbotConfigStore,
+  selectSystemInstruction,
+  selectTemperature,
+  selectStreamingEnabled,
+  selectSelectedModel,
+  selectSelectedMcpServerIds,
+} from './store';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { sampleWelcomePrompts } from './const';
 
