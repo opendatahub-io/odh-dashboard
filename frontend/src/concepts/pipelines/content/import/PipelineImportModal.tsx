@@ -57,7 +57,10 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
       outcome: TrackingOutcome.submit,
       mode: uploadOption === PipelineUploadOption.FILE_UPLOAD ? 'file' : 'url',
     });
-    if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
+    if (
+      uploadOption === PipelineUploadOption.FILE_UPLOAD ||
+      uploadOption === PipelineUploadOption.SAMPLE_PIPELINE
+    ) {
       return api.uploadPipeline({}, name, description, fileContents, displayName);
     }
     return api.createPipelineAndVersion(
