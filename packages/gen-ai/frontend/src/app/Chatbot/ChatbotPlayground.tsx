@@ -176,13 +176,19 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const handleMessagesHookReady = React.useCallback(
     (configIdParam: string, hook: UseChatbotMessagesReturn) => {
       messageHooksRef.current.set(configIdParam, hook);
-      // Update states to reflect current hook values
+      // Update states only if values actually changed to prevent unnecessary re-renders
       setLoadingStates((prev) => {
+        if (prev.get(configIdParam) === hook.isLoading) {
+          return prev; // No change, return same reference
+        }
         const next = new Map(prev);
         next.set(configIdParam, hook.isLoading);
         return next;
       });
       setDisabledStates((prev) => {
+        if (prev.get(configIdParam) === hook.isMessageSendButtonDisabled) {
+          return prev; // No change, return same reference
+        }
         const next = new Map(prev);
         next.set(configIdParam, hook.isMessageSendButtonDisabled);
         return next;
@@ -190,6 +196,38 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     },
     [],
   );
+
+  // Cleanup stale entries when configs are removed
+  React.useEffect(() => {
+    // Remove entries for configs that no longer exist
+    const currentKeys = Array.from(messageHooksRef.current.keys());
+    const staleKeys = currentKeys.filter((key) => !configIds.includes(key));
+
+    if (staleKeys.length > 0) {
+      // Remove from ref
+      staleKeys.forEach((key) => {
+        messageHooksRef.current.delete(key);
+      });
+
+      // Remove from loading states
+      setLoadingStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
+
+      // Remove from disabled states
+      setDisabledStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
+    }
+  }, [configIds]);
 
   // Create alert components
   const uploadSuccessAlert = (
@@ -270,7 +308,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }}
         onConfirm={() => {
           // Clear all chatbot instances
-          messageHooksRef.current.forEach((hook) => hook.clearConversation());
+          messageHooksRef.current.forEach((hook) => {
+            hook.clearConversation();
+          });
           setIsNewChatModalOpen(false);
         }}
       />
