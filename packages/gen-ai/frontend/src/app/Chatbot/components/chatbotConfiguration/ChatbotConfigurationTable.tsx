@@ -35,7 +35,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   guardrailsAvailable = false,
 }) => {
   // Gate all guardrails UI behind the guardrails feature flag
-  const guardrailsFeatureEnabled = useGuardrailsEnabled();
+  const guardrailsEnabled = useGuardrailsEnabled();
 
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
@@ -81,9 +81,10 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
       return prev.filter((m) => !availableIds.has(m.model_name));
     });
   };
+
   return (
     <Stack hasGutter>
-      {guardrailsFeatureEnabled && !guardrailsAvailable && (
+      {guardrailsEnabled && !guardrailsAvailable && (
         <StackItem>
           <GuardrailsNotConfiguredAlert />
         </StackItem>
