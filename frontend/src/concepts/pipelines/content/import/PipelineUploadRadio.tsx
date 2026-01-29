@@ -15,8 +15,7 @@ import {
 import { useAppContext } from '#~/app/AppContext';
 import { PipelineUploadOption } from './utils';
 import PipelineFileUpload from './PipelineFileUpload';
-
-const SamplePipelineSelector: React.FC = () => <div>hello pipeline</div>;
+import SamplePipelineSelector from './SamplePipelineSelector';
 
 type PipelineFileUploadProps = {
   fileContents: string;
