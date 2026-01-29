@@ -3,6 +3,7 @@ package maas
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,6 +31,11 @@ func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
 	return &MaasClient{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true, // TODO: Don't skip TLS verification.
+				},
+			},
 		},
 		prefix: prefix.JoinPath("v1"),
 		logger: logger,
