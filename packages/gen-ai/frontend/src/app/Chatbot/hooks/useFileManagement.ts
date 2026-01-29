@@ -4,6 +4,7 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { FileModel, VectorStoreFile } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { selectCurrentVectorStoreId, useChatbotConfigStore } from '../store';
 
 export interface UseFileManagementReturn {
   files: FileModel[];
@@ -12,10 +13,10 @@ export interface UseFileManagementReturn {
   refreshFiles: () => Promise<void>;
   deleteFileById: (fileId: string) => Promise<void>;
   isDeleting: boolean;
-  currentVectorStoreId: string | null;
 }
 
-interface UseFileManagementProps {
+export interface UseFileManagementProps {
+  configId: string;
   onShowDeleteSuccessAlert?: () => void;
   onShowErrorAlert?: (message?: string, title?: string) => void;
 }
@@ -38,15 +39,18 @@ const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): Fi
 
 export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 
-const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
-  const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
+const useFileManagement = (props: UseFileManagementProps): UseFileManagementReturn => {
+  const { configId, onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
   const [files, setFiles] = React.useState<FileModel[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [currentVectorStoreId, setCurrentVectorStoreId] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
+  const currentVectorStoreId = useChatbotConfigStore(selectCurrentVectorStoreId(configId));
+  const updateCurrentVectorStoreId = useChatbotConfigStore(
+    (state) => state.updateCurrentVectorStoreId,
+  );
 
   const refreshFiles = React.useCallback(async () => {
     if (!apiAvailable) {
@@ -68,7 +72,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
 
       // Use the first vector store ID
       const firstVectorStoreId = vectorStores[0].id;
-      setCurrentVectorStoreId(firstVectorStoreId);
+      updateCurrentVectorStoreId(configId, firstVectorStoreId);
 
       // Get files from the first vector store
       const vectorStoreFiles = await api.listVectorStoreFiles({
@@ -89,7 +93,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     } finally {
       setIsLoading(false);
     }
-  }, [onShowErrorAlert, api, apiAvailable]);
+  }, [onShowErrorAlert, api, apiAvailable, updateCurrentVectorStoreId, configId]);
 
   const deleteFileById = React.useCallback(
     async (fileId: string) => {
@@ -146,7 +150,6 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     refreshFiles,
     deleteFileById,
     isDeleting,
-    currentVectorStoreId,
   };
 };
 

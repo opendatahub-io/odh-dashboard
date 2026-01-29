@@ -9,6 +9,7 @@ export interface ChatbotConfiguration {
   temperature: number;
   isStreamingEnabled: boolean;
   selectedModel: string;
+  currentVectorStoreId: string;
 }
 
 /**
@@ -19,6 +20,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   temperature: 0.1,
   isStreamingEnabled: true,
   selectedModel: '',
+  currentVectorStoreId: '',
 };
 
 /**
@@ -40,6 +42,7 @@ export interface ChatbotConfigStoreActions {
   updateTemperature: (id: string, value: number) => void;
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
+  updateCurrentVectorStoreId: (id: string, value: string) => void;
 
   // Configuration management
   resetConfiguration: () => void;

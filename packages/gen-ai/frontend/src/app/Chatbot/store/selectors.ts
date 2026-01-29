@@ -22,5 +22,11 @@ export const selectSelectedModel =
   (state: ChatbotConfigStore): string =>
     state.configurations[configId]?.selectedModel ?? DEFAULT_CONFIGURATION.selectedModel;
 
+export const selectCurrentVectorStoreId =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.currentVectorStoreId ??
+    DEFAULT_CONFIGURATION.currentVectorStoreId;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

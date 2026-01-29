@@ -50,6 +50,15 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         });
       },
 
+      updateCurrentVectorStoreId: (id: string, value: string) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.currentVectorStoreId = value;
+          }
+        });
+      },
+
       // Configuration management
       resetConfiguration: () => {
         set(() => ({ ...initialState }));

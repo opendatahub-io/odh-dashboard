@@ -34,6 +34,7 @@ import {
   selectTemperature,
   selectStreamingEnabled,
   selectSelectedModel,
+  selectCurrentVectorStoreId,
   selectConfigIds,
 } from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
@@ -79,6 +80,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     },
     [configId],
   );
+  const currentVectorStoreId = useChatbotConfigStore(selectCurrentVectorStoreId(configId));
 
   const isDarkMode = useDarkMode();
 
@@ -168,6 +170,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // File management hook for displaying uploaded files
   const fileManagement = useFileManagement({
+    configId,
     onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
   });
@@ -192,7 +195,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     username,
     isStreamingEnabled,
     temperature,
-    currentVectorStoreId: fileManagement.currentVectorStoreId,
+    currentVectorStoreId,
     selectedServerIds: selectedMcpServerIds,
     mcpServers,
     mcpServerStatuses,
@@ -251,6 +254,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   return (
     <>
       <ChatbotSourceSettingsModal
+        configId={configId}
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
@@ -266,6 +270,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         systemInstruction={systemInstruction}
         files={fileManagement.files}
         isRagEnabled={sourceManagement.isRawUploaded}
+        currentVectorStoreId={currentVectorStoreId}
         selectedMcpServerIds={selectedMcpServerIds}
         mcpServers={mcpServers}
         mcpServerTokens={mcpServerTokens}

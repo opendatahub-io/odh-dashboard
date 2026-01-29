@@ -24,9 +24,12 @@ import {
 import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_SOURCE_SETTINGS } from './utils';
+import { selectCurrentVectorStoreId } from '../store';
 
 type ChatbotSourceSettingsModalProps = {
+  configId: string;
   isOpen: boolean;
   onToggle: () => void;
   onSubmitSettings: (settings: ChatbotSourceSettings | null) => Promise<void>;
@@ -40,6 +43,7 @@ const DEFAULT_VECTOR_STORE_FORM = {
 };
 
 const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
+  configId,
   isOpen,
   onToggle,
   onSubmitSettings,
@@ -55,16 +59,18 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const delimiterLabelHelpRef = React.useRef(null);
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
     useFetchVectorStores();
+  const currentVectorStoreId = useChatbotConfigStore(selectCurrentVectorStoreId(configId));
 
   // Auto-select the first vector database when vector stores are loaded
   React.useEffect(() => {
     if (vectorStoresLoaded && vectorStores.length > 0 && !fields.vectorStore) {
+      const vectorStoreId = currentVectorStoreId || vectorStores[0].id;
       setFields((prev) => ({
         ...prev,
-        vectorStore: vectorStores[0].id,
+        vectorStore: vectorStoreId,
       }));
     }
-  }, [vectorStoresLoaded, vectorStores, fields.vectorStore]);
+  }, [vectorStoresLoaded, vectorStores, fields.vectorStore, currentVectorStoreId]);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);

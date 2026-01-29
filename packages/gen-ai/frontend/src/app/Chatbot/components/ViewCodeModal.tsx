@@ -15,7 +15,7 @@ import { generateMCPServerConfig } from '~/app/utilities';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
-interface ViewCodeModalProps {
+export interface ViewCodeModalProps {
   isOpen: boolean;
   onToggle: () => void;
   input: string;
@@ -23,6 +23,7 @@ interface ViewCodeModalProps {
   systemInstruction?: string;
   files: FileModel[];
   isRagEnabled?: boolean;
+  currentVectorStoreId: string;
   selectedMcpServerIds?: string[];
   mcpServers?: MCPServerFromAPI[];
   mcpServerTokens?: Map<string, TokenInfo>;
@@ -43,6 +44,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   systemInstruction,
   files,
   isRagEnabled = false,
+  currentVectorStoreId,
   selectedMcpServerIds = EMPTY_ARRAY,
   mcpServers = EMPTY_MCP_SERVERS,
   mcpServerTokens = EMPTY_TOKEN_MAP,
@@ -76,6 +78,9 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
       return;
     }
 
+    const vectorStore =
+      vectorStores.find((vs) => vs.id === currentVectorStoreId) || vectorStores[0];
+
     try {
       /* eslint-disable camelcase */
       const request: CodeExportRequest = {
@@ -94,17 +99,17 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
           return config;
         }),
         vector_store: {
-          name: vectorStores[0].name,
+          name: vectorStore.name,
           // TODO: Get embedding model and dimension from vector store, it's optional
           // embedding_model: 'all-minilm:l6-v2',
           // embedding_dimension: 768,
-          provider_id: vectorStores[0].metadata.provider_id,
+          provider_id: vectorStore.metadata.provider_id,
         },
         files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
         // Include file_search tool when files are present and RAG is enabled
         ...(files.length > 0 &&
           isRagEnabled && {
-            tools: [{ type: 'file_search', vector_store_ids: [vectorStores[0].id] }],
+            tools: [{ type: 'file_search', vector_store_ids: [vectorStore.id] }],
           }),
       };
       /* eslint-enable camelcase */
@@ -120,6 +125,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
     apiAvailable,
     vectorStoresLoaded,
     vectorStores,
+    currentVectorStoreId,
     input,
     model,
     systemInstruction,
