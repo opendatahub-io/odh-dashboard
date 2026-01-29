@@ -39,5 +39,22 @@ export const selectMcpToolSelections =
   (state: ChatbotConfigStore): McpToolSelectionsMap =>
     state.configurations[configId]?.mcpToolSelections ?? {};
 
+export const selectGuardrail =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.guardrail ?? DEFAULT_CONFIGURATION.guardrail;
+
+export const selectGuardrailUserInputEnabled =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.guardrailUserInputEnabled ??
+    DEFAULT_CONFIGURATION.guardrailUserInputEnabled;
+
+export const selectGuardrailModelOutputEnabled =
+  (configId: string) =>
+  (state: ChatbotConfigStore): boolean =>
+    state.configurations[configId]?.guardrailModelOutputEnabled ??
+    DEFAULT_CONFIGURATION.guardrailModelOutputEnabled;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

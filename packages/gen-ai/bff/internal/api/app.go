@@ -299,7 +299,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
 	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyConfigPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
 
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))

@@ -405,9 +405,9 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		shieldsConfig := ""
 		shieldsList := ""
 
-		// Default policies for all models
-		inputPolicies := models.DefaultGuardrailPolicies()
-		outputPolicies := models.DefaultGuardrailPolicies()
+		// Default policies for models
+		inputPolicies := models.DefaultInputGuardrailPolicies()
+		outputPolicies := models.DefaultOutputGuardrailPolicies()
 		detectorURL := constants.DefaultDetectorURL
 
 		for i, model := range installModels {

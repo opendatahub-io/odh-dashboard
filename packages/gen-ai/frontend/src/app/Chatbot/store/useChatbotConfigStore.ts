@@ -210,6 +210,33 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         });
       },
 
+      updateGuardrail: (id: string, value: string) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrail = value;
+          }
+        });
+      },
+
+      updateGuardrailUserInputEnabled: (id: string, value: boolean) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrailUserInputEnabled = value;
+          }
+        });
+      },
+
+      updateGuardrailModelOutputEnabled: (id: string, value: boolean) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrailModelOutputEnabled = value;
+          }
+        });
+      },
+
       // Configuration management
       resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
         set(() => ({

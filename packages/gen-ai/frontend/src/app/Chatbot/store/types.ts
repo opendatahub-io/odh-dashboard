@@ -19,9 +19,13 @@ export interface ChatbotConfiguration {
   temperature: number;
   isStreamingEnabled: boolean;
   selectedModel: string;
+  // Guardrails configuration
   guardrailsEnabled: boolean;
   selectedMcpServerIds: string[];
   mcpToolSelections: McpToolSelectionsMap;
+  guardrail: string;
+  guardrailUserInputEnabled: boolean;
+  guardrailModelOutputEnabled: boolean;
 }
 
 /**
@@ -35,6 +39,9 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrailsEnabled: false,
   selectedMcpServerIds: [],
   mcpToolSelections: {},
+  guardrail: '',
+  guardrailUserInputEnabled: true,
+  guardrailModelOutputEnabled: true,
 };
 
 /**
@@ -56,6 +63,7 @@ export interface ChatbotConfigStoreActions {
   updateTemperature: (id: string, value: number) => void;
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
+  // Guardrails updaters
   updateGuardrailsEnabled: (id: string, value: boolean) => void;
   updateSelectedMcpServerIds: (id: string, value: string[]) => void;
 
@@ -67,6 +75,9 @@ export interface ChatbotConfigStoreActions {
     serverUrl: string,
     toolNames: string[] | undefined,
   ) => void;
+  updateGuardrail: (id: string, value: string) => void;
+  updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
+  updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

@@ -183,6 +183,8 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
       for (const contentItem of item.content) {
         if (contentItem.type === 'output_text' && contentItem.text) {
           content += contentItem.text;
+        } else if (contentItem.type === 'refusal' && contentItem.refusal) {
+          content += contentItem.refusal;
         }
       }
     }
@@ -246,7 +248,7 @@ const postCreateResponse = (
 const streamCreateResponse = (
   url: string,
   request: CreateResponseRequest,
-  onStreamData: (chunk: string) => void,
+  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
@@ -279,6 +281,7 @@ const streamCreateResponse = (
 
         let fullContent = '';
         let completeResponseData: BackendResponseData | null = null;
+        let receivedRefusal = false;
         const decoder = new TextDecoder();
 
         try {
@@ -306,6 +309,14 @@ const streamCreateResponse = (
                     if (data.delta && data.type === 'response.output_text.delta') {
                       fullContent += data.delta;
                       onStreamData(data.delta);
+                    } else if (data.delta && data.type === 'response.refusal.delta') {
+                      const isFirstRefusal = !receivedRefusal;
+                      if (isFirstRefusal) {
+                        receivedRefusal = true;
+                        fullContent = '';
+                      }
+                      fullContent += data.delta;
+                      onStreamData(data.delta, isFirstRefusal);
                     } else if (data.type === 'response.completed' && data.response) {
                       completeResponseData = data.response;
                     }
@@ -359,7 +370,7 @@ const streamCreateResponse = (
  * Request to generate AI responses with RAG and conversation context.
  * @param request - CreateResponseRequest payload for /gen-ai/api/v1/lsd/responses.
  * @param namespace - The namespace to generate responses in
- * @param onStreamData - Optional callback for streaming data chunks
+ * @param onStreamData - Optional callback for streaming data chunks. Second param clearPrevious signals to clear previous content (e.g., on refusal violation)
  * @param abortSignal - Optional AbortSignal to cancel the streaming request
  * @returns Promise<SimplifiedResponseData> - The generated response object.
  * @throws Error - When the API request fails or returns an error response.
@@ -368,7 +379,10 @@ export const createResponse =
   (hostPath: string, baseQueryParams: Record<string, unknown> = {}) =>
   (
     data: CreateResponseRequest,
-    opts: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal } = {},
+    opts: APIOptions & {
+      onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+      abortSignal?: AbortSignal;
+    } = {},
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
@@ -561,4 +575,4 @@ export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenR
 );
 
 export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
-export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety/config');
+export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety');
