@@ -24,8 +24,8 @@ This guide outlines how to run the upstream Notebooks and integrate it with a lo
     Ensure you have met the [frontend requirements] and [BFF requirements] for the Notebooks UI. You can run Notebooks in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
 
     ```bash
-    cd packages/notebooks/upstream
-    make dev-start-federated
+    cd packages/notebooks/upstream/developing
+    make tilt-up
     ```
 
 ## Notebooks Setup
@@ -35,7 +35,7 @@ For detailed instructions on how to run the Notebooks itself (covering local dep
 ## ODH Integration Point
 
 The integration of this upstream Notebooks with Open Data Hub is managed via plugin extensions. The primary extension definitions for this integration can be found in:
-[./kubeflow/notebooks/frontend/src/odh/extensions.ts](./upstream/workspaces/frontend/src/odh/extensions.ts)
+[./upstream/workspaces/frontend/src/odh/extensions.ts](./upstream/workspaces/frontend/src/odh/extensions.ts)
 
 This file declares how the Notebooks UI components and routes are exposed to and loaded by the ODH dashboard.
 
