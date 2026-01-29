@@ -23,6 +23,17 @@ export type ManageRolesTableRowProps = {
   onToggle: (roleRef: RoleRef) => void;
 };
 
+const getAssignmentLabelColor = (statusLabel: AssignmentStatus) => {
+  switch (statusLabel) {
+    case AssignmentStatus.CurrentlyAssigned:
+      return 'green';
+    case AssignmentStatus.Assigning:
+      return 'yellow';
+    case AssignmentStatus.Unassigning:
+      return 'red';
+  }
+};
+
 const CustomUnassignPopover = ({
   children,
   position,
@@ -52,6 +63,10 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
   const isCustomUnassign =
     row.statusLabel === AssignmentStatus.Unassigning && labelType === RoleLabelType.OpenshiftCustom;
 
+  const assignmentLabelColor = row.statusLabel
+    ? getAssignmentLabelColor(row.statusLabel)
+    : undefined;
+
   return (
     <Tr data-testid={`manage-roles-row-${row.roleRef.kind}-${row.roleRef.name}`}>
       <Td
@@ -75,7 +90,7 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
             {isCustomUnassign ? (
               <>
                 <CustomUnassignPopover position={PopoverPosition.top}>
-                  <Label variant="filled" color="red" isCompact isClickable>
+                  <Label variant="filled" color={assignmentLabelColor} isCompact isClickable>
                     {row.statusLabel}
                   </Label>
                 </CustomUnassignPopover>
@@ -94,11 +109,7 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
                 </CustomUnassignPopover>
               </>
             ) : (
-              <Label
-                variant="outline"
-                color={row.statusLabel === AssignmentStatus.CurrentlyAssigned ? 'green' : 'red'}
-                isCompact
-              >
+              <Label variant="outline" color={assignmentLabelColor} isCompact>
                 {row.statusLabel}
               </Label>
             )}
