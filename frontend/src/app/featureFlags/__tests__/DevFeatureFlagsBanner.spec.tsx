@@ -88,14 +88,14 @@ describe('DevFeatureFlagsBanner', () => {
     // Test Active tab
     expect(result.getByTestId('activeFlagTab')).toBeInTheDocument();
 
-    // Check temp dev flags (disable Kueue is on by default)
-    expect(result.getByTestId('disableKueue-checkbox')).toBeChecked();
+    // Check temp dev flags (disableProjectScoped is on by default)
+    expect(result.getByTestId('disableProjectScoped-checkbox')).toBeChecked();
 
     // Click a temporary dev flag
     act(() => {
-      result.getByTestId('disableKueue-checkbox').click();
+      result.getByTestId('disableProjectScoped-checkbox').click();
     });
-    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableKueue', false);
+    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableProjectScoped', false);
 
     // Click on Legacy tab
     act(() => {
@@ -164,7 +164,7 @@ describe('DevFeatureFlagsBanner', () => {
     // Verify total number of flag changes
     expect(setFeatureFlagFn).toHaveBeenCalledTimes(5);
     expect(setFeatureFlagFn.mock.calls).toEqual([
-      ['disableKueue', false],
+      ['disableProjectScoped', false],
       ['disableHome', false],
       ['disableProjects', true],
       ['disableModelServing', true],

@@ -65,7 +65,7 @@ type HandlersProps = {
   rejectAddSupportServingPlatformProject?: boolean;
   disableWorkbenches?: boolean;
   namespace?: string;
-  disableKueue?: boolean;
+  kueue?: boolean;
   inferenceServices?: InferenceServiceKind[];
   servingRuntimes?: ServingRuntimeKind[];
 };
@@ -89,7 +89,7 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   disableWorkbenches = false,
   namespace = 'test-project',
-  disableKueue = true,
+  kueue = true,
   inferenceServices = [],
   servingRuntimes = [],
 }: HandlersProps) => {
@@ -115,6 +115,9 @@ const initIntercepts = ({
         [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.KUEUE]: {
+          managementState: 'Unmanaged',
+        },
       },
     }),
   );
@@ -142,7 +145,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe,
       disableNIMModelServing: disableNIMConfig,
-      disableKueue,
+      kueue,
     }),
   );
   if (pipelineServerInstalled) {
@@ -664,10 +667,44 @@ describe('Project Details', () => {
     });
   });
 
+  describe('Kueue enabled by default for Kueue-enabled project', () => {
+    beforeEach(() => {
+      initIntercepts({
+        kueue: true, // Kueue feature flag enabled (default)
+        projectEnableKServe: true,
+        templates: true,
+      });
+      initModelServingIntercepts({ isEmpty: true });
+    });
+
+    it('should not show Kueue alert and should enable create workbench and deploy model buttons', () => {
+      const kueueEnabledProject = mockProjectK8sResource({
+        enableKServe: true,
+      });
+      kueueEnabledProject.metadata.labels = {
+        ...kueueEnabledProject.metadata.labels,
+        'kueue.openshift.io/managed': 'true',
+      };
+
+      cy.interceptK8s(ProjectModel, kueueEnabledProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueEnabledProject]));
+
+      projectDetails.visit('test-project');
+
+      cy.findByTestId('kueue-disabled-alert-project-details').should('not.exist');
+
+      projectDetails.visitSection('test-project', 'workbenches');
+      cy.findByTestId('create-workbench-button').should('not.have.attr', 'aria-disabled', 'true');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').should('not.have.attr', 'aria-disabled', 'true');
+    });
+  });
+
   describe('Kueue disabled for Kueue-enabled project', () => {
     beforeEach(() => {
       initIntercepts({
-        disableKueue: true, // Kueue feature flag disabled
+        kueue: false, // Kueue feature flag disabled
         projectEnableKServe: true,
         templates: true, // Enable serving runtime templates
       });

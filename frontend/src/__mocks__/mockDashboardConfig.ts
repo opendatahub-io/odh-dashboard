@@ -37,7 +37,7 @@ export type MockDashboardConfigType = {
   disableFineTuning?: boolean;
   modelServerSizes?: ModelServingSize[]; // deprecated
   disableLMEval?: boolean;
-  disableKueue?: boolean;
+  kueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   modelAsService?: boolean;
@@ -88,7 +88,7 @@ export const mockDashboardConfig = ({
   disableNotebookController = false,
   disableNIMModelServing = false,
   disableLMEval = true,
-  disableKueue = true,
+  kueue = true,
   disableFeatureStore = true,
   trainingJobs = true,
   observabilityDashboard = false,
@@ -254,7 +254,7 @@ export const mockDashboardConfig = ({
       disableAdminConnectionTypes: false,
       disableFineTuning,
       disableLMEval,
-      disableKueue,
+      kueue,
       disableFeatureStore,
       trainingJobs,
       observabilityDashboard,

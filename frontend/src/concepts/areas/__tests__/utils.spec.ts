@@ -221,6 +221,56 @@ describe('isAreaAvailable', () => {
       });
     });
 
+    describe('KUEUE area (kueue flag)', () => {
+      // Red Hat build of Kueue uses Unmanaged (Managed is deprecated for embedded Kueue)
+      const kueueComponentStatus = { managementState: 'Unmanaged' as const };
+
+      it('should enable Kueue area when kueue flag is true', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.KUEUE,
+          mockDashboardConfig({ kueue: true }).spec,
+          mockDscStatus({
+            components: { [DataScienceStackComponent.KUEUE]: kueueComponentStatus },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ kueue: 'on' });
+      });
+
+      it('should disable Kueue area when kueue is undefined', () => {
+        const configSpec = mockDashboardConfig({}).spec;
+        delete (configSpec.dashboardConfig as Record<string, unknown>).kueue;
+
+        const isAvailable = isAreaAvailable(
+          SupportedArea.KUEUE,
+          configSpec,
+          mockDscStatus({
+            components: { [DataScienceStackComponent.KUEUE]: kueueComponentStatus },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).not.toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ kueue: 'off' });
+      });
+
+      it('should disable Kueue area when kueue flag is false', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.KUEUE,
+          mockDashboardConfig({ kueue: false }).spec,
+          mockDscStatus({
+            components: { [DataScienceStackComponent.KUEUE]: kueueComponentStatus },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).not.toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ kueue: 'off' });
+      });
+    });
+
     describe('devFlags', () => {
       it('should enable area if dev flag is true', () => {
         const testDevArea = 'TestDevArea';
