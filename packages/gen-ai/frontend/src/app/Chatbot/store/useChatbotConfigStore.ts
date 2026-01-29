@@ -217,8 +217,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           configurations: {
             default: {
               ...DEFAULT_CONFIGURATION,
-              mcpToolSelections: loadMcpToolSelectionsForConfig('default'),
               ...initialValues,
+              mcpToolSelections: loadMcpToolSelectionsForConfig('default'),
             },
           },
         }));
