@@ -3,6 +3,8 @@ import {
   castRoleBindingPermissionsRoleType,
   filterRoleBindingSubjects,
   firstSubject,
+  hasProjectRoleBindings,
+  hasUserRoleBindings,
   isCurrentUserChanging,
   removePrefix,
   tryPatchRoleBinding,
@@ -122,6 +124,86 @@ describe('tryPatchRoleBinding', () => {
       newRBObject.subjects,
       { dryRun: false },
     );
+  });
+});
+
+describe('hasUserRoleBindings', () => {
+  it('should return true when there are user roleBindings', () => {
+    const roleBindings = [
+      mockRoleBindingK8sResource({
+        name: 'user-rb',
+        subjects: [{ kind: 'User', apiGroup: 'rbac.authorization.k8s.io', name: 'test-user' }],
+      }),
+    ];
+    expect(hasUserRoleBindings(roleBindings)).toBe(true);
+  });
+
+  it('should return false when there are no user roleBindings', () => {
+    const roleBindings = [
+      mockRoleBindingK8sResource({
+        name: 'group-rb',
+        subjects: [{ kind: 'Group', apiGroup: 'rbac.authorization.k8s.io', name: 'test-group' }],
+      }),
+    ];
+    expect(hasUserRoleBindings(roleBindings)).toBe(false);
+  });
+
+  it('should return false when roleBindings array is empty', () => {
+    expect(hasUserRoleBindings([])).toBe(false);
+  });
+
+  it('should return false when user roleBindings have project subject label', () => {
+    const roleBinding = mockRoleBindingK8sResource({
+      name: 'user-rb-project',
+      subjects: [{ kind: 'User', apiGroup: 'rbac.authorization.k8s.io', name: 'test-user' }],
+    });
+    roleBinding.metadata.labels = {
+      ...roleBinding.metadata.labels,
+      'opendatahub.io/rb-project-subject': 'true',
+    };
+    expect(hasUserRoleBindings([roleBinding])).toBe(false);
+  });
+});
+
+describe('hasProjectRoleBindings', () => {
+  it('should return true when there are project roleBindings (Group with project subject label)', () => {
+    const roleBinding = mockRoleBindingK8sResource({
+      name: 'project-rb',
+      subjects: [
+        {
+          kind: 'Group',
+          apiGroup: 'rbac.authorization.k8s.io',
+          name: 'system:serviceaccounts:test-project',
+        },
+      ],
+    });
+    roleBinding.metadata.labels = {
+      ...roleBinding.metadata.labels,
+      'opendatahub.io/rb-project-subject': 'true',
+    };
+    expect(hasProjectRoleBindings([roleBinding])).toBe(true);
+  });
+
+  it('should return false when there are no project roleBindings', () => {
+    const roleBindings = [
+      mockRoleBindingK8sResource({
+        name: 'user-rb',
+        subjects: [{ kind: 'User', apiGroup: 'rbac.authorization.k8s.io', name: 'test-user' }],
+      }),
+    ];
+    expect(hasProjectRoleBindings(roleBindings)).toBe(false);
+  });
+
+  it('should return false when roleBindings array is empty', () => {
+    expect(hasProjectRoleBindings([])).toBe(false);
+  });
+
+  it('should return false when Group roleBindings do not have project subject label', () => {
+    const roleBinding = mockRoleBindingK8sResource({
+      name: 'group-rb',
+      subjects: [{ kind: 'Group', apiGroup: 'rbac.authorization.k8s.io', name: 'test-group' }],
+    });
+    expect(hasProjectRoleBindings([roleBinding])).toBe(false);
   });
 });
 
