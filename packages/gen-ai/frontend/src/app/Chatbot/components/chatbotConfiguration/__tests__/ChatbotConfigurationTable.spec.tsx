@@ -67,6 +67,8 @@ describe('ChatbotConfigurationTable', () => {
     allModels,
     selectedModels: [],
     setSelectedModels: jest.fn(),
+    maxTokensMap: new Map<string, number | undefined>(),
+    onMaxTokensChange: jest.fn(),
   };
 
   beforeEach(() => {

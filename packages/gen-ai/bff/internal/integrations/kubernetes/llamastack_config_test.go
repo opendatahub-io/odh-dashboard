@@ -761,3 +761,97 @@ storage:
 		assert.Greater(t, len(config.Storage.Stores), 0, "Stores should be populated")
 	})
 }
+
+func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
+	t.Run("should include max_tokens in model configuration when provided", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens := 8192
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify max_tokens is in the YAML
+		assert.Contains(t, yamlStr, "max_tokens: 8192")
+
+		// Parse back and verify
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Find the model we added
+		var foundModel *Model
+		for i := range parsedConfig.RegisteredResources.Models {
+			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
+				foundModel = &parsedConfig.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModel, "Model should be found in parsed config")
+		assert.NotNil(t, foundModel.MaxTokens, "MaxTokens should be set")
+		assert.Equal(t, 8192, *foundModel.MaxTokens)
+	})
+
+	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Parse back and verify
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Find the model we added
+		var foundModel *Model
+		for i := range parsedConfig.RegisteredResources.Models {
+			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
+				foundModel = &parsedConfig.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModel, "Model should be found in parsed config")
+		assert.Nil(t, foundModel.MaxTokens, "MaxTokens should be nil when not provided")
+	})
+
+	t.Run("should support multiple models with different max_tokens values", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens1 := 4096
+		maxTokens2 := 16384
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify both max_tokens values are in the YAML
+		assert.Contains(t, yamlStr, "max_tokens: 4096")
+		assert.Contains(t, yamlStr, "max_tokens: 16384")
+
+		// Parse back and verify
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Find both models
+		model1Found := false
+		model2Found := false
+		for i := range parsedConfig.RegisteredResources.Models {
+			model := &parsedConfig.RegisteredResources.Models[i]
+			if model.ModelID == "test-model-1" {
+				model1Found = true
+				assert.NotNil(t, model.MaxTokens)
+				assert.Equal(t, 4096, *model.MaxTokens)
+			}
+			if model.ModelID == "test-model-2" {
+				model2Found = true
+				assert.NotNil(t, model.MaxTokens)
+				assert.Equal(t, 16384, *model.MaxTokens)
+			}
+		}
+		assert.True(t, model1Found, "Model 1 should be found")
+		assert.True(t, model2Found, "Model 2 should be found")
+	})
+}
