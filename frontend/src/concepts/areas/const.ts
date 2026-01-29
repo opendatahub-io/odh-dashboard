@@ -15,6 +15,7 @@ export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
   embedMLflow: false,
+  defaultSamplePipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -64,6 +65,7 @@ export const advancedAIMLFlags = {
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
+  defaultSamplePipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
