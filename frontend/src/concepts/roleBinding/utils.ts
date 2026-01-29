@@ -17,6 +17,12 @@ export const filterRoleBindingSubjects = (
         : !(roles.metadata.labels?.['opendatahub.io/rb-project-subject'] === 'true')),
   );
 
+export const hasUserRoleBindings = (roleBindings: RoleBindingKind[]): boolean =>
+  filterRoleBindingSubjects(roleBindings, RoleBindingPermissionsRBType.USER, false).length > 0;
+
+export const hasProjectRoleBindings = (roleBindings: RoleBindingKind[]): boolean =>
+  filterRoleBindingSubjects(roleBindings, RoleBindingPermissionsRBType.GROUP, true).length > 0;
+
 export const castRoleBindingPermissionsRoleType = (
   role: string,
 ): RoleBindingPermissionsRoleType => {
