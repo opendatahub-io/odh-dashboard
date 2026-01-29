@@ -147,7 +147,7 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
 
       cy.step('Verify chat history is cleared');
       // After clicking confirm, the chat should reset
-      cy.findByTestId('chatbot').should('contain', 'Welcome to the model playground');
+      cy.findByTestId('chatbot').should('contain', 'Welcome to the playground');
     },
   );
 
