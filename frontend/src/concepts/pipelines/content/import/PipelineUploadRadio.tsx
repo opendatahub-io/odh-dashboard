@@ -12,7 +12,8 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { useAppContext } from '#~/app/AppContext';
+
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { PipelineUploadOption } from './utils';
 import PipelineFileUpload from './PipelineFileUpload';
 import SamplePipelineSelector from './SamplePipelineSelector';
@@ -34,8 +35,7 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
   uploadOption,
   setUploadOption,
 }) => {
-  const { dashboardConfig } = useAppContext();
-  const showSamplePipelines = dashboardConfig.spec.dashboardConfig.defaultSamplePipelines;
+  const showSamplePipelines = useIsAreaAvailable(SupportedArea.PIPELINE_SAMPLES).status;
 
   const renderUploadContent = () => {
     switch (uploadOption) {

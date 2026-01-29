@@ -212,6 +212,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.EMBED_MLFLOW]: {
     featureFlags: ['embedMLflow'],
   },
+  [SupportedArea.PIPELINE_SAMPLES]: {
+    featureFlags: ['defaultSamplePipelines'],
+  },
 };
 
 /** Maps each DataScienceStackComponent to its human-readable name **/
