@@ -32,6 +32,10 @@
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9102 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9102"
   },
+  "exports": {
+    "./extension-points": "./frontend/src/odh/extension-points/index.ts",
+    "./types": "./frontend/src/app/types/index.ts"
+  },
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
