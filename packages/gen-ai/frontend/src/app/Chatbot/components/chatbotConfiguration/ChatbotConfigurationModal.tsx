@@ -27,6 +27,7 @@ type ChatbotConfigurationModalProps = {
   extraSelectedModels?: AIModel[];
   /** Whether show the button in the modal to redirect to the playground after configuration */
   redirectToPlayground?: boolean;
+  guardrailsAvailable?: boolean;
 };
 
 const SETUP_PLAYGROUND_EVENT_NAME = 'Playground Setup';
@@ -40,6 +41,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   existingModels = [],
   extraSelectedModels,
   redirectToPlayground,
+  guardrailsAvailable = false,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
@@ -239,8 +241,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             setSelectedModels={setSelectedModels}
             maxTokensMap={maxTokensMap}
             onMaxTokensChange={handleMaxTokensChange}
-            enableGuardrails={enableGuardrails}
-            guardrailsAvailable={false}
+            guardrailsAvailable={guardrailsAvailable}
           />
         )}
       </ModalBody>
