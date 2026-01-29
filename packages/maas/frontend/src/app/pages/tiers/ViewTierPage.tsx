@@ -236,7 +236,7 @@ const ViewTierPage: React.FC = () => {
                               ))
                             ) : (
                               <StackItem>
-                                <Content>-</Content>
+                                <Content>No token limits</Content>
                               </StackItem>
                             )}
                           </Stack>
@@ -263,7 +263,7 @@ const ViewTierPage: React.FC = () => {
                               ))
                             ) : (
                               <StackItem>
-                                <Content>-</Content>
+                                <Content>No request limits</Content>
                               </StackItem>
                             )}
                           </Stack>

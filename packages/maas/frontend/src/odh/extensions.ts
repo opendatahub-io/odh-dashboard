@@ -11,7 +11,10 @@ import type {
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
-import type { MaaSTierValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
+import type {
+  MaaSEndpointsExternalData,
+  MaaSTierValue,
+} from './modelDeploymentWizard/MaaSEndpointCheckbox';
 
 const MODEL_AS_SERVICE = 'modelAsService';
 const MAAS_API_KEYS = 'maasApiKeys';
@@ -21,7 +24,7 @@ const extensions: (
   | NavExtension
   | RouteExtension
   | AreaExtension
-  | WizardField2Extension<MaaSTierValue>
+  | WizardField2Extension<MaaSTierValue, MaaSEndpointsExternalData, LLMdDeployment>
   | WizardFieldApplyExtension<MaaSTierValue, LLMdDeployment>
   | WizardFieldExtractorExtension<MaaSTierValue, LLMdDeployment>
 )[] = [

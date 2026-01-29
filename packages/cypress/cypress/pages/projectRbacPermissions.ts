@@ -26,6 +26,10 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   getRowByRoleLink(roleName: string) {
     return new TableRow(() => this.findRoleLink(roleName).parents('tr'));
   }
+
+  findManageRolesAction(rowName: string) {
+    return this.getRowByName(rowName).findKebabAction('Manage roles');
+  }
 }
 
 class RoleDetailsModal extends Contextual<HTMLElement> {
@@ -86,6 +90,18 @@ class ProjectRbacPermissionsTab {
 
   findAssignRolesPage() {
     return cy.findByTestId('project-permissions-assign-roles-page');
+  }
+
+  findAssignRolesSubjectReadonly() {
+    return cy.findByTestId('assign-roles-subject-readonly');
+  }
+
+  findAssignRolesSubjectTypeahead() {
+    return cy.findByTestId('assign-roles-subject-typeahead-toggle');
+  }
+
+  findAssignRolesSubjectKindRadio(kind: 'user' | 'group') {
+    return cy.findByTestId(`assign-roles-subject-kind-${kind}`);
   }
 
   findUsersTable() {

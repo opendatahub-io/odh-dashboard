@@ -80,6 +80,7 @@ type Model struct {
 	ModelID         string                 `json:"model_id" yaml:"model_id"`
 	ProviderModelID string                 `json:"provider_model_id,omitempty" yaml:"provider_model_id,omitempty"`
 	ModelType       string                 `json:"model_type" yaml:"model_type"`
+	MaxTokens       *int                   `json:"max_tokens,omitempty" yaml:"max_tokens,omitempty"` // Optional per-model token limit
 	Metadata        map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
 
@@ -361,7 +362,7 @@ func NewVLLMProvider(providerID string, url string) Provider {
 
 // AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
 // This is a helper for building LlamaStack configurations with vLLM providers
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}) {
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
@@ -382,6 +383,12 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 		// For regular models with metadata
 		model = NewModel(modelID, providerID, modelType, metadata)
 	}
+
+	// Set per-model max_tokens if provided
+	if maxTokens != nil {
+		model.MaxTokens = maxTokens
+	}
+
 	c.AddModel(model)
 }
 

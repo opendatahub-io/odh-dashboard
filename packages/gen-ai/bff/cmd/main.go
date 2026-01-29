@@ -132,6 +132,11 @@ func main() {
 		logger.Error("server shutdown failed", "error", err)
 	}
 
+	// Shutdown the App gracefully
+	if err := app.Shutdown(); err != nil {
+		logger.Error("failed to shutdown Kubernetes manager", "error", err)
+	}
+
 	logger.Info("server stopped")
 	os.Exit(0)
 

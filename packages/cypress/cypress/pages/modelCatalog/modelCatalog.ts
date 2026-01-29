@@ -146,9 +146,8 @@ class ModelCatalog {
   }
 
   findValidatedModelCard() {
-    cy.findByTestId('validated-model-hardware', { timeout: 10000 }).should('exist');
     return cy
-      .findAllByTestId('model-catalog-card')
+      .findAllByTestId('model-catalog-card', { timeout: 10000 })
       .filter(':has([data-testid="validated-model-hardware"])');
   }
 

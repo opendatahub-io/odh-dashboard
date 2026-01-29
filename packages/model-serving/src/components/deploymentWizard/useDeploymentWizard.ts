@@ -17,6 +17,7 @@ import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 import { useDeploymentWizardReducer, type WizardFormAction } from './useDeploymentWizardReducer';
+import type { ExternalDataMap } from './ExternalDataLoader';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -24,6 +25,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     modelDeploymentLoaded: boolean;
     advancedOptionsLoaded: boolean;
     summaryLoaded: boolean;
+    externalDataLoaded: boolean;
   };
   advancedOptions: {
     isExternalRouteVisible: boolean;
@@ -36,6 +38,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
+  externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -112,30 +115,51 @@ export const useModelDeploymentWizard = (
 
   // Step 4: Summary
 
-  const combinedFormHooksData: WizardFormData['state'] = {
-    project,
-    modelType,
-    k8sNameDesc,
-    hardwareProfileConfig,
-    modelFormatState,
-    modelLocationData: {
-      ...modelLocationData,
-      selectedConnection: modelLocationData.selectedConnection,
-    },
-    createConnectionData,
-    externalRoute,
-    tokenAuthentication,
-    numReplicas,
-    runtimeArgs,
-    environmentVariables,
-    modelAvailability,
-    modelServer,
-    deploymentStrategy,
-  };
+  const baseFormState: WizardFormData['state'] = React.useMemo(
+    () => ({
+      project,
+      modelType,
+      k8sNameDesc,
+      hardwareProfileConfig,
+      modelFormatState,
+      modelLocationData: {
+        ...modelLocationData,
+        selectedConnection: modelLocationData.selectedConnection,
+      },
+      createConnectionData,
+      externalRoute,
+      tokenAuthentication,
+      numReplicas,
+      runtimeArgs,
+      environmentVariables,
+      modelAvailability,
+      modelServer,
+      deploymentStrategy,
+    }),
+    [
+      project,
+      modelType,
+      k8sNameDesc,
+      hardwareProfileConfig,
+      modelFormatState,
+      modelLocationData,
+      createConnectionData,
+      externalRoute,
+      tokenAuthentication,
+      numReplicas,
+      runtimeArgs,
+      environmentVariables,
+      modelAvailability,
+      modelServer,
+      deploymentStrategy,
+    ],
+  );
 
-  const { state, dispatch, fields } = useDeploymentWizardReducer(
-    combinedFormHooksData,
+  // The reducer manages dynamic field state and computes active fields from merged state
+  const { state, dispatch, fields, externalDataLoaded } = useDeploymentWizardReducer(
+    baseFormState,
     initialData,
+    externalDataMap,
   );
 
   return {
@@ -146,8 +170,9 @@ export const useModelDeploymentWizard = (
     loaded: {
       modelSourceLoaded,
       modelDeploymentLoaded,
-      advancedOptionsLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+      advancedOptionsLoaded: externalDataLoaded,
       summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+      externalDataLoaded,
     },
     advancedOptions: {
       isExternalRouteVisible: externalRoute.isVisible,

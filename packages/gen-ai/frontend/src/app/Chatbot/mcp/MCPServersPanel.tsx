@@ -16,9 +16,9 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
 import MCPServerConfigModal from './MCPServerConfigModal';
@@ -32,35 +32,44 @@ import useServerSelection from './hooks/useServerSelection';
 import useAutoUnlock from './hooks/useAutoUnlock';
 
 interface MCPServersPanelProps {
+  configId: string;
   servers: MCPServerFromAPI[];
   serversLoaded: boolean;
   serversLoadError?: Error | null;
   serverTokens: Map<string, import('~/app/types').TokenInfo>;
   onServerTokensChange: (tokens: Map<string, import('~/app/types').TokenInfo>) => void;
   checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
-  onSelectionChange?: (selectedServers: string[]) => void;
-  initialSelectedServerIds?: string[];
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   onToolsWarningChange?: (showWarning: boolean) => void;
+  onActiveToolsCountChange?: (count: number) => void;
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
 
 const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
+  configId,
   servers: apiServers,
   serversLoaded,
   serversLoadError = null,
   serverTokens: initialServerTokens,
   onServerTokensChange,
   checkServerStatus,
-  onSelectionChange,
-  initialSelectedServerIds,
   initialServerStatuses,
   onToolsWarningChange,
+  onActiveToolsCountChange,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections } = useMCPToolSelections();
+
+  // Get initial selected server IDs from store
+  const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+
+  // Get tool selections callback from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
 
   const statusesLoading = React.useMemo(() => new Set<string>(), []);
 
@@ -98,6 +107,13 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   });
 
   // Server selection
+  const onSelectionChange = React.useCallback(
+    (serverIds: string[]) => {
+      useChatbotConfigStore.getState().updateSelectedMcpServerIds(configId, serverIds);
+    },
+    [configId],
+  );
+
   const selection = useServerSelection({
     transformedServers,
     initialSelectedServerIds,
@@ -157,6 +173,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   React.useEffect(() => {
     onToolsWarningChange?.(showToolsWarning);
   }, [showToolsWarning, onToolsWarningChange]);
+
+  // Notify parent when active tools count changes
+  React.useEffect(() => {
+    onActiveToolsCountChange?.(totalActiveTools);
+  }, [totalActiveTools, onActiveToolsCountChange]);
 
   const handleConfigModalClose = React.useCallback(() => {
     configModal.closeModal();
@@ -334,6 +355,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       )}
       {toolsModal.selectedItem && (
         <MCPServerToolsModal
+          configId={configId}
           isOpen={toolsModal.isOpen}
           onClose={handleToolsModalClose}
           server={toolsModal.selectedItem}

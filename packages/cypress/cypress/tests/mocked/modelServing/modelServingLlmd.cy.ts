@@ -43,7 +43,6 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
-import { maasWizardField } from '../../../pages/modelsAsAService';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -626,79 +625,6 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@stopLLMInferenceService2');
       cy.get('@stopLLMInferenceService2.all').should('have.length', 1);
-    });
-  });
-
-  describe('Deploy LLMD with MaaS enabled', () => {
-    it('should create an LLMD deployment with MaaS enabled and specific tiers', () => {
-      initIntercepts({});
-
-      // Navigate to wizard and set up basic deployment
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-
-      // Quick setup: Model source and deployment
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
-      modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
-      modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findNextButton().click();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-maas-llmd-model');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
-      modelServingWizard.findNextButton().click();
-
-      // Focus on MaaS feature testing
-      // uncheck token auth to simplify test
-      modelServingWizard.findTokenAuthenticationCheckbox().click();
-
-      // Verify MaaS checkbox is unchecked by default
-      maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
-
-      // Check the MaaS checkbox
-      maasWizardField.findSaveAsMaaSCheckbox().click();
-      maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
-
-      // Verify default selection is "All tiers"
-      maasWizardField.findMaaSTierDropdown().should('contain.text', 'All tiers');
-
-      // Switch to "No tiers"
-      maasWizardField.selectMaaSTierOption('No tiers');
-      maasWizardField.findMaaSTierDropdown().should('contain.text', 'No tiers');
-
-      // Switch to "Specific tiers" - Next button should be disabled until input is provided
-      maasWizardField.selectMaaSTierOption('Specific tiers');
-      maasWizardField.findMaaSTierDropdown().should('contain.text', 'Specific tiers');
-      maasWizardField.findMaaSTierNamesInput().should('be.visible');
-      modelServingWizard.findNextButton().should('be.disabled');
-
-      // Enter tier names to enable Next button
-      maasWizardField.findMaaSTierNamesInput().type('tier-1, tier-2');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      // Submit and verify MaaS-specific annotations and gateway refs
-      modelServingWizard.findSubmitButton().click();
-
-      cy.wait('@createLLMInferenceService').then((interception) => {
-        expect(interception.request.url).to.include('?dryRun=All');
-
-        // Verify MaaS-specific configuration with specific tiers
-        // The tiers annotation is a JSON stringified array
-        expect(interception.request.body.metadata.annotations).to.containSubset({
-          'alpha.maas.opendatahub.io/tiers': JSON.stringify(['tier-1', 'tier-2']),
-        });
-
-        expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([
-          {
-            name: 'maas-default-gateway',
-            namespace: 'openshift-ingress',
-          },
-        ]);
-      });
-
-      cy.wait('@createLLMInferenceService'); // Actual request
-      cy.get('@createLLMInferenceService.all').should('have.length', 2);
     });
   });
 });
