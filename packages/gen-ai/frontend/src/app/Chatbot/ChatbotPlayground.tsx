@@ -19,7 +19,6 @@ import { isLlamaModelEnabled } from '~/app/utilities';
 import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
 import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES, sampleWelcomePrompts } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -35,6 +34,7 @@ import {
   selectStreamingEnabled,
   selectSelectedModel,
   selectConfigIds,
+  selectSelectedMcpServerIds,
 } from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
@@ -58,7 +58,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections } = useMCPToolSelections();
   const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
@@ -73,6 +72,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+
   const setSelectedModel = React.useCallback(
     (model: string) => {
       useChatbotConfigStore.getState().updateSelectedModel(configId, model);
@@ -93,10 +94,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     const statuses = location.state?.mcpServerStatuses;
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
-
-  // Handle router state for MCP servers - initialize state with router value
-  const [selectedMcpServerIds, setSelectedMcpServerIds] =
-    React.useState<string[]>(mcpServersFromRoute);
 
   // MCP hooks - fetch servers and manage statuses
   const {
@@ -119,13 +116,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
 
   React.useEffect(() => {
-    // Reset configuration
-    useChatbotConfigStore.getState().resetConfiguration();
+    // Reset configuration with initial values from router
+    useChatbotConfigStore.getState().resetConfiguration({
+      selectedMcpServerIds: mcpServersFromRoute,
+    });
 
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [configId]);
+  }, [configId, mcpServersFromRoute, selectedAAModel]);
 
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
@@ -183,6 +182,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
+  // Get tool selections callback from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
+
   // TODO: This will need to be changed to an object or array when implementing compare mode
   const chatbotMessages = useChatbotMessages({
     modelId: selectedModel,
@@ -235,10 +241,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
       sourceManagement={sourceManagement}
       fileManagement={fileManagement}
-      onMcpServersChange={setSelectedMcpServerIds}
-      initialSelectedServerIds={mcpServersFromRoute}
       initialServerStatuses={mcpServerStatusesFromRoute}
-      selectedServersCount={selectedMcpServerIds.length}
       mcpServers={mcpServers}
       mcpServersLoaded={mcpServersLoaded}
       mcpServersLoadError={mcpServersLoadError}
