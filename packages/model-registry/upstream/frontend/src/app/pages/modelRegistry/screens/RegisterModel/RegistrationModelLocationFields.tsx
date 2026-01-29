@@ -14,6 +14,7 @@ import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
 import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import PasswordInput from '~/app/shared/components/PasswordInput';
 import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 
@@ -21,12 +22,14 @@ type RegistrationModelLocationFieldsProps<D extends RegistrationCommonFormData> 
   formData: D;
   setData: UpdateObjectAtPropAndValue<D>;
   isCatalogModel?: boolean;
+  includeCredentialFields?: boolean;
 };
 
 const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
   formData,
   setData,
   isCatalogModel,
+  includeCredentialFields = false,
 }: RegistrationModelLocationFieldsProps<D>): React.ReactNode => {
   const {
     modelLocationType,
@@ -35,6 +38,8 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
     modelLocationRegion,
     modelLocationPath,
     modelLocationURI,
+    modelLocationS3AccessKeyId,
+    modelLocationS3SecretAccessKey,
   } = formData;
 
   const endpointInput = (
@@ -91,6 +96,27 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
       value={modelLocationURI}
       onChange={(_e, value) => setData('modelLocationURI', value)}
       isDisabled={isCatalogModel}
+    />
+  );
+
+  const s3AccessKeyIdInput = (
+    <TextInput
+      isRequired
+      type="text"
+      id="location-s3-access-key-id"
+      name="location-s3-access-key-id"
+      value={modelLocationS3AccessKeyId}
+      onChange={(_e, value) => setData('modelLocationS3AccessKeyId', value)}
+    />
+  );
+
+  const s3SecretAccessKeyInput = (
+    <PasswordInput
+      isRequired
+      id="location-s3-secret-access-key"
+      name="location-s3-secret-access-key"
+      value={modelLocationS3SecretAccessKey}
+      onChange={(_e, value) => setData('modelLocationS3SecretAccessKey', value)}
     />
   );
 
@@ -153,6 +179,26 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
               </HelperTextItem>
             </HelperText>
           </FormGroup>
+          {includeCredentialFields && (
+            <>
+              <FormGroup
+                className={spacing.mlLg}
+                label="Access Key ID"
+                isRequired
+                fieldId="location-s3-access-key-id"
+              >
+                <FormFieldset component={s3AccessKeyIdInput} field="Access Key ID" />
+              </FormGroup>
+              <FormGroup
+                className={spacing.mlLg}
+                label="Secret Access Key"
+                isRequired
+                fieldId="location-s3-secret-access-key"
+              >
+                <FormFieldset component={s3SecretAccessKeyInput} field="Secret Access Key" />
+              </FormGroup>
+            </>
+          )}
         </>
       )}
       <Split>
