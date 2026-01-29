@@ -22,26 +22,37 @@ class PlaygroundMCPServerRow extends TableRow {
   }
 }
 
-class MCPPanel {
-  findMCPPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+class MCPTab {
+  findMCPTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-settings-page-tab-mcp');
+  }
+
+  clickMCPTab(): void {
+    this.findMCPTab().click();
+  }
+
+  // The table inside the MCP tab (testId unchanged in component)
+  findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('mcp-servers-panel-table');
   }
 
-  expandMCPPanelIfNeeded(): void {
-    this.findMCPPanel().should('exist', { timeout: 30000 }).and('be.visible');
+  openMCPTab(): void {
+    // Click the MCP tab to show the servers table
+    this.clickMCPTab();
+    this.findMCPServersTable().should('exist', { timeout: 30000 }).and('be.visible');
   }
 
-  verifyMCPPanelVisible(): void {
-    this.findMCPPanel().should('be.visible', { timeout: 30000 });
+  verifyMCPTabVisible(): void {
+    this.findMCPServersTable().should('be.visible', { timeout: 30000 });
   }
 
   private findCheckedCheckboxes(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMCPPanel().within(() => cy.get('input[type="checkbox"]:checked'));
+    return this.findMCPServersTable().within(() => cy.get('input[type="checkbox"]:checked'));
   }
 
   getServerRow(serverName: string, serverUrl: string): PlaygroundMCPServerRow {
     const rowSelector = () =>
-      this.findMCPPanel().contains('tr', serverName) as unknown as Cypress.Chainable<
+      this.findMCPServersTable().contains('tr', serverName) as unknown as Cypress.Chainable<
         JQuery<HTMLTableRowElement>
       >;
     return new PlaygroundMCPServerRow(rowSelector, serverName, serverUrl);
@@ -88,4 +99,4 @@ class MCPPanel {
   }
 }
 
-export const mcpPanel = new MCPPanel();
+export const mcpTab = new MCPTab();

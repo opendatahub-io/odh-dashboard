@@ -1,4 +1,5 @@
 import { DeleteModal } from './components/DeleteModal';
+import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
 class TierTableRow extends TableRow {
@@ -267,6 +268,29 @@ class MaaSWizardField {
   findMaaSTierNamesInput() {
     return cy.findByTestId('maas/save-as-maas-checkbox-tier-names');
   }
+
+  findMaaSTierNamesOption(tierName: string) {
+    return cy.findByRole('option', { name: tierName });
+  }
+
+  selectMaaSTierNames(tierNames: string[]) {
+    this.findMaaSTierNamesInput().click();
+    tierNames.forEach((tierName) => {
+      this.findMaaSTierNamesOption(tierName).click();
+    });
+    // Close the dropdown by pressing escape
+    cy.get('body').type('{esc}');
+  }
+
+  findMaaSTierChipGroup() {
+    return this.findMaaSTierNamesInput()
+      .parent()
+      .findByRole('list', { name: 'Current selections' });
+  }
+
+  findMaaSTierChip(tierName: string) {
+    return this.findMaaSTierChipGroup().find('li').contains('span', tierName);
+  }
 }
 
 class APIKeysPage {
@@ -301,6 +325,18 @@ class APIKeysPage {
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().find('tbody tr');
   }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-actions');
+  }
+
+  findRevokeAllAPIKeysAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('revoke-all-api-keys-action');
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
@@ -325,9 +361,24 @@ class APIKeyTableRow extends TableRow {
   }
 }
 
+class RevokeAPIKeyModal extends Modal {
+  constructor() {
+    super('Revoke API key?');
+  }
+
+  findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('revoke-keys-button');
+  }
+
+  findRevokeConfirmationInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('revoke-confirmation-input');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
 export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
 export const apiKeysPage = new APIKeysPage();
+export const revokeAPIKeyModal = new RevokeAPIKeyModal();

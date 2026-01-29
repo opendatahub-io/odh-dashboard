@@ -309,6 +309,32 @@ export type BFFConfig = {
   isCustomLSD: boolean;
 };
 
+export type GuardrailsCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+};
+
+export type GuardrailsStatus = {
+  name: string;
+  phase: string;
+  conditions?: GuardrailsCondition[];
+};
+
+/** Guardrail model config from safety config endpoint */
+export type GuardrailModelConfig = {
+  model_name: string;
+  input_shield_id: string;
+  output_shield_id: string;
+};
+
+/** Response from /lsd/safety/config endpoint */
+export type SafetyConfigResponse = {
+  guardrail_models: GuardrailModelConfig[];
+};
+
 export interface AAModelResponse {
   model_name: string;
   model_id: string;
@@ -344,6 +370,11 @@ export interface MaaSModel {
   owned_by: string;
   ready: boolean;
   url: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
 }
 
 export type MaaSTokenRequest = {
@@ -409,6 +440,8 @@ export type GenAiAPIs = {
   getMCPServers: GetMCPServers;
   getMCPServerStatus: GetMCPServerStatus;
   getBFFConfig: GetBFFConfig;
+  getGuardrailsStatus: GetGuardrailsStatus;
+  getSafetyConfig: GetSafetyConfig;
 };
 
 export type ModArchRestGET<T> = (
@@ -446,3 +479,5 @@ type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
 type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
+type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
+type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;

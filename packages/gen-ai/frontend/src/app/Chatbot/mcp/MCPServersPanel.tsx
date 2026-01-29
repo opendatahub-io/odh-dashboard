@@ -42,6 +42,7 @@ interface MCPServersPanelProps {
   initialSelectedServerIds?: string[];
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   onToolsWarningChange?: (showWarning: boolean) => void;
+  onActiveToolsCountChange?: (count: number) => void;
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
@@ -57,6 +58,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   initialSelectedServerIds,
   initialServerStatuses,
   onToolsWarningChange,
+  onActiveToolsCountChange,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
@@ -157,6 +159,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   React.useEffect(() => {
     onToolsWarningChange?.(showToolsWarning);
   }, [showToolsWarning, onToolsWarningChange]);
+
+  // Notify parent when active tools count changes
+  React.useEffect(() => {
+    onActiveToolsCountChange?.(totalActiveTools);
+  }, [totalActiveTools, onActiveToolsCountChange]);
 
   const handleConfigModalClose = React.useCallback(() => {
     configModal.closeModal();

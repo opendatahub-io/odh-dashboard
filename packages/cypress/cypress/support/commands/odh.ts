@@ -1111,6 +1111,10 @@ declare global {
         ((
           type: 'GET /maas/api/v1/api-keys',
           response: { data: OdhResponse<APIKey[]> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/api-keys',
+          response: { data: null },
         ) => Cypress.Chainable<null>);
     }
   }

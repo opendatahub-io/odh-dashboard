@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 import { mockStorageClasses } from '#~/__mocks__';
 import { InferenceServiceKind, ServingRuntimeKind, ProjectKind, SecretKind } from '#~/k8sTypes';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import * as utils from '#~/pages/modelServing/screens/projects/utils';
-import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
+import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
 import * as storageConfigModule from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import * as StorageClassSelectModule from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
@@ -42,7 +42,7 @@ jest.mock('#~/api', () => ({
   useAccessReview: jest.fn(() => [true]),
 }));
 
-jest.mock('#~/pages/modelServing/screens/projects/nimUtils', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/nim/nimUtils', () => ({
   getNIMServingRuntimeTemplate: jest.fn(),
   updateServingRuntimeTemplate: jest.fn(),
 }));
@@ -55,11 +55,11 @@ jest.mock('#~/pages/modelServing/customServingRuntimes/utils', () => ({
   getServingRuntimeFromTemplate: jest.fn(),
 }));
 
-jest.mock('#~/pages/modelServing/screens/projects/useNIMTemplateName', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/nim/useNIMTemplateName', () => ({
   useNIMTemplateName: jest.fn(() => 'test-template'),
 }));
 
-jest.mock('#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC', () => ({
   useNIMPVC: jest.fn(),
 }));
 
@@ -130,22 +130,22 @@ jest.mock('../NIMPVCSizeSection', () => ({
   default: jest.fn(() => <div data-testid="nim-pvc-size-section">PVC Size Section</div>),
 }));
 
-jest.mock('../../InferenceServiceModal/ProjectSection', () => ({
+jest.mock('../../../InferenceServiceModal/ProjectSection', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="project-section">Project Section</div>),
 }));
 
-jest.mock('../../ServingRuntimeModal/DeploymentHardwareProfileSection.tsx', () => ({
+jest.mock('../../../ServingRuntimeModal/DeploymentHardwareProfileSection.tsx', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="serving-runtime-size-section">Size Section</div>),
 }));
 
-jest.mock('../../kServeModal/KServeAutoscalerReplicaSection', () => ({
+jest.mock('../../../kServeModal/KServeAutoscalerReplicaSection', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="autoscaler-replica-section">Replica Section</div>),
 }));
 
-jest.mock('../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
+jest.mock('../../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
 }));
@@ -155,7 +155,7 @@ jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
   default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
 }));
 
-jest.mock('../../kServeModal/EnvironmentVariablesSection', () => ({
+jest.mock('../../../kServeModal/EnvironmentVariablesSection', () => ({
   __esModule: true,
   default: jest.fn(
     (props: { data: Record<string, unknown>; setData: (key: string, value: unknown) => void }) => {
