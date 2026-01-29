@@ -169,9 +169,24 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Track message hooks for each config instance
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
 
+  // Track loading states to trigger re-renders when they change
+  const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
+  const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
+
   const handleMessagesHookReady = React.useCallback(
     (configIdParam: string, hook: UseChatbotMessagesReturn) => {
       messageHooksRef.current.set(configIdParam, hook);
+      // Update states to reflect current hook values
+      setLoadingStates((prev) => {
+        const next = new Map(prev);
+        next.set(configIdParam, hook.isLoading);
+        return next;
+      });
+      setDisabledStates((prev) => {
+        const next = new Map(prev);
+        next.set(configIdParam, hook.isMessageSendButtonDisabled);
+        return next;
+      });
     },
     [],
   );
@@ -317,12 +332,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                       messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
                     }}
                     hasAttachButton={false}
-                    isSendButtonDisabled={Array.from(messageHooksRef.current.values()).some(
-                      (hook) => hook.isMessageSendButtonDisabled,
+                    isSendButtonDisabled={Array.from(disabledStates.values()).some(
+                      (disabled) => disabled,
                     )}
-                    hasStopButton={Array.from(messageHooksRef.current.values()).some(
-                      (hook) => hook.isLoading,
-                    )}
+                    hasStopButton={Array.from(loadingStates.values()).some((loading) => loading)}
                     data-testid="chatbot-message-bar"
                     onAttach={async (acceptedFiles, fileRejections, event) => {
                       try {

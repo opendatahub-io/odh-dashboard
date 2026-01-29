@@ -70,12 +70,17 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
   });
 
-  // Expose the messages hook to parent via callback
+  // Expose the messages hook to parent and update when loading/disabled states change
   React.useEffect(() => {
     if (onMessagesHookReady) {
       onMessagesHookReady(messagesHook);
     }
-  }, [messagesHook, onMessagesHookReady]);
+  }, [
+    messagesHook.isLoading,
+    messagesHook.isMessageSendButtonDisabled,
+    messagesHook,
+    onMessagesHookReady,
+  ]);
 
   return (
     <MessageBox position="top">
