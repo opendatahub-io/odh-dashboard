@@ -55,3 +55,22 @@ const (
 func FormatEnvVar(envName string) string {
 	return fmt.Sprintf("${env.%s}", envName)
 }
+
+// Moderation constants
+const (
+	MinModerationWordCount = 10
+
+	// ModerationChunkSize is the number of words to buffer before running moderation (fallback threshold)
+	// Primary trigger is sentence boundary detection; this is the fallback for code blocks, lists, etc.
+	ModerationChunkSize = 30
+
+	// InputGuardrailViolationMessage is the message shown when user input is blocked by guardrails
+	InputGuardrailViolationMessage = "I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII)."
+
+	// OutputGuardrailViolationMessage is the message shown when model output is blocked by guardrails
+	OutputGuardrailViolationMessage = "The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII)."
+
+	// AsyncModerationResultBufferSize is the buffer size for the async moderation result channel
+	// This allows multiple moderation requests to complete without blocking
+	AsyncModerationResultBufferSize = 10
+)

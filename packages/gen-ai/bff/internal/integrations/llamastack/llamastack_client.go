@@ -383,7 +383,9 @@ type CreateResponseParams struct {
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
 	// ProviderData contains custom provider headers (e.g., vllm_api_token)
-	ProviderData map[string]interface{}
+	ProviderData   map[string]interface{}
+	InputShieldID  string
+	OutputShieldID string
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -730,4 +732,29 @@ func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStor
 	}
 
 	return nil
+}
+
+// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
+// Returns the SDK type directly for simplicity.
+func (c *LlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
+	if input == "" {
+		return nil, fmt.Errorf("input is required")
+	}
+	if model == "" {
+		return nil, fmt.Errorf("model (shield ID) is required")
+	}
+
+	params := openai.ModerationNewParams{
+		Input: openai.ModerationNewParamsInputUnion{
+			OfString: openai.String(input),
+		},
+		Model: openai.ModerationModel(model),
+	}
+
+	response, err := c.client.Moderations.New(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create moderation: %w", err)
+	}
+
+	return response, nil
 }
