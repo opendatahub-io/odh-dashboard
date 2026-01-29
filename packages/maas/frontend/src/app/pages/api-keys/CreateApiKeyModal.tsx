@@ -57,7 +57,12 @@ const dateToGoDuration = (selectedDate: Date): string => {
 };
 
 const createApiKeySchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .refine((val) => /^[a-zA-Z0-9_-]+$/.test(val), {
+      message: 'Name can only contain letters, numbers, dashes, and underscores',
+    }),
   description: z.string().optional(),
   expirationDate: z
     .date()
@@ -93,7 +98,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
 
-  const { markFieldTouched } = useZodFormValidation(formData, createApiKeySchema);
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    formData,
+    createApiKeySchema,
+  );
 
   const dateValidator = (date: Date) => {
     const dateAtMidnight = new Date(date);
@@ -204,6 +212,14 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
                         {formData.name}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
+                    {formData.description && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Description</DescriptionListTerm>
+                        <DescriptionListDescription data-testid="api-key-display-description">
+                          {formData.description}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    )}
                     {formData.expirationDate ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Expiration</DescriptionListTerm>
@@ -248,7 +264,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
                     name="api-key-name"
                     value={formData.name}
                     onChange={(_event, value) => setFormData({ ...formData, name: value })}
-                    onBlur={() => markFieldTouched(['name'])}
+                    {...getFieldValidationProps(['name'])}
                     data-testid="api-key-name-input"
                   />
                   <FormHelperText>
@@ -256,6 +272,15 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
                       <HelperTextItem>A descriptive name for this API key</HelperTextItem>
                     </HelperText>
                   </FormHelperText>
+                  {getFieldValidation(['name']).length > 0 && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="error">
+                          {getFieldValidation(['name'])[0].message}
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )}
                 </FormGroup>
 
                 <FormGroup label="Description" fieldId="api-key-description">
