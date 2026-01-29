@@ -125,6 +125,31 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   const canSubmit =
     isK8sNameValid && isFormValid && !isLevelTaken && !isK8sNameTaken && !isSubmitting;
 
+  const limits = React.useMemo(() => {
+    if (tokenLimitEnabled && requestLimitEnabled) {
+      return {
+        tokensPerUnit: tokenLimits,
+        requestsPerUnit: requestLimits,
+      };
+    }
+    if (tokenLimitEnabled) {
+      return {
+        tokensPerUnit: tokenLimits,
+        requestsPerUnit: [],
+      };
+    }
+    if (requestLimitEnabled) {
+      return {
+        requestsPerUnit: requestLimits,
+        tokensPerUnit: [],
+      };
+    }
+    return {
+      tokensPerUnit: [],
+      requestsPerUnit: [],
+    };
+  }, [tokenLimitEnabled, requestLimitEnabled, tokenLimits, requestLimits]);
+
   const submitButtonText = tier ? 'Update tier' : 'Create tier';
   const submittingText = tier ? 'Updating...' : 'Creating...';
   const submitButtonTestId = tier ? 'update-tier-button' : 'create-tier-button';
@@ -237,7 +262,12 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
               rateLimits={tokenLimits}
               onChange={setTokenLimits}
               isChecked={tokenLimitEnabled}
-              onToggle={setTokenLimitEnabled}
+              onToggle={(checked) => {
+                setTokenLimitEnabled(checked);
+                if (!checked) {
+                  setTokenLimits([]);
+                }
+              }}
               defaultRateLimit={DEFAULT_TOKEN_LIMIT}
               validationIssues={getAllValidationIssues()}
             />
@@ -249,7 +279,12 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
               rateLimits={requestLimits}
               onChange={setRequestLimits}
               isChecked={requestLimitEnabled}
-              onToggle={setRequestLimitEnabled}
+              onToggle={(checked) => {
+                setRequestLimitEnabled(checked);
+                if (!checked) {
+                  setRequestLimits([]);
+                }
+              }}
               defaultRateLimit={DEFAULT_REQUEST_LIMIT}
               validationIssues={getAllValidationIssues()}
             />
@@ -266,10 +301,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
               description: data.description,
               level,
               groups: selectedGroupNames,
-              limits: {
-                ...(tokenLimitEnabled && { tokensPerUnit: tokenLimits }),
-                ...(requestLimitEnabled && { requestsPerUnit: requestLimits }),
-              },
+              limits,
             })
           }
           variant="primary"

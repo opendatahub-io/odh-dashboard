@@ -16,6 +16,7 @@ import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
+import type { ExternalDataMap } from '../ExternalDataLoader';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -26,11 +27,13 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 type AdvancedSettingsStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
   projectName?: string;
+  externalData: ExternalDataMap;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
   wizardState,
   projectName,
+  externalData,
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
@@ -116,6 +119,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
                     wizardState={wizardState}
+                    externalData={externalData}
                   />
                 </FormGroup>
               </StackItem>

@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Button, ButtonVariant, Label, Popover } from '@patternfly/react-core';
+import { Button, ButtonVariant, Label, Truncate } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { TableRowTitleDescription } from 'mod-arch-shared';
+import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -11,6 +11,7 @@ import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import MaaSModelTableRowEndpoint from './MaaSModelTableRowEndpoint';
+import MaaSModelsTableRowInfo from './MaaSModelsTableRowInfo';
 
 type MaaSModelTableRowProps = {
   model: MaaSModel;
@@ -39,25 +40,21 @@ const MaaSModelTableRow: React.FC<MaaSModelTableRowProps> = ({
     <>
       <Tr>
         <Td dataLabel="Model deployment name">
-          <TableRowTitleDescription
-            title={
-              <>
-                {model.id}
-                <Popover aria-label="Models as a Service" bodyContent={<>Models as a Service</>}>
-                  <Label
-                    style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
-                    color="orange"
-                    aria-label="Model as a Service"
-                  >
-                    MaaS
-                  </Label>
-                </Popover>
-              </>
-            }
-          />
+          <>
+            <TableRowTitleDescription title={<MaaSModelsTableRowInfo model={model} />} />
+            {/* The shared TableRowTitleDescription component only accepts a string for the description
+             * so we need to use the TruncatedText component to truncate the description
+             * and take it out of the TableRowTitleDescription component */}
+            {model.description && (
+              <TruncatedText maxLines={2} content={model.description} style={{ cursor: 'help' }} />
+            )}
+          </>
         </Td>
-        <Td dataLabel="Endpoint">
+        <Td dataLabel="External endpoint">
           <MaaSModelTableRowEndpoint model={model} />
+        </Td>
+        <Td dataLabel="Use case">
+          <Truncate content={model.usecase || 'LLM'} />
         </Td>
         <Td dataLabel="Status">
           {model.ready ? (
