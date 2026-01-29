@@ -4,6 +4,8 @@ import {
   isModArchResponse,
   restDELETE,
   restGET,
+  restCREATE,
+  assembleModArchBody,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { type APIKey } from '~/app/types/api-key';
@@ -29,6 +31,30 @@ export const deleteAllApiKeys =
       restDELETE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`, {}, {}, opts),
     ).then((response) => {
       if (isModArchResponse<void>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** POST /api/v1/api-key - Create a new API key */
+export type APIKeyCreateRequest = {
+  name?: string;
+  description?: string;
+  expiration?: string;
+};
+export const createAPIKey =
+  (hostPath = '') =>
+  (opts: APIOptions, apiKey: APIKeyCreateRequest): Promise<APIKey> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-key`,
+        assembleModArchBody(apiKey),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<APIKey>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
