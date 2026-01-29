@@ -52,7 +52,7 @@ func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logge
 		return "", err
 	}
 
-	domain, found, err := unstructured.NestedString(result.Object, "spec", "clusterDomain")
+	domain, found, err := unstructured.NestedString(result.Object, "spec", "domain")
 	if err != nil {
 		return "", err
 	}

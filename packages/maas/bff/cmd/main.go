@@ -89,7 +89,7 @@ func main() {
 		}
 
 		cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
-		logger.Debug("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
+		logger.Info("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
 	}
 
 	// Only use for logging errors about logging configuration.
