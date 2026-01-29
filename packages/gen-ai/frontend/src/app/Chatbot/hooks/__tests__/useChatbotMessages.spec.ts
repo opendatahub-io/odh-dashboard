@@ -94,7 +94,8 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0]).toMatchObject({
         role: 'bot',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -165,7 +166,8 @@ describe('useChatbotMessages', () => {
           chat_context: [
             {
               role: 'assistant',
-              content: 'Send a message to test your configuration',
+              content:
+                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
             },
           ],
           instructions: '',
@@ -229,7 +231,8 @@ describe('useChatbotMessages', () => {
           chat_context: [
             {
               role: 'assistant',
-              content: 'Send a message to test your configuration',
+              content:
+                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
             },
           ],
           instructions: '',
@@ -375,7 +378,8 @@ describe('useChatbotMessages', () => {
           chat_context: [
             {
               role: 'assistant',
-              content: 'Send a message to test your configuration',
+              content:
+                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
             },
           ],
           instructions: '',
@@ -417,14 +421,16 @@ describe('useChatbotMessages', () => {
       expect(firstCall.chat_context).toHaveLength(1);
       expect(firstCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
 
       const secondCall = mockCreateResponse.mock.calls[1][0];
       expect(secondCall.chat_context).toHaveLength(3);
       expect(secondCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
@@ -450,7 +456,8 @@ describe('useChatbotMessages', () => {
       expect(call.chat_context).toHaveLength(1);
       expect(call.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
     });
 
@@ -486,7 +493,8 @@ describe('useChatbotMessages', () => {
       expect(secondCall.chat_context).toHaveLength(3);
       expect(secondCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
@@ -531,7 +539,8 @@ describe('useChatbotMessages', () => {
       expect(secondCall.chat_context).toHaveLength(3);
       expect(secondCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
