@@ -32,7 +32,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   setSelectedModels,
   maxTokensMap,
   onMaxTokensChange,
-  guardrailsAvailable,
+  guardrailsAvailable = false,
 }) => {
   // Gate all guardrails UI behind the guardrails feature flag
   const guardrailsFeatureEnabled = useGuardrailsEnabled();
