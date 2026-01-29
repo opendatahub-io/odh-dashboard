@@ -49,7 +49,9 @@ export interface ChatbotConfigStoreState {
  * Store actions interface.
  */
 export interface ChatbotConfigStoreActions {
-  // TODO: ADD/DUPLICATE/REMOVE configs
+  // Configuration lifecycle
+  removeConfiguration: (id: string) => void;
+  duplicateConfiguration: (id: string) => string | undefined;
 
   // Field-specific updaters (for granular rerenders)
   updateSystemInstruction: (id: string, value: string) => void;
