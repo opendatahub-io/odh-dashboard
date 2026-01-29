@@ -2025,6 +2025,12 @@ components:
             Reference to the previous response ID in the conversation thread.
             Only present when the request included a previous_response_id parameter.
             Enables conversation continuity and thread tracking.
+        metrics:
+          $ref: '#/components/schemas/ResponseMetrics'
+          description: >-
+            Response metrics including latency and token usage.
+            Present in non-streaming responses. For streaming responses,
+            metrics are sent as a separate response.metrics event.
 
     OutputItem:
       type: object
@@ -2132,6 +2138,65 @@ components:
           type: string
           example: 'document.pdf'
           description: Source filename (if available)
+
+    # Response Metrics Schemas
+    ResponseMetrics:
+      type: object
+      required:
+        - latency_ms
+      properties:
+        latency_ms:
+          type: integer
+          format: int64
+          example: 1523
+          description: Total response time in milliseconds from request start to completion
+        time_to_first_token_ms:
+          type: integer
+          format: int64
+          example: 892
+          description: >-
+            Time to first token in milliseconds (streaming responses only).
+            Measures time from request start to the first text delta received.
+            Not present for non-streaming responses.
+        usage:
+          $ref: '#/components/schemas/UsageData'
+          description: Token usage information from the model
+
+    UsageData:
+      type: object
+      required:
+        - input_tokens
+        - output_tokens
+        - total_tokens
+      properties:
+        input_tokens:
+          type: integer
+          example: 150
+          description: Number of tokens in the input/prompt
+        output_tokens:
+          type: integer
+          example: 500
+          description: Number of tokens in the generated output
+        total_tokens:
+          type: integer
+          example: 650
+          description: Total tokens used (input + output)
+
+    # Metrics Event Schema (for streaming responses)
+    MetricsEvent:
+      type: object
+      required:
+        - type
+        - metrics
+      properties:
+        type:
+          type: string
+          enum: [response.metrics]
+          example: 'response.metrics'
+          description: Event type identifier
+        metrics:
+          $ref: '#/components/schemas/ResponseMetrics'
+          description: Response metrics data
 
     # Streaming Event Schema
     StreamingEvent:
@@ -3634,6 +3699,7 @@ components:
         When RAG (vector stores) are used, file search tool calls appear as separate events in the stream.
         When MCP tools are configured, mcp_list_tools and mcp_call events appear in the stream showing real-time tool execution.
         Stream format follows LlamaStack SSE specification with 'data:' prefix for each event.
+        After stream completion, a response.metrics event is sent with timing and usage data.
       content:
         text/event-stream:
           schema:
@@ -3648,6 +3714,7 @@ components:
               - response.output_text.delta: Individual token streaming with delta text
               - response.content_part.done: Content part completion
               - response.completed: Final clean response with complete output array (messages, tool calls, MCP interactions)
+              - response.metrics: Final metrics event with latency_ms, time_to_first_token_ms, and usage data
               All events use the same ResponseData structure as non-streaming responses.
           example: |
             data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"in_progress","created_at":1758128692}}
@@ -3665,6 +3732,8 @@ components:
             data: {"delta":"","sequence_number":6,"type":"response.content_part.done","item_id":"msg_23003d3c-bff4-4f47-a06e-befb4d95b7d4","output_index":0}
 
             data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"completed","created_at":1758128692,"output":[{"id":"mcp_list_76f81e82-3142-41af-8462-8d7ef3975517","type":"mcp_list_tools","role":"assistant","server_label":"github","output":""},{"id":"call_stl5xt0s","type":"mcp_call","role":"assistant","server_label":"github","arguments":"{\"owner\":\"llamastack\",\"repo\":\"llama-stack\"}","name":"get_latest_release","output":"{\"tag_name\":\"1.104.0\"}"},{"id":"msg_6cb0269f-0cec-405d-af61-4e5ac01ea2b5","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The latest release is version 1.104.0"}]}]}}
+
+            data: {"type":"response.metrics","metrics":{"latency_ms":2341,"time_to_first_token_ms":892,"usage":{"input_tokens":150,"output_tokens":500,"total_tokens":650}}}
 
     BadRequest:
       description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token
