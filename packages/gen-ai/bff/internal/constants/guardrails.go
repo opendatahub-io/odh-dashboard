@@ -58,6 +58,8 @@ func FormatEnvVar(envName string) string {
 
 // Moderation constants
 const (
+	MinModerationWordCount = 10
+
 	// ModerationChunkSize is the number of words to buffer before running moderation (fallback threshold)
 	// Primary trigger is sentence boundary detection; this is the fallback for code blocks, lists, etc.
 	ModerationChunkSize = 30

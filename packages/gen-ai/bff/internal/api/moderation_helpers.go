@@ -63,12 +63,9 @@ func extractDetectionType(rawJSON string) string {
 	return result.Metadata.DetectionType
 }
 
-// ShouldTriggerModeration determines if moderation should be triggered based on
-// sentence boundaries (primary) or word count fallback (secondary).
-// This provides better UX by sending readable chunks that end at natural sentence boundaries.
 func ShouldTriggerModeration(accumulatedText string, wordCount int) bool {
 	// Primary: Check for sentence boundaries - provides better readability in UI
-	if EndsWithSentenceBoundary(accumulatedText) && wordCount > 0 {
+	if EndsWithSentenceBoundary(accumulatedText) && wordCount >= constants.MinModerationWordCount {
 		return true
 	}
 

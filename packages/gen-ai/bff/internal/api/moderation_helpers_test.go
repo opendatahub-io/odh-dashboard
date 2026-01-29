@@ -103,24 +103,50 @@ func TestShouldTriggerModeration(t *testing.T) {
 		wordCount       int
 		expected        bool
 	}{
-		// Primary trigger: sentence boundary with content
+		// Primary trigger: sentence boundary with minimum word count (10 words)
 		{
-			name:            "sentence boundary with words",
-			accumulatedText: "This is a complete sentence.",
-			wordCount:       5,
+			name:            "sentence boundary at minimum word count",
+			accumulatedText: "This is a complete sentence with exactly ten words here.",
+			wordCount:       constants.MinModerationWordCount,
 			expected:        true,
 		},
 		{
-			name:            "question with words",
+			name:            "sentence boundary above minimum word count",
+			accumulatedText: "This is a longer sentence that definitely has more than the minimum required word count here.",
+			wordCount:       15,
+			expected:        true,
+		},
+		{
+			name:            "question above minimum word count",
+			accumulatedText: "Is this a question that has enough words to trigger moderation check?",
+			wordCount:       12,
+			expected:        true,
+		},
+		{
+			name:            "exclamation above minimum word count",
+			accumulatedText: "Hello world this is an exciting message with many words!",
+			wordCount:       10,
+			expected:        true,
+		},
+
+		// Below minimum word count - should NOT trigger even with sentence boundary
+		{
+			name:            "sentence boundary below minimum word count",
+			accumulatedText: "This is a short sentence.",
+			wordCount:       5,
+			expected:        false,
+		},
+		{
+			name:            "question below minimum word count",
 			accumulatedText: "Is this working?",
 			wordCount:       3,
-			expected:        true,
+			expected:        false,
 		},
 		{
-			name:            "exclamation with words",
+			name:            "exclamation below minimum word count",
 			accumulatedText: "Hello world!",
 			wordCount:       2,
-			expected:        true,
+			expected:        false,
 		},
 
 		// Fallback trigger: word count threshold
@@ -171,10 +197,22 @@ func TestShouldTriggerModeration(t *testing.T) {
 			expected:        false,
 		},
 		{
-			name:            "multiple sentences",
-			accumulatedText: "First sentence. Second sentence.",
-			wordCount:       4,
+			name:            "just below minimum word count with boundary",
+			accumulatedText: "Almost at minimum words here.",
+			wordCount:       constants.MinModerationWordCount - 1,
+			expected:        false,
+		},
+		{
+			name:            "multiple sentences above minimum word count",
+			accumulatedText: "First sentence here with enough words. Second sentence.",
+			wordCount:       10,
 			expected:        true,
+		},
+		{
+			name:            "multiple sentences below minimum word count",
+			accumulatedText: "First. Second.",
+			wordCount:       2,
+			expected:        false,
 		},
 	}
 
@@ -197,11 +235,18 @@ func TestShouldTriggerModeration_RealWorldScenarios(t *testing.T) {
 		description     string
 	}{
 		{
-			name:            "LLM response with complete thought",
-			accumulatedText: "I'd be happy to help you with that question.",
-			wordCount:       9,
+			name:            "LLM response with complete thought above min words",
+			accumulatedText: "I'd be happy to help you with that question about the topic.",
+			wordCount:       12,
 			expected:        true,
-			description:     "Should trigger at sentence end for readable chunks",
+			description:     "Should trigger at sentence end for readable chunks when above minimum word count",
+		},
+		{
+			name:            "LLM response complete but below min words",
+			accumulatedText: "I'd be happy to help you.",
+			wordCount:       6,
+			expected:        false,
+			description:     "Should NOT trigger below minimum word count even with sentence boundary",
 		},
 		{
 			name:            "LLM response mid-sentence",
@@ -218,11 +263,18 @@ func TestShouldTriggerModeration_RealWorldScenarios(t *testing.T) {
 			description:     "Should fallback to word count for code blocks",
 		},
 		{
-			name:            "Bullet list item",
+			name:            "Bullet list item below min words",
 			accumulatedText: "Here are the key points:\n- First item.",
 			wordCount:       7,
+			expected:        false,
+			description:     "Should NOT trigger on short list items to prevent false positives",
+		},
+		{
+			name:            "Bullet list with enough words",
+			accumulatedText: "Here are the key points that I want to discuss:\n- First item details.",
+			wordCount:       12,
 			expected:        true,
-			description:     "Should trigger on sentence boundary within list",
+			description:     "Should trigger on list items when above minimum word count",
 		},
 		{
 			name:            "Non-English text simulation (continuous)",
