@@ -19,7 +19,7 @@ import {
   selectSystemInstruction,
   selectSelectedModel,
   selectSelectedMcpServerIds,
-} from '../store';
+} from '~/app/Chatbot/store';
 
 interface ViewCodeModalProps {
   isOpen: boolean;
