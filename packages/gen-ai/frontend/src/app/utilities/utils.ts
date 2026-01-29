@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
-import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig, MaaSModel } from '~/app/types';
+import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 
 /**
  * Generates a UUID v4 string

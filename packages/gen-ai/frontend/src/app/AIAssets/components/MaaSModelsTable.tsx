@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import { maasModelColumns } from '~/app/AIAssets/data/maasColumns';
 import useMaaSModelsFilter from '~/app/AIAssets/hooks/useMaaSModelsFilter';
 import {

@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
 type MaaSModelTableRowEndpointProps = {
