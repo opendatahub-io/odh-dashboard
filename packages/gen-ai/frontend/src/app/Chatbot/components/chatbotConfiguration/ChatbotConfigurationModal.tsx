@@ -5,8 +5,6 @@ import { Link } from 'react-router-dom';
 import { DashboardModalFooter } from 'mod-arch-shared';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
-import useFetchGuardrailsStatus from '~/app/hooks/useFetchGuardrailsStatus';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import type { MaaSModel } from '~/odh/extension-points/maas';
@@ -91,15 +89,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     new Map(),
   );
 
-  // Gate guardrails functionality behind the guardrails feature flag
-  const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
-  const { isReady: isGuardrailsReady } = useFetchGuardrailsStatus();
-
-  // When installing/configuring LlamaStack Distribution:
-  // - If warning is displayed (status ≠ Ready): Omit enable_guardrails parameter OR set enable_guardrails=false
-  // - If no warning (status = Ready): User can choose to enable guardrails via toggle
-  const [enableGuardrails, setEnableGuardrails] = React.useState<boolean>(false);
-
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
@@ -153,12 +142,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     }
 
     const install = () => {
-      // When installing/configuring LlamaStack Distribution:
-      // - If guardrails feature is disabled OR status ≠ Ready: Omit enable_guardrails parameter OR set enable_guardrails=false
-      // - If guardrails feature is enabled AND status = Ready AND user toggled it on: Include enable_guardrails=true
-      const shouldEnableGuardrails =
-        isGuardrailsFeatureEnabled && isGuardrailsReady && enableGuardrails;
-
       api
         .installLSD({
           models: selectedModels.map((model) => ({
@@ -166,8 +149,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
             is_maas_model: model.isMaaSModel || false,
           })),
-          // Only include enable_guardrails if it should be enabled, otherwise omit it (defaults to false on backend)
-          ...(shouldEnableGuardrails && { enable_guardrails: true }),
         })
         .then(() => {
           fireFormTrackingEvent(
@@ -259,7 +240,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             maxTokensMap={maxTokensMap}
             onMaxTokensChange={handleMaxTokensChange}
             enableGuardrails={enableGuardrails}
-            setEnableGuardrails={setEnableGuardrails}
+            guardrailsAvailable={false}
           />
         )}
       </ModalBody>
