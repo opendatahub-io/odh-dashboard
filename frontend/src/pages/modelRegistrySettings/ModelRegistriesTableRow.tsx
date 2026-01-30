@@ -1,10 +1,13 @@
 import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tooltip } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Popover, Tooltip } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
+import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
@@ -27,14 +30,42 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
       (mr.metadata.name || mr.metadata.annotations?.['openshift.io/display-name']),
   );
 
+  const hasProjectPermissions =
+    filterRoleBindingSubjects(
+      filteredRoleBindings,
+      RoleBindingPermissionsRBType.GROUP,
+      true, // isProjectSubject
+    ).length > 0;
+  const showNoProjectPermissionLabel = !hasProjectPermissions;
+
   return (
     <Tr>
       <Td dataLabel="Model registry name">
-        <ResourceNameTooltip resource={mr}>
-          <strong>
-            {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
-          </strong>
-        </ResourceNameTooltip>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem>
+            <ResourceNameTooltip resource={mr}>
+              <strong>
+                {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
+              </strong>
+            </ResourceNameTooltip>
+          </FlexItem>
+          {showNoProjectPermissionLabel && (
+            <FlexItem>
+              <Popover
+                headerContent="No project permission"
+                bodyContent="To enable users to store models during registration using a project-scoped batch job, grant the relevant project access to the registry. To manage access, click Manage permissions."
+              >
+                <Label
+                  status="info"
+                  icon={<InfoCircleIcon />}
+                  data-testid="mr-no-project-permission-label"
+                >
+                  No project permission
+                </Label>
+              </Popover>
+            </FlexItem>
+          )}
+        </Flex>
         {mr.metadata.annotations?.['openshift.io/description'] && (
           <p>{mr.metadata.annotations['openshift.io/description']}</p>
         )}
