@@ -25,6 +25,7 @@ import {
   MCPServersResponse,
   MCPToolsStatus,
   OutputItem,
+  ResponseMetrics,
   SafetyConfigResponse,
   SimplifiedResponseData,
   SourceItem,
@@ -43,6 +44,16 @@ import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+/**
+ * Type guard to validate ResponseMetrics from streaming data
+ */
+const isResponseMetrics = (value: unknown): value is ResponseMetrics => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return typeof value.latency_ms === 'number';
+};
 
 const getStatusCodeFromError = (error: unknown): number | undefined => {
   if (isRecord(error) && 'status' in error) {
@@ -211,6 +222,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
+    ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
   };
 };
 
@@ -279,6 +291,7 @@ const streamCreateResponse = (
 
         let fullContent = '';
         let completeResponseData: BackendResponseData | null = null;
+        let metricsData: ResponseMetrics | null = null;
         const decoder = new TextDecoder();
 
         try {
@@ -308,6 +321,12 @@ const streamCreateResponse = (
                       onStreamData(data.delta);
                     } else if (data.type === 'response.completed' && data.response) {
                       completeResponseData = data.response;
+                    } else if (
+                      data.type === 'response.metrics' &&
+                      isResponseMetrics(data.metrics)
+                    ) {
+                      // Capture metrics from the BFF response.metrics event
+                      metricsData = data.metrics;
                     }
                   } catch {
                     // ignore malformed lines
@@ -341,6 +360,7 @@ const streamCreateResponse = (
           content: processedContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
+          ...(metricsData && { metrics: metricsData }),
         });
       })
       .catch((error) => {
