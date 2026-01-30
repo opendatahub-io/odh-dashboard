@@ -274,7 +274,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
       try {
         await updateModelRegistryBackend(mr.metadata.name, {
-          modelRegistry: constructRequestBody(data, secureDBInfo, addSecureDB, databaseType),
+          modelRegistry: constructRequestBody(
+            data,
+            secureDBInfo,
+            addSecureDB,
+            databaseSource,
+            databaseType,
+          ),
           databasePassword: databaseSource === DatabaseSource.EXTERNAL ? password : undefined,
           newDatabaseCACertificate:
             databaseSource === DatabaseSource.EXTERNAL ? newDatabaseCACertificate : undefined,

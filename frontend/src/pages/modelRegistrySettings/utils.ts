@@ -34,17 +34,20 @@ export const findConfigMap = (secureDBInfo: SecureDBInfo): { name: string; key: 
 /**
  * Constructs the request body for creating or updating a model registry.
  * Handles SSL certificate configuration (ConfigMap or Secret) based on the secure DB settings.
+ * SSL configuration is only added for EXTERNAL database sources.
  *
  * @param data - The model registry data to be sent
  * @param secureDBInfo - Information about the SSL certificate configuration
  * @param addSecureDB - Whether to add SSL certificate configuration
  * @param databaseType - The database type (MySQL or PostgreSQL), defaults to MySQL
+ * @param databaseSource - The database source (DEFAULT or EXTERNAL)
  * @returns The modified model registry object with SSL configuration applied
  */
 export const constructRequestBody = (
   data: RecursivePartial<ModelRegistryKind>,
   secureDBInfo: SecureDBInfo,
   addSecureDB: boolean,
+  databaseSource: DatabaseSource,
   databaseType: DatabaseType = DatabaseType.MYSQL,
 ): RecursivePartial<ModelRegistryKind> => {
   const mr = data;
@@ -58,13 +61,18 @@ export const constructRequestBody = (
     return mr;
   }
 
-  if (addSecureDB && secureDBInfo.resourceType === ResourceType.Secret) {
+  // Only add SSL configuration for EXTERNAL database sources
+  if (
+    databaseSource === DatabaseSource.EXTERNAL &&
+    addSecureDB &&
+    secureDBInfo.resourceType === ResourceType.Secret
+  ) {
     dbSpec.sslRootCertificateSecret = {
       name: secureDBInfo.resourceName,
       key: secureDBInfo.key,
     };
     dbSpec.sslRootCertificateConfigMap = null;
-  } else if (addSecureDB) {
+  } else if (databaseSource === DatabaseSource.EXTERNAL && addSecureDB) {
     dbSpec.sslRootCertificateConfigMap = findConfigMap(secureDBInfo);
     dbSpec.sslRootCertificateSecret = null;
   } else {
