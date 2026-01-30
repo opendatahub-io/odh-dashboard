@@ -32,7 +32,7 @@
     "test:type-check": "turbo run type-check",
     "test:jest": "jest",
     "type-check": "tsc --noEmit",
-    "server": "NODE_ENV=production node ./dist/server.js",
+    "server": "cross-env NODE_ENV=production node ./dist/server.js",
     "lint": "eslint .",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage"
