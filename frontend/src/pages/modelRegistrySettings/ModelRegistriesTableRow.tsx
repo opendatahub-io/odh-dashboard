@@ -6,7 +6,6 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
-import { hasProjectRoleBindings, hasUserRoleBindings } from '#~/concepts/roleBinding/utils';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
@@ -29,8 +28,10 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
       (mr.metadata.name || mr.metadata.annotations?.['openshift.io/display-name']),
   );
 
-  const showNoUserPermissionLabel = !hasUserRoleBindings(filteredRoleBindings);
-  const showNoProjectPermissionLabel = !hasProjectRoleBindings(filteredRoleBindings);
+  const hasProjectPermissions = filteredRoleBindings.some(
+    (rb) => rb.metadata.labels?.['opendatahub.io/rb-project-subject'] === 'true',
+  );
+  const showNoProjectPermissionLabel = !hasProjectPermissions;
 
   return (
     <Tr>
@@ -43,27 +44,11 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
               </strong>
             </ResourceNameTooltip>
           </FlexItem>
-          {showNoUserPermissionLabel && (
-            <FlexItem>
-              <Popover
-                headerContent="No user permission"
-                bodyContent="To grant users access to the model registry, click Manage permissions."
-              >
-                <Label
-                  status="info"
-                  icon={<InfoCircleIcon />}
-                  data-testid="mr-no-user-permission-label"
-                >
-                  No user permission
-                </Label>
-              </Popover>
-            </FlexItem>
-          )}
           {showNoProjectPermissionLabel && (
             <FlexItem>
               <Popover
                 headerContent="No project permission"
-                bodyContent="Optional: To enable users to store models during registration using a project-defined connection, grant the relevant project access to the registry. To manage access, click Manage permissions."
+                bodyContent="To enable users to store models during registration using a project-scoped batch job, grant the relevant project access to the registry. To manage access, click Manage permissions."
               >
                 <Label
                   status="info"
