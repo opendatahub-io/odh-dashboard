@@ -408,6 +408,14 @@ export type ModelRegistryTestData = {
   permissionsRegistryNamePrefix: string;
   testProjectNamePrefix: string;
   rhodsUsersGroup: string;
+
+  // Database configuration testing
+  databaseName: string;
+  newDatabaseHost: string;
+  newDatabasePort: string;
+  newDatabaseName: string;
+  newDatabaseUsername: string;
+  newDatabasePassword: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
