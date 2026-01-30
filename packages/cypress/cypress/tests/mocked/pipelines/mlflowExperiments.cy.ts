@@ -109,8 +109,11 @@ describe('MLflow Experiments', () => {
 
         const main = doc?.querySelector('main');
         expect(main).to.not.be.null;
-        expect(main?.style.margin).to.equal('0px');
-        expect(main?.style.borderRadius).to.equal('0px');
+        if (main) {
+          const computedStyle = iframe.contentWindow?.getComputedStyle(main);
+          expect(computedStyle?.margin).to.equal('0px');
+          expect(computedStyle?.borderRadius).to.equal('0px');
+        }
 
         expect(doc?.querySelector('#mlflow-experiments-page')).to.not.be.null;
       });
