@@ -12,7 +12,7 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
     const handleIframeLoad = () => {
       try {
         const iframe = iframeRef.current;
-        if (iframe?.contentDocument) {
+        if (iframe?.contentDocument?.head) {
           const doc = iframe.contentDocument;
 
           const style = doc.createElement('style');
@@ -27,11 +27,10 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
     const iframe = iframeRef.current;
     if (iframe) {
       iframe.addEventListener('load', handleIframeLoad);
-      return () => {
-        iframe.removeEventListener('load', handleIframeLoad);
-      };
     }
-    return undefined;
+    return () => {
+      iframe?.removeEventListener('load', handleIframeLoad);
+    };
   }, []);
 
   return children(iframeRef);

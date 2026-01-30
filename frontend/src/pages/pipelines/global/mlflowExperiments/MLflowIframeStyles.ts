@@ -28,20 +28,19 @@ export const MLFLOW_IFRAME_STYLES = `
   }
 
   /* Disable workspace navigation links except experiments, compare-experiments, metric, and compare-runs pages */
-  /* Allow: /experiments (ends), /experiments/, /experiments?, /compare-experiments (ends), /compare-experiments/, /compare-experiments?, /metric, /compare-runs */
-  a[href^="#/workspaces/"]:not([href$="/experiments"]):not([href*="/experiments/"]):not([href*="/experiments?"]):not([href$="/compare-experiments"]):not([href*="/compare-experiments/"]):not([href*="/compare-experiments?"]):not([href*="/metric"]):not([href*="/compare-runs"]) {
-    pointer-events: none;
-    cursor: default;
+  /* Allow: /experiments (ends), /experiments/, /experiments?, /compare-experiments (ends), /compare-experiments/, /compare-experiments?, /metric (ends/with params), /compare-runs (ends/with params) */
+  a[href^="#/workspaces/"]:not([href$="/experiments"]):not([href*="/experiments/"]):not([href*="/experiments?"]):not([href$="/compare-experiments"]):not([href*="/compare-experiments/"]):not([href*="/compare-experiments?"]):not([href$="/metric"]):not([href*="/metric?"]):not([href$="/compare-runs"]):not([href*="/compare-runs?"]) {
+    pointer-events: none !important;
+    cursor: default !important;
   }
 
-  /* Fix the AG Grid wrapper that has overflow: hidden */
-  .css-19xi16 {
+  /* Fix scrolling in the AG Grid container wrapper (Check the empty state on  Models tab) */
+  .ag-theme-balham {
     overflow: auto !important;
   }
 
-  /* Fix empty state overlap: add spacing above the heading */
-  .du-bois-light-typography.css-19gy3hy,
-  .du-bois-dark-typography.css-19gy3hy {
+  /* Fix empty state overlap: add spacing to the empty state container */
+  div:has(img[src*="versions-empty"]) h3 {
     margin-top: 80px !important;
   }
 `;
