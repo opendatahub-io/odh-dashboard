@@ -11,7 +11,7 @@ import {
   MenuToggle,
   Tooltip,
 } from '@patternfly/react-core';
-import { CodeIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
+import { CodeIcon, ColumnsIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
@@ -20,6 +20,8 @@ type ChatbotHeaderActionsProps = {
   onConfigurePlayground: () => void;
   onDeletePlayground: () => void;
   onNewChat: () => void;
+  onCompareChat: () => void;
+  isCompareMode: boolean;
 };
 
 const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
@@ -27,6 +29,8 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onConfigurePlayground,
   onDeletePlayground,
   onNewChat,
+  onCompareChat,
+  isCompareMode,
 }) => {
   const { lsdStatus, lastInput } = React.useContext(ChatbotContext);
   // Might need to iterate through selectedModels for each config during comparison mode
@@ -54,6 +58,20 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
           <>
+            {/* Hide compare button when in compare mode - use close button on pane to exit */}
+            {!isCompareMode && (
+              <ActionListItem>
+                <Button
+                  variant="link"
+                  aria-label="Compare chat"
+                  icon={<ColumnsIcon />}
+                  onClick={onCompareChat}
+                  data-testid="compare-chat-button"
+                >
+                  Compare chat
+                </Button>
+              </ActionListItem>
+            )}
             <ActionListItem>
               <Button
                 variant="link"

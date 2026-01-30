@@ -5,6 +5,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import KnowledgeTabContent from '~/app/Chatbot/components/settingsPanelTabs/KnowledgeTabContent';
+import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
@@ -87,6 +88,7 @@ describe('KnowledgeTabContent', () => {
   });
 
   const defaultProps = {
+    configId: DEFAULT_CONFIG_ID,
     sourceManagement: createMockSourceManagement(),
     fileManagement: createMockFileManagement(),
     alerts: {
@@ -98,6 +100,8 @@ describe('KnowledgeTabContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset the Zustand store to initial state with isRagEnabled: false
+    useChatbotConfigStore.getState().resetConfiguration();
   });
 
   it('renders the RAG title', () => {
@@ -113,37 +117,34 @@ describe('KnowledgeTabContent', () => {
     expect(ragSwitch).toBeInTheDocument();
   });
 
-  it('renders RAG toggle as unchecked when isRawUploaded is false', () => {
+  it('renders RAG toggle as unchecked when isRagEnabled is false', () => {
     render(<KnowledgeTabContent {...defaultProps} />);
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     expect(ragSwitch).not.toBeChecked();
   });
 
-  it('renders RAG toggle as checked when isRawUploaded is true', () => {
-    const props = {
-      ...defaultProps,
-      sourceManagement: createMockSourceManagement({ isRawUploaded: true }),
-    };
-    render(<KnowledgeTabContent {...props} />);
+  it('renders RAG toggle as checked when isRagEnabled is true', () => {
+    // Set isRagEnabled to true in the store
+    useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+    render(<KnowledgeTabContent {...defaultProps} />);
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     expect(ragSwitch).toBeChecked();
   });
 
-  it('calls setIsRawUploaded and fires tracking event when RAG toggle is changed', async () => {
+  it('calls updateRagEnabled and fires tracking event when RAG toggle is changed', async () => {
     const user = userEvent.setup();
-    const mockSetIsRawUploaded = jest.fn();
-    const props = {
-      ...defaultProps,
-      sourceManagement: createMockSourceManagement({ setIsRawUploaded: mockSetIsRawUploaded }),
-    };
-    render(<KnowledgeTabContent {...props} />);
+    render(<KnowledgeTabContent {...defaultProps} />);
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     await user.click(ragSwitch);
 
-    expect(mockSetIsRawUploaded).toHaveBeenCalledWith(true);
+    // Verify store was updated
+    expect(useChatbotConfigStore.getState().getConfiguration(DEFAULT_CONFIG_ID)?.isRagEnabled).toBe(
+      true,
+    );
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Playground RAG Toggle Selected', {
       isRag: true,
     });
@@ -151,20 +152,18 @@ describe('KnowledgeTabContent', () => {
 
   it('fires tracking event with isRag false when disabling RAG', async () => {
     const user = userEvent.setup();
-    const mockSetIsRawUploaded = jest.fn();
-    const props = {
-      ...defaultProps,
-      sourceManagement: createMockSourceManagement({
-        isRawUploaded: true,
-        setIsRawUploaded: mockSetIsRawUploaded,
-      }),
-    };
-    render(<KnowledgeTabContent {...props} />);
+    // Set isRagEnabled to true first
+    useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+    render(<KnowledgeTabContent {...defaultProps} />);
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     await user.click(ragSwitch);
 
-    expect(mockSetIsRawUploaded).toHaveBeenCalledWith(false);
+    // Verify store was updated
+    expect(useChatbotConfigStore.getState().getConfiguration(DEFAULT_CONFIG_ID)?.isRagEnabled).toBe(
+      false,
+    );
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Playground RAG Toggle Selected', {
       isRag: false,
     });
