@@ -14,6 +14,10 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -49,28 +53,11 @@ jobs:
             echo "short_sha=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create PR branch
-        id: branch
+      - name: Sync main into odh-release
+        id: sync
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create unique branch name with timestamp
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          SHORT_SHA="${{ steps.target.outputs.short_sha }}"
-          if [[ -n "$SHORT_SHA" ]]; then
-            BRANCH_NAME="auto-sync-main-${SHORT_SHA}-${TIMESTAMP}"
-          else
-            BRANCH_NAME="auto-sync-main-${TIMESTAMP}"
-          fi
-          
-          echo "Creating branch: $BRANCH_NAME"
-          git checkout -b "$BRANCH_NAME"
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-
-      - name: Merge target into branch
-        id: merge
-        run: |
           git fetch origin main
           
           MERGE_REF="${{ steps.target.outputs.ref }}"
@@ -126,9 +113,30 @@ jobs:
             git commit -m "Auto-merge $MERGE_DESC into odh-release (resolved conflicts)"
           fi
 
+          # Push directly to odh-release
+          git push origin odh-release
+          echo "Synced $MERGE_DESC to odh-release"
+
+      - name: Create version bump branch
+        id: branch
+        if: ${{ steps.sync.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
+        run: |
+          # Create unique branch name with timestamp
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA="${{ steps.target.outputs.short_sha }}"
+          if [[ -n "$SHORT_SHA" ]]; then
+            BRANCH_NAME="version-bump-${SHORT_SHA}-${TIMESTAMP}"
+          else
+            BRANCH_NAME="version-bump-${TIMESTAMP}"
+          fi
+          
+          echo "Creating branch: $BRANCH_NAME"
+          git checkout -b "$BRANCH_NAME"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
       - name: Bump z-stream version
         id: version
-        if: ${{ steps.merge.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
+        if: ${{ steps.sync.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
         run: |
           echo "Bumping z-stream version..."
           
@@ -171,46 +179,30 @@ jobs:
           git commit -m "Bump version to ${NEW_VERSION}"
           echo "Version bump committed"
 
-      - name: Push branch and create PR
-        if: ${{ steps.merge.outputs.has_changes == 'true' }}
+      - name: Push branch and create version bump PR
+        if: ${{ steps.sync.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH_NAME="${{ steps.branch.outputs.branch_name }}"
-          MERGE_DESC="${{ steps.target.outputs.description }}"
           NEW_VERSION="${{ steps.version.outputs.new_version }}"
           
           # Push the branch
           git push origin "$BRANCH_NAME"
           
-          # Build PR title and body
-          if [[ -n "$NEW_VERSION" ]]; then
-            PR_TITLE="Sync main to odh-release and bump to ${NEW_VERSION}"
-            PR_BODY="## Summary
-          
-          - Auto-merge ${MERGE_DESC} into odh-release
-          - Bump version to ${NEW_VERSION}
-          
-          ## Files updated for version bump
-          - \`frontend/.env\`
-          - \`manifests/odh/params.env\`
-          - \`manifests/modular-architecture/params.env\`
-          
-          ---
-          *This PR was automatically created by the release-auto-merge workflow.*"
-          else
-            PR_TITLE="Sync main to odh-release"
-            PR_BODY="## Summary
-          
-          - Auto-merge ${MERGE_DESC} into odh-release
-          
-          ---
-          *This PR was automatically created by the release-auto-merge workflow.*"
-          fi
-          
           # Create the PR
           gh pr create \
             --base odh-release \
             --head "$BRANCH_NAME" \
-            --title "$PR_TITLE" \
-            --body "$PR_BODY"
+            --title "Bump version to ${NEW_VERSION}" \
+            --body "## Summary
+
+          - Bump version to ${NEW_VERSION}
+
+          ## Files updated
+          - \`frontend/.env\`
+          - \`manifests/odh/params.env\`
+          - \`manifests/modular-architecture/params.env\`
+
+          ---
+          *This PR was automatically created by the release-auto-merge workflow.*"
