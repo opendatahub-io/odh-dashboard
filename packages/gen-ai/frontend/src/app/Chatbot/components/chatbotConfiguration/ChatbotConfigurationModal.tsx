@@ -146,11 +146,15 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     const install = () => {
       api
         .installLSD({
-          models: selectedModels.map((model) => ({
-            model_name:
-              model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
-            is_maas_model: model.isMaaSModel || false,
-          })),
+          models: selectedModels.map((model) => {
+            const maxTokens = maxTokensMap.get(model.model_name);
+            return {
+              model_name:
+                model.isMaaSModel && model.maasModelId ? model.maasModelId : model.model_name,
+              is_maas_model: model.isMaaSModel || false,
+              ...(maxTokens !== undefined && { max_tokens: maxTokens }),
+            };
+          }),
         })
         .then(() => {
           fireFormTrackingEvent(
