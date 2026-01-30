@@ -7,7 +7,7 @@ and Go backend-for-frontend (BFF).
 ## Mandatory Development Flow
 
 **CRITICAL: Never skip or reorder these stages. A PR that implements UI before the API contract will
-be rejected.**
+be rejected by the GitHub CI/CD pipelines.**
 
 > Standards in this document follow [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119) language
 > (MUST, SHOULD, MAY).
