@@ -33,8 +33,7 @@
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9102"
   },
   "exports": {
-    "./extension-points": "./frontend/src/odh/extension-points/index.ts",
-    "./types": "./frontend/src/app/types/index.ts"
+    "./extension-points": "./frontend/src/odh/extension-points/index.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

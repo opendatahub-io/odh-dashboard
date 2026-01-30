@@ -12,7 +12,7 @@ import {
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 
 type MaaSModelsTableRowInfoProps = {
   model: MaaSModel;
