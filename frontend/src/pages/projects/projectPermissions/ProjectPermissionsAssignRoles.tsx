@@ -2,29 +2,13 @@ import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   Form,
-  FormGroup,
   PageSectionVariants,
-  Radio,
   PageSection,
-  ActionList,
-  ActionListItem,
-  ActionListGroup,
-  Bullseye,
-  Icon,
   Spinner,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  FormSection,
-  Content,
-  ContentVariants,
-  Alert,
-  FlexItem,
-  Flex,
+  Bullseye,
 } from '@patternfly/react-core';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import {
   PermissionsContextProvider,
   usePermissionsContext,
@@ -33,15 +17,14 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
-import { ProjectObjectType, typedBackgroundColor } from '#~/concepts/design/utils.ts';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon.tsx';
-import SubjectNameTypeaheadSelect from './components/SubjectNameTypeaheadSelect';
+import AssignRolesFooterActions from './manageRoles/AssignRolesFooterActions';
+import AssignRolesSubjectSection from './manageRoles/AssignRolesSubjectSection';
 import ManageRolesTable from './manageRoles/ManageRolesTable';
+import RoleAssignmentChangesModal from './manageRoles/confirmModal/RoleAssignmentChangesModal';
+import useManageRolesData from './manageRoles/useManageRolesData';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
 
 const ProjectPermissionsAssignRolesForm: React.FC = () => {
-  const navigate = useNavigate();
-
   const { error } = usePermissionsContext();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { state }: { state?: { subjectKind?: 'user' | 'group'; subjectName?: string } } =
@@ -52,8 +35,11 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
     state?.subjectKind ?? 'user',
   );
   const [subjectName, setSubjectName] = React.useState(state?.subjectName?.trim() ?? '');
+  const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
 
   const { existingSubjectNames } = useRoleAssignmentData(subjectKind);
+  const { rows, selections, toggleSelection, trimmedSubjectName, changes, hasChanges } =
+    useManageRolesData(subjectKind, subjectName, existingSubjectNames);
 
   return (
     <ApplicationsPage
@@ -101,150 +87,36 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
             event.preventDefault();
           }}
         >
-          <FormSection title="Subject">
-            {!isManageMode && (
-              <Content component={ContentVariants.p}>
-                Select a subject with existing roles or enter a new subject.
-              </Content>
-            )}
-            {!isManageMode && (
-              <FormGroup label="Subject kind" isInline fieldId="subject-kind">
-                <Radio
-                  id="subject-kind-user"
-                  name="subject-kind"
-                  label="User"
-                  isChecked={subjectKind === 'user'}
-                  onChange={() => {
-                    setSubjectKind('user');
-                    setSubjectName('');
-                  }}
-                  data-testid="assign-roles-subject-kind-user"
-                />
-                <Radio
-                  id="subject-kind-group"
-                  name="subject-kind"
-                  label="Group"
-                  isChecked={subjectKind === 'group'}
-                  onChange={() => {
-                    setSubjectKind('group');
-                    setSubjectName('');
-                  }}
-                  data-testid="assign-roles-subject-kind-group"
-                />
-              </FormGroup>
-            )}
-            <FormGroup
-              label={subjectKind === 'user' ? 'User name' : 'Group name'}
-              isRequired
-              fieldId="subject-name"
-            >
-              {isManageMode ? (
-                <Content component={ContentVariants.p} data-testid="assign-roles-subject-readonly">
-                  <Flex
-                    spaceItems={{ default: 'spaceItemsSm' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                  >
-                    <FlexItem>
-                      <Bullseye
-                        style={{
-                          background: typedBackgroundColor(
-                            subjectKind === 'user'
-                              ? ProjectObjectType.user
-                              : ProjectObjectType.group,
-                          ),
-                          borderRadius: 14,
-                          width: 28,
-                          height: 28,
-                        }}
-                      >
-                        <Icon size="lg">
-                          <TypedObjectIcon
-                            resourceType={
-                              subjectKind === 'user'
-                                ? ProjectObjectType.user
-                                : ProjectObjectType.group
-                            }
-                          />
-                        </Icon>
-                      </Bullseye>
-                    </FlexItem>
-                    <FlexItem>{subjectName}</FlexItem>
-                  </Flex>
-                </Content>
-              ) : (
-                <>
-                  <SubjectNameTypeaheadSelect
-                    groupLabel={`${
-                      subjectKind === 'user' ? 'Users' : 'Groups'
-                    } with existing assignment`}
-                    placeholder={
-                      subjectKind === 'user'
-                        ? 'Select a user or type a username'
-                        : 'Select a group or type a group name'
-                    }
-                    existingNames={existingSubjectNames}
-                    value={subjectName}
-                    onChange={setSubjectName}
-                    onClear={() => setSubjectName('')}
-                    dataTestId="assign-roles-subject-typeahead-toggle"
-                    createOptionMessage={(v) => `Assign role to "${v}"`}
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        {subjectKind === 'user'
-                          ? 'Only users that have already been assigned roles appear in the dropdown. To add a new user, type their username.'
-                          : 'Only groups that have already been assigned roles appear in the dropdown. To add a new group, type its name.'}
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                </>
-              )}
-            </FormGroup>
-          </FormSection>
-          <ManageRolesTable
+          <AssignRolesSubjectSection
+            isManageMode={isManageMode}
             subjectKind={subjectKind}
             subjectName={subjectName}
             existingSubjectNames={existingSubjectNames}
+            onSubjectKindChange={(kind) => {
+              setSubjectKind(kind);
+              setSubjectName('');
+            }}
+            onSubjectNameChange={setSubjectName}
+          />
+          <ManageRolesTable
+            subjectName={subjectName}
+            rows={rows}
+            selections={selections}
+            onToggle={toggleSelection}
           />
         </Form>
       </PageSection>
       <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
-        <Alert
-          isInline
-          variant="info"
-          title="Make sure to inform the specified user about the updated role assignments."
-          data-testid="assign-roles-footer-alert"
-        />
-        <ActionList>
-          <ActionListGroup>
-            <ActionListItem>
-              <Button
-                variant="primary"
-                data-testid="assign-roles-save"
-                // TODO: implement the onSave handler in RHOAIENG-46634
-                isDisabled
-                onClick={() => {
-                  // TODO: implement the onSave handler in RHOAIENG-46634
-                }}
-              >
-                Save
-              </Button>
-            </ActionListItem>
-            <ActionListItem>
-              <Button
-                variant="link"
-                data-testid="assign-roles-cancel"
-                onClick={() =>
-                  navigate(`/projects/${currentProject.metadata.name}?section=permissions`)
-                }
-              >
-                Cancel
-              </Button>
-            </ActionListItem>
-          </ActionListGroup>
-        </ActionList>
+        <AssignRolesFooterActions hasChanges={hasChanges} onSave={() => setIsConfirmOpen(true)} />
       </PageSection>
+      {isConfirmOpen && (
+        <RoleAssignmentChangesModal
+          subjectName={trimmedSubjectName}
+          changes={changes}
+          onClose={() => setIsConfirmOpen(false)}
+          onConfirm={() => setIsConfirmOpen(false)}
+        />
+      )}
     </ApplicationsPage>
   );
 };
