@@ -96,6 +96,30 @@ const saveMcpToolSelectionsForConfig = (
   }
 };
 
+/**
+ * Remove MCP tool selections for a specific config from sessionStorage
+ */
+const removeMcpToolSelectionsForConfig = (configId: string): void => {
+  try {
+    const storage = loadAllMcpToolSelectionsFromStorage();
+
+    // Remove this config from all namespaces
+    Object.keys(storage).forEach((namespace) => {
+      if (storage[namespace]?.[configId]) {
+        delete storage[namespace]![configId];
+        // Remove namespace entirely if no configs left
+        if (Object.keys(storage[namespace]!).length === 0) {
+          delete storage[namespace];
+        }
+      }
+    });
+
+    sessionStorage.setItem(MCP_TOOL_SELECTIONS_KEY, JSON.stringify(storage));
+  } catch {
+    // Silently fail if sessionStorage is unavailable
+  }
+};
+
 const initialState = {
   configurations: {
     default: {
@@ -109,61 +133,170 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
   devtools(
     immer((set, get) => ({
       ...initialState,
-      // TODO: ADD/REMOVE/DUPLICATE CONFIGS
+
+      // Configuration lifecycle
+      removeConfiguration: (id: string) => {
+        // Don't allow removing the last configuration or non-existent configurations
+        const state = get();
+        if (state.configIds.length <= 1 || !state.configurations[id]) {
+          return;
+        }
+
+        // Build new configurations object without the removed id
+        const newConfigurations: { [key: string]: ChatbotConfiguration | undefined } = {};
+        Object.keys(state.configurations).forEach((key) => {
+          if (key !== id) {
+            newConfigurations[key] = state.configurations[key];
+          }
+        });
+
+        // Build new configIds array without the removed id
+        const newConfigIds = state.configIds.filter((configId) => configId !== id);
+
+        set(
+          {
+            configurations: newConfigurations,
+            configIds: newConfigIds,
+          },
+          false,
+          'removeConfiguration',
+        );
+
+        // Clean up MCP tool selections from sessionStorage
+        removeMcpToolSelectionsForConfig(id);
+      },
+
+      duplicateConfiguration: (id: string) => {
+        const state = get();
+        const sourceConfig = state.configurations[id];
+
+        // Don't allow more than 2 configurations or duplicating non-existent configurations
+        if (!sourceConfig || state.configIds.length >= 2) {
+          return;
+        }
+
+        // Generate a unique ID based on timestamp
+        const newId = `config-${Date.now()}`;
+
+        // Create a deep copy of the configuration (including nested mcpToolSelections and arrays)
+        const mcpToolSelectionsCopy: McpToolSelectionsMap = {};
+        Object.entries(sourceConfig.mcpToolSelections).forEach(([namespace, serverMap]) => {
+          if (serverMap) {
+            // Deep copy the server map, including the tool arrays
+            const serverMapCopy: Record<string, string[]> = {};
+            Object.entries(serverMap).forEach(([serverUrl, toolNames]) => {
+              serverMapCopy[serverUrl] = [...toolNames]; // Copy the array
+            });
+            mcpToolSelectionsCopy[namespace] = serverMapCopy;
+          }
+        });
+
+        const newConfig: ChatbotConfiguration = {
+          systemInstruction: sourceConfig.systemInstruction,
+          temperature: sourceConfig.temperature,
+          isStreamingEnabled: sourceConfig.isStreamingEnabled,
+          selectedModel: sourceConfig.selectedModel,
+          guardrailsEnabled: sourceConfig.guardrailsEnabled,
+          selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
+          mcpToolSelections: mcpToolSelectionsCopy,
+        };
+
+        set(
+          {
+            configurations: {
+              ...state.configurations,
+              [newId]: newConfig,
+            },
+            configIds: [...state.configIds, newId],
+          },
+          false,
+          'duplicateConfiguration',
+        );
+
+        // Duplicate MCP tool selections in sessionStorage
+        saveMcpToolSelectionsForConfig(newId, newConfig.mcpToolSelections);
+
+        return newId;
+      },
 
       // Field-specific updaters
       updateSystemInstruction: (id: string, value: string) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.systemInstruction = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.systemInstruction = value;
+            }
+          },
+          false,
+          'updateSystemInstruction',
+        );
       },
 
       updateTemperature: (id: string, value: number) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.temperature = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.temperature = value;
+            }
+          },
+          false,
+          'updateTemperature',
+        );
       },
 
       updateStreamingEnabled: (id: string, value: boolean) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.isStreamingEnabled = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.isStreamingEnabled = value;
+            }
+          },
+          false,
+          'updateStreamingEnabled',
+        );
       },
 
       updateSelectedModel: (id: string, value: string) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.selectedModel = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.selectedModel = value;
+            }
+          },
+          false,
+          'updateSelectedModel',
+        );
       },
 
       updateGuardrailsEnabled: (id: string, value: boolean) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.guardrailsEnabled = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.guardrailsEnabled = value;
+            }
+          },
+          false,
+          'updateGuardrailsEnabled',
+        );
       },
 
       updateSelectedMcpServerIds: (id: string, value: string[]) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.selectedMcpServerIds = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              // Create a new array to avoid shared references
+              config.selectedMcpServerIds = [...value];
+            }
+          },
+          false,
+          'updateSelectedMcpServerIds',
+        );
       },
 
       // MCP tool selections (per-config state)
@@ -176,52 +309,60 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         serverUrl: string,
         toolNames: string[] | undefined,
       ) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (!config) {
-            return;
-          }
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (!config) {
+              return;
+            }
 
-          if (toolNames === undefined) {
-            // Remove the entry for this server
-            if (config.mcpToolSelections[namespace]) {
-              const namespaceSelections = config.mcpToolSelections[namespace]!;
-              const updatedNamespace = Object.fromEntries(
-                Object.entries(namespaceSelections).filter(([key]) => key !== serverUrl),
-              );
+            if (toolNames === undefined) {
+              // Remove the entry for this server
+              if (config.mcpToolSelections[namespace]) {
+                const namespaceSelections = config.mcpToolSelections[namespace]!;
+                const updatedNamespace = Object.fromEntries(
+                  Object.entries(namespaceSelections).filter(([key]) => key !== serverUrl),
+                );
+                config.mcpToolSelections = {
+                  ...config.mcpToolSelections,
+                  [namespace]: updatedNamespace,
+                };
+              }
+            } else {
+              // Save the tool selections
               config.mcpToolSelections = {
                 ...config.mcpToolSelections,
-                [namespace]: updatedNamespace,
+                [namespace]: {
+                  ...config.mcpToolSelections[namespace],
+                  [serverUrl]: toolNames,
+                },
               };
             }
-          } else {
-            // Save the tool selections
-            config.mcpToolSelections = {
-              ...config.mcpToolSelections,
-              [namespace]: {
-                ...config.mcpToolSelections[namespace],
-                [serverUrl]: toolNames,
-              },
-            };
-          }
 
-          // Sync to sessionStorage
-          saveMcpToolSelectionsForConfig(id, config.mcpToolSelections);
-        });
+            // Sync to sessionStorage
+            saveMcpToolSelectionsForConfig(id, config.mcpToolSelections);
+          },
+          false,
+          'saveToolSelections',
+        );
       },
 
       // Configuration management
       resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
-        set(() => ({
-          ...initialState,
-          configurations: {
-            default: {
-              ...DEFAULT_CONFIGURATION,
-              ...initialValues,
-              mcpToolSelections: loadMcpToolSelectionsForConfig('default'),
+        set(
+          () => ({
+            ...initialState,
+            configurations: {
+              default: {
+                ...DEFAULT_CONFIGURATION,
+                ...initialValues,
+                mcpToolSelections: loadMcpToolSelectionsForConfig('default'),
+              },
             },
-          },
-        }));
+          }),
+          false,
+          'resetConfiguration',
+        );
       },
 
       // Utility
