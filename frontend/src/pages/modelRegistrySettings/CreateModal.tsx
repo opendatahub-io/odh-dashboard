@@ -276,7 +276,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         await updateModelRegistryBackend(mr.metadata.name, {
           modelRegistry: constructRequestBody(data, secureDBInfo, addSecureDB, databaseType),
           databasePassword: databaseSource === DatabaseSource.EXTERNAL ? password : undefined,
-          newDatabaseCACertificate,
+          newDatabaseCACertificate:
+            databaseSource === DatabaseSource.EXTERNAL ? newDatabaseCACertificate : undefined,
         });
         await refresh();
         fireFormTrackingEvent(updateEventName, {
@@ -353,7 +354,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         await createModelRegistryBackend({
           modelRegistry: data,
           databasePassword: databaseSource === DatabaseSource.EXTERNAL ? password : undefined,
-          newDatabaseCACertificate,
+          newDatabaseCACertificate:
+            databaseSource === DatabaseSource.EXTERNAL ? newDatabaseCACertificate : undefined,
         });
         fireFormTrackingEvent(createEventName, {
           outcome: TrackingOutcome.submit,
@@ -572,6 +574,31 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             />
                           </FormGroup>
                         )}
+                        {secureDbEnabled &&
+                          addSecureDB &&
+                          (!configSecretsLoaded && !configSecretsError ? (
+                            <Bullseye>
+                              <Spinner className="pf-v6-u-m-md" />
+                            </Bullseye>
+                          ) : configSecretsLoaded ? (
+                            <CreateMRSecureDBSection
+                              secureDBInfo={secureDBInfo}
+                              modelRegistryNamespace={modelRegistryNamespace}
+                              k8sName={nameDesc.k8sName.value}
+                              existingCertConfigMaps={configSecrets.configMaps}
+                              existingCertSecrets={configSecrets.secrets}
+                              setSecureDBInfo={setSecureDBInfo}
+                            />
+                          ) : (
+                            <Alert
+                              isInline
+                              variant="danger"
+                              title="Error fetching config maps and secrets"
+                              data-testid="error-fetching-resource-alert"
+                            >
+                              {configSecretsError?.message}
+                            </Alert>
+                          ))}
                       </Stack>
                     )
                   }
@@ -579,33 +606,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
               </Stack>
             </FormGroup>
           </FormSection>
-
-          {databaseSource === DatabaseSource.EXTERNAL &&
-            secureDbEnabled &&
-            addSecureDB &&
-            (!configSecretsLoaded && !configSecretsError ? (
-              <Bullseye>
-                <Spinner className="pf-v6-u-m-md" />
-              </Bullseye>
-            ) : configSecretsLoaded ? (
-              <CreateMRSecureDBSection
-                secureDBInfo={secureDBInfo}
-                modelRegistryNamespace={modelRegistryNamespace}
-                k8sName={nameDesc.k8sName.value}
-                existingCertConfigMaps={configSecrets.configMaps}
-                existingCertSecrets={configSecrets.secrets}
-                setSecureDBInfo={setSecureDBInfo}
-              />
-            ) : (
-              <Alert
-                isInline
-                variant="danger"
-                title="Error fetching config maps and secrets"
-                data-testid="error-fetching-resource-alert"
-              >
-                {configSecretsError?.message}
-              </Alert>
-            ))}
         </Form>
       </ModalBody>
       <ModalFooter>
