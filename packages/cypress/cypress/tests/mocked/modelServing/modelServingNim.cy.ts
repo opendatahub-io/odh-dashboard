@@ -16,25 +16,22 @@ describe('NIM Models Deployments', () => {
     modelServingGlobal.visit('test-project');
 
     // Table is visible and has 1 row
-    modelServingSection.findInferenceServiceTable().should('have.length', 1);
+    modelServingSection.findDeploymentsTable().should('have.length', 1);
 
     // First row matches the NIM inference service details
     modelServingSection
-      .getInferenceServiceRow('Test Name')
+      .getDeploymentRow('Test Name')
       .findProject()
       .should('contains.text', 'Test Project');
     modelServingSection
-      .getInferenceServiceRow('Test Name')
+      .getDeploymentRow('Test Name')
       .findProject()
       .should('contains.text', 'NVIDIA NIM serving enabled');
     modelServingSection
-      .getInferenceServiceRow('Test Name')
+      .getDeploymentRow('Test Name')
       .findServingRuntime()
       .should('have.text', 'NVIDIA NIM');
-    modelServingSection
-      .getInferenceServiceRow('Test Name')
-      .findAPIProtocol()
-      .should('have.text', 'REST');
+    modelServingSection.getDeploymentRow('Test Name').findAPIProtocol().should('have.text', 'REST');
   });
 
   it('should be allowed to be deleted and edit', () => {

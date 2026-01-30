@@ -253,12 +253,12 @@ class ModelRegistry {
     return cy.findByTestId('deployments-tab');
   }
 
-  findInferenceServiceTable() {
-    return cy.findByTestId('inference-service-table');
+  findDeploymentsTable() {
+    return cy.findByTestId('deployments-table');
   }
 
-  getInferenceServiceRow(name: string) {
-    return this.findInferenceServiceTable()
+  getDeploymentRow(name: string) {
+    return this.findDeploymentsTable()
       .find('tbody')
       .find('[data-label="Name"]')
       .contains(name)

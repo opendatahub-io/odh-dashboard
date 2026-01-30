@@ -113,6 +113,7 @@ const GlobalDeploymentsTable: React.FC<{
     <DeploymentsTable
       deployments={filteredDeployments}
       loaded={loaded && tableExtensionsLoaded}
+      showExpandedToggleColumn
       platformColumns={platformColumns}
       toolbarContent={
         <GlobalModelsToolbar

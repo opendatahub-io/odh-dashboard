@@ -19,7 +19,6 @@ export const ProjectDeploymentsTable: React.FC<{
 
   return (
     <DeploymentsTable
-      data-testid="kserve-inference-service-table" // legacy testid
       deployments={deployments}
       loaded={loaded && tableExtensionLoaded}
       showExpandedToggleColumn

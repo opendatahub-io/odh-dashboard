@@ -91,7 +91,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   return (
     <>
       <Table
-        data-testid="inference-service-table" // legacy testid
+        data-testid="deployments-table"
         columns={allColumns}
         defaultSortColumn={lastDeployedColumnIndex}
         data={deployments}

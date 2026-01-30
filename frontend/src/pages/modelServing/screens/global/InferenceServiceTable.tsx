@@ -61,7 +61,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   return (
     <>
       <Table
-        data-testid="inference-service-table"
+        data-testid="deployments-table"
         data={inferenceServices}
         columns={mappedColumns}
         loading={isLoading}

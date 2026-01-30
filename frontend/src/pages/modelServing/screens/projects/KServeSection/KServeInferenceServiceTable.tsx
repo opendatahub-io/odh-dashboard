@@ -51,7 +51,7 @@ const KServeInferenceServiceTable: React.FC = () => {
     <>
       <Table
         data={inferenceServices}
-        data-testid="kserve-inference-service-table"
+        data-testid="deployments-table"
         columns={columns}
         disableRowRenderSupport
         defaultSortColumn={1}

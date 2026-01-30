@@ -302,7 +302,7 @@ class ProjectDetails {
   }
 
   findKserveModelsTable() {
-    return cy.findByTestId('kserve-inference-service-table');
+    return cy.findByTestId('deployments-table');
   }
 
   getKserveModelMetricLink(name: string) {

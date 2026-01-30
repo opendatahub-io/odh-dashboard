@@ -203,7 +203,7 @@ describe('Verify models can be deployed from model registry', () => {
       cy.step('Review');
       modelServingWizard.findSubmitButton().click();
       modelRegistry
-        .getInferenceServiceRow(`${modelName} - ${testData.version1Name}`)
+        .getDeploymentRow(`${modelName} - ${testData.version1Name}`)
         .should('be.visible');
 
       // Verify model deployment is ready
