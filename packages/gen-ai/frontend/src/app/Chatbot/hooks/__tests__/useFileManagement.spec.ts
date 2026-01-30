@@ -22,7 +22,7 @@ import {
 } from './testUtils';
 
 // Module-level variables for mock state (must be before jest.mock)
-let mockVectorStoreId: string | undefined;
+let mockCurrentVectorStoreId: string | undefined;
 let mockUpdateCurrentVectorStoreId: jest.Mock;
 
 // Mock external dependencies
@@ -37,7 +37,7 @@ jest.mock('~/app/Chatbot/store', () => ({
   ),
   selectCurrentVectorStoreId: jest.fn(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    (_configId: string) => (_state: Record<string, unknown>) => mockVectorStoreId,
+    (_configId: string) => (_state: Record<string, unknown>) => mockCurrentVectorStoreId,
   ),
 }));
 jest.mock('react', () => ({
@@ -100,9 +100,9 @@ describe('useFileManagement', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockVectorStoreId = undefined;
+    mockCurrentVectorStoreId = undefined;
     mockUpdateCurrentVectorStoreId = jest.fn((_configId: string, value: string) => {
-      mockVectorStoreId = value;
+      mockCurrentVectorStoreId = value;
     });
 
     mockUseContext.mockReturnValue({ namespace: mockNamespace });
@@ -127,7 +127,7 @@ describe('useFileManagement', () => {
       expect(result.current.error).toBe(null);
       expect(result.current.isDeleting).toBe(false);
       expect(mockUpdateCurrentVectorStoreId).not.toHaveBeenCalled();
-      expect(mockVectorStoreId).toBeUndefined();
+      expect(mockCurrentVectorStoreId).toBeUndefined();
     });
   });
 
@@ -158,7 +158,7 @@ describe('useFileManagement', () => {
         status_details: '',
       });
       expect(mockUpdateCurrentVectorStoreId).toHaveBeenCalledWith('default', VECTOR_STORE_ID);
-      expect(mockVectorStoreId).toBe(VECTOR_STORE_ID);
+      expect(mockCurrentVectorStoreId).toBe(VECTOR_STORE_ID);
     });
 
     it('should handle files with missing filename', async () => {
