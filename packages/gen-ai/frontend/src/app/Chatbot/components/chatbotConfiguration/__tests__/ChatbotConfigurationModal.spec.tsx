@@ -4,20 +4,28 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
-// Mock the table to surface the selectedModels and maxTokensMap props for easy assertions
+import useFetchGuardrailsAvailable from '~/app/hooks/useFetchGuardrailsAvailable';
+
+// Mock the useFetchGuardrailsAvailable hook
+jest.mock('~/app/hooks/useFetchGuardrailsAvailable');
+
+// Mock the table to surface the selectedModels, maxTokensMap, and guardrailsAvailable props for easy assertions
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
   default: ({
     selectedModels,
     maxTokensMap,
+    guardrailsAvailable,
   }: {
     selectedModels: AIModel[];
     maxTokensMap: Map<string, number | undefined>;
+    guardrailsAvailable: boolean;
   }) => (
     <div data-testid="selected-models">
       {JSON.stringify({
         models: selectedModels.map((m) => m.model_name),
         maxTokens: Array.from(maxTokensMap.entries()),
+        guardrailsAvailable,
       })}
     </div>
   ),
@@ -65,9 +73,27 @@ const getSelectedModelNames = (): string[] => {
   const parsed = JSON.parse(json) as {
     models: string[];
     maxTokens: [string, number | undefined][];
+    guardrailsAvailable: boolean;
   };
   return parsed.models;
 };
+
+const getGuardrailsAvailable = (): boolean => {
+  const json = screen.getByTestId('selected-models').textContent || '{}';
+  const parsed = JSON.parse(json) as {
+    models: string[];
+    maxTokens: [string, number | undefined][];
+    guardrailsAvailable: boolean;
+  };
+  return parsed.guardrailsAvailable;
+};
+
+// Set default mock return value for useFetchGuardrailsAvailable
+beforeEach(() => {
+  (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+    guardrailsAvailable: false,
+  });
+});
 
 describe('ChatbotConfigurationModal preSelectedModels', () => {
   const aiA = createAIModel({ model_name: 'mA', display_name: 'A' });
@@ -221,5 +247,44 @@ describe('ChatbotConfigurationModal max_tokens support', () => {
     // Verify maxTokens is an array (Map entries)
     expect(Array.isArray(parsed.maxTokens)).toBe(true);
     expect(parsed.maxTokens.length).toBe(0); // Initially empty
+  });
+});
+
+describe('ChatbotConfigurationModal guardrails support', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+
+  test('passes guardrailsAvailable prop from hook to table component', () => {
+    // Test with false
+    (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+      guardrailsAvailable: false,
+    });
+
+    const { unmount } = renderModal({ allModels });
+    expect(getGuardrailsAvailable()).toBe(false);
+
+    unmount();
+
+    // Test with true
+    (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+      guardrailsAvailable: true,
+    });
+
+    renderModal({ allModels });
+    expect(getGuardrailsAvailable()).toBe(true);
+  });
+
+  test('guardrails availability does not affect model selection', () => {
+    const modelA = createAIModel({ model_name: 'model-a' });
+    const modelB = createAIModel({ model_name: 'model-b' });
+    const testModels = [modelA, modelB];
+
+    (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+      guardrailsAvailable: false,
+    });
+
+    renderModal({ allModels: testModels });
+
+    expect(getSelectedModelNames()).toEqual(['model-a', 'model-b']);
+    expect(getGuardrailsAvailable()).toBe(false);
   });
 });
