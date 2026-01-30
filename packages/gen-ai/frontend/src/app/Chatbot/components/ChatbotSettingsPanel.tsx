@@ -22,6 +22,8 @@ import {
   selectTemperature,
   selectStreamingEnabled,
   selectSelectedMcpServerIds,
+  selectSelectedModel,
+  MODEL_1_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
@@ -38,6 +40,8 @@ import {
 
 interface ChatbotSettingsPanelProps {
   configId?: string;
+  /** Header label for the drawer (e.g., "Configure model 1" in compare mode) */
+  headerLabel?: string;
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
@@ -62,7 +66,8 @@ const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
-  configId = 'default',
+  configId = MODEL_1_CONFIG_ID,
+  headerLabel = 'Configure',
   alerts,
   sourceManagement,
   fileManagement,
@@ -86,11 +91,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
+  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -112,6 +119,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateStreamingEnabled(configId, enabled);
     },
     [configId, updateStreamingEnabled],
+  );
+
+  const handleModelChange = React.useCallback(
+    (model: string) => {
+      updateSelectedModel(configId, model);
+    },
+    [configId, updateSelectedModel],
   );
 
   // Panel width state with session storage persistence
@@ -146,7 +160,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       onResize={handlePanelResize}
     >
       <DrawerHead>
-        <Title headingLevel="h2">Configure</Title>
+        <Title headingLevel="h2">{headerLabel}</Title>
         <DrawerActions>
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
@@ -169,6 +183,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onTemperatureChange={handleTemperatureChange}
               isStreamingEnabled={isStreamingEnabled}
               onStreamingToggle={handleStreamingToggle}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
             />
           </Tab>
 

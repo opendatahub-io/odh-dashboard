@@ -55,8 +55,13 @@ export interface ChatbotConfigStoreState {
  */
 export interface ChatbotConfigStoreActions {
   // Configuration lifecycle
+  addConfiguration: (id: string, initialModel?: string) => void;
   removeConfiguration: (id: string) => void;
-  duplicateConfiguration: (id: string) => string | undefined;
+  /**
+   * Duplicate a configuration to create Model 2 (enter compare mode).
+   * @param configIdToClone - The configId to clone
+   */
+  duplicateConfiguration: (configIdToClone: string) => void;
 
   // Field-specific updaters (for granular rerenders)
   updateSystemInstruction: (id: string, value: string) => void;
