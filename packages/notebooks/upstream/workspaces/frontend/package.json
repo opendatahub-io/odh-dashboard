@@ -162,7 +162,7 @@
     "cypress-mochawesome-reporter": "^3.8.2",
     "cypress-multi-reporters": "^2.0.5",
     "mocha-junit-reporter": "^2.2.1",
-    "eslint": "^8.57.0",
+    "eslint": "^9.26.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.8.3",
