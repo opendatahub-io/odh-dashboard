@@ -624,14 +624,14 @@ func CreateSafetyProvider(guardrails []models.GuardrailInput) Provider {
 	shields := make(map[string]interface{})
 
 	for _, guardrail := range guardrails {
-		// Default policies if not provided
+		// Default policies if not provided (input includes jailbreak, output does not)
 		inputPolicies := guardrail.InputPolicies
 		if len(inputPolicies) == 0 {
-			inputPolicies = models.DefaultGuardrailPolicies()
+			inputPolicies = models.DefaultInputGuardrailPolicies()
 		}
 		outputPolicies := guardrail.OutputPolicies
 		if len(outputPolicies) == 0 {
-			outputPolicies = models.DefaultGuardrailPolicies()
+			outputPolicies = models.DefaultOutputGuardrailPolicies()
 		}
 
 		// Generate shield IDs based on model name or index
@@ -653,7 +653,7 @@ func CreateSafetyProvider(guardrails []models.GuardrailInput) Provider {
 		shields[inputShieldID] = map[string]interface{}{
 			"type":          "content",
 			"detector_url":  detectorURL,
-			"message_types": []string{"user", "completion"},
+			"message_types": []string{"user"},
 			"verify_ssl":    false,
 			"auth_token":    constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName),
 			"detector_params": map[string]interface{}{
@@ -674,7 +674,7 @@ func CreateSafetyProvider(guardrails []models.GuardrailInput) Provider {
 		shields[outputShieldID] = map[string]interface{}{
 			"type":          "content",
 			"detector_url":  detectorURL,
-			"message_types": []string{"user", "completion"},
+			"message_types": []string{"completion"},
 			"verify_ssl":    false,
 			"auth_token":    constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName),
 			"detector_params": map[string]interface{}{

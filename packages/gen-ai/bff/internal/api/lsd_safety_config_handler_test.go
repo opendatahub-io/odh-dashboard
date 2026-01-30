@@ -54,7 +54,7 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 
 	t.Run("should return 200 with safety config when config is found", func(t *testing.T) {
 		// Create request with proper context
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config?namespace=mock-test-namespace-1", nil)
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety?namespace=mock-test-namespace-1", nil)
 		assert.NoError(t, err)
 
 		// Add namespace and identity to context
@@ -93,7 +93,7 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 	})
 
 	t.Run("should return 400 when namespace is missing from context", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config", nil)
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety", nil)
 		assert.NoError(t, err)
 
 		// Don't add namespace to context
@@ -118,7 +118,7 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 	})
 
 	t.Run("should return 401 when RequestIdentity is missing from context", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config?namespace=mock-test-namespace-1", nil)
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety?namespace=mock-test-namespace-1", nil)
 		assert.NoError(t, err)
 
 		// Add namespace to context but no RequestIdentity
@@ -146,7 +146,7 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 	})
 
 	t.Run("should return correct JSON structure for safety config", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config?namespace=test-namespace", nil)
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety?namespace=test-namespace", nil)
 		assert.NoError(t, err)
 
 		ctx := context.Background()
@@ -206,7 +206,7 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 
 		for _, namespace := range testNamespaces {
 			t.Run("namespace_"+namespace, func(t *testing.T) {
-				req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config?namespace="+namespace, nil)
+				req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety?namespace="+namespace, nil)
 				assert.NoError(t, err)
 
 				ctx := context.Background()
@@ -233,7 +233,7 @@ func TestLSDSafetyConfigHandler(t *testing.T) {
 	})
 
 	t.Run("should return proper content type header", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety/config?namespace=test", nil)
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/lsd/safety?namespace=test", nil)
 		assert.NoError(t, err)
 
 		ctx := context.Background()

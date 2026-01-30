@@ -15,6 +15,7 @@ import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
@@ -34,6 +35,10 @@ import {
   selectStreamingEnabled,
   selectSelectedModel,
   selectConfigIds,
+  selectGuardrailsEnabled,
+  selectGuardrail,
+  selectGuardrailUserInputEnabled,
+  selectGuardrailModelOutputEnabled,
   selectSelectedMcpServerIds,
 } from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
@@ -81,6 +86,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [configId],
   );
 
+  // Guardrails configuration from store
+  const guardrailsEnabled = useChatbotConfigStore(selectGuardrailsEnabled(configId));
+  const guardrail = useChatbotConfigStore(selectGuardrail(configId));
+  const guardrailUserInputEnabled = useChatbotConfigStore(
+    selectGuardrailUserInputEnabled(configId),
+  );
+  const guardrailModelOutputEnabled = useChatbotConfigStore(
+    selectGuardrailModelOutputEnabled(configId),
+  );
+
+  const {
+    data: guardrailModelConfigs,
+    modelNames: guardrailModelNames,
+    loaded: guardrailModelsLoaded,
+  } = useFetchGuardrailModels();
   const isDarkMode = useDarkMode();
 
   const location = useLocation();
@@ -162,6 +182,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     mcpServersFromRoute,
   ]);
 
+  React.useEffect(() => {
+    if (guardrailModelsLoaded && guardrailModelNames.length > 0 && !guardrail) {
+      useChatbotConfigStore.getState().updateGuardrail(configId, guardrailModelNames[0]);
+    }
+  }, [guardrailModelsLoaded, guardrailModelNames, guardrail, configId]);
+
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
 
@@ -205,6 +231,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     mcpServerTokens,
     toolSelections: getToolSelections,
     namespace: namespace?.name,
+    guardrailsConfig: {
+      enabled: guardrailsEnabled,
+      guardrail,
+      userInputEnabled: guardrailUserInputEnabled,
+      modelOutputEnabled: guardrailModelOutputEnabled,
+    },
+    guardrailModelConfigs,
   });
 
   // Create alert components
@@ -248,6 +281,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       mcpServerTokens={mcpServerTokens}
       onMcpServerTokensChange={setMcpServerTokens}
       checkMcpServerStatus={checkMcpServerStatus}
+      guardrailModels={guardrailModelNames}
+      guardrailModelsLoaded={guardrailModelsLoaded}
     />
   );
 

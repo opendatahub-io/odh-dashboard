@@ -23,6 +23,7 @@ import {
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import {
@@ -49,6 +50,9 @@ interface ChatbotSettingsPanelProps {
   mcpServerTokens: Map<string, TokenInfo>;
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  // Guardrails props
+  guardrailModels?: string[];
+  guardrailModelsLoaded?: boolean;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -66,9 +70,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   mcpServerTokens,
   onMcpServerTokensChange,
   checkMcpServerStatus,
+  guardrailModels = [],
+  guardrailModelsLoaded = false,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
+  const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
 
   // Consume store directly using configId
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
@@ -83,7 +90,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
   const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
-  const updateGuardrailsEnabled = useChatbotConfigStore((state) => state.updateGuardrailsEnabled);
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -112,13 +118,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateStreamingEnabled(configId, enabled);
     },
     [configId, updateStreamingEnabled],
-  );
-
-  const handleGuardrailsToggle = React.useCallback(
-    (enabled: boolean) => {
-      updateGuardrailsEnabled(configId, enabled);
-    },
-    [configId, updateGuardrailsEnabled],
   );
 
   // Panel width state with session storage persistence
@@ -252,27 +251,30 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             />
           </Tab>
 
-          <Tab
-            eventKey={4}
-            title={
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <TabTitleText>Guardrails</TabTitleText>
-                </FlexItem>
-                <FlexItem>
-                  <Badge isRead={!guardrailsEnabled} data-testid="guardrails-status-badge">
-                    {guardrailsEnabled ? 'On' : 'Off'}
-                  </Badge>
-                </FlexItem>
-              </Flex>
-            }
-            data-testid="chatbot-settings-page-tab-guardrails"
-          >
-            <GuardrailsTabContent
-              guardrailsEnabled={guardrailsEnabled}
-              onGuardrailsToggle={handleGuardrailsToggle}
-            />
-          </Tab>
+          {isGuardrailsFeatureEnabled && (
+            <Tab
+              eventKey={4}
+              title={
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <FlexItem>
+                    <TabTitleText>Guardrails</TabTitleText>
+                  </FlexItem>
+                  <FlexItem>
+                    <Badge isRead={!guardrailsEnabled} data-testid="guardrails-status-badge">
+                      {guardrailsEnabled ? 'On' : 'Off'}
+                    </Badge>
+                  </FlexItem>
+                </Flex>
+              }
+              data-testid="chatbot-settings-page-tab-guardrails"
+            >
+              <GuardrailsTabContent
+                configId={configId}
+                guardrailModels={guardrailModels}
+                guardrailModelsLoaded={guardrailModelsLoaded}
+              />
+            </Tab>
+          )}
         </Tabs>
       </DrawerPanelBody>
     </DrawerPanelContent>
