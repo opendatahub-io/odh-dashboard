@@ -129,7 +129,7 @@ describe('[Product Bug: RHOAIENG-45528] A user can deploy an LLMD model', () => 
       cy.step('Verify the model Row');
       modelServingGlobal.visit(projectName);
 
-      const llmdRow = modelServingGlobal.getInferenceServiceRow(modelName);
+      const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
       llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
       // Expand row to verify deployment details
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
