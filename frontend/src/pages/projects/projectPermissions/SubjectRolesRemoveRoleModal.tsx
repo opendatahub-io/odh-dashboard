@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { getRoleDisplayName } from '#~/concepts/permissions/utils';
-import { isDashboardRole, isDefaultRoleRef } from '#~/pages/projects/projectPermissions/utils';
+import { isAiRole } from '#~/pages/projects/projectPermissions/utils';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import type { SubjectRoleRow } from './types';
@@ -22,7 +22,7 @@ const SubjectRolesRemoveRoleModal: React.FC<SubjectRolesRemoveRoleModalProps> = 
   onConfirm,
 }) => {
   const roleDisplayName = getRoleDisplayName(row.roleRef, row.role);
-  const isReversible = isDashboardRole(row.role) || isDefaultRoleRef(row.roleRef);
+  const isReversible = isAiRole(row.roleRef, row.role);
   return (
     <DeleteModal
       title="Unassign role?"

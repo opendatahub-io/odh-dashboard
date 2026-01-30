@@ -2,6 +2,7 @@ import type { RoleRef } from '#~/concepts/permissions/types';
 import {
   isDefaultRoleRef,
   isDashboardRole,
+  isAiRole,
   getReversibleRoleRefs,
   getSubjectRef,
   dedupeRoleRefs,
@@ -36,6 +37,17 @@ describe('project permissions utils', () => {
     expect(isDashboardRole(dashboardRole)).toBe(true);
     expect(isDashboardRole(nonDashboardRole)).toBe(false);
     expect(isDashboardRole()).toBe(false);
+  });
+
+  it('treats default or dashboard roles as AI roles', () => {
+    const dashboardRole = mockRoleK8sResource({
+      name: 'dashboard-role',
+      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    });
+
+    expect(isAiRole(roleRefAdmin)).toBe(true);
+    expect(isAiRole({ kind: 'Role', name: 'custom-role' }, dashboardRole)).toBe(true);
+    expect(isAiRole({ kind: 'Role', name: 'custom-role' })).toBe(false);
   });
 
   it('builds reversible role refs from defaults and dashboard-labeled roles', () => {

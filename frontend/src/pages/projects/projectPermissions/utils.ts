@@ -38,6 +38,9 @@ export const isDefaultRoleRef = (roleRef: RoleRef): boolean =>
 export const isDashboardRole = (role?: RoleKind | ClusterRoleKind): boolean =>
   role ? getRoleLabelTypeForRole(role) === RoleLabelType.Dashboard : false;
 
+export const isAiRole = (roleRef: RoleRef, role?: RoleKind | ClusterRoleKind): boolean =>
+  isDefaultRoleRef(roleRef) || isDashboardRole(role);
+
 export const getSubjectRef = (
   subjectKind: 'user' | 'group',
   subjectName: string,
