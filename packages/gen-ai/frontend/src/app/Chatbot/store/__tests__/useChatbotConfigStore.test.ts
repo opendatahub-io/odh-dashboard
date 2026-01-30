@@ -1,5 +1,8 @@
 import { act } from '@testing-library/react';
-import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
+import {
+  useChatbotConfigStore,
+  MODEL_1_CONFIG_ID,
+} from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 
 describe('useChatbotConfigStore', () => {
@@ -10,7 +13,8 @@ describe('useChatbotConfigStore', () => {
     // Reset store to initial state
     act(() => {
       useChatbotConfigStore.setState({
-        configurations: { default: { ...DEFAULT_CONFIGURATION } },
+        configurations: { [MODEL_1_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
+        configIds: [MODEL_1_CONFIG_ID],
       });
     });
   });
@@ -19,62 +23,66 @@ describe('useChatbotConfigStore', () => {
     it('should initialize with default configuration', () => {
       const state = useChatbotConfigStore.getState();
 
-      expect(state.configurations.default).toEqual(DEFAULT_CONFIGURATION);
+      expect(state.configurations[MODEL_1_CONFIG_ID]).toEqual(DEFAULT_CONFIGURATION);
     });
   });
 
   describe('field-specific updaters', () => {
     it('should update systemInstruction', () => {
       act(() => {
-        useChatbotConfigStore.getState().updateSystemInstruction('default', 'New instruction');
+        useChatbotConfigStore
+          .getState()
+          .updateSystemInstruction(MODEL_1_CONFIG_ID, 'New instruction');
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.systemInstruction).toBe('New instruction');
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.systemInstruction).toBe('New instruction');
     });
 
     it('should update temperature', () => {
       act(() => {
-        useChatbotConfigStore.getState().updateTemperature('default', 0.7);
+        useChatbotConfigStore.getState().updateTemperature(MODEL_1_CONFIG_ID, 0.7);
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.temperature).toBe(0.7);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.temperature).toBe(0.7);
     });
 
     it('should update isStreamingEnabled', () => {
       act(() => {
-        useChatbotConfigStore.getState().updateStreamingEnabled('default', false);
+        useChatbotConfigStore.getState().updateStreamingEnabled(MODEL_1_CONFIG_ID, false);
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.isStreamingEnabled).toBe(false);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.isStreamingEnabled).toBe(false);
     });
 
     it('should update selectedMcpServerIds', () => {
       const serverIds = ['server-1', 'server-2', 'server-3'];
 
       act(() => {
-        useChatbotConfigStore.getState().updateSelectedMcpServerIds('default', serverIds);
+        useChatbotConfigStore.getState().updateSelectedMcpServerIds(MODEL_1_CONFIG_ID, serverIds);
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.selectedMcpServerIds).toEqual(serverIds);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.selectedMcpServerIds).toEqual(serverIds);
     });
 
     it('should update selectedMcpServerIds to empty array', () => {
       // First set some server IDs
       act(() => {
-        useChatbotConfigStore.getState().updateSelectedMcpServerIds('default', ['server-1']);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(MODEL_1_CONFIG_ID, ['server-1']);
       });
 
       // Then clear them
       act(() => {
-        useChatbotConfigStore.getState().updateSelectedMcpServerIds('default', []);
+        useChatbotConfigStore.getState().updateSelectedMcpServerIds(MODEL_1_CONFIG_ID, []);
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.selectedMcpServerIds).toEqual([]);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.selectedMcpServerIds).toEqual([]);
     });
 
     it('should not update non-existent config', () => {
@@ -91,9 +99,13 @@ describe('useChatbotConfigStore', () => {
     it('should reset to default configuration without parameters', () => {
       // Modify some fields first
       act(() => {
-        useChatbotConfigStore.getState().updateSystemInstruction('default', 'Custom instruction');
-        useChatbotConfigStore.getState().updateTemperature('default', 0.8);
-        useChatbotConfigStore.getState().updateSelectedMcpServerIds('default', ['server-1']);
+        useChatbotConfigStore
+          .getState()
+          .updateSystemInstruction(MODEL_1_CONFIG_ID, 'Custom instruction');
+        useChatbotConfigStore.getState().updateTemperature(MODEL_1_CONFIG_ID, 0.8);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(MODEL_1_CONFIG_ID, ['server-1']);
       });
 
       // Reset
@@ -102,7 +114,7 @@ describe('useChatbotConfigStore', () => {
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default).toEqual(DEFAULT_CONFIGURATION);
+      expect(state.configurations[MODEL_1_CONFIG_ID]).toEqual(DEFAULT_CONFIGURATION);
     });
 
     it('should reset with initial selectedMcpServerIds', () => {
@@ -115,12 +127,16 @@ describe('useChatbotConfigStore', () => {
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.selectedMcpServerIds).toEqual(initialServerIds);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.selectedMcpServerIds).toEqual(
+        initialServerIds,
+      );
       // Other fields should still be default
-      expect(state.configurations.default?.systemInstruction).toBe(
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.systemInstruction).toBe(
         DEFAULT_CONFIGURATION.systemInstruction,
       );
-      expect(state.configurations.default?.temperature).toBe(DEFAULT_CONFIGURATION.temperature);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.temperature).toBe(
+        DEFAULT_CONFIGURATION.temperature,
+      );
     });
 
     it('should reset with multiple initial values', () => {
@@ -133,14 +149,14 @@ describe('useChatbotConfigStore', () => {
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.selectedMcpServerIds).toEqual(['server-1']);
-      expect(state.configurations.default?.selectedModel).toBe('llama-3');
-      expect(state.configurations.default?.temperature).toBe(0.5);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.selectedMcpServerIds).toEqual(['server-1']);
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.selectedModel).toBe('llama-3');
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.temperature).toBe(0.5);
       // Other fields should still be default
-      expect(state.configurations.default?.systemInstruction).toBe(
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.systemInstruction).toBe(
         DEFAULT_CONFIGURATION.systemInstruction,
       );
-      expect(state.configurations.default?.isStreamingEnabled).toBe(
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.isStreamingEnabled).toBe(
         DEFAULT_CONFIGURATION.isStreamingEnabled,
       );
     });
@@ -148,8 +164,12 @@ describe('useChatbotConfigStore', () => {
     it('should reset with empty initial values object', () => {
       // Modify some fields first
       act(() => {
-        useChatbotConfigStore.getState().updateSystemInstruction('default', 'Custom instruction');
-        useChatbotConfigStore.getState().updateSelectedMcpServerIds('default', ['server-1']);
+        useChatbotConfigStore
+          .getState()
+          .updateSystemInstruction(MODEL_1_CONFIG_ID, 'Custom instruction');
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(MODEL_1_CONFIG_ID, ['server-1']);
       });
 
       // Reset with empty object
@@ -158,12 +178,12 @@ describe('useChatbotConfigStore', () => {
       });
 
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default).toEqual(DEFAULT_CONFIGURATION);
+      expect(state.configurations[MODEL_1_CONFIG_ID]).toEqual(DEFAULT_CONFIGURATION);
     });
   });
 
   describe('MCP tool selections', () => {
-    const configId = 'default';
+    const configId = MODEL_1_CONFIG_ID;
 
     beforeEach(() => {
       // Clear sessionStorage before each test
@@ -172,7 +192,7 @@ describe('useChatbotConfigStore', () => {
 
     it('should initialize with empty tool selections', () => {
       const state = useChatbotConfigStore.getState();
-      expect(state.configurations.default?.mcpToolSelections).toEqual({});
+      expect(state.configurations[MODEL_1_CONFIG_ID]?.mcpToolSelections).toEqual({});
     });
 
     it('should save tool selections for a namespace and server', () => {
@@ -346,12 +366,12 @@ describe('useChatbotConfigStore', () => {
       act(() => {
         useChatbotConfigStore.setState({
           configurations: {
-            default: {
+            [MODEL_1_CONFIG_ID]: {
               ...DEFAULT_CONFIGURATION,
               mcpToolSelections: loadMcpToolSelectionsForConfig(configId),
             },
           },
-          configIds: ['default'],
+          configIds: [MODEL_1_CONFIG_ID],
         });
       });
 
@@ -441,7 +461,7 @@ describe('useChatbotConfigStore', () => {
 
   describe('getConfiguration', () => {
     it('should return configuration by ID', () => {
-      const config = useChatbotConfigStore.getState().getConfiguration('default');
+      const config = useChatbotConfigStore.getState().getConfiguration(MODEL_1_CONFIG_ID);
 
       expect(config).toEqual(DEFAULT_CONFIGURATION);
     });
