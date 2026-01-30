@@ -9,7 +9,7 @@ import type {
 import { createAPIKey } from '~/app/api/api-keys';
 import { getMaaSModelsList } from '~/app/api/maas-models';
 
-// MaaS API uses its own host path (empty string uses relative URLs)
+// This may need to change depending on how the routing works between modules
 const MAAS_HOST_PATH = '';
 
 export const getMaaSModelsWrapper: ModArchRestGET<MaaSModel[]> = (
