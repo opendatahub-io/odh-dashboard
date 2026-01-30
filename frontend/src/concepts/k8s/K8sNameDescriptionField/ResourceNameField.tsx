@@ -13,11 +13,13 @@ import {
   HelperTextItemMaxLength,
   HelperTextItemResourceNameTaken,
   HelperTextItemValidCharacters,
+  HelperTextUniqueName,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
 } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { NameAvailabilityStatus } from './K8sNameDescriptionField.tsx';
 
 type ResourceNameFieldProps = {
   allowEdit: boolean;
@@ -25,6 +27,8 @@ type ResourceNameFieldProps = {
   k8sName: K8sNameDescriptionFieldData['k8sName'];
   onDataChange?: K8sNameDescriptionFieldUpdateFunction;
   resourceNameTakenHelperText?: React.ReactNode;
+  nameAvailabilityValidation?: ValidatedOptions;
+  nameAvailabilityStatus?: NameAvailabilityStatus;
 };
 
 /** Sub-resource; not for public consumption */
@@ -34,6 +38,8 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   k8sName,
   onDataChange,
   resourceNameTakenHelperText,
+  nameAvailabilityValidation,
+  nameAvailabilityStatus,
 }) => {
   const formGroupProps: React.ComponentProps<typeof FormGroup> = {
     label: 'Resource name',
@@ -51,6 +57,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
 
   let validated: ValidatedOptions = ValidatedOptions.default;
   if (
+    nameAvailabilityValidation === ValidatedOptions.error ||
     k8sName.state.invalidLength ||
     k8sName.state.invalidCharacters ||
     !!resourceNameTakenHelperText
@@ -79,6 +86,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
         )
       }
       validated={validated}
+      isDisabled={nameAvailabilityStatus === NameAvailabilityStatus.IN_PROGRESS}
     />
   );
   return (
@@ -92,6 +100,9 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
         textInput
       )}
       <HelperText>
+        {nameAvailabilityStatus && (
+          <HelperTextUniqueName nameAvailabilityStatus={nameAvailabilityStatus} />
+        )}
         <HelperTextItemMaxLength k8sName={k8sName} />
         <HelperTextItemValidCharacters k8sName={k8sName} />
         {resourceNameTakenHelperText && (
