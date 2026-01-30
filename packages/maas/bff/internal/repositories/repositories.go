@@ -17,7 +17,12 @@ type Repositories struct {
 	Models      *ModelsRepository
 }
 
-func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) *Repositories {
+func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) (*Repositories, error) {
+	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repositories{
 		HealthCheck: NewHealthCheckRepository(),
 		User:        NewUserRepository(),
@@ -29,7 +34,7 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.TiersConfigMapName,
 			config.GatewayNamespace,
 			config.GatewayName),
-		APIKeys: NewAPIKeysRepository(logger),
+		APIKeys: apiKeysRepo,
 		Models:  NewModelsRepository(logger),
-	}
+	}, nil
 }

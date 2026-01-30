@@ -12,7 +12,6 @@ type MaaSModel struct {
 
 // MaaSModelsResponse is the OpenAI-compatible response shape for models listing.
 type MaaSModelsResponse struct {
-	Object string     `json:"object"`
+	Object string      `json:"object"`
 	Data   []MaaSModel `json:"data"`
 }
-

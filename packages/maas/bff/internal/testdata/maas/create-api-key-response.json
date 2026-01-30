@@ -1,0 +1,8 @@
+{
+  "token":       "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature",
+  "expiration":  "4h",
+  "expiresAt":   4920242400,
+  "jti":         "mock-jti-abc123def456",
+  "name":        "new-api-key",
+  "description": "Newly created API key"
+}
