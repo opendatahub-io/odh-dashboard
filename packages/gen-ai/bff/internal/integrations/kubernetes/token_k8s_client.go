@@ -1324,8 +1324,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			// Create provider and model for MaaS model
 			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
 			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, "llm", nil)
-			kc.Logger.Debug("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL)
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, "llm", nil, model.MaxTokens)
+			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 		} else {
 			// Handle regular models
 			modelDetails, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
@@ -1342,8 +1342,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			metadata := modelDetails["metadata"].(map[string]interface{})
 
 			// Create provider and model for regular model
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, modelID, modelType, metadata)
-			kc.Logger.Debug("Added regular LLM model to configuration", "model", modelID, "endpoint", endpointURL)
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, modelID, modelType, metadata, model.MaxTokens)
+			kc.Logger.Info("Added regular LLM model to configuration", "model", modelID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 
 		}
 	}

@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import type { RoleRef } from '#~/concepts/permissions/types';
 import type { FilterDataType } from './const';
 import SubjectRolesTable from './SubjectRolesTable';
 
@@ -10,14 +9,12 @@ type SubjectRolesTableSectionProps = {
   subjectKind: 'user' | 'group';
   filterData: FilterDataType;
   onClearFilters: () => void;
-  onRoleClick?: (roleRef: RoleRef) => void;
 };
 
 const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
   subjectKind,
   filterData,
   onClearFilters,
-  onRoleClick,
 }) => (
   <Stack hasGutter>
     <StackItem>
@@ -41,7 +38,6 @@ const SubjectRolesTableSection: React.FC<SubjectRolesTableSectionProps> = ({
         subjectKind={subjectKind}
         filterData={filterData}
         onClearFilters={onClearFilters}
-        onRoleClick={onRoleClick}
       />
     </StackItem>
   </Stack>

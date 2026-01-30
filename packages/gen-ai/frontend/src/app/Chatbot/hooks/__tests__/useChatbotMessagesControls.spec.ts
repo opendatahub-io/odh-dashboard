@@ -449,7 +449,8 @@ describe('useChatbotMessages - controls', () => {
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0]).toMatchObject({
         role: 'bot',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
         name: 'Bot',
       });
     });
@@ -505,7 +506,9 @@ describe('useChatbotMessages - controls', () => {
 
       // Messages should be reset
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+      expect(result.current.messages[0].content).toBe(
+        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
+      );
     });
 
     it('should preserve model and configuration settings', async () => {
@@ -558,7 +561,9 @@ describe('useChatbotMessages - controls', () => {
       }).not.toThrow();
 
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+      expect(result.current.messages[0].content).toBe(
+        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
+      );
     });
 
     it('should clear conversation history but retain RAG configuration', async () => {
@@ -624,7 +629,9 @@ describe('useChatbotMessages - controls', () => {
 
       // Should only have the initial message - abort error was silently ignored
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+      expect(result.current.messages[0].content).toBe(
+        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
+      );
     });
 
     it('should silently handle abort when clearing during streaming', async () => {
@@ -671,7 +678,9 @@ describe('useChatbotMessages - controls', () => {
 
       // Should only have the initial message - abort was silently handled
       expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe('Send a message to test your configuration');
+      expect(result.current.messages[0].content).toBe(
+        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
+      );
     });
   });
 });
