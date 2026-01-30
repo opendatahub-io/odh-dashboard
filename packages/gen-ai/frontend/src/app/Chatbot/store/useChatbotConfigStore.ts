@@ -196,6 +196,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           temperature: sourceConfig.temperature,
           isStreamingEnabled: sourceConfig.isStreamingEnabled,
           selectedModel: sourceConfig.selectedModel,
+          currentVectorStoreId: sourceConfig.currentVectorStoreId,
           guardrailsEnabled: sourceConfig.guardrailsEnabled,
           selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
           mcpToolSelections: mcpToolSelectionsCopy,
