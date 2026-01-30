@@ -68,20 +68,24 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
           </StackItem>
           <StackItem>
             <Stack hasGutter>
-              <StackItem>
-                <RoleChangesSection
-                  label="Assigning roles"
-                  rows={changes.assigning}
-                  testId="assign-roles-confirm-assigning-section"
-                />
-              </StackItem>
-              <StackItem>
-                <RoleChangesSection
-                  label="Unassigning roles"
-                  rows={changes.unassigning}
-                  testId="assign-roles-confirm-unassigning-section"
-                />
-              </StackItem>
+              {changes.assigning.length > 0 && (
+                <StackItem>
+                  <RoleChangesSection
+                    label="Assigning roles"
+                    rows={changes.assigning}
+                    testId="assign-roles-confirm-assigning-section"
+                  />
+                </StackItem>
+              )}
+              {changes.unassigning.length > 0 && (
+                <StackItem>
+                  <RoleChangesSection
+                    label="Unassigning roles"
+                    rows={changes.unassigning}
+                    testId="assign-roles-confirm-unassigning-section"
+                  />
+                </StackItem>
+              )}
             </Stack>
           </StackItem>
           {hasCustomRoleUnassignments && (
@@ -89,6 +93,7 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
               <Alert
                 isInline
                 variant="danger"
+                data-testid="assign-roles-confirm-custom-role-warning"
                 title={
                   <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--default)' }}>
                     The OpenShift custom roles were assigned from OpenShift. You need to contact

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Label, Popover, PopoverPosition } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Label, Popover, PopoverPosition } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import {
@@ -88,26 +88,30 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
         {row.statusLabel ? (
           <>
             {isCustomUnassign ? (
-              <>
-                <CustomUnassignPopover position={PopoverPosition.top}>
-                  <Label variant="filled" color={assignmentLabelColor} isCompact isClickable>
-                    {row.statusLabel}
-                  </Label>
-                </CustomUnassignPopover>
-                <CustomUnassignPopover position={PopoverPosition.bottom}>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{
-                      color: 'red',
-                      textDecoration: 'underline dashed',
-                      textUnderlineOffset: ExtraSmallSpacerSize.var,
-                    }}
-                  >
-                    Role can only be re-assigned in OpenShift
-                  </Button>
-                </CustomUnassignPopover>
-              </>
+              <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+                <FlexItem>
+                  <CustomUnassignPopover position={PopoverPosition.top}>
+                    <Label variant="filled" color={assignmentLabelColor} isCompact isClickable>
+                      {row.statusLabel}
+                    </Label>
+                  </CustomUnassignPopover>
+                </FlexItem>
+                <FlexItem>
+                  <CustomUnassignPopover position={PopoverPosition.bottom}>
+                    <Button
+                      variant="link"
+                      isInline
+                      style={{
+                        color: 'red',
+                        textDecoration: 'underline dashed',
+                        textUnderlineOffset: ExtraSmallSpacerSize.var,
+                      }}
+                    >
+                      Role can only be re-assigned in OpenShift
+                    </Button>
+                  </CustomUnassignPopover>
+                </FlexItem>
+              </Flex>
             ) : (
               <Label variant="outline" color={assignmentLabelColor} isCompact>
                 {row.statusLabel}

@@ -23,10 +23,6 @@ type RoleChangesSectionProps = {
 const RoleChangesSection: React.FC<RoleChangesSectionProps> = ({ label, rows, testId }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
 
-  if (rows.length === 0) {
-    return null;
-  }
-
   return (
     <ExpandableSection
       toggleContent={

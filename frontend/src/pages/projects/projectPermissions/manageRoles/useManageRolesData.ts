@@ -86,15 +86,20 @@ const useManageRolesData = (
     [assignedRoleRefs, clusterRoles.data, roleRefs, roles.data, selections],
   );
 
+  const rowByKey = React.useMemo(
+    () =>
+      new Map(
+        rows.map((row) => {
+          const key = getRoleRefKey(row.roleRef);
+          return [key, row];
+        }),
+      ),
+    [rows],
+  );
+
   const changes = React.useMemo<RoleAssignmentChanges>(() => {
     const assignedKeys = new Set(assignedRoleRefs.map((roleRef) => getRoleRefKey(roleRef)));
     const selectedKeys = new Set(selections.map((roleRef) => getRoleRefKey(roleRef)));
-    const rowByKey = new Map(
-      rows.map((row) => {
-        const key = getRoleRefKey(row.roleRef);
-        return [key, row];
-      }),
-    );
 
     const assigning: ManageRolesRow[] = [];
     selections.forEach((roleRef) => {
@@ -122,7 +127,7 @@ const useManageRolesData = (
       assigning,
       unassigning,
     };
-  }, [assignedRoleRefs, rows, selections]);
+  }, [assignedRoleRefs, rowByKey, selections]);
 
   const hasChanges = React.useMemo(() => {
     if (!trimmedSubjectName) {
