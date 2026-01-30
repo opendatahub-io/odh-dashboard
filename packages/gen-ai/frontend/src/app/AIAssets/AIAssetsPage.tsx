@@ -10,12 +10,35 @@ import {
   Label,
   Flex,
   FlexItem,
+  Spinner,
+  Bullseye,
 } from '@patternfly/react-core';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
 import { isAIAssetsTabExtension } from '~/odh/extension-points';
+
+const AIAssetsMaaSTab = React.lazy(() => import('./AIAssetsMaaSTab'));
+
+/**
+ * Special workaround for the MaaS models tab. The MaaS tab extension is a simple wrapper, because gen-ai actually owns the MaaS tab content.
+ * `key` must be a valid extension id
+ * `value` must be the content to render for the tab extension
+ */
+const childrenForAIAssetsTabExtension: Record<string, React.ReactNode> = {
+  maasmodels: (
+    <React.Suspense
+      fallback={
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      }
+    >
+      <AIAssetsMaaSTab />
+    </React.Suspense>
+  ),
+};
 
 export const AIAssetsPage: React.FC = () => {
   const tabExtensions = useExtensions(isAIAssetsTabExtension);
@@ -84,7 +107,10 @@ export const AIAssetsPage: React.FC = () => {
           >
             <TabContentBody>
               {activeTabKey === extension.properties.id && (
-                <LazyCodeRefComponent component={extension.properties.component} />
+                <LazyCodeRefComponent
+                  component={extension.properties.component}
+                  props={{ children: childrenForAIAssetsTabExtension[extension.properties.id] }}
+                />
               )}
             </TabContentBody>
           </TabContent>
