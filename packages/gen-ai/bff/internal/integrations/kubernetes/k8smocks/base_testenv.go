@@ -59,7 +59,7 @@ type TestEnvState struct {
 }
 
 func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
-	// Use ENVTEST_ASSETS environment variable if set, otherwise fall back to project root
+	// ENVTEST_ASSETS is set by "make test"; fallback only applies when running tests without make (e.g. IDE, ad-hoc go test).
 	var binaryAssetsDir string
 	if envtestAssets := os.Getenv("ENVTEST_ASSETS"); envtestAssets != "" {
 		binaryAssetsDir = envtestAssets
@@ -71,14 +71,16 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 			input.Cancel()
 			os.Exit(1)
 		}
-		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", "1.29.0-darwin-arm64")
+		platformDir := fmt.Sprintf("1.29.0-%s-%s", goruntime.GOOS, goruntime.GOARCH)
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", platformDir)
 		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
 	}
 
 	testEnv := &envtest.Environment{
 		BinaryAssetsDirectory: binaryAssetsDir,
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
-			createLlamaStackDistributionCRD(),
+			CreateLlamaStackDistributionCRD(),
+			CreateGuardrailsOrchestratorCRD(),
 		},
 	}
 
@@ -93,7 +95,7 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 	// This allows us to target cleanup to only the process we started.
 	// Workaround for: https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 	// This only applies when the test started the process via envtest.
-	apiServerPID := findAPIServerPID()
+	apiServerPID := FindAPIServerPID()
 	testEnvState := &TestEnvState{
 		Env:          testEnv,
 		APIServerPID: apiServerPID,
@@ -146,7 +148,7 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 	}
 
 	// bootstrap resources
-	err = setupMock(ctrlClient, input.Ctx)
+	err = SetupMock(ctrlClient, input.Ctx)
 	if err != nil {
 		input.Logger.Error("failed to setup mock data", slog.String("error", err.Error()))
 		input.Cancel()
@@ -195,11 +197,11 @@ func TeardownEnvTest(t *testing.T, testEnvState *TestEnvState) {
 	)
 }
 
-// findAPIServerPID identifies the kube-apiserver process spawned by this specific test execution.
+// FindAPIServerPID identifies the kube-apiserver process spawned by this specific test execution.
 // It relies on PPID (parent process ID) tracking to distinguish this instance from others
 // started by parallel test packages, as envtest.Stop() frequently fails to reap child
 // processes on Linux.
-func findAPIServerPID() int {
+func FindAPIServerPID() int {
 	// This workaround targets a Linux-specific process reaping issue; we skip on
 	// Windows to avoid interference with its distinct process tree management.
 	if goruntime.GOOS == "windows" {
@@ -229,7 +231,7 @@ func findAPIServerPID() int {
 }
 
 // tryFindAPIServerPID scans the process table once without retries.
-// Separated from findAPIServerPID to allow the retry logic to be tested independently.
+// Separated from FindAPIServerPID to allow the retry logic to be tested independently.
 func tryFindAPIServerPID() int {
 	procs, err := process.Processes()
 	if err != nil {
@@ -341,7 +343,8 @@ func getProjectRoot() (string, error) {
 	}
 }
 
-func setupMock(mockK8sClient client.Client, ctx context.Context) error {
+// SetupMock creates the default test namespaces used by tests.
+func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 	err := createNamespace(mockK8sClient, ctx, "llama-stack")
 	if err != nil {
 		return fmt.Errorf("failed to create llama-stack namespace: %w", err)
@@ -380,11 +383,11 @@ func createNamespace(k8sClient client.Client, ctx context.Context, namespace str
 	return nil
 }
 
-// createLlamaStackDistributionCRD creates the CRD for LlamaStackDistribution
+// CreateLlamaStackDistributionCRD creates the CRD for LlamaStackDistribution
 // Based on the official CRD from https://github.com/llamastack/llama-stack-k8s-operator/blob/main/config/crd/bases/llamastack.io_llamastackdistributions.yaml
 // A better approach to replicate real CRD install would be to download the CRD and place it in the CRDDirectoryPaths, given
 // pointing to a remote location is not supported yet by envtest: https://github.com/kubernetes-sigs/controller-runtime/issues/1558
-func createLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition {
+func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition {
 	return &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "llamastackdistributions.llamastack.io",
@@ -478,6 +481,41 @@ func createLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 				Singular:   "llamastackdistribution",
 				Kind:       "LlamaStackDistribution",
 				ShortNames: []string{"lsd"},
+			},
+		},
+	}
+}
+
+// CreateGuardrailsOrchestratorCRD creates the CRD for GuardrailsOrchestrator (gorch).
+// Minimal schema so envtest API server accepts the type; matches gorchv1alpha1 scheme registration.
+func CreateGuardrailsOrchestratorCRD() *apiextensionsv1.CustomResourceDefinition {
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "guardrailsorchestrators.trustyai.opendatahub.io",
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "trustyai.opendatahub.io",
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1alpha1",
+					Served:  true,
+					Storage: true,
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec":   {Type: "object"},
+								"status": {Type: "object"},
+							},
+						},
+					},
+				},
+			},
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Plural:   "guardrailsorchestrators",
+				Singular: "guardrailsorchestrator",
+				Kind:     "GuardrailsOrchestrator",
 			},
 		},
 	}
