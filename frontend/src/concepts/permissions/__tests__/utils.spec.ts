@@ -2,6 +2,7 @@ import {
   buildGroupRoleMap,
   buildUserRoleMap,
   getRoleByRef,
+  getRoleLabelTypeForRole,
   getRoleLabelTypeForRoleRef,
   getRoleRefsForSubject,
   getRoleRefKey,
@@ -85,37 +86,22 @@ describe('permissions utils', () => {
   });
 
   it('classifies role label type', () => {
-    expect(
-      getRoleLabelTypeForRoleRef(
-        { kind: 'Role', name: dashboardRole.metadata.name },
-        dashboardRole,
-      ),
-    ).toBe(RoleLabelType.Dashboard);
-    expect(
-      getRoleLabelTypeForRoleRef(
-        { kind: 'Role', name: openshiftDefaultRole.metadata.name },
-        openshiftDefaultRole,
-      ),
-    ).toBe(RoleLabelType.OpenshiftDefault);
-    expect(
-      getRoleLabelTypeForRoleRef(
-        { kind: 'Role', name: openshiftCustomRole.metadata.name },
-        openshiftCustomRole,
-      ),
-    ).toBe(RoleLabelType.OpenshiftCustom);
+    expect(getRoleLabelTypeForRole(dashboardRole)).toBe(RoleLabelType.Dashboard);
+    expect(getRoleLabelTypeForRole(openshiftDefaultRole)).toBe(RoleLabelType.OpenshiftDefault);
+    expect(getRoleLabelTypeForRole(openshiftCustomRole)).toBe(RoleLabelType.OpenshiftCustom);
   });
 
   it('falls back to OpenShift label type when role object is not readable', () => {
-    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'admin' }, undefined)).toBe(
+    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'admin' })).toBe(
       RoleLabelType.OpenshiftDefault,
     );
-    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'edit' }, undefined)).toBe(
+    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'edit' })).toBe(
       RoleLabelType.OpenshiftDefault,
     );
-    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'unknown' }, undefined)).toBe(
+    expect(getRoleLabelTypeForRoleRef({ kind: 'ClusterRole', name: 'unknown' })).toBe(
       RoleLabelType.OpenshiftCustom,
     );
-    expect(getRoleLabelTypeForRoleRef({ kind: 'Role', name: 'unknown' }, undefined)).toBe(
+    expect(getRoleLabelTypeForRoleRef({ kind: 'Role', name: 'unknown' })).toBe(
       RoleLabelType.OpenshiftCustom,
     );
   });
