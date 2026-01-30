@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -56,12 +58,13 @@ type StreamingEvent struct {
 
 // ResponseData represents the response structure for both streaming and non-streaming
 type ResponseData struct {
-	ID                 string       `json:"id"`
-	Model              string       `json:"model"`
-	Status             string       `json:"status"`
-	CreatedAt          int64        `json:"created_at"`
-	Output             []OutputItem `json:"output,omitempty"`
-	PreviousResponseID string       `json:"previous_response_id,omitempty"` // Reference to previous response in conversation thread
+	ID                 string           `json:"id"`
+	Model              string           `json:"model"`
+	Status             string           `json:"status"`
+	CreatedAt          int64            `json:"created_at"`
+	Output             []OutputItem     `json:"output,omitempty"`
+	PreviousResponseID string           `json:"previous_response_id,omitempty"` // Reference to previous response in conversation thread
+	Metrics            *ResponseMetrics `json:"metrics,omitempty"`              // Response metrics (latency, usage)
 }
 
 // OutputItem represents an output item with essential fields
@@ -95,6 +98,26 @@ type SearchResult struct {
 	Score    float64 `json:"score"`
 	Text     string  `json:"text"`
 	Filename string  `json:"filename,omitempty"`
+}
+
+// ResponseMetrics contains timing and usage metrics for the response
+type ResponseMetrics struct {
+	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
+	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
+	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+}
+
+// UsageData contains token usage information from LlamaStack
+type UsageData struct {
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
+	TotalTokens  int `json:"total_tokens"`
+}
+
+// MetricsEvent represents the response.metrics streaming event
+type MetricsEvent struct {
+	Type    string          `json:"type"`    // "response.metrics"
+	Metrics ResponseMetrics `json:"metrics"` // Metrics data
 }
 
 // MCPServer represents MCP server configuration for responses
@@ -162,6 +185,57 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	_ = json.Unmarshal(responseJSON, &responseData)
 
 	return responseData
+}
+
+// extractUsage extracts usage data from a LlamaStack response
+func extractUsage(llamaResponse interface{}) *UsageData {
+	// Use type assertion for efficiency (avoids marshal/unmarshal overhead)
+	if resp, ok := llamaResponse.(*responses.Response); ok {
+		return &UsageData{
+			InputTokens:  int(resp.Usage.InputTokens),
+			OutputTokens: int(resp.Usage.OutputTokens),
+			TotalTokens:  int(resp.Usage.TotalTokens),
+		}
+	}
+	return nil
+}
+
+// extractUsageFromEvent extracts usage data from a streaming event (response.completed)
+func extractUsageFromEvent(event interface{}) *UsageData {
+	// The response.completed event contains the full response with usage
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return nil
+	}
+
+	var raw struct {
+		Response *struct {
+			Usage *struct {
+				InputTokens  int `json:"input_tokens"`
+				OutputTokens int `json:"output_tokens"`
+				TotalTokens  int `json:"total_tokens"`
+			} `json:"usage"`
+		} `json:"response"`
+	}
+
+	if err := json.Unmarshal(eventJSON, &raw); err != nil || raw.Response == nil || raw.Response.Usage == nil {
+		return nil
+	}
+
+	return &UsageData{
+		InputTokens:  raw.Response.Usage.InputTokens,
+		OutputTokens: raw.Response.Usage.OutputTokens,
+		TotalTokens:  raw.Response.Usage.TotalTokens,
+	}
+}
+
+// calculateTTFT calculates Time to First Token in milliseconds
+func calculateTTFT(startTime time.Time, firstTokenTime *time.Time) *int64 {
+	if firstTokenTime == nil {
+		return nil
+	}
+	ttft := firstTokenTime.Sub(startTime).Milliseconds()
+	return &ttft
 }
 
 // LlamaStackCreateResponseHandler handles POST /gen-ai/api/v1/responses
@@ -322,6 +396,11 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 // handleStreamingResponse handles streaming response creation
 func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
+	// Track start time for latency and TTFT calculation
+	startTime := time.Now()
+	var firstTokenTime *time.Time
+	var usage *UsageData
+
 	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -373,6 +452,17 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
+		// Track TTFT on first text delta event
+		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
+			now := time.Now()
+			firstTokenTime = &now
+		}
+
+		// Extract usage from completed event
+		if streamingEvent.Type == "response.completed" {
+			usage = extractUsageFromEvent(event)
+		}
+
 		// Convert clean streaming event to JSON
 		eventData, err := json.Marshal(streamingEvent)
 		if err != nil {
@@ -406,15 +496,39 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		errorJSON, _ := json.Marshal(errorData)
 		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
 	}
+
+	// Send metrics event after stream completes
+	latencyMs := time.Since(startTime).Milliseconds()
+	metricsEvent := MetricsEvent{
+		Type: "response.metrics",
+		Metrics: ResponseMetrics{
+			LatencyMs:          latencyMs,
+			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+			Usage:              usage,
+		},
+	}
+	eventData, err := json.Marshal(metricsEvent)
+	if err != nil {
+		app.logger.Error("failed to marshal metrics event", "error", err)
+		return
+	}
+	fmt.Fprintf(w, "data: %s\n\n", eventData)
+	flusher.Flush()
 }
 
 // handleNonStreamingResponse handles regular (non-streaming) response creation
 func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
+	// Track start time for latency calculation
+	startTime := time.Now()
+
 	llamaResponse, err := app.repositories.Responses.CreateResponse(ctx, params)
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
+
+	// Calculate latency
+	latencyMs := time.Since(startTime).Milliseconds()
 
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
@@ -442,6 +556,12 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	// Add previous response ID to response data if provided
 	if params.PreviousResponseID != "" {
 		responseData.PreviousResponseID = params.PreviousResponseID
+	}
+
+	// Add metrics to response
+	responseData.Metrics = &ResponseMetrics{
+		LatencyMs: latencyMs,
+		Usage:     extractUsage(llamaResponse),
 	}
 
 	apiResponse := llamastack.APIResponse{
