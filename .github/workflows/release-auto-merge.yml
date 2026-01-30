@@ -69,11 +69,21 @@ jobs:
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
       - name: Merge target into branch
+        id: merge
         run: |
           git fetch origin main
           
           MERGE_REF="${{ steps.target.outputs.ref }}"
           MERGE_DESC="${{ steps.target.outputs.description }}"
+
+          # Check if there are any changes to merge
+          if git diff --quiet HEAD.."$MERGE_REF" 2>/dev/null; then
+            echo "No changes to merge - odh-release is already up to date with $MERGE_DESC"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
 
           # Attempt merge, handle known conflicts by keeping odh-release version
           if git merge "$MERGE_REF" -m "Auto-merge $MERGE_DESC into odh-release"; then
@@ -118,7 +128,7 @@ jobs:
 
       - name: Bump z-stream version
         id: version
-        if: ${{ github.event.inputs.bump_version == 'true' }}
+        if: ${{ steps.merge.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
         run: |
           echo "Bumping z-stream version..."
           
@@ -162,6 +172,7 @@ jobs:
           echo "Version bump committed"
 
       - name: Push branch and create PR
+        if: ${{ steps.merge.outputs.has_changes == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
