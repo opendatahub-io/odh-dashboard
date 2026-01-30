@@ -25,8 +25,8 @@ import { ChatbotSourceSettings } from '~/app/types';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
+import { selectCurrentVectorStoreId } from '~/app/Chatbot/store';
 import { DEFAULT_SOURCE_SETTINGS } from './utils';
-import { selectCurrentVectorStoreId } from '../store';
 
 type ChatbotSourceSettingsModalProps = {
   configId: string;

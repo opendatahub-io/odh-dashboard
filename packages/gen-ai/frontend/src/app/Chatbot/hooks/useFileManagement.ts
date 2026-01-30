@@ -4,7 +4,7 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { FileModel, VectorStoreFile } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { selectCurrentVectorStoreId, useChatbotConfigStore } from '../store';
+import { selectCurrentVectorStoreId, useChatbotConfigStore } from '~/app/Chatbot/store';
 
 export interface UseFileManagementReturn {
   files: FileModel[];
