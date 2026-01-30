@@ -6,6 +6,8 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
+import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
@@ -28,9 +30,12 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
       (mr.metadata.name || mr.metadata.annotations?.['openshift.io/display-name']),
   );
 
-  const hasProjectPermissions = filteredRoleBindings.some(
-    (rb) => rb.metadata.labels?.['opendatahub.io/rb-project-subject'] === 'true',
-  );
+  const hasProjectPermissions =
+    filterRoleBindingSubjects(
+      filteredRoleBindings,
+      RoleBindingPermissionsRBType.GROUP,
+      true, // isProjectSubject
+    ).length > 0;
   const showNoProjectPermissionLabel = !hasProjectPermissions;
 
   return (
