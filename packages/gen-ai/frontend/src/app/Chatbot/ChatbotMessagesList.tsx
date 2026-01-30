@@ -1,9 +1,11 @@
 import React from 'react';
-import { Message, MessageProps } from '@patternfly/chatbot';
+import { Message } from '@patternfly/chatbot';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
+import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
+import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 
 type ChatbotMessagesListProps = {
-  messageList: MessageProps[];
+  messageList: ChatbotMessageProps[];
   scrollRef: React.RefObject<HTMLDivElement>;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
@@ -21,12 +23,27 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
 
   return (
     <>
-      {messageList.map((message, index) => (
-        <React.Fragment key={message.id}>
-          <Message {...message} data-testid={`chatbot-message-${message.role}`} />
-          {index === messageList.length - 1 && <div ref={scrollRef} />}
-        </React.Fragment>
-      ))}
+      {messageList.map((message, index) => {
+        // Destructure metrics from message to avoid passing it to PatternFly Message component
+        const { metrics, ...messageProps } = message;
+
+        // Build extraContent with metrics if present (for bot messages)
+        const extraContent =
+          message.role === 'bot' && metrics
+            ? { endContent: <ChatbotMessagesMetrics metrics={metrics} /> }
+            : undefined;
+
+        return (
+          <React.Fragment key={message.id}>
+            <Message
+              {...messageProps}
+              extraContent={extraContent}
+              data-testid={`chatbot-message-${message.role}`}
+            />
+            {index === messageList.length - 1 && <div ref={scrollRef} />}
+          </React.Fragment>
+        );
+      })}
       {showLoadingDots && (
         <Message
           name="Bot"

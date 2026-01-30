@@ -18,6 +18,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   is_maas_model: boolean;
+  max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
 export type FileCounts = {
@@ -106,6 +107,13 @@ export type SimplifiedUsage = {
   total_tokens: number;
 };
 
+// Response metrics from BFF (latency, TTFT, usage)
+export type ResponseMetrics = {
+  latency_ms: number;
+  time_to_first_token_ms?: number; // Only present for streaming responses
+  usage?: SimplifiedUsage;
+};
+
 // File citation annotation from RAG responses
 export type FileCitationAnnotation = {
   type: 'file_citation';
@@ -144,6 +152,7 @@ export type BackendResponseData = {
   created_at: number;
   output?: OutputItem[];
   usage?: SimplifiedUsage;
+  metrics?: ResponseMetrics; // Response metrics from BFF (latency, TTFT, usage)
 };
 
 // MCP tool call data extracted from backend response
@@ -171,6 +180,7 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
 };
 
 export type FileError = {

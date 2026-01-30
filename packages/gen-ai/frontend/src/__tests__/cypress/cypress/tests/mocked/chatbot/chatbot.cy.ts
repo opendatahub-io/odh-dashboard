@@ -69,6 +69,33 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         cy.step('Test completed - Message sent and response received');
       },
     );
+
+    it(
+      'should display metrics after bot response',
+      { tags: ['@GenAI', '@Chatbot', '@Metrics'] },
+      () => {
+        cy.step('Navigate to chatbot');
+        chatbotPage.visit(TEST_NAMESPACE);
+
+        cy.step('Wait for chatbot playground');
+        chatbotPage.findChatbotPlayground().should('be.visible');
+
+        cy.step('Send a test message');
+        chatbotPage.sendMessage('Hello');
+
+        cy.step('Verify bot response is received');
+        chatbotPage.verifyBotResponseContains('mock response');
+
+        cy.step('Verify metrics toggle is visible');
+        chatbotPage.findMetricsToggle().should('be.visible');
+
+        cy.step('Expand metrics and verify content');
+        chatbotPage.expandMetrics();
+        cy.get('.pf-v6-c-label').should('exist');
+
+        cy.step('Test completed - Metrics displayed successfully');
+      },
+    );
   });
 
   describe('Model Configuration', () => {

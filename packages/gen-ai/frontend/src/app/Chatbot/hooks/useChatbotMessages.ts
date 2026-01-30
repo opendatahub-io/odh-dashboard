@@ -11,6 +11,7 @@ import {
   CreateResponseRequest,
   MCPToolCallData,
   MCPServerFromAPI,
+  ResponseMetrics,
   TokenInfo,
 } from '~/app/types';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
@@ -22,8 +23,13 @@ import {
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
+// Extended message type that includes metrics data for display
+export type ChatbotMessageProps = MessageProps & {
+  metrics?: ResponseMetrics;
+};
+
 export interface UseChatbotMessagesReturn {
-  messages: MessageProps[];
+  messages: ChatbotMessageProps[];
   isMessageSendButtonDisabled: boolean;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
@@ -67,7 +73,7 @@ const useChatbotMessages = ({
   toolSelections,
   namespace,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
-  const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
+  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
@@ -355,11 +361,21 @@ const useChatbotMessages = ({
           ),
         );
 
-        // Add tool response if available from streaming response
-        if (streamingResponse.toolCallData) {
-          const toolResponse = createToolResponse(streamingResponse.toolCallData);
+        // Add tool response and metrics if available from streaming response
+        if (streamingResponse.toolCallData || streamingResponse.metrics) {
+          const toolResponse = streamingResponse.toolCallData
+            ? createToolResponse(streamingResponse.toolCallData)
+            : undefined;
           setMessages((prevMessages) =>
-            prevMessages.map((msg) => (msg.id === botMessageId ? { ...msg, toolResponse } : msg)),
+            prevMessages.map((msg) =>
+              msg.id === botMessageId
+                ? {
+                    ...msg,
+                    ...(toolResponse && { toolResponse }),
+                    ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                  }
+                : msg,
+            ),
           );
         }
       } else {
@@ -385,7 +401,7 @@ const useChatbotMessages = ({
             }
           : {};
 
-        const botMessage: MessageProps = {
+        const botMessage: ChatbotMessageProps = {
           id: getId(),
           role: 'bot',
           content: response.content || 'No response received',
@@ -394,6 +410,7 @@ const useChatbotMessages = ({
           timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
           ...sourcesProps,
+          ...(response.metrics && { metrics: response.metrics }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       }

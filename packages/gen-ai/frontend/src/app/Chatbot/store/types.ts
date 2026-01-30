@@ -1,6 +1,16 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
 /**
+ * MCP tool selections map structure:
+ * {
+ *   "namespace-name": {
+ *     "http://server-url": ["tool1", "tool2"]
+ *   }
+ * }
+ */
+export type McpToolSelectionsMap = Record<string, Record<string, string[]> | undefined>;
+
+/**
  * Configuration for a single chatbot instance.
  * This represents one "slot" in comparison mode.
  */
@@ -10,6 +20,8 @@ export interface ChatbotConfiguration {
   isStreamingEnabled: boolean;
   selectedModel: string;
   guardrailsEnabled: boolean;
+  selectedMcpServerIds: string[];
+  mcpToolSelections: McpToolSelectionsMap;
 }
 
 /**
@@ -21,6 +33,8 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   isStreamingEnabled: true,
   selectedModel: '',
   guardrailsEnabled: false,
+  selectedMcpServerIds: [],
+  mcpToolSelections: {},
 };
 
 /**
@@ -35,7 +49,9 @@ export interface ChatbotConfigStoreState {
  * Store actions interface.
  */
 export interface ChatbotConfigStoreActions {
-  // TODO: ADD/DUPLICATE/REMOVE configs
+  // Configuration lifecycle
+  removeConfiguration: (id: string) => void;
+  duplicateConfiguration: (id: string) => string | undefined;
 
   // Field-specific updaters (for granular rerenders)
   updateSystemInstruction: (id: string, value: string) => void;
@@ -43,9 +59,19 @@ export interface ChatbotConfigStoreActions {
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
   updateGuardrailsEnabled: (id: string, value: boolean) => void;
+  updateSelectedMcpServerIds: (id: string, value: string[]) => void;
+
+  // MCP tool selections (per-config state)
+  getToolSelections: (id: string, namespace: string, serverUrl: string) => string[] | undefined;
+  saveToolSelections: (
+    id: string,
+    namespace: string,
+    serverUrl: string,
+    toolNames: string[] | undefined,
+  ) => void;
 
   // Configuration management
-  resetConfiguration: () => void;
+  resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;

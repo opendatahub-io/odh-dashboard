@@ -6,9 +6,7 @@ import {
   ChatbotDisplayMode,
   ChatbotFooter,
   ChatbotFootnote,
-  ChatbotWelcomePrompt,
   MessageBar,
-  MessageBox,
 } from '@patternfly/chatbot';
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
@@ -19,27 +17,19 @@ import { isLlamaModelEnabled } from '~/app/utilities';
 import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
-import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES, sampleWelcomePrompts } from './const';
+import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
-import useChatbotMessages from './hooks/useChatbotMessages';
+import { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
-import {
-  useChatbotConfigStore,
-  selectSystemInstruction,
-  selectTemperature,
-  selectStreamingEnabled,
-  selectSelectedModel,
-  selectConfigIds,
-} from './store';
+import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
-import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
 import NewChatModal from './components/NewChatModal';
 
@@ -58,26 +48,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections } = useMCPToolSelections();
   const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
 
   const configIds = useChatbotConfigStore(selectConfigIds);
-  // Get configuration to reference, there will only be one before comparison mode
-  const configId = configIds[0];
+  // Get primary configuration for initial model selection
+  const primaryConfigId = configIds[0];
+  const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
-  // NOTE: This will need to be updated when doing comparison mode
-  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
-  const temperature = useChatbotConfigStore(selectTemperature(configId));
-  const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const setSelectedModel = React.useCallback(
     (model: string) => {
-      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
+      useChatbotConfigStore.getState().updateSelectedModel(primaryConfigId, model);
     },
-    [configId],
+    [primaryConfigId],
   );
 
   const isDarkMode = useDarkMode();
@@ -93,10 +78,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     const statuses = location.state?.mcpServerStatuses;
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
-
-  // Handle router state for MCP servers - initialize state with router value
-  const [selectedMcpServerIds, setSelectedMcpServerIds] =
-    React.useState<string[]>(mcpServersFromRoute);
 
   // MCP hooks - fetch servers and manage statuses
   const {
@@ -119,13 +100,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
 
   React.useEffect(() => {
-    // Reset configuration
-    useChatbotConfigStore.getState().resetConfiguration();
+    // Reset configuration with initial values from router
+    useChatbotConfigStore.getState().resetConfiguration({
+      selectedMcpServerIds: mcpServersFromRoute,
+    });
 
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [configId]);
+  }, [mcpServersFromRoute, selectedAAModel]);
 
   // Clear router state after a brief delay to ensure child components have consumed it
   React.useEffect(() => {
@@ -139,7 +122,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   }, [shouldClearRouterState]);
 
   React.useEffect(() => {
-    if (modelsLoaded && models.length > 0 && !selectedModel) {
+    if (modelsLoaded && models.length > 0 && !primarySelectedModel) {
       if (selectedAAModel) {
         setSelectedModel(selectedAAModel);
       } else {
@@ -154,7 +137,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   }, [
     modelsLoaded,
     models,
-    selectedModel,
+    primarySelectedModel,
     setSelectedModel,
     aiModels,
     maasModels,
@@ -183,23 +166,68 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
-  // TODO: This will need to be changed to an object or array when implementing compare mode
-  const chatbotMessages = useChatbotMessages({
-    modelId: selectedModel,
-    selectedSourceSettings: sourceManagement.selectedSourceSettings,
-    systemInstruction,
-    isRawUploaded: sourceManagement.isRawUploaded,
-    username,
-    isStreamingEnabled,
-    temperature,
-    currentVectorStoreId: fileManagement.currentVectorStoreId,
-    selectedServerIds: selectedMcpServerIds,
-    mcpServers,
-    mcpServerStatuses,
-    mcpServerTokens,
-    toolSelections: getToolSelections,
-    namespace: namespace?.name,
-  });
+  // Track message hooks for each config instance
+  const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
+
+  // Track loading states to trigger re-renders when they change
+  const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
+  const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
+
+  const handleMessagesHookReady = React.useCallback(
+    (configIdParam: string, hook: UseChatbotMessagesReturn) => {
+      messageHooksRef.current.set(configIdParam, hook);
+      // Update states only if values actually changed to prevent unnecessary re-renders
+      setLoadingStates((prev) => {
+        if (prev.get(configIdParam) === hook.isLoading) {
+          return prev; // No change, return same reference
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.isLoading);
+        return next;
+      });
+      setDisabledStates((prev) => {
+        if (prev.get(configIdParam) === hook.isMessageSendButtonDisabled) {
+          return prev; // No change, return same reference
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.isMessageSendButtonDisabled);
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Cleanup stale entries when configs are removed
+  React.useEffect(() => {
+    // Remove entries for configs that no longer exist
+    const currentKeys = Array.from(messageHooksRef.current.keys());
+    const staleKeys = currentKeys.filter((key) => !configIds.includes(key));
+
+    if (staleKeys.length > 0) {
+      // Remove from ref
+      staleKeys.forEach((key) => {
+        messageHooksRef.current.delete(key);
+      });
+
+      // Remove from loading states
+      setLoadingStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
+
+      // Remove from disabled states
+      setDisabledStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
+    }
+  }, [configIds]);
 
   // Create alert components
   const uploadSuccessAlert = (
@@ -228,24 +256,27 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     />
   );
 
-  // Settings panel content
+  // Settings panel content - render one for each config
+  // TODO: This will need to be redone for compare MODE
   const settingsPanelContent = (
-    <ChatbotSettingsPanel
-      configId={configId} // You can render multiple of these for each config in our global store
-      alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
-      sourceManagement={sourceManagement}
-      fileManagement={fileManagement}
-      onMcpServersChange={setSelectedMcpServerIds}
-      initialSelectedServerIds={mcpServersFromRoute}
-      initialServerStatuses={mcpServerStatusesFromRoute}
-      selectedServersCount={selectedMcpServerIds.length}
-      mcpServers={mcpServers}
-      mcpServersLoaded={mcpServersLoaded}
-      mcpServersLoadError={mcpServersLoadError}
-      mcpServerTokens={mcpServerTokens}
-      onMcpServerTokensChange={setMcpServerTokens}
-      checkMcpServerStatus={checkMcpServerStatus}
-    />
+    <>
+      {configIds.map((configId) => (
+        <ChatbotSettingsPanel
+          key={`${configId}-settings-panel`}
+          configId={configId}
+          alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
+          sourceManagement={sourceManagement}
+          fileManagement={fileManagement}
+          initialServerStatuses={mcpServerStatusesFromRoute}
+          mcpServers={mcpServers}
+          mcpServersLoaded={mcpServersLoaded}
+          mcpServersLoadError={mcpServersLoadError}
+          mcpServerTokens={mcpServerTokens}
+          onMcpServerTokensChange={setMcpServerTokens}
+          checkMcpServerStatus={checkMcpServerStatus}
+        />
+      ))}
+    </>
   );
 
   return (
@@ -259,17 +290,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         uploadProgress={sourceManagement.uploadProgress}
       />
       <ViewCodeModal
+        // This will need to be refactored with compare mode to get all the values for each config in the Modal.
         isOpen={isViewCodeModalOpen}
         onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
+        configId={primaryConfigId}
         input={lastInput}
-        model={selectedModel}
-        systemInstruction={systemInstruction}
         files={fileManagement.files}
         isRagEnabled={sourceManagement.isRawUploaded}
-        selectedMcpServerIds={selectedMcpServerIds}
         mcpServers={mcpServers}
         mcpServerTokens={mcpServerTokens}
-        toolSelections={getToolSelections}
         namespace={namespace?.name}
       />
       <NewChatModal
@@ -278,7 +307,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           setIsNewChatModalOpen(false);
         }}
         onConfirm={() => {
-          chatbotMessages.clearConversation();
+          // Clear all chatbot instances
+          messageHooksRef.current.forEach((hook) => {
+            hook.clearConversation();
+          });
           setIsNewChatModalOpen(false);
         }}
       />
@@ -294,24 +326,22 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     : 'var(--pf-t--global--background--color--100)',
                 }}
               >
-                <MessageBox position="top">
-                  <ChatbotWelcomePrompt
-                    title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the playground"
-                    data-testid="chatbot-welcome-prompt"
-                    style={{
-                      cursor: 'default',
-                      pointerEvents: 'none',
-                    }}
-                    prompts={sampleWelcomePrompts}
+                {configIds.map((configId, index) => (
+                  <ChatbotConfigInstance
+                    key={`${configId}-chatbot-instance`}
+                    configId={configId}
+                    username={username}
+                    selectedSourceSettings={sourceManagement.selectedSourceSettings}
+                    isRawUploaded={sourceManagement.isRawUploaded}
+                    currentVectorStoreId={fileManagement.currentVectorStoreId}
+                    mcpServers={mcpServers}
+                    mcpServerStatuses={mcpServerStatuses}
+                    mcpServerTokens={mcpServerTokens}
+                    namespace={namespace?.name}
+                    showWelcomePrompt={configIds.length === 1 && index === 0}
+                    onMessagesHookReady={(hook) => handleMessagesHookReady(configId, hook)}
                   />
-                  <ChatbotMessages
-                    messageList={chatbotMessages.messages}
-                    scrollRef={chatbotMessages.scrollToBottomRef}
-                    isLoading={chatbotMessages.isLoading}
-                    isStreamingWithoutContent={chatbotMessages.isStreamingWithoutContent}
-                  />
-                </MessageBox>
+                ))}
               </ChatbotContent>
               <ChatbotFooter
                 style={{
@@ -332,14 +362,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   <MessageBar
                     onSendMessage={(message) => {
                       if (typeof message === 'string') {
-                        chatbotMessages.handleMessageSend(message);
+                        // Send to all instances
+                        messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message));
                         setLastInput(message);
                       }
                     }}
-                    handleStopButton={chatbotMessages.handleStopStreaming}
+                    handleStopButton={() => {
+                      // Stop all instances
+                      messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
+                    }}
                     hasAttachButton={false}
-                    isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                    hasStopButton={chatbotMessages.isLoading}
+                    isSendButtonDisabled={Array.from(disabledStates.values()).some(
+                      (disabled) => disabled,
+                    )}
+                    hasStopButton={Array.from(loadingStates.values()).some((loading) => loading)}
                     data-testid="chatbot-message-bar"
                     onAttach={async (acceptedFiles, fileRejections, event) => {
                       try {
