@@ -17,6 +17,10 @@ const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
 
   const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(
     async (opts: APIOptions) => {
+      if (!apiAvailable) {
+        return Promise.reject(new NotReadyError('API not yet available'));
+      }
+
       // if (getMaaSModelsExtension.length > 0) {
       //   const extensionFn = getMaaSModelsExtension[0].properties.getMaaSModels;
       //   return extensionFn().then((fn) => fn(opts));
