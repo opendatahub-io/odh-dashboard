@@ -12,6 +12,7 @@ import {
   ActionListItem,
   ActionListGroup,
   Bullseye,
+  Icon,
   Spinner,
   FormHelperText,
   HelperText,
@@ -20,6 +21,8 @@ import {
   Content,
   ContentVariants,
   Alert,
+  FlexItem,
+  Flex,
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -30,7 +33,10 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
+import { ProjectObjectType, typedBackgroundColor } from '#~/concepts/design/utils.ts';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon.tsx';
 import SubjectNameTypeaheadSelect from './components/SubjectNameTypeaheadSelect';
+import ManageRolesTable from './manageRoles/ManageRolesTable';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
 
 const ProjectPermissionsAssignRolesForm: React.FC = () => {
@@ -134,7 +140,36 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
             >
               {isManageMode ? (
                 <Content component={ContentVariants.p} data-testid="assign-roles-subject-readonly">
-                  {subjectName}
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    <FlexItem>
+                      <Bullseye
+                        style={{
+                          background: typedBackgroundColor(
+                            subjectKind === 'user'
+                              ? ProjectObjectType.user
+                              : ProjectObjectType.group,
+                          ),
+                          borderRadius: 14,
+                          width: 28,
+                          height: 28,
+                        }}
+                      >
+                        <Icon size="lg">
+                          <TypedObjectIcon
+                            resourceType={
+                              subjectKind === 'user'
+                                ? ProjectObjectType.user
+                                : ProjectObjectType.group
+                            }
+                          />
+                        </Icon>
+                      </Bullseye>
+                    </FlexItem>
+                    <FlexItem>{subjectName}</FlexItem>
+                  </Flex>
                 </Content>
               ) : (
                 <>
@@ -167,6 +202,11 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
               )}
             </FormGroup>
           </FormSection>
+          <ManageRolesTable
+            subjectKind={subjectKind}
+            subjectName={subjectName}
+            existingSubjectNames={existingSubjectNames}
+          />
         </Form>
       </PageSection>
       <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>

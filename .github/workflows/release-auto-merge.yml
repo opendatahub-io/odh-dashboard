@@ -2,6 +2,21 @@ name: Sync Main to ODH Release
 
 on:
   workflow_dispatch:
+    inputs:
+      target_commit:
+        description: 'Specific commit SHA to merge (if empty, merges latest main)'
+        required: false
+        default: ''
+        type: string
+      bump_version:
+        description: 'Bump z-stream version after merge (e.g., v3.0.1 → v3.0.2)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   sync:
@@ -15,34 +30,179 @@ jobs:
           fetch-depth: 0
           # Uses automatic GITHUB_TOKEN - no manual secrets needed!
 
-      - name: Merge main into odh-release
+      - name: Determine merge target
+        id: target
+        run: |
+          TARGET_COMMIT="${{ github.event.inputs.target_commit }}"
+          
+          if [[ -n "$TARGET_COMMIT" ]]; then
+            # Validate it looks like a SHA
+            if [[ "$TARGET_COMMIT" =~ ^[a-f0-9]{40}$ ]]; then
+              echo "Using provided commit SHA: $TARGET_COMMIT"
+              echo "ref=$TARGET_COMMIT" >> $GITHUB_OUTPUT
+              echo "description=commit $TARGET_COMMIT" >> $GITHUB_OUTPUT
+              echo "short_sha=${TARGET_COMMIT:0:7}" >> $GITHUB_OUTPUT
+            else
+              echo "ERROR: target_commit must be a full 40-character SHA, got: $TARGET_COMMIT"
+              exit 1
+            fi
+          else
+            echo "No target_commit provided, using origin/main"
+            echo "ref=origin/main" >> $GITHUB_OUTPUT
+            echo "description=main" >> $GITHUB_OUTPUT
+            echo "short_sha=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Sync main into odh-release
+        id: sync
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
+          
+          MERGE_REF="${{ steps.target.outputs.ref }}"
+          MERGE_DESC="${{ steps.target.outputs.description }}"
 
-          # Attempt merge, handle .env conflicts by keeping odh-release version
-          if git merge origin/main -m "Auto-merge main into odh-release"; then
+          # Check if there are any changes to merge
+          if git diff --quiet HEAD.."$MERGE_REF" 2>/dev/null; then
+            echo "No changes to merge - odh-release is already up to date with $MERGE_DESC"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+
+          # Attempt merge, handle known conflicts by keeping odh-release version
+          if git merge "$MERGE_REF" -m "Auto-merge $MERGE_DESC into odh-release"; then
             echo "Merge completed successfully"
           else
             echo "Merge conflict detected, resolving..."
             
-            # Check if frontend/.env has conflicts and resolve by keeping ours (odh-release)
-            if git diff --name-only --diff-filter=U | grep -q "frontend/.env"; then
-              echo "Resolving frontend/.env conflict - keeping odh-release version"
-              git checkout --ours frontend/.env
-              git add frontend/.env
-            fi
+            # Files/patterns to resolve by keeping odh-release version (ours)
+            # These are release-specific configs that differ between main and odh-release
+            KEEP_OURS_PATTERNS=(
+              "frontend/.env"
+              ".tekton/"
+              "manifests/modular-architecture/params.env"
+              "manifests/odh/params.env"
+            )
+            
+            # Get list of conflicted files
+            CONFLICTED_FILES=$(git diff --name-only --diff-filter=U)
+            
+            # Resolve known conflicts by keeping odh-release version
+            for pattern in "${KEEP_OURS_PATTERNS[@]}"; do
+              while IFS= read -r file; do
+                if [[ -n "$file" && "$file" == *"$pattern"* ]]; then
+                  echo "Resolving $file conflict - keeping odh-release version"
+                  git checkout --ours "$file"
+                  git add "$file"
+                fi
+              done <<< "$CONFLICTED_FILES"
+            done
             
             # Check for any remaining unresolved conflicts
-            if git diff --name-only --diff-filter=U | grep -v "frontend/.env" | grep -q .; then
-              echo "ERROR: Unresolved conflicts in files other than frontend/.env:"
-              git diff --name-only --diff-filter=U
+            REMAINING=$(git diff --name-only --diff-filter=U)
+            if [[ -n "$REMAINING" ]]; then
+              echo "ERROR: Unresolved conflicts in unexpected files:"
+              echo "$REMAINING"
               exit 1
             fi
             
             # Complete the merge
-            git commit -m "Auto-merge main into odh-release (resolved .env conflict)"
+            git commit -m "Auto-merge $MERGE_DESC into odh-release (resolved conflicts)"
           fi
 
+          # Push directly to odh-release
           git push origin odh-release
+          echo "Synced $MERGE_DESC to odh-release"
+
+      - name: Create version bump branch
+        id: branch
+        if: ${{ steps.sync.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
+        run: |
+          # Create unique branch name with timestamp
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA="${{ steps.target.outputs.short_sha }}"
+          if [[ -n "$SHORT_SHA" ]]; then
+            BRANCH_NAME="version-bump-${SHORT_SHA}-${TIMESTAMP}"
+          else
+            BRANCH_NAME="version-bump-${TIMESTAMP}"
+          fi
+          
+          echo "Creating branch: $BRANCH_NAME"
+          git checkout -b "$BRANCH_NAME"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Bump z-stream version
+        id: version
+        if: ${{ steps.sync.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
+        run: |
+          echo "Bumping z-stream version..."
+          
+          # Read current version from frontend/.env
+          CURRENT_VERSION=$(grep "^INTERNAL_DASHBOARD_VERSION=" frontend/.env | cut -d'=' -f2)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Parse version (expected format: vX.Y.Z)
+          if [[ ! "$CURRENT_VERSION" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "ERROR: Could not parse version '$CURRENT_VERSION'. Expected format: vX.Y.Z"
+            exit 1
+          fi
+          
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          
+          # Increment z-stream (patch) by 1
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # Update frontend/.env
+          sed -i "s/^INTERNAL_DASHBOARD_VERSION=.*/INTERNAL_DASHBOARD_VERSION=${NEW_VERSION}/" frontend/.env
+          echo "Updated frontend/.env"
+          
+          # Update manifests/odh/params.env (odh-dashboard-image)
+          sed -i "s|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:.*|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:${NEW_VERSION}-odh|" manifests/odh/params.env
+          echo "Updated manifests/odh/params.env"
+          
+          # Update manifests/modular-architecture/params.env (model-registry-ui-image, gen-ai-ui-image, maas-ui-image)
+          sed -i "s|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:.*|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
+          sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
+          sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
+          echo "Updated manifests/modular-architecture/params.env"
+          
+          # Commit version bump
+          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env
+          git commit -m "Bump version to ${NEW_VERSION}"
+          echo "Version bump committed"
+
+      - name: Push branch and create version bump PR
+        if: ${{ steps.sync.outputs.has_changes == 'true' && github.event.inputs.bump_version == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH_NAME="${{ steps.branch.outputs.branch_name }}"
+          NEW_VERSION="${{ steps.version.outputs.new_version }}"
+          
+          # Push the branch
+          git push origin "$BRANCH_NAME"
+          
+          # Create the PR
+          gh pr create \
+            --base odh-release \
+            --head "$BRANCH_NAME" \
+            --title "Bump version to ${NEW_VERSION}" \
+            --body "## Summary
+
+          - Bump version to ${NEW_VERSION}
+
+          ## Files updated
+          - \`frontend/.env\`
+          - \`manifests/odh/params.env\`
+          - \`manifests/modular-architecture/params.env\`
+
+          ---
+          *This PR was automatically created by the release-auto-merge workflow.*"

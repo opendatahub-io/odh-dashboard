@@ -14,41 +14,51 @@ import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app
 import { generateMCPServerConfig } from '~/app/utilities';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import {
+  useChatbotConfigStore,
+  selectSystemInstruction,
+  selectSelectedModel,
+  selectSelectedMcpServerIds,
+} from '~/app/Chatbot/store';
 
 interface ViewCodeModalProps {
   isOpen: boolean;
   onToggle: () => void;
+  configId: string;
   input: string;
-  model: string;
-  systemInstruction?: string;
   files: FileModel[];
   isRagEnabled?: boolean;
-  selectedMcpServerIds?: string[];
   mcpServers?: MCPServerFromAPI[];
   mcpServerTokens?: Map<string, TokenInfo>;
-  toolSelections?: (ns: string, url: string) => string[] | undefined;
   namespace?: string;
 }
 
 // Stable default values to prevent unnecessary re-renders
-const EMPTY_ARRAY: string[] = [];
 const EMPTY_MCP_SERVERS: MCPServerFromAPI[] = [];
 const EMPTY_TOKEN_MAP = new Map<string, TokenInfo>();
 
 const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   isOpen,
   onToggle,
+  configId,
   input,
-  model,
-  systemInstruction,
   files,
   isRagEnabled = false,
-  selectedMcpServerIds = EMPTY_ARRAY,
   mcpServers = EMPTY_MCP_SERVERS,
   mcpServerTokens = EMPTY_TOKEN_MAP,
-  toolSelections,
   namespace,
 }) => {
+  // Get config values from Zustand
+  const model = useChatbotConfigStore(selectSelectedModel(configId));
+  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+
+  // Get tool selections callback
+  const toolSelections = React.useCallback(
+    (ns: string, url: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, ns, url),
+    [configId],
+  );
   const [code, setCode] = React.useState<string>('');
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>('');
@@ -85,7 +95,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         stream: false,
         mcp_servers: mcpServersToUse.map((server) => {
           const config = generateMCPServerConfig(server, mcpServerTokens);
-          if (namespace && toolSelections) {
+          if (namespace) {
             const savedTools = toolSelections(namespace, server.url);
             if (savedTools !== undefined) {
               config.allowed_tools = savedTools;

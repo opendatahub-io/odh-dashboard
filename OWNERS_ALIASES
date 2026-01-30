@@ -148,6 +148,21 @@ aliases:
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
+    
+  # Notebooks
+  notebooks-approvers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+  notebooks-reviewers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+    - caponetto
+    - jenny-s51
+    - thaorell
 
   # NIM / Ecosystem Engineering
   nim-serving-approvers:

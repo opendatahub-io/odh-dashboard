@@ -10,3 +10,5 @@ export const DEFAULT_ROLE_DESCRIPTIONS: Partial<Record<string, string>> = {
   'ClusterRole:admin': 'Edit the project and manage user access',
   'ClusterRole:edit': 'View and edit the project components',
 };
+
+export const DEFAULT_CLUSTER_ROLE_NAMES: string[] = ['admin', 'edit'];
