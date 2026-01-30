@@ -25,7 +25,7 @@ import (
 
 const (
 	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
+	PathPrefix      = "/autorag"
 	ApiPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
 	UserPath        = ApiPathPrefix + "/user"

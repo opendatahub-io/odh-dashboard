@@ -1,7 +1,7 @@
 import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
-const ModArchNavIcon = createIcon({
-  name: 'ModArchNavIcon',
+const AutoRagNavIcon = createIcon({
+  name: 'AutoRagNavIcon',
   width: 32,
   height: 32,
   svgPath:
@@ -10,4 +10,4 @@ const ModArchNavIcon = createIcon({
   yOffset: 0,
 });
 
-export default ModArchNavIcon;
+export default AutoRagNavIcon;

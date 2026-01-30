@@ -4,40 +4,28 @@ import type {
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const MOD_ARCH = 'mod-arch-module';
+const PLUGIN_AUTORAG = 'autorag';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: MOD_ARCH,
+      id: PLUGIN_AUTORAG,
       requiredComponents: [],
-      featureFlags: ['modArchModule'], // Todo: You need to add this feature flag.
-    },
-  },
-  {
-    type: 'app.navigation/section',
-    flags: {
-      required: [MOD_ARCH],
-    },
-    properties: {
-      id: 'mod-arch',
-      title: 'Modular Architecture Component',
-      group: '7_mod_arch_studio',
-      iconRef: () => import('./ModArchNavIcon'),
+      featureFlags: ['autorag'], // Todo: You need to add this feature flag.
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MOD_ARCH],
+      required: [PLUGIN_AUTORAG],
     },
     properties: {
-      id: 'mod-arch-view',
-      title: 'Modular Architecture',
-      href: '/mod-arch/main-view',
-      section: 'mod-arch',
-      path: '/mod-arch/main-view/*',
+      id: 'autorag',
+      title: 'AutoRAG',
+      href: '/gen-ai-studio/autorag',
+      section: 'gen-ai-studio',
+      path: '/gen-ai-studio/autorag/*',
       label: 'Tech Preview',
     },
   },
@@ -47,8 +35,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [],
     },
     properties: {
-      path: '/mod-arch/main-view/*',
-      component: () => import('./ModArchWrapper'),
+      path: '/gen-ai-studio/autorag/*',
+      component: () => import('./AutoRagWrapper'),
     },
   },
 ];
