@@ -6,7 +6,7 @@ export type AIAssetsTabExtension = Extension<
   {
     id: string;
     title: string;
-    component: CodeRef<ComponentType>;
+    component: CodeRef<ComponentType<{ children?: React.ReactNode }>>;
     label?: string; // Optional label like "Tech Preview"
   }
 >;
