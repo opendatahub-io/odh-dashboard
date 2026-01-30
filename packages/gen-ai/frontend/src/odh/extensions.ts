@@ -14,7 +14,6 @@ import {
 import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
-const MODEL_AS_SERVICE = 'model-as-service';
 const GUARDRAILS = 'guardrails';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
@@ -24,14 +23,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: PLUGIN_GEN_AI,
       requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
       featureFlags: ['genAiStudio'],
-    },
-  },
-  {
-    type: 'app.area',
-    properties: {
-      id: MODEL_AS_SERVICE,
-      reliantAreas: [PLUGIN_GEN_AI],
-      featureFlags: ['modelAsService'],
     },
   },
   {
