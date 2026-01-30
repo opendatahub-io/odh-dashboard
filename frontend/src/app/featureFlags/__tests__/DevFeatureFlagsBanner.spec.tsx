@@ -88,15 +88,6 @@ describe('DevFeatureFlagsBanner', () => {
     // Test Active tab
     expect(result.getByTestId('activeFlagTab')).toBeInTheDocument();
 
-    // Check temp dev flags (disableProjectScoped is on by default)
-    expect(result.getByTestId('disableProjectScoped-checkbox')).toBeChecked();
-
-    // Click a temporary dev flag
-    act(() => {
-      result.getByTestId('disableProjectScoped-checkbox').click();
-    });
-    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableProjectScoped', false);
-
     // Click on Legacy tab
     act(() => {
       result.getByTestId('legacyFlagTab').click();
@@ -161,10 +152,8 @@ describe('DevFeatureFlagsBanner', () => {
     act(() => result.getByTestId('reset-feature-flags-button').click());
     expect(resetFn).toHaveBeenCalled();
 
-    // Verify total number of flag changes
-    expect(setFeatureFlagFn).toHaveBeenCalledTimes(5);
+    expect(setFeatureFlagFn).toHaveBeenCalledTimes(4);
     expect(setFeatureFlagFn.mock.calls).toEqual([
-      ['disableProjectScoped', false],
       ['disableHome', false],
       ['disableProjects', true],
       ['disableModelServing', true],
