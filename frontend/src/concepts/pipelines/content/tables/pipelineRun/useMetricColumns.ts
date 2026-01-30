@@ -1,4 +1,3 @@
-import React from 'react';
 import { useGetArtifactsByRuns } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
 import { ArtifactType, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { getArtifactProperties } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
@@ -6,53 +5,15 @@ import { ArtifactProperty } from '#~/concepts/pipelines/content/pipelinesDetails
 import { RunWithMetrics } from '#~/concepts/pipelines/content/tables/pipelineRun/types';
 import { useMlmdContextsByType } from '#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
 import { MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
-import { getMetricsColumnsLocalStorageKey } from './utils';
 
-export const useMetricColumnNames = (
-  metricsNames: Set<string>,
-  experimentId?: string,
-): string[] => {
-  const metricsColumnsLocalStorageKey = getMetricsColumnsLocalStorageKey(experimentId);
-  const metricsColumnsLocalStorageItem = localStorage.getItem(metricsColumnsLocalStorageKey) ?? '';
-  const storedMetricsColumnNames: string[] | undefined = metricsColumnsLocalStorageItem
-    ? JSON.parse(metricsColumnsLocalStorageItem)
-    : undefined;
-  const [firstDefaultMetricColumn, secondDefaultMetricColumn] = [...metricsNames];
-
-  // Defaults include at least 1 and no more than 2 metrics.
-  const defaultMetricsColumnNames = React.useMemo(
-    () => [
-      ...(firstDefaultMetricColumn ? [firstDefaultMetricColumn] : []),
-      ...(secondDefaultMetricColumn ? [secondDefaultMetricColumn] : []),
-    ],
-    [firstDefaultMetricColumn, secondDefaultMetricColumn],
-  );
-  const metricsColumnNames = storedMetricsColumnNames ?? defaultMetricsColumnNames;
-
-  // Set default metric columns in localStorage when no prior stored
-  // columns exist and at least 1 metric exists to use as a default.
-  React.useEffect(() => {
-    if (
-      metricsColumnsLocalStorageKey &&
-      !storedMetricsColumnNames &&
-      defaultMetricsColumnNames.length
-    ) {
-      localStorage.setItem(
-        metricsColumnsLocalStorageKey,
-        JSON.stringify(defaultMetricsColumnNames),
-      );
-    }
-  }, [defaultMetricsColumnNames, metricsColumnsLocalStorageKey, storedMetricsColumnNames]);
-
-  return metricsColumnNames;
-};
-
-export const useMetricColumns = (
+/**
+ * Hook to fetch metrics data for pipeline runs.
+ * Column visibility management is handled separately by useManageColumns.
+ */
+export const useMetricsData = (
   runs: PipelineRunKF[],
-  experimentId?: string,
 ): {
   runs: RunWithMetrics[];
-  metricsColumnNames: string[];
   runArtifactsLoaded: boolean;
   contextsError: Error | undefined;
   runArtifactsError: Error | undefined;
@@ -85,11 +46,8 @@ export const useMetricColumns = (
     }, []),
   }));
 
-  const metricsColumnNames = useMetricColumnNames(metricsNames, experimentId);
-
   return {
     runs: runsWithMetrics,
-    metricsColumnNames,
     runArtifactsLoaded,
     runArtifactsError,
     contextsError,
