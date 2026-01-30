@@ -405,18 +405,19 @@ export const getModelRegistryDatabaseConfig = (
 
     try {
       const registry = JSON.parse(result.stdout);
-      const mysqlConfig = registry.spec?.mysql || {};
+      // Prefer Postgres config (default), fall back to MySQL
+      const dbConfig = registry.spec?.postgres || registry.spec?.mysql || {};
 
-      cy.log('Retrieved ModelRegistry database configuration:', mysqlConfig);
+      cy.log('Retrieved ModelRegistry database configuration:', dbConfig);
 
       return cy.wrap({
-        host: mysqlConfig.host || '',
-        port: mysqlConfig.port || 0,
-        database: mysqlConfig.database || '',
-        username: mysqlConfig.username || '',
+        host: dbConfig.host || '',
+        port: dbConfig.port || 0,
+        database: dbConfig.database || '',
+        username: dbConfig.username || '',
         passwordSecret: {
-          name: mysqlConfig.passwordSecret?.name || '',
-          key: mysqlConfig.passwordSecret?.key || '',
+          name: dbConfig.passwordSecret?.name || '',
+          key: dbConfig.passwordSecret?.key || '',
         },
       });
     } catch (error) {
