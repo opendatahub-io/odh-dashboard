@@ -9,9 +9,11 @@ import {
   Title,
   ToolbarItem,
 } from '@patternfly/react-core';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { AIModel } from '~/app/types';
 import { chatbotConfigurationColumns } from './columns';
 import ChatbotConfigurationTableRow from './ChatbotConfigurationTableRow';
+import { GuardrailsUnavailableAlert } from './GuardrailsUnavailableAlert';
 
 type ChatbotConfigurationTableProps = {
   allModels: AIModel[];
@@ -19,6 +21,9 @@ type ChatbotConfigurationTableProps = {
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
   maxTokensMap: Map<string, number | undefined>;
   onMaxTokensChange: (modelName: string, value: number | undefined) => void;
+  enableGuardrails?: boolean;
+  setEnableGuardrails?: React.Dispatch<React.SetStateAction<boolean>>;
+  guardrailsAvailable: boolean;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
@@ -27,7 +32,11 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   setSelectedModels,
   maxTokensMap,
   onMaxTokensChange,
+  guardrailsAvailable,
 }) => {
+  // Gate all guardrails UI behind the guardrails feature flag
+  const guardrailsEnabled = useGuardrailsEnabled();
+
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
     selectedModels,
@@ -75,6 +84,11 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
 
   return (
     <Stack hasGutter>
+      {guardrailsEnabled && !guardrailsAvailable && (
+        <StackItem>
+          <GuardrailsUnavailableAlert />
+        </StackItem>
+      )}
       <StackItem>
         <Title headingLevel="h2" size="md">
           Available models

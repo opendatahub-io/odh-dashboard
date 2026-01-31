@@ -5,6 +5,12 @@ import userEvent from '@testing-library/user-event';
 import ChatbotConfigurationTable from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable';
 import { AIModel } from '~/app/types';
 
+// Mock the useGuardrailsEnabled hook
+jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(() => false),
+}));
+
 jest.mock('mod-arch-shared', () => ({
   ...jest.requireActual('mod-arch-shared'),
   useCheckboxTableBase: jest.fn((allData, selectedData, setSelectedData, getKey) => ({
@@ -69,6 +75,7 @@ describe('ChatbotConfigurationTable', () => {
     setSelectedModels: jest.fn(),
     maxTokensMap: new Map<string, number | undefined>(),
     onMaxTokensChange: jest.fn(),
+    guardrailsAvailable: false,
   };
 
   beforeEach(() => {

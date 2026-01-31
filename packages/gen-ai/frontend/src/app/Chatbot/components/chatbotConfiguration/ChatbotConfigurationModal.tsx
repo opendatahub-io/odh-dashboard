@@ -9,6 +9,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useFetchGuardrailsAvailable from '~/app/hooks/useFetchGuardrailsAvailable';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
@@ -42,6 +43,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
+  const { guardrailsAvailable } = useFetchGuardrailsAvailable();
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
@@ -242,6 +244,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             setSelectedModels={setSelectedModels}
             maxTokensMap={maxTokensMap}
             onMaxTokensChange={handleMaxTokensChange}
+            guardrailsAvailable={guardrailsAvailable}
           />
         )}
       </ModalBody>
