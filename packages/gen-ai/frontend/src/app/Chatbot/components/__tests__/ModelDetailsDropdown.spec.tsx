@@ -5,7 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { AIModel, LlamaModel, MaaSModel } from '~/app/types';
+import { AIModel, LlamaModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),

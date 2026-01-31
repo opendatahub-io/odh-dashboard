@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import MaaSModelTableRowEndpoint from '~/app/AIAssets/components/MaaSModelTableRowEndpoint';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 

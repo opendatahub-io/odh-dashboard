@@ -6,11 +6,13 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restCREATE,
+  assembleModArchBody,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { type APIKey } from '~/app/types/api-key';
 
-/** GET /api/v1/api-keys - Fetch the list of api keys */
+/** GET /api/v1/api-keys - Fetch the list of api keys (metadata only, not the actual token values) */
 export const getApiKeys =
   (hostPath = '') =>
   (opts: APIOptions): Promise<APIKey[]> =>
@@ -65,6 +67,41 @@ export const deleteAllApiKeys =
       restDELETE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`, {}, {}, opts),
     ).then((response) => {
       if (isModArchResponse<void>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export type APIKeyCreateRequest = {
+  name?: string;
+  description?: string;
+  expiration?: string;
+};
+export type APIKeyCreateResponse = {
+  token: string;
+  expieration: string;
+  expiresAt: number;
+  jti?: string;
+  name?: string;
+  description?: string;
+};
+/** POST /api/v1/api-key - Create a new API key
+ * @param apiKey - Optional details to set for the new API key
+ * @returns The created API key details (this is the only way to get the token value as of now)
+ */
+export const createAPIKey =
+  (hostPath = '') =>
+  (opts: APIOptions, apiKey: APIKeyCreateRequest): Promise<APIKeyCreateResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-key`,
+        assembleModArchBody(apiKey),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<APIKeyCreateResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

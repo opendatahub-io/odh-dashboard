@@ -1,5 +1,5 @@
 import { SortableData } from 'mod-arch-shared';
-import { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 
 export const maasModelColumns: SortableData<MaaSModel>[] = [
   {

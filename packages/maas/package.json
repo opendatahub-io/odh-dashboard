@@ -39,7 +39,8 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/llmd-serving": "*"
+    "@odh-dashboard/llmd-serving": "*",
+    "@odh-dashboard/gen-ai": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
