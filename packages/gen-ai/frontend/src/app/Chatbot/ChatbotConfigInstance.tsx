@@ -10,6 +10,7 @@ import {
   selectStreamingEnabled,
   selectSelectedModel,
   selectSelectedMcpServerIds,
+  selectCurrentVectorStoreId,
 } from './store';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { sampleWelcomePrompts } from './const';
@@ -19,7 +20,6 @@ interface ChatbotConfigInstanceProps {
   username?: string;
   selectedSourceSettings: ChatbotSourceSettings | null;
   isRawUploaded: boolean;
-  currentVectorStoreId: string | null;
   mcpServers: MCPServerFromAPI[];
   mcpServerStatuses: Map<string, ServerStatusInfo>;
   mcpServerTokens: Map<string, TokenInfo>;
@@ -33,7 +33,6 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   username,
   selectedSourceSettings,
   isRawUploaded,
-  currentVectorStoreId,
   mcpServers,
   mcpServerStatuses,
   mcpServerTokens,
@@ -46,6 +45,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+  const currentVectorStoreId = useChatbotConfigStore(selectCurrentVectorStoreId(configId));
 
   const getToolSelections = React.useCallback(
     (namespaceName: string, serverUrl: string) =>

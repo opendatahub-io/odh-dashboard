@@ -196,6 +196,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           temperature: sourceConfig.temperature,
           isStreamingEnabled: sourceConfig.isStreamingEnabled,
           selectedModel: sourceConfig.selectedModel,
+          currentVectorStoreId: sourceConfig.currentVectorStoreId,
           guardrailsEnabled: sourceConfig.guardrailsEnabled,
           selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
           mcpToolSelections: mcpToolSelectionsCopy,
@@ -270,6 +271,15 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           false,
           'updateSelectedModel',
         );
+      },
+
+      updateCurrentVectorStoreId: (id: string, value: string) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.currentVectorStoreId = value;
+          }
+        });
       },
 
       updateGuardrailsEnabled: (id: string, value: boolean) => {

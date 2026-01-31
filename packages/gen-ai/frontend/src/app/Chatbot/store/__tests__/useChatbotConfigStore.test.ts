@@ -60,6 +60,17 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations.default?.guardrailsEnabled).toBe(true);
     });
 
+    it('should update currentVectorStoreId', () => {
+      const vectorStoreId = 'test-vector-store-1';
+
+      act(() => {
+        useChatbotConfigStore.getState().updateCurrentVectorStoreId('default', vectorStoreId);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.currentVectorStoreId).toBe(vectorStoreId);
+    });
+
     it('should update selectedMcpServerIds', () => {
       const serverIds = ['server-1', 'server-2', 'server-3'];
 

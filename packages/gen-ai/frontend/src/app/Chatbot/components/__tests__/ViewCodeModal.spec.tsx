@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import ViewCodeModal from '~/app/Chatbot/components/ViewCodeModal';
+import ViewCodeModal, { ViewCodeModalProps } from '~/app/Chatbot/components/ViewCodeModal';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -80,7 +80,7 @@ describe('ViewCodeModal', () => {
     },
   ];
 
-  const defaultProps = {
+  const defaultProps: ViewCodeModalProps = {
     isOpen: true,
     onToggle: jest.fn(),
     configId: 'default',
@@ -465,5 +465,74 @@ describe('ViewCodeModal', () => {
     // Verify that tools was not included in the request
     const callArg = mockExportCode.mock.calls[0][0];
     expect(callArg.tools).toBeUndefined();
+  });
+
+  it('uses the correct vector store based on currentVectorStoreId', async () => {
+    const secondVectorStore = {
+      id: 'vs-2',
+      name: 'second-vector-store',
+      object: 'vector_store',
+      created_at: 1609459200,
+      last_active_at: 1609459200,
+      metadata: { provider_id: 'second-provider' },
+      status: 'completed' as const,
+      file_counts: {
+        cancelled: 0,
+        completed: 1,
+        failed: 0,
+        in_progress: 0,
+        total: 1,
+      },
+      usage_bytes: 2048,
+    };
+
+    // Mock multiple vector stores
+    mockUseFetchVectorStores.mockReturnValue([
+      [mockVectorStore, secondVectorStore],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    setupMockStore({ currentVectorStoreId: 'vs-2' });
+
+    // Pass the second vector store ID
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vector_store: {
+            name: 'second-vector-store',
+            provider_id: 'second-provider',
+          },
+        }),
+      );
+    });
+  });
+
+  it('falls back to first vector store when currentVectorStoreId is not found', async () => {
+    setupMockStore({ currentVectorStoreId: 'non-existent-id' });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vector_store: {
+            name: 'test-vector-store',
+            provider_id: 'test-provider',
+          },
+        }),
+      );
+    });
   });
 });

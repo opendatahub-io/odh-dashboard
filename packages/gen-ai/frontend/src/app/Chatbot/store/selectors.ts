@@ -39,5 +39,11 @@ export const selectMcpToolSelections =
   (state: ChatbotConfigStore): McpToolSelectionsMap =>
     state.configurations[configId]?.mcpToolSelections ?? {};
 
+export const selectCurrentVectorStoreId =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.currentVectorStoreId ??
+    DEFAULT_CONFIGURATION.currentVectorStoreId;
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;

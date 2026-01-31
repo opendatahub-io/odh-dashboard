@@ -151,6 +151,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // File management hook for displaying uploaded files
   const fileManagement = useFileManagement({
+    configId: primaryConfigId,
     onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
   });
@@ -282,6 +283,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   return (
     <>
       <ChatbotSourceSettingsModal
+        configId={primaryConfigId}
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={sourceManagement.handleModalClose}
         onSubmitSettings={sourceManagement.handleSourceSettingsSubmit}
@@ -333,7 +335,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     username={username}
                     selectedSourceSettings={sourceManagement.selectedSourceSettings}
                     isRawUploaded={sourceManagement.isRawUploaded}
-                    currentVectorStoreId={fileManagement.currentVectorStoreId}
                     mcpServers={mcpServers}
                     mcpServerStatuses={mcpServerStatuses}
                     mcpServerTokens={mcpServerTokens}
