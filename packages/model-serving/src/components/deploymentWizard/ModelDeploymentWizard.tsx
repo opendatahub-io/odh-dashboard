@@ -18,7 +18,7 @@ import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldApply } from './useWizardFieldApply';
-import type { InitialWizardFormData } from './types';
+import { InitialWizardFormData, WizardStepTitle } from './types';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
@@ -209,7 +209,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           footer={wizardFooter}
           startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
         >
-          <WizardStep name="Model details" id="source-model-step">
+          <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
             {wizardState.loaded.modelSourceLoaded ? (
               <ModelSourceStepContent
                 wizardState={wizardState}
@@ -220,7 +220,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             )}
           </WizardStep>
           <WizardStep
-            name="Model deployment"
+            name={WizardStepTitle.MODEL_DEPLOYMENT}
             id="model-deployment-step"
             isDisabled={!validation.isModelSourceStepValid}
           >
@@ -234,7 +234,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             )}
           </WizardStep>
           <WizardStep
-            name="Advanced settings"
+            name={WizardStepTitle.ADVANCED_SETTINGS}
             id="advanced-options-step"
             isDisabled={
               !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
@@ -251,7 +251,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             )}
           </WizardStep>
           <WizardStep
-            name="Review"
+            name={WizardStepTitle.REVIEW}
             id="summary-step"
             isDisabled={
               !validation.isModelSourceStepValid ||
@@ -260,7 +260,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             }
           >
             {wizardState.loaded.summaryLoaded ? (
-              <ReviewStepContent wizardState={wizardState} projectName={currentProjectName} />
+              <ReviewStepContent
+                wizardState={wizardState}
+                projectName={currentProjectName}
+                externalData={externalData}
+              />
             ) : (
               <Spinner data-testid="spinner" />
             )}

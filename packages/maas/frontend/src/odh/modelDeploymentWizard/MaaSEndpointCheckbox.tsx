@@ -112,6 +112,27 @@ const getTierDropdownLabel = (key: TierDropdownOption): string => {
   return option?.label ?? 'All tiers';
 };
 
+const getMaaSTierLabel = (
+  value: MaaSTierValue,
+  externalData?: { data: MaaSEndpointsExternalData; loaded: boolean; loadError?: Error },
+): string => {
+  const availableTiers = externalData?.data.tiers ?? [];
+  const selection = value.tiersDropdownSelection ?? 'all-tiers';
+  if (selection === 'no-tiers') {
+    return 'No tiers';
+  }
+  if (selection === 'specify-tiers') {
+    // Matching the display name of the selected tiers
+    return (
+      availableTiers
+        .filter((tier: Tier) => value.selectedTierNames?.includes(tier.name ?? ''))
+        .map((tier: Tier) => tier.displayName ?? tier.name ?? '')
+        .join(', ') || 'Tiers selected'
+    );
+  }
+  return 'All tiers';
+};
+
 //// Component ////
 
 type MaasEndpointFieldProps = {
@@ -310,4 +331,28 @@ export const MaaSEndpointFieldWizardField: MaaSEndpointsFieldType = {
   },
   component: MaasEndpointField,
   externalDataHook: useMaaSEndpointsExternalData,
+  getReviewSections: (value, _wizardState, externalData) => [
+    {
+      title: 'Advanced settings',
+      items: [
+        {
+          key: 'maas-endpoint-enabled',
+          label: 'Add as MaaS endpoint',
+          value: () => (value.isChecked ? 'Yes' : 'No'),
+        },
+        {
+          key: 'maas-tier-access',
+          label: 'MaaS tier',
+          value: () =>
+            getMaaSTierLabel(value, {
+              data: externalData ?? { tiers: [], hasViewTiersPermission: false },
+              loaded: true,
+              loadError: undefined,
+            }),
+          optional: true,
+          isVisible: () => value.isChecked,
+        },
+      ],
+    },
+  ],
 };
