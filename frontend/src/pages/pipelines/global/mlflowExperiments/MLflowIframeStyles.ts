@@ -28,8 +28,8 @@ export const MLFLOW_IFRAME_STYLES = `
   }
 
   /* Disable workspace navigation links except experiments, compare-experiments, metric, and compare-runs pages */
-  /* Allow: /experiments (ends), /experiments/, /experiments?, /compare-experiments (ends), /compare-experiments/, /compare-experiments?, /metric (ends/with params), /compare-runs (ends/with params) */
-  a[href^="#/workspaces/"]:not([href$="/experiments"]):not([href*="/experiments/"]):not([href*="/experiments?"]):not([href$="/compare-experiments"]):not([href*="/compare-experiments/"]):not([href*="/compare-experiments?"]):not([href$="/metric"]):not([href*="/metric?"]):not([href$="/compare-runs"]):not([href*="/compare-runs?"]) {
+  /* Allow: /experiments, /compare-experiments, /metric, /compare-runs, and the 404 "home page" link */
+  a[href^="#/workspaces/"]:not([data-testid="error-view-link"]):not([href$="/experiments"]):not([href*="/experiments/"]):not([href*="/experiments?"]):not([href$="/compare-experiments"]):not([href*="/compare-experiments/"]):not([href*="/compare-experiments?"]):not([href$="/metric"]):not([href*="/metric?"]):not([href$="/compare-runs"]):not([href*="/compare-runs?"]) {
     pointer-events: none !important;
     cursor: default !important;
   }
