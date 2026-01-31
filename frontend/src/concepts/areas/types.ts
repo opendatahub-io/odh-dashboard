@@ -94,6 +94,8 @@ export enum SupportedArea {
 
   /* Embed MLflow */
   EMBED_MLFLOW = 'embed-mlflow',
+
+  PIPELINE_SAMPLES = 'pipeline-samples',
 }
 
 export type SupportedAreaType = SupportedArea | string;
