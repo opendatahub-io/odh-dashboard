@@ -14,7 +14,7 @@ import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied'
 
 const title = 'Feature services';
 const description =
-  "Select a feature store to view and manage its feature services. Feature services groups features from across one or more Feature views to serve a specific model's needs for training, inference, or GenAI applications like RAG. Feature service acts as a managed API for a model, ensuring features are served consistently.";
+  'Select a feature store to view its feature services. Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.';
 
 const FeatureServices = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
