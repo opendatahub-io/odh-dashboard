@@ -29,14 +29,14 @@
     "clean": "rimraf dist",
     "cypress:server:dev": "webpack serve --color --progress --config ./config/webpack.dev.js --port 8080 --no-open",
     "cypress:server": "cd ../bff && make run PORT=9001",
-    "cypress:server:bff-mock": "cd ../bff && MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MAAS_CLIENT=true make run PORT=9001",
+    "cypress:server:bff-mock": "cd ../bff && cross-env MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MAAS_CLIENT=true make run PORT=9001",
     "cypress:open": "cypress open --project src/__tests__/cypress",
-    "cypress:open:e2e": "BASE_URL=http://localhost:4010 npm run cypress:open",
-    "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 npm run cypress:open -- ",
+    "cypress:open:e2e": "cross-env BASE_URL=http://localhost:4010 npm run cypress:open",
+    "cypress:open:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 npm run cypress:open -- ",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
-    "cypress:run:e2e": "BASE_URL=http://localhost:4010 npm run cypress:run",
-    "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 npm run cypress:run -- ",
-    "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:bff-mock\" \"PROXY_HOST=localhost PROXY_PORT=9001 npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 http://localhost:9001 && npm run cypress:run:mock\" -- "
+    "cypress:run:e2e": "cross-env BASE_URL=http://localhost:4010 npm run cypress:run",
+    "cypress:run:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 npm run cypress:run -- ",
+    "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:bff-mock\" \"cross-env PROXY_HOST=localhost PROXY_PORT=9001 npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 http://localhost:9001 && npm run cypress:run:mock\" -- "
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.13.1",
@@ -48,6 +48,7 @@
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "copy-webpack-plugin": "^12.0.2",
     "core-js": "^3.44.0",
+    "cross-env": "^10.1.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.0",
     "dotenv": "^16.5.0",

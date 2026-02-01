@@ -279,7 +279,7 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 		},
 	})
 
-	// Create mock response with proper Output structure
+	// Create mock response with proper Output structure including Usage
 	mockResponse := &responses.Response{
 		ID:        "resp_mock123",
 		Object:    "response",
@@ -288,6 +288,11 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 		Status:    "completed",
 		Metadata:  map[string]string{},
 		Output:    outputItems,
+		Usage: responses.ResponseUsage{
+			InputTokens:  10,
+			OutputTokens: 25,
+			TotalTokens:  35,
+		},
 	}
 
 	return mockResponse, nil
@@ -413,6 +418,8 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 			return
 		}
 	}
+	// Track start time for metrics
+	streamStartTime := time.Now()
 
 	// Determine response text based on whether RAG is used
 	responseText := "This is a mock response to your query: " + params.Input
@@ -714,6 +721,26 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 			"status":     "completed",
 			"created_at": 1234567890.0,
 			"output":     outputItems,
+			"usage": map[string]interface{}{
+				"input_tokens":  10,
+				"output_tokens": 25,
+				"total_tokens":  35,
+			},
+		},
+	})
+
+	// Send response.metrics event (simulates BFF metrics tracking)
+	elapsedMs := time.Since(streamStartTime).Milliseconds()
+	sendEvent(map[string]interface{}{
+		"type": "response.metrics",
+		"metrics": map[string]interface{}{
+			"latency_ms":             elapsedMs,
+			"time_to_first_token_ms": 100, // Mock TTFT
+			"usage": map[string]interface{}{
+				"input_tokens":  10,
+				"output_tokens": 25,
+				"total_tokens":  35,
+			},
 		},
 	})
 }

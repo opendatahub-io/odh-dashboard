@@ -67,9 +67,9 @@ class ChatbotPage {
     return cy.findByTestId('chatbot-message-bar');
   }
 
-  findMessageInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findMessageInput(options?: { timeout?: number }): Cypress.Chainable<JQuery<HTMLElement>> {
     // data-testid is directly on the textarea element
-    return cy.findByTestId('chatbot-message-bar');
+    return cy.findByTestId('chatbot-message-bar', options);
   }
 
   findSendButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -320,6 +320,23 @@ class ChatbotPage {
   resetChatState(): void {
     this.startNewChatIfAvailable();
     this.toggleStreaming(true);
+  }
+
+  // Metrics Section
+  findMetricsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('button', /Show metrics|Hide metrics/i) as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  expandMetrics(): void {
+    cy.contains('button', 'Show metrics').click();
+  }
+
+  verifyMetricsDisplayed(): void {
+    // Verify latency label is visible after expanding
+    cy.contains('button', 'Show metrics').click();
+    cy.get('.pf-v6-c-label').should('have.length.at.least', 1);
   }
 }
 
