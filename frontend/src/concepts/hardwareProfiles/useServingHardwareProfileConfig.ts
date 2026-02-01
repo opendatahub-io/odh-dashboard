@@ -1,5 +1,6 @@
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -10,7 +11,22 @@ export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
 ): Parameters<typeof useHardwareProfileConfig> => {
   const name = inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
-  const resources = inferenceService?.spec.predictor.model?.resources;
+
+  // Check if NIM Operator-managed
+  const isNIMManaged = inferenceService && isNIMOperatorManaged(inferenceService);
+
+  // Get resources - handle NIM Operator case
+  let resources;
+  if (isNIMManaged) {
+    // NIM Operator uses containers instead of model spec
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
+    const predictor = inferenceService.spec.predictor as any;
+    resources = predictor?.containers?.[0]?.resources;
+  } else {
+    // Regular path
+    resources = inferenceService?.spec.predictor.model?.resources;
+  }
+
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
   const namespace = inferenceService?.metadata.namespace;
