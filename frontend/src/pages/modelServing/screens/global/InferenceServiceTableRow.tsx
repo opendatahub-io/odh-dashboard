@@ -142,6 +142,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <Td dataLabel="API protocol">
           <InferenceServiceAPIProtocol
             servingRuntime={servingRuntime}
+            inferenceService={inferenceService}
             isMultiModel={false} // Always KServe (single model)
           />
         </Td>
