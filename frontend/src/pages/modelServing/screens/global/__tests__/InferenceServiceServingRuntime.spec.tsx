@@ -2,6 +2,7 @@ import * as React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -58,5 +59,29 @@ describe('InferenceServiceServingRuntime', () => {
     );
 
     await findByText('Outdated');
+  });
+
+  it('should display "NVIDIA NIM" with "Operator-managed" label for NIM Operator deployments', () => {
+    const mockInferenceService = mockInferenceServiceK8sResource({
+      name: 'test-nim-deployment',
+    });
+    // Add NIM Operator owner reference
+    mockInferenceService.metadata.ownerReferences = [
+      {
+        apiVersion: 'apps.nvidia.com/v1alpha1',
+        kind: 'NIMService',
+        name: 'test-nim-service',
+        uid: 'test-uid-123',
+        controller: true,
+        blockOwnerDeletion: true,
+      },
+    ];
+
+    const { getByText } = render(
+      <InferenceServiceServingRuntime inferenceService={mockInferenceService} />,
+    );
+
+    expect(getByText('NVIDIA NIM')).toBeVisible();
+    expect(getByText('Operator-managed')).toBeVisible();
   });
 });

@@ -116,7 +116,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
       {columnNames.includes(ColumnField.ServingRuntime) && (
         <Td dataLabel="Serving runtime">
-          <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
+          <InferenceServiceServingRuntime
+            servingRuntime={servingRuntime}
+            inferenceService={inferenceService}
+          />
         </Td>
       )}
 
