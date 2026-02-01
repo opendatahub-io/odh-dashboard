@@ -89,7 +89,10 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
                   color: !servingRuntime ? 'var(--pf-t--global--text--color--subtle)' : undefined,
                 }}
               >
-                <InferenceServiceServingRuntime servingRuntime={servingRuntime} />
+                <InferenceServiceServingRuntime
+                  servingRuntime={servingRuntime}
+                  inferenceService={inferenceService}
+                />
               </Content>
             </Content>
           </Content>
