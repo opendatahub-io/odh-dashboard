@@ -108,7 +108,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
                   </DescriptionListGroup>
                 </DescriptionList>
               </StackItem>
-              {servingRuntime && (
+              {(servingRuntime || isNIMManaged) && (
                 <StackItem>
                   <ServingRuntimeDetails project={project} obj={servingRuntime} isvc={obj} />
                 </StackItem>
