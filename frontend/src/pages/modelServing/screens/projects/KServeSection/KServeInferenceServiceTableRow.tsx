@@ -16,6 +16,10 @@ import ResourceTr from '#~/components/ResourceTr';
 import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import {
+  isNIMOperatorManaged,
+  getModelNameFromNIMInferenceService,
+} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
 
 type KServeInferenceServiceTableRowProps = {
   project?: string;
@@ -52,8 +56,17 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     inferenceServices,
   } = React.useContext(ProjectDetailsContext);
 
-  const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
+  // Check if this is a NIM Operator-managed deployment
+  const isNIMManaged = isNIMOperatorManaged(obj);
+
+  // Get framework name - either from modelFormat or extracted from NIM image
+  let frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
   const frameworkVersion = obj.spec.predictor.model?.modelFormat?.version;
+
+  if (isNIMManaged && !frameworkName) {
+    // Extract model name from NIM container image
+    frameworkName = getModelNameFromNIMInferenceService(obj) || '';
+  }
 
   const servingRuntime = servingRuntimes.find(
     (sr) => sr.metadata.name === obj.spec.predictor.model?.runtime,
