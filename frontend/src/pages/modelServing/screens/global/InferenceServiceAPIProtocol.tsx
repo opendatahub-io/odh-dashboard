@@ -1,15 +1,27 @@
 import * as React from 'react';
 import { Label, Content, ContentVariants } from '@patternfly/react-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getAPIProtocolFromServingRuntime } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimeAPIProtocol } from '#~/types';
+import { isNIMOperatorManaged } from './nimOperatorUtils';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
+  inferenceService?: InferenceServiceKind;
   isMultiModel?: boolean;
 };
 
-const InferenceServiceAPIProtocol: React.FC<Props> = ({ servingRuntime, isMultiModel }) => {
+const InferenceServiceAPIProtocol: React.FC<Props> = ({
+  servingRuntime,
+  inferenceService,
+  isMultiModel,
+}) => {
+  // Check if this is a NIM Operator-managed deployment
+  // All NVIDIA NIM models use REST API (OpenAI-compatible HTTP endpoints)
+  if (inferenceService && isNIMOperatorManaged(inferenceService)) {
+    return <Label color="yellow">{ServingRuntimeAPIProtocol.REST}</Label>;
+  }
+
   const apiProtocol =
     (servingRuntime && getAPIProtocolFromServingRuntime(servingRuntime)) ?? undefined;
 
