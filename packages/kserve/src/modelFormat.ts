@@ -1,4 +1,9 @@
 import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import {
+  isNIMOperatorManaged,
+  getModelNameFromNIMInferenceService,
+} from '@odh-dashboard/internal/pages/modelServing/screens/global/nimOperatorUtils';
 import type { KServeDeployment } from './deployments';
 
 export const extractKServeModelFormat = (
@@ -11,6 +16,18 @@ export const extractKServeModelFormat = (
       version: modelFormat.version,
     };
   }
+
+  // Check if this is a NIM Operator-managed deployment
+  if (isNIMOperatorManaged(deployment.model)) {
+    const modelName = getModelNameFromNIMInferenceService(deployment.model);
+    if (modelName) {
+      return {
+        name: modelName,
+        version: undefined,
+      };
+    }
+  }
+
   return null;
 };
 
