@@ -21,7 +21,7 @@ import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceSer
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
 import { SupportedArea } from '#~/concepts/areas/types.ts';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled.ts';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
+import { useInferenceServiceDisplayName } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -36,7 +36,8 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
 
-  const displayName = getDisplayNameFromK8sResource(inferenceService);
+  // Use the hook to get display name - handles both NIM Operator and regular deployments
+  const displayName = useInferenceServiceDisplayName(inferenceService);
 
   const { isStarting, isStopping, isStopped, isRunning, isFailed } =
     useInferenceServiceStatus(inferenceService);
