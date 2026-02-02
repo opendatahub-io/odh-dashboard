@@ -15,9 +15,18 @@ type ThemeProviderProps = {
   children: React.ReactNode;
 };
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useBrowserStorage<string>('odh.dashboard.ui.theme', 'light');
+  const [odhTheme, setOdhTheme] = useBrowserStorage<string>('odh.dashboard.ui.theme', 'light');
+  const [, setMlflowTheme] = useBrowserStorage<boolean>(
+    '_mlflow_dark_mode_toggle_enabled',
+    odhTheme === 'dark',
+  );
 
-  const contextValue = React.useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+  const setTheme = (theme: string) => {
+    setMlflowTheme(theme === 'dark');
+    setOdhTheme(theme);
+  };
+
+  const contextValue = React.useMemo(() => ({ theme: odhTheme, setTheme }), [odhTheme, setTheme]);
 
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 };

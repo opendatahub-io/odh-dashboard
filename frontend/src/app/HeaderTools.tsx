@@ -205,6 +205,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                 aria-label="light theme"
                 icon={<SunIcon />}
                 isSelected={theme === 'light'}
+                data-testid="light-theme-toggle"
                 onChange={() => {
                   setTheme('light');
                 }}
@@ -213,6 +214,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                 aria-label="dark theme"
                 icon={<MoonIcon />}
                 isSelected={theme === 'dark'}
+                data-testid="dark-theme-toggle"
                 onChange={() => {
                   setTheme('dark');
                 }}

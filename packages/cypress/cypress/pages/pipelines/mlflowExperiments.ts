@@ -65,6 +65,14 @@ class MLflowExperimentsPage {
   findEmptyState() {
     return cy.findByTestId('mlflow-no-projects-empty-state');
   }
+
+  findLightThemeToggle() {
+    return cy.findByTestId('light-theme-toggle');
+  }
+
+  findDarkThemeToggle() {
+    return cy.findByTestId('dark-theme-toggle');
+  }
 }
 
 export const mlflowExperimentsPage = new MLflowExperimentsPage();
