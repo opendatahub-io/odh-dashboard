@@ -79,7 +79,7 @@ export type APIKeyCreateRequest = {
 };
 export type APIKeyCreateResponse = {
   token: string;
-  expieration: string;
+  expiration: string;
   expiresAt: number;
   jti?: string;
   name?: string;
