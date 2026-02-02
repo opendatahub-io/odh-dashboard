@@ -22,15 +22,25 @@ import {
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
-  NIMServiceKind,
-  PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
-import { createNIMService, updateNIMService, CreateNIMServiceParams } from '#~/api';
+import {
+  createNIMService,
+  getSecret,
+  patchInferenceServiceStoppedStatus,
+  updateNIMService,
+  updatePvc,
+  useAccessReview,
+} from '#~/api';
+import type { CreateNIMServiceParams } from '#~/api';
 import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/useNIMServicesEnabled';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
+import {
+  isNIMOperatorManaged,
+  getNIMServiceName,
+} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
@@ -47,7 +57,6 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '#~/concepts/k8s/utils';
-import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
@@ -70,15 +79,13 @@ import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
-  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   MODEL_SERVING_VISIBILITY,
+  getInferenceServiceHardwareProfilePaths,
 } from '#~/concepts/hardwareProfiles/const';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
 const DEFAULT_MODEL_PATH = '/mnt/models/cache';
-// NIM Operator uses /model-store as the model path
-const NIM_OPERATOR_MODEL_PATH = '/model-store';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -135,7 +142,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const { podSpecOptionsState, validateHardwareProfileForm, applyToResource } =
     useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
       visibleIn: MODEL_SERVING_VISIBILITY,
-      paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      paths: getInferenceServiceHardwareProfilePaths(editInfo?.inferenceServiceEditInfo),
     });
 
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
@@ -239,6 +246,23 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     }
   }, [templateName, dashboardNamespace, editInfo]);
 
+  // For NIM Operator edit mode, extract image from InferenceService container
+  React.useEffect(() => {
+    if (
+      editInfo?.inferenceServiceEditInfo &&
+      isNIMOperatorManaged(editInfo.inferenceServiceEditInfo)
+    ) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
+      const predictor = editInfo.inferenceServiceEditInfo.spec.predictor as any;
+      const containerImage = predictor?.containers?.[0]?.image;
+
+      if (containerImage && !createDataServingRuntime.imageName) {
+        // Set the image name so validation passes
+        setCreateDataServingRuntime('imageName', containerImage);
+      }
+    }
+  }, [editInfo, createDataServingRuntime.imageName, setCreateDataServingRuntime]);
+
   // Extract and initialize pvcSubPath from existing serving runtime in edit mode
   React.useEffect(() => {
     const { servingRuntime } = editInfo?.servingRuntimeEditInfo || {};
@@ -291,10 +315,14 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   /**
    * Submit handler for NIM Operator mode.
-   * Creates NIMService resource - the NIM Operator will automatically create InferenceService.
+   * Creates or updates NIMService resource - the NIM Operator will automatically create/update InferenceService.
    * No ServingRuntime is needed.
    */
   const submitNIMService = async (nimPVCName: string): Promise<void> => {
+    // Check if we're editing an existing NIM Operator deployment
+    const isEditingNIMOperator =
+      editInfo?.inferenceServiceEditInfo && isNIMOperatorManaged(editInfo.inferenceServiceEditInfo);
+
     // Extract image info from the serving runtime template
     const imageRepository = createDataServingRuntime.imageName?.split(':')[0] || '';
     const imageTag = createDataServingRuntime.imageName?.split(':')[1] || 'latest';
@@ -314,16 +342,19 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       servicePort: 8000,
       tokenAuth: createDataInferenceService.tokenAuth,
       externalRoute: createDataInferenceService.externalRoute,
-      envVars: createDataInferenceService.servingRuntimeEnvVars?.filter((ev) => ev.name && ev.value) as
-        | { name: string; value: string }[]
-        | undefined,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      envVars: createDataInferenceService.servingRuntimeEnvVars?.filter(
+        (ev) => ev.name && ev.value,
+      ) as { name: string; value: string }[] | undefined,
     };
 
     // Add resources from hardware profile if available
     const { podSpecOptions } = podSpecOptionsState;
     if (podSpecOptions.resources) {
       nimServiceParams.resources = {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         limits: podSpecOptions.resources.limits as Record<string, string>,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         requests: podSpecOptions.resources.requests as Record<string, string>,
       };
     }
@@ -336,11 +367,26 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       nimServiceParams.tolerations = podSpecOptions.tolerations;
     }
 
-    // Create or update NIMService
-    // Note: For edit mode, we would need to fetch the existing NIMService first
-    // For now, we only support create mode with NIM Operator
-    await createNIMService(nimServiceParams, { dryRun: true });
-    await createNIMService(nimServiceParams, { dryRun: false });
+    if (isEditingNIMOperator) {
+      // Edit mode: Update the existing NIMService
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const nimServiceName = getNIMServiceName(editInfo.inferenceServiceEditInfo!);
+      if (!nimServiceName) {
+        throw new Error('Could not determine NIMService name from InferenceService');
+      }
+
+      // Fetch the existing NIMService
+      const { getNIMService } = await import('#~/api/k8s/nimServices');
+      const existingNIMService = await getNIMService(nimServiceName, namespace);
+
+      // Use the existing updateNIMService function with params
+      await updateNIMService(nimServiceParams, existingNIMService, { dryRun: true });
+      await updateNIMService(nimServiceParams, existingNIMService, { dryRun: false });
+    } else {
+      // Create mode: Create new NIMService
+      await createNIMService(nimServiceParams, { dryRun: true });
+      await createNIMService(nimServiceParams, { dryRun: false });
+    }
   };
 
   /**
@@ -444,13 +490,19 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         });
       }
 
-      // Choose deployment mode based on feature flag
+      // Choose deployment mode based on feature flag and edit context
+      const isEditingNIMOperator =
+        editInfo?.inferenceServiceEditInfo &&
+        isNIMOperatorManaged(editInfo.inferenceServiceEditInfo);
+
       if (nimServicesEnabled && !editInfo) {
-        // NIM Operator mode: Create NIMService only (no ServingRuntime needed)
-        // Note: Edit mode with NIM Operator is not yet supported - would need to fetch existing NIMService
+        // NIM Operator mode - Create: Create NIMService only (no ServingRuntime needed)
+        await submitNIMService(nimPVCName);
+      } else if (isEditingNIMOperator) {
+        // NIM Operator mode - Edit: Update existing NIMService
         await submitNIMService(nimPVCName);
       } else {
-        // Legacy mode: Create ServingRuntime + InferenceService
+        // Legacy mode: Create or update ServingRuntime + InferenceService
         await submitLegacyMode(nimPVCName, servingRuntimeName);
       }
     };

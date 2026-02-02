@@ -1,6 +1,7 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
-import { HardwareProfileBindingConfig, CrPathConfig } from './types';
+import { HardwareProfileFeatureVisibility, InferenceServiceKind } from '#~/k8sTypes.ts';
+import { isNIMOperatorManaged } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import { CrPathConfig, HardwareProfileBindingConfig } from './types';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';
@@ -84,4 +85,28 @@ export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
   containerResourcesPath: 'spec.predictor.model.resources',
   tolerationsPath: 'spec.predictor.tolerations',
   nodeSelectorPath: 'spec.predictor.nodeSelector',
+};
+
+/**
+ * Get hardware profile paths for an InferenceService based on whether it's NIM Operator-managed.
+ *
+ * For NIM Operator deployments, resources are in containers[0].resources instead of model.resources.
+ *
+ * @param inferenceService - The InferenceService to get paths for
+ * @returns The appropriate CrPathConfig for the InferenceService type
+ */
+export const getInferenceServiceHardwareProfilePaths = (
+  inferenceService?: InferenceServiceKind | null,
+): CrPathConfig => {
+  // Check if this is a NIM Operator-managed deployment
+  if (inferenceService && isNIMOperatorManaged(inferenceService)) {
+    return {
+      containerResourcesPath: 'spec.predictor.containers[0].resources',
+      tolerationsPath: 'spec.predictor.tolerations',
+      nodeSelectorPath: 'spec.predictor.nodeSelector',
+    };
+  }
+
+  // Default paths for regular InferenceService
+  return INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS;
 };
