@@ -261,16 +261,20 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
             'openshift.io/display-name': nameDesc.name.trim(),
           },
         },
-        spec: dbSpec.postgres
-          ? {
-              kubeRBACProxy: {},
-              postgres: dbSpec.postgres,
-            }
-          : {
-              kubeRBACProxy: {},
-              mysql: dbSpec.mysql,
-            },
+        spec: {
+          kubeRBACProxy: {},
+        },
       };
+
+      // Assign both mysql and postgres fields (one active, one null) to ensure
+      // JSON merge-patch includes the null value to clear unused database configuration.
+      // We assign them directly to bypass TypeScript's union type constraint.
+      if (data.spec) {
+        Object.assign(data.spec, {
+          postgres: dbSpec.postgres,
+          mysql: dbSpec.mysql,
+        });
+      }
 
       try {
         await updateModelRegistryBackend(mr.metadata.name, {
@@ -326,20 +330,20 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
             'openshift.io/display-name': nameDesc.name.trim(),
           },
         },
-        spec: dbSpec.postgres
-          ? {
-              kubeRBACProxy: {},
-              grpc: {},
-              rest: {},
-              postgres: dbSpec.postgres,
-            }
-          : {
-              kubeRBACProxy: {},
-              grpc: {},
-              rest: {},
-              mysql: dbSpec.mysql,
-            },
+        spec: {
+          kubeRBACProxy: {},
+          grpc: {},
+          rest: {},
+        },
       };
+
+      // Assign both mysql and postgres fields (one active, one null) to ensure
+      // JSON merge-patch includes the null value to clear unused database configuration.
+      // We assign them directly to bypass TypeScript's union type constraint.
+      Object.assign(data.spec, {
+        postgres: dbSpec.postgres,
+        mysql: dbSpec.mysql,
+      });
 
       // Add SSL configuration for external databases
       if (databaseSource === DatabaseSource.EXTERNAL && addSecureDB) {

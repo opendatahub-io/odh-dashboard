@@ -115,10 +115,13 @@ export const isValidPort = (value: string): boolean => {
  * For Default source: Returns PostgreSQL config with generateDeployment=true
  * For External source: Returns MySQL or PostgreSQL config based on databaseType
  *
+ * The unused database spec is set to null (not undefined) to ensure it is included in
+ * JSON merge-patch payloads, which explicitly clears any existing configuration.
+ *
  * @param databaseSource - Whether using default or external database
  * @param databaseType - The type of database (MySQL or PostgreSQL)
  * @param config - External database configuration (host, port, database, username)
- * @returns Database specification with either mysql or postgres configuration (and the other set to undefined)
+ * @returns Database specification with either mysql or postgres configuration (and the other set to null)
  */
 export const buildDatabaseSpec = (
   databaseSource: DatabaseSource,
@@ -129,7 +132,10 @@ export const buildDatabaseSpec = (
     database: string;
     username: string;
   },
-): Pick<ModelRegistryKind['spec'], 'mysql' | 'postgres'> => {
+): {
+  mysql: ModelRegistryKind['spec']['mysql'] | null;
+  postgres: ModelRegistryKind['spec']['postgres'] | null;
+} => {
   if (databaseSource === DatabaseSource.DEFAULT) {
     // Default in-cluster PostgreSQL database
     // When using generateDeployment, only that field should be set
@@ -137,7 +143,7 @@ export const buildDatabaseSpec = (
       postgres: {
         generateDeployment: true,
       },
-      mysql: undefined,
+      mysql: null,
     };
   }
 
@@ -157,7 +163,7 @@ export const buildDatabaseSpec = (
   };
 
   if (databaseType === DatabaseType.POSTGRES) {
-    return { postgres: dbConfig, mysql: undefined };
+    return { postgres: dbConfig, mysql: null };
   }
-  return { mysql: dbConfig, postgres: undefined };
+  return { mysql: dbConfig, postgres: null };
 };

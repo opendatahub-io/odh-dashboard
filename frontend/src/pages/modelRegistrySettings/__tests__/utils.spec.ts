@@ -53,7 +53,7 @@ describe('buildDatabaseSpec', () => {
       expect(spec.postgres).toEqual({
         generateDeployment: true,
       });
-      expect(spec.mysql).toBeUndefined();
+      expect(spec.mysql).toBeNull();
     });
 
     it('should build default database spec regardless of DatabaseType when using DEFAULT source', () => {
@@ -63,7 +63,7 @@ describe('buildDatabaseSpec', () => {
       expect(mysqlSpec.postgres).toEqual({
         generateDeployment: true,
       });
-      expect(mysqlSpec.mysql).toBeUndefined();
+      expect(mysqlSpec.mysql).toBeNull();
     });
   });
 
@@ -85,7 +85,7 @@ describe('buildDatabaseSpec', () => {
         username: 'mlmduser',
         skipDBCreation: false,
       });
-      expect(spec.postgres).toBeUndefined();
+      expect(spec.postgres).toBeNull();
     });
 
     it('should build external PostgreSQL database spec', () => {
@@ -109,7 +109,7 @@ describe('buildDatabaseSpec', () => {
         username: 'postgres_user',
         skipDBCreation: false,
       });
-      expect(spec.mysql).toBeUndefined();
+      expect(spec.mysql).toBeNull();
     });
 
     it('should handle different port numbers correctly', () => {
