@@ -411,6 +411,42 @@ describe('RoleAssignmentChangesModal', () => {
         expect(screen.getByTestId('assign-roles-confirm-cancel')).toBeDisabled();
       });
     });
+
+    it('hides close button while saving', async () => {
+      // Make onConfirm hang to simulate loading state
+      mockOnConfirm.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 1000);
+          }),
+      );
+
+      const changes: RoleAssignmentChanges = {
+        assigning: [createRow(adminRoleRef, 'Admin', { isDefault: true })],
+        unassigning: [],
+      };
+
+      render(
+        <RoleAssignmentChangesModal
+          subjectName="test-user"
+          changes={changes}
+          onClose={mockOnClose}
+          onConfirm={mockOnConfirm}
+        />,
+      );
+
+      // Close button should be visible before saving
+      expect(screen.getByLabelText('Close')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('assign-roles-confirm-save'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('assign-roles-confirm-save')).toBeDisabled();
+      });
+
+      // Close button should be hidden while saving (onClose is undefined)
+      expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
+    });
   });
 
   describe('Error handling', () => {

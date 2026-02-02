@@ -51,7 +51,8 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
     <Modal
       isOpen
       variant="small"
-      onClose={onClose}
+      onClose={isSaving ? undefined : onClose}
+      onEscapePress={isSaving ? undefined : onClose}
       aria-label="Confirm role assignment changes modal"
       data-testid="assign-roles-confirm-modal"
     >
