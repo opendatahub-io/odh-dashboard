@@ -29,7 +29,6 @@ const AssignRolesFooterActions: React.FC<AssignRolesFooterActionsProps> = ({
             <Button
               variant="primary"
               data-testid="assign-roles-save"
-              // TODO: implement the onSave handler in RHOAIENG-46634
               isDisabled={!hasChanges}
               onClick={onSave}
             >

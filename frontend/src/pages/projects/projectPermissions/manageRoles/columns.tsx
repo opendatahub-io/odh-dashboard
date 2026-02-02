@@ -10,7 +10,7 @@ export type ManageRolesRow = {
   roleRef: RoleRef;
   role?: RoleKind | ClusterRoleKind;
   displayName: string;
-  statusLabel: AssignmentStatus | '';
+  statusLabel?: AssignmentStatus;
 };
 
 export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
@@ -57,7 +57,7 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     label: 'Assignment status',
     field: 'status',
     width: 20,
-    sortable: (a, b) => a.statusLabel.localeCompare(b.statusLabel),
+    sortable: (a, b) => (a.statusLabel ?? '').localeCompare(b.statusLabel ?? ''),
     info: {
       popover: (
         <Content>

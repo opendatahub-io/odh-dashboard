@@ -18,7 +18,7 @@ type RoleAssignmentChangesModalProps = {
   subjectName: string;
   changes: RoleAssignmentChanges;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
 };
 
 const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
@@ -27,6 +27,20 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
+
+  const handleConfirm = async () => {
+    setError(null);
+    setIsSaving(true);
+    try {
+      await onConfirm();
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error('Failed to save role assignments'));
+      setIsSaving(false);
+    }
+  };
+
   const hasCustomRoleUnassignments = changes.unassigning.some(
     (row) => !isAiRole(row.roleRef, row.role),
   );
@@ -94,23 +108,42 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
                 isInline
                 variant="danger"
                 data-testid="assign-roles-confirm-custom-role-warning"
-                title={
-                  <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--default)' }}>
-                    The OpenShift custom roles were assigned from OpenShift. You need to contact
-                    your admin to reassign them outside the {ODH_PRODUCT_NAME} once you unassign
-                    them.
-                  </span>
-                }
+                title={`The OpenShift custom roles were assigned from OpenShift. You need to contact
+                    your admin to reassign them outside the ${ODH_PRODUCT_NAME} once you unassign
+                    them.`}
               />
+            </StackItem>
+          )}
+          {error && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="danger"
+                title="Failed to save role assignments"
+                data-testid="assign-roles-confirm-error"
+              >
+                {error.message}
+              </Alert>
             </StackItem>
           )}
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={onConfirm} data-testid="assign-roles-confirm-save">
+        <Button
+          variant="primary"
+          onClick={handleConfirm}
+          isLoading={isSaving}
+          isDisabled={isSaving}
+          data-testid="assign-roles-confirm-save"
+        >
           Confirm
         </Button>
-        <Button variant="link" onClick={onClose} data-testid="assign-roles-confirm-cancel">
+        <Button
+          variant="link"
+          onClick={onClose}
+          isDisabled={isSaving}
+          data-testid="assign-roles-confirm-cancel"
+        >
           Cancel
         </Button>
       </ModalFooter>
