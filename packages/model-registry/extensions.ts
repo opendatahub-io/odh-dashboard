@@ -1,7 +1,7 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { AutofillConnectionButtonExtension } from '@mf/modelRegistry/extension-points';
 
-const CATALOG_SETTINGS_PAGE_TITLE = 'AI catalog settings';
+const CATALOG_SETTINGS_PAGE_TITLE = 'AI catalog sources';
 const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog';
 
 type ModelCatalogBannerExtension = Extension<

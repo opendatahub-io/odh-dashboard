@@ -7,14 +7,6 @@ import { isAdminCheckExtension, isCatalogSettingsUrlExtension } from '~/odh/exte
 import { catalogSettingsUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 
 const ADMIN_EMPTY_STATE_TITLE = 'Configure model sources';
-const ADMIN_EMPTY_STATE_DESCRIPTION = (
-  <>
-    There are no models to display. To add models to the catalog, add model sources to the{' '}
-    <b>Model catalog settings</b> page. If you've already added sources, ensure that filters are not
-    restricting all models from appearing in the catalog.
-  </>
-);
-const MODEL_CATALOG_SETTINGS_LINK_TEXT = 'Model catalog settings';
 
 /**
  * ODH-specific override of ModelCatalogCoreLoader that includes admin user detection
@@ -34,9 +26,22 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
     return catalogSettingsUrl();
   };
 
+  const catalogSettingsTitle =
+    catalogSettingsUrlExtensions.length > 0
+      ? catalogSettingsUrlExtensions[0].properties.title
+      : '';
+
+  const adminEmptyStateDescription = (
+    <>
+      There are no models to display. To add models to the catalog, add model sources to the{' '}
+      <b>{catalogSettingsTitle}</b> page. If you've already added sources, ensure that filters are
+      not restricting all models from appearing in the catalog.
+    </>
+  );
+
   const adminAction = (
     <Link to={getCatalogSettingsUrl()}>
-      Go to <b>{MODEL_CATALOG_SETTINGS_LINK_TEXT}</b>
+      Go to <b>{catalogSettingsTitle}</b>
     </Link>
   );
 
@@ -50,14 +55,14 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
       <AdminCheckComponent>
         {(isAdmin: boolean, loaded: boolean) => {
           if (!loaded) {
-            return <ModelCatalogCoreLoader />;
+            return <Bullseye>Loading...</Bullseye>;
           }
           if (isAdmin) {
             return (
               <ModelCatalogCoreLoader
                 customAction={adminAction}
                 customEmptyStateTitle={ADMIN_EMPTY_STATE_TITLE}
-                customEmptyStateDescription={ADMIN_EMPTY_STATE_DESCRIPTION}
+                customEmptyStateDescription={adminEmptyStateDescription}
               />
             );
           }
