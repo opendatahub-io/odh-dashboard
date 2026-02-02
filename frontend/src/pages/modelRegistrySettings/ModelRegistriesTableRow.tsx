@@ -30,13 +30,14 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
       (mr.metadata.name || mr.metadata.annotations?.['openshift.io/display-name']),
   );
 
-  const hasProjectPermissions =
-    filterRoleBindingSubjects(
-      filteredRoleBindings,
-      RoleBindingPermissionsRBType.GROUP,
-      true, // isProjectSubject
-    ).length > 0;
-  const showNoProjectPermissionLabel = !hasProjectPermissions;
+  const hasProjectPermissions = roleBindings.loaded
+    ? filterRoleBindingSubjects(
+        filteredRoleBindings,
+        RoleBindingPermissionsRBType.GROUP,
+        true, // isProjectSubject
+      ).length > 0
+    : false;
+  const showNoProjectPermissionLabel = roleBindings.loaded && !hasProjectPermissions;
 
   return (
     <Tr>
