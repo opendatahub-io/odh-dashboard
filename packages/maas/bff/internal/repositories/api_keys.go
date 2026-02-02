@@ -1,15 +1,15 @@
 package repositories
 
 import (
+	"context"
 	"log/slog"
 
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
 // APIKeysRepository handles API key operations.
-// Currently returns mock data to unblock UI development.
-// TODO: Add real MaaS API integration when available.
 type APIKeysRepository struct {
 	logger *slog.Logger
 }
@@ -22,11 +22,17 @@ func NewAPIKeysRepository(logger *slog.Logger) *APIKeysRepository {
 }
 
 // CreateAPIKey creates a new API key
-func (r *APIKeysRepository) CreateAPIKey(request models.APIKeyRequest) (*models.APIKeyResponse, error) {
+// Maps to POST /v1/tokens in MaaS API (ephemeral tokens) or /v1/api-keys (named keys)
+// The gen-ai port used POST /v1/tokens (IssueToken)
+func (r *APIKeysRepository) CreateAPIKey(ctx context.Context, request models.APIKeyRequest) (*models.APIKeyResponse, error) {
 	r.logger.Debug("Creating API key", slog.String("name", request.Name))
 
-	response := mocks.GetMockAPIKeyResponse()
-	return &response, nil
+	client, err := helper.GetContextMaaSClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.IssueToken(ctx, request)
 }
 
 // GetAPIKey retrieves an API key by ID
@@ -46,8 +52,13 @@ func (r *APIKeysRepository) ListAPIKeys() ([]models.APIKeyMetadata, error) {
 }
 
 // DeleteAllAPIKeys removes all API keys
-func (r *APIKeysRepository) DeleteAllAPIKeys() error {
+func (r *APIKeysRepository) DeleteAllAPIKeys(ctx context.Context) error {
 	r.logger.Debug("Deleting all API keys")
 
-	return nil
+	client, err := helper.GetContextMaaSClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	return client.RevokeAllTokens(ctx)
 }

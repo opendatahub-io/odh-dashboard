@@ -1,0 +1,175 @@
+package maas
+
+import (
+	"bytes"
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/models"
+)
+
+// MaaSClient is an alias for MaaSClientInterface for backward compatibility
+type MaaSClient = MaaSClientInterface
+
+// HTTPMaaSClient implements MaaSClient using HTTP requests
+type HTTPMaaSClient struct {
+	baseURL    string
+	httpClient *http.Client
+	authToken  string
+}
+
+// NewHTTPMaaSClient creates a new HTTP-based MaaS client
+func NewHTTPMaaSClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPMaaSClient {
+	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	if rootCAs != nil {
+		tlsConfig.RootCAs = rootCAs
+	}
+
+	return &HTTPMaaSClient{
+		baseURL:   baseURL,
+		authToken: authToken,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
+		},
+	}
+}
+
+// setAuthHeaders adds authentication headers to the request
+func (c *HTTPMaaSClient) setAuthHeaders(req *http.Request) {
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+}
+
+// ListModels retrieves all available models from the MaaS API
+func (c *HTTPMaaSClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+	url := fmt.Sprintf("%s/v1/models", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		// Handle connection failures gracefully
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode >= 500 {
+			return nil, NewServerUnavailableError(c.baseURL)
+		}
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
+	}
+
+	var response models.MaaSModelsResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to unmarshal response: %v", err))
+	}
+
+	return response.Data, nil
+}
+
+// IssueToken creates a new ephemeral token with specified TTL
+func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.APIKeyRequest) (*models.APIKeyResponse, error) {
+	url := fmt.Sprintf("%s/v1/tokens", c.baseURL)
+
+	// Set default Expiration if not provided
+	if request.Expiration == "" {
+		request.Expiration = "4h"
+	}
+
+	// MaaS API expects "expiration" field for TTL
+	// In packages/gen-ai/bff/internal/models/maas_models.go, it was `TTL string `json:"expiration"``
+	// In packages/maas/bff/internal/models/api_key.go, it is `Expiration string `json:"expiration,omitempty"``
+	// So they are compatible on JSON level.
+
+	requestBody, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.setAuthHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		// Handle connection failures gracefully
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		if resp.StatusCode >= 500 {
+			return nil, NewServerUnavailableError(c.baseURL)
+		}
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
+	}
+
+	var response models.APIKeyResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to unmarshal response: %v", err))
+	}
+
+	return &response, nil
+}
+
+// RevokeAllTokens invalidates all tokens for the current user
+func (c *HTTPMaaSClient) RevokeAllTokens(ctx context.Context) error {
+	url := fmt.Sprintf("%s/v1/tokens", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setAuthHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		// Handle connection failures gracefully
+		return NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
+		if resp.StatusCode >= 500 {
+			return NewServerUnavailableError(c.baseURL)
+		}
+		return NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
+	}
+
+	return nil
+}

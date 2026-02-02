@@ -19,4 +19,5 @@ const (
 
 	TraceIdKey     contextKey = "TraceIdKey"
 	TraceLoggerKey contextKey = "TraceLoggerKey"
+	MaaSClientKey  contextKey = "maasClientKey"
 )
