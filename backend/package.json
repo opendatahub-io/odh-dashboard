@@ -19,7 +19,7 @@
   "main": "src/server.ts",
   "scripts": {
     "clean": "rimraf ../logs/adminActivity.log",
-    "start": "cross-env NODE_ENV=production node ./dist/server.js",
+    "start": "NODE_ENV=production node ./dist/server.js",
     "start:dev": "npm run clean && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon src/server.ts",
     "debug": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon --exec 'node --inspect --require ts-node/register' src/server.ts",
     "start:dev:wait": "npx wait-on -i 1000 http://localhost:4000",
@@ -32,7 +32,7 @@
     "test:type-check": "turbo run type-check",
     "test:jest": "jest",
     "type-check": "tsc --noEmit",
-    "server": "cross-env NODE_ENV=production node ./dist/server.js",
+    "server": "NODE_ENV=production node ./dist/server.js",
     "lint": "eslint .",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage"
