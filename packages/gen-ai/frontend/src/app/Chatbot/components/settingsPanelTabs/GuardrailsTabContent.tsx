@@ -1,35 +1,54 @@
 import * as React from 'react';
-import { Switch } from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, Spinner, Bullseye } from '@patternfly/react-core';
+import { CogIcon } from '@patternfly/react-icons';
+import GuardrailsPanel from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import TabContentWrapper from './TabContentWrapper';
 
 interface GuardrailsTabContentProps {
-  guardrailsEnabled: boolean;
-  onGuardrailsToggle: (enabled: boolean) => void;
+  configId: string;
+  guardrailModels: string[];
+  guardrailModelsLoaded: boolean;
 }
 
 const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> = ({
-  guardrailsEnabled,
-  onGuardrailsToggle,
+  configId,
+  guardrailModels,
+  guardrailModelsLoaded,
 }) => {
-  const headerActions = (
-    <Switch
-      id="guardrails-toggle-switch"
-      isChecked={guardrailsEnabled}
-      data-testid="guardrails-toggle-switch"
-      onChange={(_, checked) => {
-        onGuardrailsToggle(checked);
-      }}
-      aria-label="Toggle Guardrails"
-    />
-  );
+  const hasGuardrailModels = guardrailModelsLoaded && guardrailModels.length > 0;
+  const isLoading = !guardrailModelsLoaded;
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <Bullseye>
+          <Spinner size="lg" aria-label="Loading guardrail models" />
+        </Bullseye>
+      );
+    }
+
+    if (!hasGuardrailModels) {
+      return (
+        <EmptyState
+          titleText="No guardrail configuration found"
+          icon={CogIcon}
+          variant="sm"
+          data-testid="guardrails-empty-state"
+        >
+          <EmptyStateBody>
+            This playground does not have a guardrail configuration. Contact a cluster administrator
+            to add guardrails.
+          </EmptyStateBody>
+        </EmptyState>
+      );
+    }
+
+    return <GuardrailsPanel configId={configId} availableModels={guardrailModels} />;
+  };
 
   return (
-    <TabContentWrapper
-      title="Guardrails"
-      headerActions={headerActions}
-      titleTestId="guardrails-section-title"
-    >
-      Guardrails content here
+    <TabContentWrapper title="Guardrails" titleTestId="guardrails-section-title">
+      {renderContent()}
     </TabContentWrapper>
   );
 };

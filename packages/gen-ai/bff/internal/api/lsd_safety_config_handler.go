@@ -13,7 +13,7 @@ import (
 // SafetyConfigEnvelope is the response envelope for safety config
 type SafetyConfigEnvelope = Envelope[models.SafetyConfigResponse, None]
 
-// LSDSafetyConfigHandler handles GET /gen-ai/api/v1/lsd/safety/config
+// LSDSafetyConfigHandler handles GET /gen-ai/api/v1/lsd/safety
 // Returns the safety configuration (guardrail models and shields) from llama-stack-config ConfigMap
 func (app *App) LSDSafetyConfigHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()

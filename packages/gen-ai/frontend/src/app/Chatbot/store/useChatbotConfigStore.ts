@@ -196,9 +196,11 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           temperature: sourceConfig.temperature,
           isStreamingEnabled: sourceConfig.isStreamingEnabled,
           selectedModel: sourceConfig.selectedModel,
-          guardrailsEnabled: sourceConfig.guardrailsEnabled,
           selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
           mcpToolSelections: mcpToolSelectionsCopy,
+          guardrail: sourceConfig.guardrail,
+          guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
+          guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
         };
 
         set(
@@ -272,19 +274,6 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         );
       },
 
-      updateGuardrailsEnabled: (id: string, value: boolean) => {
-        set(
-          (state) => {
-            const config = state.configurations[id];
-            if (config) {
-              config.guardrailsEnabled = value;
-            }
-          },
-          false,
-          'updateGuardrailsEnabled',
-        );
-      },
-
       updateSelectedMcpServerIds: (id: string, value: string[]) => {
         set(
           (state) => {
@@ -345,6 +334,33 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           false,
           'saveToolSelections',
         );
+      },
+
+      updateGuardrail: (id: string, value: string) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrail = value;
+          }
+        });
+      },
+
+      updateGuardrailUserInputEnabled: (id: string, value: boolean) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrailUserInputEnabled = value;
+          }
+        });
+      },
+
+      updateGuardrailModelOutputEnabled: (id: string, value: boolean) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrailModelOutputEnabled = value;
+          }
+        });
       },
 
       // Configuration management
