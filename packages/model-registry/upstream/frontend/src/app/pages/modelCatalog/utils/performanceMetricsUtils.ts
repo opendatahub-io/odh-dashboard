@@ -1,13 +1,25 @@
 import { asEnumMember } from 'mod-arch-core';
 import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
-import { getIntValue, getStringValue } from '~/app/utils';
-import { UseCaseOptionValue, PerformancePropertyKey } from '~/concepts/modelCatalog/const';
+import { getStringValue } from '~/app/utils';
+import {
+  UseCaseOptionValue,
+  PerformancePropertyKey,
+  EMPTY_CUSTOM_PROPERTY_VALUE,
+} from '~/concepts/modelCatalog/const';
 import { getUseCaseOption } from './workloadTypeUtils';
 
 export type SliderRange = {
   minValue: number;
   maxValue: number;
   isSliderDisabled: boolean;
+};
+
+export const MAX_RPS_MAX_VALUE = 50;
+
+export const MAX_RPS_RANGE: SliderRange = {
+  minValue: 1,
+  maxValue: MAX_RPS_MAX_VALUE,
+  isSliderDisabled: false,
 };
 
 export const FALLBACK_RPS_RANGE: SliderRange = {
@@ -29,12 +41,6 @@ type CalculateSliderRangeOptions = {
   shouldRound?: boolean;
 };
 
-export const getHardwareConfiguration = (artifact: CatalogPerformanceMetricsArtifact): string => {
-  const count = getIntValue(artifact.customProperties, 'hardware_count');
-  const hardware = getStringValue(artifact.customProperties, PerformancePropertyKey.HARDWARE_TYPE);
-  return `${count} x ${hardware}`;
-};
-
 export const formatLatency = (value: number): string => `${value.toFixed(2)} ms`;
 
 export const formatTokenValue = (value: number): string => value.toFixed(0);
@@ -42,13 +48,13 @@ export const formatTokenValue = (value: number): string => value.toFixed(0);
 export const getWorkloadType = (artifact: CatalogPerformanceMetricsArtifact): string => {
   const useCaseValue = getStringValue(artifact.customProperties, PerformancePropertyKey.USE_CASE);
   if (!useCaseValue) {
-    return '-';
+    return EMPTY_CUSTOM_PROPERTY_VALUE;
   }
   const useCaseEnum = asEnumMember(useCaseValue, UseCaseOptionValue);
   if (!useCaseEnum) {
-    return '-';
+    return EMPTY_CUSTOM_PROPERTY_VALUE;
   }
-  return getUseCaseOption(useCaseEnum)?.label || '-';
+  return getUseCaseOption(useCaseEnum)?.label || EMPTY_CUSTOM_PROPERTY_VALUE;
 };
 
 export const getSliderRange = ({

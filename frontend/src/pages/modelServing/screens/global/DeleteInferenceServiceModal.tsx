@@ -7,7 +7,7 @@ import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import {
   getNIMResourcesToDelete,
   isProjectNIMSupported,
-} from '#~/pages/modelServing/screens/projects/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;

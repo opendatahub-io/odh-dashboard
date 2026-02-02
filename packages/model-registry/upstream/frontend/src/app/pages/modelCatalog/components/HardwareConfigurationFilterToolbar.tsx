@@ -13,11 +13,10 @@ import {
   getPerformanceFiltersToShow,
   getAllFiltersToShow,
   BASIC_FILTER_KEYS,
-  isPerformanceFilterKey,
 } from '~/concepts/modelCatalog/const';
 import { isValueDifferentFromDefault } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import WorkloadTypeFilter from './globalFilters/WorkloadTypeFilter';
-import HardwareTypeFilter from './globalFilters/HardwareTypeFilter';
+import HardwareConfigurationFilter from './globalFilters/HardwareConfigurationFilter';
 import MaxRpsFilter from './globalFilters/MaxRpsFilter';
 import LatencyFilter from './globalFilters/LatencyFilter';
 import ModelCatalogActiveFilters from './ModelCatalogActiveFilters';
@@ -28,12 +27,15 @@ type HardwareConfigurationFilterToolbarProps = {
   includeBasicFilters?: boolean;
   /** If true, shows performance filter chips. Landing page passes performanceViewEnabled, details page passes true. */
   includePerformanceFilters?: boolean;
+  /** Optional content to render at the end of the toolbar (e.g., manage columns button). */
+  toolbarActions?: React.ReactNode;
 };
 
 const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterToolbarProps> = ({
   onResetAllFilters,
   includeBasicFilters = false,
   includePerformanceFilters = true,
+  toolbarActions,
 }) => {
   const {
     filterOptions,
@@ -61,8 +63,8 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
 
   // Check if there are any visible filter chips (to control "Clear all filters" button visibility)
   // A chip is visible if:
-  // - For basic filters: has a non-empty value
-  // - For performance filters: has a value different from the default (regardless of toggle state)
+  // - For filters with defaults: has a value different from the default
+  // - For filters without defaults: has a non-empty value
   const hasVisibleChips = React.useMemo(
     () =>
       filtersToShow.some((filterKey) => {
@@ -78,14 +80,13 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
           return false;
         }
 
-        // For performance filters, always check if value differs from default
-        // (performance filters always have values - defaults when not explicitly set)
-        if (isPerformanceFilterKey(filterKey)) {
-          const defaultValue = getPerformanceFilterDefaultValue(filterKey);
+        // For any filter with a default value, check if current value differs from default
+        const defaultValue = getPerformanceFilterDefaultValue(filterKey);
+        if (defaultValue !== undefined) {
           return isValueDifferentFromDefault(filterValue, defaultValue);
         }
 
-        // For basic filters, any non-empty value means visible
+        // For filters without defaults, any non-empty value means visible
         return true;
       }),
     [filtersToShow, filterData, getPerformanceFilterDefaultValue],
@@ -98,14 +99,17 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
   return (
     <Toolbar
       // Only show "Clear all filters" button when there are visible chips to clear
-      {...(onResetAllFilters && hasVisibleChips ? { clearAllFilters: onResetAllFilters } : {})}
+      {...(onResetAllFilters && hasVisibleChips
+        ? { clearAllFilters: onResetAllFilters, clearFiltersButtonText: 'Reset all defaults' }
+        : {})}
     >
       <ToolbarContent rowWrap={{ default: 'wrap' }}>
         <ToolbarGroup rowWrap={{ default: 'wrap' }}>
           <ToolbarItem>
             <WorkloadTypeFilter />
             <Popover
-              bodyContent="Select a workload type to view performance under specific input and output token lengths."
+              bodyContent="Select a predefined scenario used to measure and compare model performance."
+              footerContent="Each scenario uses fixed input and output token lengths. Scenario names approximate common use cases and do not describe model capabilities."
               appendTo={() => document.body}
             >
               <Button
@@ -152,11 +156,41 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
           </ToolbarItem>
           <ToolbarItem>
             <MaxRpsFilter />
+            <Popover
+              bodyContent="Set your target traffic load in requests per second (RPS). This value is used to calculate the optimal deployment size (number of replicas) for reliable performance. "
+              appendTo={() => document.body}
+              position="top"
+            >
+              <Button
+                variant="plain"
+                aria-label="More info for latency"
+                className="pf-v6-u-p-xs"
+                icon={<HelpIcon />}
+              />
+            </Popover>
           </ToolbarItem>
           <ToolbarItem variant="separator" />
           <ToolbarItem>
-            <HardwareTypeFilter />
+            <HardwareConfigurationFilter />
+            <Popover
+              bodyContent="Select the desired hardware configuration used for benchmarking. The format of hardware is [GPU type] x [number of GPUs per replica]. Example, A100 x 1"
+              appendTo={() => document.body}
+              position="top"
+            >
+              <Button
+                variant="plain"
+                aria-label="More info for latency"
+                className="pf-v6-u-p-xs"
+                icon={<HelpIcon />}
+              />
+            </Popover>
           </ToolbarItem>
+          {toolbarActions && (
+            <>
+              <ToolbarItem variant="separator" />
+              <ToolbarItem>{toolbarActions}</ToolbarItem>
+            </>
+          )}
         </ToolbarGroup>
         <ModelCatalogActiveFilters filtersToShow={filtersToShow} />
       </ToolbarContent>

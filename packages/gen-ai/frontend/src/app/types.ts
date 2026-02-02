@@ -18,6 +18,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   is_maas_model: boolean;
+  max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
 export type FileCounts = {
@@ -83,7 +84,7 @@ export type ChatContextMessage = {
 export type MCPServerConfig = {
   server_label: string;
   server_url: string;
-  headers: Record<string, string>;
+  authorization?: string;
   allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
@@ -96,12 +97,21 @@ export type CreateResponseRequest = {
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
+  input_shield_id?: string;
+  output_shield_id?: string;
 };
 
 export type SimplifiedUsage = {
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
+};
+
+// Response metrics from BFF (latency, TTFT, usage)
+export type ResponseMetrics = {
+  latency_ms: number;
+  time_to_first_token_ms?: number; // Only present for streaming responses
+  usage?: SimplifiedUsage;
 };
 
 // File citation annotation from RAG responses
@@ -142,6 +152,7 @@ export type BackendResponseData = {
   created_at: number;
   output?: OutputItem[];
   usage?: SimplifiedUsage;
+  metrics?: ResponseMetrics; // Response metrics from BFF (latency, TTFT, usage)
 };
 
 // MCP tool call data extracted from backend response
@@ -169,6 +180,7 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
 };
 
 export type FileError = {
@@ -309,6 +321,32 @@ export type BFFConfig = {
   isCustomLSD: boolean;
 };
 
+export type GuardrailsCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+};
+
+export type GuardrailsStatus = {
+  name: string;
+  phase: string;
+  conditions?: GuardrailsCondition[];
+};
+
+/** Guardrail model config from safety config endpoint */
+export type GuardrailModelConfig = {
+  model_name: string;
+  input_shield_id: string;
+  output_shield_id: string;
+};
+
+/** Response from /lsd/safety/config endpoint */
+export type SafetyConfigResponse = {
+  guardrail_models: GuardrailModelConfig[];
+};
+
 export interface AAModelResponse {
   model_name: string;
   model_id: string;
@@ -344,6 +382,11 @@ export interface MaaSModel {
   owned_by: string;
   ready: boolean;
   url: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
 }
 
 export type MaaSTokenRequest = {
@@ -378,6 +421,7 @@ export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
+  enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
 };
 
 export type DeleteLSDRequest = {
@@ -408,6 +452,8 @@ export type GenAiAPIs = {
   getMCPServers: GetMCPServers;
   getMCPServerStatus: GetMCPServerStatus;
   getBFFConfig: GetBFFConfig;
+  getGuardrailsStatus: GetGuardrailsStatus;
+  getSafetyConfig: GetSafetyConfig;
 };
 
 export type ModArchRestGET<T> = (
@@ -445,3 +491,5 @@ type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
 type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
+type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
+type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;

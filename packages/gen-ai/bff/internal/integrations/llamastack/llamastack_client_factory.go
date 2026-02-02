@@ -24,11 +24,14 @@ type LlamaStackClientInterface interface {
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
 	CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error)
 	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
+	// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
+	// Returns the SDK type directly for simplicity.
+	CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error)
 }
 
 // LlamaStackClientFactory interface for creating LlamaStack clients
 type LlamaStackClientFactory interface {
-	CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) LlamaStackClientInterface
+	CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) LlamaStackClientInterface
 }
 
 // RealClientFactory creates real LlamaStack clients
@@ -40,6 +43,6 @@ func NewRealClientFactory() LlamaStackClientFactory {
 }
 
 // CreateClient creates a new real LlamaStack client with the given parameters
-func (f *RealClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) LlamaStackClientInterface {
-	return NewLlamaStackClient(baseURL, authToken, insecureSkipVerify, rootCAs)
+func (f *RealClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) LlamaStackClientInterface {
+	return NewLlamaStackClient(baseURL, authToken, insecureSkipVerify, rootCAs, apiPath)
 }

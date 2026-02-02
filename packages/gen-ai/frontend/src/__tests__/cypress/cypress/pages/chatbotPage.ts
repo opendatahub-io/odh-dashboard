@@ -1,28 +1,7 @@
-import { TableRow } from './components/table';
-
-class ChatbotMCPServerRow extends TableRow {
-  constructor(
-    parentSelector: () => Cypress.Chainable<JQuery<HTMLTableRowElement>>,
-    private serverName: string,
-    private serverId: string,
-  ) {
-    super(parentSelector);
-  }
-
-  findConfigureButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId(`mcp-server-configure-button-${this.serverId}`);
-  }
-
-  findToolsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId(`mcp-server-tools-button-${this.serverId}`);
-  }
-
-  isChecked(): Cypress.Chainable<boolean> {
-    return this.findCheckbox().then(($cb) => cy.wrap($cb.is(':checked')));
-  }
-}
+import { mcpTab } from './playgroundPage/mcpTab';
 
 class ChatbotPage {
+  mcpTab = mcpTab;
   visit(namespace?: string): void {
     cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground');
     this.waitForPageLoad();
@@ -46,56 +25,33 @@ class ChatbotPage {
     this.waitForPageLoad();
   }
 
-  findMCPPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-servers-panel-table');
+  // Settings Panel Tabs
+  findModelTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-settings-page-tab-model');
   }
 
-  expandMCPPanelIfNeeded(): void {
-    this.findMCPPanel().should('exist', { timeout: 30000 }).and('be.visible');
+  findPromptTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-settings-page-tab-prompt');
   }
 
-  verifyMCPPanelVisible(): void {
-    this.findMCPPanel().should('be.visible', { timeout: 30000 });
+  findKnowledgeTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-settings-page-tab-knowledge');
   }
 
-  private findCheckedCheckboxes(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMCPPanel().within(() => cy.get('input[type="checkbox"]:checked'));
+  findMCPTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-settings-page-tab-mcp');
   }
 
-  getCheckedServer(): Cypress.Chainable<string> {
-    return this.findCheckedCheckboxes()
-      .should('have.length', 1)
-      .closest('tr')
-      .within(() => cy.get('td').eq(1))
-      .invoke('text')
-      .then((text) => {
-        const name = text.trim();
-        return cy.wrap(name).should('not.be.empty');
-      });
+  findGuardrailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-settings-page-tab-guardrails');
   }
 
-  getServerRow(serverName: string, serverUrl: string): ChatbotMCPServerRow {
-    const rowSelector = () =>
-      this.findMCPPanel().contains('tr', serverName) as unknown as Cypress.Chainable<
-        JQuery<HTMLTableRowElement>
-      >;
-    return new ChatbotMCPServerRow(rowSelector, serverName, serverUrl);
+  clickMCPTab(): void {
+    this.findMCPTab().click();
   }
 
-  findConfigureModal(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog');
-  }
-
-  hasConfigureModal(): Cypress.Chainable<boolean> {
-    return cy.findByRole('dialog').then(($dialog) => cy.wrap($dialog.length > 0));
-  }
-
-  verifyOnlyOneServerChecked(): void {
-    this.findCheckedCheckboxes().should('have.length', 1);
-  }
-
-  findCheckedServersCount(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findCheckedCheckboxes();
+  clickKnowledgeTab(): void {
+    this.findKnowledgeTab().click();
   }
 
   // Chatbot Main UI Elements
@@ -111,9 +67,9 @@ class ChatbotPage {
     return cy.findByTestId('chatbot-message-bar');
   }
 
-  findMessageInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findMessageInput(options?: { timeout?: number }): Cypress.Chainable<JQuery<HTMLElement>> {
     // data-testid is directly on the textarea element
-    return cy.findByTestId('chatbot-message-bar');
+    return cy.findByTestId('chatbot-message-bar', options);
   }
 
   findSendButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -129,7 +85,7 @@ class ChatbotPage {
   }
 
   findWelcomeMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText(/Welcome to the model playground/i);
+    return cy.findByText(/Welcome to the playground/i);
   }
 
   findMessage(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -141,7 +97,9 @@ class ChatbotPage {
   }
 
   findEmptyStateTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('empty-state').find('h1');
+    return cy.findByTestId('empty-state').find('h1') as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
   }
 
   findEmptyStateMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -203,12 +161,20 @@ class ChatbotPage {
     cy.findByText(modelName).click();
   }
 
-  // System Instructions
+  // System Instructions (inside Prompt tab)
+  clickPromptTab(): void {
+    this.findPromptTab().click();
+  }
+
   findSystemInstructionsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Click Prompt tab first to show system instructions section
+    this.clickPromptTab();
     return cy.findByTestId('system-instructions-section');
   }
 
   findSystemInstructionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Click Prompt tab first to show system instructions input
+    this.clickPromptTab();
     return cy.findByTestId('system-instructions-input');
   }
 
@@ -247,8 +213,10 @@ class ChatbotPage {
     });
   }
 
-  // RAG Section
+  // RAG Section (inside Knowledge tab)
   findRAGSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Click Knowledge tab first to show RAG section
+    this.clickKnowledgeTab();
     return cy.findByTestId('rag-section-title').parent();
   }
 
@@ -256,8 +224,10 @@ class ChatbotPage {
     return cy.findByTestId('rag-toggle-switch');
   }
 
-  // MCP Servers Section
+  // MCP Servers Section (inside MCP tab)
   findMCPServersSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Click MCP tab first to show MCP servers section
+    this.clickMCPTab();
     return cy.findByTestId('mcp-servers-section-title').parent();
   }
 
@@ -347,22 +317,26 @@ class ChatbotPage {
     });
   }
 
-  expandModelDetailsAccordion(): void {
-    // Expand the Model Details accordion if it's collapsed
-    cy.get('#model-details-item').then(($toggle) => {
-      if ($toggle.attr('aria-expanded') === 'false') {
-        cy.wrap($toggle).click();
-      }
-    });
-    // Wait for accordion content to be visible
-    cy.get('#model-details-content').should('be.visible');
-  }
-
   resetChatState(): void {
     this.startNewChatIfAvailable();
-    // Expand the model details accordion to access streaming toggle
-    this.expandModelDetailsAccordion();
     this.toggleStreaming(true);
+  }
+
+  // Metrics Section
+  findMetricsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('button', /Show metrics|Hide metrics/i) as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  expandMetrics(): void {
+    cy.contains('button', 'Show metrics').click();
+  }
+
+  verifyMetricsDisplayed(): void {
+    // Verify latency label is visible after expanding
+    cy.contains('button', 'Show metrics').click();
+    cy.get('.pf-v6-c-label').should('have.length.at.least', 1);
   }
 }
 

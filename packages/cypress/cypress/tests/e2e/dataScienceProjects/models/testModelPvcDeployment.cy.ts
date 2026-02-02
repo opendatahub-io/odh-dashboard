@@ -23,6 +23,7 @@ import type { DataScienceProjectData, PVCLoaderPodReplacements } from '../../../
 import { clusterStorage, addClusterStorageModal } from '../../../../pages/clusterStorage';
 import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
 import { waitForPodCompletion } from '../../../../utils/oc_commands/baseCommands';
+import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -40,7 +41,9 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PVC', () => {
+describe('Verify a model can be deployed from a PVC', () => {
+  skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
+
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -67,12 +70,16 @@ describe('[Product Bug: RHOAIENG-41827] Verify a model can be deployed from a PV
     );
   });
   after(() => {
+    if (isBYOIDCCluster()) {
+      cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
+      return;
+    }
     // Delete provisioned Project
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

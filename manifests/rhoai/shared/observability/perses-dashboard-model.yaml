@@ -1,0 +1,415 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: dashboard-1-model
+spec:
+  display:
+    name: Models
+  duration: 1h
+  variables:
+    - kind: TextVariable
+      spec:
+        name: namespace
+        value: ".*"
+        display:
+          name: Namespace
+          hidden: true
+    - kind: ListVariable
+      spec:
+        name: model_name
+        display:
+          name: Model deployment
+          description: Filter by model deployment
+        allowMultiple: true
+        allowAllValue: true
+        customAllValue: ".*"
+        defaultValue: "$__all"
+        plugin:
+          kind: PrometheusPromQLVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            expr: group by (model_name) (kserve_vllm:num_requests_running{namespace=~"$namespace"})
+            labelName: model_name
+  panels:
+    # Model Deployments Table
+    modelDeploymentsTable:
+      kind: Panel
+      spec:
+        display:
+          name: Model deployments
+        plugin:
+          kind: Table
+          spec:
+            density: compact
+            pagination: true
+            transforms:
+              - kind: MergeSeries
+                spec: {}
+            columnSettings:
+              - name: timestamp
+                hide: true
+              - name: model_name
+                header: Model deployment
+              - name: namespace
+                header: Project
+              - name: "value #1"
+                hide: true
+              - name: "value #2"
+                header: Total requests
+                format:
+                  unit: decimal
+                  decimalPlaces: 0
+              - name: "value #3"
+                header: P90 E2E latency
+                format:
+                  unit: milliseconds
+                  decimalPlaces: 0
+              # - name: "value #4"
+              #   header: Error rate
+              #   format:
+              #     unit: percent
+              #     decimalPlaces: 2
+              - name: "value #4"
+                header: GPU utilization
+                format:
+                  unit: percent
+                  decimalPlaces: 2
+              - name: "value #5"
+                header: CPU utilization
+                format:
+                  unit: percent
+                  decimalPlaces: 2
+        queries:
+          # Query 1: Base model list from vLLM metrics (value hidden, just provides the rows)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: group by (model_name, namespace) (kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+          # Query 2: Total requests - defaults to 0
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum by (model_name, namespace) (increase(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name"}[$__range])) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+          # Query 3: P90 E2E Latency - defaults to 0 (filter NaN with > -Inf)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+          # Query 4: Error rate
+          # - kind: TimeSeriesQuery
+          #   spec:
+          #     plugin:
+          #       kind: PrometheusTimeSeriesQuery
+          #       spec:
+          #         datasource:
+          #           kind: PrometheusDatasource
+          #         query: 
+          # Query 5: GPU utilization %
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: (avg by (model_name, namespace) (accelerator_gpu_utilization{namespace=~"$namespace"} * on(namespace, pod) group_left(model_name)(kserve_vllm:num_requests_running{model_name=~"$model_name"} >= 0))) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+          # Query 6: CPU utilization %
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: (100 * sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"} * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)) / sum by (model_name, namespace) (kube_pod_container_resource_limits{resource="cpu", namespace=~"$namespace"} * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1))) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+    # Performance Metrics - Line Charts
+    requestQueueLength:
+      kind: Panel
+      spec:
+        display:
+          name: Request queue length
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Number of requests waiting in queue per model
+                  query: sum by (model_name, namespace) (kserve_vllm:num_requests_waiting{namespace=~"$namespace", model_name=~"$model_name"})
+                  seriesNameFormat: "{{model_name}}"
+    replicaCount:
+      kind: Panel
+      spec:
+        display:
+          name: Replica count
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Ready pods per model - count of pods with vLLM metrics
+                  query: count by (model_name, namespace) (group by (pod, model_name, namespace) (kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                  seriesNameFormat: "{{model_name}}"
+    requestLatency:
+      kind: Panel
+      spec:
+        display:
+          name: Request latency
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: seconds
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # P95 end-to-end request latency
+                  query: (histogram_quantile(0.95, rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval])) > -Inf) or (0 * group by (model_name)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                  seriesNameFormat: "{{model_name}}"
+    timeToFirstToken:
+      kind: Panel
+      spec:
+        display:
+          name: Time to first token (TTFT)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: seconds
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # P95 time to first token
+                  query: (histogram_quantile(0.95, rate(kserve_vllm:time_to_first_token_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval])) > -Inf) or (0 * group by (model_name)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                  seriesNameFormat: "{{model_name}}"
+    tokenGenerationRate:
+      kind: Panel
+      spec:
+        display:
+          name: Token generation rate
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Token generation rate (tokens per second)
+                  query: sum by (model_name) (rate(kserve_vllm:generation_tokens_total{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval])) or (0 * group by (model_name)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                  seriesNameFormat: "{{model_name}}"
+    throughput:
+      kind: Panel
+      spec:
+        display:
+          name: Throughput (requests/sec)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Request throughput (requests per second)
+                  query: sum by (model_name) (rate(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval])) or (0 * group by (model_name)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
+                  seriesNameFormat: "{{model_name}}"
+    responseTimeDistribution:
+      kind: Panel
+      spec:
+        display:
+          name: Response time distribution
+        plugin:
+          kind: BarChart
+          spec:
+            calculation: last
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Distribution of response times by bucket - each le value becomes a bar
+                  query: sum by (le) (increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__range]))
+                  seriesNameFormat: "<= {{le}} s"
+  layouts:
+    # Model Deployments Table Section
+    - kind: Grid
+      spec:
+        display:
+          title: Model deployments
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 24
+            height: 9
+            content:
+              '$ref': '#/spec/panels/modelDeploymentsTable'
+    # Performance Metrics Section
+    - kind: Grid
+      spec:
+        display:
+          title: Performance metrics
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/requestQueueLength'
+          - x: 12
+            'y': 0
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/replicaCount'
+          - x: 0
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/requestLatency'
+          - x: 12
+            'y': 8
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/timeToFirstToken'
+          - x: 0
+            'y': 16
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/tokenGenerationRate'
+          - x: 12
+            'y': 16
+            width: 12
+            height: 8
+            content:
+              '$ref': '#/spec/panels/throughput'
+          - x: 0
+            'y': 24
+            width: 24
+            height: 15
+            content:
+              '$ref': '#/spec/panels/responseTimeDistribution'

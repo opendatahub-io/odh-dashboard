@@ -10,6 +10,8 @@ import {
 } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { EmptyRunsState } from '#~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { getGenericErrorCode } from '#~/api/errorUtils';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {
@@ -38,6 +40,9 @@ export const ActiveRuns: React.FC = () => {
   }
 
   if (error) {
+    if (getGenericErrorCode(error) === 403) {
+      return <UnauthorizedError accessDomain="pipeline runs" />;
+    }
     return (
       <Bullseye>
         <EmptyState

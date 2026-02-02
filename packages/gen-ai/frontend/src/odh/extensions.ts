@@ -15,6 +15,7 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 const MODEL_AS_SERVICE = 'model-as-service';
+const GUARDRAILS = 'guardrails';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
   {
@@ -31,6 +32,14 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: MODEL_AS_SERVICE,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: ['modelAsService'],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GUARDRAILS,
+      reliantAreas: [PLUGIN_GEN_AI],
+      devFlags: [GUARDRAILS],
     },
   },
   {

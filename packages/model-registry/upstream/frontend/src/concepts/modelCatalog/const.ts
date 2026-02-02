@@ -3,8 +3,10 @@ export enum ModelCatalogStringFilterKey {
   PROVIDER = 'provider',
   LICENSE = 'license',
   LANGUAGE = 'language',
+  TENSOR_TYPE = 'tensor_type.string_value',
   // Performance filter keys use backend format
   HARDWARE_TYPE = 'artifacts.hardware_type.string_value',
+  HARDWARE_CONFIGURATION = 'artifacts.hardware_configuration.string_value',
   USE_CASE = 'artifacts.use_case.string_value',
 }
 
@@ -19,6 +21,7 @@ export enum ModelCatalogNumberFilterKey {
  */
 export const PerformancePropertyKey = {
   HARDWARE_TYPE: 'hardware_type',
+  HARDWARE_CONFIGURATION: 'hardware_configuration',
   USE_CASE: 'use_case',
   REQUESTS_PER_SECOND: 'requests_per_second',
 } as const;
@@ -35,6 +38,9 @@ export const DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME = 'default-performance-filte
 export enum LatencyMetric {
   E2E = 'E2E', // End to End
   TTFT = 'TTFT', // Time To First Token
+  // TODO TPS is not technically a latency field, we should consider refactoring how it is handled in types
+  //      and revisit the special logic that excludes it from latency filters.
+  //      But it does have permutations with the same latency percentiles so leaving it here for now.
   TPS = 'TPS', // Tokens Per Second
   ITL = 'ITL', // Inter Token Latency
 }
@@ -211,6 +217,14 @@ export const MODEL_CATALOG_PROVIDER_NOTABLE_MODELS = {
   [ModelCatalogProvider.NVIDIA_ALTERNATE]: 'NVIDIA research models',
   [ModelCatalogProvider.RED_HAT]: 'Red Hat optimized models',
 };
+
+export enum ModelCatalogTensorType {
+  FP16 = 'FP16',
+  FP8 = 'FP8',
+  INT4 = 'INT4',
+  INT8 = 'INT8',
+  MXFP4 = 'MXFP4',
+}
 
 export const MODEL_CATALOG_POPOVER_MESSAGES = {
   VALIDATED:
@@ -467,15 +481,17 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.LICENSE,
   ModelCatalogStringFilterKey.TASK,
   ModelCatalogStringFilterKey.LANGUAGE,
+  ModelCatalogStringFilterKey.TENSOR_TYPE,
 ];
 
 /**
  * Performance filter keys that are shown when performance view is enabled.
  * These filters should reset to default values (from namedQueries) instead of clearing.
+ * Note: HARDWARE_CONFIGURATION is NOT included here because it should clear normally
+ * like basic filters, not reset to defaults.
  */
 export const PERFORMANCE_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.USE_CASE,
-  ModelCatalogStringFilterKey.HARDWARE_TYPE,
   ModelCatalogNumberFilterKey.MAX_RPS,
   ...ALL_LATENCY_FILTER_KEYS,
 ];
@@ -522,13 +538,20 @@ export const isPerformanceNumberFilterKey = (
 /**
  * Gets performance filter keys to show in the hardware configuration toolbar.
  * Only shows performance filters (not basic filters).
+ * Includes HARDWARE_CONFIGURATION which is shown in performance toolbar but clears normally.
  */
 export const getPerformanceFiltersToShow = (
   filterData: Partial<Record<LatencyMetricFieldName, number | undefined>>,
 ): ModelCatalogFilterKey[] => {
   const activeLatencyKeys = ALL_LATENCY_FILTER_KEYS.filter((key) => filterData[key] !== undefined);
   // Use Set to deduplicate since PERFORMANCE_FILTER_KEYS already includes latency fields
-  return [...new Set([...PERFORMANCE_FILTER_KEYS, ...activeLatencyKeys])];
+  return [
+    ...new Set([
+      ...PERFORMANCE_FILTER_KEYS,
+      ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION,
+      ...activeLatencyKeys,
+    ]),
+  ];
 };
 
 /**
@@ -540,7 +563,15 @@ export const getAllFiltersToShow = (
 ): ModelCatalogFilterKey[] => {
   const activeLatencyKeys = ALL_LATENCY_FILTER_KEYS.filter((key) => filterData[key] !== undefined);
   // Use Set to deduplicate since PERFORMANCE_FILTER_KEYS already includes latency fields
-  return [...new Set([...BASIC_FILTER_KEYS, ...PERFORMANCE_FILTER_KEYS, ...activeLatencyKeys])];
+  // Include HARDWARE_CONFIGURATION which shows in performance toolbar but clears normally
+  return [
+    ...new Set([
+      ...BASIC_FILTER_KEYS,
+      ...PERFORMANCE_FILTER_KEYS,
+      ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION,
+      ...activeLatencyKeys,
+    ]),
+  ];
 };
 
 /**
@@ -554,7 +585,9 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.TASK]: 'Task',
   [ModelCatalogStringFilterKey.LANGUAGE]: 'Language',
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: 'Hardware type',
+  [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: 'Hardware',
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
+  [ModelCatalogStringFilterKey.TENSOR_TYPE]: 'Tensor type',
   // Number filter keys
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
   // Latency field names - all use "Latency" as category name
@@ -568,4 +601,20 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
 export enum ModelDetailsTab {
   OVERVIEW = 'overview',
   PERFORMANCE_INSIGHTS = 'performance-insights',
+}
+
+export const EMPTY_CUSTOM_PROPERTY_VALUE = '-';
+
+export enum ModelCatalogSortOption {
+  RECENT_PUBLISH = 'recent_publish',
+  LOWEST_LATENCY = 'lowest_latency',
+}
+
+export enum SortOrder {
+  ASC = 'ASC',
+  DESC = 'DESC',
+}
+
+export enum SortField {
+  LAST_UPDATE_TIME = 'LAST_UPDATE_TIME',
 }

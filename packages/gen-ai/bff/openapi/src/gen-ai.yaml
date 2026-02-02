@@ -214,6 +214,52 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
+  /gen-ai/api/v1/lsd/safety/config:
+    summary: Get safety configuration
+    description: >-
+      Retrieves the safety configuration (guardrail models and shields) from the llama-stack-config ConfigMap.
+      Returns configured guardrail models with their input and output shield IDs.
+      Only returns data if trustyai_fms provider is configured.
+      Requires valid Kubernetes authentication token and namespace parameter.
+    get:
+      tags:
+        - LlamaStackDistribution
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to get safety config from
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          description: Safety configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SafetyConfigResponse'
+              example:
+                data:
+                  guardrail_models:
+                    - model_name: 'llama-guard-3'
+                      input_shield_id: 'trustyai_input_llama_guard_3'
+                      output_shield_id: 'trustyai_output_llama_guard_3'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getSafetyConfig
+      summary: Get Safety Config
+      description: Gets the safety configuration with guardrail models and shields.
+
   /gen-ai/api/v1/lsd/install:
     summary: Install LlamaStack Distribution
     description: >-
@@ -259,6 +305,44 @@ paths:
       operationId: installLlamaStackDistribution
       summary: Install LSD
       description: Installs a new LlamaStack Distribution with the specified models.
+
+  # =============================================================================
+  # GUARDRAILS ENDPOINTS
+  # =============================================================================
+
+  /gen-ai/api/v1/guardrails/status:
+    summary: Get GuardrailsOrchestrator status
+    description: >-
+      Retrieves the status of GuardrailsOrchestrator CR in the specified namespace.
+      Returns information including name, phase, and conditions.
+      Requires valid Kubernetes authentication token and namespace parameter.
+    get:
+      tags:
+        - Guardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for GuardrailsOrchestrator resources
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/GuardrailsStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getGuardrailsStatus
+      summary: Get Guardrails Status
+      description: Gets the status of GuardrailsOrchestrator in the specified namespace.
 
   # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
@@ -354,6 +438,18 @@ paths:
                         url:
                           type: string
                           example: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local'
+                        display_name:
+                          type: string
+                          description: Human-readable display name for the model
+                          example: 'Llama 2 7B Chat'
+                        description:
+                          type: string
+                          description: Detailed description of the model and its capabilities
+                          example: 'Meta Llama 2 7B model fine-tuned for conversational AI and chat applications'
+                        usecase:
+                          type: string
+                          description: Primary use cases for the model
+                          example: 'Chat, Question answering'
                       required:
                         - id
                         - object
@@ -1146,6 +1242,37 @@ components:
           example: '1.0.0'
           description: BFF service version
 
+    SafetyConfigResponse:
+      type: object
+      required:
+        - guardrail_models
+      properties:
+        guardrail_models:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuardrailModelConfig'
+          description: List of configured guardrail models with their shields
+
+    GuardrailModelConfig:
+      type: object
+      required:
+        - model_name
+        - input_shield_id
+        - output_shield_id
+      properties:
+        model_name:
+          type: string
+          example: 'llama-guard-3'
+          description: Name of the guardrail model
+        input_shield_id:
+          type: string
+          example: 'trustyai_input_llama_guard_3'
+          description: Shield ID for input content moderation
+        output_shield_id:
+          type: string
+          example: 'trustyai_output_llama_guard_3'
+          description: Shield ID for output content moderation
+
     Error:
       type: object
       required:
@@ -1735,13 +1862,10 @@ components:
           format: uri
           example: 'http://127.0.0.1:13080/sse'
           description: URL endpoint for the MCP server
-        headers:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            Authorization: 'Bearer slack_token_123'
-          description: Custom headers for MCP server authentication
+        authorization:
+          type: string
+          example: 'slack_token_123'
+          description: OAuth access token for MCP server authentication
         allowed_tools:
           type: array
           items:
@@ -1759,8 +1883,7 @@ components:
       example:
         server_label: 'slack'
         server_url: 'http://127.0.0.1:13080/sse'
-        headers:
-          Authorization: 'Bearer slack_token_123'
+        authorization: 'slack_token_123'
         allowed_tools: ['send_message', 'get_channel_history']
 
     # Response Creation Schema
@@ -1844,16 +1967,13 @@ components:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
               allowed_tools: ['send_message', 'get_channel_history']
-              headers:
-                Authorization: 'Bearer slack_token_123'
+              authorization: 'slack_token_123'
             - server_label: 'github'
               server_url: 'http://127.0.0.1:14080/sse'
               allowed_tools: ['get_latest_release']
-              headers:
-                Authorization: 'Bearer github_token_456'
-                X-API-Version: 'v1'
+              authorization: 'github_token_456'
           description: >-
-            MCP server configurations for external tool access. Each server can have its own authentication headers and provides multiple tools.
+            MCP server configurations for external tool access. Each server can have its own authorization token and provides multiple tools.
             Use the allowed_tools field within each MCP server config to restrict which tools can be used from that server.
         previous_response_id:
           type: string
@@ -1905,6 +2025,12 @@ components:
             Reference to the previous response ID in the conversation thread.
             Only present when the request included a previous_response_id parameter.
             Enables conversation continuity and thread tracking.
+        metrics:
+          $ref: '#/components/schemas/ResponseMetrics'
+          description: >-
+            Response metrics including latency and token usage.
+            Present in non-streaming responses. For streaming responses,
+            metrics are sent as a separate response.metrics event.
 
     OutputItem:
       type: object
@@ -2012,6 +2138,65 @@ components:
           type: string
           example: 'document.pdf'
           description: Source filename (if available)
+
+    # Response Metrics Schemas
+    ResponseMetrics:
+      type: object
+      required:
+        - latency_ms
+      properties:
+        latency_ms:
+          type: integer
+          format: int64
+          example: 1523
+          description: Total response time in milliseconds from request start to completion
+        time_to_first_token_ms:
+          type: integer
+          format: int64
+          example: 892
+          description: >-
+            Time to first token in milliseconds (streaming responses only).
+            Measures time from request start to the first text delta received.
+            Not present for non-streaming responses.
+        usage:
+          $ref: '#/components/schemas/UsageData'
+          description: Token usage information from the model
+
+    UsageData:
+      type: object
+      required:
+        - input_tokens
+        - output_tokens
+        - total_tokens
+      properties:
+        input_tokens:
+          type: integer
+          example: 150
+          description: Number of tokens in the input/prompt
+        output_tokens:
+          type: integer
+          example: 500
+          description: Number of tokens in the generated output
+        total_tokens:
+          type: integer
+          example: 650
+          description: Total tokens used (input + output)
+
+    # Metrics Event Schema (for streaming responses)
+    MetricsEvent:
+      type: object
+      required:
+        - type
+        - metrics
+      properties:
+        type:
+          type: string
+          enum: [response.metrics]
+          example: 'response.metrics'
+          description: Event type identifier
+        metrics:
+          $ref: '#/components/schemas/ResponseMetrics'
+          description: Response metrics data
 
     # Streaming Event Schema
     StreamingEvent:
@@ -2156,8 +2341,7 @@ components:
           example:
             - server_label: 'slack'
               server_url: 'http://127.0.0.1:13080/sse'
-              headers:
-                Authorization: 'Bearer slack_token_123'
+              authorization: 'slack_token_123'
           description: MCP server configurations for tool integration
         tools:
           type: array
@@ -2301,6 +2485,55 @@ components:
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
 
+    # GuardrailsOrchestrator Schema
+    GuardrailsStatus:
+      type: object
+      required:
+        - name
+        - phase
+      properties:
+        name:
+          type: string
+          example: 'guardrails-orchestrator'
+          description: Name of the GuardrailsOrchestrator resource
+        phase:
+          type: string
+          example: 'Ready'
+          description: Current phase of the GuardrailsOrchestrator (e.g., Ready, Progressing, Failed)
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuardrailsCondition'
+          description: List of conditions for the GuardrailsOrchestrator
+
+    GuardrailsCondition:
+      type: object
+      required:
+        - type
+        - status
+      properties:
+        type:
+          type: string
+          example: 'Progressing'
+          description: Type of the condition (e.g., Progressing, DeploymentReady, RouteReady, ReconcileComplete)
+        status:
+          type: string
+          example: 'True'
+          description: Status of the condition (True, False, Unknown)
+        reason:
+          type: string
+          example: 'ReconcileInit'
+          description: Machine-readable reason for the condition
+        message:
+          type: string
+          example: 'Initializing GuardrailsOrchestrator resource'
+          description: Human-readable message explaining the condition
+        lastTransitionTime:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+          description: Last time the condition transitioned
+
     BFFConfigModel:
       type: object
       required:
@@ -2327,6 +2560,13 @@ components:
             - model_name: 'facebook/opt-125m'
               is_maas_model: true
           minItems: 1
+        enable_guardrails:
+          type: boolean
+          description: |
+            If true, adds safety configuration with guardrail input and output shields
+            for all selected models. Default policies include jailbreak, content-moderation, and pii.
+          example: true
+          default: false
 
     InstallModel:
       type: object
@@ -2344,6 +2584,14 @@ components:
           type: boolean
           description: Whether this is a MaaS (Model as a Service) model
           example: false
+        max_tokens:
+          type: integer
+          description: |
+            Optional maximum token limit for this model's context window.
+            Must be between 128 and 128,000 tokens. If not specified, a default value will be used.
+          minimum: 128
+          maximum: 128000
+          example: 8192
 
     LlamaStackDistributionInstallModel:
       type: object
@@ -3158,6 +3406,33 @@ components:
                         status: 'healthy'
                         message: 'Provider is responding normally'
 
+    GuardrailsStatusResponse:
+      description: GuardrailsOrchestrator status information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/GuardrailsStatus'
+            example:
+              data:
+                name: 'guardrails-orchestrator'
+                phase: 'Ready'
+                conditions:
+                  - type: 'Progressing'
+                    status: 'True'
+                    reason: 'ReconcileInit'
+                    message: 'Initializing GuardrailsOrchestrator resource'
+                    lastTransitionTime: '2024-01-15T10:30:00Z'
+                  - type: 'DeploymentReady'
+                    status: 'True'
+                    reason: 'DeploymentReady'
+                    message: 'Deployment is ready'
+                    lastTransitionTime: '2024-01-15T10:31:00Z'
+
     LlamaStackDistributionInstallResponse:
       description: LlamaStack Distribution installation result
       content:
@@ -3424,6 +3699,7 @@ components:
         When RAG (vector stores) are used, file search tool calls appear as separate events in the stream.
         When MCP tools are configured, mcp_list_tools and mcp_call events appear in the stream showing real-time tool execution.
         Stream format follows LlamaStack SSE specification with 'data:' prefix for each event.
+        After stream completion, a response.metrics event is sent with timing and usage data.
       content:
         text/event-stream:
           schema:
@@ -3438,6 +3714,7 @@ components:
               - response.output_text.delta: Individual token streaming with delta text
               - response.content_part.done: Content part completion
               - response.completed: Final clean response with complete output array (messages, tool calls, MCP interactions)
+              - response.metrics: Final metrics event with latency_ms, time_to_first_token_ms, and usage data
               All events use the same ResponseData structure as non-streaming responses.
           example: |
             data: {"delta":"","sequence_number":0,"type":"response.created","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"in_progress","created_at":1758128692}}
@@ -3455,6 +3732,8 @@ components:
             data: {"delta":"","sequence_number":6,"type":"response.content_part.done","item_id":"msg_23003d3c-bff4-4f47-a06e-befb4d95b7d4","output_index":0}
 
             data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-635179f7-9f1a-4c58-8196-5ee4c41d00da","model":"ollama/llama3.2:latest","status":"completed","created_at":1758128692,"output":[{"id":"mcp_list_76f81e82-3142-41af-8462-8d7ef3975517","type":"mcp_list_tools","role":"assistant","server_label":"github","output":""},{"id":"call_stl5xt0s","type":"mcp_call","role":"assistant","server_label":"github","arguments":"{\"owner\":\"llamastack\",\"repo\":\"llama-stack\"}","name":"get_latest_release","output":"{\"tag_name\":\"1.104.0\"}"},{"id":"msg_6cb0269f-0cec-405d-af61-4e5ac01ea2b5","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The latest release is version 1.104.0"}]}]}}
+
+            data: {"type":"response.metrics","metrics":{"latency_ms":2341,"time_to_first_token_ms":892,"usage":{"input_tokens":150,"output_tokens":500,"total_tokens":650}}}
 
     BadRequest:
       description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token
@@ -3545,6 +3824,13 @@ tags:
   - name: Responses
     description: |
       AI response generation with comprehensive parameter support
+
+  # =============================================================================
+  # GUARDRAILS OPERATIONS
+  # =============================================================================
+  - name: Guardrails
+    description: |
+      GuardrailsOrchestrator status and management operations for AI safety
 
   # =============================================================================
   # VECTOR STORE OPERATIONS

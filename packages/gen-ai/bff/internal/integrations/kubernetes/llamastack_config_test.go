@@ -73,7 +73,7 @@ func TestProviderCreationUtilities(t *testing.T) {
 	provider2 := NewInferenceProvider("inference-1", "http://example.com")
 	assert.Equal(t, "inference-1", provider2.ProviderID)
 	assert.Equal(t, "remote::inference", provider2.ProviderType)
-	assert.Equal(t, "http://example.com", provider2.Config["url"])
+	assert.Equal(t, "http://example.com", provider2.Config["base_url"])
 
 	// Test NewSentenceTransformerProvider
 	provider3 := NewSentenceTransformerProvider()
@@ -85,7 +85,7 @@ func TestProviderCreationUtilities(t *testing.T) {
 	provider4 := NewVLLMProvider("vllm-1", "http://vllm.example.com")
 	assert.Equal(t, "vllm-1", provider4.ProviderID)
 	assert.Equal(t, "remote::vllm", provider4.ProviderType)
-	assert.Equal(t, "http://vllm.example.com", provider4.Config["url"])
+	assert.Equal(t, "http://vllm.example.com", provider4.Config["base_url"])
 
 	// Test adding providers to config
 	config.AddInferenceProvider(provider1)
@@ -615,5 +615,243 @@ providers:
 		assert.Equal(t, "local-provider", result.ProviderID)
 		assert.Equal(t, "inline::local", result.ProviderType)
 		assert.Equal(t, "", result.URL)
+	})
+}
+
+func TestEnsureStorageField(t *testing.T) {
+	t.Run("should add storage field when missing", func(t *testing.T) {
+		yamlWithoutStorage := `
+version: "2"
+image_name: rh
+apis:
+  - inference
+providers:
+  inference: []
+registered_resources:
+  models: []
+`
+		var config LlamaStackConfig
+		err := config.FromYAML(yamlWithoutStorage)
+		require.NoError(t, err)
+
+		// Verify storage is empty before
+		assert.Equal(t, 0, len(config.Storage.Backends))
+		assert.Equal(t, 0, len(config.Storage.Stores))
+
+		// Call EnsureStorageField
+		config.EnsureStorageField()
+
+		// Verify storage is populated with defaults
+		assert.Greater(t, len(config.Storage.Backends), 0, "Backends should be populated")
+		assert.Greater(t, len(config.Storage.Stores), 0, "Stores should be populated")
+
+		// Verify default backends exist
+		assert.Contains(t, config.Storage.Backends, "kv_default")
+		assert.Contains(t, config.Storage.Backends, "sql_default")
+
+		// Verify default stores exist
+		assert.Contains(t, config.Storage.Stores, "metadata")
+		assert.Contains(t, config.Storage.Stores, "inference")
+		assert.Contains(t, config.Storage.Stores, "conversations")
+	})
+
+	t.Run("should not modify storage field when already present", func(t *testing.T) {
+		yamlWithStorage := `
+version: "2"
+image_name: rh
+apis:
+  - inference
+providers:
+  inference: []
+registered_resources:
+  models: []
+storage:
+  backends:
+    custom_backend:
+      type: custom
+      path: /custom/path
+  stores:
+    custom_store:
+      namespace: custom
+      backend: custom_backend
+`
+		var config LlamaStackConfig
+		err := config.FromYAML(yamlWithStorage)
+		require.NoError(t, err)
+
+		// Verify custom storage is present
+		assert.Contains(t, config.Storage.Backends, "custom_backend")
+		assert.Contains(t, config.Storage.Stores, "custom_store")
+
+		// Store original values
+		originalBackends := config.Storage.Backends
+		originalStores := config.Storage.Stores
+
+		// Call EnsureStorageField
+		config.EnsureStorageField()
+
+		// Verify storage was not modified
+		assert.Equal(t, originalBackends, config.Storage.Backends, "Backends should not be modified when already present")
+		assert.Equal(t, originalStores, config.Storage.Stores, "Stores should not be modified when already present")
+	})
+
+	t.Run("should add storage field when backends are empty but stores exist", func(t *testing.T) {
+		yamlWithPartialStorage := `
+version: "2"
+image_name: rh
+apis:
+  - inference
+providers:
+  inference: []
+registered_resources:
+  models: []
+storage:
+  backends: {}
+  stores:
+    custom_store:
+      namespace: custom
+      backend: custom_backend
+`
+		var config LlamaStackConfig
+		err := config.FromYAML(yamlWithPartialStorage)
+		require.NoError(t, err)
+
+		// Verify backends are empty
+		assert.Equal(t, 0, len(config.Storage.Backends))
+		assert.Greater(t, len(config.Storage.Stores), 0)
+
+		// Call EnsureStorageField
+		config.EnsureStorageField()
+
+		// Verify storage is populated with defaults (should replace partial storage)
+		assert.Greater(t, len(config.Storage.Backends), 0, "Backends should be populated")
+		assert.Greater(t, len(config.Storage.Stores), 0, "Stores should be populated")
+	})
+
+	t.Run("should add storage field when stores are empty but backends exist", func(t *testing.T) {
+		yamlWithPartialStorage := `
+version: "2"
+image_name: rh
+apis:
+  - inference
+providers:
+  inference: []
+registered_resources:
+  models: []
+storage:
+  backends:
+    custom_backend:
+      type: custom
+      path: /custom/path
+  stores: {}
+`
+		var config LlamaStackConfig
+		err := config.FromYAML(yamlWithPartialStorage)
+		require.NoError(t, err)
+
+		// Verify stores are empty
+		assert.Greater(t, len(config.Storage.Backends), 0)
+		assert.Equal(t, 0, len(config.Storage.Stores))
+
+		// Call EnsureStorageField
+		config.EnsureStorageField()
+
+		// Verify storage is populated with defaults (should replace partial storage)
+		assert.Greater(t, len(config.Storage.Backends), 0, "Backends should be populated")
+		assert.Greater(t, len(config.Storage.Stores), 0, "Stores should be populated")
+	})
+}
+
+func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
+	t.Run("should include max_tokens in model configuration when provided", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens := 8192
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify max_tokens is in the YAML
+		assert.Contains(t, yamlStr, "max_tokens: 8192")
+
+		// Parse back and verify
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Find the model we added
+		var foundModel *Model
+		for i := range parsedConfig.RegisteredResources.Models {
+			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
+				foundModel = &parsedConfig.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModel, "Model should be found in parsed config")
+		assert.NotNil(t, foundModel.MaxTokens, "MaxTokens should be set")
+		assert.Equal(t, 8192, *foundModel.MaxTokens)
+	})
+
+	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Parse back and verify
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Find the model we added
+		var foundModel *Model
+		for i := range parsedConfig.RegisteredResources.Models {
+			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
+				foundModel = &parsedConfig.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModel, "Model should be found in parsed config")
+		assert.Nil(t, foundModel.MaxTokens, "MaxTokens should be nil when not provided")
+	})
+
+	t.Run("should support multiple models with different max_tokens values", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens1 := 4096
+		maxTokens2 := 16384
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Verify both max_tokens values are in the YAML
+		assert.Contains(t, yamlStr, "max_tokens: 4096")
+		assert.Contains(t, yamlStr, "max_tokens: 16384")
+
+		// Parse back and verify
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		// Find both models
+		model1Found := false
+		model2Found := false
+		for i := range parsedConfig.RegisteredResources.Models {
+			model := &parsedConfig.RegisteredResources.Models[i]
+			if model.ModelID == "test-model-1" {
+				model1Found = true
+				assert.NotNil(t, model.MaxTokens)
+				assert.Equal(t, 4096, *model.MaxTokens)
+			}
+			if model.ModelID == "test-model-2" {
+				model2Found = true
+				assert.NotNil(t, model.MaxTokens)
+				assert.Equal(t, 16384, *model.MaxTokens)
+			}
+		}
+		assert.True(t, model1Found, "Model 1 should be found")
+		assert.True(t, model2Found, "Model 2 should be found")
 	})
 }

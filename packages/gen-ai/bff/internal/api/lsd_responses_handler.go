@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -27,6 +29,8 @@ var supportedEventTypes = map[string]bool{
 	"response.output_text.delta":  true, // Text delta/chunk for streaming text
 	"response.content_part.done":  true, // Content part completed
 	"response.completed":          true, // Response generation completed
+	"response.refusal.delta":      true, // Refusal text
+	"response.refusal.done":       true, // Refusal text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -42,22 +46,25 @@ type ChatContextMessage struct {
 
 // StreamingEvent represents a streaming event
 type StreamingEvent struct {
-	Delta          string        `json:"delta"`
+	Delta          string        `json:"delta,omitempty"`
+	Refusal        string        `json:"refusal,omitempty"` // For response.refusal.done events (OpenAI standard)
 	SequenceNumber int64         `json:"sequence_number"`
 	Type           string        `json:"type"`
-	ItemID         string        `json:"item_id"`
+	ItemID         string        `json:"item_id,omitempty"`
 	OutputIndex    int           `json:"output_index"`
+	ContentIndex   int           `json:"content_index,omitempty"` // For refusal events
 	Response       *ResponseData `json:"response,omitempty"`
 }
 
 // ResponseData represents the response structure for both streaming and non-streaming
 type ResponseData struct {
-	ID                 string       `json:"id"`
-	Model              string       `json:"model"`
-	Status             string       `json:"status"`
-	CreatedAt          int64        `json:"created_at"`
-	Output             []OutputItem `json:"output,omitempty"`
-	PreviousResponseID string       `json:"previous_response_id,omitempty"` // Reference to previous response in conversation thread
+	ID                 string           `json:"id"`
+	Model              string           `json:"model"`
+	Status             string           `json:"status"`
+	CreatedAt          int64            `json:"created_at"`
+	Output             []OutputItem     `json:"output,omitempty"`
+	PreviousResponseID string           `json:"previous_response_id,omitempty"` // Reference to previous response in conversation thread
+	Metrics            *ResponseMetrics `json:"metrics,omitempty"`              // Response metrics (latency, usage)
 }
 
 // OutputItem represents an output item with essential fields
@@ -81,7 +88,8 @@ type OutputItem struct {
 // ContentItem represents content with essential fields
 type ContentItem struct {
 	Type        string        `json:"type"`
-	Text        string        `json:"text"`
+	Text        string        `json:"text,omitempty"`        // For output_text content type
+	Refusal     string        `json:"refusal,omitempty"`     // For refusal content type (OpenAI standard for guardrails)
 	Annotations []interface{} `json:"annotations,omitempty"` // For content annotations
 }
 
@@ -92,12 +100,32 @@ type SearchResult struct {
 	Filename string  `json:"filename,omitempty"`
 }
 
+// ResponseMetrics contains timing and usage metrics for the response
+type ResponseMetrics struct {
+	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
+	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
+	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+}
+
+// UsageData contains token usage information from LlamaStack
+type UsageData struct {
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
+	TotalTokens  int `json:"total_tokens"`
+}
+
+// MetricsEvent represents the response.metrics streaming event
+type MetricsEvent struct {
+	Type    string          `json:"type"`    // "response.metrics"
+	Metrics ResponseMetrics `json:"metrics"` // Metrics data
+}
+
 // MCPServer represents MCP server configuration for responses
 type MCPServer struct {
-	ServerLabel  string            `json:"server_label"`            // Label identifier for the MCP server
-	ServerURL    string            `json:"server_url"`              // URL endpoint for the MCP server
-	Headers      map[string]string `json:"headers"`                 // Custom headers for MCP server authentication
-	AllowedTools []string          `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
+	ServerLabel   string   `json:"server_label"`            // Label identifier for the MCP server
+	ServerURL     string   `json:"server_url"`              // URL endpoint for the MCP server
+	Authorization string   `json:"authorization,omitempty"` // OAuth access token for MCP server authentication
+	AllowedTools  []string `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
 }
 
 // CreateResponseRequest represents the request body for creating a response
@@ -114,6 +142,8 @@ type CreateResponseRequest struct {
 	MCPServers         []MCPServer          `json:"mcp_servers,omitempty"`          // MCP server configurations
 	PreviousResponseID string               `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
 	Store              *bool                `json:"store,omitempty"`                // Store response for later retrieval (default true)
+	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
+	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -155,6 +185,57 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	_ = json.Unmarshal(responseJSON, &responseData)
 
 	return responseData
+}
+
+// extractUsage extracts usage data from a LlamaStack response
+func extractUsage(llamaResponse interface{}) *UsageData {
+	// Use type assertion for efficiency (avoids marshal/unmarshal overhead)
+	if resp, ok := llamaResponse.(*responses.Response); ok {
+		return &UsageData{
+			InputTokens:  int(resp.Usage.InputTokens),
+			OutputTokens: int(resp.Usage.OutputTokens),
+			TotalTokens:  int(resp.Usage.TotalTokens),
+		}
+	}
+	return nil
+}
+
+// extractUsageFromEvent extracts usage data from a streaming event (response.completed)
+func extractUsageFromEvent(event interface{}) *UsageData {
+	// The response.completed event contains the full response with usage
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return nil
+	}
+
+	var raw struct {
+		Response *struct {
+			Usage *struct {
+				InputTokens  int `json:"input_tokens"`
+				OutputTokens int `json:"output_tokens"`
+				TotalTokens  int `json:"total_tokens"`
+			} `json:"usage"`
+		} `json:"response"`
+	}
+
+	if err := json.Unmarshal(eventJSON, &raw); err != nil || raw.Response == nil || raw.Response.Usage == nil {
+		return nil
+	}
+
+	return &UsageData{
+		InputTokens:  raw.Response.Usage.InputTokens,
+		OutputTokens: raw.Response.Usage.OutputTokens,
+		TotalTokens:  raw.Response.Usage.TotalTokens,
+	}
+}
+
+// calculateTTFT calculates Time to First Token in milliseconds
+func calculateTTFT(startTime time.Time, firstTokenTime *time.Time) *int64 {
+	if firstTokenTime == nil {
+		return nil
+	}
+	ttft := firstTokenTime.Sub(startTime).Milliseconds()
+	return &ttft
 }
 
 // LlamaStackCreateResponseHandler handles POST /gen-ai/api/v1/responses
@@ -218,10 +299,10 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 			// Create MCP server parameter for LlamaStack
 			mcpServerParam := llamastack.MCPServerParam{
-				ServerLabel:  server.ServerLabel,
-				ServerURL:    server.ServerURL,
-				Headers:      make(map[string]string),
-				AllowedTools: server.AllowedTools, // Pass through allowed_tools from MCP server config
+				ServerLabel:   server.ServerLabel,
+				ServerURL:     server.ServerURL,
+				Authorization: server.Authorization,
+				AllowedTools:  server.AllowedTools, // Pass through allowed_tools from MCP server config
 			}
 
 			// Log the allowed_tools being sent to LlamaStack
@@ -233,13 +314,6 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			} else {
 				// Nil/undefined - all tools allowed
 				app.logger.Debug("MCP server with no tool restrictions", "server_label", server.ServerLabel, "allowed_tools", "undefined (all tools allowed)")
-			}
-
-			// Copy provided headers
-			if server.Headers != nil {
-				for k, v := range server.Headers {
-					mcpServerParam.Headers[k] = v
-				}
 			}
 
 			mcpServerParams = append(mcpServerParams, mcpServerParam)
@@ -260,6 +334,33 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// INPUT MODERATION: If InputShieldID is set, moderate the user input first
+	if createRequest.InputShieldID != "" {
+		modResult, err := app.checkModeration(ctx, createRequest.Input, createRequest.InputShieldID)
+		if err != nil {
+			app.logger.Error("Input moderation failed", "error", err, "shield_id", createRequest.InputShieldID)
+			app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
+			return
+		}
+		if modResult.Flagged {
+			app.logger.Info("Input blocked by guardrails",
+				"shield_id", createRequest.InputShieldID,
+				"reason", modResult.ViolationReason)
+
+			// Use streaming format if stream=true, otherwise return JSON
+			if createRequest.Stream {
+				app.sendInputGuardrailViolationStreaming(w, createRequest.Model)
+			} else {
+				responseData := createGuardrailViolationResponse("", createRequest.Model, true)
+				apiResponse := llamastack.APIResponse{Data: responseData}
+				if err := app.WriteJSON(w, http.StatusCreated, apiResponse, nil); err != nil {
+					app.serverErrorResponse(w, r, err)
+				}
+			}
+			return
+		}
+	}
+
 	// Retrieve and inject provider data for custom headers (MaaS or LLMInferenceService)
 	providerData := app.getProviderData(ctx, createRequest.Model)
 
@@ -276,11 +377,18 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		PreviousResponseID: createRequest.PreviousResponseID,
 		Store:              createRequest.Store,
 		ProviderData:       providerData,
+		InputShieldID:      createRequest.InputShieldID,
+		OutputShieldID:     createRequest.OutputShieldID,
 	}
 
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
-		app.handleStreamingResponse(w, r, ctx, params)
+		// Use async moderation for better streaming performance when output moderation is enabled
+		if createRequest.OutputShieldID != "" {
+			app.handleStreamingResponseAsync(w, r, ctx, params)
+		} else {
+			app.handleStreamingResponse(w, r, ctx, params)
+		}
 	} else {
 		app.handleNonStreamingResponse(w, r, ctx, params)
 	}
@@ -288,6 +396,11 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 // handleStreamingResponse handles streaming response creation
 func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
+	// Track start time for latency and TTFT calculation
+	startTime := time.Now()
+	var firstTokenTime *time.Time
+	var usage *UsageData
+
 	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -307,12 +420,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 				}
 			}
 		}
-		// Check if this is a model not found error
-		if ModelNotFoundError(err) {
-			app.modelNotFoundResponse(w, r, params.Model)
-			return
-		}
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 	defer stream.Close()
@@ -344,6 +452,17 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
+		// Track TTFT on first text delta event
+		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
+			now := time.Now()
+			firstTokenTime = &now
+		}
+
+		// Extract usage from completed event
+		if streamingEvent.Type == "response.completed" {
+			usage = extractUsageFromEvent(event)
+		}
+
 		// Convert clean streaming event to JSON
 		eventData, err := json.Marshal(streamingEvent)
 		if err != nil {
@@ -361,8 +480,6 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			app.logger.Error("Failed to write streaming event", "error", err)
 			return
 		}
-
-		// Flush the response to send data immediately
 		flusher.Flush()
 	}
 
@@ -379,27 +496,72 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		errorJSON, _ := json.Marshal(errorData)
 		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
 	}
+
+	// Send metrics event after stream completes
+	latencyMs := time.Since(startTime).Milliseconds()
+	metricsEvent := MetricsEvent{
+		Type: "response.metrics",
+		Metrics: ResponseMetrics{
+			LatencyMs:          latencyMs,
+			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+			Usage:              usage,
+		},
+	}
+	eventData, err := json.Marshal(metricsEvent)
+	if err != nil {
+		app.logger.Error("failed to marshal metrics event", "error", err)
+		return
+	}
+	fmt.Fprintf(w, "data: %s\n\n", eventData)
+	flusher.Flush()
 }
 
 // handleNonStreamingResponse handles regular (non-streaming) response creation
 func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
+	// Track start time for latency calculation
+	startTime := time.Now()
+
 	llamaResponse, err := app.repositories.Responses.CreateResponse(ctx, params)
 	if err != nil {
-		// Check if this is a model not found error
-		if ModelNotFoundError(err) {
-			app.modelNotFoundResponse(w, r, params.Model)
-			return
-		}
-		app.serverErrorResponse(w, r, err)
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
+
+	// Calculate latency
+	latencyMs := time.Since(startTime).Milliseconds()
 
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
 
+	// OUTPUT MODERATION: If OutputShieldID is set, moderate the response content
+	if params.OutputShieldID != "" {
+		outputText := extractResponseText(&responseData)
+		if outputText != "" {
+			modResult, err := app.checkModeration(ctx, outputText, params.OutputShieldID)
+			if err != nil {
+				app.logger.Error("Output moderation failed", "error", err, "shield_id", params.OutputShieldID)
+				app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
+				return
+			}
+			if modResult.Flagged {
+				app.logger.Info("Output blocked by guardrails",
+					"shield_id", params.OutputShieldID,
+					"reason", modResult.ViolationReason)
+				// Replace response with guardrail violation message
+				responseData = createGuardrailViolationResponse(responseData.ID, responseData.Model, false)
+			}
+		}
+	}
+
 	// Add previous response ID to response data if provided
 	if params.PreviousResponseID != "" {
 		responseData.PreviousResponseID = params.PreviousResponseID
+	}
+
+	// Add metrics to response
+	responseData.Metrics = &ResponseMetrics{
+		LatencyMs: latencyMs,
+		Usage:     extractUsage(llamaResponse),
 	}
 
 	apiResponse := llamastack.APIResponse{
@@ -410,6 +572,112 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
+// using the OpenAI standard refusal content type and streaming events.
+// This is used when input moderation flags content and the client requested streaming.
+func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string) {
+	// Check if ResponseWriter supports streaming
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// Fallback to JSON if streaming not supported
+		responseData := createGuardrailViolationResponse("", model, true)
+		apiResponse := llamastack.APIResponse{Data: responseData}
+		_ = app.WriteJSON(w, http.StatusCreated, apiResponse, nil) // Best effort - client may have disconnected
+		return
+	}
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	message := constants.InputGuardrailViolationMessage
+
+	// Generate IDs for the response
+	responseID := "resp_guardrail_" + fmt.Sprintf("%d", getCurrentTimestamp())
+	itemID := "msg_guardrail"
+
+	// Send response.created event
+	createdEvent := &StreamingEvent{
+		Type:           "response.created",
+		SequenceNumber: 0,
+		Response: &ResponseData{
+			ID:        responseID,
+			Model:     model,
+			Status:    "in_progress",
+			CreatedAt: getCurrentTimestamp(),
+		},
+	}
+	if eventData, err := json.Marshal(createdEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+
+	// Send response.refusal.delta with the guardrail message (OpenAI standard)
+	refusalDeltaEvent := &StreamingEvent{
+		Type:           "response.refusal.delta",
+		SequenceNumber: 1,
+		ItemID:         itemID,
+		OutputIndex:    0,
+		ContentIndex:   0,
+		Delta:          message,
+	}
+	if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+
+	// Send response.refusal.done (OpenAI standard)
+	refusalDoneEvent := &StreamingEvent{
+		Type:           "response.refusal.done",
+		SequenceNumber: 2,
+		ItemID:         itemID,
+		OutputIndex:    0,
+		ContentIndex:   0,
+		Refusal:        message,
+	}
+	if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+
+	// Send response.completed with refusal content type (OpenAI standard)
+	completedEvent := &StreamingEvent{
+		Type:           "response.completed",
+		SequenceNumber: 3,
+		Response: &ResponseData{
+			ID:        responseID,
+			Model:     model,
+			Status:    "completed",
+			CreatedAt: getCurrentTimestamp(),
+			Output: []OutputItem{
+				{
+					ID:     itemID,
+					Type:   "message",
+					Role:   "assistant",
+					Status: "completed",
+					Content: []ContentItem{
+						{
+							Type:    "refusal",
+							Refusal: message,
+						},
+					},
+				},
+			},
+		},
+	}
+	if eventData, err := json.Marshal(completedEvent); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", eventData)
+		flusher.Flush()
+	}
+}
+
+// getCurrentTimestamp returns the current Unix timestamp
+func getCurrentTimestamp() int64 {
+	return int64(0) // Use 0 for consistency with other guardrail responses
 }
 
 // validatePreviousResponse validates that a previous response ID exists and is accessible

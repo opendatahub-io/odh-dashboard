@@ -26,9 +26,13 @@ import {
   ModelCatalogNumberFilterKey,
   LatencyMetric,
   parseLatencyFilterKey,
+  SortOrder,
 } from '~/concepts/modelCatalog/const';
 import { useCatalogPerformanceArtifacts } from '~/app/hooks/modelCatalog/useCatalogPerformanceArtifacts';
-import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  getActiveLatencyFieldName,
+  stripArtifactsPrefix,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 
@@ -82,6 +86,11 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
         // TODO this is a temporary workaround to avoid capping performance artifacts with a default page size of 20.
         //      we need to implement proper cursor-based pagination as the user clicks through artifacts on a card.
         pageSize: '999',
+        // If a latency filter is applied, sort artifacts on the card by lowest latency.
+        ...(latencyFieldName && {
+          orderBy: stripArtifactsPrefix(latencyFieldName),
+          sortOrder: SortOrder.ASC,
+        }),
       },
       performanceViewEnabled ? filterData : undefined,
       performanceViewEnabled ? filterOptions : undefined,
@@ -169,7 +178,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
           <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
             <Flex direction={{ default: 'column' }}>
               <span className="pf-v6-u-font-weight-bold" data-testid="validated-model-hardware">
-                {metrics.hardwareCount}x{metrics.hardwareType}
+                {metrics.hardwareConfiguration}
               </span>
               <Content component={ContentVariants.small}>Hardware</Content>
             </Flex>
@@ -197,17 +206,16 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                       </p>
                       <List>
                         <ListItem>
-                          <strong>TTFT (Time to First Token)</strong> - The time between when a
-                          request is sent to a model and when the model begins streaming its first
-                          token in the response.
+                          <strong>TTFT (Time to First Token)</strong> - Time until the model starts
+                          responding. Best for interactive experiences.
                         </ListItem>
                         <ListItem>
-                          <strong>ITL (Inter-Token Latency)</strong> - The average time between
-                          successive output tokens after the model has started generating.
+                          <strong>ITL (Inter-Token Latency)</strong> - Time between tokens during
+                          generation. Important for smooth streaming and audio.
                         </ListItem>
                         <ListItem>
-                          <strong>E2E (End-to-End latency)</strong> - The total time from when the
-                          request is sent until the last token is received.
+                          <strong>E2E (End-to-End latency)</strong> - Total time to generate the
+                          full response. Best for summarization, batch jobs, and code generation.
                         </ListItem>
                       </List>
                     </div>

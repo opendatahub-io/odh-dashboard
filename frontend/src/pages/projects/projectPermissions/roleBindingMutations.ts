@@ -7,6 +7,7 @@ import {
 } from '#~/api';
 import { KnownLabels } from '#~/k8sTypes';
 import type { RoleRef, SupportedSubjectKind } from '#~/concepts/permissions/types';
+import { roleBindingHasSubject } from '#~/concepts/permissions/utils.ts';
 
 export const buildRoleBindingSubject = (
   subjectKind: SupportedSubjectKind,
@@ -39,9 +40,6 @@ export const findRoleBindingForRoleRef = ({
   roleRef: RoleRef;
 }): RoleBindingKind | undefined =>
   roleBindings.find((rb) => matchesRoleRefInNamespace(rb, namespace, roleRef));
-
-export const roleBindingHasSubject = (rb: RoleBindingKind, subject: RoleBindingSubject): boolean =>
-  (rb.subjects ?? []).some((s) => s.kind === subject.kind && s.name === subject.name);
 
 // Ensures the subject is assigned to the desired RoleRef by patching an existing RoleBinding (if any)
 // or creating a new RoleBinding when none exists.
@@ -111,32 +109,4 @@ export const removeSubjectFromRoleBinding = async ({
   }
 
   await patchRoleBindingSubjects(roleBinding.metadata.name, namespace, remainingSubjects);
-};
-
-// Moves a single subject from one RoleBinding to another roleRef in a subject-scoped way:
-// 1) Add subject to the target roleRef (patch existing RB or create a new RB)
-// 2) Remove subject from the source RB (patch subjects or delete RB if it becomes empty)
-export const moveSubjectRoleBinding = async ({
-  roleBindings,
-  namespace,
-  subjectKind,
-  subject,
-  fromRoleBinding,
-  toRoleRef,
-}: {
-  roleBindings: RoleBindingKind[];
-  namespace: string;
-  subjectKind: SupportedSubjectKind;
-  subject: RoleBindingSubject;
-  fromRoleBinding: RoleBindingKind;
-  toRoleRef: RoleRef;
-}): Promise<void> => {
-  await upsertRoleBinding({
-    roleBindings,
-    namespace,
-    subjectKind,
-    subject,
-    roleRef: toRoleRef,
-  });
-  await removeSubjectFromRoleBinding({ namespace, roleBinding: fromRoleBinding, subject });
 };

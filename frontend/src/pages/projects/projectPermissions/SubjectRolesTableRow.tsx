@@ -1,41 +1,30 @@
 import * as React from 'react';
-import {
-  Button,
-  Split,
-  SplitItem,
-  Timestamp,
-  TimestampTooltipVariant,
-} from '@patternfly/react-core';
+import { Split, SplitItem, Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { getRoleDisplayName, getRoleLabelType } from '#~/concepts/permissions/utils';
-import { RoleRef } from '#~/concepts/permissions/types';
 import { relativeTime } from '#~/utilities/time';
 import { SubjectRoleRow } from './types';
 import RoleLabel from './components/RoleLabel';
-import { isReversibleRoleRef } from './utils';
+import RoleDetailsLink from './components/RoleDetailsLink';
 
 type SubjectRolesTableRowProps = {
   row: SubjectRoleRow;
   subjectNameRowSpan: number;
-  onRoleClick?: (roleRef: RoleRef) => void;
-  onEdit: () => void;
+  onManageRoles: () => void;
   onRemove: () => void;
 };
 
 const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
   row,
   subjectNameRowSpan,
-  onRoleClick,
-  onEdit,
+  onManageRoles,
   onRemove,
 }) => {
   const createdDate = row.roleBindingCreationTimestamp
     ? new Date(row.roleBindingCreationTimestamp)
     : undefined;
 
-  const isEditable = isReversibleRoleRef(row.roleRef);
   const actionItems = [
-    ...(isEditable ? [{ title: 'Edit', onClick: onEdit }, { isSeparator: true }] : []),
+    { title: 'Manage roles', onClick: onManageRoles },
     { title: 'Unassign', onClick: onRemove },
   ];
 
@@ -54,17 +43,10 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
       >
         <Split hasGutter>
           <SplitItem>
-            <Button
-              variant="link"
-              isInline
-              onClick={() => onRoleClick?.(row.roleRef)}
-              data-testid="role-link"
-            >
-              {getRoleDisplayName(row.roleRef, row.role)}
-            </Button>
+            <RoleDetailsLink roleRef={row.roleRef} role={row.role} showAssigneesTab />
           </SplitItem>
           <SplitItem>
-            <RoleLabel type={row.role ? getRoleLabelType(row.role) : undefined} />
+            <RoleLabel roleRef={row.roleRef} role={row.role} isCompact />
           </SplitItem>
         </Split>
       </Td>

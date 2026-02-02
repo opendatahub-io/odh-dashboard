@@ -149,7 +149,7 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog
           .findWorkloadTypeFilter()
           .should('be.visible')
-          .should('contain.text', 'Workload type');
+          .should('contain.text', 'Scenario');
       });
 
       it('should show workload type options when clicked', () => {
@@ -173,7 +173,7 @@ describe('Model Catalog Details Tabs', () => {
         // Verify filter is applied (single-select shows selected value in toggle)
         modelCatalog
           .findWorkloadTypeFilter()
-          .should('contain.text', 'Workload type')
+          .should('contain.text', 'Scenario')
           .should('contain.text', 'Code Fixing');
         // Table should still exist (server-side filtering returns mock data)
         modelCatalog.findHardwareConfigurationTableRows().should('exist');
@@ -187,13 +187,13 @@ describe('Model Catalog Details Tabs', () => {
         // Single-select shows selected value in toggle
         modelCatalog
           .findWorkloadTypeFilter()
-          .should('contain.text', 'Workload type')
+          .should('contain.text', 'Scenario')
           .should('contain.text', 'Code Fixing');
 
         // Re-open dropdown and select a different option
         modelCatalog.findWorkloadTypeFilter().click();
         modelCatalog.selectWorkloadType('chatbot');
-        modelCatalog.findWorkloadTypeFilter().should('contain.text', 'Workload type');
+        modelCatalog.findWorkloadTypeFilter().should('contain.text', 'Scenario');
         modelCatalog.findWorkloadTypeFilter().should('contain.text', 'Chatbot');
         modelCatalog.findWorkloadTypeFilter().should('not.contain.text', 'Code Fixing');
       });
@@ -293,7 +293,7 @@ describe('Model Catalog Details Tabs', () => {
       ]).as('getModelRegistries');
 
       initIntercepts({ useValidatedModel: true, includePerformanceArtifacts: true });
-      modelCatalog.visit({ enableTempDevCatalogAdvancedFiltersFeature: true });
+      modelCatalog.visit();
       // Enable performance toggle to apply default filters
       modelCatalog.togglePerformanceView();
     });
@@ -314,7 +314,7 @@ describe('Model Catalog Details Tabs', () => {
         // TPS P90 column should be visible (matching percentile)
         modelCatalog
           .findHardwareConfigurationTableHeaders()
-          .should('contain.text', `TPS${NBSP}Latency P90`);
+          .should('contain.text', `TPS${NBSP}P90`);
       });
     });
 
@@ -337,7 +337,7 @@ describe('Model Catalog Details Tabs', () => {
         // TPS P90 column should be visible (matching percentile)
         modelCatalog
           .findHardwareConfigurationTableHeaders()
-          .should('contain.text', `TPS${NBSP}Latency P90`);
+          .should('contain.text', `TPS${NBSP}P90`);
 
         // E2E and ITL columns should be hidden
         modelCatalog.findHardwareConfigurationTableHeaders().should('not.contain.text', 'E2E');
@@ -368,7 +368,7 @@ describe('Model Catalog Details Tabs', () => {
         // TPS Mean column should be visible (matching percentile)
         modelCatalog
           .findHardwareConfigurationTableHeaders()
-          .should('contain.text', `TPS${NBSP}Latency Mean`);
+          .should('contain.text', `TPS${NBSP}Mean`);
 
         // TTFT and ITL columns should be hidden
         modelCatalog.findHardwareConfigurationTableHeaders().should('not.contain.text', 'TTFT');
@@ -405,7 +405,7 @@ describe('Model Catalog Details Tabs', () => {
           .should('contain.text', `TTFT${NBSP}Latency P90`);
         modelCatalog
           .findHardwareConfigurationTableHeaders()
-          .should('contain.text', `TPS${NBSP}Latency P90`);
+          .should('contain.text', `TPS${NBSP}P90`);
         // E2E and ITL should NOT be visible (filter is applied, not cleared)
         modelCatalog.findHardwareConfigurationTableHeaders().should('not.contain.text', 'E2E');
         modelCatalog.findHardwareConfigurationTableHeaders().should('not.contain.text', 'ITL');
@@ -422,7 +422,7 @@ describe('Model Catalog Details Tabs', () => {
         // Non-latency columns should still be visible
         modelCatalog
           .findHardwareConfigurationTableHeaders()
-          .should('contain.text', 'Hardware Configuration');
+          .should('contain.text', 'Hardware configuration');
         modelCatalog
           .findHardwareConfigurationTableHeaders()
           .should('contain.text', 'Workload type');
@@ -458,7 +458,7 @@ describe('Server-Side Filtering', () => {
         ),
       ).as('getDefaultFilteredArtifacts');
 
-      modelCatalog.visit({ enableTempDevCatalogAdvancedFiltersFeature: true });
+      modelCatalog.visit();
       modelCatalog.findLoadingState().should('not.exist');
       // Enable performance toggle to apply filters to API requests
       modelCatalog.togglePerformanceView();
@@ -512,7 +512,7 @@ describe('Server-Side Filtering', () => {
         ),
       ).as('getCodeFixingArtifacts');
 
-      modelCatalog.visit({ enableTempDevCatalogAdvancedFiltersFeature: true });
+      modelCatalog.visit();
       modelCatalog.findLoadingState().should('not.exist');
       // Enable performance toggle
       modelCatalog.togglePerformanceView();
@@ -563,7 +563,7 @@ describe('Server-Side Filtering', () => {
         ),
       ).as('getDefaultFilteredArtifacts');
 
-      modelCatalog.visit({ enableTempDevCatalogAdvancedFiltersFeature: true });
+      modelCatalog.visit();
       modelCatalog.findLoadingState().should('not.exist');
       // Enable performance toggle
       modelCatalog.togglePerformanceView();

@@ -435,13 +435,11 @@ describe('MCP Utilities', () => {
       expect(result[0]).toEqual({
         server_label: 'Server 1',
         server_url: 'http://server1.com',
-        headers: {
-          Authorization: 'Bearer token1',
-        },
+        authorization: 'token1',
       });
     });
 
-    it('should handle Bearer prefix in token', () => {
+    it('should strip Bearer prefix from token', () => {
       const mockTokensWithBearer = new Map([
         [
           'http://server1.com',
@@ -456,7 +454,7 @@ describe('MCP Utilities', () => {
         mockTokensWithBearer,
       );
 
-      expect(result[0].headers.Authorization).toBe('Bearer existing-token');
+      expect(result[0].authorization).toBe('existing-token');
     });
 
     it('should include auto-connected servers without tokens', () => {
@@ -472,7 +470,7 @@ describe('MCP Utilities', () => {
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].headers).toEqual({});
+      expect(result[0].authorization).toBeUndefined();
     });
 
     it('should exclude servers that are not selected', () => {

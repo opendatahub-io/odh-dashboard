@@ -196,6 +196,9 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  // BYOIDC cluster authentication settings
+  CLUSTER_AUTH?: string;
+  CLUSTER_OIDC_ISSUER?: string;
 };
 
 export type DataScienceProjectData = {
@@ -471,6 +474,13 @@ export type GenAiTestData = {
   hardwareProfileDeploymentSize: string;
   configMapName: string;
   playgroundServiceName: string;
+};
+
+export type ModelCatalogSourceTestData = {
+  sourceName: string;
+  redhatAiSourceId: string;
+  sourceName2: string;
+  redhatAiSourceId2: string;
 };
 
 export type TrainJobTestData = {

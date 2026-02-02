@@ -67,6 +67,22 @@ describe('Application', () => {
             text: 'MLflow test 1234',
           },
         },
+        // Even if the ConsoleLink is configured under a different section,
+        // the AppLauncher should place MLflow links under "Applications" when MLflow is enabled.
+        {
+          ...mockMLflowLink,
+          metadata: {
+            name: 'mlflow-wrong-section',
+          },
+          spec: {
+            ...mockMLflowLink.spec,
+            applicationMenu: {
+              imageURL: mockMLflowLink.spec.applicationMenu?.imageURL ?? '',
+              section: 'OpenShift Open Data Hub',
+            },
+            text: 'MLflow wrong section',
+          },
+        },
       ]),
     );
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
@@ -81,6 +97,7 @@ describe('Application', () => {
     // Have the MLflow link
     applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem('MLflow');
     applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem('MLflow test 1234');
+    applicationLauncherMenuGroupStatic.shouldHaveApplicationLauncherItem('MLflow wrong section');
 
     applicationLauncherMenuGroupStatic
       .findApplicationLauncherItem('MLflow')

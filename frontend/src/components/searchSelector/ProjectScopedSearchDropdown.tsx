@@ -26,6 +26,7 @@ export type ProjectScopedSearchDropdownProps<T> = {
   isFullWidth?: boolean;
   isDisabled?: boolean;
   minWidth?: string;
+  appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
 };
 
 export type ProjectScopedToggleLabelProps<T extends WithNamespace> = {
@@ -124,6 +125,7 @@ function ProjectScopedSearchDropdown<T>({
   isFullWidth,
   isDisabled,
   minWidth,
+  appendTo,
 }: ProjectScopedSearchDropdownProps<T>): JSX.Element {
   return (
     <SearchSelector
@@ -136,6 +138,7 @@ function ProjectScopedSearchDropdown<T>({
       onSearchClear={onSearchClear}
       searchValue={searchValue}
       toggleContent={toggleContent}
+      appendTo={appendTo}
     >
       <>
         {projectScopedItems.length > 0 && (

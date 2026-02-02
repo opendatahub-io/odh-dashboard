@@ -15,6 +15,7 @@ import {
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  GuardrailsStatus,
   LlamaModel,
   LlamaStackDistributionModel,
   MaaSModel,
@@ -24,6 +25,8 @@ import {
   MCPServersResponse,
   MCPToolsStatus,
   OutputItem,
+  ResponseMetrics,
+  SafetyConfigResponse,
   SimplifiedResponseData,
   SourceItem,
   VectorStore,
@@ -41,6 +44,16 @@ import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+/**
+ * Type guard to validate ResponseMetrics from streaming data
+ */
+const isResponseMetrics = (value: unknown): value is ResponseMetrics => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return typeof value.latency_ms === 'number';
+};
 
 const getStatusCodeFromError = (error: unknown): number | undefined => {
   if (isRecord(error) && 'status' in error) {
@@ -209,6 +222,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
+    ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
   };
 };
 
@@ -222,6 +236,8 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   instructions: r.instructions,
   stream: r.stream,
   mcp_servers: r.mcp_servers,
+  input_shield_id: r.input_shield_id,
+  output_shield_id: r.output_shield_id,
 });
 
 const postCreateResponse = (
@@ -275,6 +291,7 @@ const streamCreateResponse = (
 
         let fullContent = '';
         let completeResponseData: BackendResponseData | null = null;
+        let metricsData: ResponseMetrics | null = null;
         const decoder = new TextDecoder();
 
         try {
@@ -304,6 +321,12 @@ const streamCreateResponse = (
                       onStreamData(data.delta);
                     } else if (data.type === 'response.completed' && data.response) {
                       completeResponseData = data.response;
+                    } else if (
+                      data.type === 'response.metrics' &&
+                      isResponseMetrics(data.metrics)
+                    ) {
+                      // Capture metrics from the BFF response.metrics event
+                      metricsData = data.metrics;
                     }
                   } catch {
                     // ignore malformed lines
@@ -337,6 +360,7 @@ const streamCreateResponse = (
           content: processedContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
+          ...(metricsData && { metrics: metricsData }),
         });
       })
       .catch((error) => {
@@ -555,3 +579,6 @@ export const getMaaSModels = modArchRestGET<MaaSModel[]>('/maas/models');
 export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>(
   '/maas/tokens',
 );
+
+export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
+export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety/config');

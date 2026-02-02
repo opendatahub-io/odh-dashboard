@@ -279,7 +279,7 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 		},
 	})
 
-	// Create mock response with proper Output structure
+	// Create mock response with proper Output structure including Usage
 	mockResponse := &responses.Response{
 		ID:        "resp_mock123",
 		Object:    "response",
@@ -288,6 +288,11 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 		Status:    "completed",
 		Metadata:  map[string]string{},
 		Output:    outputItems,
+		Usage: responses.ResponseUsage{
+			InputTokens:  10,
+			OutputTokens: 25,
+			TotalTokens:  35,
+		},
 	}
 
 	return mockResponse, nil
@@ -304,7 +309,12 @@ func (e *MockStreamError) Error() string {
 	return e.Message
 }
 
-// HandleMockStreaming writes realistic streaming events to the response writer
+// ModerationChunkSize is the number of words to buffer before running moderation
+const ModerationChunkSize = 30
+
+// GuardrailViolationMessage is the message shown when content is blocked by guardrails
+const GuardrailViolationMessage = "I apologize, but I cannot provide a response to this request as it may contain content that violates our safety guidelines."
+
 func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
 	sleepWithContext := func(d time.Duration) bool {
 		select {
@@ -322,6 +332,95 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
+	// Mock identifiers
+	responseID := "resp_mock_stream123"
+	itemID := "msg_mock_stream123"
+
+	// Helper function to send SSE event
+	sendEvent := func(eventData interface{}) {
+		if data, err := json.Marshal(eventData); err == nil {
+			fmt.Fprintf(w, "data: %s\n\n", data)
+		}
+	}
+
+	// Helper function to send input guardrail violation in streaming format
+	// Uses OpenAI standard refusal content type and streaming events
+	sendInputBlockedError := func() {
+		// Send response.created event
+		sendEvent(map[string]interface{}{
+			"type":            "response.created",
+			"sequence_number": 0,
+			"response": map[string]interface{}{
+				"id":         responseID,
+				"model":      params.Model,
+				"status":     "in_progress",
+				"created_at": 1234567890.0,
+			},
+		})
+		flusher.Flush()
+
+		// Send delta with guardrail violation message
+		sendEvent(map[string]interface{}{
+			"type":            "response.refusal.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"content_index":   0,
+			"delta":           GuardrailViolationMessage,
+		})
+		flusher.Flush()
+
+		// Send response.refusal.done (OpenAI standard)
+		sendEvent(map[string]interface{}{
+			"type":            "response.refusal.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+			"content_index":   0,
+			"refusal":         GuardrailViolationMessage,
+		})
+		flusher.Flush()
+
+		// Send response.completed with refusal content type (OpenAI standard)
+		sendEvent(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 3,
+			"response": map[string]interface{}{
+				"id":         responseID,
+				"model":      params.Model,
+				"status":     "completed",
+				"created_at": 1234567890.0,
+				"output": []map[string]interface{}{
+					{
+						"id":     itemID,
+						"type":   "message",
+						"role":   "assistant",
+						"status": "completed",
+						"content": []map[string]interface{}{
+							{
+								"type":    "refusal",
+								"refusal": GuardrailViolationMessage,
+							},
+						},
+					},
+				},
+			},
+		})
+		flusher.Flush()
+	}
+
+	// INPUT MODERATION: If InputShieldID is set, moderate the user input first
+	if params.InputShieldID != "" {
+		inputModResult, err := m.CreateModeration(ctx, params.Input, params.InputShieldID)
+		if err == nil && len(inputModResult.Results) > 0 && inputModResult.Results[0].Flagged {
+			// Input blocked by guardrails
+			sendInputBlockedError()
+			return
+		}
+	}
+	// Track start time for metrics
+	streamStartTime := time.Now()
+
 	// Determine response text based on whether RAG is used
 	responseText := "This is a mock response to your query: " + params.Input
 	if len(params.VectorStoreIDs) > 0 {
@@ -333,15 +432,57 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
 	}
 
-	// Mock identifiers
-	responseID := "resp_mock_stream123"
-	itemID := "msg_mock_stream123"
+	// Helper function to send guardrail violation and complete response using OpenAI standard refusal events
+	sendGuardrailViolation := func(sequenceNum int, accumulatedText string) {
+		// Send response.refusal.delta with the guardrail violation message (OpenAI standard)
+		sendEvent(map[string]interface{}{
+			"type":            "response.refusal.delta",
+			"sequence_number": sequenceNum,
+			"item_id":         itemID,
+			"output_index":    0,
+			"content_index":   0,
+			"delta":           GuardrailViolationMessage,
+		})
+		flusher.Flush()
 
-	// Helper function to send SSE event
-	sendEvent := func(eventData interface{}) {
-		if data, err := json.Marshal(eventData); err == nil {
-			fmt.Fprintf(w, "data: %s\n\n", data)
-		}
+		// Send response.refusal.done (OpenAI standard)
+		sendEvent(map[string]interface{}{
+			"type":            "response.refusal.done",
+			"sequence_number": sequenceNum + 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"content_index":   0,
+			"refusal":         GuardrailViolationMessage,
+		})
+
+		// Response completed with refusal content type (OpenAI standard)
+		sendEvent(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 0,
+			"item_id":         "",
+			"output_index":    0,
+			"delta":           "",
+			"response": map[string]interface{}{
+				"id":         responseID,
+				"model":      params.Model,
+				"status":     "completed",
+				"created_at": 1234567890.0,
+				"output": []map[string]interface{}{
+					{
+						"id":     itemID,
+						"type":   "message",
+						"role":   "assistant",
+						"status": "completed",
+						"content": []map[string]interface{}{
+							{
+								"type":    "refusal",
+								"refusal": GuardrailViolationMessage,
+							},
+						},
+					},
+				},
+			},
+		})
 	}
 
 	// 1. Response created event
@@ -430,34 +571,74 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 	}
 	flusher.Flush()
 
-	// 4. Split text into words and send as delta events (like real streaming)
+	// 5. Chunked streaming with moderation
+	// Split text into words and process in chunks for moderation
 	words := strings.Fields(responseText)
+	var wordBuffer []string    // Buffer for current chunk
+	var accumulatedText string // All text accumulated so far (for moderation)
+	var streamedText string    // Text that has been streamed to client
+	deltaSequenceNum := sequenceNum + 1
+
 	for i, word := range words {
-		// Add space before each word except the first
+		// Build the chunk with proper spacing
 		chunk := word
 		if i > 0 {
 			chunk = " " + word
 		}
 
-		sendEvent(map[string]interface{}{
-			"type":            "response.output_text.delta",
-			"sequence_number": sequenceNum + 1 + i,
-			"item_id":         itemID,
-			"output_index":    0,
-			"delta":           chunk,
-		})
+		// Add to buffers
+		wordBuffer = append(wordBuffer, chunk)
+		accumulatedText += chunk
 
-		// Add realistic delay between chunks to simulate real streaming
-		if !sleepWithContext(300 * time.Millisecond) {
-			return
+		// Check if we've accumulated enough words for a moderation check
+		if len(wordBuffer) >= ModerationChunkSize || i == len(words)-1 {
+			// OUTPUT MODERATION: Only run if OutputShieldID is configured
+			if params.OutputShieldID != "" {
+				moderationResult, err := m.CreateModeration(ctx, accumulatedText, params.OutputShieldID)
+				if err != nil {
+					// If moderation fails, log but continue (fail open for mock)
+					// In production, you might want to fail closed
+				} else if len(moderationResult.Results) > 0 && moderationResult.Results[0].Flagged {
+					// Content flagged! Stop streaming and send guardrail violation
+					sendGuardrailViolation(deltaSequenceNum, accumulatedText)
+					return
+				}
+			}
+
+			// Moderation passed - stream the buffered words
+			for _, bufferedChunk := range wordBuffer {
+				sendEvent(map[string]interface{}{
+					"type":            "response.output_text.delta",
+					"sequence_number": deltaSequenceNum,
+					"item_id":         itemID,
+					"output_index":    0,
+					"delta":           bufferedChunk,
+				})
+				deltaSequenceNum++
+
+				// Add delay between chunks for realistic streaming effect
+				if !sleepWithContext(50 * time.Millisecond) {
+					return
+				}
+				flusher.Flush()
+			}
+
+			// Update streamed text and clear buffer
+			streamedText = accumulatedText
+			wordBuffer = nil
 		}
-		flusher.Flush()
 	}
 
-	// 5. Content part done event
+	// Use streamedText for final response (same as responseText if all passed)
+	finalText := streamedText
+	if finalText == "" {
+		finalText = responseText
+	}
+
+	// 6. Content part done event
 	sendEvent(map[string]interface{}{
 		"type":            "response.content_part.done",
-		"sequence_number": sequenceNum + 1 + len(words),
+		"sequence_number": deltaSequenceNum,
 		"item_id":         itemID,
 		"output_index":    0,
 		"delta":           "",
@@ -467,11 +648,9 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 	if !sleepWithContext(100 * time.Millisecond) {
 		return
 	}
-	if flusher, ok := w.(http.Flusher); ok {
-		flusher.Flush()
-	}
+	flusher.Flush()
 
-	// 6. Response completed event
+	// 7. Response completed event
 	var outputItems []map[string]interface{}
 
 	// Add MCP tool outputs to completed response if MCP tools were used
@@ -525,7 +704,7 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 		"content": []map[string]interface{}{
 			{
 				"type": "output_text",
-				"text": responseText,
+				"text": finalText,
 			},
 		},
 	})
@@ -542,6 +721,26 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 			"status":     "completed",
 			"created_at": 1234567890.0,
 			"output":     outputItems,
+			"usage": map[string]interface{}{
+				"input_tokens":  10,
+				"output_tokens": 25,
+				"total_tokens":  35,
+			},
+		},
+	})
+
+	// Send response.metrics event (simulates BFF metrics tracking)
+	elapsedMs := time.Since(streamStartTime).Milliseconds()
+	sendEvent(map[string]interface{}{
+		"type": "response.metrics",
+		"metrics": map[string]interface{}{
+			"latency_ms":             elapsedMs,
+			"time_to_first_token_ms": 100, // Mock TTFT
+			"usage": map[string]interface{}{
+				"input_tokens":  10,
+				"output_tokens": 25,
+				"total_tokens":  35,
+			},
 		},
 	})
 }
@@ -756,4 +955,45 @@ func (m *MockLlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vector
 	}
 	// Mock deletion always succeeds
 	return nil
+}
+
+// CreateModeration returns a mock moderation response using SDK types.
+// It simulates guardrail behavior by checking for certain patterns in the input.
+// This allows testing both flagged and unflagged scenarios.
+func (m *MockLlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
+	if input == "" {
+		return nil, fmt.Errorf("input is required")
+	}
+	if model == "" {
+		return nil, fmt.Errorf("model (shield ID) is required")
+	}
+
+	inputLower := strings.ToLower(input)
+
+	// Patterns that trigger moderation flags (for testing purposes)
+	flaggedPatterns := []string{
+		"hack", "attack", "exploit", "malicious", "harmful",
+		"kill", "hate", "violence",
+	}
+
+	// Check if any flagged patterns are present in the input
+	flagged := false
+	for _, pattern := range flaggedPatterns {
+		if strings.Contains(inputLower, pattern) {
+			flagged = true
+			break
+		}
+	}
+
+	// Build mock response using SDK types
+	// Only Flagged field is used by the actual code - Categories/Scores are not needed
+	return &openai.ModerationNewResponse{
+		ID:    "mod_mock_" + fmt.Sprintf("%d", time.Now().UnixNano()),
+		Model: model,
+		Results: []openai.Moderation{
+			{
+				Flagged: flagged,
+			},
+		},
+	}, nil
 }

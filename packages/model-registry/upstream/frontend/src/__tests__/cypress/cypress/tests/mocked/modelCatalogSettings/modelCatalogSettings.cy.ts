@@ -16,6 +16,7 @@ import {
   type CatalogSource,
   type CatalogSourceConfigList,
 } from '~/app/modelCatalogTypes';
+import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
 
 const NAMESPACE = 'kubeflow';
 const userMock = {
@@ -143,7 +144,7 @@ describe('Catalog Source Configs Table', () => {
   it('should render table column headers correctly', () => {
     modelCatalogSettings.visit();
     modelCatalogSettings.findTable().should('be.visible');
-    modelCatalogSettings.findTable().contains('th', 'Name').should('be.visible');
+    modelCatalogSettings.findTable().contains('th', 'Source name').should('be.visible');
     modelCatalogSettings.findTable().contains('th', 'Organization').should('be.visible');
     modelCatalogSettings.findTable().contains('th', 'Model visibility').should('be.visible');
     modelCatalogSettings.findTable().contains('th', 'Source type').should('be.visible');
@@ -156,8 +157,8 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible').and('contain', 'Default Catalog');
-      row.shouldHaveOrganization('-');
-      row.shouldHaveModelVisibility('Unfiltered');
+      row.shouldHaveOrganization(EMPTY_CUSTOM_PROPERTY_VALUE);
+      row.shouldHaveModelVisibility('All models');
       row.shouldHaveSourceType('YAML file');
     });
 
@@ -175,7 +176,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Custom YAML');
       row.findName().should('be.visible').and('contain', 'Custom YAML');
-      row.shouldHaveOrganization('-');
+      row.shouldHaveOrganization(EMPTY_CUSTOM_PROPERTY_VALUE);
       row.shouldHaveModelVisibility('Filtered');
       row.shouldHaveSourceType('YAML file');
       row.shouldHaveEnableState(false);
@@ -403,11 +404,11 @@ describe('Catalog Source Configs Table', () => {
       row.findModelVisibility().should('be.visible').and('contain', 'Filtered');
     });
 
-    it('should show "Unfiltered" badge when source has no filters', () => {
+    it('should show "All models" badge when source has no filters', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible');
-      row.findModelVisibility().should('be.visible').and('contain', 'Unfiltered');
+      row.findModelVisibility().should('be.visible').and('contain', 'All models');
       row
         .findModelVisibility()
         .find('[data-testid*="model-visibility-unfiltered"]')
@@ -421,7 +422,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible');
-      row.shouldHaveValidationStatus('-');
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
     });
 
     it('should show "-" for disabled sources', () => {
@@ -429,7 +430,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Default Catalog');
       row.findName().should('be.visible');
-      row.shouldHaveValidationStatus('-');
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
     });
 
     it('should show "Connected" status for available sources', () => {

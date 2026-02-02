@@ -90,17 +90,21 @@ export const generateMCPServerConfig = (
   serverTokens: Map<string, TokenInfo>,
 ): MCPServerConfig => {
   const serverTokenInfo = serverTokens.get(server.url);
-  const headers: Record<string, string> = {};
+  let authorization: string | undefined;
 
   if (serverTokenInfo?.token) {
-    const raw = serverTokenInfo.token.trim();
-    headers.Authorization = raw.toLowerCase().startsWith('bearer ') ? raw : `Bearer ${raw}`;
+    let token = serverTokenInfo.token.trim();
+    // Strip "Bearer " prefix if present (case-insensitive)
+    if (token.toLowerCase().startsWith('bearer ')) {
+      token = token.slice(7).trim();
+    }
+    authorization = token || undefined;
   }
 
   return {
     server_label: server.name,
     server_url: server.url,
-    headers,
+    authorization,
   };
 };
 
@@ -115,11 +119,11 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   serving_runtime: 'MaaS',
   api_protocol: 'OpenAI',
   version: '',
-  usecase: 'LLM',
-  description: '', //TODO: MaaS models don't have description yet, bff needs to be updated to provide it
+  usecase: maasModel.usecase || 'LLM',
+  description: maasModel.description || '',
   endpoints: [`internal: ${maasModel.url}`],
   status: maasModel.ready ? 'Running' : 'Stop',
-  display_name: maasModel.id,
+  display_name: maasModel.display_name || maasModel.id,
   sa_token: {
     name: '',
     token_name: '',

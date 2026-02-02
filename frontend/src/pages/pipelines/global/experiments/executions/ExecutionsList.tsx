@@ -4,6 +4,8 @@ import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useGetExecutionsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsList';
 import ExecutionsTable from '#~/pages/pipelines/global/experiments/executions/ExecutionsTable';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
+import { getGenericErrorCode } from '#~/api/errorUtils';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 
 const ExecutionsList: React.FC = () => {
   const { filterQuery } = useMlmdListContext();
@@ -12,6 +14,9 @@ const ExecutionsList: React.FC = () => {
   const filterQueryRef = React.useRef(filterQuery);
 
   if (executionsError) {
+    if (getGenericErrorCode(executionsError) === 403) {
+      return <UnauthorizedError accessDomain="executions" />;
+    }
     return (
       <Bullseye>
         <EmptyState

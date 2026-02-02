@@ -18,6 +18,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGuardrailsStatusHandler(t *testing.T) {
@@ -27,21 +30,17 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
+	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
 		Users:  k8smocks.DefaultTestUsers,
 		Logger: logger,
 		Ctx:    ctx,
 		Cancel: cancel,
 	})
 	require.NoError(t, err)
-	defer func() {
-		if err := testEnv.Stop(); err != nil {
-			t.Logf("Failed to stop test environment: %v", err)
-		}
-	}()
+	defer k8smocks.TeardownEnvTest(t, testEnvState)
 
 	// Create mock factory
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, logger)
+	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, logger)
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -91,29 +90,29 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		assert.Len(t, response.Data.Conditions, 5, "Should have 5 conditions from mock")
 
 		// Verify first condition (Progressing)
-		assert.Equal(t, "Progressing", response.Data.Conditions[0].Type)
-		assert.Equal(t, "True", response.Data.Conditions[0].Status)
+		assert.Equal(t, "Progressing", string(response.Data.Conditions[0].Type))
+		assert.Equal(t, "True", string(response.Data.Conditions[0].Status))
 		assert.Equal(t, "ReconcileInit", response.Data.Conditions[0].Reason)
 		assert.Equal(t, "Initializing GuardrailsOrchestrator resource", response.Data.Conditions[0].Message)
 
 		// Verify second condition (InferenceServiceReady)
-		assert.Equal(t, "InferenceServiceReady", response.Data.Conditions[1].Type)
-		assert.Equal(t, "False", response.Data.Conditions[1].Status)
+		assert.Equal(t, "InferenceServiceReady", string(response.Data.Conditions[1].Type))
+		assert.Equal(t, "False", string(response.Data.Conditions[1].Status))
 		assert.Equal(t, "InferenceServiceNotReady", response.Data.Conditions[1].Reason)
 
 		// Verify third condition (DeploymentReady)
-		assert.Equal(t, "DeploymentReady", response.Data.Conditions[2].Type)
-		assert.Equal(t, "True", response.Data.Conditions[2].Status)
+		assert.Equal(t, "DeploymentReady", string(response.Data.Conditions[2].Type))
+		assert.Equal(t, "True", string(response.Data.Conditions[2].Status))
 		assert.Equal(t, "DeploymentReady", response.Data.Conditions[2].Reason)
 
 		// Verify fourth condition (RouteReady)
-		assert.Equal(t, "RouteReady", response.Data.Conditions[3].Type)
-		assert.Equal(t, "False", response.Data.Conditions[3].Status)
+		assert.Equal(t, "RouteReady", string(response.Data.Conditions[3].Type))
+		assert.Equal(t, "False", string(response.Data.Conditions[3].Status))
 		assert.Equal(t, "RouteNotReady", response.Data.Conditions[3].Reason)
 
 		// Verify fifth condition (ReconcileComplete)
-		assert.Equal(t, "ReconcileComplete", response.Data.Conditions[4].Type)
-		assert.Equal(t, "False", response.Data.Conditions[4].Status)
+		assert.Equal(t, "ReconcileComplete", string(response.Data.Conditions[4].Type))
+		assert.Equal(t, "False", string(response.Data.Conditions[4].Status))
 		assert.Equal(t, "ReconcileFailed", response.Data.Conditions[4].Reason)
 	})
 
@@ -289,13 +288,13 @@ func TestGuardrailsStatusEnvelope(t *testing.T) {
 		envelope := GuardrailsStatusEnvelope{
 			Data: models.GuardrailsStatus{
 				Phase: "Ready",
-				Conditions: []models.GuardrailsCondition{
+				Conditions: []gorchv1alpha1.Condition{
 					{
 						Type:               "TestCondition",
-						Status:             "True",
+						Status:             corev1.ConditionTrue,
 						Reason:             "TestReason",
 						Message:            "Test message",
-						LastTransitionTime: "2025-01-01T00:00:00Z",
+						LastTransitionTime: metav1.Now(),
 					},
 				},
 			},
@@ -326,14 +325,14 @@ func TestGuardrailsStatusEnvelope(t *testing.T) {
 		assert.Equal(t, "True", condition["status"])
 		assert.Equal(t, "TestReason", condition["reason"])
 		assert.Equal(t, "Test message", condition["message"])
-		assert.Equal(t, "2025-01-01T00:00:00Z", condition["lastTransitionTime"])
+		assert.Contains(t, condition, "lastTransitionTime")
 	})
 
 	t.Run("should handle empty conditions", func(t *testing.T) {
 		envelope := GuardrailsStatusEnvelope{
 			Data: models.GuardrailsStatus{
 				Phase:      "NotDeployed",
-				Conditions: []models.GuardrailsCondition{},
+				Conditions: []gorchv1alpha1.Condition{},
 			},
 		}
 

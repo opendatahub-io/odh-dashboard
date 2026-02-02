@@ -224,6 +224,10 @@ func newCustomProperties() *map[string]openapi.MetadataValue {
 }
 
 func catalogCustomProperties() *map[string]openapi.MetadataValue {
+	return catalogCustomPropertiesWithVariant("", "FP16")
+}
+
+func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string) *map[string]openapi.MetadataValue {
 	result := map[string]openapi.MetadataValue{
 		"tensorflow": {
 			MetadataStringValue: &openapi.MetadataStringValue{
@@ -275,16 +279,32 @@ func catalogCustomProperties() *map[string]openapi.MetadataValue {
 		},
 		"tensor_type": {
 			MetadataStringValue: &openapi.MetadataStringValue{
-				StringValue:  "FP8",
+				StringValue:  tensorType,
 				MetadataType: "MetadataStringValue",
 			},
 		},
 		"size": {
 			MetadataStringValue: &openapi.MetadataStringValue{
-				StringValue:  "7B param",
+				StringValue:  "8B params",
 				MetadataType: "MetadataStringValue",
 			},
 		},
+		"model_type": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "generative",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+	}
+
+	// Add variant_group_id if provided
+	if variantGroupId != "" {
+		result["variant_group_id"] = openapi.MetadataValue{
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  variantGroupId,
+				MetadataType: "MetadataStringValue",
+			},
+		}
 	}
 
 	return &result
@@ -330,6 +350,8 @@ func GenerateMockArtifact() openapi.Artifact {
 	return mockData
 }
 
+const graniteVariantGroupId = "b6c850a4-aa4c-4a0f-91b1-0a69f4352843"
+
 func GetCatalogModelMocks() []models.CatalogModel {
 	sampleModel1 := models.CatalogModel{
 		Name:             "repo1/granite-8b-code-instruct",
@@ -340,7 +362,7 @@ func GetCatalogModelMocks() []models.CatalogModel {
 		LicenseLink:      stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
 		Maturity:         stringToPointer("Technology preview"),
 		Language:         []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
-		CustomProperties: catalogCustomProperties(),
+		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
 		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 		Readme: stringToPointer(`---
 pipeline_tag: text-generation
@@ -686,28 +708,41 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 	}
 
 	sampleModel2 := models.CatalogModel{
-		Name:             "repo1/granite-7b-instruct",
-		Description:      stringToPointer("Granite 7B instruction-tuned model for enterprise applications"),
+		Name:             "repo1/granite-8b-code-instruct-quantized.w4a16",
+		Description:      stringToPointer("Granite 8B Code Instruct - INT4 quantized variant for efficient inference"),
 		Provider:         stringToPointer("Provider one"),
 		Tasks:            []string{"text-generation", "image-text-to-text"},
 		License:          stringToPointer("apache-2.0"),
 		Maturity:         stringToPointer("Generally Available"),
 		Language:         []string{"en"},
 		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomProperties(),
+		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT4"),
 		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	sampleModel3 := models.CatalogModel{
-		Name:             "repo1/granite-3b-code-base",
-		Description:      stringToPointer("Granite 3B code generation model for programming tasks"),
+		Name:             "repo1/granite-8b-code-instruct-quantized.w8a8",
+		Description:      stringToPointer("Granite 8B Code Instruct - INT8 quantized variant for balanced performance"),
 		Provider:         stringToPointer("IBM"),
 		Tasks:            []string{"audio-to-text", "text-to-text", "video-to-text"},
 		License:          stringToPointer("mit"),
 		Maturity:         stringToPointer("Generally Available"),
 		Language:         []string{"en"},
 		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomProperties(),
+		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT8"),
+		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+	}
+
+	sampleModel4 := models.CatalogModel{
+		Name:             "repo1/granite-8b-code-instruct-bf16",
+		Description:      stringToPointer("Granite 8B Code Instruct - BF16 variant for high precision"),
+		Provider:         stringToPointer("IBM"),
+		Tasks:            []string{"text-generation", "code-generation"},
+		License:          stringToPointer("apache-2.0"),
+		Maturity:         stringToPointer("Generally Available"),
+		Language:         []string{"en"},
+		SourceId:         stringToPointer("sample-source"),
+		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "BF16"),
 		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
@@ -769,6 +804,16 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		SourceId:    stringToPointer("adminModel1"),
 	}
 
+	noPerformanceModel := models.CatalogModel{
+		Name:        "no-perf-source/test-model",
+		Description: stringToPointer("Model without performance data"),
+		Provider:    stringToPointer("Test Provider"),
+		Tasks:       []string{"text-generation"},
+		License:     stringToPointer("apache-2.0"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("no-perf-source"),
+	}
+
 	// added this to test the load more models button
 	var additionalRepo1Models []models.CatalogModel
 	for i := 1; i <= 20; i++ {
@@ -792,8 +837,8 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 	}
 
 	allModels := []models.CatalogModel{
-		sampleModel1, sampleModel2, sampleModel3,
-		huggingFaceModel1, huggingFaceModel2, huggingFaceModel3,
+		sampleModel1, sampleModel2, sampleModel3, sampleModel4,
+		huggingFaceModel1, huggingFaceModel2, huggingFaceModel3, noPerformanceModel,
 		otherModel1, otherModel2,
 	}
 	allModels = append(allModels, additionalRepo1Models...)
@@ -867,6 +912,13 @@ func GetCatalogSourceMocks() []models.CatalogSource {
 			Enabled: &disabledBool,
 			Labels:  []string{},
 			Status:  &disabledStatus,
+		},
+		{
+			Id:      "no-perf-source",
+			Name:    "No Performance Data Source",
+			Enabled: &enabled,
+			Labels:  []string{"No Performance"},
+			Status:  &availableStatus,
 		},
 	}
 }
@@ -2041,17 +2093,17 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 	// Default performance filters - applied when performance toggle is turned on
 	// Uses full filter key format matching the filters map
 	namedQueries["default-performance-filters"] = map[string]models.FieldFilter{
-		"artifacts.use_case.string_value": {
-			Operator: "=",
-			Value:    "Chatbot", // UseCaseOptionValue.CHATBOT
+		"artifacts.requests_per_second.double_value": {
+			Operator: "<=",
+			Value:    float64(1),
 		},
 		"artifacts.ttft_p90.double_value": {
 			Operator: "<=",
-			Value:    "max", // 'max' means use the max value from the range in filters
+			Value:    float64(892.6553726196289),
 		},
-		"artifacts.requests_per_second.double_value": {
-			Operator: "<=",
-			Value:    "max", // 'max' means use the max value from the range in filters
+		"artifacts.use_case.string_value": {
+			Operator: "=",
+			Value:    "chatbot",
 		},
 	}
 
@@ -2063,7 +2115,7 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 		},
 		"artifacts.use_case.string_value": {
 			Operator: "=",
-			Value:    "Chatbot",
+			Value:    "chatbot",
 		},
 	}
 
@@ -2095,7 +2147,7 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 	namedQueries["chatbot_optimized"] = map[string]models.FieldFilter{
 		"artifacts.use_case.string_value": {
 			Operator: "=",
-			Value:    "Chatbot",
+			Value:    "chatbot",
 		},
 	}
 
@@ -2103,7 +2155,7 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 	namedQueries["rag_optimized"] = map[string]models.FieldFilter{
 		"artifacts.use_case.string_value": {
 			Operator: "in",
-			Value:    []interface{}{"RAG", "Long RAG"},
+			Value:    []interface{}{"rag", "long_rag"},
 		},
 	}
 

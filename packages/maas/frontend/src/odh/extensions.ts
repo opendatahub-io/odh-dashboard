@@ -11,16 +11,20 @@ import type {
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
-import type { MaaSTierValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
+import type {
+  MaaSEndpointsExternalData,
+  MaaSTierValue,
+} from './modelDeploymentWizard/MaaSEndpointCheckbox';
 
 const MODEL_AS_SERVICE = 'modelAsService';
+const MAAS_API_KEYS = 'maasApiKeys';
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
 
 const extensions: (
   | NavExtension
   | RouteExtension
   | AreaExtension
-  | WizardField2Extension<MaaSTierValue>
+  | WizardField2Extension<MaaSTierValue, MaaSEndpointsExternalData, LLMdDeployment>
   | WizardFieldApplyExtension<MaaSTierValue, LLMdDeployment>
   | WizardFieldExtractorExtension<MaaSTierValue, LLMdDeployment>
 )[] = [
@@ -30,6 +34,14 @@ const extensions: (
       id: MODEL_AS_SERVICE,
       featureFlags: ['modelAsService', 'genAiStudio'],
       requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: MAAS_API_KEYS,
+      reliantAreas: [MODEL_AS_SERVICE],
+      featureFlags: ['maasApiKeys'],
     },
   },
   {
@@ -49,7 +61,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MODEL_AS_SERVICE],
+      required: [MAAS_API_KEYS],
     },
     properties: {
       id: 'maas-tokens-view',

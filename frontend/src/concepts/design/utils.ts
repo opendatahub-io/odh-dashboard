@@ -53,6 +53,7 @@ export enum ProjectObjectType {
   multiModel = 'multi-model',
   modelServer = 'model-server',
   modelCatalog = 'model-catalog',
+  mlflow = 'mlflow',
   registeredModels = 'registered-models',
   modelRegistryContext = 'modelRegistryContext',
   deployedModels = 'deployed-models',

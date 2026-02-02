@@ -7,13 +7,59 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { FileModel } from '~/app/types';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
+import { useChatbotConfigStore, ChatbotConfigStore } from '~/app/Chatbot/store';
 
 jest.mock('~/app/hooks/useFetchVectorStores');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/Chatbot/store', () => ({
+  ...jest.requireActual('~/app/Chatbot/store'),
+  useChatbotConfigStore: jest.fn(),
+}));
 
 const mockUseFetchVectorStores = jest.mocked(useFetchVectorStores);
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+const mockUseChatbotConfigStore = jest.mocked(useChatbotConfigStore);
 const mockExportCode = jest.fn();
+
+// Create a shared mock store that will be modified per test
+let mockStore: ChatbotConfigStore | undefined;
+
+const createMockStore = (configOverrides = {}) => {
+  const defaultConfig = {
+    selectedModel: 'test-model',
+    systemInstruction: 'You are a helpful assistant.',
+    selectedMcpServerIds: [],
+    temperature: 0.1,
+    isStreamingEnabled: true,
+    guardrailsEnabled: false,
+    mcpToolSelections: {},
+    ...configOverrides,
+  };
+
+  return {
+    configurations: {
+      default: defaultConfig,
+    },
+    configIds: ['default'],
+    getToolSelections: jest.fn().mockReturnValue(undefined),
+  } as unknown as ChatbotConfigStore;
+};
+
+const setupMockStore = (configOverrides = {}) => {
+  mockStore = createMockStore(configOverrides);
+
+  // Reset the mock implementation with the new store
+  mockUseChatbotConfigStore.mockImplementation((selector) => {
+    if (typeof selector === 'function') {
+      return selector(mockStore as ChatbotConfigStore);
+    }
+    return undefined;
+  });
+
+  // Mock getState to return the mockStore
+  (mockUseChatbotConfigStore as unknown as { getState: () => ChatbotConfigStore }).getState =
+    jest.fn(() => mockStore as ChatbotConfigStore);
+};
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <GenAiContext.Provider value={mockGenAiContextValue}>{children}</GenAiContext.Provider>
@@ -37,9 +83,8 @@ describe('ViewCodeModal', () => {
   const defaultProps = {
     isOpen: true,
     onToggle: jest.fn(),
+    configId: 'default',
     input: 'What is machine learning?',
-    model: 'test-model',
-    systemInstruction: 'You are a helpful assistant.',
     files: mockFiles,
   };
 
@@ -77,6 +122,9 @@ describe('ViewCodeModal', () => {
       },
       refreshAllAPI: jest.fn(),
     });
+
+    // Mock Zustand store to return config values
+    setupMockStore();
   });
 
   it('renders modal with loading state initially', () => {
@@ -185,14 +233,12 @@ describe('ViewCodeModal', () => {
       status: 'healthy' as const,
     };
 
+    // Mock store to return selected MCP servers
+    setupMockStore({ selectedMcpServerIds: ['http://test-server'] });
+
     render(
       <TestWrapper>
-        <ViewCodeModal
-          {...defaultProps}
-          selectedMcpServerIds={['http://test-server']}
-          mcpServers={[mockServer]}
-          mcpServerTokens={new Map()}
-        />
+        <ViewCodeModal {...defaultProps} mcpServers={[mockServer]} mcpServerTokens={new Map()} />
       </TestWrapper>,
     );
 
@@ -220,21 +266,23 @@ describe('ViewCodeModal', () => {
       status: 'healthy' as const,
     };
 
-    const mockToolSelections = jest.fn((ns: string, url: string) => {
-      if (ns === 'test-namespace' && url === 'http://test-server') {
+    const mockGetToolSelections = jest.fn((configId: string, ns: string, url: string) => {
+      if (configId === 'default' && ns === 'test-namespace' && url === 'http://test-server') {
         return ['tool1', 'tool2'];
       }
       return undefined;
     });
 
+    // Mock store to return selected MCP servers and tool selections
+    setupMockStore({ selectedMcpServerIds: ['http://test-server'] });
+    mockStore!.getToolSelections = mockGetToolSelections;
+
     render(
       <TestWrapper>
         <ViewCodeModal
           {...defaultProps}
-          selectedMcpServerIds={['http://test-server']}
           mcpServers={[mockServer]}
           mcpServerTokens={new Map()}
-          toolSelections={mockToolSelections}
           namespace="test-namespace"
         />
       </TestWrapper>,
@@ -265,16 +313,18 @@ describe('ViewCodeModal', () => {
       status: 'healthy' as const,
     };
 
-    const mockToolSelections = jest.fn(() => undefined);
+    const mockGetToolSelections = jest.fn(() => undefined);
+
+    // Mock store to return selected MCP servers with no tool selections
+    setupMockStore({ selectedMcpServerIds: ['http://test-server'] });
+    mockStore!.getToolSelections = mockGetToolSelections;
 
     render(
       <TestWrapper>
         <ViewCodeModal
           {...defaultProps}
-          selectedMcpServerIds={['http://test-server']}
           mcpServers={[mockServer]}
           mcpServerTokens={new Map()}
-          toolSelections={mockToolSelections}
           namespace="test-namespace"
         />
       </TestWrapper>,
@@ -308,16 +358,18 @@ describe('ViewCodeModal', () => {
       status: 'healthy' as const,
     };
 
-    const mockToolSelections = jest.fn(() => []);
+    const mockGetToolSelections = jest.fn(() => []);
+
+    // Mock store to return selected MCP servers with empty tool selections
+    setupMockStore({ selectedMcpServerIds: ['http://test-server'] });
+    mockStore!.getToolSelections = mockGetToolSelections;
 
     render(
       <TestWrapper>
         <ViewCodeModal
           {...defaultProps}
-          selectedMcpServerIds={['http://test-server']}
           mcpServers={[mockServer]}
           mcpServerTokens={new Map()}
-          toolSelections={mockToolSelections}
           namespace="test-namespace"
         />
       </TestWrapper>,

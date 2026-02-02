@@ -48,6 +48,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org',
   ready: true,
   url: 'https://example.com/model',
+  display_name: 'Test Model',
+  description: 'A test model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 
@@ -96,7 +99,8 @@ describe('MaaSModelTableRow', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByText('test-model')).toBeInTheDocument();
+    // Display name is shown in the UI
+    expect(screen.getByText('Test Model')).toBeInTheDocument();
     expect(screen.getByText('MaaS')).toBeInTheDocument();
   });
 

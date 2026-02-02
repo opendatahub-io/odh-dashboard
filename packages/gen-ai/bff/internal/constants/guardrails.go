@@ -1,11 +1,9 @@
 package constants
 
+import "fmt"
+
 // GuardrailsOrchestrator CR constants
 const (
-	// GuardrailsOrchestratorName is the constant name of the GuardrailsOrchestrator CR
-	// Similar to MCPServerName = "gen-ai-aa-mcp-servers"
-	GuardrailsOrchestratorName = "custom-guardrails"
-
 	// GuardrailsOrchestratorAPIVersion is the API version for the GuardrailsOrchestrator CR
 	GuardrailsOrchestratorAPIVersion = "trustyai.opendatahub.io/v1alpha1"
 
@@ -21,5 +19,58 @@ const (
 	GuardrailsPhaseReady       = "Ready"
 	GuardrailsPhaseProgressing = "Progressing"
 	GuardrailsPhaseFailed      = "Failed"
-	GuardrailsPhaseNotDeployed = "NotDeployed" // CR not found in cluster
+)
+
+// Safety Provider configuration for TrustyAI FMS
+const (
+	// SafetyProviderModule is the default module version for TrustyAI FMS provider
+	SafetyProviderModule = "llama_stack_provider_trustyai_fms==0.3.2"
+
+	// SafetyProviderID is the default provider ID for TrustyAI FMS
+	SafetyProviderID = "trustyai_fms"
+
+	// SafetyProviderType is the provider type for TrustyAI FMS
+	SafetyProviderType = "remote::trustyai_fms"
+)
+
+// Guardrails authentication and service configuration
+const (
+	// GuardrailAuthTokenEnvName is the name of the environment variable for the guardrails auth token
+	// Used for authenticating with kube-rbac-proxy on the guardrails detector service
+	// This token comes from the guardrails-service-account which has RBAC permissions to access the detector
+	GuardrailAuthTokenEnvName = "GUARDRAIL_AUTH_TOKEN"
+
+	// DefaultGuardrailsServiceAccountName is the default name for the guardrails service account
+	DefaultGuardrailsServiceAccountName = "guardrails-service-account"
+
+	// DefaultGuardrailsTokenSecretSuffix is the suffix for the guardrails token secret
+	DefaultGuardrailsTokenSecretSuffix = "-token"
+
+	// DefaultDetectorURL is the default URL for the custom guardrails service
+	DefaultDetectorURL = "https://custom-guardrails-service:8480"
+)
+
+// FormatEnvVar formats an environment variable name as LlamaStack template syntax
+// Example: FormatEnvVar("GUARDRAIL_AUTH_TOKEN") returns "${env.GUARDRAIL_AUTH_TOKEN}"
+func FormatEnvVar(envName string) string {
+	return fmt.Sprintf("${env.%s}", envName)
+}
+
+// Moderation constants
+const (
+	MinModerationWordCount = 10
+
+	// ModerationChunkSize is the number of words to buffer before running moderation (fallback threshold)
+	// Primary trigger is sentence boundary detection; this is the fallback for code blocks, lists, etc.
+	ModerationChunkSize = 30
+
+	// InputGuardrailViolationMessage is the message shown when user input is blocked by guardrails
+	InputGuardrailViolationMessage = "I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII)."
+
+	// OutputGuardrailViolationMessage is the message shown when model output is blocked by guardrails
+	OutputGuardrailViolationMessage = "The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII)."
+
+	// AsyncModerationResultBufferSize is the buffer size for the async moderation result channel
+	// This allows multiple moderation requests to complete without blocking
+	AsyncModerationResultBufferSize = 10
 )

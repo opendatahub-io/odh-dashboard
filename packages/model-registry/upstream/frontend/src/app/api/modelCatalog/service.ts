@@ -26,16 +26,31 @@ export const getCatalogModelsBySource =
     searchKeyword?: string,
     filterData?: ModelCatalogFilterStates,
     filterOptions?: CatalogFilterOptionsList | null,
+    filterQuery?: string,
+    performanceParams?: {
+      targetRPS?: number;
+      latencyProperty?: string;
+      recommendations?: boolean;
+    },
   ): Promise<CatalogModelList> => {
-    const filterQuery =
-      filterData && filterOptions ? filtersToFilterQuery(filterData, filterOptions) : '';
+    const computedFilterQuery =
+      filterQuery ??
+      (filterData && filterOptions ? filtersToFilterQuery(filterData, filterOptions) : '');
+
     const allParams = {
       source: sourceId,
       sourceLabel,
       ...paginationParams,
       ...(searchKeyword && { q: searchKeyword }),
       ...queryParams,
-      ...(filterQuery && { filterQuery }),
+      ...(computedFilterQuery && { filterQuery: computedFilterQuery }),
+      ...(performanceParams?.targetRPS !== undefined && { targetRPS: performanceParams.targetRPS }),
+      ...(performanceParams?.latencyProperty && {
+        latencyProperty: performanceParams.latencyProperty,
+      }),
+      ...(performanceParams?.recommendations !== undefined && {
+        recommendations: performanceParams.recommendations,
+      }),
     };
     return handleRestFailures(restGET(hostPath, '/models', allParams, opts)).then((response) => {
       if (isModArchResponse<CatalogModelList>(response)) {

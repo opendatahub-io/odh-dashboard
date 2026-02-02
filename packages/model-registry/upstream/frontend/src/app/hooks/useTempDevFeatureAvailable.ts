@@ -3,14 +3,14 @@
  *
  * This hook provides a browser storage-backed feature flag that can be toggled
  * via the browser console using:
- *     window.setTempDevCatalogAdvancedFiltersFeatureAvailable(true/false);
  *     window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable(true/false);
+ *     window.setTempDevRegistryStorageFeatureAvailable(true/false);
  * The state persists across page reloads using browser storage.
  *
  * Each TempDevFeature and corresponding window.set* here should be removed once that feature is ready.
  * This entire hook should be removed once all these features are ready.
  *
- * @returns {boolean} Whether the catalog advanced filters feature is enabled
+ * @returns {boolean} Whether the feature is enabled
  */
 
 import * as React from 'react';
@@ -18,14 +18,14 @@ import { useBrowserStorage } from 'mod-arch-core';
 
 declare global {
   interface Window {
-    setTempDevCatalogAdvancedFiltersFeatureAvailable?: (enabled: boolean) => void;
     setTempDevCatalogHuggingFaceApiKeyFeatureAvailable?: (enabled: boolean) => void;
+    setTempDevRegistryStorageFeatureAvailable?: (enabled: boolean) => void;
   }
 }
 
 export enum TempDevFeature {
-  CatalogAdvancedFilters = 'tempDevCatalogAdvancedFiltersFeatureAvailable',
   CatalogHuggingFaceApiKey = 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
+  RegistryStorage = 'tempDevRegistryStorageFeatureAvailable',
 }
 
 export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => {
@@ -34,11 +34,11 @@ export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => 
   // Expose setter to window for easy toggling via browser console
   React.useEffect(() => {
     switch (feature) {
-      case TempDevFeature.CatalogAdvancedFilters:
-        window.setTempDevCatalogAdvancedFiltersFeatureAvailable = setIsAvailable;
-        break;
       case TempDevFeature.CatalogHuggingFaceApiKey:
         window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable = setIsAvailable;
+        break;
+      case TempDevFeature.RegistryStorage:
+        window.setTempDevRegistryStorageFeatureAvailable = setIsAvailable;
         break;
     }
   }, [feature, setIsAvailable]);

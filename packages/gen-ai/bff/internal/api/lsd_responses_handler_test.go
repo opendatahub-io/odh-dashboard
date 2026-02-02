@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
@@ -60,7 +61,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -119,7 +120,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -198,12 +199,10 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			Model: "llama-3.1-8b",
 			MCPServers: []MCPServer{
 				{
-					ServerLabel: "slack",
-					ServerURL:   "http://127.0.0.1:13080/sse",
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
-					AllowedTools: []string{"send_message", "", "get_channel_history"}, // Empty string should cause validation error
+					ServerLabel:   "slack",
+					ServerURL:     "http://127.0.0.1:13080/sse",
+					Authorization: "test-token",
+					AllowedTools:  []string{"send_message", "", "get_channel_history"}, // Empty string should cause validation error
 				},
 			},
 		}
@@ -244,7 +243,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -277,7 +276,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -312,7 +311,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -370,11 +369,9 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			Model: "mock-model-for-testing",
 			MCPServers: []MCPServer{
 				{
-					ServerLabel: "github",
-					ServerURL:   "https://api.githubcopilot.com/mcp/x/repos/readonly",
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
+					ServerLabel:   "github",
+					ServerURL:     "https://api.githubcopilot.com/mcp/x/repos/readonly",
+					Authorization: "test-token",
 				},
 			},
 		}
@@ -383,7 +380,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -474,10 +471,8 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			MCPServers: []MCPServer{
 				{
 					// Missing ServerLabel - should cause validation error
-					ServerURL: "https://api.githubcopilot.com/mcp/x/repos/readonly",
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
+					ServerURL:     "https://api.githubcopilot.com/mcp/x/repos/readonly",
+					Authorization: "test-token",
 				},
 			},
 		}
@@ -486,7 +481,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -508,11 +503,9 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 			Model: "llama-3.1-8b",
 			MCPServers: []MCPServer{
 				{
-					ServerLabel: "github",
+					ServerLabel:   "github",
+					Authorization: "test-token",
 					// Missing ServerURL - should cause validation error
-					Headers: map[string]string{
-						"Authorization": "Bearer test-token",
-					},
 				},
 			},
 		}
@@ -521,7 +514,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -559,7 +552,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -600,7 +593,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -627,7 +620,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -672,7 +665,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -710,7 +703,7 @@ func TestLlamaStackCreateResponseHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -774,7 +767,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Attach LlamaStack client to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -839,7 +832,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		cancel() // Cancel immediately
 
 		// Attach LlamaStack client to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -882,7 +875,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Attach LlamaStack client to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil)
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -935,4 +928,292 @@ func parseSSEEvents(body string) []map[string]interface{} {
 	}
 
 	return events
+}
+
+// TestResponseMetrics tests that non-streaming responses include metrics
+func TestResponseMetrics(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		logger:                  logger,
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("should include metrics with latency and usage in non-streaming response", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input: "Hello",
+			Model: "llama-3.1-8b",
+		}
+
+		jsonData, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Attach LlamaStack client to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		require.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		require.NoError(t, err)
+
+		// Verify response has data
+		data, ok := response["data"].(map[string]interface{})
+		require.True(t, ok, "response should have data field")
+
+		// Verify metrics field exists
+		metrics, ok := data["metrics"].(map[string]interface{})
+		require.True(t, ok, "data should have metrics field")
+
+		// Verify latency_ms exists and is non-negative (mock may be instant)
+		latencyMs, ok := metrics["latency_ms"].(float64)
+		require.True(t, ok, "metrics should have latency_ms field")
+		assert.GreaterOrEqual(t, latencyMs, float64(0), "latency_ms should be non-negative")
+
+		// Verify usage exists with token counts
+		usage, ok := metrics["usage"].(map[string]interface{})
+		require.True(t, ok, "metrics should have usage field")
+
+		inputTokens, ok := usage["input_tokens"].(float64)
+		require.True(t, ok, "usage should have input_tokens")
+		assert.Equal(t, float64(10), inputTokens)
+
+		outputTokens, ok := usage["output_tokens"].(float64)
+		require.True(t, ok, "usage should have output_tokens")
+		assert.Equal(t, float64(25), outputTokens)
+
+		totalTokens, ok := usage["total_tokens"].(float64)
+		require.True(t, ok, "usage should have total_tokens")
+		assert.Equal(t, float64(35), totalTokens)
+	})
+}
+
+// TestStreamingResponseMetrics tests that streaming responses include a response.metrics event
+func TestStreamingResponseMetrics(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		logger:                  logger,
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("should emit response.metrics event at end of stream", func(t *testing.T) {
+		payload := CreateResponseRequest{
+			Input:  "Hello",
+			Model:  "llama-3.1-8b",
+			Stream: true,
+		}
+
+		jsonData, err := json.Marshal(payload)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Attach LlamaStack client to context
+		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.TestLlamaStackURL, "token_mock", false, nil, "/v1")
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		// Run handler (streaming takes time due to mock delays)
+		done := make(chan bool)
+		go func() {
+			app.LlamaStackCreateResponseHandler(rr, req, nil)
+			done <- true
+		}()
+
+		// Wait for handler to complete
+		select {
+		case <-done:
+		case <-time.After(10 * time.Second):
+			t.Fatal("Handler did not complete in time")
+		}
+
+		body := rr.Body.String()
+		events := parseSSEEvents(body)
+
+		require.Greater(t, len(events), 0, "Should have received events")
+
+		// Find the response.metrics event (should be the last event)
+		var metricsEvent map[string]interface{}
+		for _, event := range events {
+			if eventType, ok := event["type"].(string); ok && eventType == "response.metrics" {
+				metricsEvent = event
+			}
+		}
+
+		require.NotNil(t, metricsEvent, "Should have response.metrics event")
+
+		// Verify metrics structure
+		metrics, ok := metricsEvent["metrics"].(map[string]interface{})
+		require.True(t, ok, "response.metrics event should have metrics field")
+
+		// Verify latency_ms
+		latencyMs, ok := metrics["latency_ms"].(float64)
+		require.True(t, ok, "metrics should have latency_ms")
+		assert.Greater(t, latencyMs, float64(0), "latency_ms should be positive")
+
+		// Verify time_to_first_token_ms
+		ttft, ok := metrics["time_to_first_token_ms"].(float64)
+		require.True(t, ok, "metrics should have time_to_first_token_ms for streaming")
+		assert.Greater(t, ttft, float64(0), "time_to_first_token_ms should be positive")
+
+		// Verify TTFT is less than total latency
+		assert.Less(t, ttft, latencyMs, "TTFT should be less than total latency")
+
+		// Verify usage
+		usage, ok := metrics["usage"].(map[string]interface{})
+		require.True(t, ok, "metrics should have usage field")
+
+		inputTokens, ok := usage["input_tokens"].(float64)
+		require.True(t, ok, "usage should have input_tokens")
+		assert.Equal(t, float64(10), inputTokens)
+
+		outputTokens, ok := usage["output_tokens"].(float64)
+		require.True(t, ok, "usage should have output_tokens")
+		assert.Equal(t, float64(25), outputTokens)
+
+		totalTokens, ok := usage["total_tokens"].(float64)
+		require.True(t, ok, "usage should have total_tokens")
+		assert.Equal(t, float64(35), totalTokens)
+	})
+}
+
+// TestExtractUsage tests the extractUsage helper function
+func TestExtractUsage(t *testing.T) {
+	t.Run("should extract usage from response with usage data", func(t *testing.T) {
+		response := &responses.Response{
+			ID:     "resp_123",
+			Model:  "test-model",
+			Status: "completed",
+			Usage: responses.ResponseUsage{
+				InputTokens:  100,
+				OutputTokens: 200,
+				TotalTokens:  300,
+			},
+		}
+
+		usage := extractUsage(response)
+
+		require.NotNil(t, usage)
+		assert.Equal(t, 100, usage.InputTokens)
+		assert.Equal(t, 200, usage.OutputTokens)
+		assert.Equal(t, 300, usage.TotalTokens)
+	})
+
+	t.Run("should return nil for non-Response type", func(t *testing.T) {
+		// Non-Response types should return nil
+		response := map[string]interface{}{
+			"id":     "resp_123",
+			"model":  "test-model",
+			"status": "completed",
+		}
+
+		usage := extractUsage(response)
+
+		assert.Nil(t, usage)
+	})
+
+	t.Run("should return nil for nil response", func(t *testing.T) {
+		usage := extractUsage(nil)
+		assert.Nil(t, usage)
+	})
+}
+
+// TestExtractUsageFromEvent tests the extractUsageFromEvent helper function
+func TestExtractUsageFromEvent(t *testing.T) {
+	t.Run("should extract usage from response.completed event", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type": "response.completed",
+			"response": map[string]interface{}{
+				"id":     "resp_123",
+				"model":  "test-model",
+				"status": "completed",
+				"usage": map[string]interface{}{
+					"input_tokens":  50,
+					"output_tokens": 150,
+					"total_tokens":  200,
+				},
+			},
+		}
+
+		usage := extractUsageFromEvent(event)
+
+		require.NotNil(t, usage)
+		assert.Equal(t, 50, usage.InputTokens)
+		assert.Equal(t, 150, usage.OutputTokens)
+		assert.Equal(t, 200, usage.TotalTokens)
+	})
+
+	t.Run("should return nil for event without response", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type":  "response.output_text.delta",
+			"delta": "hello",
+		}
+
+		usage := extractUsageFromEvent(event)
+
+		assert.Nil(t, usage)
+	})
+
+	t.Run("should return nil for event with response but no usage", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type": "response.completed",
+			"response": map[string]interface{}{
+				"id":     "resp_123",
+				"model":  "test-model",
+				"status": "completed",
+			},
+		}
+
+		usage := extractUsageFromEvent(event)
+
+		assert.Nil(t, usage)
+	})
+}
+
+// TestCalculateTTFT tests the calculateTTFT helper function
+func TestCalculateTTFT(t *testing.T) {
+	t.Run("should calculate TTFT correctly", func(t *testing.T) {
+		// Use fixed time values to avoid flaky tests
+		startTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+		firstTokenTime := startTime.Add(50 * time.Millisecond)
+
+		ttft := calculateTTFT(startTime, &firstTokenTime)
+
+		require.NotNil(t, ttft)
+		assert.Equal(t, int64(50), *ttft, "TTFT should be exactly 50ms")
+	})
+
+	t.Run("should return nil when firstTokenTime is nil", func(t *testing.T) {
+		startTime := time.Now()
+
+		ttft := calculateTTFT(startTime, nil)
+
+		assert.Nil(t, ttft)
+	})
 }

@@ -120,6 +120,14 @@ export const isModelServingPlatformExtension = <D extends Deployment = Deploymen
 
 export type ModelServingPlatformWatchDeployments =
   ResolvedExtension<ModelServingPlatformWatchDeploymentsExtension>;
+/**
+ * Extension point for a `watch` hook to watch deployments for a given platform.
+ *
+ * @returns [deployments, loaded, errors]
+ * - deployments: the deployments for the given platform
+ * - loaded: whether the deployments are loaded (NOTE: loading should resolve to true if an error is encountered)
+ * - errors: any errors encountered while loading the deployments
+ */
 export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment = Deployment> =
   Extension<
     'model-serving.platform/watch-deployments',
@@ -131,7 +139,7 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
           labelSelectors?: { [key: string]: string },
           filterFn?: (model: D['model']) => boolean,
           opts?: K8sAPIOptions,
-        ) => [D[] | undefined, boolean, Error | undefined]
+        ) => [D[] | undefined, boolean, Error[] | undefined]
       >;
     }
   >;
@@ -316,16 +324,24 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
   extension.type === 'model-serving.deployment/wizard-field';
 
 // TODO in same jira update name to WizardFieldExtension
-export type WizardField2Extension<T = unknown, D extends Deployment = Deployment> = Extension<
+export type WizardField2Extension<
+  FieldData = unknown,
+  ExternalData = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
   'model-serving.deployment/wizard-field2',
   {
     platform?: D['modelServingPlatformId'];
-    field: CodeRef<WizardField<T>>;
+    field: CodeRef<WizardField<FieldData, ExternalData>>;
   }
 >;
-export const isWizardField2Extension = <T = unknown, D extends Deployment = Deployment>(
+export const isWizardField2Extension = <
+  FieldData = unknown,
+  ExternalData = unknown,
+  D extends Deployment = Deployment,
+>(
   extension: Extension,
-): extension is WizardField2Extension<T, D> =>
+): extension is WizardField2Extension<FieldData, ExternalData, D> =>
   extension.type === 'model-serving.deployment/wizard-field2';
 
 export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<

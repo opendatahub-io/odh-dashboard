@@ -65,12 +65,12 @@ func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
 	identity *integrations.RequestIdentity,
 	namespace string,
 	installmodels []models.InstallModel,
-	guardrailModel *models.GuardrailModel,
+	enableGuardrails bool,
 	maasClient maas.MaaSClientInterface,
 ) (*models.LlamaStackDistributionInstallModel, error) {
 	// Call the Kubernetes client to install the LSD
-	// guardrailModel is optional - if nil or empty, safety providers won't be added
-	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels, guardrailModel, maasClient)
+	// enableGuardrails - if true, safety providers with shields will be configured for all models
+	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels, enableGuardrails, maasClient)
 	if err != nil {
 		return nil, err
 	}

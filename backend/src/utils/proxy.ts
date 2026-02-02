@@ -200,6 +200,7 @@ export const registerProxy = async (
     authorize,
     tls,
     onError,
+    headers,
   }: {
     prefix: string;
     rewritePrefix?: string;
@@ -215,6 +216,7 @@ export const registerProxy = async (
       port?: number | string;
     };
     onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
+    headers?: Record<string, string>;
   },
 ): Promise<void> => {
   const scheme = tls === false ? 'http' : 'https';
@@ -236,6 +238,11 @@ export const registerProxy = async (
       }
       if (authorize) {
         await setAuthorizationHeader(request, fastify);
+      }
+      if (headers) {
+        Object.entries(headers).forEach(([key, value]) => {
+          request.headers[key.toLowerCase()] = value;
+        });
       }
       fastify.log.info(`Proxy ${request.method} request ${request.url} to ${upstream}`);
     },

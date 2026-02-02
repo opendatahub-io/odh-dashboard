@@ -15,6 +15,7 @@ filters:
       - quality-e2e-testing-approvers
       - workbenches-approvers
       - gen-ai-approvers
+      - nim-serving-approvers
 
   # Catchall
   '.*':
@@ -137,3 +138,12 @@ filters:
       - gen-ai-reviewers
     labels:
       - 'area/gen-ai'
+
+  # Notebooks
+  'packages/notebooks/.*':
+    approvers:
+      - notebooks-approvers
+    reviewers:
+      - notebooks-reviewers
+    labels:
+      - 'area/notebooks'
