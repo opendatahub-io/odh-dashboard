@@ -5,6 +5,7 @@ import {
   InputGroup,
   InputGroupItem,
   InputGroupText,
+  Spinner,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
@@ -68,6 +69,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   }
 
   const usePrefix = k8sName.state.staticPrefix && !!k8sName.state.safePrefix;
+  const isChecking = nameAvailabilityStatus === NameAvailabilityStatus.IN_PROGRESS;
   const textInput = (
     <TextInput
       id={`${dataTestId}-resourceName`}
@@ -88,15 +90,25 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
       validated={validated}
     />
   );
+  const textInputWithSpinner = (
+    <InputGroup>
+      <InputGroupItem isFill>{textInput}</InputGroupItem>
+      {isChecking && (
+        <InputGroupItem>
+          <Spinner size="md" aria-label="Checking name availability" />
+        </InputGroupItem>
+      )}
+    </InputGroup>
+  );
   return (
     <FormGroup {...formGroupProps} isRequired>
       {usePrefix ? (
         <InputGroup>
           <InputGroupText>{k8sName.state.safePrefix}</InputGroupText>
-          <InputGroupItem isFill>{textInput}</InputGroupItem>
+          <InputGroupItem isFill>{textInputWithSpinner}</InputGroupItem>
         </InputGroup>
       ) : (
-        textInput
+        textInputWithSpinner
       )}
       <HelperText>
         {nameAvailabilityStatus && (
