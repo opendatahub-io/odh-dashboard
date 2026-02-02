@@ -86,7 +86,6 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
         )
       }
       validated={validated}
-      isDisabled={nameAvailabilityStatus === NameAvailabilityStatus.IN_PROGRESS}
     />
   );
   return (

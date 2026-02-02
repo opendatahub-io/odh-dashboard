@@ -150,10 +150,18 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       onNameValidationChange?.(NameAvailabilityStatus.IN_PROGRESS);
       try {
         const result = await nameChecker(resourceName);
+        // Ignore stale results - only apply if the name hasn't changed since the check started
+        if (k8sNameRef.current !== resourceName) {
+          return;
+        }
         const status = result ? NameAvailabilityStatus.VALID : NameAvailabilityStatus.INVALID;
         setNameAvailability(status);
         onNameValidationChange?.(status);
       } catch {
+        // Ignore stale errors too
+        if (k8sNameRef.current !== resourceName) {
+          return;
+        }
         setNameAvailability(NameAvailabilityStatus.INVALID);
       }
     }, 500);
@@ -231,7 +239,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         <InputGroup>
           <InputGroupItem isFill>
             <TextInput
-              aria-readonly={!onDataChange}
               data-testid={`${dataTestId}-name`}
               id={`${dataTestId}-name`}
               name={`${dataTestId}-name`}
