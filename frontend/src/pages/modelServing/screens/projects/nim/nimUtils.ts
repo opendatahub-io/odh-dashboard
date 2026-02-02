@@ -1,7 +1,13 @@
 // NGC stands for NVIDIA GPU Cloud.
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import {
+  NIMServiceKind,
+  ProjectKind,
+  SecretKind,
+  ServingRuntimeKind,
+  TemplateKind,
+} from '#~/k8sTypes';
 import {
   deletePvc,
   deleteSecret,
@@ -285,6 +291,132 @@ export const getNIMResourcesToDelete = async (
     resourcesToDelete.push(
       deleteSecret(projectName, nimSecretName).then(() => undefined),
       deleteSecret(projectName, imagePullSecretName).then(() => undefined),
+    );
+  }
+
+  return resourcesToDelete;
+};
+
+/**
+ * Get resources to delete for a NIM Operator-managed deployment.
+ * Similar to getNIMResourcesToDelete but extracts info from NIMService instead of ServingRuntime.
+ *
+ * @param projectName - The namespace where resources are located
+ * @param nimService - The NIMService resource
+ * @returns Array of promises for resource deletion operations
+ */
+export const getNIMOperatorResourcesToDelete = async (
+  projectName: string,
+  nimService: NIMServiceKind,
+): Promise<Promise<void>[]> => {
+  const resourcesToDelete: Promise<void>[] = [];
+
+  let inferenceCount = 0;
+
+  try {
+    inferenceCount = await fetchInferenceServiceCount(projectName);
+  } catch (error) {
+    if (error instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to fetch inference service count for project "${projectName}": ${error.message}`,
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to fetch inference service count for project "${projectName}": ${String(error)}`,
+      );
+    }
+  }
+
+  // Handle PVC deletion with reference counting
+  // Extract PVC name from NIMService.spec.storage.pvc.name
+  const pvcName = nimService.spec.storage?.pvc?.name;
+
+  if (pvcName) {
+    try {
+      // Check how many other deployments are using this PVC
+      const pvcUsage = await checkPVCUsage(pvcName, projectName);
+
+      // Only delete PVC if this is the last deployment using it
+      if (pvcUsage.count <= 1) {
+        // Two-tier check to identify Dashboard-managed PVCs
+        try {
+          const pvc = await getPvc(projectName, pvcName);
+
+          // Tier 1: Check for managed label (PVCs created after this feature)
+          const hasNewManagedLabel = pvc.metadata.labels?.['opendatahub.io/managed'] === 'true';
+
+          // Tier 2: Check for Dashboard naming pattern (old PVCs created before this feature)
+          // Dashboard uses getUniqueId('nim-pvc') which generates exactly 5-character IDs
+          // Pattern: nim-pvc
+          const isDashboardNamingPattern = /^nim-pvc-.+$/.test(pvcName);
+
+          const isDashboardManaged = hasNewManagedLabel || isDashboardNamingPattern;
+
+          if (isDashboardManaged) {
+            // Dashboard created this PVC (either new with label or old with pattern) → safe to delete
+            // eslint-disable-next-line no-console
+            console.log(
+              `Deleting Dashboard-managed PVC ${pvcName} - no other deployments using it ` +
+                `(hasLabel: ${hasNewManagedLabel}, matchesPattern: ${isDashboardNamingPattern})`,
+            );
+            resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+          } else {
+            // User provided this PVC (BYO-PVC) → preserve it
+            // eslint-disable-next-line no-console
+            console.log(
+              `Preserving BYO-PVC ${pvcName} - not Dashboard-managed ` +
+                `(no managed label and doesn't match nim-pvc-* pattern)`,
+            );
+          }
+        } catch (pvcFetchError) {
+          // If we can't fetch PVC metadata, err on the side of caution
+          // eslint-disable-next-line no-console
+          console.error(`Error fetching PVC metadata for ${pvcName}:`, pvcFetchError);
+          // eslint-disable-next-line no-console
+          console.log(`Preserving PVC ${pvcName} - could not verify if Dashboard-managed`);
+        }
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Preserving PVC ${pvcName} - still in use by ${pvcUsage.count - 1} other deployment(s)`,
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error checking PVC usage for ${pvcName}:`, error);
+      // Safe default: don't delete PVC if we can't verify usage
+      // eslint-disable-next-line no-console
+      console.log(`Preserving PVC ${pvcName} due to error checking usage`);
+    }
+  }
+
+  // Handle secrets deletion (only if this is the last inference service)
+  // Extract secrets from NIMService spec
+  const nimSecretName = nimService.spec.authSecret; // e.g., 'nvidia-nim-secrets'
+  const imagePullSecretName = nimService.spec.image.pullSecrets?.[0]; // e.g., 'ngc-secret'
+
+  // Only delete secrets if:
+  // 1. Both secrets are the standard Dashboard-created ones
+  // 2. This is the last InferenceService in the namespace
+  if (
+    nimSecretName === 'nvidia-nim-secrets' &&
+    imagePullSecretName === 'ngc-secret' &&
+    inferenceCount === 1
+  ) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Deleting NIM secrets (${nimSecretName}, ${imagePullSecretName}) - last deployment in namespace`,
+    );
+    resourcesToDelete.push(
+      deleteSecret(projectName, nimSecretName).then(() => undefined),
+      deleteSecret(projectName, imagePullSecretName).then(() => undefined),
+    );
+  } else if (inferenceCount > 1) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Preserving NIM secrets - ${inferenceCount - 1} other deployment(s) remaining in namespace`,
     );
   }
 

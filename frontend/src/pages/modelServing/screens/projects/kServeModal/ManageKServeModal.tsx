@@ -64,8 +64,8 @@ import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/pr
 import usePvcs from '#~/pages/modelServing/usePvcs';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
-  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   MODEL_SERVING_VISIBILITY,
+  getInferenceServiceHardwareProfilePaths,
 } from '#~/concepts/hardwareProfiles/const';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
@@ -122,7 +122,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const { podSpecOptionsState, validateHardwareProfileForm, applyToResource } =
     useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
       visibleIn: MODEL_SERVING_VISIBILITY,
-      paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      paths: getInferenceServiceHardwareProfilePaths(editInfo?.inferenceServiceEditInfo),
     });
 
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({

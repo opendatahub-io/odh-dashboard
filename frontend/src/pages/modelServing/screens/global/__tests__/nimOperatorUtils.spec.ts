@@ -4,6 +4,8 @@ import {
   isNIMOperatorManaged,
   extractModelNameFromNIMImage,
   getModelNameFromNIMInferenceService,
+  getNIMServiceName,
+  filterNIMSystemEnvVars,
 } from '#~/pages/modelServing/screens/global/nimOperatorUtils';
 
 describe('nimOperatorUtils', () => {
@@ -123,7 +125,8 @@ describe('nimOperatorUtils', () => {
       const inferenceService = mockInferenceServiceK8sResource({
         name: 'test-isvc',
       });
-      inferenceService.metadata.ownerReferences = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (inferenceService.metadata as any).ownerReferences = [
         {
           apiVersion: 'apps.nvidia.com/v1alpha1',
           kind: 'NIMService',
@@ -131,12 +134,6 @@ describe('nimOperatorUtils', () => {
           // uid is missing
           controller: true,
           blockOwnerDeletion: true,
-        } as {
-          apiVersion: string;
-          kind: string;
-          name: string;
-          controller: boolean;
-          blockOwnerDeletion: boolean;
         },
       ];
 
@@ -290,6 +287,82 @@ describe('nimOperatorUtils', () => {
       ];
 
       expect(getModelNameFromNIMInferenceService(inferenceService)).toBe('llama-3.1-8b-instruct');
+    });
+  });
+
+  describe('getNIMServiceName', () => {
+    it('should return the NIMService name', () => {
+      const inferenceService = mockInferenceServiceK8sResource({ name: 'test-deployment' });
+      inferenceService.metadata.ownerReferences = [
+        {
+          apiVersion: 'apps.nvidia.com/v1alpha1',
+          kind: 'NIMService',
+          name: 'my-nim-service',
+          uid: 'test-uid-123',
+          controller: true,
+          blockOwnerDeletion: true,
+        },
+      ];
+
+      const name = getNIMServiceName(inferenceService);
+      expect(name).toBe('my-nim-service');
+    });
+
+    it('should return undefined if no NIMService owner', () => {
+      const inferenceService = mockInferenceServiceK8sResource({ name: 'test-deployment' });
+
+      const name = getNIMServiceName(inferenceService);
+      expect(name).toBeUndefined();
+    });
+  });
+
+  describe('filterNIMSystemEnvVars', () => {
+    it('should filter out system-managed NIM environment variables', () => {
+      const envVars = [
+        { name: 'LOG_LEVEL', value: 'INFO' },
+        { name: 'NIM_CACHE_PATH', value: '/model-store' },
+        { name: 'NGC_API_KEY', value: 'secret' },
+        { name: 'CUSTOM_VAR', value: 'my-value' },
+        { name: 'NIM_SERVER_PORT', value: '8000' },
+        { name: 'USER_VAR', value: 'test' },
+      ];
+
+      const filtered = filterNIMSystemEnvVars(envVars);
+
+      expect(filtered).toHaveLength(3);
+      expect(filtered).toEqual([
+        { name: 'LOG_LEVEL', value: 'INFO' },
+        { name: 'CUSTOM_VAR', value: 'my-value' },
+        { name: 'USER_VAR', value: 'test' },
+      ]);
+    });
+
+    it('should return empty array when no env vars provided', () => {
+      expect(filterNIMSystemEnvVars(undefined)).toEqual([]);
+      expect(filterNIMSystemEnvVars([])).toEqual([]);
+    });
+
+    it('should return all vars if none are system-managed', () => {
+      const envVars = [
+        { name: 'MY_VAR', value: 'value1' },
+        { name: 'ANOTHER_VAR', value: 'value2' },
+      ];
+
+      const filtered = filterNIMSystemEnvVars(envVars);
+
+      expect(filtered).toEqual(envVars);
+    });
+
+    it('should return empty array if all vars are system-managed', () => {
+      const envVars = [
+        { name: 'NIM_CACHE_PATH', value: '/model-store' },
+        { name: 'NGC_API_KEY', value: 'secret' },
+        { name: 'NIM_SERVER_PORT', value: '8000' },
+      ];
+
+      const filtered = filterNIMSystemEnvVars(envVars);
+
+      expect(filtered).toEqual([]);
     });
   });
 });

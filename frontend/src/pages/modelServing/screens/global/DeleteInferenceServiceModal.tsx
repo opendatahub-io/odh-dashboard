@@ -1,11 +1,17 @@
 import * as React from 'react';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { deleteInferenceService, deleteNIMService, deleteServingRuntime } from '#~/api';
+import {
+  deleteInferenceService,
+  deleteNIMService,
+  deleteServingRuntime,
+  getNIMService,
+} from '#~/api';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import {
   getNIMResourcesToDelete,
+  getNIMOperatorResourcesToDelete,
   isProjectNIMSupported,
 } from '#~/pages/modelServing/screens/projects/nimUtils';
 import { getNIMServiceOwner } from './nimOperatorUtils';
@@ -52,10 +58,27 @@ const DeleteInferenceServiceModal: React.FC<DeleteInferenceServiceModalProps> = 
         // NIM Operator deployment: Delete the NIMService CR
         // The NIM Operator will handle cascading deletion of the InferenceService
         // Note: We still need to clean up Dashboard-managed resources (PVCs, secrets)
-        const nimResourcesToDelete =
-          isKServeNIMEnabled && project && servingRuntime
-            ? await getNIMResourcesToDelete(project.metadata.name, servingRuntime)
-            : [];
+
+        // Fetch the NIMService to extract resource information
+        let nimResourcesToDelete: Promise<void>[] = [];
+
+        if (isKServeNIMEnabled && project) {
+          try {
+            const nimService = await getNIMService(
+              nimServiceOwner.name,
+              inferenceService.metadata.namespace,
+            );
+            nimResourcesToDelete = await getNIMOperatorResourcesToDelete(
+              project.metadata.name,
+              nimService,
+            );
+          } catch (fetchError) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to fetch NIMService for cleanup:', fetchError);
+            // Continue with deletion even if we can't fetch the NIMService
+            // The NIMService itself will still be deleted
+          }
+        }
 
         await Promise.all([
           deleteNIMService(nimServiceOwner.name, inferenceService.metadata.namespace),
