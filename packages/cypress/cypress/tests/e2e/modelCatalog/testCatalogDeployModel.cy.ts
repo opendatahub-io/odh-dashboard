@@ -118,7 +118,7 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       cy.step('Verify redirection to the global page');
       cy.location('pathname').should('eq', `/ai-hub/deployments/${projectName}`);
-      modelServingGlobal.getInferenceServiceRow(modelName);
+      modelServingGlobal.getDeploymentRow(modelName);
     },
   );
 });
