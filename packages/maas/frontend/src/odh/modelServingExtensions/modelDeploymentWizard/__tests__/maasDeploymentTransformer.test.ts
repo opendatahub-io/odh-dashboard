@@ -5,6 +5,7 @@ import {
   extractMaaSEndpointData,
   MAAS_TIERS_ANNOTATION,
 } from '../maasDeploymentTransformer';
+import { TierDropdownOption } from '../MaaSEndpointCheckbox';
 
 const createMockDeployment = (
   overrides: Partial<LLMdDeployment['model']> = {},
@@ -43,7 +44,7 @@ describe('maasDeploymentTransformer', () => {
       const deployment = createMockDeployment();
       const fieldData: MaaSTierValue = {
         isChecked: true,
-        tiersDropdownSelection: 'all-tiers',
+        tiersDropdownSelection: TierDropdownOption.AllTiers,
         selectedTierNames: [],
       };
 
@@ -59,7 +60,7 @@ describe('maasDeploymentTransformer', () => {
       const deployment = createMockDeployment();
       const fieldData: MaaSTierValue = {
         isChecked: true,
-        tiersDropdownSelection: 'no-tiers',
+        tiersDropdownSelection: TierDropdownOption.NoTiers,
       };
 
       const result = applyMaaSEndpointData(deployment, fieldData);
@@ -72,7 +73,7 @@ describe('maasDeploymentTransformer', () => {
       const deployment = createMockDeployment();
       const fieldData: MaaSTierValue = {
         isChecked: true,
-        tiersDropdownSelection: 'specify-tiers',
+        tiersDropdownSelection: TierDropdownOption.SpecifyTiers,
         selectedTierNames: ['tier-1', 'tier-2'],
       };
 
@@ -93,7 +94,7 @@ describe('maasDeploymentTransformer', () => {
       };
       const fieldData: MaaSTierValue = {
         isChecked: true,
-        tiersDropdownSelection: 'all-tiers',
+        tiersDropdownSelection: TierDropdownOption.AllTiers,
       };
 
       const result = applyMaaSEndpointData(deployment, fieldData);
@@ -118,7 +119,7 @@ describe('maasDeploymentTransformer', () => {
       const originalAnnotations = { ...deployment.model.metadata.annotations };
       const fieldData: MaaSTierValue = {
         isChecked: true,
-        tiersDropdownSelection: 'all-tiers',
+        tiersDropdownSelection: TierDropdownOption.AllTiers,
       };
 
       applyMaaSEndpointData(deployment, fieldData);

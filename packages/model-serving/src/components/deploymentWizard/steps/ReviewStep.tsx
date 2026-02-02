@@ -19,6 +19,7 @@ import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationType, ModelTypeLabel, WizardReviewSection, WizardStepTitle } from '../types';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 import { ExternalDataMap } from '../ExternalDataLoader';
+import { isWizardStepTitle } from '../utils';
 
 type ReviewStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -350,12 +351,7 @@ const getStatusSections = (
         ...getExtensionItems(WizardStepTitle.ADVANCED_SETTINGS, extensionStatusSections),
       ],
     },
-    ...(extensionStatusSections?.filter(
-      (section) =>
-        section.title !== WizardStepTitle.ADVANCED_SETTINGS &&
-        section.title !== WizardStepTitle.MODEL_DETAILS &&
-        section.title !== WizardStepTitle.MODEL_DEPLOYMENT,
-    ) ?? []),
+    ...(extensionStatusSections?.filter((section) => !isWizardStepTitle(section.title)) ?? []),
   ];
 };
 
