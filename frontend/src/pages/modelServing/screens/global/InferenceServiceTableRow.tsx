@@ -8,7 +8,6 @@ import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
@@ -25,6 +24,7 @@ import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 import { ColumnField } from './data';
 import InferenceServiceLastDeployed from './InferenceServiceLastDeployed';
 import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
+import { useInferenceServiceDisplayName } from './nimOperatorUtils';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -57,7 +57,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled;
-  const displayName = getDisplayNameFromK8sResource(inferenceService);
+
+  // Use the hook to get display name - handles both NIM Operator and regular deployments
+  const displayName = useInferenceServiceDisplayName(inferenceService);
 
   const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
     useInferenceServiceStatus(inferenceService, refresh);
