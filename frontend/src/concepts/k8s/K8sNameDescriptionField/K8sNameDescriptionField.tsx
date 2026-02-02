@@ -85,7 +85,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
   const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusedInputIdRef = React.useRef<string | null>(null);
 
   const { name, description, k8sName } = data;
 
@@ -110,22 +109,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
     [],
   );
 
-  // Restore focus after check completes (when status transitions from IN_PROGRESS)
-  const prevNameAvailabilityRef = React.useRef(nameAvailability);
-  React.useEffect(() => {
-    const wasInProgress = prevNameAvailabilityRef.current === NameAvailabilityStatus.IN_PROGRESS;
-    const isNowComplete = nameAvailability !== NameAvailabilityStatus.IN_PROGRESS;
-
-    if (wasInProgress && isNowComplete && focusedInputIdRef.current) {
-      const element = document.getElementById(focusedInputIdRef.current);
-      if (element) {
-        element.focus();
-      }
-      focusedInputIdRef.current = null;
-    }
-    prevNameAvailabilityRef.current = nameAvailability;
-  }, [nameAvailability]);
-
   const debouncedNameCheck = React.useCallback(() => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -140,11 +123,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       const resourceName = k8sNameRef.current;
       if (!resourceName) {
         return;
-      }
-      // Capture the currently focused input before the async check
-      const { activeElement } = document;
-      if (activeElement instanceof HTMLElement && activeElement.id) {
-        focusedInputIdRef.current = activeElement.id;
       }
       setNameAvailability(NameAvailabilityStatus.IN_PROGRESS);
       onNameValidationChange?.(NameAvailabilityStatus.IN_PROGRESS);
