@@ -155,6 +155,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),
+          ...(guardrailsAvailable && { enable_guardrails: true }),
         })
         .then(() => {
           fireFormTrackingEvent(
