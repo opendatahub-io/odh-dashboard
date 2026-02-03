@@ -12,7 +12,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: AUTORAG,
       requiredComponents: [],
-      featureFlags: ['autoRag'], // Todo: You need to add this feature flag.
+      featureFlags: ['autoRag'],
     },
   },
   {
