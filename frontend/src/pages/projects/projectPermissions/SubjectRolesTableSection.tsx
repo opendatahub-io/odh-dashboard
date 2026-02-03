@@ -4,9 +4,10 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import type { FilterDataType } from './const';
 import SubjectRolesTable from './SubjectRolesTable';
+import type { SubjectKindSelection } from './types';
 
 type SubjectRolesTableSectionProps = {
-  subjectKind: 'user' | 'group';
+  subjectKind: SubjectKindSelection;
   filterData: FilterDataType;
   onClearFilters: () => void;
 };

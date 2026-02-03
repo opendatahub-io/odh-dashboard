@@ -25,6 +25,7 @@ const ProjectViewRoutes: React.FC = () => {
         <Route index element={<ProjectDetails />} />
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
+        <Route path="permissions" element={<Navigate to="..?section=permissions" replace />} />
         <Route path="permissions/assign" element={<ProjectPermissionsAssignRoles />} />
         {modelMetricsEnabled && (
           <>

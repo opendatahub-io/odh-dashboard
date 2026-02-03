@@ -16,6 +16,7 @@ import { columns } from './columns';
 import { SubjectRoleRow } from './types';
 import { FilterDataType, SubjectsFilterOptions } from './const';
 import { buildRoleBindingSubject, removeSubjectFromRoleBinding } from './roleBindingMutations';
+import type { SubjectKindSelection } from './types';
 
 type SubjectRolesTableBaseProps = {
   ariaLabel: string;
@@ -71,7 +72,7 @@ export const SubjectRolesTableBase: React.FC<SubjectRolesTableBaseProps> = ({
 };
 
 type SubjectRolesTableProps = {
-  subjectKind: 'user' | 'group';
+  subjectKind: SubjectKindSelection;
   filterData: FilterDataType;
   onClearFilters: () => void;
   footerRow?: (pageNumber: number) => React.ReactElement | null;
