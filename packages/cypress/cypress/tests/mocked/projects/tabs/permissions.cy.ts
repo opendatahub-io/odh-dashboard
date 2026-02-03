@@ -896,7 +896,7 @@ describe('Permissions tab (projectRBAC)', () => {
 
       // Discard modal should appear
       discardModal.find().should('exist');
-      discardModal.shouldContainMessage(/Switching to a different existing user will discard/);
+      discardModal.shouldContainMessage(/Switching to a different user will discard/);
     });
 
     it('should show discard modal when clearing selection with unsaved changes', () => {
