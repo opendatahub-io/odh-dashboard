@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
+import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
@@ -374,29 +375,6 @@ export interface AIModel extends AAModelResponse {
   isMaaSModel?: boolean;
   // The MaaS model ID if this is a MaaS model (needed for LSD installation)
   maasModelId?: string;
-}
-
-export interface MaaSModel {
-  id: string;
-  object: string;
-  created: number;
-  owned_by: string;
-  ready: boolean;
-  url: string;
-  // Optional fields for display name, description, and use case
-  // These may not be provided by all backends, so we use id as fallback for display_name
-  display_name?: string;
-  description?: string;
-  usecase?: string;
-}
-
-export type MaaSTokenRequest = {
-  expiration?: string; // Optional - only present when expiration is provided
-};
-
-export interface MaaSTokenResponse {
-  token: string;
-  expiresAt: number;
 }
 
 export type {

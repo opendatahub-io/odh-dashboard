@@ -24,6 +24,7 @@ const moduleFederationConfig = {
   exposes: {
     './extensions': './src/odh/extensions',
     './extension-points': './src/odh/extension-points',
+    './AIAssetsMaaSTab': './src/app/AIAssets/AIAssetsMaaSTab',
   },
   runtime: false,
   // Enable runtime for proper HMR in development
