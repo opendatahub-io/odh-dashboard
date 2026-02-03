@@ -163,10 +163,13 @@ describe('Deploy catalog model', () => {
     modelDetailsPage.visit();
 
     cy.wait('@loadModel');
+    cy.wait('@getConnectionTypes');
     cy.wait('@loadArtifacts');
     modelDetailsPage.findDeployModelButton().should('be.enabled');
-    modelDetailsPage.findDeployModelButton().should('not.have.attr', 'aria-disabled', 'true');
-    modelDetailsPage.findDeployModelButton().click();
+    modelDetailsPage
+      .findDeployModelButton()
+      .should('not.have.attr', 'aria-disabled', 'true')
+      .click();
     modelServingWizard.findModelSourceStep().should('exist');
   });
 
