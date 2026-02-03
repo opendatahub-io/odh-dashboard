@@ -12,7 +12,8 @@ export const MLFLOW_IFRAME_STYLES = `
   }
 
   /* Hide View docs button */
-  a[data-component-id="mlflow.experiment-page.header.docs-link"] {
+  a[data-component-id="mlflow.experiment-page.header.docs-link"],
+  a[data-component-id="mlflow.eval-datasets.learn-more-link"] {
     display: none !important;
   }
 
@@ -29,7 +30,7 @@ export const MLFLOW_IFRAME_STYLES = `
 
   /* Disable workspace navigation links except experiments, compare-experiments, metric, and compare-runs pages */
   /* Allow: /experiments, /compare-experiments, /metric, /compare-runs, and the 404 "home page" link */
-  a[href^="#/workspaces/"]:not([data-testid="error-view-link"]):not([href$="/experiments"]):not([href*="/experiments/"]):not([href*="/experiments?"]):not([href$="/compare-experiments"]):not([href*="/compare-experiments/"]):not([href*="/compare-experiments?"]):not([href$="/metric"]):not([href*="/metric?"]):not([href$="/compare-runs"]):not([href*="/compare-runs?"]) {
+  a:not([data-testid="error-view-link"]):not([href$="/experiments"]):not([href*="/experiments/"]):not([href*="/experiments?"]):not([href$="/compare-experiments"]):not([href*="/compare-experiments/"]):not([href*="/compare-experiments?"]):not([href$="/metric"]):not([href*="/metric?"]):not([href$="/compare-runs"]):not([href*="/compare-runs?"]) {
     pointer-events: none !important;
     cursor: default !important;
   }
