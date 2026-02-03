@@ -67,7 +67,7 @@ export const getAssignmentStatus = (
   roleRef: RoleRef,
   assignedRoleRefs: RoleRef[],
   selectedRoleRefs: RoleRef[],
-): AssignmentStatus | '' => {
+): AssignmentStatus | undefined => {
   const wasAssigned = hasRoleRef(assignedRoleRefs, roleRef);
   const isSelected = hasRoleRef(selectedRoleRefs, roleRef);
   if (wasAssigned && isSelected) {
@@ -79,5 +79,5 @@ export const getAssignmentStatus = (
   if (wasAssigned && !isSelected) {
     return AssignmentStatus.Unassigning;
   }
-  return '';
+  return undefined;
 };

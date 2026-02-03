@@ -125,6 +125,8 @@ describe('project permissions utils', () => {
     );
     expect(getAssignmentStatus(roleRefEdit, assigned, selected)).toBe(AssignmentStatus.Assigning);
     expect(getAssignmentStatus(roleRefAdmin, assigned, [])).toBe(AssignmentStatus.Unassigning);
-    expect(getAssignmentStatus({ kind: 'Role', name: 'custom' }, assigned, selected)).toBe('');
+    expect(
+      getAssignmentStatus({ kind: 'Role', name: 'custom' }, assigned, selected),
+    ).toBeUndefined();
   });
 });

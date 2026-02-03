@@ -8,7 +8,7 @@ import {
   Spinner,
   Bullseye,
 } from '@patternfly/react-core';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   PermissionsContextProvider,
   usePermissionsContext,
@@ -17,19 +17,24 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
+import { RBAC_SUBJECT_KIND_USER, RBAC_SUBJECT_KIND_GROUP } from '#~/concepts/permissions/const';
+import type { SupportedSubjectKind } from '#~/concepts/permissions/types';
 import AssignRolesFooterActions from './manageRoles/AssignRolesFooterActions';
 import AssignRolesSubjectSection from './manageRoles/AssignRolesSubjectSection';
 import ManageRolesTable from './manageRoles/ManageRolesTable';
 import RoleAssignmentChangesModal from './manageRoles/confirmModal/RoleAssignmentChangesModal';
 import useManageRolesData from './manageRoles/useManageRolesData';
 import { useRoleAssignmentData } from './useRoleAssignmentData';
+import { applyRoleAssignmentChanges } from './roleBindingMutations';
 
 const ProjectPermissionsAssignRolesForm: React.FC = () => {
-  const { error } = usePermissionsContext();
+  const { error, roleBindings } = usePermissionsContext();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { state }: { state?: { subjectKind?: 'user' | 'group'; subjectName?: string } } =
     useLocation();
+  const navigate = useNavigate();
   const isManageMode = !!state;
+  const namespace = currentProject.metadata.name;
 
   const [subjectKind, setSubjectKind] = React.useState<'user' | 'group'>(
     state?.subjectKind ?? 'user',
@@ -40,6 +45,33 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
   const { existingSubjectNames } = useRoleAssignmentData(subjectKind);
   const { rows, selections, toggleSelection, trimmedSubjectName, changes, hasChanges } =
     useManageRolesData(subjectKind, subjectName, existingSubjectNames);
+
+  const handleSave = React.useCallback(async (): Promise<void> => {
+    const rbacSubjectKind: SupportedSubjectKind =
+      subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP;
+
+    const result = await applyRoleAssignmentChanges({
+      roleBindings: roleBindings.data,
+      namespace,
+      subjectKind: rbacSubjectKind,
+      subjectName: trimmedSubjectName,
+      changes,
+    });
+
+    if (!result.success) {
+      // Build a descriptive error message
+      const errorMessages = result.errors.map((e) => e.message).join('; ');
+      throw new Error(
+        `${result.failedCount} of ${result.totalOperations} operations failed: ${errorMessages}`,
+      );
+    }
+
+    // Refresh roleBindings after successful save
+    await roleBindings.refresh();
+
+    // Navigate back to permissions tab
+    navigate(`/projects/${namespace}?section=permissions`);
+  }, [subjectKind, trimmedSubjectName, changes, roleBindings, namespace, navigate]);
 
   return (
     <ApplicationsPage
@@ -114,7 +146,7 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
           subjectName={trimmedSubjectName}
           changes={changes}
           onClose={() => setIsConfirmOpen(false)}
-          onConfirm={() => setIsConfirmOpen(false)}
+          onConfirm={handleSave}
         />
       )}
     </ApplicationsPage>

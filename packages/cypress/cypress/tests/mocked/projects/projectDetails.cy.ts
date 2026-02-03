@@ -632,7 +632,6 @@ describe('Project Details', () => {
         'GET /api/config',
         mockDashboardConfig({
           mlflow: true,
-          embedMLflow: true,
         }),
       );
 
