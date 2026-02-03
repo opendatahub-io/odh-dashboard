@@ -75,7 +75,9 @@ const (
 	ModelCatalogSettingsSourceConfigPath     = ModelCatalogSettingsSourceConfigListPath + "/:" + CatalogSourceId
 	CatalogSourcePreviewPath                 = ModelCatalogSettingsPathPrefix + "/source_preview"
 
-<<<<<<< ours
+	// Model Transfer Jobs
+	ModelTransferJobListPath = ModelRegistryPath + "/model_transfer_jobs"
+
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
 )
@@ -90,10 +92,6 @@ const (
 
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
-=======
-	// Model Transfer Jobs
-	ModelTransferJobListPath = ModelRegistryPath + "/model_transfer_jobs"
->>>>>>> theirs
 )
 
 type App struct {
