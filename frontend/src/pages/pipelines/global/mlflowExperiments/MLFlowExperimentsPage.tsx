@@ -22,6 +22,9 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
         queryParamNamespace={WORKSPACE_QUERY_PARAM}
       />
     }
+    provideChildrenPadding
+    removeChildrenTopPadding
+    keepBodyWrapper={false}
   >
     <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
       <FlexItem>
