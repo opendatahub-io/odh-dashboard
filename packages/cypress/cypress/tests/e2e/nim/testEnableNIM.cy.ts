@@ -166,16 +166,9 @@ function executeNIMTestSteps(): void {
   cy.step('Wait for NIM account validation via oc command (up to 7 minutes)');
   waitForNIMAccountValidation();
 
-  // WORKAROUND: There is a known bug where the enable modal does not close automatically
-  // after the NIM account is successfully validated. The modal's polling mechanism fails to
-  // detect the timestamp change in the backend response, causing it to remain stuck on the
-  // "Contacting NVIDIA" progress screen even though the account is fully validated.
-  // As a workaround, we close the modal manually and navigate directly to the Enabled page
-  // to verify NIM was enabled successfully.
-  // TODO: Remove this workaround once the bug is fixed.
-  // Bug: https://issues.redhat.com/browse/RHOAIENG-45982
-  cy.step('Close the enable modal (workaround for modal not closing automatically)');
-  nimCard.findEnableModalCloseButton().click();
+  // Verify that the enable modal closes automatically after successful validation
+  cy.step('Verify the enable modal closes automatically after validation');
+  nimCard.findEnableModal().should('not.exist', { timeout: 30000 });
 
   cy.step('Visit the enabled applications page to verify NIM is enabled');
   enabledPage.visit();
