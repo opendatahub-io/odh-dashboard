@@ -1,9 +1,12 @@
 import React from 'react';
+import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreProjectSelector';
 import {
   mlflowExperimentsBaseRoute,
   WORKSPACE_QUERY_PARAM,
+  MLFLOW_JUMP_LINK_URL,
 } from '#~/routes/pipelines/mlflowExperiments';
 import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
 import MlflowIframe from './MLflowIframe';
@@ -20,6 +23,23 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
       />
     }
   >
+    <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
+      <FlexItem>
+        <Button
+          component="a"
+          isInline
+          data-testid="mlflow-embedded-jump-link"
+          href={MLFLOW_JUMP_LINK_URL}
+          target="_blank"
+          variant="link"
+          icon={<ExternalLinkAltIcon />}
+          iconPosition="end"
+          aria-label="Launch MLflow"
+        >
+          Launch MLflow
+        </Button>
+      </FlexItem>
+    </Flex>
     <MLflowIframeCSSOverride>
       {(iframeRef) => <MlflowIframe ref={iframeRef} />}
     </MLflowIframeCSSOverride>

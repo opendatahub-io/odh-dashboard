@@ -13,6 +13,7 @@ const MLFLOW_PROXY_BASE_PATH = '/mlflow';
 const TEST_PROJECT_NAME = 'test-project';
 const TEST_PROJECT_NAME_2 = 'test-project-2';
 const MLFLOW_WORKSPACE_IFRAME_SRC = `${MLFLOW_PROXY_BASE_PATH}/#/experiments?workspace=${TEST_PROJECT_NAME}`;
+const MLFLOW_JUMP_LINK_URL = '/mlflow';
 
 function isIframeElement(element: HTMLElement | undefined): element is HTMLIFrameElement {
   return element?.tagName.toLowerCase() === 'iframe';
@@ -78,8 +79,17 @@ const initIntercepts = (options: InitInterceptsOptions = {}) => {
 };
 
 describe('MLflow Experiments', () => {
-  it('should show the MLflow Experiments page and override css components', () => {
+  beforeEach(() => {
     initIntercepts();
+  });
+
+  it('mlflow jump link exists', () => {
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findMlflowJumpLink().should('be.visible');
+    mlflowExperimentsPage.findMlflowJumpLink().should('have.attr', 'href', MLFLOW_JUMP_LINK_URL);
+  });
+
+  it('should show the MLflow Experiments page and override css components', () => {
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
     mlflowExperimentsPage

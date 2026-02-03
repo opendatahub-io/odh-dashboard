@@ -2,6 +2,7 @@ export const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 export const MLFLOW_PROXY_BASE_PATH = '/mlflow';
 export const MLFLOW_DEFAULT_PATH = '/experiments';
 export const WORKSPACE_QUERY_PARAM = 'workspace';
+export const MLFLOW_JUMP_LINK_URL = '/mlflow';
 
 export const buildIframePathQuery = (hashPathQuery: string, namespace?: string): string =>
   `${MLFLOW_PROXY_BASE_PATH}/#${
