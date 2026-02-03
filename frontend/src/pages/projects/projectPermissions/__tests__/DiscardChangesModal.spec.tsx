@@ -96,9 +96,7 @@ describe('DiscardChangesModal', () => {
         );
 
         expect(
-          screen.getByText(
-            /Switching to a different existing user will discard any changes you've made/,
-          ),
+          screen.getByText(/Switching to a different user will discard any changes you've made/),
         ).toBeInTheDocument();
       });
 
@@ -113,9 +111,7 @@ describe('DiscardChangesModal', () => {
         );
 
         expect(
-          screen.getByText(
-            /Switching to a different existing group will discard any changes you've made/,
-          ),
+          screen.getByText(/Switching to a different group will discard any changes you've made/),
         ).toBeInTheDocument();
       });
     });

@@ -34,8 +34,8 @@ const getModalMessage = (
     case PendingChangeType.Switch:
       return (
         <>
-          Switching to a different existing {subjectKind} will discard any changes you&apos;ve made
-          in the <strong>Role assignment</strong> section.
+          Switching to a different {subjectKind} will discard any changes you&apos;ve made in the{' '}
+          <strong>Role assignment</strong> section.
         </>
       );
     default:
