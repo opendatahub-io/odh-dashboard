@@ -400,7 +400,7 @@ export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
-  enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  enable_guardrails?: boolean;
 };
 
 export type DeleteLSDRequest = {

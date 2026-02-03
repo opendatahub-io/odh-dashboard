@@ -83,8 +83,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	}
 
 	// Pass the InstallModel structs directly to the repository
-	// enableGuardrails - if true, safety providers with shields will be configured for all models
-	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, installRequest.EnableGuardrails, maasClient)
+	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, installRequest.GuardrailsEnabled, maasClient)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return

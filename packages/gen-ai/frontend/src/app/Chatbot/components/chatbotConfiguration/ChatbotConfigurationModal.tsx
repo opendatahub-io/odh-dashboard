@@ -3,6 +3,7 @@ import React from 'react';
 import { Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { DashboardModalFooter } from 'mod-arch-shared';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -44,7 +45,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
-  const { guardrailsAvailable } = useFetchGuardrailsAvailable();
+  const [guardrailsEnabled] = useFeatureFlag('guardrails');
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
@@ -155,7 +156,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),
-          ...(guardrailsAvailable && { enable_guardrails: true }),
+          enable_guardrails: guardrailsEnabled,
         })
         .then(() => {
           fireFormTrackingEvent(
