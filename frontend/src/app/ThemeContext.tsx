@@ -3,9 +3,9 @@ import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageCo
 
 type ThemeContextProps = {
   theme: string;
-  setTheme: (themeName: string) => void;
+  setAllThemes: (themeName: string) => void;
   mlflowTheme: boolean;
-  setMlflowTheme: (darkMode: boolean) => void;
+  setOdhTheme: (theme: string) => void;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -23,14 +23,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     odhTheme === 'dark',
   );
 
-  const setTheme = (theme: string) => {
+  const setAllThemes = (theme: string) => {
     setMlflowTheme(theme === 'dark');
     setOdhTheme(theme);
   };
 
   const contextValue = React.useMemo(
-    () => ({ theme: odhTheme, setTheme, mlflowTheme, setMlflowTheme }),
-    [odhTheme, setTheme, mlflowTheme, setMlflowTheme],
+    () => ({ theme: odhTheme, setAllThemes, mlflowTheme, setOdhTheme }),
+    [odhTheme, mlflowTheme, setAllThemes, setOdhTheme],
   );
 
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;

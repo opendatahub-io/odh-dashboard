@@ -4,13 +4,13 @@ import { useMlflowPathSync } from './useMlflowPathSync';
 
 const MlflowIframe = React.forwardRef<HTMLIFrameElement>((_, ref) => {
   const { iframeRef, initIframeSrc } = useMlflowPathSync(ref);
-  const { theme: odhTheme, mlflowTheme, setMlflowTheme } = useThemeContext();
+  const { theme: odhTheme, mlflowTheme, setOdhTheme } = useThemeContext();
 
   React.useEffect(() => {
     if (mlflowTheme !== (odhTheme === 'dark')) {
-      setMlflowTheme(odhTheme === 'dark');
+      setOdhTheme(mlflowTheme ? 'dark' : 'light');
     }
-  }, [odhTheme, mlflowTheme, setMlflowTheme]);
+  }, [odhTheme, mlflowTheme, setOdhTheme]);
 
   return (
     <iframe
