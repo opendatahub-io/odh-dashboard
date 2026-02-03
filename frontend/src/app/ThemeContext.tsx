@@ -18,7 +18,6 @@ type ThemeProviderProps = {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [odhTheme, setOdhTheme] = useBrowserStorage<string>('odh.dashboard.ui.theme', 'light');
   const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, odhTheme === 'dark');
-  console.log('odhTheme', odhTheme);
 
   const setAllThemes = React.useCallback(
     (theme: string) => {
