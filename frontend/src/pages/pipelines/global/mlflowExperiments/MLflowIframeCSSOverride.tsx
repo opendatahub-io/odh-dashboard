@@ -1,80 +1,52 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MLFLOW_IFRAME_SCRIPTS, MLFLOW_NAVIGATE_MESSAGE_TYPE } from './MLflowIframeScripts';
+import { MLFLOW_IFRAME_STYLES } from './MLflowIframeStyles';
 
 interface MLflowIframeCSSOverrideProps {
   children: (iframeRef: React.RefObject<HTMLIFrameElement>) => React.ReactNode;
 }
 
+/**
+ * Wrapper component that injects CSS and script overrides into the MLflow iframe.
+ * - Injects CSS to style the iframe content to match the dashboard
+ * - Injects scripts to handle navigation events via postMessage
+ */
 const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ children }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const navigate = useNavigate();
 
-  const isElementNode = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
+  // Listen for navigation messages from the iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === MLFLOW_NAVIGATE_MESSAGE_TYPE && event.data?.path) {
+        navigate(event.data.path);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate]);
 
-  const isHTMLElement = (element: Element): element is HTMLElement =>
-    'style' in element && typeof element.style === 'object';
+  // Inject styles and scripts into iframe on load
+  const injectOverrides = useCallback((doc: Document) => {
+    const style = doc.createElement('style');
+    style.textContent = MLFLOW_IFRAME_STYLES;
+    doc.head.appendChild(style);
 
-  const removeQuery = '.du-bois-light-breadcrumb, .du-bois-dark-breadcrumb, header, aside';
+    const script = doc.createElement('script');
+    script.textContent = MLFLOW_IFRAME_SCRIPTS;
+    doc.head.appendChild(script);
+  }, []);
 
   useEffect(() => {
-    let observer: MutationObserver | null = null;
-
-    const applyHiddenStylesToElement = (element: Element) => {
-      if (isHTMLElement(element)) {
-        element.style.setProperty('display', 'none', 'important');
-      }
-    };
-
-    const hideElements = (doc: Document | Element) => {
-      const elementsToHide = doc.querySelectorAll(removeQuery);
-      elementsToHide.forEach((element) => {
-        applyHiddenStylesToElement(element);
-      });
-    };
-
-    const applyOverrideStylesToMainElement = (mainElement: HTMLElement) => {
-      mainElement.style.setProperty('margin', '0', 'important');
-      mainElement.style.setProperty('border-radius', '0', 'important');
-    };
-
-    const overrideMainElementStyles = (doc: Document | Element) => {
-      const mainElement = doc.querySelector('main');
-      if (mainElement) {
-        applyOverrideStylesToMainElement(mainElement);
-      }
-    };
-
     const handleIframeLoad = () => {
       try {
         const iframe = iframeRef.current;
-        if (iframe?.contentDocument) {
-          const doc = iframe.contentDocument;
-
-          hideElements(doc);
-          overrideMainElementStyles(doc);
-
-          observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-              mutation.addedNodes.forEach((node) => {
-                if (isElementNode(node)) {
-                  // Check if the node itself matches our selectors
-                  if (node.matches(removeQuery)) {
-                    applyHiddenStylesToElement(node);
-                  } else if (node.matches('main') && isHTMLElement(node)) {
-                    applyOverrideStylesToMainElement(node);
-                  }
-                  // Also check children within the node
-                  hideElements(node);
-                  overrideMainElementStyles(node);
-                }
-              });
-            });
-          });
-
-          observer.observe(doc.body, {
-            childList: true,
-            subtree: true,
-          });
+        if (iframe?.contentDocument?.head) {
+          injectOverrides(iframe.contentDocument);
         }
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.warn('Error accessing iframe content:', error);
       }
     };
@@ -82,13 +54,11 @@ const MLflowIframeCSSOverride: React.FC<MLflowIframeCSSOverrideProps> = ({ child
     const iframe = iframeRef.current;
     if (iframe) {
       iframe.addEventListener('load', handleIframeLoad);
-      return () => {
-        iframe.removeEventListener('load', handleIframeLoad);
-        observer?.disconnect();
-      };
     }
-    return undefined;
-  }, []);
+    return () => {
+      iframe?.removeEventListener('load', handleIframeLoad);
+    };
+  }, [injectOverrides]);
 
   return children(iframeRef);
 };
