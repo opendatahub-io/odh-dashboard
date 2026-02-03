@@ -44,14 +44,6 @@ describe('PromptTabContent', () => {
     expect(screen.getByRole('heading', { name: 'System instructions' })).toBeInTheDocument();
   });
 
-  it('renders Load prompt button', () => {
-    render(<PromptTabContent {...defaultProps} />);
-
-    const loadPromptButton = screen.getByTestId('load-prompt-button');
-    expect(loadPromptButton).toBeInTheDocument();
-    expect(loadPromptButton).toHaveTextContent('Load prompt');
-  });
-
   it('renders SystemInstructionFormGroup with correct props', () => {
     render(<PromptTabContent {...defaultProps} />);
 
@@ -77,17 +69,6 @@ describe('PromptTabContent', () => {
     render(<PromptTabContent {...defaultProps} systemInstruction="" />);
 
     expect(screen.getByTestId('system-instruction-textarea')).toHaveValue('');
-  });
-
-  it('does not error when Load prompt button is clicked', async () => {
-    const user = userEvent.setup();
-
-    render(<PromptTabContent {...defaultProps} />);
-
-    await user.click(screen.getByTestId('load-prompt-button'));
-
-    // Button click should not cause any errors (TODO functionality will be implemented later)
-    expect(screen.getByTestId('load-prompt-button')).toBeInTheDocument();
   });
 
   it('renders system instructions section with correct test id', () => {

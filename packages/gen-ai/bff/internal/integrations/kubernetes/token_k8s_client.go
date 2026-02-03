@@ -1356,14 +1356,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	if enableGuardrails && len(installModels) > 0 {
 		guardrailConfigs := make([]models.GuardrailInput, len(installModels))
 
-		// Default policies for all guardrails
-		defaultInputPolicies := models.DefaultGuardrailPolicies()
-		defaultOutputPolicies := models.DefaultGuardrailPolicies()
-
-		// Construct the Llama Stack service URL for guardrails
-		// The guardrail_model_url should point to the Llama Stack server's /chat/completions endpoint
-		// This creates a circular reference where the guardrail uses the LSD itself
-		// See: https://github.com/trustyai-explainability/trustyai-llm-demo/tree/LLSPlayground/llama-stack-playground
+		// Default policies for guardrails (input includes jailbreak, output does not)
+		defaultInputPolicies := models.DefaultInputGuardrailPolicies()
+		defaultOutputPolicies := models.DefaultOutputGuardrailPolicies()
 		lsdServiceURL := fmt.Sprintf("http://%s-service.%s.svc.cluster.local:8321/v1/chat/completions", lsdName, namespace)
 		kc.Logger.Debug("Using Llama Stack service URL for guardrails", "url", lsdServiceURL)
 
@@ -1812,7 +1807,8 @@ func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(confi
 			continue
 		}
 
-		var inputShieldID, outputShieldID, modelName string
+		// Map to group shields by model name
+		modelShields := make(map[string]*models.GuardrailModelConfig)
 
 		for shieldID, shieldConfig := range shields {
 			shieldIDStr, ok := shieldID.(string)
@@ -1835,28 +1831,34 @@ func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(confi
 							continue
 						}
 
-						if mn, ok := gc["guardrail_model"].(string); ok && modelName == "" {
-							modelName = mn
+						modelName, ok := gc["guardrail_model"].(string)
+						if !ok || modelName == "" {
+							continue
+						}
+
+						// Get or create the config for this model
+						if _, exists := modelShields[modelName]; !exists {
+							modelShields[modelName] = &models.GuardrailModelConfig{
+								ModelName: modelName,
+							}
 						}
 
 						// Determine if this is input or output shield
 						if strings.Contains(guardrailKeyStr, "input") {
-							inputShieldID = shieldIDStr
+							modelShields[modelName].InputShieldID = shieldIDStr
 						} else if strings.Contains(guardrailKeyStr, "output") {
-							outputShieldID = shieldIDStr
+							modelShields[modelName].OutputShieldID = shieldIDStr
 						}
 					}
 				}
 			}
 		}
 
-		// Create guardrail model config if we found shields
-		if inputShieldID != "" || outputShieldID != "" {
-			guardrailModels = append(guardrailModels, models.GuardrailModelConfig{
-				ModelName:      modelName,
-				InputShieldID:  inputShieldID,
-				OutputShieldID: outputShieldID,
-			})
+		// Add all discovered model configs
+		for _, config := range modelShields {
+			if config.InputShieldID != "" || config.OutputShieldID != "" {
+				guardrailModels = append(guardrailModels, *config)
+			}
 		}
 	}
 

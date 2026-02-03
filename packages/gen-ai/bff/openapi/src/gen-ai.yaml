@@ -214,7 +214,7 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
-  /gen-ai/api/v1/lsd/safety/config:
+  /gen-ai/api/v1/lsd/safety:
     summary: Get safety configuration
     description: >-
       Retrieves the safety configuration (guardrail models and shields) from the llama-stack-config ConfigMap.
@@ -2564,7 +2564,8 @@ components:
           type: boolean
           description: |
             If true, adds safety configuration with guardrail input and output shields
-            for all selected models. Default policies include jailbreak, content-moderation, and pii.
+            for all selected models. Input shields include jailbreak, content-moderation, and pii.
+            Output shields include content-moderation and pii.
           example: true
           default: false
 

@@ -6,96 +6,29 @@ import {
   SearchInput,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { TableBase, useCheckboxTableBase } from '#~/components/table';
+import { TableBase } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
-import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
-import {
-  getRoleByRef,
-  getRoleDisplayName,
-  getRoleRefKey,
-  getRoleRefsForSubject,
-  hasRoleRef,
-} from '#~/concepts/permissions/utils';
+import { getRoleRefKey } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
-import {
-  getAssignmentStatus,
-  getReversibleRoleRefs,
-  getSubjectRef,
-} from '#~/pages/projects/projectPermissions/utils';
 import ManageRolesTableRow from './ManageRolesTableRow';
 import { ManageRolesRow, manageRolesColumns } from './columns';
 
 type ManageRolesTableProps = {
-  subjectKind: 'user' | 'group';
   subjectName: string;
-  existingSubjectNames: string[];
+  rows: ManageRolesRow[];
+  selections: RoleRef[];
+  onToggle: (roleRef: RoleRef) => void;
 };
 
 const ManageRolesTable: React.FC<ManageRolesTableProps> = ({
-  subjectKind,
   subjectName,
-  existingSubjectNames,
+  rows,
+  selections,
+  onToggle,
 }) => {
-  const { roles, clusterRoles, roleBindings } = usePermissionsContext();
   const trimmedSubjectName = subjectName.trim();
-  const isExistingSubject = existingSubjectNames.includes(trimmedSubjectName);
-
-  // Reversible roles are roles that can be re-added from this UI.
-  // Admin/Contributor + Roles with the Dashboard label type.
-  const reversibleRoleRefs = React.useMemo(
-    () => getReversibleRoleRefs(roles.data, clusterRoles.data),
-    [clusterRoles.data, roles.data],
-  );
-
-  // Role bindings for the subject.
-  const assignedRoleRefs = React.useMemo(() => {
-    if (!trimmedSubjectName || !isExistingSubject) {
-      return [];
-    }
-    return getRoleRefsForSubject(roleBindings.data, getSubjectRef(subjectKind, trimmedSubjectName));
-  }, [isExistingSubject, roleBindings.data, subjectKind, trimmedSubjectName]);
-
-  // Custom roles are roles that are not reversible.
-  const assignedCustomRoleRefs = React.useMemo(
-    () => assignedRoleRefs.filter((roleRef) => !hasRoleRef(reversibleRoleRefs, roleRef)),
-    [assignedRoleRefs, reversibleRoleRefs],
-  );
-
-  // All roles that can be assigned to the subject and can be selected in the table.
-  const roleRefs = React.useMemo(
-    () => [...reversibleRoleRefs, ...assignedCustomRoleRefs],
-    [assignedCustomRoleRefs, reversibleRoleRefs],
-  );
-
-  const [selectedRoleRefs, setSelectedRoleRefs] = React.useState<RoleRef[]>(assignedRoleRefs);
-  const { selections, toggleSelection } = useCheckboxTableBase<RoleRef>(
-    roleRefs,
-    selectedRoleRefs,
-    setSelectedRoleRefs,
-    React.useCallback((roleRef) => getRoleRefKey(roleRef), []),
-  );
   const [filterText, setFilterText] = React.useState('');
-
-  React.useEffect(() => {
-    setSelectedRoleRefs(assignedRoleRefs);
-  }, [assignedRoleRefs]);
-
-  const rows: ManageRolesRow[] = React.useMemo(
-    () =>
-      roleRefs.map((roleRef) => {
-        const role = getRoleByRef(roles.data, clusterRoles.data, roleRef);
-        const displayName = getRoleDisplayName(roleRef, role);
-        const statusLabel = getAssignmentStatus(roleRef, assignedRoleRefs, selections);
-        return {
-          roleRef,
-          role,
-          displayName,
-          statusLabel,
-        };
-      }),
-    [assignedRoleRefs, clusterRoles.data, roleRefs, roles.data, selections],
-  );
 
   const filteredRows = React.useMemo(() => {
     const normalized = filterText.trim().toLowerCase();
@@ -148,7 +81,7 @@ const ManageRolesTable: React.FC<ManageRolesTableProps> = ({
               rowIndex={rowIndex}
               row={row}
               selections={selections}
-              onToggle={toggleSelection}
+              onToggle={onToggle}
             />
           );
         }}

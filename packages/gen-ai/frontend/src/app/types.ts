@@ -133,7 +133,8 @@ export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: s
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
-  text: string;
+  text?: string;
+  refusal?: string;
   annotations?: ContentAnnotation[];
 };
 
@@ -342,7 +343,7 @@ export type GuardrailModelConfig = {
   output_shield_id: string;
 };
 
-/** Response from /lsd/safety/config endpoint */
+/** Response from /lsd/safety endpoint */
 export type SafetyConfigResponse = {
   guardrail_models: GuardrailModelConfig[];
 };
@@ -478,7 +479,10 @@ type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
 type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
-  opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
+  opts?: APIOptions & {
+    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    abortSignal?: AbortSignal;
+  },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
 type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;

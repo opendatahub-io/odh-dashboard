@@ -1,94 +1,59 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import GuardrailsTabContent from '~/app/Chatbot/components/settingsPanelTabs/GuardrailsTabContent';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
   default: jest.fn(() => false),
 }));
 
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
 describe('GuardrailsTabContent', () => {
   const defaultProps = {
-    guardrailsEnabled: false,
-    onGuardrailsToggle: jest.fn(),
+    configId: 'default',
+    guardrailModels: ['model-1', 'model-2'],
+    guardrailModelsLoaded: true,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useChatbotConfigStore.getState().resetConfiguration();
   });
 
   it('renders the Guardrails title', () => {
     render(<GuardrailsTabContent {...defaultProps} />);
-
     expect(screen.getByTestId('guardrails-section-title')).toHaveTextContent('Guardrails');
   });
 
-  it('renders guardrails toggle switch', () => {
+  it('renders empty state when no guardrail models are available', () => {
+    render(<GuardrailsTabContent {...defaultProps} guardrailModels={[]} />);
+    expect(screen.getByTestId('guardrails-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No guardrail configuration found')).toBeInTheDocument();
+  });
+
+  it('renders GuardrailsPanel when models are available', () => {
     render(<GuardrailsTabContent {...defaultProps} />);
-
-    const guardrailsSwitch = screen.getByTestId('guardrails-toggle-switch');
-    expect(guardrailsSwitch).toBeInTheDocument();
+    expect(screen.getByTestId('guardrail-model-toggle')).toBeInTheDocument();
   });
 
-  it('renders toggle as unchecked when guardrailsEnabled is false', () => {
-    render(<GuardrailsTabContent {...defaultProps} guardrailsEnabled={false} />);
-
-    const guardrailsSwitch = screen.getByTestId('guardrails-toggle-switch');
-    expect(guardrailsSwitch).not.toBeChecked();
+  it('renders loading spinner while guardrail models are loading', () => {
+    render(<GuardrailsTabContent {...defaultProps} guardrailModelsLoaded={false} />);
+    expect(screen.getByLabelText('Loading guardrail models')).toBeInTheDocument();
   });
 
-  it('renders toggle as checked when guardrailsEnabled is true', () => {
-    render(<GuardrailsTabContent {...defaultProps} guardrailsEnabled />);
-
-    const guardrailsSwitch = screen.getByTestId('guardrails-toggle-switch');
-    expect(guardrailsSwitch).toBeChecked();
-  });
-
-  it('calls onGuardrailsToggle with true when enabling guardrails', async () => {
-    const user = userEvent.setup();
-    const mockOnToggle = jest.fn();
-    render(
-      <GuardrailsTabContent
-        {...defaultProps}
-        guardrailsEnabled={false}
-        onGuardrailsToggle={mockOnToggle}
-      />,
-    );
-
-    const guardrailsSwitch = screen.getByTestId('guardrails-toggle-switch');
-    await user.click(guardrailsSwitch);
-
-    expect(mockOnToggle).toHaveBeenCalledWith(true);
-  });
-
-  it('calls onGuardrailsToggle with false when disabling guardrails', async () => {
-    const user = userEvent.setup();
-    const mockOnToggle = jest.fn();
-    render(
-      <GuardrailsTabContent
-        {...defaultProps}
-        guardrailsEnabled
-        onGuardrailsToggle={mockOnToggle}
-      />,
-    );
-
-    const guardrailsSwitch = screen.getByTestId('guardrails-toggle-switch');
-    await user.click(guardrailsSwitch);
-
-    expect(mockOnToggle).toHaveBeenCalledWith(false);
-  });
-
-  it('renders placeholder content', () => {
+  it('renders input and output guardrails switches when models are available', () => {
     render(<GuardrailsTabContent {...defaultProps} />);
-
-    expect(screen.getByText('Guardrails content here')).toBeInTheDocument();
+    expect(screen.getByTestId('user-input-guardrails-switch')).toBeInTheDocument();
+    expect(screen.getByTestId('model-output-guardrails-switch')).toBeInTheDocument();
   });
 
-  it('switch has correct aria-label', () => {
+  it('renders switches as unchecked by default', () => {
     render(<GuardrailsTabContent {...defaultProps} />);
-
-    const guardrailsSwitch = screen.getByTestId('guardrails-toggle-switch');
-    expect(guardrailsSwitch).toHaveAttribute('aria-label', 'Toggle Guardrails');
+    expect(screen.getByTestId('user-input-guardrails-switch')).not.toBeChecked();
+    expect(screen.getByTestId('model-output-guardrails-switch')).not.toBeChecked();
   });
 });

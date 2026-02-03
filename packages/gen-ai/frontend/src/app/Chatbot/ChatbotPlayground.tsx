@@ -13,6 +13,7 @@ import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import { TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
@@ -26,7 +27,12 @@ import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
-import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
+import {
+  useChatbotConfigStore,
+  selectSelectedModel,
+  selectConfigIds,
+  selectGuardrail,
+} from './store';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -65,6 +71,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [primaryConfigId],
   );
 
+  // Guardrails configuration from store (using primaryConfigId for initialization)
+  const guardrail = useChatbotConfigStore(selectGuardrail(primaryConfigId));
+
+  const {
+    data: guardrailModelConfigs,
+    modelNames: guardrailModelNames,
+    loaded: guardrailModelsLoaded,
+  } = useFetchGuardrailModels();
   const isDarkMode = useDarkMode();
 
   const location = useLocation();
@@ -145,6 +159,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     selectedAAModel,
     mcpServersFromRoute,
   ]);
+
+  React.useEffect(() => {
+    if (guardrailModelsLoaded && guardrailModelNames.length > 0 && !guardrail) {
+      useChatbotConfigStore.getState().updateGuardrail(primaryConfigId, guardrailModelNames[0]);
+    }
+  }, [guardrailModelsLoaded, guardrailModelNames, guardrail, primaryConfigId]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
@@ -275,6 +295,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           onMcpServerTokensChange={setMcpServerTokens}
           checkMcpServerStatus={checkMcpServerStatus}
+          guardrailModels={guardrailModelNames}
+          guardrailModelsLoaded={guardrailModelsLoaded}
         />
       ))}
     </>
@@ -341,6 +363,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     namespace={namespace?.name}
                     showWelcomePrompt={configIds.length === 1 && index === 0}
                     onMessagesHookReady={(hook) => handleMessagesHookReady(configId, hook)}
+                    guardrailModelConfigs={guardrailModelConfigs}
                   />
                 ))}
               </ChatbotContent>

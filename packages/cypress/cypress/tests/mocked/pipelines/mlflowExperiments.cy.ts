@@ -54,7 +54,6 @@ const initIntercepts = (options: InitInterceptsOptions = {}) => {
     'GET /api/config',
     mockDashboardConfig({
       mlflow: true,
-      embedMLflow: true,
     }),
   );
 

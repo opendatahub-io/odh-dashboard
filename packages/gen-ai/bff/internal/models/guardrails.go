@@ -33,10 +33,17 @@ type GuardrailInput struct {
 	ModelURL       string   // URL for the model endpoint
 	DetectorURL    string   // URL for the detector service
 	InputPolicies  []string // Policies for input shields (e.g., ["jailbreak", "content-moderation", "pii"])
-	OutputPolicies []string // Policies for output shields (e.g., ["jailbreak", "content-moderation", "pii"])
+	OutputPolicies []string // Policies for output shields (e.g., ["content-moderation", "pii"])
 }
 
-// DefaultGuardrailPolicies returns the default policies used for guardrails
-func DefaultGuardrailPolicies() []string {
+// DefaultInputGuardrailPolicies returns the default policies for input guardrails
+// Includes jailbreak protection, content moderation, and PII filtering for user messages
+func DefaultInputGuardrailPolicies() []string {
 	return []string{"jailbreak", "content-moderation", "pii"}
+}
+
+// DefaultOutputGuardrailPolicies returns the default policies for output guardrails
+// Includes PII leak prevention and content moderation (no jailbreak - not applicable to model outputs)
+func DefaultOutputGuardrailPolicies() []string {
+	return []string{"content-moderation", "pii"}
 }
