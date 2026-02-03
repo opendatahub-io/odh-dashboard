@@ -2562,7 +2562,10 @@ components:
           minItems: 1
         enable_guardrails:
           type: boolean
-          description: Whether guardrails feature is enabled. When true, automatically detects and configures guardrails if infrastructure is ready.
+          description: |
+            If true, adds safety configuration with guardrail input and output shields
+            for all selected models. Input shields include jailbreak, content-moderation, and pii.
+            Output shields include content-moderation and pii.
           example: true
           default: false
 

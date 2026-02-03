@@ -373,7 +373,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, guardrailsEnabled bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
@@ -396,19 +396,20 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 	}
 
 	// Check guardrails: feature flag first, then auto-detect infrastructure
-	enableGuardrails := false
-	if guardrailsEnabled {
+	actuallyEnableGuardrails := false
+	if enableGuardrails {
 		guardrailStatus, err := m.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
 		if err == nil && guardrailStatus.Phase == "Ready" {
-			enableGuardrails = true
+			actuallyEnableGuardrails = true
 		}
 	}
 
-	// Build safety section based on guardrails
+	// Build safety section based on enableGuardrails flag
+	// When enabled, guardrails are automatically added for all selected models
 	safetySection := "  safety: []"
 	shieldsSection := "  shields: []"
 
-	if enableGuardrails && len(installModels) > 0 {
+	if actuallyEnableGuardrails && len(installModels) > 0 {
 		// Build shields config for each model when guardrails are enabled
 		shieldsConfig := ""
 		shieldsList := ""
