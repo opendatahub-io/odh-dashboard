@@ -175,7 +175,7 @@ describe('K8sNameDescriptionField', () => {
       });
     });
 
-    it('should disable input while checking name availability', async () => {
+    it('should show spinner while checking name availability', async () => {
       let resolveChecker: ((value: boolean) => void) | undefined;
       const nameCheckerMock = jest.fn().mockImplementation(
         () =>
@@ -194,7 +194,7 @@ describe('K8sNameDescriptionField', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('test-name')).toBeDisabled();
+        expect(screen.getByLabelText('Checking name availability')).toBeInTheDocument();
       });
 
       // Resolve the promise
@@ -203,7 +203,7 @@ describe('K8sNameDescriptionField', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('test-name')).not.toBeDisabled();
+        expect(screen.queryByLabelText('Checking name availability')).not.toBeInTheDocument();
       });
     });
 
@@ -243,7 +243,7 @@ describe('K8sNameDescriptionField', () => {
         });
       });
 
-      it('should disable ResourceNameField while checking name availability', async () => {
+      it('should show spinner on ResourceNameField while checking name availability', async () => {
         let resolveChecker: ((value: boolean) => void) | undefined;
         const nameCheckerMock = jest.fn().mockImplementation(
           () =>
@@ -269,10 +269,9 @@ describe('K8sNameDescriptionField', () => {
           jest.advanceTimersByTime(600);
         });
 
-        // Both inputs should be disabled while checking
+        // Spinners should be visible while checking (one for name field, one for resource name field)
         await waitFor(() => {
-          expect(screen.getByTestId('test-name')).toBeDisabled();
-          expect(screen.getByTestId('test-resourceName')).toBeDisabled();
+          expect(screen.getAllByLabelText('Checking name availability')).toHaveLength(2);
         });
 
         // Resolve the promise
@@ -280,10 +279,9 @@ describe('K8sNameDescriptionField', () => {
           resolveChecker?.(true);
         });
 
-        // Both inputs should be enabled after check completes
+        // Spinners should be gone after check completes
         await waitFor(() => {
-          expect(screen.getByTestId('test-name')).not.toBeDisabled();
-          expect(screen.getByTestId('test-resourceName')).not.toBeDisabled();
+          expect(screen.queryByLabelText('Checking name availability')).not.toBeInTheDocument();
         });
       });
     });
