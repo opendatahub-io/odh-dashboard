@@ -1,38 +1,76 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
-import useFetchGuardrailsAvailable from '~/app/hooks/useFetchGuardrailsAvailable';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import useGuardrailsAvailable from '~/app/hooks/useGuardrailsAvailable';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
-// Mock the useFetchGuardrailsAvailable hook
-jest.mock('~/app/hooks/useFetchGuardrailsAvailable');
+// Mock the guardrails hooks
+jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
+jest.mock('~/app/hooks/useGuardrailsAvailable');
+jest.mock('~/app/hooks/useGenAiAPI');
 
-// Mock the useFeatureFlag hook
-jest.mock('@openshift/dynamic-plugin-sdk', () => ({
-  ...jest.requireActual('@openshift/dynamic-plugin-sdk'),
-  useFeatureFlag: jest.fn(() => [false]),
-}));
+const mockInstallLSD = jest.fn();
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
-// Mock the table to surface the selectedModels, maxTokensMap, and guardrailsAvailable props for easy assertions
+// Set default mock return values for guardrails hooks
+beforeEach(() => {
+  jest.clearAllMocks();
+
+  (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+  (useGuardrailsAvailable as jest.Mock).mockReturnValue({
+    guardrailsAvailable: false,
+  });
+
+  mockUseGenAiAPI.mockReturnValue({
+    apiAvailable: true,
+    api: {
+      installLSD: mockInstallLSD,
+    },
+  });
+
+  mockInstallLSD.mockResolvedValue({ data: null });
+});
+
+// Mock the table to surface the selectedModels and maxTokensMap props for easy assertions
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
   default: ({
     selectedModels,
     maxTokensMap,
-    guardrailsAvailable,
   }: {
     selectedModels: AIModel[];
     maxTokensMap: Map<string, number | undefined>;
-    guardrailsAvailable: boolean;
   }) => (
     <div data-testid="selected-models">
       {JSON.stringify({
         models: selectedModels.map((m) => m.model_name),
         maxTokens: Array.from(maxTokensMap.entries()),
-        guardrailsAvailable,
       })}
+    </div>
+  ),
+}));
+
+// Mock DashboardModalFooter to expose the submit button
+jest.mock('mod-arch-shared', () => ({
+  DashboardModalFooter: ({
+    submitLabel,
+    onSubmit,
+    onCancel,
+  }: {
+    submitLabel: string;
+    onSubmit: () => void;
+    onCancel: () => void;
+  }) => (
+    <div data-testid="modal-footer">
+      <button onClick={onSubmit}>{submitLabel}</button>
+      <button onClick={onCancel}>Cancel</button>
     </div>
   ),
 }));
@@ -79,27 +117,9 @@ const getSelectedModelNames = (): string[] => {
   const parsed = JSON.parse(json) as {
     models: string[];
     maxTokens: [string, number | undefined][];
-    guardrailsAvailable: boolean;
   };
   return parsed.models;
 };
-
-const getGuardrailsAvailable = (): boolean => {
-  const json = screen.getByTestId('selected-models').textContent || '{}';
-  const parsed = JSON.parse(json) as {
-    models: string[];
-    maxTokens: [string, number | undefined][];
-    guardrailsAvailable: boolean;
-  };
-  return parsed.guardrailsAvailable;
-};
-
-// Set default mock return value for useFetchGuardrailsAvailable
-beforeEach(() => {
-  (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
-    guardrailsAvailable: false,
-  });
-});
 
 describe('ChatbotConfigurationModal preSelectedModels', () => {
   const aiA = createAIModel({ model_name: 'mA', display_name: 'A' });
@@ -256,41 +276,99 @@ describe('ChatbotConfigurationModal max_tokens support', () => {
   });
 });
 
-describe('ChatbotConfigurationModal guardrails support', () => {
+describe('ChatbotConfigurationModal guardrails configuration', () => {
   const allModels = [createAIModel({ model_name: 'test-model' })];
 
-  test('passes guardrailsAvailable prop from hook to table component', () => {
-    // Test with false
-    (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+  const renderModalWithContext = (props: { allModels: AIModel[]; existingModels?: LlamaModel[] }) =>
+    render(
+      <GenAiContext.Provider value={mockGenAiContextValue}>
+        <MemoryRouter>
+          <ChatbotConfigurationModal
+            onClose={() => undefined}
+            lsdStatus={null}
+            aiModels={props.allModels}
+            existingModels={props.existingModels}
+          />
+        </MemoryRouter>
+      </GenAiContext.Provider>,
+    );
+
+  test('does not include enable_guardrails when feature flag is disabled', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+    (useGuardrailsAvailable as jest.Mock).mockReturnValue({
       guardrailsAvailable: false,
     });
 
-    const { unmount } = renderModal({ allModels });
-    expect(getGuardrailsAvailable()).toBe(false);
+    renderModalWithContext({ allModels });
 
-    unmount();
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
 
-    // Test with true
-    (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith({
+        models: [
+          {
+            model_name: 'test-model',
+            is_maas_model: false,
+          },
+        ],
+        // enable_guardrails should NOT be present when feature flag is disabled
+      });
+    });
+
+    // Verify that enable_guardrails is not in the call
+    const callArgs = mockInstallLSD.mock.calls[0][0];
+    expect(callArgs).not.toHaveProperty('enable_guardrails');
+  });
+
+  test('includes enable_guardrails: true when feature flag is enabled and guardrails are available', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+    (useGuardrailsAvailable as jest.Mock).mockReturnValue({
       guardrailsAvailable: true,
     });
 
-    renderModal({ allModels });
-    expect(getGuardrailsAvailable()).toBe(true);
+    renderModalWithContext({ allModels });
+
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith({
+        models: [
+          {
+            model_name: 'test-model',
+            is_maas_model: false,
+          },
+        ],
+        enable_guardrails: true,
+      });
+    });
   });
 
-  test('guardrails availability does not affect model selection', () => {
-    const modelA = createAIModel({ model_name: 'model-a' });
-    const modelB = createAIModel({ model_name: 'model-b' });
-    const testModels = [modelA, modelB];
-
-    (useFetchGuardrailsAvailable as jest.Mock).mockReturnValue({
+  test('includes enable_guardrails: false when feature flag is enabled but guardrails are not available', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+    (useGuardrailsAvailable as jest.Mock).mockReturnValue({
       guardrailsAvailable: false,
     });
 
-    renderModal({ allModels: testModels });
+    renderModalWithContext({ allModels });
 
-    expect(getSelectedModelNames()).toEqual(['model-a', 'model-b']);
-    expect(getGuardrailsAvailable()).toBe(false);
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith({
+        models: [
+          {
+            model_name: 'test-model',
+            is_maas_model: false,
+          },
+        ],
+        enable_guardrails: false,
+      });
+    });
   });
 });

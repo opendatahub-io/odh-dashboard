@@ -2,7 +2,7 @@ import React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
   FetchStateObject,
-} from '@odh-dashboard/internal/utilities/useFetch.js';
+} from '@odh-dashboard/internal/utilities/useFetch';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { GuardrailsStatus } from '~/app/types';

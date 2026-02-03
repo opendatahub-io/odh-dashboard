@@ -19,9 +19,6 @@ type ChatbotConfigurationTableProps = {
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
   maxTokensMap: Map<string, number | undefined>;
   onMaxTokensChange: (modelName: string, value: number | undefined) => void;
-  enableGuardrails?: boolean;
-  setEnableGuardrails?: React.Dispatch<React.SetStateAction<boolean>>;
-  guardrailsAvailable: boolean;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
