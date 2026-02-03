@@ -26,7 +26,7 @@ const PROXY_PORT = process.env._PROXY_PORT;
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/mod-arch/' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
 
 const getProxyHeaders = () => {
   if (AUTH_METHOD === 'internal') {
@@ -85,7 +85,7 @@ module.exports = smp.wrap(
         open: false,
         proxy: [
           {
-            context: ['/api', '/mod-arch/api'],
+            context: ['/api', '/autorag/api'],
             target: {
               host: PROXY_HOST,
               protocol: PROXY_PROTOCOL,

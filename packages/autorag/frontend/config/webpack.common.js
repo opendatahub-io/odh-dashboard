@@ -22,7 +22,7 @@ const {
   COVERAGE,
   _DEPLOYMENT_MODE: DEPLOYMENT_MODE,
 } = process.env;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/mod-arch/' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(

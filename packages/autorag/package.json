@@ -1,16 +1,16 @@
 {
   "private": true,
-  "name": "@odh-dashboard/mod-arch",
-  "description": "Mod Arch plugin.",
+  "name": "@odh-dashboard/autorag",
+  "description": "AutoRAG plugin.",
   "version": "0.0.0",
   "module-federation": {
-    "name": "modArch",
+    "name": "autoRag",
     "remoteEntry": "/remoteEntry.js",
     "authorize": true,
     "tls": false,
     "proxy": [
       {
-        "path": "/mod-arch/api",
+        "path": "/autorag/api",
         "pathRewrite": "/api"
       }
     ],

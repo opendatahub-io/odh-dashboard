@@ -74,7 +74,7 @@ Cypress.Commands.add(
     return cy.intercept(
       {
         method,
-        pathname: `/mod-arch/${pathname}`,
+        pathname: `/autorag/${pathname}`,
         query: options?.query,
         ...(options?.times && { times: options.times }),
       },

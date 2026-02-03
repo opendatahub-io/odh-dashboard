@@ -4,40 +4,40 @@ import type {
   AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const MOD_ARCH = 'mod-arch-module';
+const AUTORAG = 'autorag';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: MOD_ARCH,
+      id: AUTORAG,
       requiredComponents: [],
-      featureFlags: ['modArchModule'], // Todo: You need to add this feature flag.
+      featureFlags: ['autoRag'], // Todo: You need to add this feature flag.
     },
   },
   {
     type: 'app.navigation/section',
     flags: {
-      required: [MOD_ARCH],
+      required: [AUTORAG],
     },
     properties: {
-      id: 'mod-arch',
-      title: 'Modular Architecture Component',
-      group: '7_mod_arch_studio',
+      id: 'autorag',
+      title: 'AutoRAG',
+      group: '7_autorag',
       iconRef: () => import('./ModArchNavIcon'),
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MOD_ARCH],
+      required: [AUTORAG],
     },
     properties: {
-      id: 'mod-arch-view',
-      title: 'Modular Architecture',
-      href: '/mod-arch/main-view',
-      section: 'mod-arch',
-      path: '/mod-arch/main-view/*',
+      id: 'autorag-view',
+      title: 'AutoRAG',
+      href: '/autorag/main-view',
+      section: 'autorag',
+      path: '/autorag/main-view/*',
       label: 'Tech Preview',
     },
   },
@@ -47,7 +47,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [],
     },
     properties: {
-      path: '/mod-arch/main-view/*',
+      path: '/autorag/main-view/*',
       component: () => import('./ModArchWrapper'),
     },
   },

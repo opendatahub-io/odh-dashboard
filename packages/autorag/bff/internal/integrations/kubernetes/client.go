@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const ComponentLabelValue = "mod-arch"
+const ComponentLabelValue = "autorag"
 
 // KubernetesClientInterface exposes only the minimal surface needed by the starter project.
 type KubernetesClientInterface interface {
