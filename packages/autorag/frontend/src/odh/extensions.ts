@@ -16,18 +16,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/section',
-    flags: {
-      required: [AUTORAG],
-    },
-    properties: {
-      id: 'autorag',
-      title: 'AutoRAG',
-      group: '7_autorag',
-      iconRef: () => import('./ModArchNavIcon'),
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [AUTORAG],
@@ -36,7 +24,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: 'autorag-view',
       title: 'AutoRAG',
       href: '/autorag/main-view',
-      section: 'autorag',
+      section: 'gen-ai-studio',
       path: '/autorag/main-view/*',
       label: 'Tech Preview',
     },
