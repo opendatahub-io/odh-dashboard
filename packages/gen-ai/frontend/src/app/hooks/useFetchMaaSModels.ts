@@ -16,7 +16,9 @@ const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
       if (!apiAvailable) {
         return Promise.reject(new NotReadyError('API not yet available'));
       }
-      return api.getMaaSModels(opts).then((r) => r);
+      const rawData = await api.getMaaSModels(opts);
+      // Ensure we always return an array, even if API returns null
+      return Array.isArray(rawData) ? rawData : [];
     },
     [api, apiAvailable],
   );
