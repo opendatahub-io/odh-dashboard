@@ -1,5 +1,10 @@
 import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
-import { ModArchRestCREATE, ModArchRestGET } from '~/app/types';
+import type { APIOptions } from 'mod-arch-core';
+
+// Define these types here to avoid circular imports with ~/app/types
+// (types.ts imports MaaSModel from this file)
+type ModArchRestGET<T> = (queryParams?: Record<string, unknown>, opts?: APIOptions) => Promise<T>;
+type ModArchRestCREATE<T, D> = (data: D, opts?: APIOptions) => Promise<T>;
 
 export interface MaaSModel {
   id: string;
