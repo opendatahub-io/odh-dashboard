@@ -1305,7 +1305,6 @@ export type DashboardCommonConfig = {
   maasApiKeys?: boolean;
   mlflow?: boolean;
   projectRBAC?: boolean;
-  embedMLflow?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
 };

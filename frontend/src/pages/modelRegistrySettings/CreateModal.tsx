@@ -615,6 +615,19 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                 />
               </Stack>
             </FormGroup>
+            {!mr && (
+              <FormGroup>
+                <Alert
+                  isInline
+                  variant="info"
+                  title="Additional configuration required"
+                  data-testid="mr-additional-config-alert"
+                >
+                  After creation, you must manage permissions to make this registry accessible to
+                  users and projects.
+                </Alert>
+              </FormGroup>
+            )}
           </FormSection>
         </Form>
       </ModalBody>
