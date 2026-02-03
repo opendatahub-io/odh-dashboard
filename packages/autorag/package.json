@@ -1,0 +1,43 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/mod-arch",
+  "description": "Mod Arch plugin.",
+  "version": "0.0.0",
+  "module-federation": {
+    "name": "modArch",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/mod-arch/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9103
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
+  "scripts": {
+    "install:module": "npm install --prefix frontend",
+    "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
+    "cypress:server": "cd frontend && serve ./public-cypress -p 9103 -s -L",
+    "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9103 npm run start:dev",
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9103"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "eslint-plugin-n": "^17.23.1"
+  }
+}
