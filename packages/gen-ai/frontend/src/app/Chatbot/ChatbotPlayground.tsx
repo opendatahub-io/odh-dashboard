@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { Divider, Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
+import {
+  Button,
+  Divider,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
@@ -8,6 +18,7 @@ import {
   ChatbotFootnote,
   MessageBar,
 } from '@patternfly/chatbot';
+import { CogIcon } from '@patternfly/react-icons';
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -82,6 +93,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isDarkMode = useDarkMode();
 
   const location = useLocation();
+  const drawerRef = React.useRef<HTMLDivElement>(undefined);
+  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
   const selectedAAModel = location.state?.model;
   const mcpServersFromRoute = React.useMemo(() => {
     const servers = location.state?.mcpServers;
@@ -296,6 +309,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           checkMcpServerStatus={checkMcpServerStatus}
           guardrailModels={guardrailModelNames}
           guardrailModelsLoaded={guardrailModelsLoaded}
+          onCloseClick={() => {
+            setIsDrawerExpanded(false);
+          }}
         />
       ))}
     </>
@@ -336,10 +352,30 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           setIsNewChatModalOpen(false);
         }}
       />
-      <Drawer isExpanded isInline position="left">
+      <Drawer
+        onExpand={() => drawerRef.current && drawerRef.current.focus()}
+        isExpanded={isDrawerExpanded}
+        isInline
+        position="left"
+      >
         <Divider />
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
+            <Toolbar>
+              <ToolbarContent>
+                <ToolbarGroup>
+                  <ToolbarItem>
+                    <Button
+                      variant="plain"
+                      aria-label="edit"
+                      icon={<CogIcon />}
+                      onClick={() => setIsDrawerExpanded(true)}
+                      style={{ marginTop: '0.6rem' }}
+                    />
+                  </ToolbarItem>
+                </ToolbarGroup>
+              </ToolbarContent>
+            </Toolbar>
             <Chatbot displayMode={ChatbotDisplayMode.embedded} data-testid="chatbot">
               <ChatbotContent
                 style={{

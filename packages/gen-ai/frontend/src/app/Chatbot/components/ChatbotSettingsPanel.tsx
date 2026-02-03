@@ -1,5 +1,8 @@
 import * as React from 'react';
 import {
+  DrawerActions,
+  DrawerCloseButton,
+  DrawerHead,
   DrawerPanelContent,
   DrawerPanelBody,
   Badge,
@@ -9,6 +12,7 @@ import {
   Tabs,
   Tab,
   TabTitleText,
+  Title,
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -52,6 +56,7 @@ interface ChatbotSettingsPanelProps {
   // Guardrails props
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
+  onCloseClick?: () => void;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -71,6 +76,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   checkMcpServerStatus,
   guardrailModels = [],
   guardrailModelsLoaded = false,
+  onCloseClick,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
@@ -149,6 +155,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       minSize="300px"
       onResize={handlePanelResize}
     >
+      <DrawerHead>
+        <Title headingLevel="h2">Configure</Title>
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
+        </DrawerActions>
+      </DrawerHead>
       <DrawerPanelBody>
         <Tabs
           activeKey={activeTabKey}
