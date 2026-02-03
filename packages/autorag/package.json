@@ -23,6 +23,9 @@
       "port": 8043
     }
   },
+  "exports": {
+    "./extensions": "./frontend/src/odh/extensions.ts"
+  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
