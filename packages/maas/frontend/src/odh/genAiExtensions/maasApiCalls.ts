@@ -3,18 +3,18 @@ import type {
   MaaSModel,
   MaaSTokenResponse,
   MaaSTokenRequest,
-  ModArchRestGET,
-  ModArchRestCREATE,
 } from '@odh-dashboard/gen-ai/extension-points';
-import { createAPIKey } from '~/app/api/api-keys';
+import { createApiKey } from '~/app/api/api-keys';
 import { getMaaSModelsList } from '~/app/api/maas-models';
 
-export const getMaaSModelsWrapper: ModArchRestGET<MaaSModel[]> = (
-  _queryParams?: Record<string, unknown>,
+export const getMaaSModelsWrapper: (
+  queryParams?: Record<string, unknown>,
   opts?: APIOptions,
-) => getMaaSModelsList()(opts ?? {});
+) => Promise<MaaSModel[]> = (_queryParams?: Record<string, unknown>, opts?: APIOptions) =>
+  getMaaSModelsList()(opts ?? {});
 
-export const generateMaaSTokenWrapper: ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest> = (
+export const generateMaaSTokenWrapper: (
   data: MaaSTokenRequest,
   opts?: APIOptions,
-) => createAPIKey()(opts ?? {}, data);
+) => Promise<MaaSTokenResponse> = (data: MaaSTokenRequest, opts?: APIOptions) =>
+  createApiKey()(opts ?? {}, data);

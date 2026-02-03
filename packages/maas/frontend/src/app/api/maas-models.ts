@@ -1,6 +1,6 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { MaaSModel } from '~/app/types/maas-models';
+import { MaaSModel } from '~/app/types/maas-model';
 
 /** GET /api/v1/models - Fetch the list of models that have been registered with MaaS */
 export const getMaaSModelsList =

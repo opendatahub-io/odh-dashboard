@@ -1,7 +1,5 @@
 import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
-import type { ModArchRestCREATE, ModArchRestGET } from '~/app/types';
-
-export type { ModArchRestCREATE, ModArchRestGET };
+import { ModArchRestCREATE, ModArchRestGET } from '~/app/types';
 
 export interface MaaSModel {
   id: string;
@@ -9,7 +7,7 @@ export interface MaaSModel {
   created: number;
   owned_by: string;
   ready: boolean;
-  url: string;
+  url?: string;
   // Optional fields for display name, description, and use case
   // These may not be provided by all backends, so we use id as fallback for display_name
   display_name?: string;

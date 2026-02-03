@@ -27,9 +27,6 @@ const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
       // }
       // Promise.reject(new Error('MaaS models extension not found'));
 
-      if (!apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
-      }
       const rawData = await api.getMaaSModels(opts);
       // Ensure we always return an array, even if API returns null
       return Array.isArray(rawData) ? rawData : [];

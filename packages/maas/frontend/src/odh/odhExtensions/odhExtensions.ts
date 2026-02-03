@@ -1,4 +1,3 @@
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import {
   AreaExtension,
   RouteExtension,
@@ -15,8 +14,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     type: 'app.area',
     properties: {
       id: MODEL_AS_SERVICE_ID,
-      featureFlags: ['modelAsService', 'genAiStudio'],
-      requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
+      featureFlags: ['modelAsService'],
     },
   },
   {
