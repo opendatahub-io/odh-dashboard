@@ -9,6 +9,12 @@ import useFetchGuardrailsAvailable from '~/app/hooks/useFetchGuardrailsAvailable
 // Mock the useFetchGuardrailsAvailable hook
 jest.mock('~/app/hooks/useFetchGuardrailsAvailable');
 
+// Mock the useFeatureFlag hook
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  ...jest.requireActual('@openshift/dynamic-plugin-sdk'),
+  useFeatureFlag: jest.fn(() => [false]),
+}));
+
 // Mock the table to surface the selectedModels, maxTokensMap, and guardrailsAvailable props for easy assertions
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,

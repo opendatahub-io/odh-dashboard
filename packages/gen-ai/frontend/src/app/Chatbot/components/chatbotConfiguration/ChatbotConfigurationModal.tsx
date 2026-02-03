@@ -46,6 +46,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
   const [guardrailsEnabled] = useFeatureFlag('guardrails');
+  const { guardrailsAvailable } = useFetchGuardrailsAvailable();
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
