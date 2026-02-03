@@ -75,6 +75,7 @@ const (
 	ModelCatalogSettingsSourceConfigPath     = ModelCatalogSettingsSourceConfigListPath + "/:" + CatalogSourceId
 	CatalogSourcePreviewPath                 = ModelCatalogSettingsPathPrefix + "/source_preview"
 
+<<<<<<< ours
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
 )
@@ -89,6 +90,10 @@ const (
 
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
+=======
+	// Model Transfer Jobs
+	ModelTransferJobListPath = ModelRegistryPath + "/model_transfer_jobs"
+>>>>>>> theirs
 )
 
 type App struct {
@@ -245,6 +250,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(ModelVersionArtifactListPath, app.AttachNamespace(app.RequireAccessToMRService(app.AttachModelRegistryRESTClient(app.CreateModelArtifactByModelVersionHandler))))
 	apiRouter.PATCH(ModelRegistryPath, app.AttachNamespace(app.RequireAccessToMRService(app.AttachModelRegistryRESTClient(app.UpdateModelVersionHandler))))
 	apiRouter.PATCH(ModelArtifactPath, app.AttachNamespace(app.RequireAccessToMRService(app.AttachModelRegistryRESTClient(app.UpdateModelArtifactHandler))))
+
+	// Model Transfer Jobs
+	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetAllModelTransferJobsHandler)))
 
 	// Model catalog HTTP client routes (requests that we forward to Model Catalog API)
 	apiRouter.GET(CatalogModelListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllCatalogModelsAcrossSourcesHandler)))
