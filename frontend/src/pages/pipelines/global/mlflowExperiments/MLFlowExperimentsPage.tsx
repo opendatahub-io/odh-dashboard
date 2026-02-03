@@ -6,7 +6,7 @@ import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreP
 import {
   mlflowExperimentsBaseRoute,
   WORKSPACE_QUERY_PARAM,
-  MLFLOW_JUMP_LINK_URL,
+  MLFLOW_PROXY_BASE_PATH,
 } from '#~/routes/pipelines/mlflowExperiments';
 import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
 import MlflowIframe from './MLflowIframe';
@@ -32,7 +32,7 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
           component="a"
           isInline
           data-testid="mlflow-embedded-jump-link"
-          href={MLFLOW_JUMP_LINK_URL}
+          href={MLFLOW_PROXY_BASE_PATH}
           target="_blank"
           variant="link"
           icon={<ExternalLinkAltIcon />}
