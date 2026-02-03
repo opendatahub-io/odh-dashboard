@@ -89,5 +89,31 @@ export const mockComponents = ({
       isEnabled: true,
     },
   },
+  {
+    metadata: {
+      annotations: {
+        'opendatahub.io/categories': 'Model development,Model training',
+      },
+      name: 'mlflow',
+    },
+    spec: {
+      category: 'Red Hat managed',
+      description:
+        'An open source developer platform for building AI applications and models with confidence.',
+      displayName: 'MLflow',
+      docsLink: 'https://mlflow.org/docs/latest/index.html',
+      getStartedLink: 'https://access.redhat.com/articles/7136121',
+      getStartedMarkDown:
+        '# MLflow\n\nTrack and manage your machine learning experiments with MLflow.',
+      img: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36"><path fill="#009596" d="M27.676,25.783,21,10.787V3h1a1,1,0,0,0,0-2H20.5A1.50183,1.50183,0,0,0,19,2.5V11a1.00117,1.00117,0,0,0,.086.407L22.021,18H9.977l2.935-6.593A1.00117,1.00117,0,0,0,12.998,11V2.5a1.50183,1.50183,0,0,0-1.5-1.5h-1.5a1,1,0,0,0,0,2h1v7.788L4.322,25.784a3.70807,3.70807,0,0,0,3.387,5.217H24.286a3.70807,3.70807,0,0,0,3.387-5.217Zm-1.954,2.439A1.67877,1.67877,0,0,1,24.289,29H7.711a1.7074,1.7074,0,0,1-1.56-2.403L9.088,20H22.912l2.937,6.597A1.68166,1.68166,0,0,1,25.722,28.222Z" transform="translate(2 2)"/></svg>',
+      internalRoute: 'mlflowExperiments',
+      provider: 'Red Hat',
+      quickStart: '',
+      support: 'red hat',
+      shownOnEnabledPage: true,
+      isEnabled: true,
+      link: null,
+    },
+  },
   ...extraComponents,
 ];
