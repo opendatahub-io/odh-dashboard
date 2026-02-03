@@ -22,17 +22,7 @@ import (
 )
 
 func TestLlamaStackListVectorStoresHandler(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: slog.Default(),
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
-
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 	require.NoError(t, err)
 
 	llamaStackClientFactory := lsmocks.NewMockClientFactory()
