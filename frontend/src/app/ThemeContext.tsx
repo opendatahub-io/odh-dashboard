@@ -4,6 +4,8 @@ import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageCo
 type ThemeContextProps = {
   theme: string;
   setTheme: (themeName: string) => void;
+  mlflowTheme: boolean;
+  setMlflowTheme: (darkMode: boolean) => void;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -16,7 +18,7 @@ type ThemeProviderProps = {
 };
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [odhTheme, setOdhTheme] = useBrowserStorage<string>('odh.dashboard.ui.theme', 'light');
-  const [, setMlflowTheme] = useBrowserStorage<boolean>(
+  const [mlflowTheme, setMlflowTheme] = useBrowserStorage<boolean>(
     '_mlflow_dark_mode_toggle_enabled',
     odhTheme === 'dark',
   );
@@ -26,7 +28,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setOdhTheme(theme);
   };
 
-  const contextValue = React.useMemo(() => ({ theme: odhTheme, setTheme }), [odhTheme, setTheme]);
+  const contextValue = React.useMemo(
+    () => ({ theme: odhTheme, setTheme, mlflowTheme, setMlflowTheme }),
+    [odhTheme, setTheme, mlflowTheme, setMlflowTheme],
+  );
 
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 };
