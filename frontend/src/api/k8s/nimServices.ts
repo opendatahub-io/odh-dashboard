@@ -234,6 +234,14 @@ export const assembleNIMService = (
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
 
+  // Set external route visibility in spec.labels so it's propagated to InferenceService
+  // The NIM Operator propagates spec.labels to the InferenceService it creates
+  if (externalRoute) {
+    nimService.spec.labels['networking.kserve.io/visibility'] = 'exposed';
+  } else {
+    delete nimService.spec.labels['networking.kserve.io/visibility'];
+  }
+
   return nimService;
 };
 
