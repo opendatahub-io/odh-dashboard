@@ -38,7 +38,6 @@ describe('Verify project access for user types in Training Jobs', () => {
     return false;
   };
 
-
   retryableBefore(() => {
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
