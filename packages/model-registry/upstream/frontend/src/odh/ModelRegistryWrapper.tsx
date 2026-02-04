@@ -14,6 +14,7 @@ import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistr
 import { AppContext } from '~/app/context/AppContext';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
+import NotificationListener from '~/odh/components/NotificationListener';
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -33,9 +34,11 @@ const ModelRegistryWrapperContent: React.FC = () => {
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
-            <ModelRegistrySelectorContextProvider>
-              <ModelRegistryRoutes />
-            </ModelRegistrySelectorContextProvider>
+            <NotificationListener>
+              <ModelRegistrySelectorContextProvider>
+                <ModelRegistryRoutes />
+              </ModelRegistrySelectorContextProvider>
+            </NotificationListener>
           </NotificationContextProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>

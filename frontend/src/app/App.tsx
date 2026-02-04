@@ -31,6 +31,7 @@ import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
 import { OdhPlatformType } from '#~/types';
 import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
+import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -49,6 +50,9 @@ import './App.scss';
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
+  
+  // Listen for notifications from federated modules
+  useFederatedNotificationListener();
 
   const buildStatuses = useWatchBuildStatus();
   const {
