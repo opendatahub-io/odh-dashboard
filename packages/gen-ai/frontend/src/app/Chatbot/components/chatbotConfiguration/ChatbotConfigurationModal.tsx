@@ -11,7 +11,6 @@ import type { MaaSModel } from '~/odh/extension-points/maas';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
-import useGuardrailsAvailable from '~/app/hooks/useGuardrailsAvailable';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
