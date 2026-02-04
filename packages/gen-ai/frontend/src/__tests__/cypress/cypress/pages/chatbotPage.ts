@@ -142,14 +142,13 @@ class ChatbotPage {
   }
 
   // Model Selection
+  // Model dropdown is now in the toolbar (moved from Model tab)
   findModelDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText(/Model/i).parent().find('button') as unknown as Cypress.Chainable<
-      JQuery<HTMLElement>
-    >;
+    return cy.findByTestId('model-selector-toggle');
   }
 
   findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: /Llama|Select a model/i });
+    return cy.findByTestId('model-selector-toggle');
   }
 
   verifyModelSelected(): void {

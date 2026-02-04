@@ -369,7 +369,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   />
                   <Button
                     variant="plain"
-                    aria-label="edit"
+                    aria-label="drawer-toggle"
                     icon={<CogIcon />}
                     onClick={() => setIsDrawerExpanded(true)}
                     style={{ margin: '0.7rem 0 0 0.5rem' }}
