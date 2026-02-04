@@ -8,15 +8,17 @@ interface GuardrailsTabContentProps {
   configId: string;
   guardrailModels: string[];
   guardrailModelsLoaded: boolean;
+  guardrailModelsError?: Error;
 }
 
 const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> = ({
   configId,
   guardrailModels,
   guardrailModelsLoaded,
+  guardrailModelsError,
 }) => {
   const hasGuardrailModels = guardrailModelsLoaded && guardrailModels.length > 0;
-  const isLoading = !guardrailModelsLoaded;
+  const isLoading = !guardrailModelsLoaded && !guardrailModelsError;
 
   const renderContent = () => {
     if (isLoading) {
@@ -24,6 +26,21 @@ const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> =
         <Bullseye>
           <Spinner size="lg" aria-label="Loading guardrail models" />
         </Bullseye>
+      );
+    }
+
+    if (guardrailModelsError) {
+      return (
+        <EmptyState
+          titleText="Failed to load guardrails"
+          icon={CogIcon}
+          variant="sm"
+          data-testid="guardrails-error-state"
+        >
+          <EmptyStateBody>
+            Unable to load guardrail configuration. Please try again later.
+          </EmptyStateBody>
+        </EmptyState>
       );
     }
 

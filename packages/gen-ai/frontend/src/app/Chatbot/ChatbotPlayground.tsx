@@ -81,6 +81,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     data: guardrailModelConfigs,
     modelNames: guardrailModelNames,
     loaded: guardrailModelsLoaded,
+    error: guardrailModelsError,
   } = useFetchGuardrailModels();
   const isDarkMode = useDarkMode();
 
@@ -303,6 +304,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           onCloseClick={() => {
             setIsDrawerExpanded(false);
           }}
+          guardrailModelsError={guardrailModelsError}
         />
       ))}
     </>
