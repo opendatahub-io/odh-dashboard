@@ -21,23 +21,10 @@ import (
 )
 
 func TestLSDSafetyConfigHandler(t *testing.T) {
-	// Setup test environment
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: logger,
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
-
 	// Create mock factory
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, logger)
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure

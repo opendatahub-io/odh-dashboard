@@ -15,29 +15,35 @@ import (
 	"testing"
 
 	"github.com/openai/openai-go/v2"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
+	"github.com/opendatahub-io/gen-ai/internal/services"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLlamaStackUploadFileHandler(t *testing.T) {
 	// Save current working directory
 	originalWd, err := os.Getwd()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Change to project root directory so OpenAPI handler can find the YAML file
 	projectRoot := filepath.Join(originalWd, "..", "..")
 	err = os.Chdir(projectRoot)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Restore original working directory at the end
 	defer func() {
 		err := os.Chdir(originalWd)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}()
 
 	// Create test app with full configuration and middleware chain
@@ -50,20 +56,43 @@ func TestLlamaStackUploadFileHandler(t *testing.T) {
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix, // "Bearer "
 		MockLSClient:    true,                          // Use mock LlamaStack client
 		LlamaStackURL:   testutil.TestLlamaStackURL,    // Mock LlamaStack URL
-		MockK8sClient:   true,                          // Use mock K8s client
+		MockK8sClient:   false,                         // Use shared envtest from TestMain
 	}
 
 	// Create test logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	app, err := NewApp(cfg, logger)
-	assert.NoError(t, err)
-	// Clean up test environment (kube-apiserver processes) when test completes.
-	// Without this, orphaned processes may remain after test execution.
-	defer func() {
-		if err := app.Shutdown(); err != nil {
-			t.Errorf("Failed to shutdown app: %v", err)
-		}
-	}()
+
+	// Create k8s factory using shared test environment
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+	require.NoError(t, err)
+
+	// Initialize OpenAPI handler
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	require.NoError(t, err)
+
+	// Initialize shared memory store
+	memStore := cache.NewMemoryStore()
+
+	// Initialize file upload job tracker
+	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
+
+	// Create app manually using shared envtest
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		repositories:            repositories.NewRepositories(),
+		openAPI:                 openAPIHandler,
+		kubernetesClientFactory: k8sFactory,
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+		maasClientFactory:       maasmocks.NewMockClientFactory(),
+		mcpClientFactory:        mcpmocks.NewMockedMCPClientFactory(cfg, logger),
+		dashboardNamespace:      "opendatahub",
+		memoryStore:             memStore,
+		rootCAs:                 nil,
+		clusterDomain:           "",
+		fileUploadJobTracker:    fileUploadJobTracker,
+		testEnvState:            nil, // Not using per-app envtest
+	}
 
 	// Create test server with full middleware chain
 	server := httptest.NewServer(app.Routes())
@@ -463,16 +492,16 @@ func TestLlamaStackListFilesHandler(t *testing.T) {
 func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 	// Save current working directory
 	originalWd, err := os.Getwd()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Change to project root directory
 	projectRoot := filepath.Join(originalWd, "..", "..")
 	err = os.Chdir(projectRoot)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	defer func() {
 		err := os.Chdir(originalWd)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}()
 
 	// Create test app with full configuration
@@ -485,19 +514,42 @@ func TestLlamaStackFileUploadStatusHandler(t *testing.T) {
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
 		MockLSClient:    true,
 		LlamaStackURL:   testutil.TestLlamaStackURL,
-		MockK8sClient:   true,
+		MockK8sClient:   false, // Use shared envtest from TestMain
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	app, err := NewApp(cfg, logger)
-	assert.NoError(t, err)
-	// Clean up test environment (kube-apiserver processes) when test completes.
-	// Without this, orphaned processes may remain after test execution.
-	defer func() {
-		if err := app.Shutdown(); err != nil {
-			t.Errorf("Failed to shutdown app: %v", err)
-		}
-	}()
+
+	// Create k8s factory using shared test environment
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+	require.NoError(t, err)
+
+	// Initialize OpenAPI handler
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	require.NoError(t, err)
+
+	// Initialize shared memory store
+	memStore := cache.NewMemoryStore()
+
+	// Initialize file upload job tracker
+	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
+
+	// Create app manually using shared envtest
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		repositories:            repositories.NewRepositories(),
+		openAPI:                 openAPIHandler,
+		kubernetesClientFactory: k8sFactory,
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+		maasClientFactory:       maasmocks.NewMockClientFactory(),
+		mcpClientFactory:        mcpmocks.NewMockedMCPClientFactory(cfg, logger),
+		dashboardNamespace:      "opendatahub",
+		memoryStore:             memStore,
+		rootCAs:                 nil,
+		clusterDomain:           "",
+		fileUploadJobTracker:    fileUploadJobTracker,
+		testEnvState:            nil, // Not using per-app envtest
+	}
 
 	t.Run("should return pending status for newly created job", func(t *testing.T) {
 		// Create a job first

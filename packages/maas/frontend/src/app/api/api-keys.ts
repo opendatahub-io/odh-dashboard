@@ -8,9 +8,9 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { type APIKey } from '~/app/types/api-key';
+import type { CreateAPIKeyRequest, CreateAPIKeyResponse, APIKey } from '~/app/types/api-key';
 
-/** GET /api/v1/api-keys - Fetch the list of api keys */
+/** GET /api/v1/api-keys - Fetch the list of api keys (metadata only, not the actual token values) */
 export const getApiKeys =
   (hostPath = '') =>
   (opts: APIOptions): Promise<APIKey[]> =>
@@ -22,21 +22,6 @@ export const getApiKeys =
       }
       throw new Error('Invalid response format');
     });
-
-export type CreateAPIKeyRequest = {
-  name?: string;
-  description?: string;
-  expiration?: string;
-};
-
-export type CreateAPIKeyResponse = {
-  token: string;
-  expiration: string;
-  expiresAt: number;
-  jti: string;
-  name?: string;
-  description?: string;
-};
 
 /** POST /api/v1/api-key - Create a new API key */
 export const createApiKey =

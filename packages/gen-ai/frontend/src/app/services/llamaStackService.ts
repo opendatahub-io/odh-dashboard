@@ -18,9 +18,6 @@ import {
   GuardrailsStatus,
   LlamaModel,
   LlamaStackDistributionModel,
-  MaaSModel,
-  MaaSTokenRequest,
-  MaaSTokenResponse,
   MCPConnectionStatus,
   MCPServersResponse,
   MCPToolsStatus,
@@ -41,6 +38,7 @@ import {
   ModArchRestGET,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
+import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
