@@ -6,14 +6,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
-import useGuardrailsAvailable from '~/app/hooks/useGuardrailsAvailable';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 // Mock the guardrails hooks
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
-jest.mock('~/app/hooks/useGuardrailsAvailable');
 jest.mock('~/app/hooks/useGenAiAPI');
 
 const mockInstallLSD = jest.fn();
@@ -24,9 +22,6 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
-  (useGuardrailsAvailable as jest.Mock).mockReturnValue({
-    guardrailsAvailable: false,
-  });
 
   mockUseGenAiAPI.mockReturnValue({
     apiAvailable: true,
@@ -293,66 +288,9 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
       </GenAiContext.Provider>,
     );
 
-  test('does not include enable_guardrails when feature flag is disabled', async () => {
+  test('includes enable_guardrails: false when feature flag is disabled', async () => {
     const user = userEvent.setup();
     (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
-    (useGuardrailsAvailable as jest.Mock).mockReturnValue({
-      guardrailsAvailable: false,
-    });
-
-    renderModalWithContext({ allModels });
-
-    const createButton = screen.getByRole('button', { name: /create/i });
-    await user.click(createButton);
-
-    await waitFor(() => {
-      expect(mockInstallLSD).toHaveBeenCalledWith({
-        models: [
-          {
-            model_name: 'test-model',
-            is_maas_model: false,
-          },
-        ],
-        // enable_guardrails should NOT be present when feature flag is disabled
-      });
-    });
-
-    // Verify that enable_guardrails is not in the call
-    const callArgs = mockInstallLSD.mock.calls[0][0];
-    expect(callArgs).not.toHaveProperty('enable_guardrails');
-  });
-
-  test('includes enable_guardrails: true when feature flag is enabled and guardrails are available', async () => {
-    const user = userEvent.setup();
-    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
-    (useGuardrailsAvailable as jest.Mock).mockReturnValue({
-      guardrailsAvailable: true,
-    });
-
-    renderModalWithContext({ allModels });
-
-    const createButton = screen.getByRole('button', { name: /create/i });
-    await user.click(createButton);
-
-    await waitFor(() => {
-      expect(mockInstallLSD).toHaveBeenCalledWith({
-        models: [
-          {
-            model_name: 'test-model',
-            is_maas_model: false,
-          },
-        ],
-        enable_guardrails: true,
-      });
-    });
-  });
-
-  test('includes enable_guardrails: false when feature flag is enabled but guardrails are not available', async () => {
-    const user = userEvent.setup();
-    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
-    (useGuardrailsAvailable as jest.Mock).mockReturnValue({
-      guardrailsAvailable: false,
-    });
 
     renderModalWithContext({ allModels });
 
@@ -368,6 +306,28 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
           },
         ],
         enable_guardrails: false,
+      });
+    });
+  });
+
+  test('includes enable_guardrails: true when feature flag is enabled', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+
+    renderModalWithContext({ allModels });
+
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith({
+        models: [
+          {
+            model_name: 'test-model',
+            is_maas_model: false,
+          },
+        ],
+        enable_guardrails: true,
       });
     });
   });
