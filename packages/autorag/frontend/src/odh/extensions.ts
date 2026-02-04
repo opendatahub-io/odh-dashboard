@@ -23,9 +23,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: 'autorag-view',
       title: 'AutoRAG',
-      href: '/autorag/main-view',
+      href: '/gen-ai-studio/autorag',
       section: 'gen-ai-studio',
-      path: '/autorag/main-view/*',
+      path: '/gen-ai-studio/autorag/*',
       label: 'Tech Preview',
     },
   },
@@ -35,7 +35,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [],
     },
     properties: {
-      path: '/autorag/main-view/*',
+      path: '/gen-ai-studio/autorag/*',
       component: () => import('./ModArchWrapper'),
     },
   },

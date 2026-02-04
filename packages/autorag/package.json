@@ -23,6 +23,7 @@
       "port": 8043
     }
   },
+  "_exports_comment": "The ./extensions export enables static loading during local development when the module is not deployed to the cluster. Once deployed, extensions are loaded at runtime via module federation (remoteEntry.js). This export can be removed after cluster deployment if not sharing types/utilities with other packages.",
   "exports": {
     "./extensions": "./frontend/src/odh/extensions.ts"
   },
