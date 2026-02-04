@@ -14,6 +14,7 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  defaultSamplePipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -63,6 +64,7 @@ export const advancedAIMLFlags = {
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
+  defaultSamplePipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -205,6 +207,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
+  },
+  [SupportedArea.PIPELINE_SAMPLES]: {
+    featureFlags: ['defaultSamplePipelines'],
   },
 };
 

@@ -1307,6 +1307,7 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  defaultSamplePipelines?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

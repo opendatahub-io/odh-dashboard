@@ -49,6 +49,7 @@ export type MockDashboardConfigType = {
   mlflow?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  defaultSamplePipelines?: boolean;
 };
 
 export const mockDashboardConfig = ({
