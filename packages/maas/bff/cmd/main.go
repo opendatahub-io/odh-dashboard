@@ -14,7 +14,6 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/api"
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
-	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 )
 
 func main() {
@@ -78,18 +77,6 @@ func main() {
 	if cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be internal or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
-	}
-
-	// Fallback to discovery of MaaS API url, when not provided via envvar, or cmd flags
-	if cfg.MaasApiUrl == "" {
-		clusterDomain, err := helper.GetClusterDomainUsingServiceAccount(context.Background(), logger)
-		if err != nil {
-			logger.Error("Automatic discovery of cluster domain failed", "error", err)
-			os.Exit(1)
-		}
-
-		cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
-		logger.Info("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
 	}
 
 	// Only use for logging errors about logging configuration.

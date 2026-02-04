@@ -33,7 +33,7 @@ func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true, // TODO: Don't skip TLS verification.
+					InsecureSkipVerify: true, // TODO: Don't skip TLS verification; honor `insecure-skip-verify` command line flag
 				},
 			},
 		},
