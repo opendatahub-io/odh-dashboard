@@ -796,4 +796,156 @@ describe('Permissions tab (projectRBAC)', () => {
 
     cy.wait('@deleteRoleBindingView');
   });
+
+  describe('Discard changes modal', () => {
+    const discardModal = projectRbacPermissions.getDiscardChangesModal();
+    const manageRolesTable = projectRbacPermissions.getManageRolesTable();
+
+    it('should show discard modal when switching subject kind with unsaved changes', () => {
+      initProjectRbacIntercepts();
+      projectRbacPermissions.visit(namespace);
+
+      // Navigate to assign roles page
+      projectRbacPermissions.findAssignRolesButton().click();
+      projectRbacPermissions.findAssignRolesPage().should('exist');
+
+      // Select an existing user from typeahead
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().click();
+      projectRbacPermissions.findTypeaheadOption('test-user-1').click();
+
+      // Make a role change (toggle a role)
+      manageRolesTable.toggleRole('Admin');
+
+      // Try to switch subject kind
+      projectRbacPermissions.findAssignRolesSubjectKindRadio('group').click();
+
+      // Discard modal should appear
+      discardModal.find().should('exist');
+      discardModal.shouldContainMessage(/Switching the subject kind will discard/);
+
+      // Cancel should close modal and keep current state
+      discardModal.findCancelButton().click();
+      discardModal.find().should('not.exist');
+      projectRbacPermissions.findAssignRolesSubjectKindRadio('user').should('be.checked');
+    });
+
+    it('should discard changes when clicking Discard in the modal', () => {
+      initProjectRbacIntercepts();
+      projectRbacPermissions.visit(namespace);
+
+      // Navigate to assign roles page
+      projectRbacPermissions.findAssignRolesButton().click();
+
+      // Select an existing user
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().click();
+      projectRbacPermissions.findTypeaheadOption('test-user-1').click();
+
+      // Make a role change
+      manageRolesTable.toggleRole('Admin');
+
+      // Switch subject kind
+      projectRbacPermissions.findAssignRolesSubjectKindRadio('group').click();
+
+      // Click Discard
+      discardModal.findDiscardButton().click();
+
+      // Modal should close, subject kind should change, and subject name should be cleared
+      discardModal.find().should('not.exist');
+      projectRbacPermissions.findAssignRolesSubjectKindRadio('group').should('be.checked');
+    });
+
+    it('should NOT show discard modal when switching from new user to new user', () => {
+      initProjectRbacIntercepts();
+      projectRbacPermissions.visit(namespace);
+
+      // Navigate to assign roles page
+      projectRbacPermissions.findAssignRolesButton().click();
+
+      // Type a new user (not in existing list)
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().type('new-user-1');
+      projectRbacPermissions.findTypeaheadOption(/Assign role to "new-user-1"/).click();
+
+      // Make a role change
+      manageRolesTable.toggleRole('Admin');
+
+      // Switch to another new user - modal should NOT appear
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().clear().type('new-user-2');
+      projectRbacPermissions.findTypeaheadOption(/Assign role to "new-user-2"/).click();
+
+      // No discard modal should appear
+      discardModal.find().should('not.exist');
+    });
+
+    it('should show discard modal when switching from existing to new user with changes', () => {
+      initProjectRbacIntercepts();
+      projectRbacPermissions.visit(namespace);
+
+      // Navigate to assign roles page
+      projectRbacPermissions.findAssignRolesButton().click();
+
+      // Select an existing user
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().click();
+      projectRbacPermissions.findTypeaheadOption('test-user-1').click();
+
+      // Make a role change
+      manageRolesTable.toggleRole('Admin');
+
+      // Switch to a new user
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().clear().type('brand-new-user');
+      projectRbacPermissions.findTypeaheadOption(/Assign role to "brand-new-user"/).click();
+
+      // Discard modal should appear
+      discardModal.find().should('exist');
+      discardModal.shouldContainMessage(/Switching to a different user will discard/);
+    });
+
+    it('should show discard modal when clearing selection with unsaved changes', () => {
+      initProjectRbacIntercepts();
+      projectRbacPermissions.visit(namespace);
+
+      // Navigate to assign roles page
+      projectRbacPermissions.findAssignRolesButton().click();
+
+      // Select an existing user
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().click();
+      projectRbacPermissions.findTypeaheadOption('test-user-1').click();
+
+      // Make a role change
+      manageRolesTable.toggleRole('Admin');
+
+      // Clear the selection using the clear button
+      projectRbacPermissions.findAssignRolesSubjectClearButton().click();
+
+      // Discard modal should appear
+      discardModal.find().should('exist');
+      discardModal.shouldContainMessage(/Clearing the user selection will discard/);
+    });
+
+    it('should show navigation blocker modal when navigating away with unsaved changes', () => {
+      initProjectRbacIntercepts();
+      projectRbacPermissions.visit(namespace);
+
+      // Navigate to assign roles page
+      projectRbacPermissions.findAssignRolesButton().click();
+
+      // Select an existing user
+      projectRbacPermissions.findAssignRolesSubjectTypeahead().click();
+      projectRbacPermissions.findTypeaheadOption('test-user-1').click();
+
+      // Make a role change
+      manageRolesTable.toggleRole('Admin');
+
+      // Try to navigate away via breadcrumb
+      cy.findByTestId('assign-roles-breadcrumb-projects').click();
+
+      // Navigation blocker modal should appear
+      const navBlockerModal = projectRbacPermissions.getNavigationBlockerModal();
+      navBlockerModal.find().should('exist');
+
+      // Cancel should stay on page
+      navBlockerModal.findCancelButton().click();
+      navBlockerModal.find().should('not.exist');
+      projectRbacPermissions.findAssignRolesPage().should('exist');
+    });
+  });
 });

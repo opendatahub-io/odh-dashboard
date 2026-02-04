@@ -308,4 +308,19 @@ describe('MLflow Experiments', () => {
     );
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
   });
+
+  it('should toggle theme between light and dark', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findDarkThemeToggle().click();
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('_mlflow_dark_mode_toggle_enabled')).to.equal('true');
+      expect(win.localStorage.getItem('odh.dashboard.ui.theme')).to.equal('"dark"');
+    });
+    mlflowExperimentsPage.findLightThemeToggle().click();
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('_mlflow_dark_mode_toggle_enabled')).to.equal('false');
+      expect(win.localStorage.getItem('odh.dashboard.ui.theme')).to.equal('"light"');
+    });
+  });
 });
