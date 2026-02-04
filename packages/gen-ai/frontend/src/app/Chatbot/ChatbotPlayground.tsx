@@ -41,7 +41,6 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import ViewCodeModal from './components/ViewCodeModal';
 import NewChatModal from './components/NewChatModal';
-import '~/app/app.css';
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -86,7 +85,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isDarkMode = useDarkMode();
 
   const location = useLocation();
-  const drawerRef = React.useRef<HTMLDivElement>(undefined);
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
   const selectedAAModel = location.state?.model;
   const mcpServersFromRoute = React.useMemo(() => {
@@ -346,7 +344,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }}
       />
       <Drawer
-        onExpand={() => drawerRef.current && drawerRef.current.focus()}
+        // onExpand={() => drawerRef.current && drawerRef.current.focus()}
         isExpanded={isDrawerExpanded}
         isInline
         position="left"
@@ -369,7 +367,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   />
                   <Button
                     variant="plain"
-                    aria-label="drawer-toggle"
+                    aria-label={isDrawerExpanded ? 'Close settings panel' : 'Open settings panel'}
                     icon={<CogIcon />}
                     onClick={() => setIsDrawerExpanded(true)}
                     style={{ margin: '0.7rem 0 0 0.5rem' }}
