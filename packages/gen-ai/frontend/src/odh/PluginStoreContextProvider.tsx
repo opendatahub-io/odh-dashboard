@@ -5,6 +5,7 @@ import extensions from './extensions';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 const MODEL_AS_SERVICE = 'model-as-service';
+const GUARDRAILS = 'guardrails';
 
 export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const store = React.useMemo(() => {
@@ -13,6 +14,7 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
     pluginStore.setFeatureFlags({
       [PLUGIN_GEN_AI]: true,
       [MODEL_AS_SERVICE]: true,
+      [GUARDRAILS]: true,
     });
     return pluginStore;
   }, []);
