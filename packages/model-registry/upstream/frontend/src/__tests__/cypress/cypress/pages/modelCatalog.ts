@@ -99,6 +99,26 @@ class ModelCatalog {
     return cy.findByTestId('empty-model-catalog-state');
   }
 
+  findEmptyStateAdminLink() {
+    return this.findModelCatalogEmptyState().contains('Go to').parent();
+  }
+
+  findEmptyStateAdminSettingsLink() {
+    return this.findModelCatalogEmptyState().contains('Model catalog settings');
+  }
+
+  findEmptyStateWhosMyAdminLink() {
+    return this.findModelCatalogEmptyState().contains("Who's my administrator?");
+  }
+
+  findEmptyStateTitle() {
+    return this.findModelCatalogEmptyState().find('.pf-v6-c-empty-state__title-text');
+  }
+
+  findEmptyStateBody() {
+    return this.findModelCatalogEmptyState().find('.pf-v6-c-empty-state__body');
+  }
+
   findModelCatalogCards() {
     return cy.findAllByTestId('model-catalog-card');
   }
