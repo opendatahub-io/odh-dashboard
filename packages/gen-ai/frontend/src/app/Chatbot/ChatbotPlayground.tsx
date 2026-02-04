@@ -1,21 +1,12 @@
 import * as React from 'react';
-import {
-  Button,
-  Divider,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  Toolbar,
-  ToolbarContent,
-  ToolbarGroup,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { Button, Divider, Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
   ChatbotDisplayMode,
   ChatbotFooter,
   ChatbotFootnote,
+  ChatbotHeaderMain,
   MessageBar,
 } from '@patternfly/chatbot';
 import { CogIcon } from '@patternfly/react-icons';
@@ -38,6 +29,7 @@ import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import ModelDetailsDropdown from './components/ModelDetailsDropdown';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
@@ -49,6 +41,7 @@ import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAle
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import ViewCodeModal from './components/ViewCodeModal';
 import NewChatModal from './components/NewChatModal';
+import '~/app/app.css';
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -361,22 +354,28 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         <Divider />
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody>
-            <Toolbar>
-              <ToolbarContent>
-                <ToolbarGroup>
-                  <ToolbarItem>
-                    <Button
-                      variant="plain"
-                      aria-label="edit"
-                      icon={<CogIcon />}
-                      onClick={() => setIsDrawerExpanded(true)}
-                      style={{ marginTop: '0.6rem' }}
-                    />
-                  </ToolbarItem>
-                </ToolbarGroup>
-              </ToolbarContent>
-            </Toolbar>
             <Chatbot displayMode={ChatbotDisplayMode.embedded} data-testid="chatbot">
+              <div
+                style={{
+                  backgroundColor: 'var(--pf-t--global--background--color--100)',
+                  paddingLeft: '1.5rem',
+                }}
+              >
+                <ChatbotHeaderMain>
+                  <ModelDetailsDropdown
+                    selectedModel={primarySelectedModel || ''}
+                    onModelChange={setSelectedModel}
+                    style={{ maxWidth: '300px' }}
+                  />
+                  <Button
+                    variant="plain"
+                    aria-label="edit"
+                    icon={<CogIcon />}
+                    onClick={() => setIsDrawerExpanded(true)}
+                    style={{ margin: '0.7rem 0 0 0.5rem' }}
+                  />
+                </ChatbotHeaderMain>
+              </div>
               <ChatbotContent
                 style={{
                   backgroundColor: isDarkMode

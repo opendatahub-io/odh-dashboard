@@ -21,7 +21,6 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
-  selectSelectedModel,
   selectSelectedMcpServerIds,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -87,13 +86,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
-  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -108,13 +105,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateTemperature(configId, value);
     },
     [configId, updateTemperature],
-  );
-
-  const handleModelChange = React.useCallback(
-    (value: string) => {
-      updateSelectedModel(configId, value);
-    },
-    [configId, updateSelectedModel],
   );
 
   const handleStreamingToggle = React.useCallback(
@@ -175,8 +165,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-model"
           >
             <ModelTabContent
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
               temperature={temperature}
               onTemperatureChange={handleTemperatureChange}
               isStreamingEnabled={isStreamingEnabled}
