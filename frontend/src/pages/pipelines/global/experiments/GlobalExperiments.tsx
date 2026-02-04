@@ -32,6 +32,7 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
       overrideChildPadding
       overrideTimeout
       accessDomain="experiments"
+      objectType={ProjectObjectType.pipelineExperiment}
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>
