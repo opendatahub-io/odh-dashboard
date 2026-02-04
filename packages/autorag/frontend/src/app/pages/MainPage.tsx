@@ -7,8 +7,10 @@ const MainPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Main Page"
-      description={<p>Welcome to the Main Page</p>}
+      title="AutoRAG"
+      description={
+        <p>Automatically configure and optimize your Retrievel-Augmented Generation workflows.</p>
+      }
       empty
       loadError={loadError}
       loaded={loaded}
