@@ -14,6 +14,7 @@ import {
   getPvc,
   getTemplate,
   listNIMAccounts,
+  listNIMServices,
   listServingRuntimes,
 } from '#~/api';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
@@ -153,16 +154,40 @@ export const checkPVCUsage = async (
   namespace: string,
 ): Promise<{ count: number; servingRuntimes: string[] }> => {
   try {
-    const servingRuntimes = await listServingRuntimes(namespace);
+    let totalCount = 0;
+    const deploymentNames: string[] = [];
 
-    const usingPVC = servingRuntimes.filter((sr) => {
+    // Check Legacy deployments (ServingRuntimes)
+    const servingRuntimes = await listServingRuntimes(namespace);
+    const usingPVCLegacy = servingRuntimes.filter((sr) => {
       const volumes = sr.spec.volumes || [];
       return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === pvcName);
     });
 
+    totalCount += usingPVCLegacy.length;
+    deploymentNames.push(...usingPVCLegacy.map((sr) => sr.metadata.name));
+
+    // Check NIM Operator deployments (NIMServices)
+    try {
+      const nimServices = await listNIMServices(namespace);
+      const usingPVCOperator = nimServices.filter((ns) => {
+        return ns.spec.storage?.pvc?.name === pvcName;
+      });
+
+      totalCount += usingPVCOperator.length;
+      deploymentNames.push(...usingPVCOperator.map((ns) => ns.metadata.name));
+    } catch (nimError) {
+      // NIM Operator might not be installed, which is fine
+      // Only log if it's not a "not found" error
+      if (nimError instanceof Error && !nimError.message.includes('not found')) {
+        // eslint-disable-next-line no-console
+        console.warn(`Could not check NIMServices for PVC usage: ${nimError.message}`);
+      }
+    }
+
     return {
-      count: usingPVC.length,
-      servingRuntimes: usingPVC.map((sr) => sr.metadata.name),
+      count: totalCount,
+      servingRuntimes: deploymentNames, // Rename this field would be breaking, keep as-is
     };
   } catch (error) {
     // eslint-disable-next-line no-console
