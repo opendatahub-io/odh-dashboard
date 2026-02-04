@@ -1,10 +1,17 @@
 import { NIMServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
-import { deletePvc, deleteSecret, listNIMAccounts, listServingRuntimes, getPvc } from '#~/api';
+import {
+  deletePvc,
+  deleteSecret,
+  getPvc,
+  listNIMAccounts,
+  listNIMServices,
+  listServingRuntimes,
+} from '#~/api';
 import {
   fetchNIMAccountTemplateName,
-  getNIMResourcesToDelete,
   getNIMOperatorResourcesToDelete,
+  getNIMResourcesToDelete,
 } from '#~/pages/modelServing/screens/projects/nimUtils';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__';
@@ -15,9 +22,10 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
 jest.mock('#~/api', () => ({
   deletePvc: jest.fn(),
   deleteSecret: jest.fn(),
-  listNIMAccounts: jest.fn(),
-  listServingRuntimes: jest.fn(),
   getPvc: jest.fn(),
+  listNIMAccounts: jest.fn(),
+  listNIMServices: jest.fn(),
+  listServingRuntimes: jest.fn(),
 }));
 describe('getNIMResourcesToDelete', () => {
   const projectName = 'test-project';
@@ -57,6 +65,7 @@ describe('getNIMResourcesToDelete', () => {
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     // Mock listServingRuntimes to return only the current serving runtime (count = 1)
     (listServingRuntimes as jest.Mock).mockResolvedValue([mockServingRuntime]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC (matches naming pattern)
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: { name: 'nim-pvc-abc12', labels: {} },
@@ -78,6 +87,7 @@ describe('getNIMResourcesToDelete', () => {
     (deleteSecret as jest.Mock).mockResolvedValue(undefined);
     // Mock listServingRuntimes to return only the current serving runtime (count = 1)
     (listServingRuntimes as jest.Mock).mockResolvedValue([mockServingRuntime]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC (matches naming pattern)
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: { name: 'nim-pvc-abc12', labels: {} },
@@ -100,6 +110,7 @@ describe('getNIMResourcesToDelete', () => {
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     // Mock listServingRuntimes to return only the current serving runtime (count = 1)
     (listServingRuntimes as jest.Mock).mockResolvedValue([mockServingRuntime]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC (matches naming pattern)
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: { name: 'nim-pvc-abc12', labels: {} },
@@ -121,6 +132,7 @@ describe('getNIMResourcesToDelete', () => {
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     // Mock listServingRuntimes to return only the current serving runtime (count = 1)
     (listServingRuntimes as jest.Mock).mockResolvedValue([mockServingRuntime]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC (matches naming pattern)
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: { name: 'nim-pvc-abc12', labels: {} },
@@ -241,6 +253,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     resultMock.mockResolvedValue(0);
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC (has opendatahub.io/managed label)
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: {
@@ -265,6 +278,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     (deleteSecret as jest.Mock).mockResolvedValue(undefined);
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: {
@@ -288,6 +302,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     resultMock.mockResolvedValue(2); // Other deployments still exist
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a Dashboard-managed PVC
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: {
@@ -309,6 +324,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     const resultMock = jest.mocked(fetchInferenceServiceCount);
     resultMock.mockResolvedValue(0);
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     // Mock getPvc to return a user-provided PVC (no managed label, doesn't match naming pattern)
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: {
@@ -352,12 +368,88 @@ describe('getNIMOperatorResourcesToDelete', () => {
       mockServingRuntime1,
       mockServingRuntime2,
     ]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]); // No NIMServices using it
 
     const result = await getNIMOperatorResourcesToDelete(projectName, mockNIMService);
 
     expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
     expect(listServingRuntimes).toHaveBeenCalledWith(projectName);
+    expect(listNIMServices).toHaveBeenCalledWith(projectName);
     expect(deletePvc).not.toHaveBeenCalled(); // PVC still in use
+    expect(result.length).toBe(0);
+  });
+
+  it('should preserve PVC if it is still in use by other NIMService deployments', async () => {
+    const mockNIMService = createMockNIMService();
+    mockNIMService.metadata.name = 'nim-service-1';
+    mockNIMService.spec.storage = {
+      pvc: { name: 'nim-pvc-shared' },
+    };
+    const resultMock = jest.mocked(fetchInferenceServiceCount);
+    resultMock.mockResolvedValue(0);
+
+    // Mock another NIMService using the same PVC
+    const anotherNIMService: NIMServiceKind = {
+      apiVersion: 'apps.kubeflow.org/v1',
+      kind: 'NIMService',
+      metadata: {
+        name: 'nim-service-2',
+        namespace: projectName,
+        creationTimestamp: '2024-01-01T00:00:00Z',
+      },
+      spec: {
+        image: {
+          repository: 'nvcr.io/nim/meta/llama-3.1-8b-instruct',
+          tag: '1.0.0',
+        },
+        authSecret: 'nvidia-nim-secrets',
+        storage: {
+          pvc: { name: 'nim-pvc-shared' }, // Same PVC!
+        },
+      },
+    };
+
+    (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    // Return BOTH NIMServices - the one being deleted and another one
+    (listNIMServices as jest.Mock).mockResolvedValue([mockNIMService, anotherNIMService]);
+
+    const result = await getNIMOperatorResourcesToDelete(projectName, mockNIMService);
+
+    expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
+    expect(listServingRuntimes).toHaveBeenCalledWith(projectName);
+    expect(listNIMServices).toHaveBeenCalledWith(projectName);
+    expect(deletePvc).not.toHaveBeenCalled(); // PVC still in use by another NIMService (count = 2)
+    expect(result.length).toBe(0);
+  });
+
+  it('should preserve PVC if it is in use by deployments from BOTH modes (cross-mode)', async () => {
+    const mockNIMService = createMockNIMService();
+    mockNIMService.metadata.name = 'nim-operator-deployment';
+    mockNIMService.spec.storage = {
+      pvc: { name: 'nim-pvc-cross-mode' },
+    };
+    const resultMock = jest.mocked(fetchInferenceServiceCount);
+    resultMock.mockResolvedValue(0);
+
+    // Mock a legacy deployment (ServingRuntime) using the PVC
+    const mockServingRuntime = mockServingRuntimeK8sResource({});
+    mockServingRuntime.spec.volumes = [
+      {
+        name: 'nim-pvc-volume',
+        persistentVolumeClaim: { claimName: 'nim-pvc-cross-mode' },
+      },
+    ];
+
+    // Return legacy deployment AND the NIMService being deleted
+    (listServingRuntimes as jest.Mock).mockResolvedValue([mockServingRuntime]);
+    (listNIMServices as jest.Mock).mockResolvedValue([mockNIMService]);
+
+    const result = await getNIMOperatorResourcesToDelete(projectName, mockNIMService);
+
+    expect(fetchInferenceServiceCount).toHaveBeenCalledWith(projectName);
+    expect(listServingRuntimes).toHaveBeenCalledWith(projectName);
+    expect(listNIMServices).toHaveBeenCalledWith(projectName);
+    expect(deletePvc).not.toHaveBeenCalled(); // PVC still in use by legacy deployment (count = 2)
     expect(result.length).toBe(0);
   });
 
@@ -367,6 +459,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     resultMock.mockRejectedValue(new Error('Fetch error'));
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: {
         name: 'nim-pvc-xyz89',
@@ -409,6 +502,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     resultMock.mockResolvedValue(1); // Last deployment
     (deletePvc as jest.Mock).mockResolvedValue(undefined);
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
+    (listNIMServices as jest.Mock).mockResolvedValue([]);
     (getPvc as jest.Mock).mockResolvedValue({
       metadata: {
         name: 'nim-pvc-xyz89',
