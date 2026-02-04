@@ -16,9 +16,15 @@ import { hasSourcesWithModels } from './utils/modelCatalogUtils';
 
 type ModelCatalogCoreLoaderProps = {
   customAction?: React.ReactNode;
+  customEmptyStateTitle?: string;
+  customEmptyStateDescription?: React.ReactNode;
 };
 
-const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({ customAction }) => {
+const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
+  customAction,
+  customEmptyStateTitle,
+  customEmptyStateDescription,
+}) => {
   const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError } =
     React.useContext(ModelCatalogContext);
 
@@ -68,11 +74,15 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({ customA
         emptyStatePage={
           <EmptyModelCatalogState
             testid="empty-model-catalog-state"
-            title={isMUITheme ? 'Deploy a model catalog' : 'Model catalog configuration required'}
+            title={
+              customEmptyStateTitle ??
+              (isMUITheme ? 'Deploy a model catalog' : 'Model catalog configuration required')
+            }
             description={
-              isMUITheme
+              customEmptyStateDescription ??
+              (isMUITheme
                 ? 'To deploy model catalog, follow the instructions in the docs below.'
-                : 'There are no models to display. Request that your administrator configure model sources for the catalog.'
+                : 'There are no models to display. Request that your administrator configure model sources for the catalog.')
             }
             headerIcon={() => (
               <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />

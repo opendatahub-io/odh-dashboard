@@ -19,9 +19,11 @@ export interface ChatbotConfiguration {
   temperature: number;
   isStreamingEnabled: boolean;
   selectedModel: string;
-  guardrailsEnabled: boolean;
   selectedMcpServerIds: string[];
   mcpToolSelections: McpToolSelectionsMap;
+  guardrail: string;
+  guardrailUserInputEnabled: boolean;
+  guardrailModelOutputEnabled: boolean;
 }
 
 /**
@@ -32,9 +34,12 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   temperature: 0.1,
   isStreamingEnabled: true,
   selectedModel: '',
-  guardrailsEnabled: false,
   selectedMcpServerIds: [],
   mcpToolSelections: {},
+  // Guardrails defaults - both OFF per UX design
+  guardrail: '',
+  guardrailUserInputEnabled: false,
+  guardrailModelOutputEnabled: false,
 };
 
 /**
@@ -49,14 +54,15 @@ export interface ChatbotConfigStoreState {
  * Store actions interface.
  */
 export interface ChatbotConfigStoreActions {
-  // TODO: ADD/DUPLICATE/REMOVE configs
+  // Configuration lifecycle
+  removeConfiguration: (id: string) => void;
+  duplicateConfiguration: (id: string) => string | undefined;
 
   // Field-specific updaters (for granular rerenders)
   updateSystemInstruction: (id: string, value: string) => void;
   updateTemperature: (id: string, value: number) => void;
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
-  updateGuardrailsEnabled: (id: string, value: boolean) => void;
   updateSelectedMcpServerIds: (id: string, value: string[]) => void;
 
   // MCP tool selections (per-config state)
@@ -67,6 +73,9 @@ export interface ChatbotConfigStoreActions {
     serverUrl: string,
     toolNames: string[] | undefined,
   ) => void;
+  updateGuardrail: (id: string, value: string) => void;
+  updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
+  updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

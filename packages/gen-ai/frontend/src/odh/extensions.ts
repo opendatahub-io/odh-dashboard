@@ -14,7 +14,6 @@ import {
 import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
-const MODEL_AS_SERVICE = 'model-as-service';
 const GUARDRAILS = 'guardrails';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
@@ -24,14 +23,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: PLUGIN_GEN_AI,
       requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
       featureFlags: ['genAiStudio'],
-    },
-  },
-  {
-    type: 'app.area',
-    properties: {
-      id: MODEL_AS_SERVICE,
-      reliantAreas: [PLUGIN_GEN_AI],
-      featureFlags: ['modelAsService'],
     },
   },
   {
@@ -113,17 +104,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: 'mcpservers',
       title: 'MCP servers',
       component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
-    },
-  },
-  {
-    type: 'gen-ai.ai-assets/tab',
-    flags: {
-      required: [MODEL_AS_SERVICE],
-    },
-    properties: {
-      id: 'maasmodels',
-      title: 'Models as a service',
-      component: () => import('../app/AIAssets/AIAssetsMaaSTab').then((m) => m.default),
     },
   },
 ];

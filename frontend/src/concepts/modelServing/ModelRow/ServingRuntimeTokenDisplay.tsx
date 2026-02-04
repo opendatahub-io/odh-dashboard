@@ -59,7 +59,9 @@ const ServingRuntimeTokenDisplay: React.FC<ServingRuntimeTokenDisplayProps> = ({
       clickTip="Copied"
       data-testid="token-secret"
       additionalActions={toggleAction}
-      truncation={isTokenVisible ? { position: 'middle' } : undefined}
+      truncation={
+        isTokenVisible ? { position: 'middle', tooltipProps: { hidden: true } } : undefined
+      }
       onCopy={() => {
         navigator.clipboard.writeText(visibleToken);
       }}

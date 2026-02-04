@@ -67,9 +67,9 @@ class ChatbotPage {
     return cy.findByTestId('chatbot-message-bar');
   }
 
-  findMessageInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findMessageInput(options?: { timeout?: number }): Cypress.Chainable<JQuery<HTMLElement>> {
     // data-testid is directly on the textarea element
-    return cy.findByTestId('chatbot-message-bar');
+    return cy.findByTestId('chatbot-message-bar', options);
   }
 
   findSendButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -142,14 +142,13 @@ class ChatbotPage {
   }
 
   // Model Selection
+  // Model dropdown is now in the toolbar (moved from Model tab)
   findModelDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText(/Model/i).parent().find('button') as unknown as Cypress.Chainable<
-      JQuery<HTMLElement>
-    >;
+    return cy.findByTestId('model-selector-toggle');
   }
 
   findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: /Llama|Select a model/i });
+    return cy.findByTestId('model-selector-toggle');
   }
 
   verifyModelSelected(): void {
@@ -320,6 +319,23 @@ class ChatbotPage {
   resetChatState(): void {
     this.startNewChatIfAvailable();
     this.toggleStreaming(true);
+  }
+
+  // Metrics Section
+  findMetricsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('button', /Show metrics|Hide metrics/i) as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  expandMetrics(): void {
+    cy.contains('button', 'Show metrics').click();
+  }
+
+  verifyMetricsDisplayed(): void {
+    // Verify latency label is visible after expanding
+    cy.contains('button', 'Show metrics').click();
+    cy.get('.pf-v6-c-label').should('have.length.at.least', 1);
   }
 }
 

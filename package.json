@@ -78,6 +78,7 @@
     "ws": "^8.18.1"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "dotenv": "^16.4.7",
     "dotenv-expand": "^5.1.0",
     "husky": "^9.1.7",

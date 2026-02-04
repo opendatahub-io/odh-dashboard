@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
+import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
@@ -107,6 +108,13 @@ export type SimplifiedUsage = {
   total_tokens: number;
 };
 
+// Response metrics from BFF (latency, TTFT, usage)
+export type ResponseMetrics = {
+  latency_ms: number;
+  time_to_first_token_ms?: number; // Only present for streaming responses
+  usage?: SimplifiedUsage;
+};
+
 // File citation annotation from RAG responses
 export type FileCitationAnnotation = {
   type: 'file_citation';
@@ -126,7 +134,8 @@ export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: s
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
-  text: string;
+  text?: string;
+  refusal?: string;
   annotations?: ContentAnnotation[];
 };
 
@@ -145,6 +154,7 @@ export type BackendResponseData = {
   created_at: number;
   output?: OutputItem[];
   usage?: SimplifiedUsage;
+  metrics?: ResponseMetrics; // Response metrics from BFF (latency, TTFT, usage)
 };
 
 // MCP tool call data extracted from backend response
@@ -172,6 +182,7 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
 };
 
 export type FileError = {
@@ -333,7 +344,7 @@ export type GuardrailModelConfig = {
   output_shield_id: string;
 };
 
-/** Response from /lsd/safety/config endpoint */
+/** Response from /lsd/safety endpoint */
 export type SafetyConfigResponse = {
   guardrail_models: GuardrailModelConfig[];
 };
@@ -364,29 +375,6 @@ export interface AIModel extends AAModelResponse {
   isMaaSModel?: boolean;
   // The MaaS model ID if this is a MaaS model (needed for LSD installation)
   maasModelId?: string;
-}
-
-export interface MaaSModel {
-  id: string;
-  object: string;
-  created: number;
-  owned_by: string;
-  ready: boolean;
-  url: string;
-  // Optional fields for display name, description, and use case
-  // These may not be provided by all backends, so we use id as fallback for display_name
-  display_name?: string;
-  description?: string;
-  usecase?: string;
-}
-
-export type MaaSTokenRequest = {
-  expiration?: string; // Optional - only present when expiration is provided
-};
-
-export interface MaaSTokenResponse {
-  token: string;
-  expiresAt: number;
 }
 
 export type {
@@ -469,7 +457,10 @@ type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
 type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
-  opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
+  opts?: APIOptions & {
+    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    abortSignal?: AbortSignal;
+  },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
 type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;

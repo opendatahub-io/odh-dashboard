@@ -54,7 +54,6 @@ const initIntercepts = (options: InitInterceptsOptions = {}) => {
     'GET /api/config',
     mockDashboardConfig({
       mlflow: true,
-      embedMLflow: true,
     }),
   );
 
@@ -110,8 +109,11 @@ describe('MLflow Experiments', () => {
 
         const main = doc?.querySelector('main');
         expect(main).to.not.be.null;
-        expect(main?.style.margin).to.equal('0px');
-        expect(main?.style.borderRadius).to.equal('0px');
+        if (main) {
+          const computedStyle = iframe.contentWindow?.getComputedStyle(main);
+          expect(computedStyle?.margin).to.equal('0px');
+          expect(computedStyle?.borderRadius).to.equal('0px');
+        }
 
         expect(doc?.querySelector('#mlflow-experiments-page')).to.not.be.null;
       });
@@ -305,5 +307,20 @@ describe('MLflow Experiments', () => {
       `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
     );
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
+  });
+
+  it('should toggle theme between light and dark', () => {
+    initIntercepts();
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findDarkThemeToggle().click();
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('_mlflow_dark_mode_toggle_enabled')).to.equal('true');
+      expect(win.localStorage.getItem('odh.dashboard.ui.theme')).to.equal('"dark"');
+    });
+    mlflowExperimentsPage.findLightThemeToggle().click();
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('_mlflow_dark_mode_toggle_enabled')).to.equal('false');
+      expect(win.localStorage.getItem('odh.dashboard.ui.theme')).to.equal('"light"');
+    });
   });
 });

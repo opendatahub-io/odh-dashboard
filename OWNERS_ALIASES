@@ -101,6 +101,7 @@ aliases:
     - antowaddle
     - FedeAlonso
     - manosnoam
+    - sridarna
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
@@ -148,9 +149,34 @@ aliases:
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
+    
+  # Notebooks
+  notebooks-approvers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+  notebooks-reviewers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+    - caponetto
+    - jenny-s51
+    - thaorell
 
   # NIM / Ecosystem Engineering
   nim-serving-approvers:
     - TomerFi
+    - TheiaSurette
+    - trujillm
+    - mtalvi
+    - xieshenzh
+    - swati-kale
   nim-serving-reviewers:
     - TomerFi
+    - TheiaSurette
+    - trujillm
+    - mtalvi
+    - xieshenzh
+    - swati-kale

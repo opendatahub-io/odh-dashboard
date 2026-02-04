@@ -51,7 +51,10 @@ import { ConnectionSection } from '#~/pages/modelServing/screens/projects/Infere
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import {
+  isK8sNameDescriptionDataValid,
+  LimitNameResourceType,
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
@@ -124,6 +127,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
+    limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
   });
 
   const [connection, setConnection] = React.useState<Connection>();

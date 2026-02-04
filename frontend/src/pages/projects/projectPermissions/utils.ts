@@ -9,7 +9,7 @@ import {
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { RoleLabelType } from '#~/concepts/permissions/types';
 import { DEFAULT_ROLE_REFS } from './const';
-import { AssignmentStatus } from './types';
+import { AssignmentStatus, SubjectKindSelection } from './types';
 
 const buildDashboardRoleRefs = (roles: RoleKind[], clusterRoles: ClusterRoleKind[]): RoleRef[] => {
   const toRoleRef = (kind: RoleRef['kind'], name: string): RoleRef => ({ kind, name });
@@ -38,8 +38,11 @@ export const isDefaultRoleRef = (roleRef: RoleRef): boolean =>
 export const isDashboardRole = (role?: RoleKind | ClusterRoleKind): boolean =>
   role ? getRoleLabelTypeForRole(role) === RoleLabelType.Dashboard : false;
 
+export const isAiRole = (roleRef: RoleRef, role?: RoleKind | ClusterRoleKind): boolean =>
+  isDefaultRoleRef(roleRef) || isDashboardRole(role);
+
 export const getSubjectRef = (
-  subjectKind: 'user' | 'group',
+  subjectKind: SubjectKindSelection,
   subjectName: string,
 ): SupportedSubjectRef => ({
   kind: subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP,
@@ -64,7 +67,7 @@ export const getAssignmentStatus = (
   roleRef: RoleRef,
   assignedRoleRefs: RoleRef[],
   selectedRoleRefs: RoleRef[],
-): AssignmentStatus | '' => {
+): AssignmentStatus | undefined => {
   const wasAssigned = hasRoleRef(assignedRoleRefs, roleRef);
   const isSelected = hasRoleRef(selectedRoleRefs, roleRef);
   if (wasAssigned && isSelected) {
@@ -76,5 +79,5 @@ export const getAssignmentStatus = (
   if (wasAssigned && !isSelected) {
     return AssignmentStatus.Unassigning;
   }
-  return '';
+  return undefined;
 };

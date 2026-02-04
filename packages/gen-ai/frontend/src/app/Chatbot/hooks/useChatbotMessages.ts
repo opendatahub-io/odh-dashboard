@@ -9,10 +9,13 @@ import {
   ChatbotSourceSettings,
   ChatMessageRole,
   CreateResponseRequest,
+  GuardrailModelConfig,
   MCPToolCallData,
   MCPServerFromAPI,
+  ResponseMetrics,
   TokenInfo,
 } from '~/app/types';
+import { GuardrailsConfig } from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
@@ -22,8 +25,13 @@ import {
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
+// Extended message type that includes metrics data for display
+export type ChatbotMessageProps = MessageProps & {
+  metrics?: ResponseMetrics;
+};
+
 export interface UseChatbotMessagesReturn {
-  messages: MessageProps[];
+  messages: ChatbotMessageProps[];
   isMessageSendButtonDisabled: boolean;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
@@ -49,6 +57,9 @@ interface UseChatbotMessagesProps {
   mcpServerTokens: Map<string, TokenInfo>;
   toolSelections?: (ns: string, url: string) => string[] | undefined;
   namespace?: string;
+  // Guardrails configuration
+  guardrailsConfig?: GuardrailsConfig;
+  guardrailModelConfigs?: GuardrailModelConfig[];
 }
 
 const useChatbotMessages = ({
@@ -66,8 +77,10 @@ const useChatbotMessages = ({
   mcpServerTokens,
   toolSelections,
   namespace,
+  guardrailsConfig,
+  guardrailModelConfigs = [],
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
-  const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
+  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
@@ -90,6 +103,40 @@ const useChatbotMessages = ({
       ),
     [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens, toolSelections, namespace],
   );
+
+  // Get guardrail shield IDs based on user selections
+  const getGuardrailShieldIds = React.useCallback((): {
+    input_shield_id?: string;
+    output_shield_id?: string;
+  } => {
+    // Only apply shields if guardrails feature is enabled and a model is selected
+    if (!guardrailsConfig?.enabled || !guardrailsConfig.guardrail) {
+      return {};
+    }
+
+    // Find the selected guardrail model config to get shield IDs
+    const selectedModelConfig = guardrailModelConfigs.find(
+      (config) => config.model_name === guardrailsConfig.guardrail,
+    );
+
+    if (!selectedModelConfig) {
+      return {};
+    }
+
+    const shieldIds: { input_shield_id?: string; output_shield_id?: string } = {};
+
+    // Only add input_shield_id if user input guardrails is enabled
+    if (guardrailsConfig.userInputEnabled && selectedModelConfig.input_shield_id) {
+      shieldIds.input_shield_id = selectedModelConfig.input_shield_id;
+    }
+
+    // Only add output_shield_id if model output guardrails is enabled
+    if (guardrailsConfig.modelOutputEnabled && selectedModelConfig.output_shield_id) {
+      shieldIds.output_shield_id = selectedModelConfig.output_shield_id;
+    }
+
+    return shieldIds;
+  }, [guardrailsConfig, guardrailModelConfigs]);
 
   // Cleanup timeout and abort controller on unmount
   React.useEffect(
@@ -209,6 +256,9 @@ const useChatbotMessages = ({
       // Determine vector store ID to use for RAG
       const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
 
+      // Get guardrail shield IDs based on user configuration
+      const guardrailShieldIds = getGuardrailShieldIds();
+
       const responsesPayload: CreateResponseRequest = {
         input: message,
         model: modelId,
@@ -227,6 +277,7 @@ const useChatbotMessages = ({
         stream: isStreamingEnabled,
         temperature,
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
+        ...guardrailShieldIds,
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
@@ -283,7 +334,12 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
-          onStreamData: (chunk: string) => {
+          onStreamData: (chunk: string, clearPrevious?: boolean) => {
+            if (clearPrevious) {
+              completeLines.length = 0;
+              currentPartialLine = '';
+            }
+
             // Track if we have any content
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
@@ -355,11 +411,21 @@ const useChatbotMessages = ({
           ),
         );
 
-        // Add tool response if available from streaming response
-        if (streamingResponse.toolCallData) {
-          const toolResponse = createToolResponse(streamingResponse.toolCallData);
+        // Add tool response and metrics if available from streaming response
+        if (streamingResponse.toolCallData || streamingResponse.metrics) {
+          const toolResponse = streamingResponse.toolCallData
+            ? createToolResponse(streamingResponse.toolCallData)
+            : undefined;
           setMessages((prevMessages) =>
-            prevMessages.map((msg) => (msg.id === botMessageId ? { ...msg, toolResponse } : msg)),
+            prevMessages.map((msg) =>
+              msg.id === botMessageId
+                ? {
+                    ...msg,
+                    ...(toolResponse && { toolResponse }),
+                    ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                  }
+                : msg,
+            ),
           );
         }
       } else {
@@ -385,7 +451,7 @@ const useChatbotMessages = ({
             }
           : {};
 
-        const botMessage: MessageProps = {
+        const botMessage: ChatbotMessageProps = {
           id: getId(),
           role: 'bot',
           content: response.content || 'No response received',
@@ -394,6 +460,7 @@ const useChatbotMessages = ({
           timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
           ...sourcesProps,
+          ...(response.metrics && { metrics: response.metrics }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       }

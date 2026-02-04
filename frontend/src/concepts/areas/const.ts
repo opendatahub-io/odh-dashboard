@@ -15,7 +15,6 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  embedMLflow: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -207,9 +206,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
-  },
-  [SupportedArea.EMBED_MLFLOW]: {
-    featureFlags: ['embedMLflow'],
   },
 };
 
