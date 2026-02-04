@@ -3,10 +3,18 @@ import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNaviga
 
 type PipelineCoreProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;
+  queryParamNamespace?: string;
 };
 
 const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
   getRedirectPath,
-}) => <ProjectSelectorNavigator getRedirectPath={getRedirectPath} showTitle />;
+  queryParamNamespace,
+}) => (
+  <ProjectSelectorNavigator
+    getRedirectPath={getRedirectPath}
+    queryParamNamespace={queryParamNamespace}
+    showTitle
+  />
+);
 
 export default PipelineCoreProjectSelector;
