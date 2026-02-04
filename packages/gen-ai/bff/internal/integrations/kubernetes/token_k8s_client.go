@@ -1100,6 +1100,9 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	// This follows the same pattern as VLLM token discovery
 	// Fail fast if guardrails are enabled but the token is missing - this is a security feature
 	// and users should not have a false sense of protection from a non-functional guardrail setup
+	// The actuallyEnableGuardrails variable tracks whether guardrails were successfully configured
+	// with a valid token. If enableGuardrails is true and the orchestrator is ready but the token
+	// cannot be found, we return an error instead of silently setting actuallyEnableGuardrails to false.
 	actuallyEnableGuardrails := false
 
 	// Only auto-detect infrastructure if feature flag is enabled
@@ -1107,21 +1110,22 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		guardrailStatus, err := kc.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
 		if err == nil && guardrailStatus.Phase == constants.GuardrailsPhaseReady {
 			guardrailsTokenSecret, tokenErr := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
-			if tokenErr == nil {
-				envVars = append(envVars, corev1.EnvVar{
-					Name: constants.GuardrailAuthTokenEnvName,
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: guardrailsTokenSecret,
-							},
-							Key: "token",
-						},
-					},
-				})
-				actuallyEnableGuardrails = true
-				kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
+			if tokenErr != nil {
+				return nil, fmt.Errorf("guardrails are enabled but token secret could not be found: %w", tokenErr)
 			}
+			envVars = append(envVars, corev1.EnvVar{
+				Name: constants.GuardrailAuthTokenEnvName,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: guardrailsTokenSecret,
+						},
+						Key: "token",
+					},
+				},
+			})
+			actuallyEnableGuardrails = true
+			kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
 		}
 	}
 
