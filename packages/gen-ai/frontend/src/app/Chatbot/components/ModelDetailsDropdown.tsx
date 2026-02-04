@@ -17,11 +17,13 @@ import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 interface ModelDetailsDropdownProps {
   selectedModel: string;
   onModelChange: (value: string) => void;
+  style?: React.CSSProperties;
 }
 
 const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> = ({
   selectedModel,
   onModelChange,
+  style,
 }) => {
   const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
   const { data: bffConfig } = useFetchBFFConfig();
@@ -53,7 +55,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
         <MenuToggle
           ref={toggleRef}
           isDisabled={models.length === 0}
-          isFullWidth
+          style={style}
           onClick={() => setIsOpen(!isOpen)}
           isExpanded={isOpen}
           data-testid="model-selector-toggle"
