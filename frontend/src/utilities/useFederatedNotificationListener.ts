@@ -1,18 +1,11 @@
 import { useEffect } from 'react';
+import { AlertVariant } from '@patternfly/react-core';
 import { useAppDispatch } from '#~/redux/hooks';
 import { addNotification } from '#~/redux/actions/actions';
-import { AlertVariant } from '@patternfly/react-core';
 
 // Custom event name for bridging notifications between federated module and midstream
 // Must match the event name in the federated module's useNotificationListener
 const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
-
-type NotificationBridgeEvent = CustomEvent<{
-  status: string;
-  title: string;
-  message?: string;
-  timestamp: string;
-}>;
 
 export const useFederatedNotificationListener = (): void => {
   const dispatch = useAppDispatch();
@@ -20,14 +13,19 @@ export const useFederatedNotificationListener = (): void => {
   useEffect(() => {
     const handleNotificationEvent = (event: Event) => {
       try {
-        const notificationEvent = event as NotificationBridgeEvent;
-        const { status, title, message, timestamp } = notificationEvent.detail;
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const customEvent = event as CustomEvent;
+        if (!customEvent.detail) {
+          return;
+        }
+
+        const { status, title, message, timestamp } = customEvent.detail;
 
         const timestampDate = timestamp ? new Date(timestamp) : new Date();
 
         dispatch(
           addNotification({
-            status: status as AlertVariant,
+            status: status || AlertVariant.info,
             title,
             message,
             timestamp: timestampDate,

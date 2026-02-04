@@ -50,7 +50,7 @@ import './App.scss';
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
-  
+
   // Listen for notifications from federated modules
   useFederatedNotificationListener();
 
