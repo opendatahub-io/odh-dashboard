@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { relativeTime } from '#~/utilities/time';
+import { useNIMServicesEnabled } from '#~/pages/modelServing/screens/projects/useNIMServicesEnabled';
 import { useNIMCompatiblePVCs, NIMPVCInfo } from './useNIMCompatiblePVCs';
 
 type NIMPVCSelectorProps = {
@@ -25,6 +26,7 @@ type NIMPVCSelectorProps = {
 };
 
 const DEFAULT_MODEL_PATH = '/mnt/models/cache';
+const NIM_OPERATOR_MODEL_PATH = '/model-store';
 
 const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
   selectedModel,
@@ -38,7 +40,15 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
 }) => {
   const [showManualInput, setShowManualInput] = React.useState(false);
 
-  const { compatiblePVCs, loading, error } = useNIMCompatiblePVCs(namespace, selectedModel);
+  // Check if NIM Operator mode is enabled
+  const { nimServicesEnabled } = useNIMServicesEnabled();
+
+  // Fetch compatible PVCs based on deployment mode
+  const { compatiblePVCs, loading, error } = useNIMCompatiblePVCs(
+    namespace,
+    selectedModel,
+    nimServicesEnabled,
+  );
 
   // Clear existing PVC name when model changes and the selected PVC is not compatible
   React.useEffect(() => {
@@ -50,12 +60,23 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
     }
   }, [compatiblePVCs, existingPvcName, loading, showManualInput, setExistingPvcName]);
 
-  // Auto-set model path when a PVC is selected (only if not manually entered)
+  // Set model path based on mode (Operator vs Legacy)
   React.useEffect(() => {
-    if (existingPvcName && !showManualInput && !modelPath) {
-      setModelPath(DEFAULT_MODEL_PATH);
+    const correctPath = nimServicesEnabled ? NIM_OPERATOR_MODEL_PATH : DEFAULT_MODEL_PATH;
+
+    // Always set to correct path for the current mode
+    if (modelPath !== correctPath) {
+      setModelPath(correctPath);
     }
-  }, [existingPvcName, showManualInput, modelPath, setModelPath]);
+  }, [nimServicesEnabled, modelPath, setModelPath]);
+
+  // Auto-set model path when a PVC is selected (if not already set)
+  React.useEffect(() => {
+    if (existingPvcName && !modelPath) {
+      const defaultPath = nimServicesEnabled ? NIM_OPERATOR_MODEL_PATH : DEFAULT_MODEL_PATH;
+      setModelPath(defaultPath);
+    }
+  }, [existingPvcName, modelPath, setModelPath, nimServicesEnabled]);
 
   const formatPVCOption = (pvcInfo: NIMPVCInfo): string => {
     const ageText = relativeTime(Date.now(), pvcInfo.createdAt.getTime());
@@ -239,13 +260,23 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
           id="model-path"
           value={modelPath}
           onChange={(_event, value) => setModelPath(value)}
-          placeholder={DEFAULT_MODEL_PATH}
-          isDisabled={false} // ← ALWAYS ENABLED!
+          placeholder={nimServicesEnabled ? NIM_OPERATOR_MODEL_PATH : DEFAULT_MODEL_PATH}
+          isDisabled={nimServicesEnabled}
         />
         <HelperText>
           <HelperTextItem data-testid="model-path-description">
-            Path within the container where the model files will be mounted. For model cache
-            deployments, use {DEFAULT_MODEL_PATH}.
+            {nimServicesEnabled ? (
+              <>
+                NIM Operator automatically mounts storage at{' '}
+                <strong>{NIM_OPERATOR_MODEL_PATH}</strong>. This path is managed by the operator and
+                cannot be changed.
+              </>
+            ) : (
+              <>
+                Path within the container where the model files will be mounted. For model cache
+                deployments, use {DEFAULT_MODEL_PATH}.
+              </>
+            )}
           </HelperTextItem>
         </HelperText>
       </FormGroup>
