@@ -36,7 +36,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
     properties: {
       path: '/gen-ai-studio/autorag/*',
-      component: () => import('./ModArchWrapper'),
+      component: () => import('./AutoRagWrapper'),
     },
   },
 ];

@@ -14,14 +14,14 @@ import {
 import { URL_PREFIX } from '../app/utilities/const';
 import MainPage from '../app/pages/MainPage';
 
-const modularArchConfig: ModularArchConfig = {
+const autoRagConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX,
   BFF_API_VERSION: 'v1',
 };
 
-const ModArchWrapper: React.FC = () => (
-  <ModularArchContextProvider config={modularArchConfig}>
+const AutoRagWrapper: React.FC = () => (
+  <ModularArchContextProvider config={autoRagConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
         <MainPage />
@@ -30,4 +30,4 @@ const ModArchWrapper: React.FC = () => (
   </ModularArchContextProvider>
 );
 
-export default ModArchWrapper;
+export default AutoRagWrapper;
