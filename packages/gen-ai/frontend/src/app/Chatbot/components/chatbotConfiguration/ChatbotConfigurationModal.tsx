@@ -46,7 +46,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
-  const { guardrailsAvailable } = useGuardrailsAvailable();
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
@@ -157,7 +156,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),
-          ...(guardrailsEnabled && { enable_guardrails: guardrailsAvailable }),
+          enable_guardrails: guardrailsEnabled,
         })
         .then(() => {
           fireFormTrackingEvent(
