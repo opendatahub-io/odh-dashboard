@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { MLFLOW_EXPERIMENTS_ROUTE } from '#~/routes/pipelines/mlflowExperiments';
+import { SupportedArea } from '#~/concepts/areas/types';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 
 type PipelineCoreProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;
@@ -17,9 +19,11 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
   objectType,
 }) => {
   const navigate = useNavigate();
+  const isMLflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+
   return (
     <Stack hasGutter>
-      {objectType === ProjectObjectType.pipelineExperiment && (
+      {objectType === ProjectObjectType.pipelineExperiment && isMLflowEnabled && (
         <StackItem>
           <Alert
             variant="warning"
