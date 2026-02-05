@@ -5,6 +5,9 @@ import {
   mlflowExperimentsBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '#~/routes/pipelines/mlflowExperiments';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { experimentsPageTitle } from '#~/pages/pipelines/global/experiments/const';
 import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
 import MlflowIframe from './MLflowIframe';
 
@@ -12,7 +15,12 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
   <ApplicationsPage
     loaded
     empty={false}
-    title="MLflow Experiments"
+    title={
+      <TitleWithIcon
+        title={experimentsPageTitle}
+        objectType={ProjectObjectType.pipelineExperiment}
+      />
+    }
     headerContent={
       <PipelineCoreProjectSelector
         getRedirectPath={mlflowExperimentsBaseRoute}
