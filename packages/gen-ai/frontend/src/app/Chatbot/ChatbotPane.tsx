@@ -1,15 +1,7 @@
 import * as React from 'react';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Divider,
-  Flex,
-  FlexItem,
-} from '@patternfly/react-core';
-import { CogIcon, TimesIcon } from '@patternfly/react-icons';
-import ModelDetailsDropdown from './components/ModelDetailsDropdown';
+import { Card, CardBody, CardHeader } from '@patternfly/react-core';
+import { ResponseMetrics } from '~/app/types';
+import ChatbotHeader from './components/ChatbotHeader';
 
 interface ChatbotPaneProps {
   /** The configId which is also the display label (e.g., "Model 1", "Model 2") */
@@ -19,6 +11,10 @@ interface ChatbotPaneProps {
   onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
+  /** Metrics from the last response (latency, tokens, TTFT) */
+  metrics?: ResponseMetrics | null;
+  /** Whether a response is currently being generated */
+  isLoading?: boolean;
 }
 
 const ChatbotPane: React.FC<ChatbotPaneProps> = ({
@@ -28,6 +24,8 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   onSettingsClick,
   onClose,
   children,
+  metrics,
+  isLoading,
 }) => (
   <Card
     isFullHeight
@@ -36,50 +34,17 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
     data-testid={`chatbot-pane-${configId}`}
   >
     <CardHeader style={{ paddingBottom: 'var(--pf-t--global--spacer--sm)' }}>
-      <Flex
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        alignItems={{ default: 'alignItemsCenter' }}
-        style={{ width: '100%' }}
-      >
-        <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-            <FlexItem style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{configId}</FlexItem>
-            <FlexItem style={{ minWidth: '200px' }}>
-              <ModelDetailsDropdown selectedModel={selectedModel} onModelChange={onModelChange} />
-            </FlexItem>
-          </Flex>
-        </FlexItem>
-        <FlexItem>
-          <Flex gap={{ default: 'gapSm' }}>
-            <FlexItem>
-              <Button
-                variant="plain"
-                aria-label={`Open settings for ${configId}`}
-                icon={<CogIcon />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSettingsClick();
-                }}
-                data-testid={`chatbot-pane-${configId}-settings-button`}
-              />
-            </FlexItem>
-            <FlexItem>
-              <Button
-                variant="plain"
-                aria-label={`Close ${configId}`}
-                icon={<TimesIcon />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-                data-testid={`chatbot-pane-${configId}-close-button`}
-              />
-            </FlexItem>
-          </Flex>
-        </FlexItem>
-      </Flex>
+      <ChatbotHeader
+        label={configId}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        onSettingsClick={onSettingsClick}
+        onClose={onClose}
+        metrics={metrics}
+        isLoading={isLoading}
+        testIdPrefix={`chatbot-pane-${configId}`}
+      />
     </CardHeader>
-    <Divider style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }} />
     <CardBody
       style={{
         padding: 0,

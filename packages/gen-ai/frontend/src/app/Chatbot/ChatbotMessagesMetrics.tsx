@@ -11,7 +11,7 @@ interface ChatbotMessagesMetricsProps {
  * - Values >= 1000ms are displayed as seconds (e.g., "1.52 s")
  * - Values < 1000ms are displayed as milliseconds (e.g., "523ms")
  */
-const formatDuration = (ms: number): string => {
+export const formatDuration = (ms: number): string => {
   if (ms >= 1000) {
     return `${(ms / 1000).toFixed(2)} s`;
   }

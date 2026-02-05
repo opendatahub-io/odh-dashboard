@@ -1,14 +1,12 @@
 import * as React from 'react';
-import { Button, Divider, Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
+import { Divider, Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import {
   Chatbot,
   ChatbotContent,
   ChatbotDisplayMode,
   ChatbotFootnote,
-  ChatbotHeaderMain,
   MessageBar,
 } from '@patternfly/chatbot';
-import { CogIcon } from '@patternfly/react-icons';
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -16,7 +14,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
-import { TokenInfo } from '~/app/types';
+import { ResponseMetrics, TokenInfo } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
@@ -28,7 +26,7 @@ import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
-import ModelDetailsDropdown from './components/ModelDetailsDropdown';
+import ChatbotHeader from './components/ChatbotHeader';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
@@ -54,6 +52,10 @@ interface ComparePaneWrapperProps {
   onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
+  /** Metrics from the last response (latency, tokens, TTFT) */
+  metrics?: ResponseMetrics | null;
+  /** Whether a response is currently being generated */
+  isLoading?: boolean;
 }
 
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
@@ -62,6 +64,8 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   onSettingsClick,
   onClose,
   children,
+  metrics,
+  isLoading,
 }) => {
   // Subscribe to model changes for this specific config
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
@@ -73,6 +77,8 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       onModelChange={onModelChange}
       onSettingsClick={onSettingsClick}
       onClose={onClose}
+      metrics={metrics}
+      isLoading={isLoading}
     >
       {children}
     </ChatbotPane>
@@ -248,6 +254,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Track loading states to trigger re-renders when they change
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
   const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
+  const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
+    new Map(),
+  );
 
   const handleMessagesHookReady = React.useCallback(
     (configIdParam: string, hook: UseChatbotMessagesReturn) => {
@@ -267,6 +276,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }
         const next = new Map(prev);
         next.set(configIdParam, hook.isMessageSendButtonDisabled);
+        return next;
+      });
+      // Track metrics for pane header display
+      setMetricsStates((prev) => {
+        if (prev.get(configIdParam) === hook.lastResponseMetrics) {
+          return prev; // No change, return same reference
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.lastResponseMetrics);
         return next;
       });
     },
@@ -303,6 +321,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
       // Remove from disabled states
       setDisabledStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
+
+      // Remove from metrics states
+      setMetricsStates((prev) => {
         const next = new Map(prev);
         staleKeys.forEach((key) => {
           next.delete(key);
@@ -528,29 +555,24 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         <DrawerContent panelContent={settingsPanelContent}>
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Single mode header with model dropdown and settings button */}
+              {/* Single mode header with model dropdown, settings button, and metrics */}
               {!isCompareMode && (
                 <div
                   style={{
                     backgroundColor: isDarkMode
                       ? 'var(--pf-t--global--dark--background--color--100)'
                       : 'var(--pf-t--global--background--color--100)',
-                    paddingLeft: '1.5rem',
+                    padding: '1rem 1.5rem',
                   }}
                 >
-                  <ChatbotHeaderMain>
-                    <ModelDetailsDropdown
-                      selectedModel={primarySelectedModel || ''}
-                      onModelChange={setSelectedModel}
-                    />
-                    <Button
-                      variant="plain"
-                      aria-label={isDrawerExpanded ? 'Close settings panel' : 'Open settings panel'}
-                      icon={<CogIcon />}
-                      onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
-                      style={{ margin: '0.7rem 0 0 0.5rem' }}
-                    />
-                  </ChatbotHeaderMain>
+                  <ChatbotHeader
+                    selectedModel={primarySelectedModel || ''}
+                    onModelChange={setSelectedModel}
+                    onSettingsClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                    metrics={metricsStates.get(primaryConfigId)}
+                    isLoading={loadingStates.get(primaryConfigId)}
+                    testIdPrefix="single-mode"
+                  />
                 </div>
               )}
 
@@ -620,6 +642,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                             onModelChange={handleModelChange(configId)}
                             onSettingsClick={() => handlePaneSettingsClick(configId)}
                             onClose={() => handlePaneClose(configId)}
+                            metrics={metricsStates.get(configId)}
+                            isLoading={loadingStates.get(configId)}
                           >
                             {chatbotContent}
                           </ComparePaneWrapper>
