@@ -21,8 +21,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       reliantAreas,
       devFlags: [
         'Model Registry Plugin (unreleased pages)',
-        'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-        'tempDevRegistryStorageFeatureAvailable',
+        'KF MR Upstream: Catalog HuggingFace API Key',
+        'KF MR Upstream: Registry OCI Storage',
       ],
     },
   },

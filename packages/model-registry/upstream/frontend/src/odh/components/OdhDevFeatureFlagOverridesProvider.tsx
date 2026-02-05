@@ -5,11 +5,11 @@ import { TempDevFeatureFlagsContext, TempDevFeatureFlagsOverrides } from '~/odh/
 // The session storage key used by ODH dev feature flags
 const ODH_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
 
-// The temp dev feature flag keys that can be overridden by ODH dev flags
-const TEMP_DEV_FEATURE_KEYS = [
-  'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-  'tempDevRegistryStorageFeatureAvailable',
-] as const;
+// Mapping from ODH session storage keys (display names) to upstream technical keys
+const DEV_FLAG_MAPPINGS: Record<string, string> = {
+  'KF MR Upstream: Catalog HuggingFace API Key': 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
+  'KF MR Upstream: Registry OCI Storage': 'tempDevRegistryStorageFeatureAvailable',
+};
 
 /**
  * ODH-specific provider component that reads dev feature flags from session storage
@@ -35,9 +35,9 @@ const OdhDevFeatureFlagOverridesProvider: React.FC<{ children: React.ReactNode }
     const result: Record<string, boolean> = {};
     let hasOverrides = false;
 
-    TEMP_DEV_FEATURE_KEYS.forEach((key) => {
-      if (key in odhDevFlags && typeof odhDevFlags[key] === 'boolean') {
-        result[key] = odhDevFlags[key];
+    Object.entries(DEV_FLAG_MAPPINGS).forEach(([displayName, technicalKey]) => {
+      if (displayName in odhDevFlags && typeof odhDevFlags[displayName] === 'boolean') {
+        result[technicalKey] = odhDevFlags[displayName];
         hasOverrides = true;
       }
     });
