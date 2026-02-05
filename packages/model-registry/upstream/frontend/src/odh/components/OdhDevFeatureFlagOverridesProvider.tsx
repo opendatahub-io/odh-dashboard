@@ -24,6 +24,7 @@ const OdhDevFeatureFlagOverridesProvider: React.FC<{ children: React.ReactNode }
   const [odhDevFlags] = useBrowserStorage<Record<string, boolean> | null>(
     ODH_FEATURE_FLAGS_SESSION_KEY,
     null,
+    true, // jsonify
     true, // isSessionStorage
   );
 
