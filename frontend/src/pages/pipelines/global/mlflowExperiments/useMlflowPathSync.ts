@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   buildIframePathQuery,
   buildParentPathQuery,
@@ -8,6 +8,7 @@ import {
   MLFLOW_EXPERIMENTS_ROUTE,
   normalizePathQuery,
   patchIframeHistory,
+  WORKSPACE_QUERY_PARAM,
 } from '#~/routes/pipelines/mlflowExperiments';
 
 export const useMlflowPathSync = (
@@ -15,9 +16,10 @@ export const useMlflowPathSync = (
 ): { iframeRef: React.RefCallback<HTMLIFrameElement>; initIframeSrc: string } => {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
-  const { namespace } = useParams<{ namespace: string }>();
+  const [searchParams] = useSearchParams();
+  const namespace = searchParams.get(WORKSPACE_QUERY_PARAM);
   const parentPathQuery = buildParentPathQuery(pathname, search);
-  const initIframeSrc = buildIframePathQuery(MLFLOW_DEFAULT_PATH, namespace);
+  const initIframeSrc = buildIframePathQuery(MLFLOW_DEFAULT_PATH, namespace || undefined);
   const syncLock = React.useRef(false);
   const internalIframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const iframeRef = React.useCallback(

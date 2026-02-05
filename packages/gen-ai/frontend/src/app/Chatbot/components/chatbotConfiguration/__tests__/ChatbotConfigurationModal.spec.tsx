@@ -1,9 +1,38 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AIModel, LlamaModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
+
+// Mock the guardrails hooks
+jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
+jest.mock('~/app/hooks/useGenAiAPI');
+
+const mockInstallLSD = jest.fn();
+const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+
+// Set default mock return values for guardrails hooks
+beforeEach(() => {
+  jest.clearAllMocks();
+
+  (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+
+  mockUseGenAiAPI.mockReturnValue({
+    apiAvailable: true,
+    api: {
+      installLSD: mockInstallLSD,
+    },
+  });
+
+  mockInstallLSD.mockResolvedValue({ data: null });
+});
+
 // Mock the table to surface the selectedModels and maxTokensMap props for easy assertions
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
@@ -19,6 +48,24 @@ jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTab
         models: selectedModels.map((m) => m.model_name),
         maxTokens: Array.from(maxTokensMap.entries()),
       })}
+    </div>
+  ),
+}));
+
+// Mock DashboardModalFooter to expose the submit button
+jest.mock('mod-arch-shared', () => ({
+  DashboardModalFooter: ({
+    submitLabel,
+    onSubmit,
+    onCancel,
+  }: {
+    submitLabel: string;
+    onSubmit: () => void;
+    onCancel: () => void;
+  }) => (
+    <div data-testid="modal-footer">
+      <button onClick={onSubmit}>{submitLabel}</button>
+      <button onClick={onCancel}>Cancel</button>
     </div>
   ),
 }));
@@ -221,5 +268,67 @@ describe('ChatbotConfigurationModal max_tokens support', () => {
     // Verify maxTokens is an array (Map entries)
     expect(Array.isArray(parsed.maxTokens)).toBe(true);
     expect(parsed.maxTokens.length).toBe(0); // Initially empty
+  });
+});
+
+describe('ChatbotConfigurationModal guardrails configuration', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+
+  const renderModalWithContext = (props: { allModels: AIModel[]; existingModels?: LlamaModel[] }) =>
+    render(
+      <GenAiContext.Provider value={mockGenAiContextValue}>
+        <MemoryRouter>
+          <ChatbotConfigurationModal
+            onClose={() => undefined}
+            lsdStatus={null}
+            aiModels={props.allModels}
+            existingModels={props.existingModels}
+          />
+        </MemoryRouter>
+      </GenAiContext.Provider>,
+    );
+
+  test('includes enable_guardrails: false when feature flag is disabled', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+
+    renderModalWithContext({ allModels });
+
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith({
+        models: [
+          {
+            model_name: 'test-model',
+            is_maas_model: false,
+          },
+        ],
+        enable_guardrails: false,
+      });
+    });
+  });
+
+  test('includes enable_guardrails: true when feature flag is enabled', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+
+    renderModalWithContext({ allModels });
+
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith({
+        models: [
+          {
+            model_name: 'test-model',
+            is_maas_model: false,
+          },
+        ],
+        enable_guardrails: true,
+      });
+    });
   });
 });
