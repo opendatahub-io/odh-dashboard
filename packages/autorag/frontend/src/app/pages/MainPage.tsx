@@ -9,7 +9,7 @@ const MainPage: React.FC = () => {
     <ApplicationsPage
       title="AutoRAG"
       description={
-        <p>Automatically configure and optimize your Retrievel-Augmented Generation workflows.</p>
+        <p>Automatically configure and optimize your Retrieval-Augmented Generation workflows.</p>
       }
       empty
       loadError={loadError}
