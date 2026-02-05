@@ -1,17 +1,20 @@
 import * as React from 'react';
 import {
+  Button,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
   MenuToggle,
+  Popover,
   Select,
   SelectOption,
   SelectList,
   Switch,
 } from '@patternfly/react-core';
-import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
+import { HelpIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   useChatbotConfigStore,
   selectGuardrail,
@@ -55,18 +58,75 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
   ) => {
     if (typeof value === 'string') {
       updateGuardrail(configId, value);
+      fireMiscTrackingEvent('Guardrails Model Dropdown Option Selected', {
+        selectedModel: value,
+      });
     }
     setIsModelSelectOpen(false);
+  };
+
+  const handleUserInputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
+    // Read current output state before update
+    const currentOutputEnabled =
+      useChatbotConfigStore.getState().configurations[configId]?.guardrailModelOutputEnabled ??
+      false;
+
+    // Update state
+    updateUserInputEnabled(configId, checked);
+
+    // Fire tracking with the new input value and current output value
+    fireMiscTrackingEvent('Guardrails Enabled', {
+      InputEnabled: checked,
+      OutputEnabled: currentOutputEnabled,
+    });
+  };
+
+  const handleModelOutputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
+    // Read current input state before update
+    const currentInputEnabled =
+      useChatbotConfigStore.getState().configurations[configId]?.guardrailUserInputEnabled ?? false;
+
+    // Update state
+    updateModelOutputEnabled(configId, checked);
+
+    // Fire tracking with current input value and the new output value
+    fireMiscTrackingEvent('Guardrails Enabled', {
+      InputEnabled: currentInputEnabled,
+      OutputEnabled: checked,
+    });
+  };
+
+  const handleInfoIconClick = () => {
+    fireMiscTrackingEvent('Guardrail Model Info Icon Selected', {
+      InfoClicked: true,
+    });
   };
 
   return (
     <Form>
       <FormGroup
-        label="Guardrail model"
-        fieldId="guardrail-model"
-        labelHelp={
-          <FieldGroupHelpLabelIcon content="This is the model that enforces the guardrails." />
+        label={
+          <span>
+            Guardrail model
+            <Popover
+              bodyContent={
+                <div>
+                  Select the model to use for guardrails. This model evaluates user inputs and model
+                  outputs for security and content policy violations.
+                </div>
+              }
+            >
+              <Button
+                variant="plain"
+                aria-label="More info for guardrail model field"
+                onClick={handleInfoIconClick}
+              >
+                <HelpIcon />
+              </Button>
+            </Popover>
+          </span>
         }
+        fieldId="guardrail-model"
       >
         <Select
           id="guardrail-model-select"
@@ -101,7 +161,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
           id="user-input-guardrails-switch"
           label="User input guardrails"
           isChecked={userInputEnabled}
-          onChange={(_event, checked) => updateUserInputEnabled(configId, checked)}
+          onChange={handleUserInputToggle}
           data-testid="user-input-guardrails-switch"
         />
         <FormHelperText>
@@ -119,7 +179,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
           id="model-output-guardrails-switch"
           label="Model output guardrails"
           isChecked={modelOutputEnabled}
-          onChange={(_event, checked) => updateModelOutputEnabled(configId, checked)}
+          onChange={handleModelOutputToggle}
           data-testid="model-output-guardrails-switch"
         />
         <FormHelperText>
