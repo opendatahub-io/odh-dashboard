@@ -1357,6 +1357,14 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Ensure storage field is present before serialization (defensive check)
 	config.EnsureStorageField()
 
+	// Enable RBAC authentication using Kubernetes auth provider
+	// This configures the LlamaStack server to validate tokens against the Kubernetes API server
+	// and enforce access policies based on OpenShift roles and role bindings:
+	//   - admin group: full access (create, read, delete)
+	//   - system:authenticated: read-only access
+	config.EnableRBACAuth("", "")
+	kc.Logger.Debug("Enabled RBAC auth with Kubernetes provider for LlamaStack config")
+
 	// Add guardrails configuration if enabled
 	// When enableGuardrails is true, automatically add safety shields for all selected models
 	if enableGuardrails && len(installModels) > 0 {
