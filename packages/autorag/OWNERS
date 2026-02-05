@@ -1,5 +1,17 @@
 # OWNERS
 
-approvers: []
-reviewers: []
-labels: ['area/mod-arch']
+approvers:
+  - nickmazzi
+  - chrjones-rh
+
+reviewers:
+  - nickmazzi
+  - chrjones-rh
+  - srtanish1992
+  - daniduong
+  - GAUNSD
+  - jefho-rh
+  - MatthewAThompson
+
+labels:
+  - area/autorag
