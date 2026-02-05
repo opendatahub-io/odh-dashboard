@@ -7,6 +7,7 @@ import {
   restDELETE,
   restGET,
 } from 'mod-arch-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   BackendResponseData,
   BFFConfig,
@@ -325,6 +326,10 @@ const streamCreateResponse = (
                       if (isFirstRefusal) {
                         receivedRefusal = true;
                         fullContent = '';
+                        // Track guardrail violation
+                        fireMiscTrackingEvent('Guardrail Activated', {
+                          ViolationDetected: true,
+                        });
                       }
                       fullContent += data.delta;
                       onStreamData(data.delta, isFirstRefusal);
