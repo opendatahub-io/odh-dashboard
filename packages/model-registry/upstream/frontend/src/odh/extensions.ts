@@ -19,7 +19,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_MODEL_REGISTRY,
       reliantAreas,
-      devFlags: ['Model Registry Plugin (unreleased pages)'],
+      devFlags: [
+        'Model Registry Plugin (unreleased pages)',
+        'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
+        'tempDevRegistryStorageFeatureAvailable',
+      ],
     },
   },
   {
