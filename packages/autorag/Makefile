@@ -59,6 +59,8 @@ dev-bff-kubeflow:
 	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 
 
 ########### Dev Federated ###########
+# Note: BFF runs on port 4001 to avoid conflict with ODH backend (port 4000)
+# Frontend proxies /api to BFF via PROXY_PORT=4001
 .PHONY: dev-start-federated
 dev-start-federated:
 	@trap 'exit 0' INT; \
@@ -66,11 +68,11 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9103 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9103 PROXY_PORT=4001 npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

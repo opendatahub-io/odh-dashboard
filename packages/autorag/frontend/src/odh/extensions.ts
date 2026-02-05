@@ -5,6 +5,9 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const AUTORAG = 'autorag';
+// AutoRAG requires both genAiStudio AND autoRag feature flags.
+// This ensures AutoRAG only appears when nested under Gen AI Studio section.
+const GEN_AI_STUDIO = 'plugin-gen-ai';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
@@ -13,12 +16,13 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       id: AUTORAG,
       requiredComponents: [],
       featureFlags: ['autoRag'],
+      reliantAreas: [GEN_AI_STUDIO], // Requires Gen AI Studio to be enabled
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [AUTORAG],
+      required: [AUTORAG, GEN_AI_STUDIO], // Both must be enabled
     },
     properties: {
       id: 'autorag-view',
@@ -32,7 +36,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [AUTORAG], // Route only available when AutoRAG feature flag is enabled
     },
     properties: {
       path: '/gen-ai-studio/autorag/*',
