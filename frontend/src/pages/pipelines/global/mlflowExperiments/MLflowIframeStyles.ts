@@ -22,10 +22,14 @@ export const MLFLOW_IFRAME_STYLES = `
     display: none !important;
   }
 
-  /* Remove main element styling to blend with dashboard */
+  /* Remove main element styling to blend with dashboard, and remove the padding from the child element. */
   main {
     margin: 0 !important;
     border-radius: 0 !important;
+
+    > div {
+      padding: 0 !important;
+    }
   }
 
   /* Disable workspace navigation links except experiments, compare-experiments, metric, and compare-runs pages */

@@ -82,6 +82,10 @@ class MLflowExperimentsPage {
       return urlObj.searchParams.get(WORKSPACE_QUERY_PARAM);
     });
   }
+
+  findMlflowJumpLink() {
+    return cy.findByTestId('mlflow-embedded-jump-link');
+  }
 }
 
 export const mlflowExperimentsPage = new MLflowExperimentsPage();
