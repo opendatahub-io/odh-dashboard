@@ -2,12 +2,9 @@ import * as React from 'react';
 import { Form, FormGroup, Switch } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
-import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
 
 interface ModelTabContentProps {
-  selectedModel: string;
-  onModelChange: (value: string) => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
   isStreamingEnabled: boolean;
@@ -15,8 +12,6 @@ interface ModelTabContentProps {
 }
 
 const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
-  selectedModel,
-  onModelChange,
   temperature,
   onTemperatureChange,
   isStreamingEnabled,
@@ -24,10 +19,6 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
 }) => (
   <TabContentWrapper title="Model">
     <Form>
-      <FormGroup fieldId="model-details">
-        <ModelDetailsDropdown selectedModel={selectedModel} onModelChange={onModelChange} />
-      </FormGroup>
-
       <ModelParameterFormGroup
         fieldId="temperature"
         label="Temperature: 0 - 2"

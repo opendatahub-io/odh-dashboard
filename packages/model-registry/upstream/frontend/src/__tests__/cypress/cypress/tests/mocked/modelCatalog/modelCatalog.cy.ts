@@ -210,10 +210,16 @@ describe('Model Catalog Page', () => {
     modelCatalog.tabEnabled();
   });
 
-  it('should show empty state when configmap has empty sources', () => {
+  it('should show non-admin empty state when configmap has empty sources', () => {
     initIntercepts({ sources: [] });
     modelCatalog.visit();
     modelCatalog.findModelCatalogEmptyState().should('exist');
+    // Non-admin users see "Model catalog configuration required" title
+    // and "Who's my administrator?" link
+    modelCatalog
+      .findEmptyStateTitle()
+      .should('contain.text', 'Model catalog configuration required');
+    modelCatalog.findEmptyStateWhosMyAdminLink().should('exist');
   });
 
   it('should display model catalog content when data is loaded', () => {

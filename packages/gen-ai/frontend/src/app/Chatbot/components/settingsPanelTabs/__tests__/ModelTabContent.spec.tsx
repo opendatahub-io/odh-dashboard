@@ -13,24 +13,6 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
-jest.mock('../../ModelDetailsDropdown', () => ({
-  __esModule: true,
-  default: ({
-    selectedModel,
-    onModelChange,
-  }: {
-    selectedModel: string;
-    onModelChange: (value: string) => void;
-  }) => (
-    <div data-testid="model-details-dropdown">
-      <span data-testid="selected-model">{selectedModel}</span>
-      <button data-testid="change-model-button" onClick={() => onModelChange('new-model')}>
-        Change Model
-      </button>
-    </div>
-  ),
-}));
-
 jest.mock('../../ModelParameterFormGroup', () => ({
   __esModule: true,
   default: ({
@@ -56,8 +38,6 @@ const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 describe('ModelTabContent', () => {
   const defaultProps = {
-    selectedModel: 'gpt-4',
-    onModelChange: jest.fn(),
     temperature: 1.0,
     onTemperatureChange: jest.fn(),
     isStreamingEnabled: true,
@@ -72,13 +52,6 @@ describe('ModelTabContent', () => {
     render(<ModelTabContent {...defaultProps} />);
 
     expect(screen.getByRole('heading', { name: 'Model' })).toBeInTheDocument();
-  });
-
-  it('renders ModelDetailsDropdown with correct props', () => {
-    render(<ModelTabContent {...defaultProps} />);
-
-    expect(screen.getByTestId('model-details-dropdown')).toBeInTheDocument();
-    expect(screen.getByTestId('selected-model')).toHaveTextContent('gpt-4');
   });
 
   it('renders ModelParameterFormGroup with correct temperature props', () => {
@@ -102,16 +75,6 @@ describe('ModelTabContent', () => {
 
     const streamingSwitch = screen.getByRole('switch', { name: /toggle streaming responses/i });
     expect(streamingSwitch).not.toBeChecked();
-  });
-
-  it('calls onModelChange when model is changed', async () => {
-    const user = userEvent.setup();
-    const mockOnModelChange = jest.fn();
-    render(<ModelTabContent {...defaultProps} onModelChange={mockOnModelChange} />);
-
-    await user.click(screen.getByTestId('change-model-button'));
-
-    expect(mockOnModelChange).toHaveBeenCalledWith('new-model');
   });
 
   it('calls onTemperatureChange and fires tracking event when temperature changes', async () => {

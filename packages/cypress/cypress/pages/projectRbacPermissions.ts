@@ -100,6 +100,10 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId('assign-roles-subject-typeahead-toggle');
   }
 
+  findAssignRolesSubjectClearButton() {
+    return this.findAssignRolesSubjectTypeahead().find('button[aria-label="Clear input value"]');
+  }
+
   findAssignRolesSubjectKindRadio(kind: 'user' | 'group') {
     return cy.findByTestId(`assign-roles-subject-kind-${kind}`);
   }
@@ -184,6 +188,56 @@ class ProjectRbacPermissionsTab {
 
   getRoleDetailsModal() {
     return new RoleDetailsModal(() => cy.findByTestId('role-details-modal'));
+  }
+
+  getDiscardChangesModal() {
+    return new DiscardChangesModal(() => cy.findByTestId('discard-changes-modal'));
+  }
+
+  getNavigationBlockerModal() {
+    return new NavigationBlockerModal(() => cy.findByTestId('navigation-blocker-modal'));
+  }
+
+  getManageRolesTable() {
+    return new ManageRolesTable(() => cy.findByTestId('manage-roles-table'));
+  }
+}
+
+class DiscardChangesModal extends Contextual<HTMLElement> {
+  findDiscardButton() {
+    return this.find().findByTestId('discard-changes-confirm');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('discard-changes-cancel');
+  }
+
+  shouldContainMessage(text: string | RegExp) {
+    return this.find().contains(text);
+  }
+}
+
+class NavigationBlockerModal extends Contextual<HTMLElement> {
+  findDiscardButton() {
+    return this.find().findByTestId('confirm-discard-changes');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-discard-changes');
+  }
+}
+
+class ManageRolesTable extends Contextual<HTMLElement> {
+  findRoleRow(roleName: string) {
+    return this.find().find('[data-label="Role"]').contains(roleName).closest('tr');
+  }
+
+  findRoleCheckbox(roleName: string) {
+    return this.findRoleRow(roleName).find('input[type="checkbox"]');
+  }
+
+  toggleRole(roleName: string) {
+    return this.findRoleCheckbox(roleName).click();
   }
 }
 

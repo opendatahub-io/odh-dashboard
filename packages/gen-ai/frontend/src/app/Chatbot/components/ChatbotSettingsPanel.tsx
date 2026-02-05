@@ -1,5 +1,8 @@
 import * as React from 'react';
 import {
+  DrawerActions,
+  DrawerCloseButton,
+  DrawerHead,
   DrawerPanelContent,
   DrawerPanelBody,
   Badge,
@@ -9,6 +12,7 @@ import {
   Tabs,
   Tab,
   TabTitleText,
+  Title,
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -17,7 +21,6 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
-  selectSelectedModel,
   selectSelectedMcpServerIds,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -52,6 +55,7 @@ interface ChatbotSettingsPanelProps {
   // Guardrails props
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
+  onCloseClick?: () => void;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -71,6 +75,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   checkMcpServerStatus,
   guardrailModels = [],
   guardrailModelsLoaded = false,
+  onCloseClick,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
@@ -81,13 +86,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
-  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -102,13 +105,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateTemperature(configId, value);
     },
     [configId, updateTemperature],
-  );
-
-  const handleModelChange = React.useCallback(
-    (value: string) => {
-      updateSelectedModel(configId, value);
-    },
-    [configId, updateSelectedModel],
   );
 
   const handleStreamingToggle = React.useCallback(
@@ -149,6 +145,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       minSize="300px"
       onResize={handlePanelResize}
     >
+      <DrawerHead>
+        <Title headingLevel="h2">Configure</Title>
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
+        </DrawerActions>
+      </DrawerHead>
       <DrawerPanelBody>
         <Tabs
           activeKey={activeTabKey}
@@ -163,8 +165,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-model"
           >
             <ModelTabContent
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
               temperature={temperature}
               onTemperatureChange={handleTemperatureChange}
               isStreamingEnabled={isStreamingEnabled}
