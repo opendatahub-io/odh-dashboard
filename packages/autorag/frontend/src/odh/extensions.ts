@@ -22,7 +22,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [AUTORAG, GEN_AI_STUDIO], // Both must be enabled
+      required: [AUTORAG], // AUTORAG area depends on GEN_AI_STUDIO via reliantAreas
     },
     properties: {
       id: 'autorag-view',
