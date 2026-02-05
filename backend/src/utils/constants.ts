@@ -90,6 +90,7 @@ export const blankDashboardCR: DashboardConfig = {
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: false,
+      autorag: false,
     },
     notebookController: {
       enabled: true,

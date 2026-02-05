@@ -1,18 +1,21 @@
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
+  AreaExtension,
   NavExtension,
   RouteExtension,
-  AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const PLUGIN_AUTORAG = 'autorag';
+const PLUGIN_AUTORAG = 'plugin-autorag';
+const PLUGIN_GEN_AI = 'plugin-gen-ai';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
       id: PLUGIN_AUTORAG,
-      requiredComponents: [],
-      featureFlags: ['autorag'], // Todo: You need to add this feature flag.
+      requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: ['autorag'],
     },
   },
   {
@@ -32,7 +35,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [PLUGIN_AUTORAG],
     },
     properties: {
       path: '/gen-ai-studio/autorag/*',
