@@ -76,7 +76,8 @@ const getMaaSTierLabel = (
       availableTiers
         .filter((tier: Tier) => value.selectedTierNames?.includes(tier.name ?? ''))
         .map((tier: Tier) => tier.displayName ?? tier.name ?? '')
-        .join(', ') || 'Tiers selected'
+        .join(', ') ||
+      (value.selectedTierNames?.join(', ') ?? 'Tiers selected')
     );
   }
   return getTierDropdownLabel(TierDropdownOption.AllTiers);
@@ -342,7 +343,7 @@ export const MaaSEndpointFieldWizardField: MaaSEndpointsFieldType = {
       items: [
         {
           key: 'maas-endpoint-enabled',
-          label: 'Add as MaaS endpoint',
+          label: 'MaaS endpoint',
           value: () => (value.isChecked ? 'Yes' : 'No'),
         },
         {
