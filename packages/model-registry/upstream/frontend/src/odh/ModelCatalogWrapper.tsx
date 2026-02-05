@@ -14,6 +14,7 @@ import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
+import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 
 const ModelCatalogWrapperContent: React.FC = () => {
   const {
@@ -37,11 +38,13 @@ const ModelCatalogWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <ModelRegistrySelectorContextProvider>
-              <ModelCatalogRoutes />
-            </ModelRegistrySelectorContextProvider>
-          </NotificationContextProvider>
+          <OdhDevFeatureFlagOverridesProvider>
+            <NotificationContextProvider>
+              <ModelRegistrySelectorContextProvider>
+                <ModelCatalogRoutes />
+              </ModelRegistrySelectorContextProvider>
+            </NotificationContextProvider>
+          </OdhDevFeatureFlagOverridesProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>
     </AppContext.Provider>
