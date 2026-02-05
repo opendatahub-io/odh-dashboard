@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useBrowserStorage } from 'mod-arch-core';
 import { TempDevFeatureFlagsContext, TempDevFeatureFlagsOverrides } from '~/odh/extension-points';
 
 // The session storage key used by ODH dev feature flags
@@ -12,21 +11,41 @@ const DEV_FLAG_MAPPINGS: Record<string, string> = {
 };
 
 /**
+ * Read and parse ODH dev flags from session storage.
+ */
+const readOdhDevFlags = (): Record<string, boolean> | null => {
+  try {
+    const stored = sessionStorage.getItem(ODH_FEATURE_FLAGS_SESSION_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * ODH-specific provider component that reads dev feature flags from session storage
  * and provides them to the TempDevFeatureFlagsContext for use by useTempDevFeatureAvailable.
  *
  * ODH stores its dev feature flags in session storage with key 'odh-feature-flags'.
  * This component reads from that storage and extracts the relevant temp dev feature flags,
  * allowing the ODH dev flags modal to override upstream temp dev features.
+ *
+ * Listens for 'odh-dev-flags-changed' custom events dispatched by ODH when flags change,
+ * ensuring immediate reactivity without polling.
  */
 const OdhDevFeatureFlagOverridesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Read ODH dev feature flags from session storage
-  const [odhDevFlags] = useBrowserStorage<Record<string, boolean> | null>(
-    ODH_FEATURE_FLAGS_SESSION_KEY,
-    null,
-    true, // jsonify
-    true, // isSessionStorage
-  );
+  const [odhDevFlags, setOdhDevFlags] = React.useState<Record<string, boolean> | null>(readOdhDevFlags);
+
+  // Listen for ODH dev flags changes (custom event dispatched by ODH when flags are updated)
+  React.useEffect(() => {
+    const handleFlagsChanged = () => {
+      setOdhDevFlags(readOdhDevFlags());
+    };
+
+    window.addEventListener('odh-dev-flags-changed', handleFlagsChanged);
+    return () => window.removeEventListener('odh-dev-flags-changed', handleFlagsChanged);
+  }, []);
 
   const overrides = React.useMemo<TempDevFeatureFlagsOverrides>(() => {
     if (!odhDevFlags) {
