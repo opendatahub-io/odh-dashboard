@@ -89,10 +89,14 @@ describe('Experiments', () => {
       experimentsTabs.getArchivedExperimentsTable().findEmptyState().should('exist');
     });
 
-    it('shows deprecated alert', () => {
+    it('shows deprecated alert when MLflow is enabled', () => {
+      initIntercepts();
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
+      experimentsTabs.visit(projectName);
       experimentsPage.findPipelineExperimentDeprecatedAlert().should('exist');
       experimentsPage.findEmbeddedMLflowExperimentsLink().should('exist').click();
-      verifyRelativeURL('/develop-train/experiments-mlflow');
+      cy.url().should('contain', '/develop-train/experiments-mlflow');
     });
 
     it('experiments table time', () => {
