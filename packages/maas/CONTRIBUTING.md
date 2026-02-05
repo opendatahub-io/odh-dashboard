@@ -21,11 +21,29 @@ To review the requirements, please refer to:
 
 ### Development
 
-To run the mocked development environment you can either:
+To run the federated development environment first make sure you have the latest install in the root and the `maas` package:
 
-- Use the makefile command to install dependencies `make dev-install-dependencies`, and then start the dev environment with `make dev-start`.
+From the root of the repo:
 
-- Or follow the steps in the [frontend dev setup] and [BFF dev setup] guides.
+```shell
+npm i
+cd packages/maas
+make dev-install-dependencies
+```
+
+Then to run the development server if you are properly logged into a cluster:
+
+1. Open a terminal in the root of odh-dashboard
+
+```shell
+npm run dev
+```
+
+2. Open a second terminal in the `packages/maas` directory
+
+```
+make dev-start-federated
+```
 
 ### Kubernetes Deployment
 

@@ -2,6 +2,8 @@ import * as React from 'react';
 import { useCheckboxTableBase } from '#~/components/table';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import {
+  buildGroupRoleMap,
+  buildUserRoleMap,
   getRoleByRef,
   getRoleDisplayName,
   getRoleRefKey,
@@ -14,26 +16,36 @@ import {
   getReversibleRoleRefs,
   getSubjectRef,
 } from '#~/pages/projects/projectPermissions/utils';
+import type { SubjectKindSelection } from '#~/pages/projects/projectPermissions/types';
 import type { ManageRolesRow } from './columns';
 import type { RoleAssignmentChanges } from './types';
 
 type UseManageRolesDataResult = {
+  existingSubjectNames: string[];
   rows: ManageRolesRow[];
   selections: RoleRef[];
   toggleSelection: (roleRef: RoleRef) => void;
-  assignedRoleRefs: RoleRef[];
   trimmedSubjectName: string;
   changes: RoleAssignmentChanges;
   hasChanges: boolean;
 };
 
 const useManageRolesData = (
-  subjectKind: 'user' | 'group',
+  subjectKind: SubjectKindSelection,
   subjectName: string,
-  existingSubjectNames: string[],
 ): UseManageRolesDataResult => {
   const { roles, clusterRoles, roleBindings } = usePermissionsContext();
   const trimmedSubjectName = subjectName.trim();
+
+  // Compute existing subject names from role bindings
+  const existingSubjectNames = React.useMemo(() => {
+    const subjectRoleMap =
+      subjectKind === 'user'
+        ? buildUserRoleMap(roleBindings.data)
+        : buildGroupRoleMap(roleBindings.data);
+    return Array.from(subjectRoleMap.keys()).toSorted((a, b) => a.localeCompare(b));
+  }, [roleBindings.data, subjectKind]);
+
   const isExistingSubject = existingSubjectNames.includes(trimmedSubjectName);
 
   const reversibleRoleRefs = React.useMemo(
@@ -137,10 +149,10 @@ const useManageRolesData = (
   }, [changes, trimmedSubjectName]);
 
   return {
+    existingSubjectNames,
     rows,
     selections,
     toggleSelection,
-    assignedRoleRefs,
     trimmedSubjectName,
     changes,
     hasChanges,

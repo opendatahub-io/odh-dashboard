@@ -17,11 +17,12 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { MLFLOW_DEFAULT_PATH, setWorkspaceQueryParam } from '#~/routes/pipelines/mlflowExperiments';
 
 const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
-  const encodedProjectName = encodeURIComponent(projectName);
   const base = href.replace(/\/+$/, '');
-  return `${base}/#/workspaces/${encodedProjectName}/experiments`;
+  const hashPath = setWorkspaceQueryParam(MLFLOW_DEFAULT_PATH, projectName);
+  return `${base}/#${hashPath}`;
 };
 
 const MLflowCard: React.FC = () => {

@@ -19,32 +19,51 @@ import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 import { RBAC_SUBJECT_KIND_USER, RBAC_SUBJECT_KIND_GROUP } from '#~/concepts/permissions/const';
 import type { SupportedSubjectKind } from '#~/concepts/permissions/types';
+import NavigationBlockerModal from '#~/components/NavigationBlockerModal';
 import AssignRolesFooterActions from './manageRoles/AssignRolesFooterActions';
 import AssignRolesSubjectSection from './manageRoles/AssignRolesSubjectSection';
 import ManageRolesTable from './manageRoles/ManageRolesTable';
 import RoleAssignmentChangesModal from './manageRoles/confirmModal/RoleAssignmentChangesModal';
+import DiscardChangesModal from './manageRoles/confirmModal/DiscardChangesModal';
 import useManageRolesData from './manageRoles/useManageRolesData';
-import { useRoleAssignmentData } from './useRoleAssignmentData';
+import useDiscardChangesConfirmation from './manageRoles/useDiscardChangesConfirmation';
 import { applyRoleAssignmentChanges } from './roleBindingMutations';
+import type { SubjectKindSelection } from './types';
 
 const ProjectPermissionsAssignRolesForm: React.FC = () => {
   const { error, roleBindings } = usePermissionsContext();
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { state }: { state?: { subjectKind?: 'user' | 'group'; subjectName?: string } } =
+  const { state }: { state?: { subjectKind?: SubjectKindSelection; subjectName?: string } } =
     useLocation();
   const navigate = useNavigate();
   const isManageMode = !!state;
   const namespace = currentProject.metadata.name;
 
-  const [subjectKind, setSubjectKind] = React.useState<'user' | 'group'>(
+  const [subjectKind, setSubjectKind] = React.useState<SubjectKindSelection>(
     state?.subjectKind ?? 'user',
   );
   const [subjectName, setSubjectName] = React.useState(state?.subjectName?.trim() ?? '');
   const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
 
-  const { existingSubjectNames } = useRoleAssignmentData(subjectKind);
-  const { rows, selections, toggleSelection, trimmedSubjectName, changes, hasChanges } =
-    useManageRolesData(subjectKind, subjectName, existingSubjectNames);
+  const {
+    existingSubjectNames,
+    rows,
+    selections,
+    toggleSelection,
+    trimmedSubjectName,
+    changes,
+    hasChanges,
+  } = useManageRolesData(subjectKind, subjectName);
+
+  const { pendingChange, handleSubjectKindChange, handleSubjectNameChange, closeModal } =
+    useDiscardChangesConfirmation(
+      hasChanges,
+      trimmedSubjectName,
+      subjectKind,
+      existingSubjectNames,
+      setSubjectKind,
+      setSubjectName,
+    );
 
   const handleSave = React.useCallback(async (): Promise<void> => {
     const rbacSubjectKind: SupportedSubjectKind =
@@ -59,17 +78,14 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
     });
 
     if (!result.success) {
-      // Build a descriptive error message
       const errorMessages = result.errors.map((e) => e.message).join('; ');
       throw new Error(
         `${result.failedCount} of ${result.totalOperations} operations failed: ${errorMessages}`,
       );
     }
 
-    // Refresh roleBindings after successful save
     await roleBindings.refresh();
-
-    // Navigate back to permissions tab
+    setIsConfirmOpen(false);
     navigate(`/projects/${namespace}?section=permissions`);
   }, [subjectKind, trimmedSubjectName, changes, roleBindings, namespace, navigate]);
 
@@ -124,11 +140,8 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
             subjectKind={subjectKind}
             subjectName={subjectName}
             existingSubjectNames={existingSubjectNames}
-            onSubjectKindChange={(kind) => {
-              setSubjectKind(kind);
-              setSubjectName('');
-            }}
-            onSubjectNameChange={setSubjectName}
+            onSubjectKindChange={handleSubjectKindChange}
+            onSubjectNameChange={handleSubjectNameChange}
           />
           <ManageRolesTable
             subjectName={subjectName}
@@ -149,6 +162,15 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
           onConfirm={handleSave}
         />
       )}
+      {pendingChange && (
+        <DiscardChangesModal
+          changeType={pendingChange.type}
+          subjectKind={subjectKind}
+          onDiscard={() => closeModal(true)}
+          onCancel={() => closeModal(false)}
+        />
+      )}
+      <NavigationBlockerModal hasUnsavedChanges={hasChanges} />
     </ApplicationsPage>
   );
 };

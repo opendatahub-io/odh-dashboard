@@ -9,7 +9,7 @@ import {
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { RoleLabelType } from '#~/concepts/permissions/types';
 import { DEFAULT_ROLE_REFS } from './const';
-import { AssignmentStatus } from './types';
+import { AssignmentStatus, SubjectKindSelection } from './types';
 
 const buildDashboardRoleRefs = (roles: RoleKind[], clusterRoles: ClusterRoleKind[]): RoleRef[] => {
   const toRoleRef = (kind: RoleRef['kind'], name: string): RoleRef => ({ kind, name });
@@ -42,7 +42,7 @@ export const isAiRole = (roleRef: RoleRef, role?: RoleKind | ClusterRoleKind): b
   isDefaultRoleRef(roleRef) || isDashboardRole(role);
 
 export const getSubjectRef = (
-  subjectKind: 'user' | 'group',
+  subjectKind: SubjectKindSelection,
   subjectName: string,
 ): SupportedSubjectRef => ({
   kind: subjectKind === 'user' ? RBAC_SUBJECT_KIND_USER : RBAC_SUBJECT_KIND_GROUP,

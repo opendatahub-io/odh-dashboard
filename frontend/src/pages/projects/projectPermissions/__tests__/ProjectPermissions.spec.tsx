@@ -17,7 +17,7 @@ jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
 
 jest.mock('#~/pages/projects/projectPermissions/SubjectRolesTableSection', () => ({
   __esModule: true,
-  default: ({ subjectKind }: { subjectKind: 'user' | 'group' }) => (
+  default: ({ subjectKind }: { subjectKind: string }) => (
     <div data-testid={`mock-subject-roles-section-${subjectKind}`} />
   ),
 }));
