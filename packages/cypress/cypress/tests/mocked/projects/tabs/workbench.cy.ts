@@ -1,7 +1,9 @@
 import {
   mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import {
   mockCustomSecretK8sResource,
   mockDashboardConfig,
@@ -20,6 +22,7 @@ import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8s
 import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
 import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/projects/types';
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
 import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
@@ -35,6 +38,7 @@ import {
   SecretModel,
   StorageClassModel,
   HardwareProfileModel,
+  LocalQueueModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { be } from '../../../../utils/should';
@@ -995,6 +999,108 @@ describe('Workbench page', () => {
     notebookRow.shouldHaveHardwareProfile('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
+  });
+
+  it('should display Local queue and Cluster queue in hardware profile popover when clicking profile in table and Kueue is enabled', () => {
+    const queueProfile = mockHardwareProfile({
+      name: 'queue-profile',
+      displayName: 'Queue Profile',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'test-queue',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+          resourceType: IdentifierResourceType.CPU,
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '4Gi',
+          defaultCount: '2Gi',
+          resourceType: IdentifierResourceType.MEMORY,
+        },
+      ],
+    });
+    const globalProfilesWithQueue = [...mockGlobalScopedHardwareProfiles, queueProfile];
+
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'queue-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              },
+            },
+          },
+        }),
+      ],
+      hardwareProfiles: {
+        global: globalProfilesWithQueue,
+        project: mockProjectScopedHardwareProfiles,
+      },
+    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+    );
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+          [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+    );
+    cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+    cy.interceptK8sList(
+      { model: LocalQueueModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+      ]),
+    );
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'queue-profile',
+      },
+      queueProfile,
+    );
+
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.shouldHaveHardwareProfile('Queue Profile');
+    notebookRow
+      .findHardwareProfileColumn()
+      .findByTestId('hardware-profile-details-popover')
+      .click();
+    hardwareProfileSection
+      .findDetails()
+      .should('be.visible')
+      .within(() => {
+        cy.contains('Local queue').should('be.visible');
+        cy.contains('test-queue').should('be.visible');
+        cy.contains('Cluster queue').should('be.visible');
+        cy.contains('test-cluster-queue').should('be.visible');
+      });
   });
 
   it('list workbench and table sorting', () => {
