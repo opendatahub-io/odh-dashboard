@@ -17,7 +17,7 @@ export function useExperimentQuery(
     queryKey: ['experiments', experimentId],
     queryFn: async () => {
       // eslint-disable-next-line camelcase
-      const experiment = { display_name: 'FAKE_DISPLAY_NAME' };
+      const experiment = { display_name: 'FAKE_EXPERIMENT_NAME' };
       return experiment;
     },
     enabled: !!experimentId,

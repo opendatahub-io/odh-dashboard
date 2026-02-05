@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Mod Arch REST API
+  title: AutoRAG REST API
   version: 1.0.0
-  description: REST API Mod Arch BFF
+  description: REST API AutoRAG BFF
   license:
     name: Apache 2.0
     url: "https://www.apache.org/licenses/LICENSE-2.0"

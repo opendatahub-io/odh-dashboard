@@ -24,7 +24,7 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION: 'v1',
 };
 
-function AutoRagWrapper(): React.JSX.Element {
+function AppWrapper(): React.JSX.Element {
   return (
     <ModularArchContextProvider config={modularArchConfig}>
       <BrowserStorageContextProvider>
@@ -38,4 +38,4 @@ function AutoRagWrapper(): React.JSX.Element {
   );
 }
 
-export default AutoRagWrapper;
+export default AppWrapper;
