@@ -124,17 +124,6 @@ export class NIMCard extends Card {
   findEnableModal(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('[data-id="enable-modal"]');
   }
-
-  /**
-   * Returns the close button within the Enable modal.
-   * Note: The close button is rendered by PatternFly Modal and uses aria-label="Close"
-   * since PatternFly does not expose a data-testid for the close button.
-   * This is needed for ODH compatibility where the modal sometimes doesn't close automatically.
-   * In RHOAI the modal closes automatically as expected.
-   */
-  findEnableModalCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findEnableModal().find('button[aria-label="Close"]');
-  }
 }
 
 export const nimCard = new NIMCard();
