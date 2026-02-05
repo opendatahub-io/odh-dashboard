@@ -7,4 +7,4 @@ export * from './detailsCard';
 export * from './table';
 export * from './admin';
 export * from './catalog-settings-url';
-export * from './feature-flags';
+export * from './feature-flag-overrides';
