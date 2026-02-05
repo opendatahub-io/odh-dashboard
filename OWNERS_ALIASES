@@ -150,7 +150,7 @@ aliases:
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
-    
+
   # Notebooks
   notebooks-approvers:
     - andyatmiami
@@ -181,3 +181,16 @@ aliases:
     - mtalvi
     - xieshenzh
     - swati-kale
+
+  # AutoRAG
+  autorag-approvers:
+    - nickmazzi
+    - chrjones-rh
+  autorag-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
