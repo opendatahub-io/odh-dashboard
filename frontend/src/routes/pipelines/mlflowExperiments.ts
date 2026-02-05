@@ -1,10 +1,11 @@
 export const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 export const MLFLOW_PROXY_BASE_PATH = '/mlflow';
 export const MLFLOW_DEFAULT_PATH = '/experiments';
+export const WORKSPACE_QUERY_PARAM = 'workspace';
 
 export const buildIframePathQuery = (hashPathQuery: string, namespace?: string): string =>
   `${MLFLOW_PROXY_BASE_PATH}/#${
-    namespace ? `/workspaces/${namespace}${hashPathQuery}` : hashPathQuery
+    namespace ? setWorkspaceQueryParam(hashPathQuery, namespace) : hashPathQuery
   }`;
 
 export const getIframeHashPathQuery = (iframe: HTMLIFrameElement): string | null => {
@@ -32,8 +33,11 @@ export const normalizePathQuery = (path: string | null): string | null => {
   if (!query) {
     return pathname || null;
   }
-  const searchParams = new URLSearchParams(query).toString();
-  return searchParams ? `${pathname}?${searchParams}` : pathname || null;
+  const sortedParams = new URLSearchParams(
+    [...new URLSearchParams(query).entries()].toSorted(([a], [b]) => a.localeCompare(b)),
+  );
+  const normalizedQuery = sortedParams.toString();
+  return normalizedQuery ? `${pathname}?${normalizedQuery}` : pathname || null;
 };
 
 export const patchIframeHistory = (
@@ -73,4 +77,13 @@ export const patchIframeHistory = (
 export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
   !namespace
     ? MLFLOW_EXPERIMENTS_ROUTE
-    : `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${namespace}/experiments`;
+    : `${MLFLOW_EXPERIMENTS_ROUTE}${setWorkspaceQueryParam(MLFLOW_DEFAULT_PATH, namespace)}`;
+
+export const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): string => {
+  const queryIndex = hashPathQuery.indexOf('?');
+  const pathname = queryIndex === -1 ? hashPathQuery : hashPathQuery.slice(0, queryIndex);
+  const existingQuery = queryIndex === -1 ? '' : hashPathQuery.slice(queryIndex + 1);
+  const params = new URLSearchParams(existingQuery);
+  params.set(WORKSPACE_QUERY_PARAM, workspace);
+  return `${pathname}?${params.toString()}`;
+};
