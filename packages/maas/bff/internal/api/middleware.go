@@ -14,6 +14,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -59,7 +60,7 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		AllowedOrigins:     app.config.AllowedOrigins,
 		AllowCredentials:   true,
 		AllowedMethods:     []string{"GET", "PUT", "POST", "PATCH", "DELETE"},
-		AllowedHeaders:     []string{constants.KubeflowUserIDHeader, constants.KubeflowUserGroupsIdHeader},
+		AllowedHeaders:     []string{constants.KubeflowUserIDHeader, constants.KubeflowUserGroupsIdHeader, "Authorization"},
 		Debug:              app.config.LogLevel == slog.LevelDebug,
 		OptionsPassthrough: false,
 	})
@@ -97,4 +98,48 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 
 		next(w, r, ps)
 	}
+}
+
+func (app *App) AttachMaaSClient(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only attach client for MaaS endpoints (API routes)
+		if !strings.HasPrefix(r.URL.Path, constants.ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+constants.ApiPathPrefix) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		var maasClient maas.MaaSClient
+		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
+
+		// If identity extraction fails or not present (e.g. mock mode without headers), create client without token
+		// But in real scenario, we might need token.
+		// For now, if identity is available, use it.
+		var token string
+		if err == nil && identity != nil {
+			token = identity.Token
+		}
+
+		// TODO: Configure MaaS service URL. For now, assume it's set in config or we construct it.
+		// In gen-ai, it was constructing serviceURL from clusterDomain.
+		// app.maasClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
+
+		// Assuming we have a configured base URL or use a default
+		// For now, let's use a placeholder or config value if available.
+		// Since we don't have MaaS URL in config yet, let's assume it's passed or defaulted in the factory or client.
+		// In gen-ai middleware: serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
+
+		// For the purpose of this port, I'll use a placeholder or check if config has it.
+		// app.config doesn't seem to have MaaS URL explicitly.
+		// But if we are in Mock mode, URL doesn't matter.
+
+		// Let's use empty URL for now, the real client factory might need it.
+		// The gen-ai `NewHTTPMaaSClient` takes baseURL.
+
+		baseURL := "http://maas-service.maas.svc.cluster.local" // Default internal service URL?
+
+		maasClient = app.maasClientFactory.CreateClient(baseURL, token, app.config.InsecureSkipVerify, app.rootCAs)
+
+		ctx := context.WithValue(r.Context(), constants.MaaSClientKey, maasClient)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

@@ -17,6 +17,8 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
+	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 
@@ -39,6 +41,7 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	repositories            *repositories.Repositories
+	maasClientFactory       maas.MaaSClientFactory
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -108,6 +111,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 	}
 
+	if cfg.MockHTTPClient {
+		maasClientFactory = mocks.NewMockClientFactory()
+	} else {
+		maasClientFactory = maas.NewRealClientFactory()
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
@@ -117,6 +126,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		repositories:            repositories.NewRepositories(logger, k8sFactory, cfg),
+		maasClientFactory:       maasClientFactory,
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 	}
@@ -187,7 +197,7 @@ func (app *App) Routes() http.Handler {
 	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(app.AttachMaaSClient(appMux))))))
 
 	return combinedMux
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -20,6 +20,11 @@ func NewModelsRepository(logger *slog.Logger) *ModelsRepository {
 
 func (r *ModelsRepository) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
 	r.logger.Debug("Listing MaaS models")
-	return mocks.GetMockMaaSModels(), nil
-}
 
+	client, err := helper.GetContextMaaSClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.ListModels(ctx)
+}
