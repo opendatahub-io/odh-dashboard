@@ -15,6 +15,7 @@ import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistr
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 import NotificationListener from '~/odh/components/NotificationListener';
+import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 
 const ModelCatalogWrapperContent: React.FC = () => {
   const {
@@ -38,14 +39,16 @@ const ModelCatalogWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
-            <NotificationListener>
-              <ModelRegistrySelectorContextProvider>
-                <ModelCatalogRoutes />
-              </ModelRegistrySelectorContextProvider>
-            </NotificationListener>
-          </NotificationContextProvider>
+          <OdhDevFeatureFlagOverridesProvider>
+            <NotificationContextProvider>
+              {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
+              <NotificationListener>
+                <ModelRegistrySelectorContextProvider>
+                  <ModelCatalogRoutes />
+                </ModelRegistrySelectorContextProvider>
+              </NotificationListener>
+            </NotificationContextProvider>
+          </OdhDevFeatureFlagOverridesProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>
     </AppContext.Provider>
