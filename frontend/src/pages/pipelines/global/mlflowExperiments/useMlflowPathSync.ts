@@ -8,6 +8,7 @@ import {
   MLFLOW_EXPERIMENTS_ROUTE,
   normalizePathQuery,
   patchIframeHistory,
+  setupClickIntercept,
   WORKSPACE_QUERY_PARAM,
 } from '#~/routes/pipelines/mlflowExperiments';
 
@@ -59,6 +60,7 @@ export const useMlflowPathSync = (
       return undefined;
     }
     let cleanupPatch: (() => void) | undefined;
+    let cleanupClickIntercept: (() => void) | undefined;
     const syncIframeToParent = (histPush: boolean) => {
       const iframePath = getIframeHashPathQuery(iframe);
       if (iframePath && normalizePathQuery(iframePath) !== normalizePathQuery(parentPathQuery)) {
@@ -71,12 +73,16 @@ export const useMlflowPathSync = (
       syncIframeToParent(false);
       cleanupPatch?.();
       cleanupPatch = patchIframeHistory(iframe, syncIframeToParent);
+      cleanupClickIntercept?.();
+      cleanupClickIntercept = setupClickIntercept(iframe);
     };
     cleanupPatch = patchIframeHistory(iframe, syncIframeToParent);
+    cleanupClickIntercept = setupClickIntercept(iframe);
     iframe.addEventListener('load', onLoad);
     return () => {
       iframe.removeEventListener('load', onLoad);
       cleanupPatch?.();
+      cleanupClickIntercept?.();
     };
   }, [navigate, parentPathQuery]);
 
