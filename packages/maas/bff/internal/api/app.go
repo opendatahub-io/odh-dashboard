@@ -121,8 +121,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		if cfg.MaasApiUrl == "" {
 			clusterDomain, err := helper.GetClusterDomainUsingServiceAccount(context.Background(), logger)
 			if err != nil {
-				logger.Error("Automatic discovery of cluster domain failed", "error", err)
-				os.Exit(1)
+				return nil, fmt.Errorf("automatic discovery of cluster domain failed: %w", err)
 			}
 
 			cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)

@@ -22,7 +22,7 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 // CreateAPIKeyHandler handles POST /api/v1/api-key
 // Creates a new API key with optional name, description, and expiration
 func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var request models.APIKeyRequest
+	var request Envelope[models.APIKeyRequest, None]
 
 	// Parse request body if present
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -31,11 +31,11 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 	}
 
 	// Set default expiration if not provided
-	if request.Expiration == "" {
-		request.Expiration = "4h"
+	if request.Data.Expiration == "" {
+		request.Data.Expiration = "4h"
 	}
 
-	response, err := app.repositories.APIKeys.CreateAPIKey(r.Context(), request)
+	response, err := app.repositories.APIKeys.CreateAPIKey(r.Context(), request.Data)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
