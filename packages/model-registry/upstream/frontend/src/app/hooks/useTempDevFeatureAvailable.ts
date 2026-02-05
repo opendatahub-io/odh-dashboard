@@ -15,7 +15,7 @@
 
 import * as React from 'react';
 import { useBrowserStorage } from 'mod-arch-core';
-import { useTempDevFeatureFlagsOverrides } from '~/odh/extension-points';
+import { useOdhDevFeatureFlagOverrides } from '~/odh/extension-points';
 
 declare global {
   interface Window {
@@ -33,7 +33,7 @@ export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => 
   const [localStorageValue, setIsAvailable] = useBrowserStorage(feature, false);
 
   // Check for ODH dev feature flag overrides from context
-  const overrides = useTempDevFeatureFlagsOverrides();
+  const overrides = useOdhDevFeatureFlagOverrides();
   const contextOverride = overrides?.[feature];
 
   // Expose setter to window for easy toggling via browser console
