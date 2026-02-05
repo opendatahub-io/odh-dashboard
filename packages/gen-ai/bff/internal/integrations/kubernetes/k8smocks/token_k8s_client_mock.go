@@ -395,12 +395,21 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
+	// Check guardrails: feature flag first, then auto-detect infrastructure
+	actuallyEnableGuardrails := false
+	if enableGuardrails {
+		guardrailStatus, err := m.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
+		if err == nil && guardrailStatus.Phase == "Ready" {
+			actuallyEnableGuardrails = true
+		}
+	}
+
 	// Build safety section based on enableGuardrails flag
 	// When enabled, guardrails are automatically added for all selected models
 	safetySection := "  safety: []"
 	shieldsSection := "  shields: []"
 
-	if enableGuardrails && len(installModels) > 0 {
+	if actuallyEnableGuardrails && len(installModels) > 0 {
 		// Build shields config for each model when guardrails are enabled
 		shieldsConfig := ""
 		shieldsList := ""

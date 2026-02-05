@@ -76,7 +76,9 @@ const (
 	CatalogSourcePreviewPath                 = ModelCatalogSettingsPathPrefix + "/source_preview"
 
 	// Model Transfer Jobs
+	ModelTransferJobId       = "job_id"
 	ModelTransferJobListPath = ModelRegistryPath + "/model_transfer_jobs"
+	ModelTransferJobPath     = ModelTransferJobListPath + "/:" + ModelTransferJobId
 
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
@@ -251,6 +253,9 @@ func (app *App) Routes() http.Handler {
 
 	// Model Transfer Jobs
 	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetAllModelTransferJobsHandler)))
+	apiRouter.POST(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.CreateModelTransferJobHandler)))
+	apiRouter.PATCH(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.UpdateModelTransferJobHandler)))
+	apiRouter.DELETE(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.DeleteModelTransferJobHandler)))
 
 	// Model catalog HTTP client routes (requests that we forward to Model Catalog API)
 	apiRouter.GET(CatalogModelListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllCatalogModelsAcrossSourcesHandler)))

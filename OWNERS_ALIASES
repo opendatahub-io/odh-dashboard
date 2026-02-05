@@ -64,6 +64,7 @@ aliases:
     - mturley
     - ppadti
     - YuliaKrimerman
+    - Philip-Carneiro
 
   # Model Serving & Model Metrics
   model-serving-metrics-approvers:
