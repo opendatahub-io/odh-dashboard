@@ -15,40 +15,33 @@ const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> =
   guardrailModels,
   guardrailModelsLoaded,
 }) => {
-  const hasGuardrailModels = guardrailModelsLoaded && guardrailModels.length > 0;
-  const isLoading = !guardrailModelsLoaded;
+  // Empty state: loaded but no models available
+  if (guardrailModelsLoaded && guardrailModels.length === 0) {
+    return (
+      <EmptyState
+        titleText="No guardrail configuration found"
+        icon={CogIcon}
+        variant="sm"
+        data-testid="guardrails-empty-state"
+      >
+        <EmptyStateBody>
+          This playground does not have a guardrail configuration. Contact a cluster administrator
+          to add guardrails.
+        </EmptyStateBody>
+      </EmptyState>
+    );
+  }
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
+  // Loading or has models: show title with content
+  return (
+    <TabContentWrapper title="Guardrails" titleTestId="guardrails-section-title">
+      {!guardrailModelsLoaded ? (
         <Bullseye>
           <Spinner size="lg" aria-label="Loading guardrail models" />
         </Bullseye>
-      );
-    }
-
-    if (!hasGuardrailModels) {
-      return (
-        <EmptyState
-          titleText="No guardrail configuration found"
-          icon={CogIcon}
-          variant="sm"
-          data-testid="guardrails-empty-state"
-        >
-          <EmptyStateBody>
-            This playground does not have a guardrail configuration. Contact a cluster administrator
-            to add guardrails.
-          </EmptyStateBody>
-        </EmptyState>
-      );
-    }
-
-    return <GuardrailsPanel configId={configId} availableModels={guardrailModels} />;
-  };
-
-  return (
-    <TabContentWrapper title="Guardrails" titleTestId="guardrails-section-title">
-      {renderContent()}
+      ) : (
+        <GuardrailsPanel configId={configId} availableModels={guardrailModels} />
+      )}
     </TabContentWrapper>
   );
 };
