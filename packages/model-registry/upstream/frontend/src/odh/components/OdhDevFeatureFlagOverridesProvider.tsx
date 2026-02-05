@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TempDevFeatureFlagsContext, TempDevFeatureFlagsOverrides } from '~/odh/extension-points';
+import { OdhDevFeatureFlagOverridesContext, OdhDevFeatureFlagOverrides } from '~/odh/extension-points';
 
 // The session storage key used by ODH dev feature flags
 const ODH_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
@@ -24,7 +24,7 @@ const readOdhDevFlags = (): Record<string, boolean> | null => {
 
 /**
  * ODH-specific provider component that reads dev feature flags from session storage
- * and provides them to the TempDevFeatureFlagsContext for use by useTempDevFeatureAvailable.
+ * and provides them to the OdhDevFeatureFlagOverridesContext for use by useTempDevFeatureAvailable.
  *
  * ODH stores its dev feature flags in session storage with key 'odh-feature-flags'.
  * This component reads from that storage and extracts the relevant temp dev feature flags,
@@ -47,7 +47,7 @@ const OdhDevFeatureFlagOverridesProvider: React.FC<{ children: React.ReactNode }
     return () => window.removeEventListener('odh-dev-flags-changed', handleFlagsChanged);
   }, []);
 
-  const overrides = React.useMemo<TempDevFeatureFlagsOverrides>(() => {
+  const overrides = React.useMemo<OdhDevFeatureFlagOverrides>(() => {
     if (!odhDevFlags) {
       return null;
     }
@@ -66,9 +66,9 @@ const OdhDevFeatureFlagOverridesProvider: React.FC<{ children: React.ReactNode }
   }, [odhDevFlags]);
 
   return (
-    <TempDevFeatureFlagsContext.Provider value={overrides}>
+    <OdhDevFeatureFlagOverridesContext.Provider value={overrides}>
       {children}
-    </TempDevFeatureFlagsContext.Provider>
+    </OdhDevFeatureFlagOverridesContext.Provider>
   );
 };
 
