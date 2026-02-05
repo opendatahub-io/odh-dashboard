@@ -1,8 +1,21 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { appChrome } from '../appChrome';
 
 const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 const MLFLOW_DEFAULT_PATH = '/experiments';
 const WORKSPACE_QUERY_PARAM = 'workspace';
+
+type ClickModifiers = {
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  shiftKey?: boolean;
+  button?: number;
+};
+
+type WindowOpenTracker = {
+  wasCalled: () => boolean;
+  getUrl: () => string;
+};
 
 class MLflowExperimentsPage {
   visit(mlflowPath?: string, namespace?: string) {
@@ -80,6 +93,57 @@ class MLflowExperimentsPage {
     return cy.url().then((url) => {
       const urlObj = new URL(url);
       return urlObj.searchParams.get(WORKSPACE_QUERY_PARAM);
+    });
+  }
+
+  isIframeElement(element: HTMLElement | undefined): element is HTMLIFrameElement {
+    return element?.tagName.toLowerCase() === 'iframe';
+  }
+
+  setupWindowOpenStub(): WindowOpenTracker {
+    let called = false;
+    let url = '';
+
+    cy.window().then((win) => {
+      cy.stub(win, 'open').callsFake((openUrl: string) => {
+        called = true;
+        url = openUrl;
+        return null;
+      });
+    });
+
+    return {
+      wasCalled: () => called,
+      getUrl: () => url,
+    };
+  }
+
+  clickLinkInIframe(iframe: HTMLIFrameElement, testId: string, modifiers: ClickModifiers = {}) {
+    cy.wrap(iframe.contentDocument?.body)
+      .findByTestId(testId)
+      .then(($link) => {
+        const link = $link[0] as HTMLAnchorElement;
+        const clickEvent = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: iframe.contentWindow || undefined,
+          ...modifiers,
+        });
+        link.dispatchEvent(clickEvent);
+      });
+  }
+
+  withReadyIframe(callback: (iframe: HTMLIFrameElement) => void): void {
+    this.findMlflowIframe().then(($iframe) => {
+      const iframe = $iframe[0];
+      if (!this.isIframeElement(iframe)) {
+        throw new Error('Expected element to be an iframe');
+      }
+      cy.wrap(iframe).should(() => {
+        expect(iframe.contentDocument).to.not.be.null;
+        expect(iframe.contentDocument?.readyState).to.equal('complete');
+      });
+      callback(iframe);
     });
   }
 }
