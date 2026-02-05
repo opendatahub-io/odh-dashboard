@@ -35,6 +35,7 @@ import (
 	// Import KServe types
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+
 	// Import TrustyAI GuardrailsOrchestrator types
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
@@ -980,7 +981,7 @@ func (kc *TokenKubernetesClient) findGuardrailsServiceAccountTokenSecret(ctx con
 	return secretName, nil
 }
 
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailsFeatureEnabled bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1096,29 +1097,37 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		}
 	}
 
-	// Step 1b: If guardrails are enabled, find the guardrails service account token secret
+	// Step 1b: If the guardrails feature is enabled, find the guardrails service account token secret
 	// This follows the same pattern as VLLM token discovery
-	// Fail fast if guardrails are enabled but the token is missing - this is a security feature
+	// Fail fast if the guardrails feature is enabled but the token is missing - this is a security feature
 	// and users should not have a false sense of protection from a non-functional guardrail setup
-	if enableGuardrails {
-		guardrailsTokenSecret, err := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
-		if err != nil {
-			kc.Logger.Error("guardrails enabled but token secret not found", "error", err, "namespace", namespace)
-			return nil, fmt.Errorf("cannot enable guardrails in namespace %s: %w", namespace, err)
-		}
-		// Reference the guardrails service account token secret
-		envVars = append(envVars, corev1.EnvVar{
-			Name: constants.GuardrailAuthTokenEnvName,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: guardrailsTokenSecret,
+	// The guardrailsReady variable tracks whether guardrails were successfully configured
+	// with a valid token. If guardrailsFeatureEnabled is true and the orchestrator is ready but the token
+	// cannot be found, we return an error instead of silently setting guardrailsReady to false.
+	guardrailsReady := false
+
+	// Only auto-detect infrastructure if feature flag is enabled
+	if guardrailsFeatureEnabled {
+		guardrailStatus, err := kc.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
+		if err == nil && guardrailStatus.Phase == constants.GuardrailsPhaseReady {
+			guardrailsTokenSecret, tokenErr := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
+			if tokenErr != nil {
+				return nil, fmt.Errorf("guardrails are enabled but token secret could not be found: %w", tokenErr)
+			}
+			envVars = append(envVars, corev1.EnvVar{
+				Name: constants.GuardrailAuthTokenEnvName,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: guardrailsTokenSecret,
+						},
+						Key: "token",
 					},
-					Key: "token",
 				},
-			},
-		})
-		kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
+			})
+			guardrailsReady = true
+			kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
+		}
 	}
 
 	// Step 2: Create LlamaStackDistribution resource first
@@ -1184,7 +1193,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
 
 	// Step 3: Create ConfigMap with owner reference to the LSD
-	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, enableGuardrails, lsd, maasClient); err != nil {
+	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, guardrailsReady, lsd, maasClient); err != nil {
 		// If ConfigMap creation fails, we should clean up the LSD
 		kc.Logger.Error("failed to create ConfigMap with owner reference", "error", err)
 		// Note: In a production environment, you might want to delete the LSD here

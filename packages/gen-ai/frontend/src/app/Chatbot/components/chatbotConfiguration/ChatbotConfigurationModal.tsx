@@ -10,6 +10,7 @@ import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import type { MaaSModel } from '~/odh/extension-points/maas';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import ChatbotConfigurationTable from './ChatbotConfigurationTable';
 import ChatbotConfigurationState from './ChatbotConfigurationState';
 
@@ -43,6 +44,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
+  const guardrailsEnabled = useGuardrailsEnabled();
 
   // Convert pure MaaS models to AIModel format so they can be used in the table
   const maasAsAIModels: AIModel[] = React.useMemo(() => {
@@ -153,6 +155,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               ...(maxTokens !== undefined && { max_tokens: maxTokens }),
             };
           }),
+          enable_guardrails: guardrailsEnabled,
         })
         .then(() => {
           fireFormTrackingEvent(
