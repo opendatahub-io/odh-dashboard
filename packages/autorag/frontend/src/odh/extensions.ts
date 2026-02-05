@@ -1,3 +1,4 @@
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   NavExtension,
   RouteExtension,
@@ -14,7 +15,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     type: 'app.area',
     properties: {
       id: AUTORAG,
-      requiredComponents: [],
+      requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
       featureFlags: ['autoRag'],
       reliantAreas: [GEN_AI_STUDIO], // Requires Gen AI Studio to be enabled
     },
