@@ -14,7 +14,8 @@ import (
 // LlamaStackConfig represents the main configuration structure
 type LlamaStackConfig struct {
 	Version             string              `json:"version" yaml:"version"`
-	ImageName           string              `json:"image_name" yaml:"image_name"`
+	DistroName          string              `json:"distro_name" yaml:"distro_name"`
+	ImageName           string              `json:"image_name,omitempty" yaml:"image_name,omitempty"` // Deprecated: Use DistroName (backward compatibility)
 	APIs                []string            `json:"apis" yaml:"apis"`
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
@@ -105,8 +106,8 @@ func (c *LlamaStackConfig) EnsureStorageField() {
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
-		Version:   "2",
-		ImageName: "rh",
+		Version:    "2",
+		DistroName: "rh",
 		APIs: []string{
 			"agents", "datasetio", "files", "inference",
 			"safety", "scoring", "tool_runtime", "vector_io",

@@ -488,7 +488,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		Data: map[string]string{
 			constants.LlamaStackConfigYAMLKey: `# Llama Stack Configuration
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
 - datasetio
 - files
