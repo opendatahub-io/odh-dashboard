@@ -12,7 +12,6 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { experimentsPageTitle } from '#~/pages/pipelines/global/experiments/const';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
 import MlflowIframe from './MLflowIframe';
 
 const GlobalMLflowExperimentsPage: React.FC = () => (
@@ -26,42 +25,45 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
       />
     }
     headerContent={
-      <PipelineCoreProjectSelector
-        getRedirectPath={mlflowExperimentsBaseRoute}
-        queryParamNamespace={WORKSPACE_QUERY_PARAM}
-      />
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      >
+        <FlexItem>
+          <PipelineCoreProjectSelector
+            getRedirectPath={mlflowExperimentsBaseRoute}
+            queryParamNamespace={WORKSPACE_QUERY_PARAM}
+          />
+        </FlexItem>
+        <FlexItem>
+          <Button
+            component="a"
+            isInline
+            data-testid="mlflow-embedded-jump-link"
+            href={MLFLOW_PROXY_BASE_PATH}
+            target="_blank"
+            variant="link"
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+            aria-label="Launch MLflow"
+            onClick={() =>
+              fireLinkTrackingEvent('Launch MLflow clicked', {
+                from: window.location.pathname,
+                href: MLFLOW_PROXY_BASE_PATH,
+                section: 'experiments-page',
+              })
+            }
+          >
+            Launch MLflow
+          </Button>
+        </FlexItem>
+      </Flex>
     }
     provideChildrenPadding
     removeChildrenTopPadding
     keepBodyWrapper={false}
   >
-    <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
-      <FlexItem>
-        <Button
-          component="a"
-          isInline
-          data-testid="mlflow-embedded-jump-link"
-          href={MLFLOW_PROXY_BASE_PATH}
-          target="_blank"
-          variant="link"
-          icon={<ExternalLinkAltIcon />}
-          iconPosition="end"
-          aria-label="Launch MLflow"
-          onClick={() =>
-            fireLinkTrackingEvent('Launch MLflow clicked', {
-              from: window.location.pathname,
-              href: MLFLOW_PROXY_BASE_PATH,
-              section: 'experiments-page',
-            })
-          }
-        >
-          Launch MLflow
-        </Button>
-      </FlexItem>
-    </Flex>
-    <MLflowIframeCSSOverride>
-      {(iframeRef) => <MlflowIframe ref={iframeRef} />}
-    </MLflowIframeCSSOverride>
+    <MlflowIframe />
   </ApplicationsPage>
 );
 
