@@ -24,7 +24,11 @@ export const useNotificationListener = (): void => {
       const lastNotification = notifications[notifications.length - 1];
       
       // Only dispatch event for new notifications we haven't seen before
-      if (lastNotification.id !== lastNotificationIdRef.current && !lastNotification.hidden) {
+      if (
+        lastNotification.id !== undefined &&
+        lastNotification.id !== lastNotificationIdRef.current &&
+        !lastNotification.hidden
+      ) {
         lastNotificationIdRef.current = lastNotification.id;
         
         try {
