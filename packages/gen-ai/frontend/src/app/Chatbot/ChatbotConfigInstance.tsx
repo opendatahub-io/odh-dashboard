@@ -33,6 +33,7 @@ interface ChatbotConfigInstanceProps {
   mcpServerTokens: Map<string, TokenInfo>;
   namespace?: string;
   showWelcomePrompt?: boolean;
+  welcomeDescription?: string;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   guardrailModelConfigs?: GuardrailModelConfig[];
 }
@@ -48,6 +49,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   mcpServerTokens,
   namespace,
   showWelcomePrompt = false,
+  welcomeDescription = 'Welcome to the playground',
   onMessagesHookReady,
   guardrailModelConfigs = [],
 }) => {
@@ -114,7 +116,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
       {showWelcomePrompt && (
         <ChatbotWelcomePrompt
           title={username ? `Hello, ${username}` : 'Hello'}
-          description="Welcome to the playground"
+          description={welcomeDescription}
           data-testid="chatbot-welcome-prompt"
           style={{
             cursor: 'default',

@@ -7,7 +7,7 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { FileModel } from '~/app/types';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
-import { useChatbotConfigStore, ChatbotConfigStore } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, ChatbotConfigStore, MODEL_1_CONFIG_ID } from '~/app/Chatbot/store';
 
 jest.mock('~/app/hooks/useFetchVectorStores');
 jest.mock('~/app/hooks/useGenAiAPI');
@@ -38,9 +38,9 @@ const createMockStore = (configOverrides = {}) => {
 
   return {
     configurations: {
-      default: defaultConfig,
+      [MODEL_1_CONFIG_ID]: defaultConfig,
     },
-    configIds: ['default'],
+    configIds: [MODEL_1_CONFIG_ID],
     getToolSelections: jest.fn().mockReturnValue(undefined),
   } as unknown as ChatbotConfigStore;
 };
@@ -83,7 +83,7 @@ describe('ViewCodeModal', () => {
   const defaultProps = {
     isOpen: true,
     onToggle: jest.fn(),
-    configId: 'default',
+    configId: MODEL_1_CONFIG_ID,
     input: 'What is machine learning?',
     files: mockFiles,
   };
@@ -267,7 +267,11 @@ describe('ViewCodeModal', () => {
     };
 
     const mockGetToolSelections = jest.fn((configId: string, ns: string, url: string) => {
-      if (configId === 'default' && ns === 'test-namespace' && url === 'http://test-server') {
+      if (
+        configId === MODEL_1_CONFIG_ID &&
+        ns === 'test-namespace' &&
+        url === 'http://test-server'
+      ) {
         return ['tool1', 'tool2'];
       }
       return undefined;
