@@ -184,7 +184,7 @@
     "victory-tooltip": "^37.3.6",
     "victory-voronoi-container": "^37.3.6",
     "victory-zoom-container": "^37.3.6",
-    "webpack": "^5.96.1",
+    "webpack": "^5.104.1",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.1.0",
