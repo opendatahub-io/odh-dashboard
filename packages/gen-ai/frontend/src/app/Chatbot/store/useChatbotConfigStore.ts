@@ -198,6 +198,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           selectedModel: sourceConfig.selectedModel,
           selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
           mcpToolSelections: mcpToolSelectionsCopy,
+          currentVectorStoreId: sourceConfig.currentVectorStoreId,
           guardrail: sourceConfig.guardrail,
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
@@ -288,6 +289,19 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         );
       },
 
+      updateCurrentVectorStoreId: (id: string, value: string) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.currentVectorStoreId = value;
+            }
+          },
+          false,
+          'updateCurrentVectorStoreId',
+        );
+      },
+
       // MCP tool selections (per-config state)
       getToolSelections: (id: string, namespace: string, serverUrl: string) =>
         get().configurations[id]?.mcpToolSelections[namespace]?.[serverUrl],
@@ -337,30 +351,42 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
       },
 
       updateGuardrail: (id: string, value: string) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.guardrail = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.guardrail = value;
+            }
+          },
+          false,
+          'updateGuardrail',
+        );
       },
 
       updateGuardrailUserInputEnabled: (id: string, value: boolean) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.guardrailUserInputEnabled = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.guardrailUserInputEnabled = value;
+            }
+          },
+          false,
+          'updateGuardrailUserInputEnabled',
+        );
       },
 
       updateGuardrailModelOutputEnabled: (id: string, value: boolean) => {
-        set((state) => {
-          const config = state.configurations[id];
-          if (config) {
-            config.guardrailModelOutputEnabled = value;
-          }
-        });
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.guardrailModelOutputEnabled = value;
+            }
+          },
+          false,
+          'updateGuardrailModelOutputEnabled',
+        );
       },
 
       // Configuration management

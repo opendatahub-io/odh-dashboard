@@ -20,6 +20,7 @@ export interface ChatbotConfiguration {
   isStreamingEnabled: boolean;
   selectedModel: string;
   selectedMcpServerIds: string[];
+  currentVectorStoreId: string;
   mcpToolSelections: McpToolSelectionsMap;
   guardrail: string;
   guardrailUserInputEnabled: boolean;
@@ -35,6 +36,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   isStreamingEnabled: true,
   selectedModel: '',
   selectedMcpServerIds: [],
+  currentVectorStoreId: '',
   mcpToolSelections: {},
   // Guardrails defaults - both OFF per UX design
   guardrail: '',
@@ -64,6 +66,7 @@ export interface ChatbotConfigStoreActions {
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
   updateSelectedMcpServerIds: (id: string, value: string[]) => void;
+  updateCurrentVectorStoreId: (id: string, value: string) => void;
 
   // MCP tool selections (per-config state)
   getToolSelections: (id: string, namespace: string, serverUrl: string) => string[] | undefined;

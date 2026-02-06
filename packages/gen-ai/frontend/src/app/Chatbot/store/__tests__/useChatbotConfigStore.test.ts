@@ -85,6 +85,17 @@ describe('useChatbotConfigStore', () => {
       const state = useChatbotConfigStore.getState();
       expect(state.configurations['non-existent']).toBeUndefined();
     });
+
+    it('should update currentVectorStoreId', () => {
+      const vectorStoreId = 'test-vector-store-1';
+
+      act(() => {
+        useChatbotConfigStore.getState().updateCurrentVectorStoreId('default', vectorStoreId);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations.default?.currentVectorStoreId).toBe(vectorStoreId);
+    });
   });
 
   describe('resetConfiguration', () => {
