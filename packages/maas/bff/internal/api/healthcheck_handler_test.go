@@ -7,17 +7,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
+	repos, err := repositories.NewRepositories(nil, nil, config.EnvConfig{})
+	assert.NoError(t, err)
 	app := App{config: config.EnvConfig{
 		Port: 4000,
 	},
-		repositories: repositories.NewRepositories(nil, nil, config.EnvConfig{}),
+		repositories: repos,
 	}
 
 	rr := httptest.NewRecorder()
