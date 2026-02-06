@@ -161,6 +161,7 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
       {isConfirmOpen && (
         <RoleAssignmentChangesModal
           subjectName={trimmedSubjectName}
+          subjectKind={subjectKind}
           changes={changes}
           onClose={() => setIsConfirmOpen(false)}
           onConfirm={handleSave}

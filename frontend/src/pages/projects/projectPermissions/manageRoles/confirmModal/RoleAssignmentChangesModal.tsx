@@ -12,10 +12,12 @@ import {
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { isAiRole } from '#~/pages/projects/projectPermissions/utils';
 import type { RoleAssignmentChanges } from '#~/pages/projects/projectPermissions/manageRoles/types';
+import type { SubjectKindSelection } from '#~/pages/projects/projectPermissions/types';
 import RoleChangesSection from './RoleChangesSection';
 
 type RoleAssignmentChangesModalProps = {
   subjectName: string;
+  subjectKind: SubjectKindSelection;
   changes: RoleAssignmentChanges;
   onClose: () => void;
   onConfirm: () => Promise<void>;
@@ -23,6 +25,7 @@ type RoleAssignmentChangesModalProps = {
 
 const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
   subjectName,
+  subjectKind,
   changes,
   onClose,
   onConfirm,
@@ -60,7 +63,7 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            The following role assignment changes will be applied to the user{' '}
+            The following role assignment changes will be applied to the {subjectKind}{' '}
             <strong>{subjectName}</strong>.
           </StackItem>
           <StackItem>
@@ -93,7 +96,7 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
                 isInline
                 variant="danger"
                 data-testid="assign-roles-confirm-custom-role-warning"
-                title="Roles cannot be reassigned "
+                title="Roles cannot be reassigned"
               >
                 OpenShift custom roles cannot be assigned from {ODH_PRODUCT_NAME}. To reassign this
                 role after removing it, you or an administrator must do so from OpenShift.

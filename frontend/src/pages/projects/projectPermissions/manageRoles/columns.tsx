@@ -61,7 +61,7 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     info: {
       popover: (
         <Content>
-          <Content component={ContentVariants.p}>A role can have four possible status:</Content>
+          <Content component={ContentVariants.p}>A role can have three possible statuses:</Content>
           <Content component={ContentVariants.ul}>
             <Content component={ContentVariants.li}>
               <strong>Assigned:</strong> The role is applied to the user or group.

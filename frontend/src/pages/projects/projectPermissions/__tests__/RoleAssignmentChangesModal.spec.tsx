@@ -58,6 +58,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -77,15 +78,18 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
+      // Text is split across elements: intro text + <strong>subjectName</strong>
       expect(
         screen.getByText(/The following role assignment changes will be applied to the user/),
       ).toBeInTheDocument();
+      expect(screen.getByText('test-user')).toBeInTheDocument();
     });
 
     it('should display singular label for single role assignment', () => {
@@ -97,6 +101,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -118,6 +123,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -136,6 +142,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -157,6 +164,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -178,6 +186,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -198,6 +207,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -218,6 +228,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -238,6 +249,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -260,6 +272,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -282,6 +295,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -302,6 +316,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -325,6 +340,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -343,6 +359,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -365,6 +382,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -384,6 +402,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -414,6 +433,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -445,6 +465,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -477,6 +498,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -502,6 +524,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -531,6 +554,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -560,6 +584,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -592,6 +617,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName=""
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -612,6 +638,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName={longName}
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -641,6 +668,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
