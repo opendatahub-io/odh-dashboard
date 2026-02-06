@@ -22,6 +22,7 @@ import {
   MLFLOW_DEFAULT_PATH,
   setWorkspaceQueryParam,
 } from '#~/routes/pipelines/mlflowExperiments';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
   const base = href.replace(/\/+$/, '');
@@ -85,6 +86,13 @@ const MLflowCard: React.FC = () => {
               rel="noopener noreferrer"
               icon={<ExternalLinkAltIcon />}
               iconPosition="right"
+              onClick={() =>
+                fireLinkTrackingEvent('Launch MLflow clicked', {
+                  from: window.location.pathname,
+                  href: mlflowWorkspaceHref,
+                  section: 'project-overview',
+                })
+              }
             >
               Launch MLflow
             </Button>

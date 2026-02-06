@@ -11,6 +11,7 @@ import {
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { experimentsPageTitle } from '#~/pages/pipelines/global/experiments/const';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
 import MlflowIframe from './MLflowIframe';
 
@@ -46,6 +47,13 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
           icon={<ExternalLinkAltIcon />}
           iconPosition="end"
           aria-label="Launch MLflow"
+          onClick={() =>
+            fireLinkTrackingEvent('Launch MLflow clicked', {
+              from: window.location.pathname,
+              href: MLFLOW_PROXY_BASE_PATH,
+              section: 'experiments-page',
+            })
+          }
         >
           Launch MLflow
         </Button>
