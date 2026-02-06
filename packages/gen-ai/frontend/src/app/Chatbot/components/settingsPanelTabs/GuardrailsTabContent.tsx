@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, Spinner, Bullseye } from '@patternfly/react-core';
-import { CogIcon } from '@patternfly/react-icons';
 import GuardrailsPanel from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
+import SupportIcon from '~/app/bgimages/support-icon.svg';
 import TabContentWrapper from './TabContentWrapper';
 
 interface GuardrailsTabContentProps {
@@ -20,7 +20,9 @@ const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> =
     return (
       <EmptyState
         titleText="No guardrail configuration found"
-        icon={CogIcon}
+        icon={() => (
+          <img src={SupportIcon} alt="Support icon" style={{ width: '56px', height: '56px' }} />
+        )}
         variant="sm"
         data-testid="guardrails-empty-state"
       >
