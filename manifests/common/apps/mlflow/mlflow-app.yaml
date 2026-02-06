@@ -14,7 +14,7 @@ spec:
   displayName: MLflow
   support: red hat
   provider: Mlflow
-  docsLink: 'https://mlflow.org/docs/latest/index.html'
+  docsLink: 'https://access.redhat.com/articles/7136121'
   getStartedMarkDown: >-
     # MLflow
     
