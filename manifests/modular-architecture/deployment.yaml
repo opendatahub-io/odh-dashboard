@@ -1,6 +1,8 @@
 - op: add
   path: /spec/template/spec/containers/0/env
   value:
+    - name: GATEWAY_DOMAIN
+      value: ""
     - name: MODULE_FEDERATION_CONFIG
       valueFrom:
         configMapKeyRef:
