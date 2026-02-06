@@ -78,8 +78,17 @@ const initIntercepts = (options: InitInterceptsOptions = {}) => {
 };
 
 describe('MLflow Experiments', () => {
-  it('should show the MLflow Experiments page and override css components', () => {
+  beforeEach(() => {
     initIntercepts();
+  });
+
+  it('mlflow jump link exists', () => {
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findMlflowJumpLink().should('be.visible');
+    mlflowExperimentsPage.findMlflowJumpLink().should('have.attr', 'href', MLFLOW_PROXY_BASE_PATH);
+  });
+
+  it('should show the MLflow Experiments page and override css components', () => {
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
     mlflowExperimentsPage
@@ -121,7 +130,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should load the correct iframe page from parent URL', () => {
-    initIntercepts();
     const runIds = [
       '02a652600cce4bb4b820d5a1717712f3',
       'e41bdeb677d848d6a5c7247c4aca4a2f',
@@ -153,7 +161,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should sync parent URL when iframe navigates', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     cy.wait('@mlflowIframe');
 
@@ -199,7 +206,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should not create duplicate history entries on internal redirects', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     cy.wait('@mlflowIframe');
 
@@ -233,7 +239,6 @@ describe('MLflow Experiments', () => {
   it('should add only one history entry when clicking navbar including the iframe redirect', () => {
     // Simulating mlflow internal redirect from /experiments
     // to /workspaces/default/experiments i.e. a workspace's experiments page
-    initIntercepts();
     cy.visitWithLogin('/');
     cy.window()
       .its('history.length')
@@ -271,7 +276,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should display the project selector', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findProjectSelect().should('be.visible');
     mlflowExperimentsPage.findProjectSelect().should('contain.text', 'Test Project');
@@ -297,7 +301,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should redirect to workspace URL when visiting base route', () => {
-    initIntercepts();
     cy.visitWithLogin(`${MLFLOW_EXPERIMENTS_ROUTE}`);
     cy.url().should('include', `${MLFLOW_EXPERIMENTS_ROUTE}/experiments`);
     cy.url().should('include', `workspace=${TEST_PROJECT_NAME}`);
@@ -305,7 +308,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should toggle theme between light and dark', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findDarkThemeToggle().click();
     cy.window().then((win) => {

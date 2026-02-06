@@ -30,6 +30,14 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   findManageRolesAction(rowName: string) {
     return this.getRowByName(rowName).findKebabAction('Manage roles');
   }
+
+  findTableHeaderButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
+  }
+
+  clickColumnSort(name: string | RegExp) {
+    return this.findTableHeaderButton(name).click();
+  }
 }
 
 class RoleDetailsModal extends Contextual<HTMLElement> {
@@ -106,6 +114,18 @@ class ProjectRbacPermissionsTab {
 
   findAssignRolesSubjectKindRadio(kind: 'user' | 'group') {
     return cy.findByTestId(`assign-roles-subject-kind-${kind}`);
+  }
+
+  findAssignRolesSaveButton() {
+    return cy.findByTestId('assign-roles-save');
+  }
+
+  findAssignRolesBreadcrumbProjects() {
+    return cy.findByTestId('assign-roles-breadcrumb-projects');
+  }
+
+  findAssignRolesBreadcrumbProject() {
+    return cy.findByTestId('assign-roles-breadcrumb-project');
   }
 
   findUsersTable() {
@@ -201,6 +221,10 @@ class ProjectRbacPermissionsTab {
   getManageRolesTable() {
     return new ManageRolesTable(() => cy.findByTestId('manage-roles-table'));
   }
+
+  getRoleAssignmentChangesModal() {
+    return new RoleAssignmentChangesModal(() => cy.findByTestId('assign-roles-confirm-modal'));
+  }
 }
 
 class DiscardChangesModal extends Contextual<HTMLElement> {
@@ -238,6 +262,32 @@ class ManageRolesTable extends Contextual<HTMLElement> {
 
   toggleRole(roleName: string) {
     return this.findRoleCheckbox(roleName).click();
+  }
+}
+
+class RoleAssignmentChangesModal extends Contextual<HTMLElement> {
+  findSaveButton() {
+    return this.find().findByTestId('assign-roles-confirm-save');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('assign-roles-confirm-cancel');
+  }
+
+  findCustomRoleWarning() {
+    return this.find().findByTestId('assign-roles-confirm-custom-role-warning');
+  }
+
+  findError() {
+    return this.find().findByTestId('assign-roles-confirm-error');
+  }
+
+  findAssigningSection() {
+    return this.find().findByTestId('assign-roles-confirm-assigning-section');
+  }
+
+  findUnassigningSection() {
+    return this.find().findByTestId('assign-roles-confirm-unassigning-section');
   }
 }
 

@@ -20,6 +20,7 @@ import {
   ModelLocationData,
   WizardFormData,
   type InitialWizardFormData,
+  WizardStepTitle,
 } from './types';
 import {
   handleConnectionCreation,
@@ -212,4 +213,8 @@ export const resolveConnectionType = (
     default:
       return undefined;
   }
+};
+
+export const isWizardStepTitle = (value: string): value is WizardStepTitle => {
+  return Object.values(WizardStepTitle).some((title) => title === value);
 };

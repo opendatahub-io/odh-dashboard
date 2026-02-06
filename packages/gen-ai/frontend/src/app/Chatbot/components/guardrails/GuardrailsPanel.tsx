@@ -11,6 +11,7 @@ import {
   SelectList,
   Switch,
 } from '@patternfly/react-core';
+import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import {
   useChatbotConfigStore,
   selectGuardrail,
@@ -60,7 +61,13 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
 
   return (
     <Form>
-      <FormGroup label="Guardrail model" fieldId="guardrail-model">
+      <FormGroup
+        label="Guardrail model"
+        fieldId="guardrail-model"
+        labelHelp={
+          <FieldGroupHelpLabelIcon content="This is the model that enforces the guardrails." />
+        }
+      >
         <Select
           id="guardrail-model-select"
           isOpen={isModelSelectOpen}
