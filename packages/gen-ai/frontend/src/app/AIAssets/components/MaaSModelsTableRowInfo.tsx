@@ -46,10 +46,15 @@ const MaaSModelsTableRowInfo: React.FC<MaaSModelsTableRowInfoProps> = ({ model }
                 clickTip="Model ID copied"
                 aria-label="Copy model ID"
                 onCopy={() => {
-                  fireMiscTrackingEvent('Available Endpoints Model Id Copied', {
-                    assetType: 'maas_model',
-                    assetId: model.id,
-                  });
+                  try {
+                    navigator.clipboard.writeText(model.id);
+                    fireMiscTrackingEvent('Available Endpoints Model Id Copied', {
+                      assetType: 'maas_model',
+                      assetId: model.id,
+                    });
+                  } catch {
+                    // Do nothing
+                  }
                 }}
               >
                 {model.id}
