@@ -9,6 +9,7 @@ export const techPreviewFlags = {
   mlflow: false,
   projectRBAC: false,
   observabilityDashboard: false,
+  autorag: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
