@@ -10,7 +10,8 @@ import (
 
 func CreateMaasFakeServer() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+		switch r.Method {
+		case http.MethodGet:
 			if r.URL.Path == "/v1/api-keys" {
 				sendFakeResponse("api-keys-list.json", http.StatusOK, w)
 				return
@@ -19,12 +20,14 @@ func CreateMaasFakeServer() *httptest.Server {
 				sendFakeResponse("get-api-key-response.json", http.StatusOK, w)
 				return
 			}
-		} else if r.Method == "POST" {
+
+		case http.MethodPost:
 			if r.URL.Path == "/v1/api-keys" {
 				sendFakeResponse("create-api-key-response.json", http.StatusCreated, w)
 				return
 			}
-		} else {
+
+		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
