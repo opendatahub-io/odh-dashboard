@@ -17,7 +17,11 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { MLFLOW_DEFAULT_PATH, setWorkspaceQueryParam } from '#~/routes/pipelines/mlflowExperiments';
+import {
+  MLFLOW_EXPERIMENTS_ROUTE,
+  MLFLOW_DEFAULT_PATH,
+  setWorkspaceQueryParam,
+} from '#~/routes/pipelines/mlflowExperiments';
 
 const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
   const base = href.replace(/\/+$/, '');
@@ -66,7 +70,7 @@ const MLflowCard: React.FC = () => {
             <Button
               data-testid="embedded-mlflow-experiments-link"
               variant="link"
-              onClick={() => navigate('/develop-train/experiments-mlflow')}
+              onClick={() => navigate(MLFLOW_EXPERIMENTS_ROUTE)}
             >
               Go to <strong>Experiments</strong>
             </Button>
