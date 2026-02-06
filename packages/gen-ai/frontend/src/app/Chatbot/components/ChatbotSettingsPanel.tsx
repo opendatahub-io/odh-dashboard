@@ -56,6 +56,7 @@ interface ChatbotSettingsPanelProps {
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
+  guardrailModelsError?: Error;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -76,6 +77,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModels = [],
   guardrailModelsLoaded = false,
   onCloseClick,
+  guardrailModelsError,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
@@ -259,6 +261,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 configId={configId}
                 guardrailModels={guardrailModels}
                 guardrailModelsLoaded={guardrailModelsLoaded}
+                guardrailModelsError={guardrailModelsError}
               />
             </Tab>
           ) : null}
