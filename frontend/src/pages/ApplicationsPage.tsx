@@ -33,6 +33,7 @@ type ApplicationsPageProps = {
   subtext?: React.ReactNode;
   loadingContent?: React.ReactNode;
   noHeader?: boolean;
+  keepBodyWrapper?: boolean;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -51,6 +52,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerContent,
   provideChildrenPadding,
   removeChildrenTopPadding,
+  keepBodyWrapper = true,
   subtext,
   loadingContent,
   noHeader,
@@ -138,7 +140,11 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (provideChildrenPadding) {
       return (
-        <PageSection isFilled style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}>
+        <PageSection
+          isFilled
+          hasBodyWrapper={keepBodyWrapper}
+          style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}
+        >
           {children}
         </PageSection>
       );

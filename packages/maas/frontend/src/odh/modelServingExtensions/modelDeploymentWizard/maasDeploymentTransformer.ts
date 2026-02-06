@@ -1,5 +1,5 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import type { MaaSTierValue } from './MaaSEndpointCheckbox';
+import { MaaSTierValue, TierDropdownOption } from './MaaSEndpointCheckbox';
 
 export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
 
@@ -46,7 +46,7 @@ const convertAnnotationToTierValue = (
   if (annotationValue === 'null') {
     return {
       isChecked: true,
-      tiersDropdownSelection: 'no-tiers',
+      tiersDropdownSelection: TierDropdownOption.NoTiers,
       selectedTierNames: undefined,
     };
   }
@@ -57,14 +57,14 @@ const convertAnnotationToTierValue = (
       if (parsed.length === 0) {
         return {
           isChecked: true,
-          tiersDropdownSelection: 'all-tiers',
+          tiersDropdownSelection: TierDropdownOption.AllTiers,
           selectedTierNames: [],
         };
       }
       // Specific tiers
       return {
         isChecked: true,
-        tiersDropdownSelection: 'specify-tiers',
+        tiersDropdownSelection: TierDropdownOption.SpecifyTiers,
         selectedTierNames: parsed,
       };
     }

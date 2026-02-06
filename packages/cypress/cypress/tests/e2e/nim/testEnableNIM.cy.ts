@@ -8,6 +8,8 @@ import {
   checkNIMApplicationExists,
   waitForNIMAccountValidation,
 } from '../../../utils/oc_commands/nimCommands';
+import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { retryableBefore } from '../../../utils/retryableHooks';
 
 /**
  * NIM Application Enablement Test
@@ -21,21 +23,53 @@ import {
  * 6. Verifies the validation process and success notification
  * 7. Confirms the NIM application appears on the Enabled page
  *
- * The test is designed to work in both ODH and RHOAI environments,
- * automatically handling cases where NIM is not included by default.
+ * NOTE: NIM is a RHOAI-specific feature. This test is skipped on ODH deployments.
  */
-describe('[Product Bug: RHOAIENG-45982] Verify NIM enable flow', () => {
-  before(() => {
-    cy.step('Clean up any existing NIM account before test');
-    deleteNIMAccount();
+describe('Verify NIM enable flow', () => {
+  let skipTest = false;
+
+  const shouldSkip = () => {
+    if (skipTest) {
+      cy.log('Skipping test - NIM is RHOAI-specific and not available on ODH.');
+      return true;
+    }
+    return false;
+  };
+
+  retryableBefore(() => {
+    // Check if the operator is RHOAI, if it's not (ODH), skip the test
+    cy.step('Check if the operator is RHOAI');
+    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator')
+      .then((result) => {
+        if (!result.stdout.includes('rhods-operator')) {
+          cy.log('RHOAI operator not found, skipping the test (NIM is RHOAI-specific).');
+          skipTest = true;
+        } else {
+          cy.log('RHOAI operator confirmed:', result.stdout);
+        }
+      })
+      .then(() => {
+        // If not skipping, proceed with test setup
+        if (skipTest) {
+          return;
+        }
+
+        cy.step('Clean up any existing NIM account before test');
+        return deleteNIMAccount();
+      });
   });
 
   it(
     'Enable and validate NIM flow',
     {
-      tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent', '@Bug'],
+      tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'],
     },
     function enableAndValidateNIMFlow() {
+      // Skip test if running on ODH
+      if (shouldSkip()) {
+        return;
+      }
+
       cy.step('Login to the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -166,16 +200,10 @@ function executeNIMTestSteps(): void {
   cy.step('Wait for NIM account validation via oc command (up to 7 minutes)');
   waitForNIMAccountValidation();
 
-  // WORKAROUND: There is a known bug where the enable modal does not close automatically
-  // after the NIM account is successfully validated. The modal's polling mechanism fails to
-  // detect the timestamp change in the backend response, causing it to remain stuck on the
-  // "Contacting NVIDIA" progress screen even though the account is fully validated.
-  // As a workaround, we close the modal manually and navigate directly to the Enabled page
-  // to verify NIM was enabled successfully.
-  // TODO: Remove this workaround once the bug is fixed.
-  // Bug: https://issues.redhat.com/browse/RHOAIENG-45982
-  cy.step('Close the enable modal (workaround for modal not closing automatically)');
-  nimCard.findEnableModalCloseButton().click();
+  // Verify that the enable modal closes automatically after successful validation
+  // Note: This test only runs on RHOAI where the modal closes automatically
+  cy.step('Verify the enable modal closes automatically after validation');
+  nimCard.findEnableModal().should('not.exist', { timeout: 30000 });
 
   cy.step('Visit the enabled applications page to verify NIM is enabled');
   enabledPage.visit();

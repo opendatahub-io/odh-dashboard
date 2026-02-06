@@ -42,6 +42,47 @@ export type MaaSTierValue = {
   selectedTierNames?: string[]; // if tiersDropdownSelection is 'specify-tiers', this is the list of selected tier names
 };
 
+//// Dropdown options ////
+
+export enum TierDropdownOption {
+  AllTiers = 'all-tiers',
+  NoTiers = 'no-tiers',
+  SpecifyTiers = 'specify-tiers',
+}
+
+const TIER_DROPDOWN_OPTIONS: Array<{ key: TierDropdownOption; label: string }> = [
+  { key: TierDropdownOption.AllTiers, label: 'All tiers' },
+  { key: TierDropdownOption.NoTiers, label: 'No tiers' },
+  { key: TierDropdownOption.SpecifyTiers, label: 'Specific tiers' },
+];
+
+const getTierDropdownLabel = (key: TierDropdownOption): string => {
+  const option = TIER_DROPDOWN_OPTIONS.find((opt) => opt.key === key);
+  return option?.label ?? 'All tiers';
+};
+
+const getMaaSTierLabel = (
+  value: MaaSTierValue,
+  externalData?: { data: MaaSEndpointsExternalData },
+): string => {
+  const availableTiers = externalData?.data.tiers ?? [];
+  const selection = value.tiersDropdownSelection ?? TierDropdownOption.AllTiers;
+  if (selection === TierDropdownOption.NoTiers) {
+    return getTierDropdownLabel(TierDropdownOption.NoTiers);
+  }
+  if (selection === TierDropdownOption.SpecifyTiers) {
+    // Matching the display name of the selected tiers
+    return (
+      availableTiers
+        .filter((tier: Tier) => value.selectedTierNames?.includes(tier.name ?? ''))
+        .map((tier: Tier) => tier.displayName ?? tier.name ?? '')
+        .join(', ') ||
+      (value.selectedTierNames?.join(', ') ?? 'Tiers selected')
+    );
+  }
+  return getTierDropdownLabel(TierDropdownOption.AllTiers);
+};
+
 //// Zod Validation Schema ////
 
 /**
@@ -53,7 +94,7 @@ export type MaaSTierValue = {
 export const maasEndpointsFieldSchema = z
   .object({
     isChecked: z.boolean(),
-    tiersDropdownSelection: z.enum(['all-tiers', 'no-tiers', 'specify-tiers']).optional(),
+    tiersDropdownSelection: z.nativeEnum(TierDropdownOption).optional(),
     selectedTierNames: z.array(z.string()).optional(),
   })
   .refine(
@@ -96,20 +137,6 @@ const useMaaSEndpointsExternalData: MaaSEndpointsFieldType['externalDataHook'] =
     }),
     [tiers, hasViewTiersPermission, loaded, error],
   );
-};
-//// Dropdown options ////
-
-type TierDropdownOption = 'all-tiers' | 'no-tiers' | 'specify-tiers';
-
-const TIER_DROPDOWN_OPTIONS: Array<{ key: TierDropdownOption; label: string }> = [
-  { key: 'all-tiers', label: 'All tiers' },
-  { key: 'no-tiers', label: 'No tiers' },
-  { key: 'specify-tiers', label: 'Specific tiers' },
-];
-
-const getTierDropdownLabel = (key: TierDropdownOption): string => {
-  const option = TIER_DROPDOWN_OPTIONS.find((opt) => opt.key === key);
-  return option?.label ?? 'All tiers';
 };
 
 //// Component ////
@@ -154,7 +181,7 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({
     if (checked) {
       onChange({
         isChecked: true,
-        tiersDropdownSelection: 'all-tiers',
+        tiersDropdownSelection: TierDropdownOption.AllTiers,
         selectedTierNames: [],
       });
     } else {
@@ -245,7 +272,7 @@ const MaasEndpointField: React.FC<MaasEndpointFieldProps> = ({
                       placeholder="Select tier access"
                       value={value.tiersDropdownSelection ?? 'all-tiers'}
                       toggleLabel={getTierDropdownLabel(
-                        value.tiersDropdownSelection ?? 'all-tiers',
+                        value.tiersDropdownSelection ?? TierDropdownOption.AllTiers,
                       )}
                       onChange={handleDropdownChange}
                       popperProps={{ appendTo: 'inline' }}
@@ -310,4 +337,26 @@ export const MaaSEndpointFieldWizardField: MaaSEndpointsFieldType = {
   },
   component: MaasEndpointField,
   externalDataHook: useMaaSEndpointsExternalData,
+  getReviewSections: (value, _wizardState, externalData) => [
+    {
+      title: 'Advanced settings',
+      items: [
+        {
+          key: 'maas-endpoint-enabled',
+          label: 'MaaS endpoint',
+          value: () => (value.isChecked ? 'Yes' : 'No'),
+        },
+        {
+          key: 'maas-tier-access',
+          label: 'MaaS tier',
+          value: () =>
+            getMaaSTierLabel(value, {
+              data: externalData ?? { tiers: [], hasViewTiersPermission: false },
+            }),
+          optional: true,
+          isVisible: () => value.isChecked,
+        },
+      ],
+    },
+  ],
 };

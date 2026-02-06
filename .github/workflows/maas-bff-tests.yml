@@ -1,0 +1,59 @@
+name: Test / MaaS BFF Tests
+on:
+  push:
+    paths:
+      - "packages/maas/**"
+      - "!LICENSE*"
+      - "!DOCKERFILE*"
+      - "!**.gitignore"
+      - "!**.md"
+
+  pull_request:
+    paths:
+      - "packages/maas/**"
+      - ".github/workflows/**"
+      - "!LICENSE*"
+      - "!DOCKERFILE*"
+      - "!**.gitignore"
+      - "!**.md"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.24.6"
+
+      - name: Lint
+        working-directory: packages/maas/bff
+        run: make lint
+
+      - name: Build (BFF)
+        working-directory: packages/maas/bff
+        run: make build
+
+      - name: Install envtest assets
+        working-directory: packages/maas/bff
+        run: ./bin/setup-envtest-release-0.17 use 1.29.0 --bin-dir ./bin
+
+      - name: Test (BFF API)
+        working-directory: packages/maas/bff
+        env:
+          ENVTEST_ASSETS_DIR: ${{ github.workspace }}/packages/maas/bff/bin
+        run: go test ./internal/api
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/maas
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
