@@ -4,8 +4,12 @@ import {
   FormGroup,
   HelperText,
   HelperTextItem,
+  InputGroup,
+  InputGroupItem,
+  Spinner,
   TextArea,
   TextInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import {
   K8sNameDescriptionFieldData,
@@ -17,6 +21,13 @@ import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitio
 import { handleUpdateLogic, setupDefaults } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
 import ResourceNameField from './ResourceNameField';
+
+export enum NameAvailabilityStatus {
+  UNCHECKED = '',
+  VALID = 'valid',
+  INVALID = 'invalid',
+  IN_PROGRESS = 'in progress',
+}
 
 /** Companion data hook */
 export const useK8sNameDescriptionFieldData = (
@@ -47,6 +58,8 @@ type K8sNameDescriptionFieldProps = {
   maxLength?: number;
   maxLengthDesc?: number;
   resourceNameTakenHelperText?: React.ReactNode;
+  nameChecker?: (resourceName: string) => Promise<boolean> | boolean | null;
+  onNameValidationChange?: (status: NameAvailabilityStatus) => void;
 };
 
 /**
@@ -67,13 +80,131 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   maxLengthDesc,
   descriptionHelperText,
   resourceNameTakenHelperText,
+  nameChecker,
+  onNameValidationChange,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
+  const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { name, description, k8sName } = data;
 
+  // Keep a ref to the latest k8sName.value for async access
+  const k8sNameRef = React.useRef<string>(k8sName.value);
+  React.useEffect(() => {
+    k8sNameRef.current = k8sName.value;
+  }, [k8sName.value]);
+
   const showNameWarning = maxLength && name.length > maxLength - 10;
   const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
+
+  const [nameAvailability, setNameAvailability] = React.useState(NameAvailabilityStatus.UNCHECKED);
+
+  // Cleanup debounce timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const debouncedNameCheck = React.useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(async () => {
+      // not strictly needed because this is called inside a guard,
+      // but eslint wants it b/c nameChecker is invoked later in this method
+      if (!nameChecker) {
+        return;
+      }
+      const resourceName = k8sNameRef.current;
+      if (!resourceName) {
+        return;
+      }
+      setNameAvailability(NameAvailabilityStatus.IN_PROGRESS);
+      onNameValidationChange?.(NameAvailabilityStatus.IN_PROGRESS);
+      try {
+        const result = await nameChecker(resourceName);
+        // Ignore stale results - only apply if the name hasn't changed since the check started
+        if (k8sNameRef.current !== resourceName) {
+          return;
+        }
+        const status = result ? NameAvailabilityStatus.VALID : NameAvailabilityStatus.INVALID;
+        setNameAvailability(status);
+        onNameValidationChange?.(status);
+      } catch {
+        // Ignore stale errors too
+        if (k8sNameRef.current !== resourceName) {
+          return;
+        }
+        setNameAvailability(NameAvailabilityStatus.INVALID);
+      }
+    }, 500);
+  }, [nameChecker, onNameValidationChange]);
+
+  const onDisplayNameChange = (value: string) => {
+    onDataChange?.('name', value);
+
+    if (nameChecker) {
+      debouncedNameCheck();
+    }
+  };
+
+  const onK8sNameChange = (key: keyof K8sNameDescriptionFieldData, value: string) => {
+    onDataChange?.(key, value);
+    if (nameChecker) {
+      debouncedNameCheck();
+    }
+  };
+
+  const getNameValidation = (): ValidatedOptions => {
+    if (!nameChecker) {
+      return ValidatedOptions.default;
+    }
+    switch (nameAvailability) {
+      case NameAvailabilityStatus.VALID:
+        return ValidatedOptions.success;
+      case NameAvailabilityStatus.INVALID:
+        return ValidatedOptions.error;
+      default:
+        return ValidatedOptions.default;
+    }
+  };
+
+  const makeNameFeedback = () => {
+    switch (nameAvailability) {
+      case NameAvailabilityStatus.VALID:
+        return (
+          <HelperText>
+            <HelperTextItem variant="success">Resource name available</HelperTextItem>
+          </HelperText>
+        );
+      case NameAvailabilityStatus.INVALID:
+        return (
+          <HelperText>
+            <HelperTextItem variant="error">
+              A project with this resource name already exists. Edit the resource name or try a
+              different project name
+            </HelperTextItem>
+          </HelperText>
+        );
+      case NameAvailabilityStatus.IN_PROGRESS:
+        return (
+          <HelperText>
+            <HelperTextItem variant="indeterminate">
+              Checking resource name availability...
+            </HelperTextItem>
+          </HelperText>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const nameFeedback = makeNameFeedback();
 
   return (
     <>
@@ -83,17 +214,26 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             <HelperTextItem>{nameHelperTextAbove}</HelperTextItem>
           </HelperText>
         )}
-        <TextInput
-          aria-readonly={!onDataChange}
-          data-testid={`${dataTestId}-name`}
-          id={`${dataTestId}-name`}
-          name={`${dataTestId}-name`}
-          autoFocus={autoFocusName}
-          isRequired
-          value={name}
-          onChange={(event, value) => onDataChange?.('name', value)}
-          maxLength={maxLength}
-        />
+        <InputGroup>
+          <InputGroupItem isFill>
+            <TextInput
+              data-testid={`${dataTestId}-name`}
+              id={`${dataTestId}-name`}
+              name={`${dataTestId}-name`}
+              autoFocus={autoFocusName}
+              isRequired
+              validated={getNameValidation()}
+              value={name}
+              onChange={(event, value) => onDisplayNameChange(value)}
+              maxLength={maxLength}
+            />
+          </InputGroupItem>
+          {nameAvailability === NameAvailabilityStatus.IN_PROGRESS && (
+            <InputGroupItem>
+              <Spinner size="md" aria-label="Checking name availability" />
+            </InputGroupItem>
+          )}
+        </InputGroup>
         {showNameWarning && (
           <HelperText>
             <HelperTextItem>
@@ -101,6 +241,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             </HelperTextItem>
           </HelperText>
         )}
+        {nameChecker && nameFeedback && <div style={{ marginTop: '5px' }}>{nameFeedback}</div>}
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
           <HelperText>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
@@ -136,8 +277,10 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
         allowEdit={showK8sField}
         dataTestId={dataTestId}
         k8sName={k8sName}
-        onDataChange={onDataChange}
+        onDataChange={onK8sNameChange}
         resourceNameTakenHelperText={resourceNameTakenHelperText}
+        nameAvailabilityValidation={getNameValidation()}
+        nameAvailabilityStatus={nameAvailability}
       />
       {!hideDescription ? (
         <FormGroup label={descriptionLabel} fieldId={`${dataTestId}-description`}>

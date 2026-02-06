@@ -5,7 +5,7 @@ import {
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { incrementResourceVersion } from '@odh-dashboard/internal/__mocks__/mockUtils';
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { asProjectAdminUser } from '../../../utils/mockUsers';
 import { testPagination } from '../../../utils/pagination';
@@ -457,6 +457,13 @@ const initCreateProjectIntercepts = () => {
   cy.interceptK8s('POST', ProjectRequestModel, mockProjectK8sResource({})).as(
     'createProjectRequest',
   );
+
+  // Return 404 for name availability check - indicates the name is available
+  // Use regex to match any project name since multiple names are typed during the test
+  cy.intercept('GET', /\/apis\/project\.openshift\.io\/v1\/projects\/[^/]+$/, {
+    statusCode: 404,
+    body: mock404Error({}),
+  });
 
   cy.interceptOdh(
     'GET /api/namespaces/:namespace/:context',

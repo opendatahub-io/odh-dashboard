@@ -5,6 +5,7 @@ import {
   InputGroup,
   InputGroupItem,
   InputGroupText,
+  Spinner,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
@@ -13,11 +14,13 @@ import {
   HelperTextItemMaxLength,
   HelperTextItemResourceNameTaken,
   HelperTextItemValidCharacters,
+  HelperTextUniqueName,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
 } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { NameAvailabilityStatus } from './K8sNameDescriptionField.tsx';
 
 type ResourceNameFieldProps = {
   allowEdit: boolean;
@@ -25,6 +28,8 @@ type ResourceNameFieldProps = {
   k8sName: K8sNameDescriptionFieldData['k8sName'];
   onDataChange?: K8sNameDescriptionFieldUpdateFunction;
   resourceNameTakenHelperText?: React.ReactNode;
+  nameAvailabilityValidation?: ValidatedOptions;
+  nameAvailabilityStatus?: NameAvailabilityStatus;
 };
 
 /** Sub-resource; not for public consumption */
@@ -34,6 +39,8 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   k8sName,
   onDataChange,
   resourceNameTakenHelperText,
+  nameAvailabilityValidation,
+  nameAvailabilityStatus,
 }) => {
   const formGroupProps: React.ComponentProps<typeof FormGroup> = {
     label: 'Resource name',
@@ -51,6 +58,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
 
   let validated: ValidatedOptions = ValidatedOptions.default;
   if (
+    nameAvailabilityValidation === ValidatedOptions.error ||
     k8sName.state.invalidLength ||
     k8sName.state.invalidCharacters ||
     !!resourceNameTakenHelperText
@@ -61,6 +69,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
   }
 
   const usePrefix = k8sName.state.staticPrefix && !!k8sName.state.safePrefix;
+  const isChecking = nameAvailabilityStatus === NameAvailabilityStatus.IN_PROGRESS;
   const textInput = (
     <TextInput
       id={`${dataTestId}-resourceName`}
@@ -81,17 +90,30 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
       validated={validated}
     />
   );
+  const textInputWithSpinner = (
+    <InputGroup>
+      <InputGroupItem isFill>{textInput}</InputGroupItem>
+      {isChecking && (
+        <InputGroupItem>
+          <Spinner size="md" aria-label="Checking name availability" />
+        </InputGroupItem>
+      )}
+    </InputGroup>
+  );
   return (
     <FormGroup {...formGroupProps} isRequired>
       {usePrefix ? (
         <InputGroup>
           <InputGroupText>{k8sName.state.safePrefix}</InputGroupText>
-          <InputGroupItem isFill>{textInput}</InputGroupItem>
+          <InputGroupItem isFill>{textInputWithSpinner}</InputGroupItem>
         </InputGroup>
       ) : (
-        textInput
+        textInputWithSpinner
       )}
       <HelperText>
+        {nameAvailabilityStatus && (
+          <HelperTextUniqueName nameAvailabilityStatus={nameAvailabilityStatus} />
+        )}
         <HelperTextItemMaxLength k8sName={k8sName} />
         <HelperTextItemValidCharacters k8sName={k8sName} />
         {resourceNameTakenHelperText && (
