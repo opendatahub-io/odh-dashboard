@@ -59,11 +59,16 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
                   onCopy={() => {
-                    fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
-                      assetType: 'model',
-                      endpointType: isExternal ? 'external' : 'internal',
-                      copyTarget: 'endpoint',
-                    });
+                    try {
+                      navigator.clipboard.writeText(endpoint);
+                      fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
+                        assetType: 'model',
+                        endpointType: isExternal ? 'external' : 'internal',
+                        copyTarget: 'endpoint',
+                      });
+                    } catch {
+                      // Do nothing
+                    }
                   }}
                 >
                   {endpoint}
@@ -86,10 +91,15 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     clickTip="Copied"
                     aria-label={`External endpoint API token for ${model.model_name}`}
                     onCopy={() => {
-                      fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
-                        assetType: 'model',
-                        copyTarget: 'service_token',
-                      });
+                      try {
+                        navigator.clipboard.writeText(model.sa_token.token);
+                        fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
+                          assetType: 'model',
+                          copyTarget: 'service_token',
+                        });
+                      } catch {
+                        // Do nothing
+                      }
                     }}
                   >
                     {model.sa_token.token}

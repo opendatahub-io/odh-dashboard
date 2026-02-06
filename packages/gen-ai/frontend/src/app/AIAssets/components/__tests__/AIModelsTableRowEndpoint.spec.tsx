@@ -1,10 +1,48 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import type { AIModel } from '~/app/types';
 import AIModelsTableRowEndpoint from '~/app/AIAssets/components/AIModelsTableRowEndpoint';
+
+
+// Mock ClipboardCopy to trigger onCopy callback
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    ClipboardCopy: ({
+      children,
+      onCopy,
+      'data-testid': dataTestId,
+      ...props
+    }: {
+      children: string;
+      onCopy?: (event: React.ClipboardEvent<HTMLDivElement>, text?: React.ReactNode) => void;
+      'data-testid'?: string;
+      [key: string]: unknown;
+    }) => {
+      const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (onCopy) {
+          onCopy(e as unknown as React.ClipboardEvent<HTMLDivElement>, children);
+        }
+      };
+      return (
+        <div data-testid={dataTestId}>
+          <input readOnly value={children} />
+          <button
+            aria-label={(props['aria-label'] as string) || 'Copy to clipboard'}
+            onClick={handleClick}
+            data-testid={dataTestId ? `${dataTestId}-copy-button` : undefined}
+          >
+            Copy
+          </button>
+        </div>
+      );
+    },
+  };
+});
 
 const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   model_name: 'test-model',
@@ -144,6 +182,16 @@ describe('AIModelsTableRowEndpoint', () => {
   });
 
   describe('Clipboard functionality', () => {
+    let writeTextSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      writeTextSpy = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      writeTextSpy.mockRestore();
+    });
+
     it('should render ClipboardCopy for internal endpoint URL', async () => {
       const user = userEvent.setup();
       const model = createMockAIModel({ internalEndpoint: 'http://internal.endpoint' });
@@ -173,6 +221,22 @@ describe('AIModelsTableRowEndpoint', () => {
 
       expect(screen.getByDisplayValue('http://external.endpoint')).toBeInTheDocument();
       expect(screen.getByDisplayValue('test-token-123')).toBeInTheDocument();
+    });
+
+    it('should copy endpoint URL to clipboard when copy button is clicked', async () => {
+      const user = userEvent.setup();
+      const model = createMockAIModel({ internalEndpoint: 'http://internal.endpoint' });
+      render(<AIModelsTableRowEndpoint model={model} />);
+
+      const viewButton = screen.getByTestId('view-url-button');
+      await user.click(viewButton);
+
+      const copyButton = screen.getByTestId('copy-endpoint-button-copy-button');
+      await user.click(copyButton);
+
+      await waitFor(() => {
+        expect(writeTextSpy).toHaveBeenCalledWith('http://internal.endpoint');
+      });
     });
   });
 });
