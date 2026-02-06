@@ -26,7 +26,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	yamlStr, err := config.ToYAML()
 	assert.NoError(t, err)
 	assert.Contains(t, yamlStr, "version: \"2\"")
-	assert.Contains(t, yamlStr, "image_name: rh")
+	assert.Contains(t, yamlStr, "distro_name: rh")
 	assert.Contains(t, yamlStr, "vector_stores:")
 	assert.Contains(t, yamlStr, "default_provider_id: milvus")
 
@@ -34,7 +34,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	jsonStr, err := config.ToJSON()
 	assert.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
-	assert.Contains(t, jsonStr, "\"image_name\":\"rh\"")
+	assert.Contains(t, jsonStr, "\"distro_name\":\"rh\"")
 	assert.Contains(t, jsonStr, "\"vector_stores\"")
 	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
 
@@ -43,7 +43,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	err = parsedConfig.FromYAML(yamlStr)
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
-	assert.Equal(t, config.ImageName, parsedConfig.ImageName)
+	assert.Equal(t, config.DistroName, parsedConfig.DistroName)
 	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
@@ -53,7 +53,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	err = parsedJSONConfig.FromJSON(jsonStr)
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
-	assert.Equal(t, config.ImageName, parsedJSONConfig.ImageName)
+	assert.Equal(t, config.DistroName, parsedJSONConfig.DistroName)
 	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
@@ -132,7 +132,7 @@ func TestDefaultConfig_Validation(t *testing.T) {
 
 	// Test that all required fields are present
 	assert.NotEmpty(t, config.Version)
-	assert.NotEmpty(t, config.ImageName)
+	assert.NotEmpty(t, config.DistroName)
 	assert.NotEmpty(t, config.APIs)
 	assert.NotNil(t, config.Providers)
 	assert.NotNil(t, config.MetadataStore)
@@ -622,7 +622,7 @@ func TestEnsureStorageField(t *testing.T) {
 	t.Run("should add storage field when missing", func(t *testing.T) {
 		yamlWithoutStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -658,7 +658,7 @@ registered_resources:
 	t.Run("should not modify storage field when already present", func(t *testing.T) {
 		yamlWithStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -698,7 +698,7 @@ storage:
 	t.Run("should add storage field when backends are empty but stores exist", func(t *testing.T) {
 		yamlWithPartialStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -731,7 +731,7 @@ storage:
 	t.Run("should add storage field when stores are empty but backends exist", func(t *testing.T) {
 		yamlWithPartialStorage := `
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
   - inference
 providers:
@@ -855,3 +855,4 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.True(t, model2Found, "Model 2 should be found")
 	})
 }
+
