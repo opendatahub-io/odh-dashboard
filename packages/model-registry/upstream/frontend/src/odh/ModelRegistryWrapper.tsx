@@ -34,6 +34,7 @@ const ModelRegistryWrapperContent: React.FC = () => {
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
+            {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
             <NotificationListener>
               <ModelRegistrySelectorContextProvider>
                 <ModelRegistryRoutes />

@@ -1,6 +1,18 @@
 import { useContext, useEffect, useRef } from 'react';
 import { NotificationContext } from 'mod-arch-core';
 
+/**
+ * TODO: TECH DEBT - Temporary workaround for federated module notification integration
+ *
+ * This file bridges notifications from mod-arch-core's NotificationContext to the midstream's
+ * Redux store using browser CustomEvents because the federated module runs in a separate React tree.
+ *
+ * FUTURE WORK: Once midstream migrates from Redux to mod-arch-core's NotificationContext,
+ * this bridge can be removed and notifications will work natively.
+ *
+ * https://issues.redhat.com/browse/RHOAIENG-48894 is the JIRA ticket for this work.
+ */
+
 const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
 export const useNotificationListener = (): void => {

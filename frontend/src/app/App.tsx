@@ -51,7 +51,8 @@ const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
 
-  // Listen for notifications from federated modules
+  // TODO: TECH DEBT - Remove this once midstream uses mod-arch-core NotificationContext
+  // Listen for notifications from federated modules via CustomEvent bridge
   useFederatedNotificationListener();
 
   const buildStatuses = useWatchBuildStatus();
