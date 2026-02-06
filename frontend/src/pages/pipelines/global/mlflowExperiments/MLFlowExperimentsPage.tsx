@@ -25,39 +25,44 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
       />
     }
     headerContent={
-      <PipelineCoreProjectSelector
-        getRedirectPath={mlflowExperimentsBaseRoute}
-        queryParamNamespace={WORKSPACE_QUERY_PARAM}
-      />
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      >
+        <FlexItem>
+          <PipelineCoreProjectSelector
+            getRedirectPath={mlflowExperimentsBaseRoute}
+            queryParamNamespace={WORKSPACE_QUERY_PARAM}
+          />
+        </FlexItem>
+        <FlexItem>
+          <Button
+            component="a"
+            isInline
+            data-testid="mlflow-embedded-jump-link"
+            href={MLFLOW_PROXY_BASE_PATH}
+            target="_blank"
+            variant="link"
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+            aria-label="Launch MLflow"
+            onClick={() =>
+              fireLinkTrackingEvent('Launch MLflow clicked', {
+                from: window.location.pathname,
+                href: MLFLOW_PROXY_BASE_PATH,
+                section: 'experiments-page',
+              })
+            }
+          >
+            Launch MLflow
+          </Button>
+        </FlexItem>
+      </Flex>
     }
     provideChildrenPadding
     removeChildrenTopPadding
     keepBodyWrapper={false}
   >
-    <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
-      <FlexItem>
-        <Button
-          component="a"
-          isInline
-          data-testid="mlflow-embedded-jump-link"
-          href={MLFLOW_PROXY_BASE_PATH}
-          target="_blank"
-          variant="link"
-          icon={<ExternalLinkAltIcon />}
-          iconPosition="end"
-          aria-label="Launch MLflow"
-          onClick={() =>
-            fireLinkTrackingEvent('Launch MLflow clicked', {
-              from: window.location.pathname,
-              href: MLFLOW_PROXY_BASE_PATH,
-              section: 'experiments-page',
-            })
-          }
-        >
-          Launch MLflow
-        </Button>
-      </FlexItem>
-    </Flex>
     <MlflowIframe />
   </ApplicationsPage>
 );
