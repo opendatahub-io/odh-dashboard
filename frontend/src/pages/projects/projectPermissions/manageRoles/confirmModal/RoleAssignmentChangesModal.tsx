@@ -56,37 +56,19 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
       aria-label="Confirm role assignment changes modal"
       data-testid="assign-roles-confirm-modal"
     >
-      <ModalHeader title="Confirm role assignment changes?" titleIconVariant="warning" />
+      <ModalHeader title="Save role assignment changes?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            The following role updates apply to <strong>{subjectName}</strong>:{' '}
-            {assigningCount > 0 && (
-              <>
-                <strong>
-                  {assigningCount} role{assigningCount !== 1 ? 's' : ''}
-                </strong>{' '}
-                will be newly assigned
-              </>
-            )}
-            {assigningCount > 0 && unassigningCount > 0 && ' and '}
-            {unassigningCount > 0 && (
-              <>
-                <strong>
-                  {unassigningCount} role{unassigningCount !== 1 ? 's' : ''}
-                </strong>{' '}
-                will be unassigned
-              </>
-            )}
-            . Please review and confirm your changes to avoid unintended permission
-            misconfigurations.
+            The following role assignment changes will be applied to the user{' '}
+            <strong>{subjectName}</strong>.
           </StackItem>
           <StackItem>
             <Stack hasGutter>
               {changes.assigning.length > 0 && (
                 <StackItem>
                   <RoleChangesSection
-                    label="Assigning roles"
+                    label={`Assigning ${assigningCount} role${assigningCount !== 1 ? 's' : ''}`}
                     rows={changes.assigning}
                     testId="assign-roles-confirm-assigning-section"
                   />
@@ -95,7 +77,9 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
               {changes.unassigning.length > 0 && (
                 <StackItem>
                   <RoleChangesSection
-                    label="Unassigning roles"
+                    label={`Unassigning ${unassigningCount} role${
+                      unassigningCount !== 1 ? 's' : ''
+                    }`}
                     rows={changes.unassigning}
                     testId="assign-roles-confirm-unassigning-section"
                   />
@@ -109,10 +93,11 @@ const RoleAssignmentChangesModal: React.FC<RoleAssignmentChangesModalProps> = ({
                 isInline
                 variant="danger"
                 data-testid="assign-roles-confirm-custom-role-warning"
-                title={`The OpenShift custom roles were assigned from OpenShift. You need to contact
-                    your admin to reassign them outside the ${ODH_PRODUCT_NAME} once you unassign
-                    them.`}
-              />
+                title="Roles cannot be reassigned "
+              >
+                OpenShift custom roles cannot be assigned from {ODH_PRODUCT_NAME}. To reassign this
+                role after removing it, you or an administrator must do so from OpenShift.
+              </Alert>
             </StackItem>
           )}
           {error && (

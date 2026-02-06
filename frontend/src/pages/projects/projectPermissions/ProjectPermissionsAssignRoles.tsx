@@ -91,11 +91,15 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title={isManageMode ? 'Manage roles' : 'Assign roles'}
+      title="Manage permissions"
       description={
-        isManageMode
-          ? 'Manage roles to define permissions.'
-          : 'Choose a user or group, then assign or manage roles to define their permissions.'
+        isManageMode ? (
+          <>
+            Edit the role assignments of the {subjectKind} <strong>{subjectName}</strong>.
+          </>
+        ) : (
+          'Select a user or group to edit their role assignments.'
+        )
       }
       loaded
       loadError={error}
@@ -120,7 +124,7 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
             )}
           />
 
-          <BreadcrumbItem isActive>{isManageMode ? 'Manage roles' : 'Assign roles'}</BreadcrumbItem>
+          <BreadcrumbItem isActive>Manage permissions</BreadcrumbItem>
         </Breadcrumb>
       }
     >
@@ -165,7 +169,6 @@ const ProjectPermissionsAssignRolesForm: React.FC = () => {
       {pendingChange && (
         <DiscardChangesModal
           changeType={pendingChange.type}
-          subjectKind={subjectKind}
           onDiscard={() => closeModal(true)}
           onCancel={() => closeModal(false)}
         />

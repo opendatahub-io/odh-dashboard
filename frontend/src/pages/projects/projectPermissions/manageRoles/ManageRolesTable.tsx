@@ -52,11 +52,11 @@ const ManageRolesTable: React.FC<ManageRolesTableProps> = ({
   return (
     <FormSection title="Role assignment">
       <Content component={ContentVariants.p}>
-        Check the role to grant the relevant permissions.
+        Select roles to assign them to the user or group. Deselect roles to unassign them.
       </Content>
       <TableBase
         data-testid="manage-roles-table"
-        aria-label="Manage roles table"
+        aria-label="Manage permissions table"
         data={sortedRows}
         columns={manageRolesColumns}
         getColumnSort={sort.getColumnSort}
