@@ -1,12 +1,16 @@
 package maas
 
 import (
+	"embed"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+//go:embed testdata
+var testdataFs embed.FS
 
 func CreateMaasFakeServer() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,8 +43,8 @@ func CreateMaasFakeServer() *httptest.Server {
 }
 
 func sendFakeResponse(path string, status int, w http.ResponseWriter) {
-	path = filepath.Join("internal", "testdata", "maas", path)
-	fileBytes, err := os.ReadFile(path)
+	path = filepath.Join("testdata", path)
+	fileBytes, err := testdataFs.ReadFile(path)
 	if err != nil {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

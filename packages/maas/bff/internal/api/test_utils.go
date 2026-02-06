@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
@@ -39,6 +40,9 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
 	}
 
+	maasFakeServer := maas.CreateMaasFakeServer()
+	defer maasFakeServer.Close()
+
 	envConfig := config.EnvConfig{
 		AllowedOrigins:          []string{"*"},
 		AuthMethod:              config.AuthMethodInternal,
@@ -47,6 +51,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		GatewayNamespace:        "openshift-ingress",
 		GatewayName:             "maas-default-gateway",
 		MockHTTPClient:          true,
+		MaasApiUrl:              maasFakeServer.URL,
 	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
