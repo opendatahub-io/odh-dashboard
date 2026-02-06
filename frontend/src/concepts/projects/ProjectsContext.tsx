@@ -1,10 +1,16 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useProjects } from '#~/api';
 import { FetchState } from '#~/utilities/useFetchState';
 import { ProjectKind } from '#~/k8sTypes';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isAvailableProject } from './utils';
+
+import {
+  getPreferredProject,
+  setPreferredProject as setPreferredProjectStorage,
+} from './preferredProjectStorage';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
   getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
@@ -50,10 +56,18 @@ type ProjectsProviderProps = {
 };
 
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
+  const location = useLocation();
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
   const [projectData, loaded, loadError] = useProjects();
   const { dashboardNamespace } = useDashboardNamespace();
+
+  // Persist preferred project to sessionStorage for federated modules to access
+  React.useEffect(() => {
+    if (preferredProject?.metadata.name) {
+      setPreferredProjectStorage(preferredProject.metadata.name);
+    }
+  }, [preferredProject]);
 
   const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(
     () =>
@@ -80,6 +94,40 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       ),
     [projectData, dashboardNamespace],
   );
+
+  // Track the last synced sessionStorage value to avoid infinite loops
+  const lastSyncedRef = React.useRef<string | null>(null);
+
+  // Sync preferredProject with sessionStorage
+  // This allows federated modules (gen-ai, etc.) to set the preferred project
+  // and have it persist when navigating back to ODH
+  React.useEffect(() => {
+    if (loaded && projects.length > 0) {
+      const storedProjectName = getPreferredProject();
+      const currentProjectName = preferredProject?.metadata.name;
+
+      // Only update if:
+      // 1. sessionStorage has a value
+      // 2. It's different from current preferredProject
+      // 3. We haven't already synced this value (avoid infinite loops)
+      if (
+        storedProjectName &&
+        storedProjectName !== currentProjectName &&
+        storedProjectName !== lastSyncedRef.current
+      ) {
+        const matchingProject = projects.find((p) => p.metadata.name === storedProjectName);
+        if (matchingProject) {
+          lastSyncedRef.current = storedProjectName;
+          setPreferredProject(matchingProject);
+        }
+      }
+
+      // Update the ref when preferredProject changes (from other sources)
+      if (currentProjectName && currentProjectName !== lastSyncedRef.current) {
+        lastSyncedRef.current = currentProjectName;
+      }
+    }
+  }, [loaded, projects, preferredProject, location]);
 
   const isMounted = React.useRef(true);
   React.useEffect(() => {
