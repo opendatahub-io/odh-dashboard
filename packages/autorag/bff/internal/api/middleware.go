@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
-	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	"github.com/rs/cors"
 )
 

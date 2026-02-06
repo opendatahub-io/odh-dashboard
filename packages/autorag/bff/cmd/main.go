@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/api"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/api"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 
 	"log/slog"
 	"net/http"

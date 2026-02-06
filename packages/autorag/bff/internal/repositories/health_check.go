@@ -1,6 +1,6 @@
 package repositories
 
-import "github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+import "github.com/opendatahub-io/autorag-library/bff/internal/models"
 
 type HealthCheckRepository struct{}
 

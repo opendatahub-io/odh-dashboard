@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	kubernetes2 "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
+	kubernetes2 "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

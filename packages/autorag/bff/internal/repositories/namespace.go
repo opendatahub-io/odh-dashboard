@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
 type NamespaceRepository struct{}
