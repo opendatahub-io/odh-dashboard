@@ -6,15 +6,26 @@ spec:
   display:
     name: Cluster
   duration: 1h
-  # Variable for namespace filtering - controlled by HeaderProjectSelector
+  # Namespace variable - queries Prometheus by default, but can be overridden by NamespaceVariablesProvider
   variables:
-    - kind: TextVariable
+    - kind: ListVariable
       spec:
         name: namespace
         display:
-          name: Namespace
-          hidden: true  # Hide from Perses UI since we use our own selector
-        value: ".*"  # Default: match all namespaces
+          name: Project
+          description: Filter by project
+        allowMultiple: true
+        allowAllValue: true
+        customAllValue: ".*"
+        defaultValue: "$__all"
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            labelName: namespace
+            matchers:
+              - kserve_vllm:num_requests_running
     # Cluster details variables - set by ClusterDetailsVariablesProvider
     - kind: TextVariable
       spec:
@@ -54,7 +65,7 @@ spec:
         plugin:
           kind: StatChart
           spec:
-            calculation: last-number
+            calculation: mean
             format:
               unit: percent-decimal
         queries:
@@ -99,7 +110,7 @@ spec:
         plugin:
           kind: StatChart
           spec:
-            calculation: last-number
+            calculation: mean
             format:
               unit: percent
         queries:
@@ -112,29 +123,29 @@ spec:
                     kind: PrometheusDatasource
                   query: avg(accelerator_gpu_utilization)
                   seriesNameFormat: GPU usage
-    # successRate:
-    #   kind: Panel
-    #   spec:
-    #     display:
-    #       name: Request success rate
-    #     plugin:
-    #       kind: StatChart
-    #       spec:
-    #         calculation: last-number
-    #         format:
-    #           unit: percent-decimal
-    #           decimalPlaces: 1
-    #     queries:
-    #       - kind: TimeSeriesQuery
-    #         spec:
-    #           plugin:
-    #             kind: PrometheusTimeSeriesQuery
-    #             spec:
-    #               datasource:
-    #                 kind: PrometheusDatasource
-    #               # Request success rate using totals
-    #               query: vector(-999)
-    #               seriesNameFormat: Success rate
+    successRate:
+      kind: Panel
+      spec:
+        display:
+          name: Request success rate
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: mean
+            format:
+              unit: percent-decimal
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  # Request success rate using kserve_vllm metrics
+                  query: (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace", finished_reason=~"length|stop"}[$__range])) / sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range]))) and (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range])) > 0)
+                  seriesNameFormat: Request success rate
     # Cluster-wide usage - Area charts
     gpuUtilizationArea:
       kind: Panel
@@ -275,8 +286,8 @@ spec:
                 spec:
                   datasource:
                     kind: PrometheusDatasource
-                  query: avg by (namespace) (accelerator_gpu_utilization{namespace=~"$namespace"})
-                  seriesNameFormat: "{{namespace}}"
+                  query: sum by (exported_namespace) (accelerator_gpu_utilization{exported_namespace=~"$namespace"}) / scalar(count(accelerator_gpu_utilization))
+                  seriesNameFormat: "{{exported_namespace}}"
     cpuUtilizationByProject:
       kind: Panel
       spec:
@@ -398,28 +409,28 @@ spec:
         items:
           - x: 0
             'y': 0
-            width: 8
+            width: 6
             height: 4
             content:
               '$ref': '#/spec/panels/systemHealth'
-          - x: 8
+          - x: 6
             'y': 0
-            width: 8
+            width: 6
             height: 4
             content:
               '$ref': '#/spec/panels/deployedModels'
-          - x: 16
+          - x: 12
             'y': 0
-            width: 8
+            width: 6
             height: 4
             content:
               '$ref': '#/spec/panels/gpuUtilizationStat'
-          # - x: 18
-          #   'y': 0
-          #   width: 6
-          #   height: 4
-          #   content:
-          #     '$ref': '#/spec/panels/successRate'
+          - x: 18
+            'y': 0
+            width: 6
+            height: 4
+            content:
+              '$ref': '#/spec/panels/successRate'
     # Cluster-wide usage section
     - kind: Grid
       spec:
