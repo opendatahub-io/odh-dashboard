@@ -4,6 +4,7 @@ import {
   GroupKind,
   HardwareProfileKind,
   InferenceServiceKind,
+  LocalQueueKind,
   PersistentVolumeClaimKind,
   ProjectKind,
   RoleBindingKind,
@@ -34,6 +35,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '#~/api';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import useProjectKueueInfo from './useProjectKueueInfo';
 import { NotebookState } from './notebook/types';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
@@ -55,6 +57,7 @@ export type ProjectDetailsContextType = {
   projectSharingRB: FetchStateObject<RoleBindingKind[]>;
   groups: CustomWatchK8sResult<GroupKind[]>;
   projectHardwareProfiles: CustomWatchK8sResult<HardwareProfileKind[]>;
+  localQueues: FetchStateObject<LocalQueueKind[]>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -72,6 +75,7 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   projectSharingRB: DEFAULT_LIST_FETCH_STATE,
   groups: DEFAULT_LIST_WATCH_RESULT,
   projectHardwareProfiles: DEFAULT_LIST_WATCH_RESULT,
+  localQueues: DEFAULT_LIST_FETCH_STATE,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -97,6 +101,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const groups = useGroups();
   const projectHardwareProfiles = useWatchHardwareProfiles(namespace);
 
+  const { localQueues } = useProjectKueueInfo(project, namespace);
   const pageName = 'project details';
 
   const filterTokens = React.useCallback(
@@ -138,6 +143,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
             projectSharingRB,
             groups,
             projectHardwareProfiles,
+            localQueues,
           }
         : null,
     [
@@ -155,6 +161,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
       projectSharingRB,
       groups,
       projectHardwareProfiles,
+      localQueues,
     ],
   );
 
