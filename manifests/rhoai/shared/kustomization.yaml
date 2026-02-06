@@ -5,5 +5,4 @@ resources:
   - ./apps
   - ./base
   - ./consolelink
-  - ./observability
   - ./odhdashboardconfig

@@ -55,17 +55,30 @@ type TestEnvInput struct {
 }
 
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, dynamic.Interface, error) {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+	var binaryAssetsDir string
+	var projectRoot, err = getProjectRoot()
+
+	// Check for explicit envtest assets directory (used in Docker)
+	if envDir := os.Getenv("ENVTEST_ASSETS_DIR"); envDir != "" {
+		// Construct full path with OS/ARCH suffix
+		binaryAssetsDir = filepath.Join(envDir, "k8s",
+			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH))
+	} else {
+		// Fall back to project root detection (local development)
+		projectRoot, err := getProjectRoot()
+		if err != nil {
+			input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
+			input.Cancel()
+			os.Exit(1)
+		}
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s",
+			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
 	testEnv := &envtest.Environment{
-		BinaryAssetsDirectory: filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: binaryAssetsDir,
 		CRDDirectoryPaths: []string{
-			filepath.Join("internal", "testdata", "crd"),
+			filepath.Join(projectRoot, "internal", "testdata", "crd"),
 		},
 	}
 
@@ -460,7 +473,12 @@ func createMaaSTiersConfigMap(k8sClient kubernetes.Interface, ctx context.Contex
 }
 
 func createMaaSLimitPolicies(k8sClient dynamic.Interface, ctx context.Context, namespace string) error {
-	rateLimitYaml, err := os.ReadFile("internal/testdata/rate-limit-policy.yaml")
+	projectRoot, err := getProjectRoot()
+	if err != nil {
+		return err
+	}
+	rateLimitPath := filepath.Join(projectRoot, "internal", "testdata", "rate-limit-policy.yaml")
+	rateLimitYaml, err := os.ReadFile(rateLimitPath)
 	if err != nil {
 		return err
 	}
@@ -476,8 +494,8 @@ func createMaaSLimitPolicies(k8sClient dynamic.Interface, ctx context.Context, n
 		return err
 	}
 
-	// The token-limit-policy.yaml file is multi-document. Using Decoder instead of Unmarshall
-	tokenLimitYaml, err := os.ReadFile("internal/testdata/token-limit-policy.yaml")
+	tokenLimitPath := filepath.Join(projectRoot, "internal", "testdata", "token-limit-policy.yaml")
+	tokenLimitYaml, err := os.ReadFile(tokenLimitPath)
 	if err != nil {
 		return err
 	}

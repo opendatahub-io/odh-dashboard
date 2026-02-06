@@ -9,6 +9,9 @@ import {
   mlflowExperimentsBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '#~/routes/pipelines/mlflowExperiments';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { experimentsPageTitle } from '#~/pages/pipelines/global/experiments/const';
 import GlobalMLflowExperimentsPage from '#~/pages/pipelines/global/mlflowExperiments/MLFlowExperimentsPage';
 import MLflowNoProjects from '#~/pages/pipelines/global/mlflowExperiments/MLflowNoProjects';
 
@@ -45,7 +48,12 @@ const GlobalMLflowWorkspaceLoader: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="MLflow Experiments"
+      title={
+        <TitleWithIcon
+          title={experimentsPageTitle}
+          objectType={ProjectObjectType.pipelineExperiment}
+        />
+      }
       {...renderStateProps}
       loaded
       headerContent={
