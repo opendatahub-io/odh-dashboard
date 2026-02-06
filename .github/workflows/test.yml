@@ -124,7 +124,7 @@ jobs:
         run: |
           npm run test-unit-coverage
       - name: Upload unit test coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: unit-coverage
           path: ./jest-coverage
@@ -247,7 +247,7 @@ jobs:
           fi
         id: upload-results
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: steps.upload-results.outputs.results-dir != ''
         with:
           name: contract-test-results
@@ -323,13 +323,13 @@ jobs:
         if: ${{ always() }}
         run: echo "TEST_GROUP_NAME=$(echo '${{ matrix.test-group.name }}' | tr '/-' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: ${{ always() }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/coverage
@@ -371,7 +371,7 @@ jobs:
           npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
           cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
       - name: Upload combined results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: combined-coverage-results
           path: ./coverage/combined-coverage-final.json
