@@ -69,7 +69,7 @@ const GlobalMLflowExperimentsPage: React.FC = () => {
       removeChildrenTopPadding
       keepBodyWrapper={false}
     >
-      <MlflowIframe />
+      <MlflowIframe ref={iframeRef} />
     </ApplicationsPage>
   );
 };

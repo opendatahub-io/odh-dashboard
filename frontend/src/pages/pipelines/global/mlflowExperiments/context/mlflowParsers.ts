@@ -119,7 +119,6 @@ export const parseEntityNamesFromResponse = async (
     if (url.includes('/sessions') || url.includes('/chat-sessions')) {
       parseSessions(data, setName);
     }
-    parseLoggedModels(data, setName);
   } catch {
     // ignore
   }

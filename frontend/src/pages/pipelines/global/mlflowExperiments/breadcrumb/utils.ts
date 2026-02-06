@@ -359,16 +359,10 @@ const buildExperimentSubtreeBreadcrumbs = (
           i += 2;
           continue;
         }
-      }
-      i += 1;
-      continue;
-    }
-
-    if (cur === SEGMENT.RUNS && prev && !isNumericId(prev)) {
-      crumbs.push(seg(SEGMENT.RUNS, parts, i + 1, ws));
-      if (i + 1 < parts.length) {
-        i = appendEntityWithTab(crumbs, parts, i + 1, 'run', RUN_TABS, ws, getName);
-        continue;
+        if (cur === SEGMENT.RUNS) {
+          i = appendEntityWithTab(crumbs, parts, i + 1, 'run', RUN_TABS, ws, getName);
+          continue;
+        }
       }
       i += 1;
       continue;

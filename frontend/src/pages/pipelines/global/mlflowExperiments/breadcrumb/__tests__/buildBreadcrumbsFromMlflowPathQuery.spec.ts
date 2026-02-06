@@ -1,6 +1,7 @@
 import {
   BreadcrumbSegment,
   buildBreadcrumbsFromMlflowPathQuery,
+  GetNameFn,
 } from '#~/pages/pipelines/global/mlflowExperiments/breadcrumb/utils';
 
 const ROUTE_PREFIX = '/develop-train/experiments-mlflow';
@@ -8,6 +9,18 @@ const ROUTE_PREFIX = '/develop-train/experiments-mlflow';
 const labels = (segments: BreadcrumbSegment[]): string[] => segments.map((s) => s.label);
 
 const paths = (segments: BreadcrumbSegment[]): string[] => segments.map((s) => s.path);
+
+const getName: GetNameFn = (type, id) => {
+  const names: Record<string, string> = {
+    'experiment:123': 'nlp-experiment',
+    'run:abcd-5678': 'svm-classifier-eval',
+    'run:abcd-1234': 'neural-net-eval',
+    'loggedModel:lm-1': 'lightgbm-regressor',
+    'session:session1': 'session-1',
+    'prompt:promptA': 'summarizer',
+  };
+  return names[`${type}:${id}`];
+};
 
 describe('buildBreadcrumbsFromMlflowPathQuery', () => {
   describe('compare-runs', () => {
@@ -25,6 +38,12 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         `${ROUTE_PREFIX}/experiments/123/runs?workspace=default`,
         `${ROUTE_PREFIX}/compare-runs?experiments=["123"]&runs=["abc","def"]&workspace=default`,
       ]);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/compare-runs?experiments=["123"]&runs=["abc","def"]&workspace=default',
+        getName,
+      );
+      expect(labels(withNames)[1]).toBe('nlp-experiment runs');
     });
 
     it('builds breadcrumbs with run and experiment count when comparing runs from multiple experiments', () => {
@@ -118,6 +137,12 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         `${ROUTE_PREFIX}/experiments?workspace=default`,
         `${ROUTE_PREFIX}/runs/abcd-1234?workspace=default`,
       ]);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/runs/abcd-1234?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual(['Experiments', 'neural-net-eval']);
     });
   });
 
@@ -129,6 +154,12 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         `${ROUTE_PREFIX}/experiments?workspace=default`,
         `${ROUTE_PREFIX}/experiments/123/runs?workspace=default`,
       ]);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123/runs?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual(['Experiments', 'nlp-experiment runs']);
     });
 
     it('builds combined label for experiments/:id/traces', () => {
@@ -211,6 +242,16 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         `${ROUTE_PREFIX}/experiments/123/runs?workspace=default`,
         `${ROUTE_PREFIX}/experiments/123/runs/abcd-5678?workspace=default`,
       ]);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123/runs/abcd-5678?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual([
+        'Experiments',
+        'nlp-experiment runs',
+        'svm-classifier-eval',
+      ]);
     });
 
     it('combines run with overview tab', () => {
@@ -218,6 +259,16 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         '/experiments/123/runs/abcd-5678/overview?workspace=default',
       );
       expect(labels(result)).toEqual(['Experiments', 'Experiment 123 runs', 'abcd-5678 overview']);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123/runs/abcd-5678/overview?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual([
+        'Experiments',
+        'nlp-experiment runs',
+        'svm-classifier-eval overview',
+      ]);
     });
 
     it('combines run with model-metrics tab', () => {
@@ -301,6 +352,16 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         `${ROUTE_PREFIX}/experiments/123/models?workspace=default`,
         `${ROUTE_PREFIX}/experiments/123/models/lm-1?workspace=default`,
       ]);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123/models/lm-1?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual([
+        'Experiments',
+        'nlp-experiment models',
+        'lightgbm-regressor',
+      ]);
     });
 
     it('builds breadcrumbs for experiments/:id/models/:loggedModelId/:tabName', () => {
@@ -331,6 +392,16 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         '/experiments/123/chat-sessions/session1?workspace=default',
       );
       expect(labels(result)).toEqual(['Experiments', 'Experiment 123 chat sessions', 'session1']);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123/chat-sessions/session1?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual([
+        'Experiments',
+        'nlp-experiment chat sessions',
+        'session-1',
+      ]);
     });
 
     it('builds breadcrumbs for experiments/:id/prompts/:promptName', () => {
@@ -338,6 +409,12 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         '/experiments/123/prompts/promptA?workspace=default',
       );
       expect(labels(result)).toEqual(['Experiments', 'Experiment 123 prompts', 'promptA']);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123/prompts/promptA?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual(['Experiments', 'nlp-experiment prompts', 'summarizer']);
     });
   });
 
@@ -349,6 +426,12 @@ describe('buildBreadcrumbsFromMlflowPathQuery', () => {
         `${ROUTE_PREFIX}/experiments?workspace=default`,
         `${ROUTE_PREFIX}/experiments/123?workspace=default`,
       ]);
+
+      const withNames = buildBreadcrumbsFromMlflowPathQuery(
+        '/experiments/123?workspace=default',
+        getName,
+      );
+      expect(labels(withNames)).toEqual(['Experiments', 'nlp-experiment']);
     });
   });
 
