@@ -23,4 +23,3 @@ func GetMockMaaSModels() []models.MaaSModel {
 		},
 	}
 }
-
