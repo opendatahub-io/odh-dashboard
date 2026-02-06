@@ -106,6 +106,16 @@ class ExperimentsRow extends TableRow {
   }
 }
 
+class ExperimentsPage {
+  findPipelineExperimentDeprecatedAlert() {
+    return cy.findByTestId('pipeline-experiment-deprecated-alert');
+  }
+
+  findEmbeddedMLflowExperimentsLink() {
+    return cy.findByTestId('embedded-mlflow-experiments-link');
+  }
+}
+
 class ExperimentsTable {
   private findContainer: () => Cypress.Chainable<JQuery<HTMLElement>>;
 
@@ -183,3 +193,4 @@ class ExperimentsTable {
 }
 
 export const experimentsTabs = new ExperimentsTabs();
+export const experimentsPage = new ExperimentsPage();
