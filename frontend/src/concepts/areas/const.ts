@@ -8,7 +8,7 @@ export const techPreviewFlags = {
   modelAsService: false,
   maasApiKeys: false,
   mlflow: false,
-  projectRBAC: false,
+  projectRBAC: true,
   observabilityDashboard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
