@@ -5,7 +5,9 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { TableBase, getTableColumnSort, useCheckboxTable, SortableData } from '#~/components/table';
+import { ManageColumnsModal } from '#~/components/table/manageColumns/ManageColumnsModal';
+import { useManageColumns } from '#~/components/table/manageColumns/useManageColumns';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
@@ -28,9 +30,9 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
-import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
-import { useMetricColumns } from './useMetricColumns';
+import { useMetricsData } from './useMetricColumns';
+import { getMetricsColumnsLocalStorageKey } from './utils';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -65,14 +67,25 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
-  const {
-    metricsColumnNames,
-    runs,
-    contextsError,
-    runArtifactsError,
-    runArtifactsLoaded,
-    metricsNames,
-  } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
+
+  // Fetch metrics data for runs
+  const { runs, contextsError, runArtifactsError, runArtifactsLoaded, metricsNames } =
+    useMetricsData(runWithoutMetrics);
+
+  // Build synthetic column definitions for metrics to use with useManageColumns hook
+  const metricColumns: SortableData<PipelineRunKF>[] = React.useMemo(
+    () => [...metricsNames].map((name) => ({ label: name, field: name, sortable: false })),
+    [metricsNames],
+  );
+
+  // Manage which metric columns are visible via localStorage
+  const storageKey = getMetricsColumnsLocalStorageKey(experiment?.experiment_id);
+  const { managedColumns, visibleColumnIds, setVisibleColumnIds } = useManageColumns({
+    allColumns: metricColumns,
+    storageKey,
+    defaultVisibleFields: [...metricsNames].slice(0, 2),
+    maxVisibleColumns: 10,
+  });
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -204,8 +217,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(metricsColumnNames).filter((column) => column.field !== 'experiment')
-    : getPipelineRunColumns(metricsColumnNames);
+    ? getPipelineRunColumns(visibleColumnIds).filter((column) => column.field !== 'experiment')
+    : getPipelineRunColumns(visibleColumnIds);
 
   return (
     <>
@@ -241,7 +254,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   content={
                     !runArtifactsLoaded
                       ? 'Customize metrics columns: Loading metrics...'
-                      : !(metricsColumnNames.length || metricsNames.size)
+                      : !(visibleColumnIds.length || metricsNames.size)
                       ? 'Customize metrics columns: No metrics available'
                       : 'Customize metrics columns'
                   }
@@ -250,7 +263,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                     variant="plain"
                     aria-label="Customize metrics column button"
                     isAriaDisabled={
-                      !runArtifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
+                      !runArtifactsLoaded || !(visibleColumnIds.length || metricsNames.size)
                     }
                     onClick={() => setIsCustomColModalOpen(true)}
                     icon={<ColumnsIcon />}
@@ -274,7 +287,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               setIsDeleteModalOpen(true);
             }}
             run={run}
-            customCells={metricsColumnNames.map((metricName: string) => (
+            customCells={visibleColumnIds.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
                   <Skeleton />
@@ -346,15 +359,18 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         />
       )}
       {isCustomColModalOpen && (
-        <CustomMetricsColumnsModal
+        <ManageColumnsModal
           key={metricsNames.size}
-          experimentId={experiment?.experiment_id}
-          columns={[...new Set([...metricsColumnNames, ...metricsNames])].map((metricName) => ({
-            id: metricName,
-            content: metricName,
-            props: { checked: metricsColumnNames.includes(metricName) },
-          }))}
+          isOpen
+          columns={managedColumns}
           onClose={() => setIsCustomColModalOpen(false)}
+          onUpdate={setVisibleColumnIds}
+          title="Customize metrics columns"
+          description="Select up to 10 metrics that will display as columns in the table. Drag and drop column names to reorder them."
+          maxSelections={10}
+          maxSelectionsTooltip="Maximum metrics selected. To view values of all metrics, go to the Compare runs page."
+          searchPlaceholder="Filter by metric name"
+          dataTestId="custom-metrics-columns-modal"
         />
       )}
     </>
