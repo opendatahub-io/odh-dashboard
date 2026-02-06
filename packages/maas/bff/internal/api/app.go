@@ -179,6 +179,7 @@ func (app *App) Routes() http.Handler {
 
 	attachTierHandlers(apiRouter, app)
 	attachAPIKeyHandlers(apiRouter, app)
+	attachAuthHandlers(apiRouter, app)
 	if app.config.MockHTTPClient {
 		apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
 	}

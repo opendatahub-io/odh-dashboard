@@ -23,7 +23,8 @@ import {
   SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
 import { useNavigate } from 'react-router-dom';
-import { mockAvailableGroups, RateLimit, Tier } from '~/app/types/tier';
+import { RateLimit, Tier } from '~/app/types/tier';
+import { useFetchAuthGroups } from '~/app/hooks/useFetchAuthGroups';
 import { RateLimitCheckbox } from './RateLimitCheckbox';
 import { useCreateTierFormValidation } from './useCreateTierFormValidation';
 
@@ -75,14 +76,38 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
       : undefined,
   });
 
-  const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() =>
-    mockAvailableGroups.map((group) => ({
-      id: group,
-      name: group,
-      selected: tier?.groups?.includes(group) ?? false,
-    })),
+  const { groups: availableGroups, loaded: groupsLoaded } = useFetchAuthGroups();
+
+  // Track only which groups are selected (by ID)
+  const [selectedGroupIds, setSelectedGroupIds] = React.useState<Set<string>>(
+    () => new Set(tier?.groups ?? []),
   );
   const [groupsTouched, setGroupsTouched] = React.useState(false);
+
+  // Derive the SelectionOptions array for the dropdown
+  const selectedGroups = React.useMemo<SelectionOptions[]>(() => {
+    if (!groupsLoaded) {
+      return [];
+    }
+    // Start with groups from the API
+    const options: SelectionOptions[] = availableGroups.map((group) => ({
+      id: group,
+      name: group,
+      selected: selectedGroupIds.has(group),
+    }));
+    // Add any user-created groups that aren't in availableGroups
+    const availableGroupsSet = new Set(availableGroups);
+    selectedGroupIds.forEach((groupId) => {
+      if (!availableGroupsSet.has(groupId)) {
+        options.push({
+          id: groupId,
+          name: groupId,
+          selected: true,
+        });
+      }
+    });
+    return options;
+  }, [availableGroups, groupsLoaded, selectedGroupIds]);
 
   const [tokenLimitEnabled, setTokenLimitEnabled] = React.useState(
     (tier?.limits?.tokensPerUnit?.length ?? 0) >= 1,
@@ -101,7 +126,7 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
   const [level, setLevel] = React.useState(tier?.level ?? defaultTierLevel);
 
   // Get selected group names for validation
-  const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
+  const selectedGroupNames = [...selectedGroupIds];
 
   const isK8sNameValid = isK8sNameDescriptionDataValid(data);
 
@@ -238,7 +263,9 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
           value={selectedGroups}
           setValue={(newValue) => {
             setGroupsTouched(true);
-            setSelectedGroups(newValue);
+            setSelectedGroupIds(
+              new Set(newValue.filter((g) => g.selected).map((g) => String(g.id))),
+            );
           }}
           toggleTestId="tier-groups"
           isCreatable

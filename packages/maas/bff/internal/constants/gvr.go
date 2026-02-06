@@ -14,4 +14,11 @@ var (
 		Version:  "v1",
 		Resource: "ratelimitpolicies",
 	}
+
+	// OpenShift Groups API - may not exist if using external OIDC
+	GroupsGvr = schema.GroupVersionResource{
+		Group:    "user.openshift.io",
+		Version:  "v1",
+		Resource: "groups",
+	}
 )

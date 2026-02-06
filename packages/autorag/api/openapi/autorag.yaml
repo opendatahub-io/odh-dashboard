@@ -73,6 +73,29 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/groups:
+    summary: Path used to list OpenShift Groups the user has access to.
+    description: >-
+      The REST endpoint/path used to list OpenShift Group names that the user
+      can access. Returns an empty list if the Groups API doesn't exist
+      (e.g., when using external OIDC providers).
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/GroupsListResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listGroups
+      summary: List OpenShift Groups
+      description: >-
+        Returns a list of OpenShift Group names the user has access to.
+        Returns 200 with an empty list if the Groups API doesn't exist
+        (e.g., when using external OIDC). Returns 403 if the user doesn't
+        have permission to list groups.
 components:
   schemas:
     Config:
@@ -87,6 +110,20 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+    GroupsList:
+      required:
+        - groups
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            type: string
+          description: List of OpenShift Group names the user has access to
+          example:
+            - odh-admins
+            - odh-users
+            - tier0-users
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -184,6 +221,12 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       description: Unauthorized
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      description: Access forbidden - user does not have permission to access this resource
     InternalServerError:
       content:
         application/json:
@@ -202,6 +245,18 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+    GroupsListResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/GroupsList"
+      description: A response containing a list of OpenShift Group names.
     ConflictResponse:
       content:
         application/json:

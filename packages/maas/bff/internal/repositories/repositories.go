@@ -15,6 +15,7 @@ type Repositories struct {
 	Tiers       *TiersRepository
 	APIKeys     *APIKeysRepository
 	Models      *ModelsRepository
+	Auth        *AuthRepository
 }
 
 func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, config config.EnvConfig) (*Repositories, error) {
@@ -36,5 +37,6 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.GatewayName),
 		APIKeys: apiKeysRepo,
 		Models:  NewModelsRepository(logger),
+		Auth:    NewAuthRepository(logger, k8sFactory),
 	}, nil
 }

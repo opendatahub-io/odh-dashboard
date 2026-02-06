@@ -156,6 +156,11 @@ func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Int
 		return err
 	}
 
+	err = createOpenShiftGroups(mockDynamicClient, ctx)
+	if err != nil {
+		return err
+	}
+
 	err = createService(mockK8sClient, ctx, "maas", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "maas")
 	if err != nil {
 		return err
@@ -544,4 +549,42 @@ func getProjectRoot() (string, error) {
 
 		currentDir = parentDir
 	}
+}
+
+// createOpenShiftGroups creates mock OpenShift Group resources for testing
+func createOpenShiftGroups(dynamicClient dynamic.Interface, ctx context.Context) error {
+	groups := []struct {
+		name  string
+		users []string
+	}{
+		{name: "odh-admins", users: []string{"admin@example.com"}},
+		{name: "odh-users", users: []string{"user@example.com", "doraNonAdmin@example.com"}},
+		{name: "tier0-users", users: []string{"user@example.com"}},
+		{name: "tier1-users", users: []string{"doraNonAdmin@example.com"}},
+	}
+
+	for _, g := range groups {
+		users := make([]interface{}, len(g.users))
+		for i, u := range g.users {
+			users[i] = u
+		}
+
+		group := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "user.openshift.io/v1",
+				"kind":       "Group",
+				"metadata": map[string]interface{}{
+					"name": g.name,
+				},
+				"users": users,
+			},
+		}
+
+		_, err := dynamicClient.Resource(constants.GroupsGvr).Create(ctx, group, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create Group %s: %w", g.name, err)
+		}
+	}
+
+	return nil
 }
