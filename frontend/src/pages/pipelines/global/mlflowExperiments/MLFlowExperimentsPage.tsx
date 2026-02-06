@@ -12,7 +12,6 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { experimentsPageTitle } from '#~/pages/pipelines/global/experiments/const';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import MLflowIframeCSSOverride from './MLflowIframeCSSOverride';
 import MlflowIframe from './MLflowIframe';
 
 const GlobalMLflowExperimentsPage: React.FC = () => (
@@ -59,9 +58,7 @@ const GlobalMLflowExperimentsPage: React.FC = () => (
         </Button>
       </FlexItem>
     </Flex>
-    <MLflowIframeCSSOverride>
-      {(iframeRef) => <MlflowIframe ref={iframeRef} />}
-    </MLflowIframeCSSOverride>
+    <MlflowIframe />
   </ApplicationsPage>
 );
 
