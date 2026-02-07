@@ -8,9 +8,15 @@ import {
   Button,
   Form,
   FormSection,
+  EmptyState,
+  EmptyStateBody,
+  Bullseye,
 } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import projectImg from '@odh-dashboard/internal/images/UI_icon-Red_Hat-Folder-RGB.svg';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
@@ -43,7 +49,8 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   modelDeployPrefill,
   onClose,
 }) => {
-  const { loadError: projectsLoadError } = React.useContext(ProjectsContext);
+  const { projects, loadError: projectsLoadError } = React.useContext(ProjectsContext);
+  const { isAdmin } = useUser();
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const [selectedConnection, setSelectedConnection] = React.useState<Connection | undefined>(
     undefined,
@@ -148,6 +155,40 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
     (matchedConnections.length === 0 ||
       matchedConnections.length === 1 ||
       (matchedConnections.length >= 2 && selectedConnection !== undefined));
+
+  // Show no projects modal for non-admin users with zero projects
+  const showNoProjectsModal = !isAdmin && projects.length === 0;
+  if (showNoProjectsModal) {
+    return (
+      <Modal variant="medium" isOpen onClose={onClose}>
+        <ModalHeader
+          title="Deploy model"
+          description="Select a project and connection to deploy your model from the model registry"
+        />
+        <ModalBody>
+          <Bullseye>
+            <EmptyState
+              headingLevel="h4"
+              icon={() => <img src={projectImg} alt="No projects" />}
+              titleText="No projects"
+              variant="sm"
+            >
+              <EmptyStateBody>
+                To deploy this model, you must first create a project.
+                <br />
+                <Link to="/projects">Go to Data science projects</Link>
+              </EmptyStateBody>
+            </EmptyState>
+          </Bullseye>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={onClose}>
+            Close
+          </Button>
+        </ModalFooter>
+      </Modal>
+    );
+  }
 
   return (
     <Modal variant="medium" isOpen onClose={onClose}>
