@@ -120,72 +120,123 @@ const removeMcpToolSelectionsForConfig = (configId: string): void => {
   }
 };
 
+// Constants for configIds - used as display labels
+export const MODEL_1_CONFIG_ID = 'Model 1';
+export const MODEL_2_CONFIG_ID = 'Model 2';
+
 const initialState = {
   configurations: {
-    default: {
+    [MODEL_1_CONFIG_ID]: {
       ...DEFAULT_CONFIGURATION,
-      mcpToolSelections: loadMcpToolSelectionsForConfig('default'),
+      mcpToolSelections: loadMcpToolSelectionsForConfig(MODEL_1_CONFIG_ID),
     },
   },
-  configIds: ['default'],
+  configIds: [MODEL_1_CONFIG_ID],
 };
 export const useChatbotConfigStore = create<ChatbotConfigStore>()(
   devtools(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     immer((set, get) => ({
       ...initialState,
 
       // Configuration lifecycle
-      removeConfiguration: (id: string) => {
-        // Don't allow removing the last configuration or non-existent configurations
+      addConfiguration: (id: string, initialModel?: string) => {
         const state = get();
+        if (!state.configurations[id]) {
+          set(
+            {
+              configurations: {
+                ...state.configurations,
+                [id]: {
+                  ...DEFAULT_CONFIGURATION,
+                  selectedModel: initialModel ?? '',
+                  mcpToolSelections: loadMcpToolSelectionsForConfig(id),
+                },
+              },
+              configIds: [...state.configIds, id],
+            },
+            false,
+            'addConfiguration',
+          );
+        }
+      },
+
+      removeConfiguration: (id: string) => {
+        const state = get();
+
+        // Don't allow removing the last configuration or non-existent configurations
         if (state.configIds.length <= 1 || !state.configurations[id]) {
           return;
         }
 
-        // Build new configurations object without the removed id
-        const newConfigurations: { [key: string]: ChatbotConfiguration | undefined } = {};
-        Object.keys(state.configurations).forEach((key) => {
-          if (key !== id) {
-            newConfigurations[key] = state.configurations[key];
+        // Find the remaining config
+        const remainingConfigId = state.configIds.find((configId) => configId !== id);
+        const remainingConfig = remainingConfigId ? state.configurations[remainingConfigId] : null;
+
+        if (!remainingConfig) {
+          return;
+        }
+
+        // The remaining config always becomes Model 1
+        const mcpToolSelectionsCopy: McpToolSelectionsMap = {};
+        Object.entries(remainingConfig.mcpToolSelections).forEach(([namespace, serverMap]) => {
+          if (serverMap) {
+            const serverMapCopy: Record<string, string[]> = {};
+            Object.entries(serverMap).forEach(([serverUrl, toolNames]) => {
+              serverMapCopy[serverUrl] = [...toolNames];
+            });
+            mcpToolSelectionsCopy[namespace] = serverMapCopy;
           }
         });
 
-        // Build new configIds array without the removed id
-        const newConfigIds = state.configIds.filter((configId) => configId !== id);
+        const newModel1Config: ChatbotConfiguration = {
+          systemInstruction: remainingConfig.systemInstruction,
+          temperature: remainingConfig.temperature,
+          isStreamingEnabled: remainingConfig.isStreamingEnabled,
+          selectedModel: remainingConfig.selectedModel,
+          selectedMcpServerIds: [...remainingConfig.selectedMcpServerIds],
+          mcpToolSelections: mcpToolSelectionsCopy,
+          guardrail: remainingConfig.guardrail,
+          guardrailUserInputEnabled: remainingConfig.guardrailUserInputEnabled,
+          guardrailModelOutputEnabled: remainingConfig.guardrailModelOutputEnabled,
+          isRagEnabled: remainingConfig.isRagEnabled,
+        };
 
         set(
           {
-            configurations: newConfigurations,
-            configIds: newConfigIds,
+            configurations: {
+              [MODEL_1_CONFIG_ID]: newModel1Config,
+            },
+            configIds: [MODEL_1_CONFIG_ID],
           },
           false,
           'removeConfiguration',
         );
 
-        // Clean up MCP tool selections from sessionStorage
+        // Update sessionStorage
+        saveMcpToolSelectionsForConfig(MODEL_1_CONFIG_ID, newModel1Config.mcpToolSelections);
+        if (remainingConfigId && remainingConfigId !== MODEL_1_CONFIG_ID) {
+          removeMcpToolSelectionsForConfig(remainingConfigId);
+        }
         removeMcpToolSelectionsForConfig(id);
       },
 
-      duplicateConfiguration: (id: string) => {
+      duplicateConfiguration: (configIdToClone: string) => {
         const state = get();
-        const sourceConfig = state.configurations[id];
+        const sourceConfig = state.configurations[configIdToClone];
 
-        // Don't allow more than 2 configurations or duplicating non-existent configurations
+        // Don't allow if already in compare mode or source doesn't exist
         if (!sourceConfig || state.configIds.length >= 2) {
           return;
         }
 
-        // Generate a unique ID based on timestamp
-        const newId = `config-${Date.now()}`;
-
-        // Create a deep copy of the configuration (including nested mcpToolSelections and arrays)
+        // Create a deep copy of the source configuration
         const mcpToolSelectionsCopy: McpToolSelectionsMap = {};
         Object.entries(sourceConfig.mcpToolSelections).forEach(([namespace, serverMap]) => {
           if (serverMap) {
-            // Deep copy the server map, including the tool arrays
             const serverMapCopy: Record<string, string[]> = {};
             Object.entries(serverMap).forEach(([serverUrl, toolNames]) => {
-              serverMapCopy[serverUrl] = [...toolNames]; // Copy the array
+              serverMapCopy[serverUrl] = [...toolNames];
             });
             mcpToolSelectionsCopy[namespace] = serverMapCopy;
           }
@@ -196,29 +247,28 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           temperature: sourceConfig.temperature,
           isStreamingEnabled: sourceConfig.isStreamingEnabled,
           selectedModel: sourceConfig.selectedModel,
-          selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
+          selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds],
           mcpToolSelections: mcpToolSelectionsCopy,
           guardrail: sourceConfig.guardrail,
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
+          isRagEnabled: sourceConfig.isRagEnabled,
         };
 
         set(
           {
             configurations: {
               ...state.configurations,
-              [newId]: newConfig,
+              [MODEL_2_CONFIG_ID]: newConfig,
             },
-            configIds: [...state.configIds, newId],
+            configIds: [MODEL_1_CONFIG_ID, MODEL_2_CONFIG_ID],
           },
           false,
           'duplicateConfiguration',
         );
 
-        // Duplicate MCP tool selections in sessionStorage
-        saveMcpToolSelectionsForConfig(newId, newConfig.mcpToolSelections);
-
-        return newId;
+        // Copy MCP tool selections to Model 2 in sessionStorage
+        saveMcpToolSelectionsForConfig(MODEL_2_CONFIG_ID, newConfig.mcpToolSelections);
       },
 
       // Field-specific updaters
@@ -363,16 +413,29 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         });
       },
 
+      updateRagEnabled: (id: string, value: boolean) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.isRagEnabled = value;
+            }
+          },
+          false,
+          'updateRagEnabled',
+        );
+      },
+
       // Configuration management
       resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
         set(
           () => ({
             ...initialState,
             configurations: {
-              default: {
+              [MODEL_1_CONFIG_ID]: {
                 ...DEFAULT_CONFIGURATION,
                 ...initialValues,
-                mcpToolSelections: loadMcpToolSelectionsForConfig('default'),
+                mcpToolSelections: loadMcpToolSelectionsForConfig(MODEL_1_CONFIG_ID),
               },
             },
           }),

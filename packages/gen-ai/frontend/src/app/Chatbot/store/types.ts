@@ -24,6 +24,8 @@ export interface ChatbotConfiguration {
   guardrail: string;
   guardrailUserInputEnabled: boolean;
   guardrailModelOutputEnabled: boolean;
+  /** Whether RAG (Retrieval Augmented Generation) is enabled for this pane */
+  isRagEnabled: boolean;
 }
 
 /**
@@ -40,6 +42,8 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrail: '',
   guardrailUserInputEnabled: false,
   guardrailModelOutputEnabled: false,
+  // RAG default - OFF
+  isRagEnabled: false,
 };
 
 /**
@@ -55,8 +59,13 @@ export interface ChatbotConfigStoreState {
  */
 export interface ChatbotConfigStoreActions {
   // Configuration lifecycle
+  addConfiguration: (id: string, initialModel?: string) => void;
   removeConfiguration: (id: string) => void;
-  duplicateConfiguration: (id: string) => string | undefined;
+  /**
+   * Duplicate a configuration to create Model 2 (enter compare mode).
+   * @param configIdToClone - The configId to clone
+   */
+  duplicateConfiguration: (configIdToClone: string) => void;
 
   // Field-specific updaters (for granular rerenders)
   updateSystemInstruction: (id: string, value: string) => void;
@@ -76,6 +85,9 @@ export interface ChatbotConfigStoreActions {
   updateGuardrail: (id: string, value: string) => void;
   updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
   updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
+
+  // RAG toggle (per-pane)
+  updateRagEnabled: (id: string, value: boolean) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
