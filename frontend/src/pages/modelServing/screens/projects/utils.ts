@@ -439,6 +439,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   servingPlatformEnablement: NamespaceApplicationCase,
   currentProject?: ProjectKind,
   name?: string,
+  imagePullSecret?: string,
 ): ((opts: { dryRun?: boolean }) => Promise<void | (string | void | ServingRuntimeKind)[]>) => {
   if (!servingRuntimeSelected) {
     return () =>
@@ -488,6 +489,7 @@ export const getSubmitServingRuntimeResourcesFn = (
               servingRuntime: servingRuntimeSelected,
               isCustomServingRuntimesEnabled: customServingRuntimesEnabled,
               opts: { dryRun },
+              imagePullSecret,
             }),
           ]),
     ]);
@@ -519,6 +521,7 @@ export interface ModelInfo {
   tags: string[];
   latestTag: string;
   updatedDate: string;
+  registry?: string; // Optional custom registry for air-gapped deployments
 }
 
 export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => {
@@ -536,6 +539,7 @@ export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => 
           tags: modelData.tags,
           latestTag: modelData.latestTag,
           updatedDate: modelData.updatedDate,
+          registry: modelData.registry, // Optional custom registry
         });
       } catch (error) {
         throw new Error(`Failed to parse model data for key "${key}".`);
@@ -552,9 +556,39 @@ export const createNIMSecret = async (
   secretKey: string,
   isNGC: boolean,
   dryRun: boolean,
+  isAirGapped = false,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(secretKey, isNGC);
+    let data;
+
+    if (isAirGapped) {
+      // Air-gapped mode: Use dummy values to satisfy controller expectations
+      // The actual image pulling uses the custom imagePullSecret from ConfigMap
+      if (isNGC) {
+        // Dummy dockerconfigjson for ngc-secret
+        data = {
+          '.dockerconfigjson': btoa(
+            JSON.stringify({
+              auths: {
+                'nvcr.io': {
+                  username: '$oauthtoken',
+                  password: 'air-gapped-placeholder',
+                  auth: btoa('$oauthtoken:air-gapped-placeholder'),
+                },
+              },
+            }),
+          ),
+        };
+      } else {
+        // Dummy API key for nvidia-nim-secrets
+        data = {
+          NGC_API_KEY: btoa('air-gapped-placeholder-key'),
+        };
+      }
+    } else {
+      // Normal mode: Fetch real NGC credentials from ConfigMap
+      data = await getNIMData(secretKey, isNGC);
+    }
 
     const newSecret = {
       apiVersion: 'v1',

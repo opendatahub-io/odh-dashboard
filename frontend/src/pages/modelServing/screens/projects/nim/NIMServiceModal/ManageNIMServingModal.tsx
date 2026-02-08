@@ -70,6 +70,7 @@ import {
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   MODEL_SERVING_VISIBILITY,
 } from '#~/concepts/hardwareProfiles/const';
+import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
@@ -105,6 +106,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 }) => {
   const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
     useGetStorageClassConfig();
+
+  // Read NIM account configuration for air-gapped registry support
+  const accountConfig = useNIMAccountConfig();
 
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -306,6 +310,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
       projectContext?.currentProject,
       servingRuntimeName,
+      accountConfig.imagePullSecret, // Pass imagePullSecret from air-gapped config
     );
 
     const inferenceServiceName = createDataInferenceService.k8sName;
@@ -341,11 +346,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         ];
 
         if (!editInfo) {
+          // Detect air-gapped mode: if custom registry or imagePullSecret is configured
+          const isAirGapped = !!(accountConfig.registry || accountConfig.imagePullSecret);
+
+          // Create NGC secrets (with dummy values in air-gapped mode)
           if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false));
+            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false, isAirGapped));
           }
           if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
+            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false, isAirGapped));
           }
           if (pvcMode === 'create-new') {
             promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));

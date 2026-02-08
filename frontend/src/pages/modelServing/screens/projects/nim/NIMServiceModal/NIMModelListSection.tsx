@@ -7,6 +7,7 @@ import {
   CreatingServingRuntimeObject,
 } from '#~/pages/modelServing/screens/types';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
 
 type NIMModelListSectionProps = {
   inferenceServiceData: CreatingInferenceServiceObject;
@@ -25,6 +26,9 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
   const [options, setOptions] = React.useState<TypeaheadSelectOption[]>([]);
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const [error, setError] = React.useState<string>('');
+
+  // Read NIM account configuration for air-gapped registry support
+  const accountConfig = useNIMAccountConfig();
 
   React.useEffect(() => {
     const getModelNames = async () => {
@@ -108,9 +112,15 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
 
   const getNIMImageName = (key: string) => {
     const result = extractModelAndVersion(key);
-    return result
-      ? `nvcr.io/${result.modelInfo.namespace}/${result.modelInfo.name}:${result.version}`
-      : '';
+    if (!result) return '';
+
+    // Determine registry in order of precedence:
+    // 1. Model-specific registry from ConfigMap (per-model override)
+    // 2. Global registry from odh-nim-account-cm (air-gapped mode)
+    // 3. Default to nvcr.io (internet-connected mode)
+    const registry = result.modelInfo.registry || accountConfig.registry || 'nvcr.io';
+
+    return `${registry}/${result.modelInfo.namespace}/${result.modelInfo.name}:${result.version}`;
   };
 
   const onSelect = (
