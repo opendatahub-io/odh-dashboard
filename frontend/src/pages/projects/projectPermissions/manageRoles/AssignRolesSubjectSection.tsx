@@ -16,13 +16,14 @@ import {
 import { ProjectObjectType, typedBackgroundColor } from '#~/concepts/design/utils.ts';
 import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon.tsx';
 import SubjectNameTypeaheadSelect from '#~/pages/projects/projectPermissions/components/SubjectNameTypeaheadSelect';
+import type { SubjectKindSelection } from '#~/pages/projects/projectPermissions/types';
 
 type AssignRolesSubjectSectionProps = {
   isManageMode: boolean;
-  subjectKind: 'user' | 'group';
+  subjectKind: SubjectKindSelection;
   subjectName: string;
   existingSubjectNames: string[];
-  onSubjectKindChange: (kind: 'user' | 'group') => void;
+  onSubjectKindChange: (kind: SubjectKindSelection) => void;
   onSubjectNameChange: (name: string) => void;
 };
 
@@ -37,7 +38,7 @@ const AssignRolesSubjectSection: React.FC<AssignRolesSubjectSectionProps> = ({
   <FormSection title="Subject">
     {!isManageMode && (
       <Content component={ContentVariants.p}>
-        Select a subject with existing roles or enter a new subject.
+        Select a user or group with existing permissions, or enter the name of a new one.
       </Content>
     )}
     {!isManageMode && (

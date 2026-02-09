@@ -28,7 +28,15 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   }
 
   findManageRolesAction(rowName: string) {
-    return this.getRowByName(rowName).findKebabAction('Manage roles');
+    return this.getRowByName(rowName).findKebabAction('Manage permissions');
+  }
+
+  findTableHeaderButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
+  }
+
+  clickColumnSort(name: string | RegExp) {
+    return this.findTableHeaderButton(name).click();
   }
 }
 
@@ -100,8 +108,24 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId('assign-roles-subject-typeahead-toggle');
   }
 
+  findAssignRolesSubjectClearButton() {
+    return this.findAssignRolesSubjectTypeahead().find('button[aria-label="Clear input value"]');
+  }
+
   findAssignRolesSubjectKindRadio(kind: 'user' | 'group') {
     return cy.findByTestId(`assign-roles-subject-kind-${kind}`);
+  }
+
+  findAssignRolesSaveButton() {
+    return cy.findByTestId('assign-roles-save');
+  }
+
+  findAssignRolesBreadcrumbProjects() {
+    return cy.findByTestId('assign-roles-breadcrumb-projects');
+  }
+
+  findAssignRolesBreadcrumbProject() {
+    return cy.findByTestId('assign-roles-breadcrumb-project');
   }
 
   findUsersTable() {
@@ -184,6 +208,86 @@ class ProjectRbacPermissionsTab {
 
   getRoleDetailsModal() {
     return new RoleDetailsModal(() => cy.findByTestId('role-details-modal'));
+  }
+
+  getDiscardChangesModal() {
+    return new DiscardChangesModal(() => cy.findByTestId('discard-changes-modal'));
+  }
+
+  getNavigationBlockerModal() {
+    return new NavigationBlockerModal(() => cy.findByTestId('navigation-blocker-modal'));
+  }
+
+  getManageRolesTable() {
+    return new ManageRolesTable(() => cy.findByTestId('manage-roles-table'));
+  }
+
+  getRoleAssignmentChangesModal() {
+    return new RoleAssignmentChangesModal(() => cy.findByTestId('assign-roles-confirm-modal'));
+  }
+}
+
+class DiscardChangesModal extends Contextual<HTMLElement> {
+  findDiscardButton() {
+    return this.find().findByTestId('discard-changes-confirm');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('discard-changes-cancel');
+  }
+
+  shouldContainMessage(text: string | RegExp) {
+    return this.find().contains(text);
+  }
+}
+
+class NavigationBlockerModal extends Contextual<HTMLElement> {
+  findDiscardButton() {
+    return this.find().findByTestId('confirm-discard-changes');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-discard-changes');
+  }
+}
+
+class ManageRolesTable extends Contextual<HTMLElement> {
+  findRoleRow(roleName: string) {
+    return this.find().find('[data-label="Role"]').contains(roleName).closest('tr');
+  }
+
+  findRoleCheckbox(roleName: string) {
+    return this.findRoleRow(roleName).find('input[type="checkbox"]');
+  }
+
+  toggleRole(roleName: string) {
+    return this.findRoleCheckbox(roleName).click();
+  }
+}
+
+class RoleAssignmentChangesModal extends Contextual<HTMLElement> {
+  findSaveButton() {
+    return this.find().findByTestId('assign-roles-confirm-save');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('assign-roles-confirm-cancel');
+  }
+
+  findCustomRoleWarning() {
+    return this.find().findByTestId('assign-roles-confirm-custom-role-warning');
+  }
+
+  findError() {
+    return this.find().findByTestId('assign-roles-confirm-error');
+  }
+
+  findAssigningSection() {
+    return this.find().findByTestId('assign-roles-confirm-assigning-section');
+  }
+
+  findUnassigningSection() {
+    return this.find().findByTestId('assign-roles-confirm-unassigning-section');
   }
 }
 

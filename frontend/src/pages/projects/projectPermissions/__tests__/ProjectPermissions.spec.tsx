@@ -17,7 +17,7 @@ jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
 
 jest.mock('#~/pages/projects/projectPermissions/SubjectRolesTableSection', () => ({
   __esModule: true,
-  default: ({ subjectKind }: { subjectKind: 'user' | 'group' }) => (
+  default: ({ subjectKind }: { subjectKind: string }) => (
     <div data-testid={`mock-subject-roles-section-${subjectKind}`} />
   ),
 }));
@@ -51,7 +51,11 @@ jest.mock('#~/components/FilterToolbar', () => ({
 }));
 
 describe('ProjectPermissions', () => {
-  it('shows/hides Users and Groups sections based on subject scope', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should show/hide Users and Groups sections based on subject scope', () => {
     render(<ProjectPermissions />);
 
     // default scope = all => show both

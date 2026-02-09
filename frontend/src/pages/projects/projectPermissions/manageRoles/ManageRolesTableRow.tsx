@@ -44,7 +44,12 @@ const CustomUnassignPopover = ({
   return (
     <Popover
       position={position}
-      bodyContent={`OpenShift custom roles cannot be assigned in ${ODH_PRODUCT_NAME}. You'll need to use OpenShift to assign it again.`}
+      bodyContent={
+        <>
+          <strong>OpenShift custom roles</strong> cannot be assigned from {ODH_PRODUCT_NAME}. To
+          reassign this role after removing it, you or an administrator must do so from OpenShift.
+        </>
+      }
     >
       {children}
     </Popover>
@@ -107,7 +112,7 @@ const ManageRolesTableRow: React.FC<ManageRolesTableRowProps> = ({
                         textUnderlineOffset: ExtraSmallSpacerSize.var,
                       }}
                     >
-                      Role can only be re-assigned in OpenShift
+                      Cannot be reassigned in {ODH_PRODUCT_NAME}
                     </Button>
                   </CustomUnassignPopover>
                 </FlexItem>

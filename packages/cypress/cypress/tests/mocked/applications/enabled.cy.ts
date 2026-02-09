@@ -4,6 +4,7 @@ import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/interna
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import { enabledPage } from '../../../pages/enabled';
 import { jupyterCard } from '../../../pages/components/JupyterCard';
+import { mlflowCard } from '../../../pages/components/MLflowCard';
 
 describe('Enabled Page', () => {
   beforeEach(() => {
@@ -58,5 +59,28 @@ describe('Enabled Page', () => {
     cy.visitWithLogin('/enabled');
     enabledPage.shouldHaveEnabledPageSection();
     cy.url().should('include', '/applications/enabled');
+  });
+
+  describe('MLflow card', () => {
+    it('should show mlflow card with Red Hat managed badge when mlflow is enabled', () => {
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      enabledPage.visit();
+      mlflowCard.find().should('be.visible');
+      mlflowCard.findCardTitle().should('have.text', 'MLflow');
+      mlflowCard.findPartnerBadge().should('have.text', 'Red Hat managed');
+    });
+
+    it('should not show mlflow card when mlflow is disabled', () => {
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: false }));
+      enabledPage.visit();
+      mlflowCard.find().should('not.exist');
+    });
+
+    it('should navigate to mlflow experiments page', () => {
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      enabledPage.visit();
+      mlflowCard.findApplicationLink().click();
+      cy.url().should('include', '/develop-train/experiments-mlflow');
+    });
   });
 });

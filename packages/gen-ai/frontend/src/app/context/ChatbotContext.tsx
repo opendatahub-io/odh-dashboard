@@ -1,6 +1,7 @@
 import React from 'react';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';

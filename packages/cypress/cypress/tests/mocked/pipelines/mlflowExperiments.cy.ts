@@ -12,7 +12,7 @@ const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 const MLFLOW_PROXY_BASE_PATH = '/mlflow';
 const TEST_PROJECT_NAME = 'test-project';
 const TEST_PROJECT_NAME_2 = 'test-project-2';
-const MLFLOW_WORKSPACE_IFRAME_SRC = `${MLFLOW_PROXY_BASE_PATH}/#/workspaces/${TEST_PROJECT_NAME}/experiments`;
+const MLFLOW_WORKSPACE_IFRAME_SRC = `${MLFLOW_PROXY_BASE_PATH}/#/experiments?workspace=${TEST_PROJECT_NAME}`;
 
 function isIframeElement(element: HTMLElement | undefined): element is HTMLIFrameElement {
   return element?.tagName.toLowerCase() === 'iframe';
@@ -78,47 +78,17 @@ const initIntercepts = (options: InitInterceptsOptions = {}) => {
 };
 
 describe('MLflow Experiments', () => {
-  it('should show the MLflow Experiments page and override css components', () => {
+  beforeEach(() => {
     initIntercepts();
+  });
+
+  it('mlflow jump link exists', () => {
     mlflowExperimentsPage.visit();
-    mlflowExperimentsPage.findMlflowIframe().should('be.visible');
-    mlflowExperimentsPage
-      .findMlflowIframe()
-      .should('have.attr', 'src', MLFLOW_WORKSPACE_IFRAME_SRC);
-    cy.wait('@mlflowIframe');
-
-    mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
-      const iframe = $iframe[0];
-
-      if (!isIframeElement(iframe)) {
-        throw new Error('Expected element to be an iframe');
-      }
-
-      cy.wrap(iframe).should(() => {
-        expect(iframe.contentDocument).to.not.be.null;
-        expect(iframe.contentDocument?.readyState).to.equal('complete');
-      });
-
-      cy.wrap(iframe).should(() => {
-        const doc = iframe.contentDocument;
-        expect(doc).to.not.be.null;
-
-        expect(doc?.querySelector('.du-bois-light-breadcrumb')).to.have.css('display', 'none');
-        expect(doc?.querySelector('header')).to.have.css('display', 'none');
-        expect(doc?.querySelector('aside')).to.have.css('display', 'none');
-
-        const main = doc?.querySelector('main');
-        expect(main).to.not.be.null;
-        expect(main?.style.margin).to.equal('0px');
-        expect(main?.style.borderRadius).to.equal('0px');
-
-        expect(doc?.querySelector('#mlflow-experiments-page')).to.not.be.null;
-      });
-    });
+    mlflowExperimentsPage.findMlflowJumpLink().should('be.visible');
+    mlflowExperimentsPage.findMlflowJumpLink().should('have.attr', 'href', MLFLOW_PROXY_BASE_PATH);
   });
 
   it('should load the correct iframe page from parent URL', () => {
-    initIntercepts();
     const runIds = [
       '02a652600cce4bb4b820d5a1717712f3',
       'e41bdeb677d848d6a5c7247c4aca4a2f',
@@ -128,7 +98,7 @@ describe('MLflow Experiments', () => {
     const experimentId = '1';
     const runsParam = `runs=${encodeURIComponent(JSON.stringify(runIds))}`;
     const experimentsParam = `experiments=${encodeURIComponent(JSON.stringify([experimentId]))}`;
-    const testPath = `/workspaces/${TEST_PROJECT_NAME}/compare-runs?${runsParam}&${experimentsParam}`;
+    const testPath = `/compare-runs?${runsParam}&${experimentsParam}`;
 
     mlflowExperimentsPage.visit(testPath);
     mlflowExperimentsPage
@@ -136,9 +106,11 @@ describe('MLflow Experiments', () => {
       .should('have.attr', 'src', MLFLOW_WORKSPACE_IFRAME_SRC);
 
     mlflowExperimentsPage.getMlflowPath().then((mlflowPath) => {
-      const [pathname, queryString] = mlflowPath.split('?');
-      expect(pathname).to.equal(`/workspaces/${TEST_PROJECT_NAME}/compare-runs`);
+      expect(mlflowPath).to.include('/compare-runs');
+      expect(mlflowPath).to.include(`workspace=${TEST_PROJECT_NAME}`);
 
+      const queryStart = mlflowPath.indexOf('?');
+      const queryString = mlflowPath.slice(queryStart + 1);
       const params = new URLSearchParams(queryString);
       const actualRuns = JSON.parse(params.get('runs') || '[]');
       const actualExperiments = JSON.parse(params.get('experiments') || '[]');
@@ -148,11 +120,10 @@ describe('MLflow Experiments', () => {
   });
 
   it('should sync parent URL when iframe navigates', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     cy.wait('@mlflowIframe');
 
-    const iframeHashPath = `/workspaces/${TEST_PROJECT_NAME}/experiments/1/runs?searchFilter=&orderByKey=tags.%60mlflow.runName%60&orderByAsc=true&startTime=ALL&lifecycleFilter=Active&modelVersionFilter=All+Runs&datasetsFilter=W10%3D`;
+    const iframeHashPath = `/experiments/1/runs?workspace=${TEST_PROJECT_NAME}&searchFilter=&orderByKey=tags.%60mlflow.runName%60&orderByAsc=true&startTime=ALL&lifecycleFilter=Active&modelVersionFilter=All+Runs&datasetsFilter=W10%3D`;
 
     mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
       const iframe = $iframe[0];
@@ -167,10 +138,12 @@ describe('MLflow Experiments', () => {
         }
       });
       mlflowExperimentsPage.getMlflowPath().then((mlflowPath) => {
-        const [pathname, queryString] = mlflowPath.split('?');
-        expect(pathname).to.equal(`/workspaces/${TEST_PROJECT_NAME}/experiments/1/runs`);
+        expect(mlflowPath).to.include('/experiments/1/runs');
 
+        const queryStart = mlflowPath.indexOf('?');
+        const queryString = mlflowPath.slice(queryStart + 1);
         const params = new URLSearchParams(queryString);
+        expect(params.get('workspace')).to.equal(TEST_PROJECT_NAME);
         expect(params.get('searchFilter')).to.equal('');
         expect(params.get('orderByKey')).to.equal('tags.`mlflow.runName`');
         expect(params.get('orderByAsc')).to.equal('true');
@@ -184,16 +157,14 @@ describe('MLflow Experiments', () => {
 
   it('should handle URL encoding differences correctly', () => {
     initIntercepts();
-    const pathWithQuery = `/workspaces/${TEST_PROJECT_NAME}/compare-runs?runs=%5B%22abc%22%5D`;
+    const pathWithQuery = `/compare-runs?runs=%5B%22abc%22%5D`;
     mlflowExperimentsPage.visit(pathWithQuery);
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
-    mlflowExperimentsPage
-      .getMlflowPath()
-      .should('include', `/workspaces/${TEST_PROJECT_NAME}/compare-runs`);
+    mlflowExperimentsPage.getMlflowPath().should('include', `/compare-runs`);
+    mlflowExperimentsPage.getWorkspace().should('equal', TEST_PROJECT_NAME);
   });
 
   it('should not create duplicate history entries on internal redirects', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     cy.wait('@mlflowIframe');
 
@@ -211,10 +182,11 @@ describe('MLflow Experiments', () => {
           cy.wrap(iframe).then(() => {
             const iframeWindow = iframe.contentWindow;
             if (iframeWindow) {
+              // New format: workspace in query params
               iframeWindow.history.replaceState(
                 {},
                 '',
-                `#/workspaces/${TEST_PROJECT_NAME}/experiments`,
+                `#/experiments?workspace=${TEST_PROJECT_NAME}`,
               );
             }
           });
@@ -226,7 +198,6 @@ describe('MLflow Experiments', () => {
   it('should add only one history entry when clicking navbar including the iframe redirect', () => {
     // Simulating mlflow internal redirect from /experiments
     // to /workspaces/default/experiments i.e. a workspace's experiments page
-    initIntercepts();
     cy.visitWithLogin('/');
     cy.window()
       .its('history.length')
@@ -246,18 +217,15 @@ describe('MLflow Experiments', () => {
               iframeWindow.history.replaceState(
                 {},
                 '',
-                `#/workspaces/${TEST_PROJECT_NAME}/experiments`,
+                `#/experiments?workspace=${TEST_PROJECT_NAME}`,
               );
             }
           });
 
-          cy.url().should(
-            'include',
-            `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
-          );
-          mlflowExperimentsPage
-            .getMlflowPath()
-            .should('include', `/workspaces/${TEST_PROJECT_NAME}/experiments`);
+          cy.url().should('include', `${MLFLOW_EXPERIMENTS_ROUTE}/experiments`);
+          cy.url().should('include', `workspace=${TEST_PROJECT_NAME}`);
+          mlflowExperimentsPage.getMlflowPath().should('include', `/experiments`);
+          mlflowExperimentsPage.getWorkspace().should('equal', TEST_PROJECT_NAME);
 
           cy.window()
             .its('history.length')
@@ -267,7 +235,6 @@ describe('MLflow Experiments', () => {
   });
 
   it('should display the project selector', () => {
-    initIntercepts();
     mlflowExperimentsPage.visit();
     mlflowExperimentsPage.findProjectSelect().should('be.visible');
     mlflowExperimentsPage.findProjectSelect().should('contain.text', 'Test Project');
@@ -276,16 +243,12 @@ describe('MLflow Experiments', () => {
   it('should select a different project and navigate to the new workspace', () => {
     initIntercepts({ hasMultipleProjects: true });
     mlflowExperimentsPage.visit();
-    cy.url().should(
-      'include',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
-    );
+    cy.url().should('include', `${MLFLOW_EXPERIMENTS_ROUTE}/experiments`);
+    cy.url().should('include', `workspace=${TEST_PROJECT_NAME}`);
 
     mlflowExperimentsPage.selectProjectByName('Test Project 2');
-    cy.url().should(
-      'include',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME_2}/experiments`,
-    );
+    cy.url().should('include', `${MLFLOW_EXPERIMENTS_ROUTE}/experiments`);
+    cy.url().should('include', `workspace=${TEST_PROJECT_NAME_2}`);
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
   });
 
@@ -297,12 +260,23 @@ describe('MLflow Experiments', () => {
   });
 
   it('should redirect to workspace URL when visiting base route', () => {
-    initIntercepts();
     cy.visitWithLogin(`${MLFLOW_EXPERIMENTS_ROUTE}`);
-    cy.url().should(
-      'include',
-      `${MLFLOW_EXPERIMENTS_ROUTE}/workspaces/${TEST_PROJECT_NAME}/experiments`,
-    );
+    cy.url().should('include', `${MLFLOW_EXPERIMENTS_ROUTE}/experiments`);
+    cy.url().should('include', `workspace=${TEST_PROJECT_NAME}`);
     mlflowExperimentsPage.findMlflowIframe().should('be.visible');
+  });
+
+  it('should toggle theme between light and dark', () => {
+    mlflowExperimentsPage.visit();
+    mlflowExperimentsPage.findDarkThemeToggle().click();
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('_mlflow_dark_mode_toggle_enabled')).to.equal('true');
+      expect(win.localStorage.getItem('odh.dashboard.ui.theme')).to.equal('"dark"');
+    });
+    mlflowExperimentsPage.findLightThemeToggle().click();
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('_mlflow_dark_mode_toggle_enabled')).to.equal('false');
+      expect(win.localStorage.getItem('odh.dashboard.ui.theme')).to.equal('"light"');
+    });
   });
 });

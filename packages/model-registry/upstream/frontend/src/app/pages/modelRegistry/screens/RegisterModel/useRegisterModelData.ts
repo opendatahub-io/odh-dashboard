@@ -1,6 +1,7 @@
 import { GenericObjectState } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import { ModelRegistryCustomProperties, ModelArtifact } from '~/app/types';
+import { RegistrationMode } from '~/app/pages/modelRegistry/screens/const';
 
 export enum ModelLocationType {
   ObjectStorage = 'Object storage',
@@ -25,6 +26,10 @@ export type RegistrationCommonFormData = {
   destinationOciPassword: string;
   destinationOciUri: string;
   destinationOciEmail: string;
+  namespace?: string;
+  registrationMode?: RegistrationMode.Register | RegistrationMode.RegisterAndStore;
+  jobName: string;
+  jobResourceName: string;
   versionCustomProperties?: ModelRegistryCustomProperties;
   modelCustomProperties?: ModelRegistryCustomProperties;
   additionalArtifactProperties?: Partial<ModelArtifact>;
@@ -61,6 +66,10 @@ const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   destinationOciPassword: '',
   destinationOciUri: '',
   destinationOciEmail: '',
+  namespace: '',
+  registrationMode: RegistrationMode.Register,
+  jobName: '',
+  jobResourceName: '',
   modelCustomProperties: {},
   versionCustomProperties: {},
 };

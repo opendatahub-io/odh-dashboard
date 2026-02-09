@@ -1,48 +1,52 @@
 package repositories
 
 import (
+	"context"
 	"log/slog"
+	"net/url"
 
-	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
 // APIKeysRepository handles API key operations.
-// Currently returns mock data to unblock UI development.
-// TODO: Add real MaaS API integration when available.
 type APIKeysRepository struct {
-	logger *slog.Logger
+	logger     *slog.Logger
+	maasClient *maas.MaasClient
 }
 
 // NewAPIKeysRepository creates a new API keys repository
-func NewAPIKeysRepository(logger *slog.Logger) *APIKeysRepository {
-	return &APIKeysRepository{
-		logger: logger,
+func NewAPIKeysRepository(logger *slog.Logger, maasApiUrl string) (*APIKeysRepository, error) {
+	parsedApiUrl, err := url.Parse(maasApiUrl)
+	if err != nil {
+		return nil, err
 	}
+
+	return &APIKeysRepository{
+		logger:     logger,
+		maasClient: maas.NewMaasClient(logger, parsedApiUrl),
+	}, nil
 }
 
 // CreateAPIKey creates a new API key
-func (r *APIKeysRepository) CreateAPIKey(request models.APIKeyRequest) (*models.APIKeyResponse, error) {
+func (r *APIKeysRepository) CreateAPIKey(ctx context.Context, request models.APIKeyRequest) (*models.APIKeyResponse, error) {
 	r.logger.Debug("Creating API key", slog.String("name", request.Name))
 
-	response := mocks.GetMockAPIKeyResponse()
-	return &response, nil
+	return r.maasClient.CreateAPIKey(ctx, request)
 }
 
 // GetAPIKey retrieves an API key by ID
-func (r *APIKeysRepository) GetAPIKey(id string) (*models.APIKeyMetadata, error) {
+func (r *APIKeysRepository) GetAPIKey(ctx context.Context, id string) (*models.APIKeyMetadata, error) {
 	r.logger.Debug("Getting API key", slog.String("id", id))
 
-	metadata := mocks.GetMockAPIKeyMetadata()
-	metadata.ID = id
-	return &metadata, nil
+	return r.maasClient.GetAPIKey(ctx, id)
 }
 
 // ListAPIKeys retrieves all API keys
-func (r *APIKeysRepository) ListAPIKeys() ([]models.APIKeyMetadata, error) {
+func (r *APIKeysRepository) ListAPIKeys(ctx context.Context) ([]models.APIKeyMetadata, error) {
 	r.logger.Debug("Listing API keys")
 
-	return mocks.GetMockAPIKeyMetadataList(), nil
+	return r.maasClient.ListAPIKeys(ctx)
 }
 
 // DeleteAllAPIKeys removes all API keys

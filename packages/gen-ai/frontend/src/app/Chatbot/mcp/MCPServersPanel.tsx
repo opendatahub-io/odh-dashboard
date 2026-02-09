@@ -6,13 +6,14 @@ import {
   EmptyStateBody,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import { CubesIcon, UnknownIcon } from '@patternfly/react-icons';
+import { UnknownIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import SupportIcon from '~/app/bgimages/support-icon.svg';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -248,7 +249,9 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       <EmptyState
         variant={EmptyStateVariant.xs}
         data-testid="ai-assets-empty-state"
-        icon={CubesIcon}
+        icon={() => (
+          <img src={SupportIcon} alt="Support icon" style={{ width: '56px', height: '56px' }} />
+        )}
         headingLevel="h6"
         titleText="No MCP servers available"
       >

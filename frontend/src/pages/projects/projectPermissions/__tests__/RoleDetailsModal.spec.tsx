@@ -17,10 +17,10 @@ jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
 
 describe('RoleDetailsModal', () => {
   beforeEach(() => {
-    mockUsePermissionsContext.mockReset();
+    jest.clearAllMocks();
   });
 
-  it('shows default admin/edit description in the modal header', () => {
+  it('should show default admin/edit description in the modal header', () => {
     const roleRef: RoleRef = { kind: 'ClusterRole', name: 'admin' };
     const clusterRole = mockClusterRoleK8sResource({ name: roleRef.name });
 
@@ -35,7 +35,7 @@ describe('RoleDetailsModal', () => {
     expect(screen.getByText('Edit the project and manage user access')).toBeInTheDocument();
   });
 
-  it('renders rules with View more pagination', () => {
+  it('should render rules with View more pagination', () => {
     const roleRef: RoleRef = { kind: 'ClusterRole', name: 'custom-pipeline-super-user' };
     const rules = new Array(12).fill(0).map((_, i) => ({
       verbs: ['get', 'list'],
@@ -64,7 +64,7 @@ describe('RoleDetailsModal', () => {
     expect(screen.getByText('Showing 12/12')).toBeInTheDocument();
   });
 
-  it('supports sorting by API Groups, Resource type, and Resource names', () => {
+  it('should support sorting by API Groups, Resource type, and Resource names', () => {
     const roleRef: RoleRef = { kind: 'ClusterRole', name: 'sortable-role' };
     const rules = [
       { verbs: ['get'], apiGroups: ['z-group'], resources: ['b-res'], resourceNames: ['b-name'] },
@@ -110,7 +110,7 @@ describe('RoleDetailsModal', () => {
     expect(within(getFirstBodyRow()).getByText('a-name')).toBeInTheDocument();
   });
 
-  it('shows an access-needed empty state for unreadable roles, but still shows assignees', () => {
+  it('should show an access-needed empty state for unreadable roles, but still show assignees', () => {
     const roleRef: RoleRef = { kind: 'ClusterRole', name: 'view' };
     const rb = mockRoleBindingK8sResource({
       name: 'rb-view',

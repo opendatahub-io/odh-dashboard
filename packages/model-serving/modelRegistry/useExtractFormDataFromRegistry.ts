@@ -2,6 +2,7 @@ import React from 'react';
 import {
   setupDefaults,
   handleUpdateLogic,
+  LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
@@ -98,7 +99,9 @@ export const useExtractFormDataFromRegistry = (
 
     // Setup defaults and then update with the model name
     // This ensures the k8s name is properly generated from the display name
-    const baseK8sNameDesc = setupDefaults({});
+    const baseK8sNameDesc = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    });
     const k8sNameDesc = handleUpdateLogic(baseK8sNameDesc)('name', prefillInfo.modelName);
 
     const initialData: InitialWizardFormData = {

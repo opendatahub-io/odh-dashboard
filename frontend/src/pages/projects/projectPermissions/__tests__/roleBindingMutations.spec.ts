@@ -46,7 +46,7 @@ describe('project permissions roleBindingMutations', () => {
   });
 
   describe('findRoleBindingForRoleRef', () => {
-    it('returns the first RoleBinding matching namespace + roleRef', () => {
+    it('should return the first RoleBinding matching namespace + roleRef', () => {
       const rbs: RoleBindingKind[] = [
         mockRoleBindingK8sResource({
           name: 'rb-other-ns',
@@ -81,7 +81,7 @@ describe('project permissions roleBindingMutations', () => {
   });
 
   describe('findAllRoleBindingsForSubjectAndRoleRef', () => {
-    it('returns all RoleBindings matching namespace, roleRef, and containing subject', () => {
+    it('should return all RoleBindings matching namespace, roleRef, and containing subject', () => {
       const rbs: RoleBindingKind[] = [
         mockRoleBindingK8sResource({
           name: 'rb-match-1',
@@ -123,7 +123,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(found.map((rb) => rb.metadata.name)).toEqual(['rb-match-1', 'rb-match-2']);
     });
 
-    it('returns empty array when no matches', () => {
+    it('should return empty array when no matches', () => {
       const found = findAllRoleBindingsForSubjectAndRoleRef({
         roleBindings: [],
         namespace,
@@ -135,7 +135,7 @@ describe('project permissions roleBindingMutations', () => {
   });
 
   describe('upsertRoleBinding', () => {
-    it('creates a RoleBinding when none match', async () => {
+    it('should create a RoleBinding when none match', async () => {
       const generated: RoleBindingKind = mockRoleBindingK8sResource({
         name: 'generated',
         namespace,
@@ -159,7 +159,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(patchRoleBindingSubjectsMock).not.toHaveBeenCalled();
     });
 
-    it('patches the first matching RoleBinding when subject is not already assigned', async () => {
+    it('should patch the first matching RoleBinding when subject is not already assigned', async () => {
       const rb1 = mockRoleBindingK8sResource({
         name: 'rb-1',
         namespace,
@@ -188,7 +188,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(patchRoleBindingSubjectsMock).toHaveBeenCalledWith('rb-1', namespace, [subject]);
     });
 
-    it('does nothing when the subject is already assigned via any matching RoleBinding', async () => {
+    it('should do nothing when the subject is already assigned via any matching RoleBinding', async () => {
       const rb1 = mockRoleBindingK8sResource({
         name: 'rb-1',
         namespace,
@@ -218,7 +218,7 @@ describe('project permissions roleBindingMutations', () => {
   });
 
   describe('removeSubjectFromRoleBinding', () => {
-    it('no-ops when the subject is not present', async () => {
+    it('should no-op when the subject is not present', async () => {
       const rb = mockRoleBindingK8sResource({
         name: 'rb-1',
         namespace,
@@ -233,7 +233,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(patchRoleBindingSubjectsMock).not.toHaveBeenCalled();
     });
 
-    it('deletes the RoleBinding when removing the last subject', async () => {
+    it('should delete the RoleBinding when removing the last subject', async () => {
       const rb = mockRoleBindingK8sResource({
         name: 'rb-1',
         namespace,
@@ -249,7 +249,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(patchRoleBindingSubjectsMock).not.toHaveBeenCalled();
     });
 
-    it('patches remaining subjects when RoleBinding still has other subjects', async () => {
+    it('should patch remaining subjects when RoleBinding still has other subjects', async () => {
       const other = mockUserRoleBindingSubject({ name: 'test-user-2' });
       const rb = mockRoleBindingK8sResource({
         name: 'rb-1',
@@ -278,7 +278,7 @@ describe('project permissions roleBindingMutations', () => {
       role: undefined,
     });
 
-    it('applies all assignments and unassignments in parallel and returns success', async () => {
+    it('should apply all assignments and unassignments in parallel and return success', async () => {
       const rbAdmin = mockRoleBindingK8sResource({
         name: 'rb-admin',
         namespace,
@@ -333,7 +333,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('handles empty changes gracefully', async () => {
+    it('should handle empty changes gracefully', async () => {
       const changes: RoleAssignmentChanges = {
         assigning: [],
         unassigning: [],
@@ -357,7 +357,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(result.failedCount).toBe(0);
     });
 
-    it('skips unassignment when no RoleBinding is found for roleRef', async () => {
+    it('should skip unassignment when no RoleBinding is found for roleRef', async () => {
       const changes: RoleAssignmentChanges = {
         assigning: [],
         unassigning: [createRow(roleRefAdmin)],
@@ -380,7 +380,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(result.successCount).toBe(0);
     });
 
-    it('removes subject from ALL duplicate RoleBindings for the same roleRef', async () => {
+    it('should remove subject from ALL duplicate RoleBindings for the same roleRef', async () => {
       // Simulate duplicate RoleBindings granting the same role to the same user
       const rbAdmin1 = mockRoleBindingK8sResource({
         name: 'rb-admin-1',
@@ -420,7 +420,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(result.successCount).toBe(2);
     });
 
-    it('returns failure result when an API call fails', async () => {
+    it('should return failure result when an API call fails', async () => {
       const rb = mockRoleBindingK8sResource({
         name: 'rb-admin',
         namespace,
@@ -452,7 +452,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(result.errors[0].message).toBe('Network error');
     });
 
-    it('reports partial failure when some operations succeed and some fail', async () => {
+    it('should report partial failure when some operations succeed and some fail', async () => {
       const rbAdmin = mockRoleBindingK8sResource({
         name: 'rb-admin',
         namespace,
@@ -492,7 +492,7 @@ describe('project permissions roleBindingMutations', () => {
       expect(result.errors[0].message).toBe('Permission denied');
     });
 
-    it('works with Group subject kind', async () => {
+    it('should work with Group subject kind', async () => {
       const groupSubject: RoleBindingSubject = {
         kind: 'Group',
         apiGroup: 'rbac.authorization.k8s.io',

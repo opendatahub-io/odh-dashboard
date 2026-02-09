@@ -83,5 +83,6 @@ Before performing certain tasks, read and follow the corresponding specialized r
 | **Contract Tests**    | [docs/agent-rules/contract-tests.md](docs/agent-rules/contract-tests.md)     | When working on contract tests or BFF API validation                         |
 | **Cypress E2E Tests** | [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md)           | When creating or modifying E2E tests, Robot Framework migrations             |
 | **Cypress Mock Tests**| [docs/agent-rules/cypress-mock.md](docs/agent-rules/cypress-mock.md)         | When creating or modifying mock/component tests                              |
+| **Unit Tests**        | [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md)             | When creating or modifying Jest unit tests for utilities, hooks, or components |
 
 **Important**: Always read the relevant rule file before starting the task to ensure you follow the project's conventions and patterns.

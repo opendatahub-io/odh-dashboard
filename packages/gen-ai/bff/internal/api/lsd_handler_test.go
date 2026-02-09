@@ -12,6 +12,11 @@ import (
 	"testing"
 	"time"
 
+	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -21,21 +26,31 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	// Import the typed LlamaStackDistribution types
 )
 
-func TestLlamaStackDistributionStatusHandler(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: slog.Default(),
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
+// cleanupTestNamespace removes test resources (ConfigMap and LSDs) from the given namespace.
+// Errors are ignored because resources may not exist (already cleaned up or never created).
+func cleanupTestNamespace(ctx context.Context, namespace string) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "llama-stack-config",
+			Namespace: namespace,
+		},
+	}
+	// Ignore error - ConfigMap may not exist if already cleaned up
+	_ = testK8sClient.Delete(ctx, configMap)
 
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
+	lsdList := &lsdapi.LlamaStackDistributionList{}
+	// Ignore error - namespace may be empty or not exist
+	_ = testK8sClient.List(ctx, lsdList, client.InNamespace(namespace))
+	for _, lsd := range lsdList.Items {
+		// Ignore error - LSD may already be deleted
+		_ = testK8sClient.Delete(ctx, &lsd)
+	}
+}
+
+func TestLlamaStackDistributionStatusHandler(t *testing.T) {
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -146,17 +161,7 @@ func TestLlamaStackDistributionStatusHandler(t *testing.T) {
 }
 
 func TestLlamaStackDistributionInstallHandler(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: slog.Default(),
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
-
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -171,7 +176,11 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 
 	// Test successful installation
 	t.Run("should install LSD successfully with models", func(t *testing.T) {
-		// Create request body with models
+		namespace := "mock-test-namespace-1"
+		ctx := context.Background()
+
+		cleanupTestNamespace(ctx, namespace)
+
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
@@ -185,9 +194,7 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace, identity, and MaaS client to context
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN", // Use one of the default test tokens
 		})
@@ -342,17 +349,7 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 }
 
 func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: slog.Default(),
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
-
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -367,7 +364,11 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 
 	// Test MaaS model handling
 	t.Run("should handle MaaS models correctly", func(t *testing.T) {
-		// Create request body with MaaS models
+		namespace := "mock-test-namespace-1"
+		ctx := context.Background()
+
+		cleanupTestNamespace(ctx, namespace)
+
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-2-7b-chat", "is_maas_model": true},
@@ -381,9 +382,7 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace, identity, and MaaS client to context
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -421,7 +420,11 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 
 	// Test MaaS model not ready scenario
 	t.Run("should handle MaaS model not ready", func(t *testing.T) {
-		// Create request body with a not-ready MaaS model
+		namespace := "mock-test-namespace-3"
+		ctx := context.Background()
+
+		cleanupTestNamespace(ctx, namespace)
+
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "not-ready-model", "is_maas_model": true},
@@ -434,9 +437,7 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace, identity, and MaaS client to context
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-3")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -674,17 +675,7 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 }
 
 func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	testEnvState, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: slog.Default(),
-		Ctx:    ctx,
-		Cancel: cancel,
-	})
-	require.NoError(t, err)
-	defer k8smocks.TeardownEnvTest(t, testEnvState)
-
-	k8sFactory, err := k8smocks.NewTokenClientFactory(ctrlClient, testEnvState.Env.Config, slog.Default())
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 	require.NoError(t, err)
 
 	// Create test app with real mock infrastructure
@@ -928,6 +919,11 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 
 	// Test error case - empty namespace (no LSDs)
 	t.Run("should return error when no LSDs found in namespace", func(t *testing.T) {
+		namespace := "mock-test-namespace-1"
+		ctx := context.Background()
+
+		cleanupTestNamespace(ctx, namespace)
+
 		requestBody := map[string]interface{}{
 			"name": "any-lsd",
 		}
@@ -938,9 +934,7 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Use empty namespace (mock-test-namespace-1 returns empty LSD list)
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})

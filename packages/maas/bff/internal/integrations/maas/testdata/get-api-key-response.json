@@ -1,0 +1,8 @@
+{
+  "id":             "key-prod-backend-001",
+  "name":           "production-backend",
+  "description":    "Production API key for backend service",
+  "creationDate":   "2025-11-01T00:00:00.000Z",
+  "expirationDate": "2125-11-01T00:00:00.000Z",
+  "status":         "active"
+}
