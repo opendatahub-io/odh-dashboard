@@ -50,6 +50,10 @@ class ChatbotPage {
     this.findMCPTab().click();
   }
 
+  clickGuardrailsTab(): void {
+    this.findGuardrailsTab().click();
+  }
+
   clickKnowledgeTab(): void {
     this.findKnowledgeTab().click();
   }
@@ -143,12 +147,13 @@ class ChatbotPage {
 
   // Model Selection
   // Model dropdown is now in the toolbar (moved from Model tab)
+  // Note: There may be multiple model dropdowns (header + settings panel), so use .first()
   findModelDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('model-selector-toggle');
+    return cy.findAllByTestId('model-selector-toggle').first();
   }
 
   findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('model-selector-toggle');
+    return cy.findAllByTestId('model-selector-toggle').first();
   }
 
   verifyModelSelected(): void {
@@ -283,6 +288,10 @@ class ChatbotPage {
     this.findBotMessages().should('contain.text', text);
   }
 
+  verifyLastBotResponseContains(text: string): void {
+    this.findBotMessages().last().should('contain.text', text);
+  }
+
   verifyStopButtonVisible(): void {
     this.findStopButton().should('be.visible');
   }
@@ -319,6 +328,53 @@ class ChatbotPage {
   resetChatState(): void {
     this.startNewChatIfAvailable();
     this.toggleStreaming(true);
+  }
+
+  // Guardrails Section (inside Guardrails tab)
+  findGuardrailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Click Guardrails tab first to show guardrails section
+    this.clickGuardrailsTab();
+    return cy.findByTestId('guardrails-section-title').parent();
+  }
+
+  findGuardrailsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.clickGuardrailsTab();
+    return cy.findByTestId('guardrails-empty-state');
+  }
+
+  findGuardrailModelToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('guardrail-model-toggle');
+  }
+
+  findUserInputGuardrailsSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('user-input-guardrails-switch');
+  }
+
+  findModelOutputGuardrailsSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('model-output-guardrails-switch');
+  }
+
+  selectGuardrailModel(modelName: string): void {
+    this.findGuardrailModelToggle().click();
+    cy.findByRole('option', { name: modelName }).click();
+  }
+
+  toggleUserInputGuardrails(enable: boolean): void {
+    this.findUserInputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findUserInputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
+  toggleModelOutputGuardrails(enable: boolean): void {
+    this.findModelOutputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findModelOutputGuardrailsSwitch().click({ force: true });
+      }
+    });
   }
 
   // Metrics Section
