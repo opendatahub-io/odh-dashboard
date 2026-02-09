@@ -470,4 +470,274 @@ describe('useChatbotConfigStore', () => {
       expect(config).toBeUndefined();
     });
   });
+
+  describe('compare mode - duplicateConfiguration', () => {
+    it('should create a new configuration with a unique ID', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toHaveLength(2);
+      expect(state.configIds[0]).toBe(DEFAULT_CONFIG_ID);
+      expect(state.configIds[1]).toMatch(/^config-\d+$/);
+    });
+
+    it('should copy all settings from source configuration', () => {
+      // Set up source config with specific values
+      act(() => {
+        const store = useChatbotConfigStore.getState();
+        store.updateSelectedModel(DEFAULT_CONFIG_ID, 'test-model');
+        store.updateTemperature(DEFAULT_CONFIG_ID, 1.5);
+        store.updateStreamingEnabled(DEFAULT_CONFIG_ID, false);
+        store.updateRagEnabled(DEFAULT_CONFIG_ID, true);
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const newConfigId = state.configIds[1];
+      const newConfig = state.configurations[newConfigId];
+
+      expect(newConfig?.selectedModel).toBe('test-model');
+      expect(newConfig?.temperature).toBe(1.5);
+      expect(newConfig?.isStreamingEnabled).toBe(false);
+      expect(newConfig?.isRagEnabled).toBe(true);
+    });
+
+    it('should create deep copy of MCP server IDs array', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-1', 'server-2']);
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const newConfigId = state.configIds[1];
+
+      // Modify original array
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-3']);
+      });
+
+      // New config should still have original values (deep copy)
+      const newConfig = useChatbotConfigStore.getState().configurations[newConfigId];
+      expect(newConfig?.selectedMcpServerIds).toEqual(['server-1', 'server-2']);
+    });
+
+    it('should not allow more than 2 configurations', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      // Try to duplicate again
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toHaveLength(2);
+    });
+
+    it('should not duplicate non-existent configuration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration('non-existent');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toHaveLength(1);
+    });
+
+    it('should return the new configuration ID', () => {
+      let newId: string | undefined;
+      act(() => {
+        newId = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      expect(newId).toMatch(/^config-\d+$/);
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toContain(newId);
+    });
+  });
+
+  describe('compare mode - removeConfiguration', () => {
+    it('should remove the specified configuration', () => {
+      let newConfigId: string | undefined;
+      act(() => {
+        newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().removeConfiguration(newConfigId!);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toEqual([DEFAULT_CONFIG_ID]);
+      expect(state.configurations[newConfigId!]).toBeUndefined();
+    });
+
+    it('should not remove the last configuration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().removeConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toEqual([DEFAULT_CONFIG_ID]);
+      expect(state.configurations[DEFAULT_CONFIG_ID]).toBeDefined();
+    });
+
+    it('should not remove non-existent configuration', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().removeConfiguration('non-existent');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toHaveLength(2);
+    });
+
+    it('should be able to remove either configuration when in compare mode', () => {
+      let newConfigId: string | undefined;
+      act(() => {
+        newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      // Remove the original default config instead
+      act(() => {
+        useChatbotConfigStore.getState().removeConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toEqual([newConfigId]);
+      expect(state.configurations[DEFAULT_CONFIG_ID]).toBeUndefined();
+      expect(state.configurations[newConfigId!]).toBeDefined();
+    });
+  });
+
+  describe('compare mode - per-config state isolation', () => {
+    let config2Id: string | undefined;
+
+    beforeEach(() => {
+      act(() => {
+        config2Id = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+    });
+
+    it('should update selectedModel independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'model-1');
+        useChatbotConfigStore.getState().updateSelectedModel(config2Id!, 'model-2');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('model-1');
+      expect(state.configurations[config2Id!]?.selectedModel).toBe('model-2');
+    });
+
+    it('should update temperature independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateTemperature(DEFAULT_CONFIG_ID, 0.5);
+        useChatbotConfigStore.getState().updateTemperature(config2Id!, 1.8);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.temperature).toBe(0.5);
+      expect(state.configurations[config2Id!]?.temperature).toBe(1.8);
+    });
+
+    it('should update streaming enabled independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateStreamingEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateStreamingEnabled(config2Id!, false);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isStreamingEnabled).toBe(true);
+      expect(state.configurations[config2Id!]?.isStreamingEnabled).toBe(false);
+    });
+
+    it('should update RAG enabled independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateRagEnabled(config2Id!, false);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isRagEnabled).toBe(true);
+      expect(state.configurations[config2Id!]?.isRagEnabled).toBe(false);
+    });
+
+    it('should update system instruction independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSystemInstruction(DEFAULT_CONFIG_ID, 'Instruction 1');
+        useChatbotConfigStore.getState().updateSystemInstruction(config2Id!, 'Instruction 2');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.systemInstruction).toBe('Instruction 1');
+      expect(state.configurations[config2Id!]?.systemInstruction).toBe('Instruction 2');
+    });
+
+    it('should update MCP server IDs independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-a']);
+        useChatbotConfigStore.getState().updateSelectedMcpServerIds(config2Id!, ['server-b']);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedMcpServerIds).toEqual(['server-a']);
+      expect(state.configurations[config2Id!]?.selectedMcpServerIds).toEqual(['server-b']);
+    });
+
+    it('should update guardrail settings independently for each config', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateGuardrail(DEFAULT_CONFIG_ID, 'guardrail-1');
+        useChatbotConfigStore.getState().updateGuardrail(config2Id!, 'guardrail-2');
+        useChatbotConfigStore.getState().updateGuardrailUserInputEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateGuardrailUserInputEnabled(config2Id!, false);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.guardrail).toBe('guardrail-1');
+      expect(state.configurations[config2Id!]?.guardrail).toBe('guardrail-2');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.guardrailUserInputEnabled).toBe(true);
+      expect(state.configurations[config2Id!]?.guardrailUserInputEnabled).toBe(false);
+    });
+
+    it('should maintain separate MCP tool selections for each config', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .saveToolSelections(DEFAULT_CONFIG_ID, 'ns', 'http://server.com', ['tool-a']);
+        useChatbotConfigStore
+          .getState()
+          .saveToolSelections(config2Id!, 'ns', 'http://server.com', ['tool-b']);
+      });
+
+      const selections1 = useChatbotConfigStore
+        .getState()
+        .getToolSelections(DEFAULT_CONFIG_ID, 'ns', 'http://server.com');
+      const selections2 = useChatbotConfigStore
+        .getState()
+        .getToolSelections(config2Id!, 'ns', 'http://server.com');
+
+      expect(selections1).toEqual(['tool-a']);
+      expect(selections2).toEqual(['tool-b']);
+    });
+  });
 });
