@@ -119,6 +119,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     data: guardrailModelConfigs,
     modelNames: guardrailModelNames,
     loaded: guardrailModelsLoaded,
+    error: guardrailModelsError,
   } = useFetchGuardrailModels();
 
   // Router state
@@ -444,6 +445,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModels={guardrailModelNames}
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
+              guardrailModelsError={guardrailModelsError}
             />
           }
         >
