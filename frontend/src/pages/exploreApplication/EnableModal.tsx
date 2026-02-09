@@ -5,6 +5,10 @@ import {
   Form,
   FormAlert,
   Spinner,
+  Stack,
+  StackItem,
+  Text,
+  TextVariants,
   TextInputTypes,
   Modal,
   ModalBody,
@@ -16,6 +20,7 @@ import { isEmpty, values } from 'lodash-es';
 import { OdhApplication } from '#~/types';
 import { EnableApplicationStatus, useEnableApplication } from '#~/utilities/useEnableApplication';
 import { asEnumMember } from '#~/utilities/utils';
+import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
 
@@ -30,6 +35,14 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
   const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Detect air-gapped mode for NIM
+  const isNIMApp = selectedApp.spec.internalRoute === '/api/integrations/nim';
+  const accountConfig = useNIMAccountConfig();
+  const isAirGapped =
+    isNIMApp &&
+    !accountConfig.loading &&
+    !!(accountConfig.registry || accountConfig.imagePullSecret);
 
   const isEnableValuesHasEmptyValue = React.useMemo(
     () => isEmpty(enableValues) || values(enableValues).some((val) => isEmpty(val)),
@@ -125,6 +138,16 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
 
   const onDoEnableApp = () => {
     setPostError('');
+
+    // In air-gapped mode, auto-fill dummy NGC credentials
+    if (isAirGapped && enable.variables) {
+      const dummyValues: { [key: string]: string } = {};
+      Object.keys(enable.variables).forEach((key) => {
+        dummyValues[key] = 'air-gapped-placeholder-key';
+      });
+      setEnableValues(dummyValues);
+    }
+
     setValidationInProgress(true);
   };
 
@@ -193,46 +216,33 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
     >
       <ModalHeader title={enable.title || `Enable ${selectedApp.spec.displayName}`} />
       <ModalBody>
-        {enable.description ? enable.description : null}
-        {enable.link ? (
-          <div className="odh-enable-modal__enable-link">
-            {enable.linkPreface ? <div>{enable.linkPreface}</div> : null}
-            <a href={enable.link} target="_blank" rel="noopener noreferrer">
-              {enable.link} <ExternalLinkAltIcon />
-            </a>
-          </div>
-        ) : null}
-        {enable.variables ? (
-          <Form>
-            {postError ? (
-              <FormAlert>
-                <Alert
-                  variantLabel="error"
-                  variant="danger"
-                  title="Validation failed"
-                  aria-live="polite"
-                  isInline
-                >
-                  {postError}
-                </Alert>
-              </FormAlert>
-            ) : null}
-            {warning ? (
-              <FormAlert>
-                <Alert
-                  data-testid="warning-message-alert"
-                  variantLabel="warning"
-                  variant="warning"
-                  title="Warning"
-                  aria-live="polite"
-                  isInline
-                >
-                  {warning}
-                </Alert>
-              </FormAlert>
-            ) : null}
+        {isAirGapped ? (
+          // Air-Gapped Mode UI
+          <Stack hasGutter>
+            <StackItem>
+              <Alert
+                variant="info"
+                isInline
+                title="Air-Gapped Configuration Detected"
+                data-testid="air-gapped-info-alert"
+              >
+                <p>NGC credentials are not required in air-gapped mode.</p>
+                <p>
+                  The system will automatically configure model serving to use your internal
+                  registry.
+                </p>
+              </Alert>
+            </StackItem>
+            <StackItem>
+              <Text>Click Enable to activate NIM model serving.</Text>
+            </StackItem>
+            <StackItem>
+              <Text component={TextVariants.small}>
+                Contact your cluster administrator if you need to modify air-gapped settings.
+              </Text>
+            </StackItem>
             {validationInProgress ? (
-              <FormAlert>
+              <StackItem>
                 <Alert
                   className="m-no-alert-icon"
                   variantLabel="information"
@@ -240,34 +250,108 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
                   title={
                     <div className="odh-enable-modal__progress-title">
                       <Spinner size="md" />
-                      {enable.inProgressText ? (
-                        <div style={{ whiteSpace: 'pre-line' }}>{enable.inProgressText}</div>
-                      ) : (
-                        'Validating your entries'
-                      )}
+                      <div>Configuring NIM model serving for air-gapped environment</div>
                     </div>
                   }
                   aria-live="polite"
                   isInline
                 />
-              </FormAlert>
+              </StackItem>
             ) : null}
-            {Object.keys(enable.variables).map((key, index) => (
-              <EnableVariable
-                key={key}
-                ref={index === 0 ? focusRef : undefined}
-                label={enable.variableDisplayText?.[key] ?? ''}
-                inputType={
-                  asEnumMember(enable.variables?.[key], TextInputTypes) ?? TextInputTypes.text
-                }
-                helperText={enable.variableHelpText?.[key] ?? ''}
-                validationInProgress={validationInProgress}
-                value={enableValues[key]}
-                updateValue={(value: string) => updateEnableValue(key, value)}
-              />
-            ))}
-          </Form>
-        ) : null}
+            {postError ? (
+              <StackItem>
+                <Alert
+                  variantLabel="error"
+                  variant="danger"
+                  title="Enablement failed"
+                  aria-live="polite"
+                  isInline
+                >
+                  {postError}
+                </Alert>
+              </StackItem>
+            ) : null}
+          </Stack>
+        ) : (
+          // Normal Mode UI (existing)
+          <>
+            {enable.description ? enable.description : null}
+            {enable.link ? (
+              <div className="odh-enable-modal__enable-link">
+                {enable.linkPreface ? <div>{enable.linkPreface}</div> : null}
+                <a href={enable.link} target="_blank" rel="noopener noreferrer">
+                  {enable.link} <ExternalLinkAltIcon />
+                </a>
+              </div>
+            ) : null}
+            {enable.variables ? (
+              <Form>
+                {postError ? (
+                  <FormAlert>
+                    <Alert
+                      variantLabel="error"
+                      variant="danger"
+                      title="Validation failed"
+                      aria-live="polite"
+                      isInline
+                    >
+                      {postError}
+                    </Alert>
+                  </FormAlert>
+                ) : null}
+                {warning ? (
+                  <FormAlert>
+                    <Alert
+                      data-testid="warning-message-alert"
+                      variantLabel="warning"
+                      variant="warning"
+                      title="Warning"
+                      aria-live="polite"
+                      isInline
+                    >
+                      {warning}
+                    </Alert>
+                  </FormAlert>
+                ) : null}
+                {validationInProgress ? (
+                  <FormAlert>
+                    <Alert
+                      className="m-no-alert-icon"
+                      variantLabel="information"
+                      variant="info"
+                      title={
+                        <div className="odh-enable-modal__progress-title">
+                          <Spinner size="md" />
+                          {enable.inProgressText ? (
+                            <div style={{ whiteSpace: 'pre-line' }}>{enable.inProgressText}</div>
+                          ) : (
+                            'Validating your entries'
+                          )}
+                        </div>
+                      }
+                      aria-live="polite"
+                      isInline
+                    />
+                  </FormAlert>
+                ) : null}
+                {Object.keys(enable.variables).map((key, index) => (
+                  <EnableVariable
+                    key={key}
+                    ref={index === 0 ? focusRef : undefined}
+                    label={enable.variableDisplayText?.[key] ?? ''}
+                    inputType={
+                      asEnumMember(enable.variables?.[key], TextInputTypes) ?? TextInputTypes.text
+                    }
+                    helperText={enable.variableHelpText?.[key] ?? ''}
+                    validationInProgress={validationInProgress}
+                    value={enableValues[key]}
+                    updateValue={(value: string) => updateEnableValue(key, value)}
+                  />
+                ))}
+              </Form>
+            ) : null}
+          </>
+        )}
       </ModalBody>
       <ModalFooter>
         <Button
@@ -275,9 +359,12 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           key="confirm"
           variant="primary"
           onClick={onDoEnableApp}
-          isDisabled={validationInProgress || (enable.variables && isEnableValuesHasEmptyValue)}
+          isDisabled={
+            validationInProgress ||
+            (!isAirGapped && enable.variables && isEnableValuesHasEmptyValue)
+          }
         >
-          {enable.actionLabel || 'Enable'}
+          {isAirGapped ? 'Enable NIM' : enable.actionLabel || 'Enable'}
         </Button>
         <Button key="cancel" variant="link" onClick={handleClose}>
           {validationInProgress ? 'Close' : 'Cancel'}
