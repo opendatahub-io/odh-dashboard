@@ -19,6 +19,7 @@ import {
   selectSystemInstruction,
   selectSelectedModel,
   selectSelectedMcpServerIds,
+  selectRagEnabled,
 } from '~/app/Chatbot/store';
 
 interface ViewCodeModalProps {
@@ -27,7 +28,6 @@ interface ViewCodeModalProps {
   configId: string;
   input: string;
   files: FileModel[];
-  isRagEnabled?: boolean;
   mcpServers?: MCPServerFromAPI[];
   mcpServerTokens?: Map<string, TokenInfo>;
   namespace?: string;
@@ -43,7 +43,6 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   configId,
   input,
   files,
-  isRagEnabled = false,
   mcpServers = EMPTY_MCP_SERVERS,
   mcpServerTokens = EMPTY_TOKEN_MAP,
   namespace,
@@ -52,6 +51,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   const model = useChatbotConfigStore(selectSelectedModel(configId));
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get tool selections callback
   const toolSelections = React.useCallback(

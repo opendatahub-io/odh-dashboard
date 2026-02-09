@@ -8,14 +8,15 @@ interface GuardrailsTabContentProps {
   configId: string;
   guardrailModels: string[];
   guardrailModelsLoaded: boolean;
+  guardrailModelsError?: Error;
 }
 
 const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> = ({
   configId,
   guardrailModels,
   guardrailModelsLoaded,
+  guardrailModelsError,
 }) => {
-  // Empty state: loaded but no models available
   if (guardrailModelsLoaded && guardrailModels.length === 0) {
     return (
       <EmptyState
@@ -29,6 +30,23 @@ const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> =
         <EmptyStateBody>
           This playground does not have a guardrail configuration. Contact a cluster administrator
           to add guardrails.
+        </EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
+  if (guardrailModelsError) {
+    return (
+      <EmptyState
+        titleText="Failed to load guardrails"
+        icon={() => (
+          <img src={SupportIcon} alt="Support icon" style={{ width: '56px', height: '56px' }} />
+        )}
+        variant="sm"
+        data-testid="guardrails-error-state"
+      >
+        <EmptyStateBody>
+          Unable to load guardrail configuration. Please try again later.
         </EmptyStateBody>
       </EmptyState>
     );
