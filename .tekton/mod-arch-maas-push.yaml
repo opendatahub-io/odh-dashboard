@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/mod-arch-maas:{{revision}}
+    value: quay.io/opendatahub/mod-arch-maas:v3.3.1-odh
   - name: dockerfile
     value: packages/maas/Dockerfile.workspace
   - name: path-context
