@@ -1,0 +1,21 @@
+.search-filter-model-catalog {
+  min-width: 600px;
+  .pf-v6-c-input-group__item {
+    flex: 1 1 auto;
+    &:first-child {
+      flex-grow: 1;
+    }
+  }
+  .pf-v6-c-text-input-group {
+    width: 100%;
+  }
+  .pf-v6-c-text-input-group__main {
+    flex: 1 1 auto;
+  }
+  .pf-v6-c-text-input-group__text {
+    width: 100%;
+  }
+  .pf-v6-c-text-input-group__text-input {
+    width: 100%;
+  }
+}
