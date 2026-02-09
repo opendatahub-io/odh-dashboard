@@ -26,7 +26,13 @@ export const useGetNotebookRoute = (
       });
     } else {
       listRoutes(workbenchNamespace, `notebook-name=${workbenchName}`).then((routes) => {
-        setRoute(`https://${routes[0].spec.host}/notebook/${workbenchNamespace}/${workbenchName}`);
+        if (routes.length > 0) {
+          setRoute(
+            `https://${routes[0].spec.host}/notebook/${workbenchNamespace}/${workbenchName}`,
+          );
+        } else {
+          setRoute(undefined);
+        }
       });
     }
   }, [workbenchNamespace, workbenchName, injectAuth, isNotebookController]);
