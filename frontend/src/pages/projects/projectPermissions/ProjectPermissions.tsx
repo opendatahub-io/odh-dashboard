@@ -125,7 +125,7 @@ const ProjectPermissions: React.FC = () => {
                         navigate(`/projects/${currentProject.metadata.name}/permissions/assign`)
                       }
                     >
-                      Assign roles
+                      Manage permissions
                     </Button>
                   </ToolbarItem>
                 </ToolbarContent>

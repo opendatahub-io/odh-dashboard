@@ -26,7 +26,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     asProjectAdminUser();
   });
 
-  it('should navigate to Assign roles page from the Permissions toolbar', () => {
+  it('should navigate to Manage permissions page from the Permissions toolbar', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
@@ -35,7 +35,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     projectRbacPermissions.findAssignRolesPage().should('exist');
   });
 
-  it('should open Manage roles with subject prefilled and locked', () => {
+  it('should open Manage permissions with subject prefilled and locked', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
@@ -109,7 +109,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     projectRbacPermissions.findUsersTable().should('exist');
   });
 
-  it('should show Manage roles for irreversible role assignments', () => {
+  it('should show Manage permissions for irreversible role assignments', () => {
     const userName = 'test-user-1';
     const userSubject = mockUserRoleBindingSubject({ name: userName });
     const rbView = mockRoleBindingK8sResource({

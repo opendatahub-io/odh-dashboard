@@ -58,17 +58,18 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
-      expect(screen.getByText('Confirm role assignment changes?')).toBeInTheDocument();
+      expect(screen.getByText('Save role assignment changes?')).toBeInTheDocument();
       expect(screen.getByText('test-user')).toBeInTheDocument();
     });
 
-    it('should display correct count for single role assignment', () => {
+    it('should display correct description text', () => {
       const changes: RoleAssignmentChanges = {
         assigning: [createRow(adminRoleRef, 'Admin', { isDefault: true })],
         unassigning: [],
@@ -77,17 +78,40 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
-      expect(screen.getByText('1 role')).toBeInTheDocument();
-      expect(screen.getByText(/will be newly assigned/)).toBeInTheDocument();
+      // Text is split across elements: intro text + <strong>subjectName</strong>
+      expect(
+        screen.getByText(/The following role assignment changes will be applied to the user/),
+      ).toBeInTheDocument();
+      expect(screen.getByText('test-user')).toBeInTheDocument();
     });
 
-    it('should display correct count for multiple role assignments (plural)', () => {
+    it('should display singular label for single role assignment', () => {
+      const changes: RoleAssignmentChanges = {
+        assigning: [createRow(adminRoleRef, 'Admin', { isDefault: true })],
+        unassigning: [],
+      };
+
+      render(
+        <RoleAssignmentChangesModal
+          subjectName="test-user"
+          subjectKind="user"
+          changes={changes}
+          onClose={mockOnClose}
+          onConfirm={mockOnConfirm}
+        />,
+      );
+
+      expect(screen.getByText('Assigning 1 role')).toBeInTheDocument();
+    });
+
+    it('should display plural label for multiple role assignments', () => {
       const changes: RoleAssignmentChanges = {
         assigning: [
           createRow(adminRoleRef, 'Admin', { isDefault: true }),
@@ -99,16 +123,17 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
-      expect(screen.getByText('2 roles')).toBeInTheDocument();
+      expect(screen.getByText('Assigning 2 roles')).toBeInTheDocument();
     });
 
-    it('should display correct count for single role unassignment', () => {
+    it('should display singular label for single role unassignment', () => {
       const changes: RoleAssignmentChanges = {
         assigning: [],
         unassigning: [createRow(adminRoleRef, 'Admin', { isDefault: true })],
@@ -117,17 +142,17 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
-      expect(screen.getByText('1 role')).toBeInTheDocument();
-      expect(screen.getByText(/will be unassigned/)).toBeInTheDocument();
+      expect(screen.getByText('Unassigning 1 role')).toBeInTheDocument();
     });
 
-    it('should display both assigning and unassigning counts with "and"', () => {
+    it('should display both assigning and unassigning section labels', () => {
       const changes: RoleAssignmentChanges = {
         assigning: [createRow(adminRoleRef, 'Admin', { isDefault: true })],
         unassigning: [
@@ -139,17 +164,15 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
-      expect(screen.getByText(/will be newly assigned/)).toBeInTheDocument();
-      // The "and" is in the same text node, check the full text contains both
-      expect(
-        screen.getByText(/will be newly assigned and.*will be unassigned/),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Assigning 1 role')).toBeInTheDocument();
+      expect(screen.getByText('Unassigning 2 roles')).toBeInTheDocument();
     });
   });
 
@@ -163,6 +186,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -170,7 +194,7 @@ describe('RoleAssignmentChangesModal', () => {
       );
 
       expect(screen.getByTestId('assign-roles-confirm-assigning-section')).toBeInTheDocument();
-      expect(screen.getByText('Assigning roles')).toBeInTheDocument();
+      expect(screen.getByText('Assigning 1 role')).toBeInTheDocument();
       expect(screen.getByText('Admin')).toBeInTheDocument();
     });
 
@@ -183,6 +207,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -190,7 +215,7 @@ describe('RoleAssignmentChangesModal', () => {
       );
 
       expect(screen.getByTestId('assign-roles-confirm-unassigning-section')).toBeInTheDocument();
-      expect(screen.getByText('Unassigning roles')).toBeInTheDocument();
+      expect(screen.getByText('Unassigning 1 role')).toBeInTheDocument();
       expect(screen.getByText('Contributor')).toBeInTheDocument();
     });
 
@@ -203,6 +228,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -223,6 +249,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -245,6 +272,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -252,8 +280,9 @@ describe('RoleAssignmentChangesModal', () => {
       );
 
       expect(screen.getByTestId('assign-roles-confirm-custom-role-warning')).toBeInTheDocument();
+      expect(screen.getByText('Roles cannot be reassigned')).toBeInTheDocument();
       expect(
-        screen.getByText(/The OpenShift custom roles were assigned from OpenShift/),
+        screen.getByText(/OpenShift custom roles cannot be assigned from/),
       ).toBeInTheDocument();
     });
 
@@ -266,6 +295,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -286,6 +316,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -309,6 +340,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -327,6 +359,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -349,6 +382,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -368,6 +402,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -398,6 +433,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -429,6 +465,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -461,6 +498,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -486,6 +524,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -515,6 +554,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -544,6 +584,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -576,6 +617,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName=""
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -583,7 +625,7 @@ describe('RoleAssignmentChangesModal', () => {
       );
 
       // Modal should still render
-      expect(screen.getByText('Confirm role assignment changes?')).toBeInTheDocument();
+      expect(screen.getByText('Save role assignment changes?')).toBeInTheDocument();
     });
 
     it('should handle long subject name', () => {
@@ -596,6 +638,7 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName={longName}
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
@@ -625,15 +668,16 @@ describe('RoleAssignmentChangesModal', () => {
       render(
         <RoleAssignmentChangesModal
           subjectName="test-user"
+          subjectKind="user"
           changes={changes}
           onClose={mockOnClose}
           onConfirm={mockOnConfirm}
         />,
       );
 
-      // Check description contains correct counts
-      expect(screen.getByText('10 roles')).toBeInTheDocument();
-      expect(screen.getByText('5 roles')).toBeInTheDocument();
+      // Check section labels contain correct counts
+      expect(screen.getByText('Assigning 10 roles')).toBeInTheDocument();
+      expect(screen.getByText('Unassigning 5 roles')).toBeInTheDocument();
 
       // Check roles are listed
       expect(screen.getByText('Assign Role 0')).toBeInTheDocument();

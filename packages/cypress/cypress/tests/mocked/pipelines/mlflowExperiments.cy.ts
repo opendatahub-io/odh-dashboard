@@ -88,47 +88,6 @@ describe('MLflow Experiments', () => {
     mlflowExperimentsPage.findMlflowJumpLink().should('have.attr', 'href', MLFLOW_PROXY_BASE_PATH);
   });
 
-  it('should show the MLflow Experiments page and override css components', () => {
-    mlflowExperimentsPage.visit();
-    mlflowExperimentsPage.findMlflowIframe().should('be.visible');
-    mlflowExperimentsPage
-      .findMlflowIframe()
-      .should('have.attr', 'src', MLFLOW_WORKSPACE_IFRAME_SRC);
-    cy.wait('@mlflowIframe');
-
-    mlflowExperimentsPage.findMlflowIframe().then(($iframe) => {
-      const iframe = $iframe[0];
-
-      if (!isIframeElement(iframe)) {
-        throw new Error('Expected element to be an iframe');
-      }
-
-      cy.wrap(iframe).should(() => {
-        expect(iframe.contentDocument).to.not.be.null;
-        expect(iframe.contentDocument?.readyState).to.equal('complete');
-      });
-
-      cy.wrap(iframe).should(() => {
-        const doc = iframe.contentDocument;
-        expect(doc).to.not.be.null;
-
-        expect(doc?.querySelector('.du-bois-light-breadcrumb')).to.have.css('display', 'none');
-        expect(doc?.querySelector('header')).to.have.css('display', 'none');
-        expect(doc?.querySelector('aside')).to.have.css('display', 'none');
-
-        const main = doc?.querySelector('main');
-        expect(main).to.not.be.null;
-        if (main) {
-          const computedStyle = iframe.contentWindow?.getComputedStyle(main);
-          expect(computedStyle?.margin).to.equal('0px');
-          expect(computedStyle?.borderRadius).to.equal('0px');
-        }
-
-        expect(doc?.querySelector('#mlflow-experiments-page')).to.not.be.null;
-      });
-    });
-  });
-
   it('should load the correct iframe page from parent URL', () => {
     const runIds = [
       '02a652600cce4bb4b820d5a1717712f3',

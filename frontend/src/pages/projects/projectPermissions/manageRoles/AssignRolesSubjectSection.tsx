@@ -38,7 +38,7 @@ const AssignRolesSubjectSection: React.FC<AssignRolesSubjectSectionProps> = ({
   <FormSection title="Subject">
     {!isManageMode && (
       <Content component={ContentVariants.p}>
-        Select a subject with existing roles or enter a new subject.
+        Select a user or group with existing permissions, or enter the name of a new one.
       </Content>
     )}
     {!isManageMode && (
