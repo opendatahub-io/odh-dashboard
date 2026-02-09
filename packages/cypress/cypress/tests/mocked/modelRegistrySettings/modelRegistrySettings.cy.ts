@@ -1039,6 +1039,16 @@ describe('EditModelRegistry', () => {
     });
   });
 
+  it('should have database type dropdown disabled when editing', () => {
+    setupMocksForMRSettingAccess({});
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findDatabaseTypeDropdown().should('be.disabled');
+  });
+
   it('Shows skeleton, when password is loading', () => {
     setupMocksForMRSettingAccess({ hasDatabasePassword: false });
     modelRegistrySettings.visit(true);
