@@ -6,7 +6,6 @@ import '@testing-library/jest-dom';
 import type { AIModel } from '~/app/types';
 import AIModelsTableRowEndpoint from '~/app/AIAssets/components/AIModelsTableRowEndpoint';
 
-
 // Mock ClipboardCopy to trigger onCopy callback
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
