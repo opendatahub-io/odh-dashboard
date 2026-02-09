@@ -38,7 +38,7 @@ import (
     "net/http"
 
     "github.com/julienschmidt/httprouter"
-    "github.com/opendatahub-io/mod-arch-library/bff/internal/api"
+    "github.com/opendatahub-io/autorag-library/bff/internal/api"
 )
 
 func init() {
@@ -153,8 +153,8 @@ import (
     "log/slog"
     "testing"
 
-    "github.com/opendatahub-io/mod-arch-library/bff/internal/api"
-    "github.com/opendatahub-io/mod-arch-library/bff/internal/config"
+    "github.com/opendatahub-io/autorag-library/bff/internal/api"
+    "github.com/opendatahub-io/autorag-library/bff/internal/config"
 )
 
 func TestMyHandler(t *testing.T) {
@@ -180,7 +180,7 @@ package extensions
 import (
     "log/slog"
 
-    k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
+    k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 )
 
 func CustomTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) k8s.KubernetesClientFactory {

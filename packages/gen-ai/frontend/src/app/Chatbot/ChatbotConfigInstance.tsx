@@ -18,6 +18,7 @@ import {
   selectGuardrail,
   selectGuardrailUserInputEnabled,
   selectGuardrailModelOutputEnabled,
+  selectRagEnabled,
 } from './store';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { sampleWelcomePrompts } from './const';
@@ -26,13 +27,13 @@ interface ChatbotConfigInstanceProps {
   configId: string;
   username?: string;
   selectedSourceSettings: ChatbotSourceSettings | null;
-  isRawUploaded: boolean;
   currentVectorStoreId: string | null;
   mcpServers: MCPServerFromAPI[];
   mcpServerStatuses: Map<string, ServerStatusInfo>;
   mcpServerTokens: Map<string, TokenInfo>;
   namespace?: string;
   showWelcomePrompt?: boolean;
+  welcomeDescription?: string;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   guardrailModelConfigs?: GuardrailModelConfig[];
 }
@@ -41,13 +42,13 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   configId,
   username,
   selectedSourceSettings,
-  isRawUploaded,
   currentVectorStoreId,
   mcpServers,
   mcpServerStatuses,
   mcpServerTokens,
   namespace,
   showWelcomePrompt = false,
+  welcomeDescription = 'Welcome to the playground',
   onMessagesHookReady,
   guardrailModelConfigs = [],
 }) => {
@@ -56,6 +57,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Guardrails configuration from store
   const guardrail = useChatbotConfigStore(selectGuardrail(configId));
@@ -87,7 +89,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     modelId: selectedModel,
     selectedSourceSettings,
     systemInstruction,
-    isRawUploaded,
+    isRawUploaded: isRagEnabled,
     username,
     isStreamingEnabled,
     temperature,
@@ -114,7 +116,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
       {showWelcomePrompt && (
         <ChatbotWelcomePrompt
           title={username ? `Hello, ${username}` : 'Hello'}
-          description="Welcome to the playground"
+          description={welcomeDescription}
           data-testid="chatbot-welcome-prompt"
           style={{
             cursor: 'default',

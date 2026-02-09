@@ -17,116 +17,177 @@ describe('project permissions utils', () => {
   const roleRefAdmin: RoleRef = { kind: 'ClusterRole', name: 'admin' };
   const roleRefEdit: RoleRef = { kind: 'ClusterRole', name: 'edit' };
 
-  it('classifies default roleRefs (admin/edit)', () => {
-    expect(isDefaultRoleRef(roleRefAdmin)).toBe(true);
-    expect(isDefaultRoleRef(roleRefEdit)).toBe(true);
-    expect(isDefaultRoleRef({ kind: 'ClusterRole', name: 'view' })).toBe(false);
-    expect(isDefaultRoleRef({ kind: 'Role', name: 'custom-role' })).toBe(false);
-  });
-
-  it('detects dashboard roles by label type', () => {
-    const dashboardRole = mockRoleK8sResource({
-      name: 'dashboard-role',
-      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
-    });
-    const nonDashboardRole = mockRoleK8sResource({
-      name: 'custom-role',
-      labels: { foo: 'bar' },
+  describe('isDefaultRoleRef', () => {
+    it('should return true for admin roleRef', () => {
+      expect(isDefaultRoleRef(roleRefAdmin)).toBe(true);
     });
 
-    expect(isDashboardRole(dashboardRole)).toBe(true);
-    expect(isDashboardRole(nonDashboardRole)).toBe(false);
-    expect(isDashboardRole()).toBe(false);
-  });
-
-  it('treats default or dashboard roles as AI roles', () => {
-    const dashboardRole = mockRoleK8sResource({
-      name: 'dashboard-role',
-      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    it('should return true for edit roleRef', () => {
+      expect(isDefaultRoleRef(roleRefEdit)).toBe(true);
     });
 
-    expect(isAiRole(roleRefAdmin)).toBe(true);
-    expect(isAiRole({ kind: 'Role', name: 'custom-role' }, dashboardRole)).toBe(true);
-    expect(isAiRole({ kind: 'Role', name: 'custom-role' })).toBe(false);
-  });
-
-  it('builds reversible role refs from defaults and dashboard-labeled roles', () => {
-    const dashboardRole = mockRoleK8sResource({
-      name: 'dashboard-role',
-      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
-    });
-    const dashboardClusterRole = mockClusterRoleK8sResource({
-      name: 'dashboard-cr',
-      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
-    });
-    const duplicateDashboardRole = mockRoleK8sResource({
-      name: 'dashboard-role',
-      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    it('should return false for non-default ClusterRole', () => {
+      expect(isDefaultRoleRef({ kind: 'ClusterRole', name: 'view' })).toBe(false);
     });
 
-    const refs = getReversibleRoleRefs(
-      [dashboardRole, duplicateDashboardRole],
-      [dashboardClusterRole],
-    );
-    const keys = refs.map((r) => `${r.kind}:${r.name}`);
-
-    expect(keys).toEqual(
-      expect.arrayContaining([
-        'ClusterRole:admin',
-        'ClusterRole:edit',
-        'Role:dashboard-role',
-        'ClusterRole:dashboard-cr',
-      ]),
-    );
-    expect(keys.filter((k) => k === 'Role:dashboard-role')).toHaveLength(1);
-  });
-
-  it('returns only defaults when no dashboard roles are provided', () => {
-    const refs = getReversibleRoleRefs([], []);
-    const keys = refs.map((r) => `${r.kind}:${r.name}`);
-
-    expect(keys).toEqual(expect.arrayContaining(['ClusterRole:admin', 'ClusterRole:edit']));
-    expect(keys).toHaveLength(2);
-  });
-
-  it('builds subject refs for user and group kinds', () => {
-    expect(getSubjectRef('user', 'alice')).toEqual({
-      kind: RBAC_SUBJECT_KIND_USER,
-      name: 'alice',
-    });
-    expect(getSubjectRef('group', 'team-a')).toEqual({
-      kind: RBAC_SUBJECT_KIND_GROUP,
-      name: 'team-a',
+    it('should return false for custom Role', () => {
+      expect(isDefaultRoleRef({ kind: 'Role', name: 'custom-role' })).toBe(false);
     });
   });
 
-  it('dedupes roleRefs while preserving the first occurrence', () => {
-    const refs: RoleRef[] = [
-      { kind: 'Role', name: 'a' },
-      { kind: 'Role', name: 'a' },
-      { kind: 'ClusterRole', name: 'a' },
-      { kind: 'Role', name: 'b' },
-      { kind: 'Role', name: 'b' },
-    ];
+  describe('isDashboardRole', () => {
+    it('should return true for roles with dashboard label', () => {
+      const dashboardRole = mockRoleK8sResource({
+        name: 'dashboard-role',
+        labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+      });
+      expect(isDashboardRole(dashboardRole)).toBe(true);
+    });
 
-    expect(dedupeRoleRefs(refs)).toEqual([
-      { kind: 'Role', name: 'a' },
-      { kind: 'ClusterRole', name: 'a' },
-      { kind: 'Role', name: 'b' },
-    ]);
+    it('should return false for roles without dashboard label', () => {
+      const nonDashboardRole = mockRoleK8sResource({
+        name: 'custom-role',
+        labels: { foo: 'bar' },
+      });
+      expect(isDashboardRole(nonDashboardRole)).toBe(false);
+    });
+
+    it('should return false for undefined role', () => {
+      expect(isDashboardRole()).toBe(false);
+    });
   });
 
-  it('returns assignment status based on assigned and selected roleRefs', () => {
-    const assigned = [roleRefAdmin];
-    const selected = [roleRefAdmin, roleRefEdit];
+  describe('isAiRole', () => {
+    it('should return true for default roleRefs', () => {
+      expect(isAiRole(roleRefAdmin)).toBe(true);
+    });
 
-    expect(getAssignmentStatus(roleRefAdmin, assigned, selected)).toBe(
-      AssignmentStatus.CurrentlyAssigned,
-    );
-    expect(getAssignmentStatus(roleRefEdit, assigned, selected)).toBe(AssignmentStatus.Assigning);
-    expect(getAssignmentStatus(roleRefAdmin, assigned, [])).toBe(AssignmentStatus.Unassigning);
-    expect(
-      getAssignmentStatus({ kind: 'Role', name: 'custom' }, assigned, selected),
-    ).toBeUndefined();
+    it('should return true for dashboard-labeled roles', () => {
+      const dashboardRole = mockRoleK8sResource({
+        name: 'dashboard-role',
+        labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+      });
+      expect(isAiRole({ kind: 'Role', name: 'custom-role' }, dashboardRole)).toBe(true);
+    });
+
+    it('should return false for custom roles without dashboard label', () => {
+      expect(isAiRole({ kind: 'Role', name: 'custom-role' })).toBe(false);
+    });
+  });
+
+  describe('getReversibleRoleRefs', () => {
+    it('should include defaults and dashboard-labeled roles', () => {
+      const dashboardRole = mockRoleK8sResource({
+        name: 'dashboard-role',
+        labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+      });
+      const dashboardClusterRole = mockClusterRoleK8sResource({
+        name: 'dashboard-cr',
+        labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+      });
+
+      const refs = getReversibleRoleRefs([dashboardRole], [dashboardClusterRole]);
+      const keys = refs.map((r) => `${r.kind}:${r.name}`);
+
+      expect(keys).toEqual(
+        expect.arrayContaining([
+          'ClusterRole:admin',
+          'ClusterRole:edit',
+          'Role:dashboard-role',
+          'ClusterRole:dashboard-cr',
+        ]),
+      );
+    });
+
+    it('should deduplicate roleRefs with same kind and name', () => {
+      const dashboardRole = mockRoleK8sResource({
+        name: 'dashboard-role',
+        labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+      });
+      const duplicateDashboardRole = mockRoleK8sResource({
+        name: 'dashboard-role',
+        labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+      });
+
+      const refs = getReversibleRoleRefs([dashboardRole, duplicateDashboardRole], []);
+      const keys = refs.map((r) => `${r.kind}:${r.name}`);
+
+      expect(keys.filter((k) => k === 'Role:dashboard-role')).toHaveLength(1);
+    });
+
+    it('should return only defaults when no dashboard roles are provided', () => {
+      const refs = getReversibleRoleRefs([], []);
+      const keys = refs.map((r) => `${r.kind}:${r.name}`);
+
+      expect(keys).toEqual(expect.arrayContaining(['ClusterRole:admin', 'ClusterRole:edit']));
+      expect(keys).toHaveLength(2);
+    });
+  });
+
+  describe('getSubjectRef', () => {
+    it('should build user subject ref', () => {
+      expect(getSubjectRef('user', 'alice')).toEqual({
+        kind: RBAC_SUBJECT_KIND_USER,
+        name: 'alice',
+      });
+    });
+
+    it('should build group subject ref', () => {
+      expect(getSubjectRef('group', 'team-a')).toEqual({
+        kind: RBAC_SUBJECT_KIND_GROUP,
+        name: 'team-a',
+      });
+    });
+  });
+
+  describe('dedupeRoleRefs', () => {
+    it('should dedupe roleRefs while preserving the first occurrence', () => {
+      const refs: RoleRef[] = [
+        { kind: 'Role', name: 'a' },
+        { kind: 'Role', name: 'a' },
+        { kind: 'ClusterRole', name: 'a' },
+        { kind: 'Role', name: 'b' },
+        { kind: 'Role', name: 'b' },
+      ];
+
+      expect(dedupeRoleRefs(refs)).toEqual([
+        { kind: 'Role', name: 'a' },
+        { kind: 'ClusterRole', name: 'a' },
+        { kind: 'Role', name: 'b' },
+      ]);
+    });
+
+    it('should return empty array for empty input', () => {
+      expect(dedupeRoleRefs([])).toEqual([]);
+    });
+  });
+
+  describe('getAssignmentStatus', () => {
+    it('should return CurrentlyAssigned for assigned and selected roles', () => {
+      const assigned = [roleRefAdmin];
+      const selected = [roleRefAdmin, roleRefEdit];
+      expect(getAssignmentStatus(roleRefAdmin, assigned, selected)).toBe(
+        AssignmentStatus.CurrentlyAssigned,
+      );
+    });
+
+    it('should return Assigning for newly selected roles', () => {
+      const assigned = [roleRefAdmin];
+      const selected = [roleRefAdmin, roleRefEdit];
+      expect(getAssignmentStatus(roleRefEdit, assigned, selected)).toBe(AssignmentStatus.Assigning);
+    });
+
+    it('should return Unassigning for deselected roles', () => {
+      const assigned = [roleRefAdmin];
+      expect(getAssignmentStatus(roleRefAdmin, assigned, [])).toBe(AssignmentStatus.Unassigning);
+    });
+
+    it('should return undefined for roles neither assigned nor selected', () => {
+      const assigned = [roleRefAdmin];
+      const selected = [roleRefAdmin, roleRefEdit];
+      expect(
+        getAssignmentStatus({ kind: 'Role', name: 'custom' }, assigned, selected),
+      ).toBeUndefined();
+    });
   });
 });

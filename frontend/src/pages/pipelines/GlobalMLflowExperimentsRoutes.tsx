@@ -9,8 +9,12 @@ import {
   mlflowExperimentsBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '#~/routes/pipelines/mlflowExperiments';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { experimentsPageTitle } from '#~/pages/pipelines/global/experiments/const';
 import GlobalMLflowExperimentsPage from '#~/pages/pipelines/global/mlflowExperiments/MLFlowExperimentsPage';
 import MLflowNoProjects from '#~/pages/pipelines/global/mlflowExperiments/MLflowNoProjects';
+import { MlflowEntityNamesProvider } from './global/mlflowExperiments/context/MlflowEntityNamesContext';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type EmptyStateProps = 'emptyStatePage' | 'empty';
@@ -45,7 +49,12 @@ const GlobalMLflowWorkspaceLoader: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="MLflow Experiments"
+      title={
+        <TitleWithIcon
+          title={experimentsPageTitle}
+          objectType={ProjectObjectType.pipelineExperiment}
+        />
+      }
       {...renderStateProps}
       loaded
       headerContent={
@@ -60,9 +69,11 @@ const GlobalMLflowWorkspaceLoader: React.FC = () => {
 };
 
 const GlobalMLflowExperimentsRoutes: React.FC = () => (
-  <ProjectsRoutes>
-    <Route path="/*" element={<GlobalMLflowWorkspaceLoader />} />
-  </ProjectsRoutes>
+  <MlflowEntityNamesProvider>
+    <ProjectsRoutes>
+      <Route path="/*" element={<GlobalMLflowWorkspaceLoader />} />
+    </ProjectsRoutes>
+  </MlflowEntityNamesProvider>
 );
 
 export default GlobalMLflowExperimentsRoutes;

@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
 type UserEnvelope Envelope[*models.User, None]

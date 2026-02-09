@@ -36,16 +36,16 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
           </Content>
           <Content component={ContentVariants.ul}>
             <Content component={ContentVariants.li}>
-              <strong>AI role:</strong> Roles specifically intended for {ODH_PRODUCT_NAME},
-              identified by a unique annotation or label in their YAML definition.
+              <strong>AI roles</strong> are intended for use in, and can be assigned from,{' '}
+              {ODH_PRODUCT_NAME}.
             </Content>
             <Content component={ContentVariants.li}>
-              <strong>Openshift default role:</strong> Standard roles that come pre-installed with
-              OpenShift, such as Admin and Contributor.
+              <strong>OpenShift default roles</strong> are OOTB OpenShift roles that can be assigned
+              from OpenShift or {ODH_PRODUCT_NAME}.
             </Content>
             <Content component={ContentVariants.li}>
-              <strong>OpenShift custom role:</strong> Any other roles created and assigned directly
-              within OpenShift.
+              <strong>OpenShift custom roles</strong> are admin-created roles that can only be
+              assigned from OpenShift.
             </Content>
           </Content>
         </Content>
@@ -61,23 +61,16 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     info: {
       popover: (
         <Content>
-          <Content component={ContentVariants.p}>A role can have four possible status:</Content>
+          <Content component={ContentVariants.p}>A role can have three possible statuses:</Content>
           <Content component={ContentVariants.ul}>
             <Content component={ContentVariants.li}>
-              <strong>Currently assigned:</strong> The role is already granted to the selected user
-              (or group) and is currently in effect.
+              <strong>Assigned:</strong> The role is applied to the user or group.
             </Content>
             <Content component={ContentVariants.li}>
-              <strong>Assigning:</strong> The role is not currently granted, but will be assigned
-              after the changes are saved.
+              <strong>Assigning:</strong> The role will be applied when changes are saved.
             </Content>
             <Content component={ContentVariants.li}>
-              <strong>Unassigning:</strong> The role is currently granted, but will be removed after
-              the changes are saved.
-            </Content>
-            <Content component={ContentVariants.li}>
-              <strong>No status (-):</strong> The role is not granted to the user and no change is
-              planned in the current update.
+              <strong>Unassigning:</strong> The role will be revoked when changes are saved.
             </Content>
           </Content>
         </Content>

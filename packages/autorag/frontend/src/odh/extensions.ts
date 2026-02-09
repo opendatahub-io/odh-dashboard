@@ -14,14 +14,14 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_AUTORAG,
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
-      reliantAreas: [PLUGIN_GEN_AI],
+      reliantAreas: [PLUGIN_GEN_AI], // Requires Gen AI Studio to be enabled
       featureFlags: ['autorag'],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_AUTORAG],
+      required: [PLUGIN_AUTORAG], // PLUGIN_AUTORAG area depends on PLUGIN_GEN_AI via reliantAreas
     },
     properties: {
       id: 'autorag',

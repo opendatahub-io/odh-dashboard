@@ -14,7 +14,7 @@ jest.mock('#~/components/TypeaheadSelect', () => ({
 
 describe('SubjectNameTypeaheadSelect', () => {
   beforeEach(() => {
-    mockTypeaheadSelect.mockClear();
+    jest.clearAllMocks();
   });
 
   const getLastTypeaheadProps = (): Record<string, unknown> => {
@@ -28,7 +28,7 @@ describe('SubjectNameTypeaheadSelect', () => {
     return props as unknown as Record<string, unknown>;
   };
 
-  it('passes stable props to TypeaheadSelect (creatable + create option on top + case-sensitive exact match)', () => {
+  it('should pass stable props to TypeaheadSelect (creatable + create option on top + case-sensitive exact match)', () => {
     render(
       <SubjectNameTypeaheadSelect
         groupLabel="Users with existing assignment"
@@ -49,7 +49,7 @@ describe('SubjectNameTypeaheadSelect', () => {
     expect(props.isCreateOptionExactMatchCaseSensitive).toBe(true);
   });
 
-  it('sorts existing names and groups them', () => {
+  it('should sort existing names and group them', () => {
     render(
       <SubjectNameTypeaheadSelect
         groupLabel="Users with existing assignment"
@@ -74,7 +74,7 @@ describe('SubjectNameTypeaheadSelect', () => {
     expect(selectOptions.every((o) => o.group === 'Users with existing assignment')).toBe(true);
   });
 
-  it('injects a creatable value into selectOptions when it does not exactly match an existing name (case-sensitive)', () => {
+  it('should inject a creatable value into selectOptions when it does not exactly match an existing name (case-sensitive)', () => {
     render(
       <SubjectNameTypeaheadSelect
         groupLabel="Users with existing assignment"
@@ -104,7 +104,7 @@ describe('SubjectNameTypeaheadSelect', () => {
     expect(selectOptions.some((o) => o.value === 'Test-user' && !o.group)).toBe(true);
   });
 
-  it('does not inject a duplicate when value exactly matches an existing name (case-sensitive)', () => {
+  it('should not inject a duplicate when value exactly matches an existing name (case-sensitive)', () => {
     render(
       <SubjectNameTypeaheadSelect
         groupLabel="Users with existing assignment"

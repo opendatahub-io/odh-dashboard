@@ -1,7 +1,7 @@
 {
   "name": "autorag-ui",
   "version": "1.0.0",
-  "description": "AutoRAG",
+  "description": "A user interface for AutoRAG",
   "license": "Apache-2.0",
   "private": true,
   "engines": {

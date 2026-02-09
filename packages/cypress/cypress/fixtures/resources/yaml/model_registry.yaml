@@ -13,7 +13,7 @@ spec:
   mysql:
     host: {{DATABASE_NAME}}
     port: 3306
-    database: model_registry
+    database: model-registry
     username: mlmduser
     skipDBCreation: false
     passwordSecret:
@@ -35,6 +35,6 @@ metadata:
     template.openshift.io/expose-password: '{.data[''database-password'']}'
     template.openshift.io/expose-username: '{.data[''database-user'']}'
 stringData:
-  database-name: "model_registry"
+  database-name: "model-registry"
   database-password: "TheBlurstOfTimes"
   database-user: "mlmduser"

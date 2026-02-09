@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)

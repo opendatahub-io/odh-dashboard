@@ -16,6 +16,7 @@ filters:
       - workbenches-approvers
       - gen-ai-approvers
       - nim-serving-approvers
+      - autorag-approvers
 
   # Catchall
   '.*':
@@ -147,3 +148,12 @@ filters:
       - notebooks-reviewers
     labels:
       - 'area/notebooks'
+
+  # AutoRAG
+  'packages/autorag/.*':
+    approvers:
+      - autorag-approvers
+    reviewers:
+      - autorag-reviewers
+    labels:
+      - 'area/autorag'

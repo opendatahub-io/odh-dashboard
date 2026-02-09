@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
