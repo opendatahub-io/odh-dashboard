@@ -64,11 +64,11 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        id: 'featureStore-datasets',
-        title: 'Datasets',
-        href: '/develop-train/feature-store/datasets',
+        id: 'featureStore-data-sources',
+        title: 'Data souces',
+        href: '/develop-train/feature-store/datasouces',
         section: 'feature-store',
-        path: '/develop-train/feature-store/datasets/*',
+        path: '/develop-train/feature-store/datasouces/*',
       },
     },
     {
@@ -77,11 +77,11 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | NavSe
         required: [PLUGIN_FEATURE_STORE],
       },
       properties: {
-        id: 'featureStore-data-sources',
-        title: 'Data sources',
-        href: '/develop-train/feature-store/data-sources',
+        id: 'featureStore-datasets',
+        title: 'Datasets',
+        href: '/develop-train/feature-store/datasets',
         section: 'feature-store',
-        path: '/develop-train/feature-store/data-sources/*',
+        path: '/develop-train/feature-store/datasets/*',
       },
     },
     {
