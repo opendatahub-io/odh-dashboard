@@ -28,7 +28,7 @@ const createMockStore = (configOverrides = {}) => {
   const defaultConfig = {
     selectedModel: 'test-model',
     systemInstruction: 'You are a helpful assistant.',
-    selectedMcpServerIds: [],
+    selectedMcpServerIds: [] as string[],
     temperature: 0.1,
     isStreamingEnabled: true,
     guardrailsEnabled: false,
@@ -37,13 +37,18 @@ const createMockStore = (configOverrides = {}) => {
     ...configOverrides,
   };
 
-  return {
-    configurations: {
-      [DEFAULT_CONFIG_ID]: defaultConfig,
-    },
+  const configurations: Record<string, typeof defaultConfig | undefined> = {
+    [DEFAULT_CONFIG_ID]: defaultConfig,
+  };
+
+  const store = {
+    configurations,
     configIds: [DEFAULT_CONFIG_ID],
     getToolSelections: jest.fn().mockReturnValue(undefined),
-  } as unknown as ChatbotConfigStore;
+    getConfiguration: (id: string) => configurations[id],
+  };
+
+  return store as unknown as ChatbotConfigStore;
 };
 
 const setupMockStore = (configOverrides = {}) => {
@@ -84,7 +89,6 @@ describe('ViewCodeModal', () => {
   const defaultProps = {
     isOpen: true,
     onToggle: jest.fn(),
-    configId: DEFAULT_CONFIG_ID,
     input: 'What is machine learning?',
     files: mockFiles,
   };

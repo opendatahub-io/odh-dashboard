@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { Button, Divider, Flex, FlexItem } from '@patternfly/react-core';
+import { Button, Divider, Flex, FlexItem, Label, Spinner } from '@patternfly/react-core';
 import { CogIcon, TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
+import { ResponseMetrics } from '~/app/types';
+import { formatDuration } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ModelDetailsDropdown from './ModelDetailsDropdown';
 
 interface ChatbotPaneHeaderProps {
@@ -12,6 +14,10 @@ interface ChatbotPaneHeaderProps {
   onSettingsClick: () => void;
   /** Optional close button handler (for compare mode) */
   onCloseClick?: () => void;
+  /** Metrics from the last response (latency, tokens, TTFT) */
+  metrics?: ResponseMetrics | null;
+  /** Whether a response is currently being generated */
+  isLoading?: boolean;
   /** Whether to show a divider below the header */
   hasDivider?: boolean;
   /** Test ID prefix for the header elements */
@@ -28,6 +34,8 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   onModelChange,
   onSettingsClick,
   onCloseClick,
+  metrics,
+  isLoading,
   hasDivider,
   testIdPrefix = 'chatbot',
 }) => (
@@ -44,11 +52,11 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
         style={{ width: '100%' }}
       >
         <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             {label && (
               <FlexItem style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</FlexItem>
             )}
-            <FlexItem style={{ minWidth: '200px' }}>
+            <FlexItem>
               <ModelDetailsDropdown selectedModel={selectedModel} onModelChange={onModelChange} />
             </FlexItem>
             <FlexItem>
@@ -81,6 +89,44 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
         )}
       </Flex>
     </ChatbotHeaderMain>
+
+    {/* Response metrics row */}
+    {(metrics || isLoading) && (
+      <Flex gap={{ default: 'gapSm' }} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+        {isLoading ? (
+          <FlexItem>
+            <Label variant="outline" isCompact data-testid={`${testIdPrefix}-loading`}>
+              <Spinner size="sm" aria-label="Loading" />
+            </Label>
+          </FlexItem>
+        ) : (
+          metrics && (
+            <>
+              <FlexItem>
+                <Label variant="outline" isCompact data-testid={`${testIdPrefix}-latency-metric`}>
+                  {formatDuration(metrics.latency_ms)}
+                </Label>
+              </FlexItem>
+              {metrics.usage && (
+                <FlexItem>
+                  <Label variant="outline" isCompact data-testid={`${testIdPrefix}-tokens-metric`}>
+                    T: {metrics.usage.total_tokens}
+                  </Label>
+                </FlexItem>
+              )}
+              {metrics.time_to_first_token_ms !== undefined && (
+                <FlexItem>
+                  <Label variant="outline" isCompact data-testid={`${testIdPrefix}-ttft-metric`}>
+                    TTFT: {formatDuration(metrics.time_to_first_token_ms)}
+                  </Label>
+                </FlexItem>
+              )}
+            </>
+          )
+        )}
+      </Flex>
+    )}
+
     {hasDivider && <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />}
   </div>
 );
