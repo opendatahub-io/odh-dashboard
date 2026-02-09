@@ -4,7 +4,7 @@ import { listRoutes } from '#~/api/k8s/routes';
 import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
-import { Route } from '#~/types.ts';
+import { Route } from '#~/types';
 
 jest.mock('#~/services/routeService', () => ({
   getRoute: jest.fn(),

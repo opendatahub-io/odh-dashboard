@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '#~/services/notebookService';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
-import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute.ts';
+import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -11,6 +11,11 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { workbenchNamespace } = useNamespaces();
+  const [injectAuth, setInjectAuth] = React.useState<boolean>(false);
+  const [notebookLoaded, setNotebookLoaded] = React.useState<boolean>(false);
+
+  const workbenchPath =
+    useGetNotebookRoute(workbenchNamespace, notebookName, injectAuth, true) ?? '';
 
   React.useEffect(() => {
     let cancelled = false;
@@ -20,16 +25,10 @@ const NotebookLogoutRedirect: React.FC = () => {
           if (cancelled) {
             return;
           }
-          // Use same-origin relative path for logout
-          const workbenchPath =
-            useGetNotebookRoute(
-              workbenchNamespace,
-              notebookName,
-              notebook.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true',
-              true,
-            ) ?? '';
-          const location = new URL(workbenchPath, window.location.origin);
-          window.location.href = `${location.origin}/oauth2/sign_out`;
+          setInjectAuth(
+            notebook.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true',
+          );
+          setNotebookLoaded(true);
         })
         .catch((e) => {
           if (cancelled) {
@@ -44,7 +43,14 @@ const NotebookLogoutRedirect: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [namespace, notebookName, navigate, notification, workbenchNamespace]);
+  }, [namespace, notebookName, navigate, notification]);
+
+  React.useEffect(() => {
+    if (notebookLoaded && workbenchPath) {
+      const location = new URL(workbenchPath, window.location.origin);
+      window.location.href = `${location.origin}/oauth2/sign_out`;
+    }
+  }, [notebookLoaded, workbenchPath]);
 
   return (
     <ApplicationsPage title="Logging out..." description={null} loaded={false} empty={false} />
