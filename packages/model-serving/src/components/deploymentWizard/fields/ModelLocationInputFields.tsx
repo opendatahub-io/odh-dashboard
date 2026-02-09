@@ -10,6 +10,7 @@ import {
   ModelServingCompatibleTypes,
   parseConnectionSecretValues,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
 import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
@@ -41,6 +42,7 @@ export type ModelLocationDataField = {
   setSelectedConnection: (connection: Connection | undefined) => void;
   isLoadingSecretData: boolean;
   disableInputFields: boolean;
+  pvcs: PersistentVolumeClaimKind[];
 };
 export const useModelLocationData = (
   projectName?: string,
@@ -48,6 +50,8 @@ export const useModelLocationData = (
 ): ModelLocationDataField => {
   // Gets all connection types, even disabled ones
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const pvcs = usePvcs(projectName);
+  const pvcsLoaded = pvcs.loaded;
   const [connections, connectionsLoaded] = useServingConnections(projectName, true, false);
 
   const [draftModelLocationData, setDraftModelLocationData] = React.useState<
@@ -135,9 +139,10 @@ export const useModelLocationData = (
   const isLoadingSecretData =
     !!projectName &&
     !!existingData &&
-    existingData.type === ModelLocationType.EXISTING &&
+    (existingData.type === ModelLocationType.EXISTING ||
+      existingData.type === ModelLocationType.PVC) &&
     !draftModelLocationData &&
-    (!connectionsLoaded || !connectionTypesLoaded);
+    (!connectionsLoaded || !connectionTypesLoaded || !pvcsLoaded);
 
   return {
     data: effectiveModelLocationData,
@@ -151,6 +156,7 @@ export const useModelLocationData = (
     setSelectedConnection: updateSelectedConnection,
     isLoadingSecretData,
     disableInputFields: existingData?.disableInputFields ?? false,
+    pvcs: pvcs.data,
   };
 };
 

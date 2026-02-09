@@ -24,8 +24,8 @@ import {
   getModelServingCompatibility,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
+import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import { ModelLocationInputFields } from './ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
 
@@ -61,25 +61,25 @@ type ModelLocationSelectFieldProps = {
   modelLocation?: ModelLocationData['type'];
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
-  projectName?: string;
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   resetModelLocationData: () => void;
   modelLocationData?: ModelLocationData;
   connections: Connection[];
   setSelectedConnection: (connection: Connection | undefined) => void;
   selectedConnection: Connection | undefined;
+  pvcs: PersistentVolumeClaimKind[];
 };
 export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> = ({
   modelLocation,
   validationProps,
   validationIssues = [],
-  projectName,
   setModelLocationData,
   resetModelLocationData,
   modelLocationData,
   connections,
   setSelectedConnection,
   selectedConnection,
+  pvcs,
 }) => {
   const s3Option = {
     key: 'S3',
@@ -102,8 +102,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   const filteredModelServingConnectionTypes = React.useMemo(() => {
     return filterEnabledConnectionTypes(modelServingConnectionTypes);
   }, [modelServingConnectionTypes]);
-
-  const pvcs = usePvcs(projectName);
 
   const uriConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
     isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
@@ -221,7 +219,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       ...(nonGeneratedConnections.length > 0
         ? [{ key: ModelLocationType.EXISTING, label: 'Existing connection' }]
         : []),
-      ...(pvcs.data.length > 0 ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }] : []),
+      ...(pvcs.length > 0 ? [{ key: ModelLocationType.PVC, label: 'Cluster storage' }] : []),
     ];
 
     // Always include the base option of the selected connection type (URI, OCI, S3) for edit prefill scenarios
@@ -242,7 +240,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return options;
   }, [
     nonGeneratedConnections.length,
-    pvcs.data.length,
+    pvcs.length,
     s3ConnectionTypes.length,
     ociConnectionTypes.length,
     uriConnectionTypes.length,
@@ -394,7 +392,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   setModelLocationData={setModelLocationData}
                   resetModelLocationData={resetModelLocationData}
                   modelLocationData={modelLocationData}
-                  pvcs={pvcs.data}
+                  pvcs={pvcs}
                   showCustomTypeSelect={showCustomTypeSelect}
                   customTypeOptions={typeOptions}
                   customTypeKey={selectedKey?.label}
