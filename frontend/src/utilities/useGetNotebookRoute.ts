@@ -16,25 +16,35 @@ export const useGetNotebookRoute = (
       return undefined;
     }
 
+    let cancelled = false;
+
     if (injectAuth) {
       setRoute(getRoutePathForWorkbench(workbenchNamespace, workbenchName));
     } else if (isNotebookController) {
       getRoute(workbenchNamespace, workbenchName).then((fetchedRoute) => {
-        setRoute(
-          `https://${fetchedRoute.spec.host}/notebook/${workbenchNamespace}/${workbenchName}`,
-        );
+        if (!cancelled) {
+          setRoute(
+            `https://${fetchedRoute.spec.host}/notebook/${workbenchNamespace}/${workbenchName}`,
+          );
+        }
       });
     } else {
       listRoutes(workbenchNamespace, `notebook-name=${workbenchName}`).then((routes) => {
-        if (routes.length > 0) {
-          setRoute(
-            `https://${routes[0].spec.host}/notebook/${workbenchNamespace}/${workbenchName}`,
-          );
-        } else {
-          setRoute(undefined);
+        if (!cancelled) {
+          if (routes.length > 0) {
+            setRoute(
+              `https://${routes[0].spec.host}/notebook/${workbenchNamespace}/${workbenchName}`,
+            );
+          } else {
+            setRoute(undefined);
+          }
         }
       });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [workbenchNamespace, workbenchName, injectAuth, isNotebookController]);
   return route;
 };
