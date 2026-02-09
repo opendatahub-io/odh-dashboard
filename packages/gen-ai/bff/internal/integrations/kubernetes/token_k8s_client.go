@@ -1175,6 +1175,11 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		},
 		Spec: lsdapi.LlamaStackDistributionSpec{
 			Replicas: 1,
+			Network: &lsdapi.NetworkSpec{
+				AllowedFrom: &lsdapi.AllowedFromSpec{
+					Namespaces: []string{namespace},
+				},
+			},
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
 					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
