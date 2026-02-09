@@ -201,6 +201,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           guardrail: sourceConfig.guardrail,
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
+          isRagEnabled: sourceConfig.isRagEnabled,
         };
 
         set(
@@ -285,6 +286,19 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           },
           false,
           'updateSelectedMcpServerIds',
+        );
+      },
+
+      updateRagEnabled: (id: string, value: boolean) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.isRagEnabled = value;
+            }
+          },
+          false,
+          'updateRagEnabled',
         );
       },
 
