@@ -15,7 +15,12 @@ const NotebookLogoutRedirect: React.FC = () => {
   const [notebookLoaded, setNotebookLoaded] = React.useState<boolean>(false);
 
   const workbenchPath =
-    useGetNotebookRoute(workbenchNamespace, notebookName, injectAuth, true) ?? '';
+    useGetNotebookRoute(
+      workbenchNamespace,
+      notebookLoaded ? notebookName : undefined,
+      injectAuth,
+      true,
+    ) ?? '';
 
   React.useEffect(() => {
     let cancelled = false;
