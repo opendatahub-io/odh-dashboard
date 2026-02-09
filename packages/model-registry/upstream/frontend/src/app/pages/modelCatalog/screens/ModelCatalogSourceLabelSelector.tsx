@@ -23,6 +23,7 @@ import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogCont
 import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import ModelCatalogSourceLabelBlocks from './ModelCatalogSourceLabelBlocks';
+import './ModelCatalogSourceLabelSelector.scss';
 
 type ModelCatalogSourceLabelSelectorProps = {
   searchTerm?: string;
@@ -138,7 +139,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
                       dara-testid="search-input"
                       fieldLabel="Filter by name, description and provider"
                       aria-label="Search with submit button"
-                      className="toolbar-fieldset-wrapper"
+                      className="toolbar-fieldset-wrapper search-filter-model-catalog"
                       placeholder="Filter by name, description and provider"
                       value={inputValue}
                       style={{
