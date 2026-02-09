@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '#~/services/notebookService';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
-import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
+import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute.ts';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -16,12 +16,18 @@ const NotebookLogoutRedirect: React.FC = () => {
     let cancelled = false;
     if (namespace && notebookName) {
       getNotebook(namespace, notebookName)
-        .then(() => {
+        .then((notebook) => {
           if (cancelled) {
             return;
           }
           // Use same-origin relative path for logout
-          const workbenchPath = getRoutePathForWorkbench(namespace, notebookName);
+          const workbenchPath =
+            useGetNotebookRoute(
+              workbenchNamespace,
+              notebookName,
+              notebook.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true',
+              true,
+            ) ?? '';
           const location = new URL(workbenchPath, window.location.origin);
           window.location.href = `${location.origin}/oauth2/sign_out`;
         })
