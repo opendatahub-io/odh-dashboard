@@ -4,13 +4,12 @@ import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from '.
 export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
-  autoRag: false,
+  autorag: false,
   modelAsService: false,
   maasApiKeys: false,
   mlflow: false,
   projectRBAC: true,
   observabilityDashboard: false,
-  autorag: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {

@@ -105,6 +105,8 @@ spec:
                       type: boolean
                     genAiStudio:
                       type: boolean
+                    autorag:
+                      type: boolean
                     modelAsService:
                       type: boolean
                     mlflow:
@@ -116,8 +118,6 @@ spec:
                     observabilityDashboard:
                       type: boolean
                     disableLLMd:
-                      type: boolean
-                    autorag:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'

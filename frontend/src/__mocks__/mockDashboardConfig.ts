@@ -40,7 +40,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
-  autoRag?: boolean;
+  autorag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
@@ -50,7 +50,6 @@ export type MockDashboardConfigType = {
   mlflow?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
-  autorag?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -63,7 +62,7 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
-  autoRag = false,
+  autorag = false,
   modelAsService = true,
   maasApiKeys = false,
   disableAppLauncher = false,
@@ -94,7 +93,6 @@ export const mockDashboardConfig = ({
   trainingJobs = true,
   observabilityDashboard = false,
   disableLLMd = false,
-  autorag = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   modelServerSizes = [
     {
@@ -240,7 +238,7 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
-      autoRag,
+      autorag,
       modelAsService,
       maasApiKeys,
       disableKServeAuth,
@@ -261,7 +259,6 @@ export const mockDashboardConfig = ({
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
-      autorag,
     },
     notebookController: {
       enabled: !disableNotebookController,

@@ -81,7 +81,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
       genAiStudio: false,
-      autoRag: false,
+      autorag: false,
       modelAsService: false,
       maasApiKeys: false,
       disableFineTuning: true,
@@ -91,7 +91,6 @@ export const blankDashboardCR: DashboardConfig = {
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
-      autorag: false,
     },
     notebookController: {
       enabled: true,
