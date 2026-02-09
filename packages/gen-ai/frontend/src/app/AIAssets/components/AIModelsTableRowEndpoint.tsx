@@ -58,9 +58,9 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   hoverTip="Copy URL"
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
-                  onCopy={() => {
+                  onCopy={async () => {
                     try {
-                      navigator.clipboard.writeText(endpoint);
+                      await navigator.clipboard.writeText(endpoint);
                       fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
                         assetType: 'model',
                         endpointType: isExternal ? 'external' : 'internal',
@@ -90,9 +90,9 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     hoverTip="Copy"
                     clickTip="Copied"
                     aria-label={`External endpoint API token for ${model.model_name}`}
-                    onCopy={() => {
+                    onCopy={async () => {
                       try {
-                        navigator.clipboard.writeText(model.sa_token.token);
+                        await navigator.clipboard.writeText(model.sa_token.token);
                         fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
                           assetType: 'model',
                           copyTarget: 'service_token',

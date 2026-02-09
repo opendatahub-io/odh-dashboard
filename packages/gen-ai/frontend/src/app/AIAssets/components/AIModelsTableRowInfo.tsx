@@ -41,9 +41,9 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
                 hoverTip="Copy model ID"
                 clickTip="Model ID copied"
                 aria-label="Copy model ID"
-                onCopy={() => {
+                onCopy={async () => {
                   try {
-                    navigator.clipboard.writeText(model.model_id);
+                    await navigator.clipboard.writeText(model.model_id);
                     fireMiscTrackingEvent('Available Endpoints Model Id Copied', {});
                   } catch {
                     // Do nothing
