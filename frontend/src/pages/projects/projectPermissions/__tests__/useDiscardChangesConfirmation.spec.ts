@@ -28,12 +28,11 @@ describe('useDiscardChangesConfirmation', () => {
     );
 
   beforeEach(() => {
-    mockSetSubjectKind.mockClear();
-    mockSetSubjectName.mockClear();
+    jest.clearAllMocks();
   });
 
   describe('when there are no unsaved changes', () => {
-    it('applies subject kind change immediately without confirmation', () => {
+    it('should apply subject kind change immediately without confirmation', () => {
       const { result } = renderWithArgs(false, '');
 
       act(() => {
@@ -45,7 +44,7 @@ describe('useDiscardChangesConfirmation', () => {
       expect(mockSetSubjectName).toHaveBeenCalledWith('');
     });
 
-    it('applies subject name change immediately without confirmation', () => {
+    it('should apply subject name change immediately without confirmation', () => {
       const { result } = renderWithArgs(false, 'existing-user-1');
 
       act(() => {
@@ -59,7 +58,7 @@ describe('useDiscardChangesConfirmation', () => {
 
   describe('when there are unsaved changes', () => {
     describe('switching subject kind', () => {
-      it('shows confirmation modal for kind change', () => {
+      it('should show confirmation modal for kind change', () => {
         const { result } = renderWithArgs(true, 'existing-user-1');
 
         act(() => {
@@ -73,7 +72,7 @@ describe('useDiscardChangesConfirmation', () => {
         expect(mockSetSubjectKind).not.toHaveBeenCalled();
       });
 
-      it('applies kind change on confirm', () => {
+      it('should apply kind change on confirm', () => {
         const { result } = renderWithArgs(true, 'existing-user-1');
 
         act(() => {
@@ -88,7 +87,7 @@ describe('useDiscardChangesConfirmation', () => {
         expect(mockSetSubjectName).toHaveBeenCalledWith('');
       });
 
-      it('cancels kind change on cancel', () => {
+      it('should cancel kind change on cancel', () => {
         const { result } = renderWithArgs(true, 'existing-user-1');
 
         act(() => {
@@ -104,7 +103,7 @@ describe('useDiscardChangesConfirmation', () => {
     });
 
     describe('clearing selection', () => {
-      it('shows confirmation modal for clearing (empty string)', () => {
+      it('should show confirmation modal for clearing (empty string)', () => {
         const { result } = renderWithArgs(true, 'existing-user-1');
 
         act(() => {
@@ -116,7 +115,7 @@ describe('useDiscardChangesConfirmation', () => {
     });
 
     describe('switching subjects', () => {
-      it('shows confirmation for Existing → Existing', () => {
+      it('should show confirmation for Existing → Existing', () => {
         const { result } = renderWithArgs(true, 'existing-user-1');
 
         act(() => {
@@ -129,7 +128,7 @@ describe('useDiscardChangesConfirmation', () => {
         });
       });
 
-      it('shows confirmation for Existing → New', () => {
+      it('should show confirmation for Existing → New', () => {
         const { result } = renderWithArgs(true, 'existing-user-1');
 
         act(() => {
@@ -142,7 +141,7 @@ describe('useDiscardChangesConfirmation', () => {
         });
       });
 
-      it('shows confirmation for New → Existing', () => {
+      it('should show confirmation for New → Existing', () => {
         const { result } = renderWithArgs(true, 'new-user');
 
         act(() => {
@@ -155,7 +154,7 @@ describe('useDiscardChangesConfirmation', () => {
         });
       });
 
-      it('does NOT show confirmation for New → New (special case)', () => {
+      it('should NOT show confirmation for New → New (special case)', () => {
         const { result } = renderWithArgs(true, 'new-user-1');
 
         act(() => {
@@ -169,7 +168,7 @@ describe('useDiscardChangesConfirmation', () => {
   });
 
   describe('edge cases', () => {
-    it('ignores kind change to same kind', () => {
+    it('should ignore kind change to same kind', () => {
       const { result } = renderWithArgs(true, 'existing-user-1', 'user');
 
       act(() => {
@@ -180,7 +179,7 @@ describe('useDiscardChangesConfirmation', () => {
       expect(mockSetSubjectKind).not.toHaveBeenCalled();
     });
 
-    it('ignores name change to same name', () => {
+    it('should ignore name change to same name', () => {
       const { result } = renderWithArgs(true, 'existing-user-1');
 
       act(() => {
@@ -191,7 +190,7 @@ describe('useDiscardChangesConfirmation', () => {
       expect(mockSetSubjectName).not.toHaveBeenCalled();
     });
 
-    it('allows name change when current subject is empty', () => {
+    it('should allow name change when current subject is empty', () => {
       const { result } = renderWithArgs(true, '');
 
       act(() => {

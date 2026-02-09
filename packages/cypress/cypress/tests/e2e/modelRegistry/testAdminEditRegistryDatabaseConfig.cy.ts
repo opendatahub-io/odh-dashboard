@@ -87,7 +87,7 @@ describe('Verify that admin users can edit model registry database configuration
       getModelRegistryDatabaseConfig(registryName).then((config) => {
         expect(config.host).to.equal(databaseName);
         expect(config.port).to.equal(3306);
-        expect(config.database).to.equal('model_registry');
+        expect(config.database).to.equal('model-registry');
         expect(config.username).to.equal('mlmduser');
         expect(config.passwordSecret.name).to.equal(databaseName);
         expect(config.passwordSecret.key).to.equal('database-password');
@@ -109,7 +109,7 @@ describe('Verify that admin users can edit model registry database configuration
         .should('have.value', '3306');
       modelRegistrySettings
         .findFormField(SettingsFormFieldSelector.DATABASE)
-        .should('have.value', 'model_registry');
+        .should('have.value', 'model-registry');
       modelRegistrySettings
         .findFormField(SettingsFormFieldSelector.USERNAME)
         .should('have.value', 'mlmduser');

@@ -95,9 +95,16 @@ describe('Verify models can be deployed from model registry', () => {
   });
 
   it(
-    'Registers a model and deploys it via model registry',
+    '[Automation Bug: RHOAIENG-48809]Registers a model and deploys it via model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@NonConcurrent',
+        '@Sanity',
+        '@SanitySet4',
+        '@Maintain',
+      ],
     },
     () => {
       cy.step('Log into the application');

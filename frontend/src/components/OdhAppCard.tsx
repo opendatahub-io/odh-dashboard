@@ -30,6 +30,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '#~/utilities/utils';
 import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -47,10 +48,15 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     odhApp.metadata.name,
   );
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+  const mlflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const disabled = !odhApp.spec.isEnabled;
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
   const { isAdmin } = useUser();
+
+  if (odhApp.metadata.name === 'mlflow' && !mlflowEnabled) {
+    return null;
+  }
 
   const onOpenKebab = () => {
     setIsOpen(!isOpen);
@@ -133,31 +139,52 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     (disabled || !workbenchEnabled) && 'm-disabled',
   );
 
-  const cardFooter = (
-    <CardFooter className="odh-card__footer">
-      {odhApp.metadata.name === 'jupyter' ? (
-        odhApp.spec.internalRoute ? (
-          <Link
-            data-testid="jupyter-app-link"
-            to="/notebook-controller"
-            className={css('odh-card__footer__link', !workbenchEnabled && 'm-disabled')}
-          >
-            Open application
-          </Link>
-        ) : null
-      ) : (
-        <a
-          className={launchClasses}
-          href={odhApp.spec.link || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
+  const renderCardFooterLink = () => {
+    if (odhApp.metadata.name === 'jupyter' && odhApp.spec.internalRoute) {
+      return (
+        <Link
+          data-testid="jupyter-app-link"
+          to="/notebook-controller"
+          className={css('odh-card__footer__link', !workbenchEnabled && 'm-disabled')}
         >
           Open application
-          <ExternalLinkAltIcon />
-        </a>
-      )}
-    </CardFooter>
-  );
+        </Link>
+      );
+    }
+
+    if (odhApp.metadata.name === 'mlflow' && odhApp.spec.internalRoute === 'mlflowExperiments') {
+      return (
+        <Link
+          data-testid="mlflow-app-link"
+          to="/develop-train/experiments-mlflow"
+          className={css('odh-card__footer__link', !mlflowEnabled && 'm-disabled')}
+          onClick={() =>
+            fireLinkTrackingEvent('Launch MLflow clicked', {
+              from: window.location.pathname,
+              to: '/develop-train/experiments-mlflow',
+              section: 'enabled-apps',
+            })
+          }
+        >
+          Launch MLflow
+        </Link>
+      );
+    }
+
+    return (
+      <a
+        className={launchClasses}
+        href={odhApp.spec.link || '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open application
+        <ExternalLinkAltIcon />
+      </a>
+    );
+  };
+
+  const cardFooter = <CardFooter className="odh-card__footer">{renderCardFooterLink()}</CardFooter>;
 
   const cardClasses = css('odh-card', selected && 'pf-m-current');
 

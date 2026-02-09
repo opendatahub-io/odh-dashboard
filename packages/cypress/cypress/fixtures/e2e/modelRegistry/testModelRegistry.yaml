@@ -6,7 +6,7 @@ createRegistryName: "e2e-test-registry"
 operatorDeploymentName: "model-registry-operator-controller-manager"
 
 # First model (Object Storage)
-objectStorageModelName: "test-object-storage-model"
+objectStorageModelName: "test-object-model"
 objectStorageModelDescription: "E2E test model using object storage"
 version1Name: "v1.0"
 version1Description: "First version of the object storage test model"

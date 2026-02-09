@@ -17,11 +17,17 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import {
+  MLFLOW_EXPERIMENTS_ROUTE,
+  MLFLOW_DEFAULT_PATH,
+  setWorkspaceQueryParam,
+} from '#~/routes/pipelines/mlflowExperiments';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
-  const encodedProjectName = encodeURIComponent(projectName);
   const base = href.replace(/\/+$/, '');
-  return `${base}/#/workspaces/${encodedProjectName}/experiments`;
+  const hashPath = setWorkspaceQueryParam(MLFLOW_DEFAULT_PATH, projectName);
+  return `${base}/#${hashPath}`;
 };
 
 const MLflowCard: React.FC = () => {
@@ -65,7 +71,7 @@ const MLflowCard: React.FC = () => {
             <Button
               data-testid="embedded-mlflow-experiments-link"
               variant="link"
-              onClick={() => navigate('/develop-train/experiments-mlflow')}
+              onClick={() => navigate(MLFLOW_EXPERIMENTS_ROUTE)}
             >
               Go to <strong>Experiments</strong>
             </Button>
@@ -80,6 +86,13 @@ const MLflowCard: React.FC = () => {
               rel="noopener noreferrer"
               icon={<ExternalLinkAltIcon />}
               iconPosition="right"
+              onClick={() =>
+                fireLinkTrackingEvent('Launch MLflow clicked', {
+                  from: window.location.pathname,
+                  href: mlflowWorkspaceHref,
+                  section: 'project-overview',
+                })
+              }
             >
               Launch MLflow
             </Button>

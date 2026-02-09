@@ -733,13 +733,14 @@ describe('llamaStackService', () => {
 
       const result = await installLSD(URL_PREFIX, { namespace: project })({
         models: mockInstallModels,
+        enable_guardrails: true,
       });
 
       expect(result).toEqual(mockLlamaStackDistribution);
       expect(mockedRestCREATE).toHaveBeenCalledWith(
         URL_PREFIX,
         '/lsd/install',
-        { models: mockInstallModels },
+        { models: mockInstallModels, enable_guardrails: true },
         expect.objectContaining({ namespace: project }),
         {},
       );

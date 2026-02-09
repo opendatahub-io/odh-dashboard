@@ -51,7 +51,11 @@ jest.mock('#~/components/FilterToolbar', () => ({
 }));
 
 describe('ProjectPermissions', () => {
-  it('shows/hides Users and Groups sections based on subject scope', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should show/hide Users and Groups sections based on subject scope', () => {
     render(<ProjectPermissions />);
 
     // default scope = all => show both
