@@ -16,6 +16,8 @@ import {
   RecursivePartial,
   TagContent,
   VolumeMount,
+  RouteKind,
+  KubeResponseBody,
 } from '../types';
 import { getUserInfo, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
@@ -744,4 +746,45 @@ const getBYONImageErrorMessage = (imageStream: ImageStream) => {
     (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
   );
   return activeTag?.conditions?.[0]?.message;
+};
+
+export const getRoute = async (
+  fastify: KubeFastifyInstance,
+  namespace: string,
+  routeName: string,
+): Promise<RouteKind> => {
+  const kubeResponse = await fastify.kube.customObjectsApi
+    .listNamespacedCustomObject(
+      'route.openshift.io',
+      'v1',
+      namespace,
+      'routes',
+      undefined,
+      undefined,
+      undefined,
+      `notebook-name=${routeName}`,
+    )
+    .catch((res) => {
+      const e = res.response.body;
+      const error = createCustomError('Error listing Routes', e.message, e.code);
+      fastify.log.error(error);
+      throw error;
+    });
+
+  const routes = (kubeResponse.body as KubeResponseBody<RouteKind>)?.items ?? [];
+  const matched = routes.find(
+    (r: RouteKind) => r?.metadata?.labels?.['notebook-name'] === routeName,
+  );
+
+  if (!matched) {
+    const error = createCustomError(
+      'Error getting Route',
+      `Route with label notebook-name=${routeName} not found`,
+      404,
+    );
+    fastify.log.error(error);
+    throw error;
+  }
+
+  return matched;
 };

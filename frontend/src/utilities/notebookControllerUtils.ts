@@ -24,8 +24,8 @@ import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useAppContext } from '#~/app/AppContext';
 import { EventKind, NotebookKind, RoleBindingKind } from '#~/k8sTypes';
 import { useWatchNotebookEvents } from '#~/api';
-import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+import { useGetNotebookRoute } from './useGetNotebookRoute';
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -200,6 +200,15 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
 
   const routeName = currentUserNotebook?.metadata.name;
 
+  const workbenchPath =
+    useGetNotebookRoute(
+      workbenchNamespace,
+      routeName,
+      currentUserNotebook?.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] ===
+        'true',
+      true,
+    ) ?? '';
+
   return React.useCallback((): Promise<string> => {
     if (!routeName) {
       // At time of call, if we do not have a route name, we are too late
@@ -215,7 +224,6 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
         resolve(currentUserNotebookLink);
       } else {
         // Generate same-origin relative path
-        const workbenchPath = getRoutePathForWorkbench(workbenchNamespace, routeName);
         resolve(workbenchPath);
       }
     });

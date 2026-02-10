@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, IAction } from '@patternfly/react-table';
 import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
 import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
-import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
+import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { AdminViewUserData } from './types';
 
 type ServerStatusProps = {
@@ -14,12 +14,12 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
   const notebooksToStop = notebookToStop ? [notebookToStop] : [];
 
   // Generate the workbench link directly using same-origin relative path
-  const notebookLink = notebookToStop
-    ? getRoutePathForWorkbench(
-        notebookToStop.metadata.namespace || '',
-        notebookToStop.metadata.name || '',
-      )
-    : undefined;
+  const notebookLink = useGetNotebookRoute(
+    notebookToStop?.metadata.namespace,
+    notebookToStop?.metadata.name,
+    notebookToStop?.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true',
+    true,
+  );
 
   const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
     notebooksToStop,
