@@ -334,7 +334,10 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
         onStreamData: mockStreamData,
       });
 
-      // Should still fire tracking event on first refusal even if delta is empty
+      // Tracking fires on the first non-empty delta, not the empty one.
+      // The service uses condition: data.delta && data.type === 'response.refusal.delta'
+      // Empty-string deltas are falsy, so the entire block is skipped and receivedRefusal
+      // flag is set only when the first non-empty delta arrives.
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
         ViolationDetected: true,
       });
