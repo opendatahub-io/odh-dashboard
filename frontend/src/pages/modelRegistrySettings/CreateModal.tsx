@@ -462,6 +462,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             dataTestId="mr-database-type"
                             toggleProps={{ id: 'mr-database-type-toggle' }}
                             isFullWidth
+                            isDisabled={!!mr}
                             options={databaseTypeOptions}
                             value={databaseType}
                             onChange={(key) => handleDatabaseTypeChange(key)}

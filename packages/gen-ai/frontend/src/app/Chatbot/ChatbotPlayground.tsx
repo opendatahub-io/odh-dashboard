@@ -14,7 +14,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
-import { TokenInfo } from '~/app/types';
+import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
@@ -52,6 +52,10 @@ interface ComparePaneWrapperProps {
   onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
+  /** Metrics from the last response (latency, tokens, TTFT) */
+  metrics?: ResponseMetrics | null;
+  /** Whether a response is currently being generated */
+  isLoading?: boolean;
 }
 
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
@@ -61,6 +65,8 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   onSettingsClick,
   onClose,
   children,
+  metrics,
+  isLoading,
 }) => {
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
@@ -72,6 +78,8 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       onModelChange={onModelChange}
       onSettingsClick={onSettingsClick}
       onClose={onClose}
+      metrics={metrics}
+      isLoading={isLoading}
     >
       {children}
     </ChatbotPane>
@@ -165,6 +173,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
   const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
+  const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
+    new Map(),
+  );
 
   // Callbacks
   const setSelectedModel = React.useCallback(
@@ -191,6 +202,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }
         const next = new Map(prev);
         next.set(configIdParam, hook.isMessageSendButtonDisabled);
+        return next;
+      });
+      // Track metrics for pane header display
+      setMetricsStates((prev) => {
+        if (prev.get(configIdParam) === hook.lastResponseMetrics) {
+          return prev;
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.lastResponseMetrics);
         return next;
       });
     },
@@ -311,6 +331,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         staleKeys.forEach((key) => next.delete(key));
         return next;
       });
+
+      // Remove from metrics states
+      setMetricsStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
     }
   }, [configIds]);
 
@@ -407,7 +436,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       <ViewCodeModal
         isOpen={isViewCodeModalOpen}
         onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
-        configId={primaryConfigId}
         input={lastInput}
         files={fileManagement.files}
         mcpServers={mcpServers}
@@ -457,6 +485,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   selectedModel={primarySelectedModel || ''}
                   onModelChange={setSelectedModel}
                   onSettingsClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                  metrics={metricsStates.get(primaryConfigId)}
+                  isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
                 />
               )}
@@ -483,6 +513,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                           onModelChange={handleModelChange(configId)}
                           onSettingsClick={() => handlePaneSettingsClick(configId)}
                           onClose={() => onClosePane?.(configId)}
+                          metrics={metricsStates.get(configId)}
+                          isLoading={loadingStates.get(configId)}
                         >
                           {renderChatbotContent(configId)}
                         </ComparePaneWrapper>

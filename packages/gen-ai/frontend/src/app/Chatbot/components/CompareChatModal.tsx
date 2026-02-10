@@ -40,7 +40,7 @@ const CompareChatModal: React.FC<CompareChatModalProps> = ({ isOpen, onClose, on
       contents="Starting a new chat compare session will delete your current chat session. This action cannot be undone."
       buttonActions={[
         {
-          label: 'Start new chat session',
+          label: 'Continue',
           onClick: handleConfirm,
           variant: 'primary',
           dataTestId: 'confirm-compare-button',

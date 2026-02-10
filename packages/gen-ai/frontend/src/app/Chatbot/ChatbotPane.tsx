@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Card, CardBody } from '@patternfly/react-core';
+import { ResponseMetrics } from '~/app/types';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
 
 interface ChatbotPaneProps {
@@ -12,6 +13,10 @@ interface ChatbotPaneProps {
   onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
+  /** Metrics from the last response (latency, tokens, TTFT) */
+  metrics?: ResponseMetrics | null;
+  /** Whether a response is currently being generated */
+  isLoading?: boolean;
 }
 
 /**
@@ -26,6 +31,8 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   onSettingsClick,
   onClose,
   children,
+  metrics,
+  isLoading,
 }) => (
   <Card
     isFullHeight
@@ -41,6 +48,8 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
       onModelChange={onModelChange}
       onSettingsClick={onSettingsClick}
       onCloseClick={onClose}
+      metrics={metrics}
+      isLoading={isLoading}
       hasDivider
       testIdPrefix={`chatbot-pane-${configId}`}
     />
