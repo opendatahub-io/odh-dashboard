@@ -164,7 +164,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       onResize={handlePanelResize}
     >
       <DrawerHead>
-        <Title headingLevel="h2">{headerLabel}</Title>
+        <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
+          {headerLabel}
+        </Title>
         <DrawerActions>
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
