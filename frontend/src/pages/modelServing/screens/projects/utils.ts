@@ -529,6 +529,11 @@ export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => 
   if (configMap.data && Object.keys(configMap.data).length > 0) {
     const modelInfos: ModelInfo[] = [];
     for (const [key, value] of Object.entries(configMap.data)) {
+      // Skip non-model entries (air-gapped configuration fields)
+      if (key === 'registry' || key === 'imagePullSecret') {
+        continue;
+      }
+
       try {
         const modelData = JSON.parse(value);
         modelInfos.push({

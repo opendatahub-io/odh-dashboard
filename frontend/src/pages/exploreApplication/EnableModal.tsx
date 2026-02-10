@@ -7,8 +7,6 @@ import {
   Spinner,
   Stack,
   StackItem,
-  Text,
-  TextVariants,
   TextInputTypes,
   Modal,
   ModalBody,
@@ -234,12 +232,12 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
               </Alert>
             </StackItem>
             <StackItem>
-              <Text>Click Enable to activate NIM model serving.</Text>
+              <p>Click Enable to activate NIM model serving.</p>
             </StackItem>
             <StackItem>
-              <Text component={TextVariants.small}>
+              <p style={{ fontSize: 'var(--pf-v6-global--FontSize--sm)' }}>
                 Contact your cluster administrator if you need to modify air-gapped settings.
-              </Text>
+              </p>
             </StackItem>
             {validationInProgress ? (
               <StackItem>
