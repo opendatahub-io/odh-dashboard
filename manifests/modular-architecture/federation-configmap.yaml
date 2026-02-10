@@ -67,5 +67,21 @@ data:
             "namespace": "opendatahub",
             "port": 8243
         }
+      },
+      {
+        "name": "perses",
+        "proxyService": [
+          {
+            "authorize": true,
+            "path": "/perses/api",
+            "pathRewrite": "",
+            "tls": false,
+            "service": {
+              "name": "data-science-perses",
+              "namespace": "opendatahub",
+              "port": 8080
+            }
+          }
+        ]
       }
     ]
