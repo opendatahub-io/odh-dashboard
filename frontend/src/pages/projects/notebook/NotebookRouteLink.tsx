@@ -8,7 +8,7 @@ import {
 import { NotebookKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
+import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { hasStopAnnotation } from './utils';
 
 type NotebookRouteLinkProps = {
@@ -34,9 +34,13 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
 }) => {
   const isStopped = hasStopAnnotation(notebook);
   const canLink = !isStopped && isRunning;
-  const routeLink = canLink
-    ? getRoutePathForWorkbench(notebook.metadata.namespace || '', notebook.metadata.name || '')
-    : undefined;
+  const routeLink = useGetNotebookRoute(
+    canLink ? notebook.metadata.namespace : undefined,
+    canLink ? notebook.metadata.name : undefined,
+    canLink
+      ? notebook.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true'
+      : undefined,
+  );
 
   return (
     <Flex className={className} spaceItems={{ default: 'spaceItemsXs' }}>
