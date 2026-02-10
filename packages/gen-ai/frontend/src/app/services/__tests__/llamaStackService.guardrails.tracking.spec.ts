@@ -334,10 +334,10 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
         onStreamData: mockStreamData,
       });
 
-      // Tracking fires on the first non-empty delta, not the empty one.
-      // The service uses condition: data.delta && data.type === 'response.refusal.delta'
-      // Empty-string deltas are falsy, so the entire block is skipped and receivedRefusal
-      // flag is set only when the first non-empty delta arrives.
+      // Tracking fires on the subsequent non-empty delta, not the empty one.
+      // The service checks data.type === 'response.refusal.delta' first, then guards
+      // content appending and tracking with if (data.delta). Empty-string deltas are
+      // falsy, so receivedRefusal flag is set only when the first non-empty delta arrives.
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
         ViolationDetected: true,
       });
