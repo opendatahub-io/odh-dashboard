@@ -14,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/client-go/rest"
+	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 )
 
 func TestCanListLlamaStackDistributions(t *testing.T) {
@@ -427,4 +431,155 @@ func TestHeadlessServicePortLogic(t *testing.T) {
 			assert.Equal(t, tt.expectedAdded, shouldAddPort, tt.description)
 		})
 	}
+}
+
+// mustParseURL is a test helper that parses a URL string and panics on failure.
+func mustParseURL(u string) *apis.URL {
+	parsed, err := apis.ParseURL(u)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
+func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
+	client := &TokenKubernetesClient{
+		Logger: slog.Default(),
+	}
+
+	t.Run("nil LLMInferenceService returns empty endpoints", func(t *testing.T) {
+		endpoints := client.extractEndpointsFromLLMInferenceService(nil)
+		assert.Empty(t, endpoints)
+	})
+
+	t.Run("empty status returns empty endpoints", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Empty(t, endpoints)
+	})
+
+	t.Run("status.url set with external URL returns external endpoint", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				URL: mustParseURL("https://my-model.apps.example.com/v1"),
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
+
+	t.Run("status.url with svc.cluster.local is not added as external", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1"),
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		// svc.cluster.local URL in Status.URL is ignored; no Addresses to fall back to.
+		assert.Empty(t, endpoints)
+	})
+
+	t.Run("only status.addresses with internal URL returns internal endpoint", func(t *testing.T) {
+		// This is the real-world scenario: KServe controller sets addresses but not url or address (singular)
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://openshift-ai-inference.openshift-ingress.svc.cluster.local/ns/my-model")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "internal: https://openshift-ai-inference.openshift-ingress.svc.cluster.local/ns/my-model", endpoints[0])
+	})
+
+	t.Run("only status.addresses with external URL returns external endpoint", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
+
+	t.Run("status.addresses with both internal and external URLs", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 2)
+		assert.Equal(t, "internal: https://my-model.namespace.svc.cluster.local:8080/v1", endpoints[0])
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[1])
+	})
+
+	t.Run("status.url and status.addresses both set does not duplicate", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				URL: mustParseURL("https://my-model.apps.example.com/v1"),
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		// Internal from Addresses fallback, external from Status.URL, no duplicate external
+		assert.Len(t, endpoints, 2)
+		assert.Equal(t, "internal: https://my-model.namespace.svc.cluster.local:8080/v1", endpoints[0])
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[1])
+	})
+
+	t.Run("status.address singular and status.addresses both set does not duplicate", func(t *testing.T) {
+		internalURL := mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Address: &duckv1.Addressable{URL: internalURL},
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		// Should have internal from Address (singular) + external from Addresses, no duplicate internal
+		assert.Len(t, endpoints, 2)
+		assert.Equal(t, "internal: https://my-model.namespace.svc.cluster.local:8080/v1", endpoints[0])
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[1])
+	})
+
+	t.Run("status.addresses with nil URL entries are skipped", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: nil},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
 }
