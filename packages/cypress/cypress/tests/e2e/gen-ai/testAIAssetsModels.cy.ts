@@ -386,9 +386,9 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName(testData.filterByNameValue);
+        aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
         aiAssetsPage
-          .findActiveFilterChip('Name', testData.filterByNameValue)
+          .findActiveFilterChip('Name', testData.filterByNameValue ?? '')
           .should('exist')
           .and('be.visible');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
@@ -409,9 +409,9 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
+        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue ?? '');
         aiAssetsPage
-          .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
+          .findActiveFilterChip('Keyword', testData.filterByKeywordValue ?? '')
           .should('exist')
           .and('be.visible');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
@@ -432,9 +432,9 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue);
+        aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue ?? '');
         aiAssetsPage
-          .findActiveFilterChip('Use case', testData.filterByUseCaseValue)
+          .findActiveFilterChip('Use case', testData.filterByUseCaseValue ?? '')
           .should('exist')
           .and('be.visible');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
@@ -455,8 +455,10 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.findActiveFilterChip('Name', testData.filterByNameValue).should('be.visible');
+        aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
+        aiAssetsPage
+          .findActiveFilterChip('Name', testData.filterByNameValue ?? '')
+          .should('be.visible');
       },
     );
 
@@ -474,9 +476,11 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.removeFilterChip('Name', testData.filterByNameValue);
-        aiAssetsPage.findActiveFilterChip('Name', testData.filterByNameValue).should('not.exist');
+        aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
+        aiAssetsPage.removeFilterChip('Name', testData.filterByNameValue ?? '');
+        aiAssetsPage
+          .findActiveFilterChip('Name', testData.filterByNameValue ?? '')
+          .should('not.exist');
       },
     );
 
@@ -494,12 +498,14 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName(testData.filterByNameValue);
-        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
+        aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
+        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue ?? '');
         aiAssetsPage.clearAllFilters();
-        aiAssetsPage.findActiveFilterChip('Name', testData.filterByNameValue).should('not.exist');
         aiAssetsPage
-          .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
+          .findActiveFilterChip('Name', testData.filterByNameValue ?? '')
+          .should('not.exist');
+        aiAssetsPage
+          .findActiveFilterChip('Keyword', testData.filterByKeywordValue ?? '')
           .should('not.exist');
       },
     );
@@ -518,7 +524,7 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName(testData.filterByNameValue);
+        aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
       },
     );
