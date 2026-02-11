@@ -1,0 +1,25 @@
+projectDescription: 'AI Assets Models Tab Test Project'
+# Model deployment configuration
+modelDeploymentName: 'llama-3.2-1b-instruct-ai-asset'
+inferenceServiceName: 'llama-32-1b-instruct-ai-asset'
+connectionURI: 'oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct'
+modelType: 'Generative AI model (Example, LLM)'
+servingRuntime: 'vLLM CPU (amd64 - EXPERIMENTAL)'
+# Hardware Profile configuration
+hardwareProfileResourceYamlPath: 'resources/hardwareProfile/gen_ai_hardware_profile.yaml'
+hardwareProfileName: 'cypress-ai-assets-hardware-profile'
+hardwareProfileDeploymentSize: 'cypress-ai-assets-hardware-profile Compatible CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 8 GiB; Limit = 8 GiB'
+# AI Asset configuration
+enableAiAsset: true
+# Expected model details for verification
+expectedModelDisplayName: 'llama-3.2-1b-instruct-ai-asset'
+expectedUseCase: 'chat'
+expectedStatus: 'Active'
+# Filter test data
+filterByNameValue: 'llama'
+filterByKeywordValue: 'instruct'
+filterByUseCaseValue: 'chat'
+# Playground resources
+configMapName: 'llama-stack-config'
+playgroundServiceName: 'lsd-genai-playground-service'
+testMessage: 'Hello, this is a test message from AI Assets.'
