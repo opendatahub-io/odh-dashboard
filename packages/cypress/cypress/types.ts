@@ -607,6 +607,15 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+  // Filter test values
+  filterByNameValue?: string;
+  filterByKeywordValue?: string;
+  filterByUseCaseValue?: string;
+  // Expected values for verification
+  expectedModelDisplayName?: string;
+  expectedUseCase?: string;
+  expectedStatus?: string;
+  enableAiAsset?: boolean;
 };
 
 export type ModelCatalogSourceTestData = {
