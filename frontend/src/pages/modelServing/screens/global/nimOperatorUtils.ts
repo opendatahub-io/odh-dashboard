@@ -207,18 +207,32 @@ export const getInferenceServiceDisplayName = async (
  * @returns The display name, falling back to K8s resource name while loading or on error
  */
 export const useInferenceServiceDisplayName = (inferenceService: InferenceServiceKind): string => {
-  const [displayName, setDisplayName] = React.useState<string>(
-    getDisplayNameFromK8sResource(inferenceService),
-  );
+  const fallbackName = getDisplayNameFromK8sResource(inferenceService);
+  const [displayName, setDisplayName] = React.useState<string>(fallbackName);
+
+  // Use stable scalar keys instead of the object reference
+  const {
+    name: resourceName,
+    namespace: resourceNamespace,
+    resourceVersion,
+  } = inferenceService.metadata;
 
   React.useEffect(() => {
+    let stale = false;
+
     const fetchDisplayName = async () => {
       const name = await getInferenceServiceDisplayName(inferenceService);
-      setDisplayName(name);
+      if (!stale) {
+        setDisplayName(name);
+      }
     };
 
     fetchDisplayName();
-  }, [inferenceService]);
+
+    return () => {
+      stale = true;
+    };
+  }, [resourceName, resourceNamespace, resourceVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return displayName;
 };
