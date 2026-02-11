@@ -16,7 +16,7 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import type { TrainJobTestData } from '../../../types';
 
-describe('Verify project access for user types in Training Jobs', () => {
+describe('[Automation Bug: RHOAIENG-49258] Verify project access for user types in Training Jobs', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -122,7 +122,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Admin can access project and view training job',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Bug'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -145,7 +145,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Regular user cannot access project without permissions',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Bug'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -165,7 +165,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Regular user can access project after admin grants permission',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Bug'] },
     () => {
       if (shouldSkip()) {
         return;
