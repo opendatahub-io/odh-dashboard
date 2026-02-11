@@ -482,6 +482,15 @@ export type GenAiTestData = {
   hardwareProfileDeploymentSize: string;
   configMapName: string;
   playgroundServiceName: string;
+  // Filter test values
+  filterByNameValue?: string;
+  filterByKeywordValue?: string;
+  filterByUseCaseValue?: string;
+  // Expected values for verification
+  expectedModelDisplayName?: string;
+  expectedUseCase?: string;
+  expectedStatus?: string;
+  enableAiAsset?: boolean;
 };
 
 export type ModelCatalogSourceTestData = {
