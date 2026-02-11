@@ -3,8 +3,9 @@ import { Alert, Button, Content, Stack, StackItem } from '@patternfly/react-core
 import { useNavigate } from 'react-router-dom';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { MLFLOW_EXPERIMENTS_ROUTE } from '#~/routes/pipelines/mlflowExperiments';
 import { SupportedArea } from '#~/concepts/areas/types';
+
+const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 
 type PipelineCoreProjectSelectorProps = {

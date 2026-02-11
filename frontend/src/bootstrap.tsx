@@ -42,5 +42,6 @@ root.render(
         </Provider>
       </Provider>
     </ErrorBoundary>
+    ,
   </React.StrictMode>,
 );

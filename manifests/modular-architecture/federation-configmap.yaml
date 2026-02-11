@@ -83,5 +83,22 @@ data:
             }
           }
         ]
+      },
+      {
+        "name": "mlflow",
+        "remoteEntry": "/mlflow/static-files/remoteEntry.js",
+        "authorize": true,
+        "tls": true,
+        "proxy": [
+            {
+                "path": "/mlflow",
+                "pathRewrite": "/mlflow"
+            }
+        ],
+        "service": {
+            "name": "mlflow",
+            "namespace": "opendatahub",
+            "port": 8443
+        }
       }
     ]

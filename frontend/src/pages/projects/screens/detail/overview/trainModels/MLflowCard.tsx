@@ -17,12 +17,20 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import {
-  MLFLOW_EXPERIMENTS_ROUTE,
-  MLFLOW_DEFAULT_PATH,
-  setWorkspaceQueryParam,
-} from '#~/routes/pipelines/mlflowExperiments';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+
+const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
+const MLFLOW_DEFAULT_PATH = '/experiments';
+const WORKSPACE_QUERY_PARAM = 'workspace';
+
+const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): string => {
+  const queryIndex = hashPathQuery.indexOf('?');
+  const pathname = queryIndex === -1 ? hashPathQuery : hashPathQuery.slice(0, queryIndex);
+  const existingQuery = queryIndex === -1 ? '' : hashPathQuery.slice(queryIndex + 1);
+  const params = new URLSearchParams(existingQuery);
+  params.set(WORKSPACE_QUERY_PARAM, workspace);
+  return `${pathname}?${params.toString()}`;
+};
 
 const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
   const base = href.replace(/\/+$/, '');
