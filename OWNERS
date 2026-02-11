@@ -10,6 +10,7 @@ filters:
       - hardware-profiles-approvers
       - model-registry-catalog-approvers
       - model-serving-metrics-approvers
+      - maas-approvers
       - pipelines-approvers
       - platform-approvers
       - quality-e2e-testing-approvers
@@ -139,6 +140,15 @@ filters:
       - gen-ai-reviewers
     labels:
       - 'area/gen-ai'
+
+  # Models as a Service (MaaS)
+  'packages/maas/.*':
+    approvers:
+      - maas-approvers
+    reviewers:
+      - maas-reviewers
+    labels:
+      - 'area/maas'
 
   # Notebooks
   'packages/notebooks/.*':
