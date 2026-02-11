@@ -57,7 +57,11 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
               <FlexItem style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</FlexItem>
             )}
             <FlexItem>
-              <ModelDetailsDropdown selectedModel={selectedModel} onModelChange={onModelChange} />
+              <ModelDetailsDropdown
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+                testId="chatbot-model-selector-toggle"
+              />
             </FlexItem>
             <FlexItem>
               <Button
