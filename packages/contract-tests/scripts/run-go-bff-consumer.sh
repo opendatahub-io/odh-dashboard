@@ -158,9 +158,11 @@ log_success "Go found: $(go version)"
 log_info "Starting Mock BFF server..."
 pushd "$BFF_DIR" >/dev/null
 
-# Provision envtest assets if setup helper missing
+# Provision envtest assets if setup helper missing (versions must match BFF Makefile: ENVTEST_VERSION, ENVTEST_K8S_VERSION)
+ENVTEST_RELEASE=release-0.19
+ENVTEST_K8S_VER=1.29.3
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
-  if [[ ! -x ./bin/setup-envtest-release-0.17 ]]; then
+  if [[ ! -x ./bin/setup-envtest-${ENVTEST_RELEASE} ]]; then
     if command -v make >/dev/null 2>&1; then
       log_info "setup-envtest missing; attempting to provision via 'make envtest'"
       if make envtest; then
@@ -170,10 +172,11 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
       fi
     fi
   fi
-  if [[ -x ./bin/setup-envtest-release-0.17 ]]; then
-    ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --bin-dir ./bin -p path || true)
+  if [[ -x ./bin/setup-envtest-${ENVTEST_RELEASE} ]]; then
+    ASSETS_PATH=$(./bin/setup-envtest-${ENVTEST_RELEASE} use "${ENVTEST_K8S_VER}" --bin-dir ./bin -p path || true)
     if [[ -n "$ASSETS_PATH" ]]; then
       export KUBEBUILDER_ASSETS="$ASSETS_PATH"
+      export ENVTEST_ASSETS="$ASSETS_PATH"
       log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"
     else
       log_warning "setup-envtest did not return assets path; continuing without KUBEBUILDER_ASSETS"
