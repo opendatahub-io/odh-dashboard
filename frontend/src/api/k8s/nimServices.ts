@@ -199,6 +199,8 @@ export const assembleNIMService = (
   // Resources
   if (resources) {
     nimService.spec.resources = resources;
+  } else {
+    delete nimService.spec.resources;
   }
 
   // Service exposure
@@ -215,16 +217,22 @@ export const assembleNIMService = (
       name: ev.name,
       value: ev.value,
     }));
+  } else {
+    delete nimService.spec.env;
   }
 
   // Node selector
   if (nodeSelector && Object.keys(nodeSelector).length > 0) {
     nimService.spec.nodeSelector = nodeSelector;
+  } else {
+    delete nimService.spec.nodeSelector;
   }
 
   // Tolerations - pass through directly as the types are compatible
   if (tolerations && tolerations.length > 0) {
     nimService.spec.tolerations = tolerations;
+  } else {
+    delete nimService.spec.tolerations;
   }
 
   // Set spec.labels - these are propagated to the InferenceService by the NIM Operator
