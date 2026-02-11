@@ -535,7 +535,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         const updatePvcData = {
           size: pvcSize,
           name: pvc.metadata.name,
-          description: pvc.metadata.annotations?.description || '',
+          description: pvc.metadata.annotations?.['openshift.io/description'] || '',
           storageClassName: pvc.spec.storageClassName,
         };
         await updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, {
