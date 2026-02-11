@@ -4,7 +4,7 @@
  * Route hierarchy:
  *   /develop-train/mlflow — redirects to experiments
  *   /develop-train/mlflow/experiments — Experiments list / detail
- *   /gen-ai-studio/prompt-management — Prompt management
+ *   /gen-ai-studio/prompts — Prompt management
  */
 
 export const mlflowRootPath = '/develop-train/mlflow';
@@ -19,7 +19,7 @@ export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
     ? mlflowExperimentsPath
     : `${mlflowExperimentsPath}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
 
-export const promptManagementPath = '/gen-ai-studio/prompt-management';
+export const promptManagementPath = '/gen-ai-studio/prompts';
 export const globPromptManagementAll = `${promptManagementPath}/*`;
 
 export const mlflowPromptManagementBaseRoute = (namespace?: string): string =>

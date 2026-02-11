@@ -42,7 +42,7 @@ const MlflowPromptManagementPage: React.FC = () => {
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
             <FlexItem>
               <Title headingLevel="h1" data-testid="page-title">
-                Prompt management
+                Prompts
               </Title>
             </FlexItem>
             <FlexItem>

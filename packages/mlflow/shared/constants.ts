@@ -1,5 +1,5 @@
 export const EXPERIMENTS_PAGE_TITLE = 'Experiments';
-export const PROMPT_MANAGEMENT_PAGE_TITLE = 'Prompt management';
+export const PROMPT_MANAGEMENT_PAGE_TITLE = 'Prompts';
 
 export const EXPERIMENTS_NO_PROJECTS_MESSAGE =
   'To view MLflow experiments, first create a project.';
