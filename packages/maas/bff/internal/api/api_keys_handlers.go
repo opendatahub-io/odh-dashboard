@@ -95,7 +95,7 @@ func GetAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, params h
 // DeleteAllAPIKeysHandler handles DELETE /api/v1/api-keys
 // Deletes all API keys for the authenticated user
 func DeleteAllAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if err := app.repositories.APIKeys.DeleteAllAPIKeys(); err != nil {
+	if err := app.repositories.APIKeys.DeleteAllAPIKeys(r.Context()); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}

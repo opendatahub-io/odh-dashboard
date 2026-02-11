@@ -50,6 +50,10 @@ class ChatbotPage {
     this.findMCPTab().click();
   }
 
+  clickGuardrailsTab(): void {
+    this.findGuardrailsTab().click();
+  }
+
   clickKnowledgeTab(): void {
     this.findKnowledgeTab().click();
   }
@@ -143,12 +147,13 @@ class ChatbotPage {
 
   // Model Selection
   // Model dropdown is now in the toolbar (moved from Model tab)
+  // Note: There may be multiple model dropdowns (header + settings panel), so use .first()
   findModelDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('model-selector-toggle');
+    return cy.findAllByTestId('model-selector-toggle').first();
   }
 
   findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('model-selector-toggle');
+    return cy.findAllByTestId('model-selector-toggle').first();
   }
 
   verifyModelSelected(): void {
@@ -283,6 +288,10 @@ class ChatbotPage {
     this.findBotMessages().should('contain.text', text);
   }
 
+  verifyLastBotResponseContains(text: string): void {
+    this.findBotMessages().last().should('contain.text', text);
+  }
+
   verifyStopButtonVisible(): void {
     this.findStopButton().should('be.visible');
   }
@@ -321,6 +330,53 @@ class ChatbotPage {
     this.toggleStreaming(true);
   }
 
+  // Guardrails Section (inside Guardrails tab)
+  findGuardrailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Click Guardrails tab first to show guardrails section
+    this.clickGuardrailsTab();
+    return cy.findByTestId('guardrails-section-title').parent();
+  }
+
+  findGuardrailsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.clickGuardrailsTab();
+    return cy.findByTestId('guardrails-empty-state');
+  }
+
+  findGuardrailModelToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('guardrail-model-toggle');
+  }
+
+  findUserInputGuardrailsSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('user-input-guardrails-switch');
+  }
+
+  findModelOutputGuardrailsSwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('model-output-guardrails-switch');
+  }
+
+  selectGuardrailModel(modelName: string): void {
+    this.findGuardrailModelToggle().click();
+    cy.findByRole('option', { name: modelName }).click();
+  }
+
+  toggleUserInputGuardrails(enable: boolean): void {
+    this.findUserInputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findUserInputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
+  toggleModelOutputGuardrails(enable: boolean): void {
+    this.findModelOutputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findModelOutputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
   // Metrics Section
   findMetricsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.contains('button', /Show metrics|Hide metrics/i) as unknown as Cypress.Chainable<
@@ -336,6 +392,129 @@ class ChatbotPage {
     // Verify latency label is visible after expanding
     cy.contains('button', 'Show metrics').click();
     cy.get('.pf-v6-c-label').should('have.length.at.least', 1);
+  }
+
+  // Compare Mode Methods
+  findCompareChatButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('compare-chat-button');
+  }
+
+  // Find all chatbot panes (used in compare mode)
+  // Uses role="region" to only match pane containers, not their child elements
+  findAllChatbotPanes(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid^="chatbot-pane-"][role="region"]');
+  }
+
+  // Find a specific chatbot pane by index (0 = Model 1, 1 = Model 2)
+  findChatbotPaneByIndex(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAllChatbotPanes().eq(index);
+  }
+
+  // Find pane settings button by pane index
+  findPaneSettingsButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findChatbotPaneByIndex(index).find('[data-testid$="-settings-button"]');
+  }
+
+  // Find pane close button by pane index
+  findPaneCloseButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findChatbotPaneByIndex(index).find('[data-testid$="-close-button"]');
+  }
+
+  // Find pane model selector by pane index
+  findPaneModelSelector(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findChatbotPaneByIndex(index).findByTestId('model-selector-toggle');
+  }
+
+  // Find pane label text (e.g., "Model 1", "Model 2")
+  findPaneLabel(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    const labelText = `Model ${index + 1}`;
+    return this.findChatbotPaneByIndex(index).contains(labelText);
+  }
+
+  // Verify we are in compare mode (two panes visible)
+  verifyInCompareMode(): void {
+    this.findAllChatbotPanes().should('have.length', 2);
+    // Verify compare button is hidden in compare mode
+    this.findCompareChatButton().should('not.exist');
+  }
+
+  // Verify we are in single mode (one chatbot visible)
+  verifyInSingleMode(): void {
+    this.findChatbotPlayground().should('be.visible');
+    this.findAllChatbotPanes().should('not.exist');
+    // Verify compare button is visible in single mode
+    this.findCompareChatButton().should('be.visible');
+  }
+
+  // Enter compare mode via button click
+  clickCompareChatButton(): void {
+    this.findCompareChatButton().click();
+  }
+
+  // Exit compare mode by closing a pane
+  closePaneByIndex(index: number): void {
+    this.findPaneCloseButton(index).click();
+  }
+
+  // Open settings panel for a specific pane
+  openPaneSettings(index: number): void {
+    // First ensure any existing settings panel is closed
+    this.closeSettingsPanel();
+    // Then click the settings button for the specified pane
+    this.findPaneSettingsButton(index).click({ force: true });
+  }
+
+  // Find settings panel header (shows "Configure Model 1" or "Configure Model 2")
+  findSettingsPanelHeader(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Wait for the drawer to be visible before finding the header
+    return cy.findByTestId('chatbot-settings-panel-header', { timeout: 10000 });
+  }
+
+  // Close the settings panel if it's open
+  closeSettingsPanel(): void {
+    // First close any open modals that might be blocking
+    cy.get('body').then(($body) => {
+      // Close view code modal if open
+      const viewCodeModal = $body.find('[data-testid="view-code-modal"]');
+      if (viewCodeModal.length > 0) {
+        cy.get('[data-testid="view-code-modal"]')
+          .find('button[aria-label="Close"]')
+          .click({ force: true });
+        cy.get('[data-testid="view-code-modal"]').should('not.exist');
+      }
+    });
+
+    // Then close the settings panel
+    cy.get('body').then(($body) => {
+      const closeButton = $body.find('[aria-label="Close settings panel"]');
+      if (closeButton.length > 0 && closeButton.is(':visible')) {
+        cy.get('[aria-label="Close settings panel"]').click({ force: true });
+        // Wait for panel to close
+        cy.get('[data-testid="chatbot-settings-panel-header"]').should('not.exist');
+      }
+    });
+  }
+
+  // Find bot messages in a specific pane (by index)
+  findBotMessagesInPane(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findChatbotPaneByIndex(index).find('[class*="pf-chatbot__message--bot"]');
+  }
+
+  // Find user messages in a specific pane (by index)
+  findUserMessagesInPane(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findChatbotPaneByIndex(index).find('[class*="pf-chatbot__message--user"]');
+  }
+
+  // Verify message appears in both panes
+  verifyMessageInBothPanes(message: string): void {
+    this.findChatbotPaneByIndex(0).should('contain.text', message);
+    this.findChatbotPaneByIndex(1).should('contain.text', message);
+  }
+
+  // Verify bot response in both panes
+  verifyBotResponseInBothPanes(text: string): void {
+    this.findBotMessagesInPane(0).should('contain.text', text);
+    this.findBotMessagesInPane(1).should('contain.text', text);
   }
 }
 

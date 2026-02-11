@@ -86,7 +86,9 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
     cy.wait('@aaModels');
 
     // Verify that a model is selected by checking the dropdown shows a model name
-    cy.findByRole('button', { name: /Llama 3.2 3B Instruct|Select a model/i })
+    // Use .first() since there are two model dropdowns (header and settings panel)
+    cy.findAllByTestId('model-selector-toggle')
+      .first()
       .should('be.visible')
       .and('contain', 'Llama');
   });

@@ -39,6 +39,8 @@ export interface UseChatbotMessagesReturn {
   handleStopStreaming: () => void;
   clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
+  /** Metrics from the last bot response (latency, tokens, TTFT) */
+  lastResponseMetrics: ResponseMetrics | null;
 }
 
 interface UseChatbotMessagesProps {
@@ -84,6 +86,9 @@ const useChatbotMessages = ({
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
+  const [lastResponseMetrics, setLastResponseMetrics] = React.useState<ResponseMetrics | null>(
+    null,
+  );
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -216,6 +221,7 @@ const useChatbotMessages = ({
     setIsMessageSendButtonDisabled(false);
     setIsLoading(false);
     setIsStreamingWithoutContent(false);
+    setLastResponseMetrics(null);
     isStoppingStreamRef.current = false;
 
     // Reset clearing flag after state updates complete
@@ -427,6 +433,10 @@ const useChatbotMessages = ({
                 : msg,
             ),
           );
+          // Update last response metrics for pane header display
+          if (streamingResponse.metrics) {
+            setLastResponseMetrics(streamingResponse.metrics);
+          }
         }
       } else {
         // Handle non-streaming response
@@ -463,6 +473,10 @@ const useChatbotMessages = ({
           ...(response.metrics && { metrics: response.metrics }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
+        // Update last response metrics for pane header display
+        if (response.metrics) {
+          setLastResponseMetrics(response.metrics);
+        }
       }
     } catch (error) {
       // Check if this is an abort error
@@ -536,6 +550,7 @@ const useChatbotMessages = ({
     handleStopStreaming,
     clearConversation,
     scrollToBottomRef,
+    lastResponseMetrics,
   };
 };
 

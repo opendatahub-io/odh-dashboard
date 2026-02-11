@@ -34,6 +34,24 @@ jest.mock('../../ModelParameterFormGroup', () => ({
   ),
 }));
 
+jest.mock('../../ModelDetailsDropdown', () => ({
+  __esModule: true,
+  default: ({
+    selectedModel,
+    onModelChange,
+  }: {
+    selectedModel: string;
+    onModelChange: (model: string) => void;
+  }) => (
+    <div data-testid="model-details-dropdown">
+      <span data-testid="selected-model">{selectedModel}</span>
+      <button data-testid="change-model-button" onClick={() => onModelChange('new-model')}>
+        Change Model
+      </button>
+    </div>
+  ),
+}));
+
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 describe('ModelTabContent', () => {
@@ -42,6 +60,8 @@ describe('ModelTabContent', () => {
     onTemperatureChange: jest.fn(),
     isStreamingEnabled: true,
     onStreamingToggle: jest.fn(),
+    selectedModel: 'test-model',
+    onModelChange: jest.fn(),
   };
 
   beforeEach(() => {
