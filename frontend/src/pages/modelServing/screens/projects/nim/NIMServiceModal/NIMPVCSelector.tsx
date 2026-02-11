@@ -60,23 +60,13 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
     }
   }, [compatiblePVCs, existingPvcName, loading, showManualInput, setExistingPvcName]);
 
-  // Set model path based on mode (Operator vs Legacy)
+  // Set model path based on mode (Operator vs Legacy) - only on mode change or mount
+  // This ensures the path is set correctly when switching between modes,
+  // but doesn't override user edits in legacy mode
   React.useEffect(() => {
     const correctPath = nimServicesEnabled ? NIM_OPERATOR_MODEL_PATH : DEFAULT_MODEL_PATH;
-
-    // Always set to correct path for the current mode
-    if (modelPath !== correctPath) {
-      setModelPath(correctPath);
-    }
-  }, [nimServicesEnabled, modelPath, setModelPath]);
-
-  // Auto-set model path when a PVC is selected (if not already set)
-  React.useEffect(() => {
-    if (existingPvcName && !modelPath) {
-      const defaultPath = nimServicesEnabled ? NIM_OPERATOR_MODEL_PATH : DEFAULT_MODEL_PATH;
-      setModelPath(defaultPath);
-    }
-  }, [existingPvcName, modelPath, setModelPath, nimServicesEnabled]);
+    setModelPath(correctPath);
+  }, [nimServicesEnabled, setModelPath]);
 
   const formatPVCOption = (pvcInfo: NIMPVCInfo): string => {
     const ageText = relativeTime(Date.now(), pvcInfo.createdAt.getTime());
