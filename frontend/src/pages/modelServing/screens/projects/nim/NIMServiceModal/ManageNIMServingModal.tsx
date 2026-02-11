@@ -28,6 +28,8 @@ import {
 } from '#~/k8sTypes';
 import {
   createNIMService,
+  getInferenceService,
+  getNIMService,
   getSecret,
   patchInferenceServiceStoppedStatus,
   updateNIMService,
@@ -376,7 +378,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       }
 
       // Fetch the existing NIMService
-      const { getNIMService } = await import('#~/api/k8s/nimServices');
       const existingNIMService = await getNIMService(nimServiceName, namespace);
 
       // Use the existing updateNIMService function with params
@@ -403,9 +404,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       // Set up token authentication resources if needed
       // Wait for the InferenceService to be created by the NIM Operator
       if (createDataInferenceService.tokenAuth) {
-        // Import getInferenceService
-        const { getInferenceService } = await import('#~/api/k8s/inferenceServices');
-
         // Poll for the InferenceService to be created (with timeout)
         const maxAttempts = 30; // 30 seconds
         let inferenceService: InferenceServiceKind | null = null;
