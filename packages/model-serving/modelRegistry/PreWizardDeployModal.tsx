@@ -161,10 +161,6 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   if (showNoProjectsModal) {
     return (
       <Modal variant="medium" isOpen onClose={onClose}>
-        <ModalHeader
-          title="Deploy model"
-          description="Select a project and connection to deploy your model from the model registry"
-        />
         <ModalBody>
           <Bullseye>
             <EmptyState
@@ -176,16 +172,13 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
               <EmptyStateBody>
                 To deploy this model, you must first create a project.
                 <br />
-                <Link to="/projects">Go to Data science projects</Link>
+                <Link to="/projects">
+                  Go to <b>Projects</b>
+                </Link>
               </EmptyStateBody>
             </EmptyState>
           </Bullseye>
         </ModalBody>
-        <ModalFooter>
-          <Button variant="primary" onClick={onClose}>
-            Close
-          </Button>
-        </ModalFooter>
       </Modal>
     );
   }
