@@ -75,7 +75,7 @@ import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/Storag
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
-import { getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
+import { getKServeContainerEnvVarStrs, setUpTokenAuth } from '#~/pages/modelServing/utils';
 import EnvironmentVariablesSection from '#~/pages/modelServing/screens/projects/kServeModal/EnvironmentVariablesSection';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import {
@@ -382,10 +382,65 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       // Use the existing updateNIMService function with params
       await updateNIMService(nimServiceParams, existingNIMService, { dryRun: true });
       await updateNIMService(nimServiceParams, existingNIMService, { dryRun: false });
+
+      // Set up token authentication resources if needed
+      // Use the existing InferenceService from editInfo as the owner
+      if (createDataInferenceService.tokenAuth && editInfo.inferenceServiceEditInfo) {
+        await setUpTokenAuth(
+          createDataInferenceService,
+          createDataInferenceService.k8sName,
+          namespace,
+          true,
+          editInfo.inferenceServiceEditInfo,
+          editInfo.secrets || [],
+        );
+      }
     } else {
       // Create mode: Create new NIMService
       await createNIMService(nimServiceParams, { dryRun: true });
       await createNIMService(nimServiceParams, { dryRun: false });
+
+      // Set up token authentication resources if needed
+      // Wait for the InferenceService to be created by the NIM Operator
+      if (createDataInferenceService.tokenAuth) {
+        // Import getInferenceService
+        const { getInferenceService } = await import('#~/api/k8s/inferenceServices');
+
+        // Poll for the InferenceService to be created (with timeout)
+        const maxAttempts = 30; // 30 seconds
+        let inferenceService: InferenceServiceKind | null = null;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          try {
+            inferenceService = await getInferenceService(
+              createDataInferenceService.k8sName,
+              namespace,
+            );
+            break;
+          } catch (e) {
+            if (attempt < maxAttempts - 1) {
+              await new Promise((resolve) => {
+                setTimeout(resolve, 1000);
+              });
+            }
+          }
+        }
+
+        if (!inferenceService) {
+          throw new Error(
+            'InferenceService was not created by NIM Operator in time. Token authentication setup skipped.',
+          );
+        }
+
+        // Now set up token auth with the InferenceService as the owner
+        await setUpTokenAuth(
+          createDataInferenceService,
+          createDataInferenceService.k8sName,
+          namespace,
+          true,
+          inferenceService,
+          [],
+        );
+      }
     }
   };
 
