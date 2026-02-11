@@ -208,6 +208,12 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Configure model deployment details');
       modelServingWizard.findModelDeploymentNameInput().clear().type(testData.modelDeploymentName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
 
       cy.step('Select hardware profile');
       inferenceServiceModal.selectPotentiallyDisabledProfile(
@@ -246,7 +252,9 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Verify model deployment was created and started');
       waitForResource('inferenceService', testData.inferenceServiceName, projectName);
-      checkInferenceServiceState(testData.inferenceServiceName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
     },
   );
 

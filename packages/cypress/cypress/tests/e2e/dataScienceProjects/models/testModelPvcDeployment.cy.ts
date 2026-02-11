@@ -151,6 +151,12 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -164,7 +170,9 @@ describe('Verify a model can be deployed from a PVC', () => {
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      checkInferenceServiceState(modelName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       modelServingSection.findModelMetricsLink(modelName);
     },
   );
