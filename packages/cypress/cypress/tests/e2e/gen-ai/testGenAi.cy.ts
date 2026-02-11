@@ -30,7 +30,7 @@ import {
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('[Automation Bug: RHOAIENG-49259] Verify Gen AI Namespace - Creation and Connection', () => {
+describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
