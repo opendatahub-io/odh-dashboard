@@ -97,8 +97,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const notebookProgress = useNotebookProgress(notebook, isRunning, isStopping, isStopped, events);
   const inProgress = !isStopped && (isStarting || isStopping || !isRunning);
-  const projectDetails = React.useContext(ProjectDetailsContext);
-  const project = projectDetails.currentProject;
+  const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
@@ -109,10 +108,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
   }, [showResourcesTab, activeTab]);
   const localQueueName = notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
-  const clusterQueueName = getClusterQueueNameFromLocalQueues(
-    localQueueName,
-    projectDetails.localQueues,
-  );
+  const clusterQueueName = getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
   const shouldShowResources = Boolean(isProjectKueueEnabled && localQueueName && clusterQueueName);
   const {
     clusterQueue,
@@ -244,7 +240,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       );
     }
 
-    if (!clusterQueueLoaded) {
+    if (!clusterQueueLoaded && !hasClusterQueueError) {
       return (
         <Stack hasGutter>
           <StackItem>
