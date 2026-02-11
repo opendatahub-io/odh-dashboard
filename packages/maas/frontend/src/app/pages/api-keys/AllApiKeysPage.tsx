@@ -20,7 +20,7 @@ const AllApiKeysPage: React.FC = () => {
       empty={loaded && !error && apiKeys.length === 0}
       loaded={loaded}
       loadError={error}
-      emptyStatePage={<EmptyApiKeysPage />}
+      emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
       headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
     >
       <CreateApiKeyModal
