@@ -389,9 +389,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
     resultMock.mockResolvedValue(0);
 
     // Mock another NIMService using the same PVC
-    const anotherNIMService: NIMServiceKind = {
-      apiVersion: 'apps.kubeflow.org/v1',
-      kind: 'NIMService',
+    const anotherNIMService = createMockNIMService({
       metadata: {
         name: 'nim-service-2',
         namespace: projectName,
@@ -407,7 +405,7 @@ describe('getNIMOperatorResourcesToDelete', () => {
           pvc: { name: 'nim-pvc-shared' }, // Same PVC!
         },
       },
-    };
+    });
 
     (listServingRuntimes as jest.Mock).mockResolvedValue([]);
     // Return BOTH NIMServices - the one being deleted and another one
