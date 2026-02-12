@@ -18,7 +18,7 @@ import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFie
 import { showAuthWarning } from '../hooks/useAuthWarning';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 
-const accessReviewResource: AccessReviewResourceAttributes = {
+export const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
   resource: 'rolebindings',
   verb: 'create',
