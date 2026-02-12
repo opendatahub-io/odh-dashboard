@@ -17,7 +17,7 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
     },
     properties: {
-      path: '/develop-train/experiments-mlflow/*',
+      path: '/develop-train/mlflow/*',
       component: () => import('./GlobalMLflowExperimentsRoutes'),
     },
   },

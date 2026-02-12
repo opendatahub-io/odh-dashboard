@@ -19,11 +19,11 @@ import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
-const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
+const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/mlflow/experiments';
 const MLFLOW_DEFAULT_PATH = '/experiments';
 const WORKSPACE_QUERY_PARAM = 'workspace';
 
-const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): string => {
+export const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): string => {
   const queryIndex = hashPathQuery.indexOf('?');
   const pathname = queryIndex === -1 ? hashPathQuery : hashPathQuery.slice(0, queryIndex);
   const existingQuery = queryIndex === -1 ? '' : hashPathQuery.slice(queryIndex + 1);
@@ -32,7 +32,7 @@ const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): strin
   return `${pathname}?${params.toString()}`;
 };
 
-const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
+export const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
   const base = href.replace(/\/+$/, '');
   const hashPath = setWorkspaceQueryParam(MLFLOW_DEFAULT_PATH, projectName);
   return `${base}/#${hashPath}`;

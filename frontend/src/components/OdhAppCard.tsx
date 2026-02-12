@@ -156,12 +156,12 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       return (
         <Link
           data-testid="mlflow-app-link"
-          to="/develop-train/experiments-mlflow"
+          to="/develop-train/mlflow/experiments"
           className={css('odh-card__footer__link', !mlflowEnabled && 'm-disabled')}
           onClick={() =>
             fireLinkTrackingEvent('Launch MLflow clicked', {
               from: window.location.pathname,
-              to: '/develop-train/experiments-mlflow',
+              to: '/develop-train/mlflow/experiments',
               section: 'enabled-apps',
             })
           }

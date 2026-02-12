@@ -5,7 +5,7 @@ import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNaviga
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { SupportedArea } from '#~/concepts/areas/types';
 
-const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/experiments-mlflow';
+const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/mlflow/experiments';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 
 type PipelineCoreProjectSelectorProps = {

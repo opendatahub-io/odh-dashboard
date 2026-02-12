@@ -8,6 +8,8 @@
 import * as React from 'react';
 import { Navigate, Route, useSearchParams, useNavigate } from 'react-router-dom';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
@@ -100,7 +102,9 @@ const GlobalMLflowWorkspaceLoader: React.FC = () => {
 
 const GlobalMLflowExperimentsRoutes: React.FC = () => (
   <ProjectsRoutes>
-    <Route path="/*" element={<GlobalMLflowWorkspaceLoader />} />
+    <Route path="/experiments/*" element={<GlobalMLflowWorkspaceLoader />} />
+    <Route path="/" element={<Navigate to="experiments" replace />} />
+    <Route path="*" element={<NotFound />} />
   </ProjectsRoutes>
 );
 
