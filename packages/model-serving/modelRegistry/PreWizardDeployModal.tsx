@@ -12,11 +12,10 @@ import {
   EmptyStateBody,
   Bullseye,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import projectImg from '@odh-dashboard/internal/images/UI_icon-Red_Hat-Folder-RGB.svg';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
@@ -50,7 +49,6 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   onClose,
 }) => {
   const { projects, loadError: projectsLoadError } = React.useContext(ProjectsContext);
-  const { isAdmin } = useUser();
   const [selectedProject, setSelectedProject] = React.useState<ProjectKind | null>(null);
   const [selectedConnection, setSelectedConnection] = React.useState<Connection | undefined>(
     undefined,
@@ -157,7 +155,7 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
       (matchedConnections.length >= 2 && selectedConnection !== undefined));
 
   // Show no projects modal for non-admin users with zero projects
-  const showNoProjectsModal = !isAdmin && projects.length === 0;
+  const showNoProjectsModal = projects.length === 0;
   if (showNoProjectsModal) {
     return (
       <Modal variant="medium" isOpen onClose={onClose}>
