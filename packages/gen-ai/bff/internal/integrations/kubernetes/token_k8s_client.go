@@ -892,30 +892,49 @@ func (kc *TokenKubernetesClient) extractUseCaseFromLLMInferenceService(llmSvc *k
 	return llmSvc.Annotations[InferenceServiceUseCaseAnnotation]
 }
 
-// Helper method to extract endpoints from LLMInferenceService
+// Helper method to extract endpoints from LLMInferenceService.
+// Uses Address (singular) and URL as primary sources, falls back to Addresses (plural).
 func (kc *TokenKubernetesClient) extractEndpointsFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) []string {
-	endpoints := []string{}
-
 	if llmSvc == nil {
-		return endpoints
+		return []string{}
 	}
 
-	// Extract internal endpoint from Address
+	var internalURL, externalURL string
+
+	// Primary: Address (singular) for internal, URL for external
 	if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil {
-		internal := llmSvc.Status.Address.URL.String()
-		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internal))
+		internalURL = llmSvc.Status.Address.URL.String()
+	}
+	if llmSvc.Status.URL != nil {
+		u := llmSvc.Status.URL.String()
+		if !strings.Contains(u, ".svc.cluster.local") {
+			externalURL = u
+		}
 	}
 
-	// Extract external endpoint from URL
-	if llmSvc.Status.URL != nil {
-		external := llmSvc.Status.URL.String()
-		if strings.Contains(external, ".svc.cluster.local") {
-			return endpoints
+	// Fallback: Addresses (plural) for any missing endpoints
+	if internalURL == "" || externalURL == "" {
+		for _, addr := range llmSvc.Status.Addresses {
+			if addr.URL == nil {
+				continue
+			}
+			u := addr.URL.String()
+			if strings.Contains(u, ".svc.cluster.local") {
+				if internalURL == "" {
+					internalURL = u
+				}
+			} else if externalURL == "" {
+				externalURL = u
+			}
 		}
-		// Only add if it's different from internal and not internal service
-		if len(endpoints) == 0 || !strings.Contains(endpoints[0], external) {
-			endpoints = append(endpoints, fmt.Sprintf("external: %s", external))
-		}
+	}
+
+	var endpoints []string
+	if internalURL != "" {
+		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internalURL))
+	}
+	if externalURL != "" {
+		endpoints = append(endpoints, fmt.Sprintf("external: %s", externalURL))
 	}
 	return endpoints
 }
@@ -1175,6 +1194,11 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		},
 		Spec: lsdapi.LlamaStackDistributionSpec{
 			Replicas: 1,
+			Network: &lsdapi.NetworkSpec{
+				AllowedFrom: &lsdapi.AllowedFromSpec{
+					Namespaces: []string{namespace},
+				},
+			},
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
 					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},

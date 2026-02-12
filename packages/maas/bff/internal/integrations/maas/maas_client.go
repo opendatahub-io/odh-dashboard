@@ -72,6 +72,23 @@ func (c *MaasClient) CreateAPIKey(ctx context.Context, createRequest models.APIK
 	return &apiResponse, err
 }
 
+// ListModels retrieves all available models from the MaaS API
+func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+	endpoint := c.prefix.JoinPath("models")
+
+	var apiResponse models.MaaSModelsResponse
+	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
+
+	return apiResponse.Data, err
+}
+
+// RevokeAllTokens invalidates all tokens for the current user
+func (c *MaasClient) RevokeAllTokens(ctx context.Context) error {
+	endpoint := c.prefix.JoinPath("tokens")
+
+	return c.sendRequestNoResponse(ctx, "DELETE", endpoint)
+}
+
 func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any) error {
 	var bodyReader io.Reader
 	if requestBody != nil {
@@ -118,6 +135,42 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 	if unmarshallErr := json.Unmarshal(body, apiResponse); unmarshallErr != nil {
 		c.logger.Error("request to maas-api succeeded but the response could not be parsed", "error", unmarshallErr, "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
 		return fmt.Errorf("request to maas-api succeeded but the response could not be parsed: %w", unmarshallErr)
+	}
+
+	return nil
+}
+
+// sendRequestNoResponse sends a request that expects no response body (e.g., DELETE returning 204)
+func (c *MaasClient) sendRequestNoResponse(ctx context.Context, method string, endpoint *url.URL) error {
+	request, err := http.NewRequestWithContext(ctx, method, endpoint.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+	addIdentityHeaderToRequest(ctx, request)
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = response.Body.Close() }()
+
+	if response.StatusCode >= 400 {
+		body, readBodyErr := io.ReadAll(response.Body)
+		if readBodyErr != nil {
+			c.logger.Error("unknown error when invoking maas-api (read body)", "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
+			return fmt.Errorf("unknown error when invoking maas-api (read body): %w", readBodyErr)
+		}
+
+		maasApiError := MaasApiError{}
+		if unmarshallErr := json.Unmarshal(body, &maasApiError); unmarshallErr != nil {
+			c.logger.Error("unknown error when invoking maas-api (unmarshall)", "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
+			return fmt.Errorf("unknown error when invoking maas-api (unmarshall): %w", unmarshallErr)
+		}
+
+		c.logger.Error("request to maas-api failed", "statusCode", response.StatusCode, "error", maasApiError.Error, "endpoint", endpoint.String(), "method", method)
+		return fmt.Errorf("request to maas-api failed: %s", maasApiError.Error)
 	}
 
 	return nil
