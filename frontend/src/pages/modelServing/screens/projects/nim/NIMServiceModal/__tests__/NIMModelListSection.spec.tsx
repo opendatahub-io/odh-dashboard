@@ -3,7 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fetchNIMModelNames, ModelInfo } from '#~/pages/modelServing/screens/projects/utils';
 import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
-import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
+import {
+  CreatingInferenceServiceObject,
+  InferenceServiceStorageType,
+} from '#~/pages/modelServing/screens/types';
 import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelListSection';
 
 jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
@@ -23,7 +26,7 @@ const mockInferenceServiceData: CreatingInferenceServiceObject = {
   servingRuntimeName: 'test-runtime',
   format: { name: '' },
   storage: {
-    type: 'new-storage',
+    type: InferenceServiceStorageType.NEW_STORAGE,
     path: '',
     dataConnection: '',
     awsData: [],
