@@ -86,15 +86,9 @@ data:
       },
       {
         "name": "mlflow",
-        "remoteEntry": "/mlflow/static-files/remoteEntry.js",
+        "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
         "authorize": true,
         "tls": true,
-        "proxy": [
-            {
-                "path": "/mlflow",
-                "pathRewrite": "/mlflow"
-            }
-        ],
         "service": {
             "name": "mlflow",
             "namespace": "redhat-ods-applications",

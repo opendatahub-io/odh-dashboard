@@ -1,25 +1,43 @@
-import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
-// Allow these imports as they consist of enums and constants only.
+import type {
+  AreaExtension,
+  HrefNavItemExtension,
+  RouteExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-// eslint-disable-next-line no-restricted-syntax
-import { globMlflowAll } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 
 /**
  * MLflow host-side extensions.
- *
- * Only the route is declared here (needs host internals for page chrome).
- * Area and nav extensions are declared in the remote's extensions.ts so
- * they only appear when the MLflow remote loads successfully.
  */
-const extensions: RouteExtension[] = [
+const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: 'mlflow-application',
+      featureFlags: ['mlflow'],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: ['ds-pipelines', 'mlflow-application'],
+    },
+    properties: {
+      id: 'experiments-mlflow',
+      title: 'Experiments (MLflow)',
+      href: '/develop-train/mlflow/experiments',
+      section: 'develop-and-train',
+      path: '/develop-train/mlflow/experiments/*',
+      label: 'Tech Preview',
+    },
+  },
   {
     type: 'app.route',
     flags: {
       required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
     },
     properties: {
-      path: globMlflowAll,
+      path: '/develop-train/mlflow/*',
       component: () => import('./GlobalMLflowExperimentsRoutes'),
     },
   },

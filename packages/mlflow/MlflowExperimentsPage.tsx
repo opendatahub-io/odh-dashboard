@@ -60,7 +60,7 @@ const MlflowExperimentsPage: React.FC = () => {
 
   const loadWrapper = useMemo(
     () => () =>
-      loadRemote<{ default: React.ComponentType }>('mlflow/wrapper')
+      loadRemote<{ default: React.ComponentType }>('mlflow/MlflowExperimentWrapper')
         .then((mod) => mod ?? { default: MLflowUnavailable })
         .catch(() => ({ default: MLflowUnavailable })),
     [],
@@ -87,9 +87,10 @@ const MlflowExperimentsPage: React.FC = () => {
             {breadcrumbs.map((b, idx) => {
               const isLast = idx === breadcrumbs.length - 1;
               // Prepend the host's base route and workspace param to MLflow's relative path
-              const fullPath = `${mlflowExperimentsPath}${b.path}?workspace=${encodeURIComponent(
-                workspace,
-              )}`;
+              const separator = b.path.includes('?') ? '&' : '?';
+              const fullPath = `${mlflowExperimentsPath}${
+                b.path
+              }${separator}workspace=${encodeURIComponent(workspace)}`;
               return (
                 <BreadcrumbItem
                   key={b.path}

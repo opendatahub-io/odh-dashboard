@@ -10,7 +10,7 @@
   "module-federation": {
     "name": "mlflow",
     "backend": {
-      "remoteEntry": "/mlflow/static-files/remoteEntry.js",
+      "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
       "authorize": true,
       "tls": true,
       "service": {
