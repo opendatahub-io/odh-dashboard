@@ -69,10 +69,11 @@ module.exports = smp.wrap(
         proxy: (() => {
           if (process.env.EXT_CLUSTER) {
             // Environment variables:
+            // - ODH_DASHBOARD_HOST: Explicit dashboard hostname (bypasses oc get routes)
             // - DEV_LEGACY=true: Forces legacy behavior for oauth-proxy clusters
             //   (uses old subdomain format and sends x-forwarded-access-token header)
             const devLegacy = process.env.DEV_LEGACY === 'true';
-            let dashboardHost;
+            let dashboardHost = process.env.ODH_DASHBOARD_HOST;
             let token;
 
             try {
@@ -90,6 +91,10 @@ module.exports = smp.wrap(
             const odhProject = process.env.OC_PROJECT || 'opendatahub';
             const app = process.env.ODH_APP || 'odh-dashboard';
             console.info('Using project:', odhProject);
+
+            if (dashboardHost) {
+              console.info('Using explicit ODH_DASHBOARD_HOST:', dashboardHost);
+            }
 
             // try to get dashboard host from HttpRoute and Gateway
             try {
