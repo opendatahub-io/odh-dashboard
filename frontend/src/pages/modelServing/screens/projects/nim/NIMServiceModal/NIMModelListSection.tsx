@@ -148,9 +148,15 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
         selectOptions={options}
         selected={selectedModel}
         isScrollable
-        isDisabled={isEditing}
+        isDisabled={isEditing || accountConfig.loading}
         onSelect={onSelect}
-        placeholder={isEditing ? selectedModel : 'Select NVIDIA NIM to deploy'}
+        placeholder={
+          accountConfig.loading
+            ? 'Loading configuration...'
+            : isEditing
+            ? selectedModel
+            : 'Select NVIDIA NIM to deploy'
+        }
         noOptionsFoundMessage={(filter) => `No results found for "${filter}"`}
         isCreatable={false}
         allowClear={!isEditing}
