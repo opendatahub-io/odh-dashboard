@@ -23,6 +23,11 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 		return nil, err
 	}
 
+	modelsRepo, err := NewModelsRepository(logger, config.MaasApiUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repositories{
 		HealthCheck: NewHealthCheckRepository(),
 		User:        NewUserRepository(),
@@ -35,6 +40,6 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.GatewayNamespace,
 			config.GatewayName),
 		APIKeys: apiKeysRepo,
-		Models:  NewModelsRepository(logger),
+		Models:  modelsRepo,
 	}, nil
 }

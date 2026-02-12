@@ -13,7 +13,7 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { skipIfBYOIDC } from '../../../utils/skipUtils';
 
-describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
+describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -45,7 +45,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
   it(
     'Verify that user can be added as an Admin for a Project',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard', '@Bug'],
     },
     () => {
       // Authentication and navigation
@@ -87,6 +87,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
         '@ODS-2208',
         '@Dashboard',
         '@NonConcurrent',
+        '@Bug',
       ],
     },
     function testGroupPermissions() {
@@ -125,6 +126,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
         '@ODS-2208',
         '@Dashboard',
         '@NonConcurrent',
+        '@Bug',
       ],
     },
     () => {

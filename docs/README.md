@@ -6,6 +6,7 @@
 [Extensibility]: extensibility.md
 [Module Federation]: module-federation.md
 [Workspace Dockerfiles]: workspace-dockerfiles.md
+[Dashboard environment variables]: dashboard-environment-variables.md
 
 # Dashboard Documentation
 
@@ -26,3 +27,4 @@ This is the general documentation of the Dashboard component.
 * [Extensibility]
 * [Module Federation]
 * [Workspace Dockerfiles]
+* [Dashboard environment variables]

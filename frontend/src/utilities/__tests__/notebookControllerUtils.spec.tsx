@@ -125,7 +125,19 @@ jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
   dashboardNamespace: 'opendatahub',
 }));
 
+jest.mock('#~/utilities/useGetNotebookRoute', () => ({
+  useGetNotebookRoute: jest.fn(),
+}));
+
+const useGetNotebookRouteMock = jest.mocked(
+  require('#~/utilities/useGetNotebookRoute').useGetNotebookRoute,
+);
+
 describe('useNotebookRedirectLink', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should return successful with current notebook link', async () => {
     const renderResult = renderHook(() => useNotebookRedirectLink(), {
       wrapper: ({ children }) => (
@@ -147,6 +159,10 @@ describe('useNotebookRedirectLink', () => {
 
   it('should return successful without notebook link but with notebook', async () => {
     const mockNotebook = mockNotebookK8sResource({});
+    const expectedPath = `/notebook/${mockNotebook.metadata.namespace}/${mockNotebook.metadata.name}`;
+
+    useGetNotebookRouteMock.mockReturnValue(expectedPath);
+
     const renderResult = renderHook(() => useNotebookRedirectLink(), {
       wrapper: ({ children }) => (
         <NotebookControllerContext.Provider
