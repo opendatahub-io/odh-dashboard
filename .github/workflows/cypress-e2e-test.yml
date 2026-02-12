@@ -397,15 +397,9 @@ jobs:
         run: |
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
-          # Extract credentials based on test type
-          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
-            echo "🔑 Using non-admin credentials (TEST_USER_3) for @NonAdmin tests"
-            OC_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-            OC_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
-          else
-            OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-            OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
-          fi
+          # Always login as admin initially (tests can switch users via cy.visitWithLogin)
+          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
 
@@ -426,7 +420,7 @@ jobs:
             exit 1
           fi
 
-          echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
+          echo "Logging in to OpenShift cluster ($CLUSTER_NAME) as admin..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
 
           if [ $? -eq 0 ]; then
@@ -570,14 +564,7 @@ jobs:
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack and filter sensitive output
-          # For non-admin tests, set ODH_DASHBOARD_HOST since non-admin can't run 'oc get routes'
-          EXTRA_ENV=""
-          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
-            EXTRA_ENV="ODH_DASHBOARD_HOST=${DASHBOARD_HOST}"
-            echo "📍 Using explicit dashboard host for non-admin: ${DASHBOARD_HOST}"
-          fi
-
-          cd frontend && env $EXTRA_ENV ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
@@ -616,6 +603,9 @@ jobs:
           done
 
       - name: Run E2E Tests
+        env:
+          OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
+          OC_SERVER_SECONDARY: ${{ secrets.OC_SERVER }}
         run: |
           cd frontend
 
@@ -626,15 +616,17 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Set IS_NON_ADMIN_RUN flag for non-admin tests to skip admin-only setup hooks
-          EXTRA_CYPRESS_ENV=""
-          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
-            EXTRA_CYPRESS_ENV="IS_NON_ADMIN_RUN=true,"
-            echo "🔐 Running in non-admin mode - admin setup hooks will be skipped"
+          # Determine OC_SERVER based on cluster (passed to Cypress for dynamic oc login switching)
+          if [ "$CLUSTER_NAME" = "dash-e2e-int" ]; then
+            OC_SERVER="$OC_SERVER_PRIMARY"
+          elif [ "$CLUSTER_NAME" = "dash-e2e" ]; then
+            OC_SERVER="$OC_SERVER_SECONDARY"
           fi
 
+          echo "🔄 Tests can dynamically switch users via cy.visitWithLogin when running against localhost"
+          
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
-            --env ${EXTRA_CYPRESS_ENV}skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
+            --env OC_SERVER=${OC_SERVER},skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Upload test results
