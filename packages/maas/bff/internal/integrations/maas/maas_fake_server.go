@@ -24,10 +24,20 @@ func CreateMaasFakeServer() *httptest.Server {
 				sendFakeResponse("get-api-key-response.json", http.StatusOK, w)
 				return
 			}
+			if r.URL.Path == "/v1/models" {
+				sendFakeResponse("maas-models-list.json", http.StatusOK, w)
+				return
+			}
 
 		case http.MethodPost:
 			if r.URL.Path == "/v1/api-keys" {
 				sendFakeResponse("create-api-key-response.json", http.StatusCreated, w)
+				return
+			}
+
+		case http.MethodDelete:
+			if r.URL.Path == "/v1/tokens" {
+				w.WriteHeader(http.StatusNoContent)
 				return
 			}
 

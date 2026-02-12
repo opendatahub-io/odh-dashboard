@@ -36,15 +36,9 @@ jobs:
         working-directory: packages/maas/bff
         run: make build
 
-      - name: Install envtest assets
-        working-directory: packages/maas/bff
-        run: ./bin/setup-envtest-release-0.17 use 1.29.0 --bin-dir ./bin
-
       - name: Test (BFF API)
-        working-directory: packages/maas/bff
-        env:
-          ENVTEST_ASSETS_DIR: ${{ github.workspace }}/packages/maas/bff/bin
-        run: go test ./internal/api
+        working-directory: packages/maas
+        run: make test
 
       - name: Check if there are uncommitted file changes
         working-directory: packages/maas

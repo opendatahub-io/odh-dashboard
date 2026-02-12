@@ -167,6 +167,22 @@ describe('transformNamespaceVariable', () => {
       }
     });
 
+    it('should set customAllValue with pipe-separated project names regex', () => {
+      const dashboard = createMockDashboardWithNamespaceVariable();
+      const projectNames = ['project-alpha', 'project-beta', 'project-gamma'];
+
+      const result = transformNamespaceVariable(dashboard, projectNames);
+
+      const namespaceVar = result.spec.variables.find(
+        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
+      ) as ListVariableDefinition | undefined;
+
+      expect(namespaceVar).toBeDefined();
+      if (namespaceVar) {
+        expect(namespaceVar.spec.customAllValue).toBe('(project-alpha|project-beta|project-gamma)');
+      }
+    });
+
     it('should preserve other variable properties when transforming', () => {
       const dashboard = createMockDashboardWithNamespaceVariable('$__all');
       const projectNames = ['project-1'];
