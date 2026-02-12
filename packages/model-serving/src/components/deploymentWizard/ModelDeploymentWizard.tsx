@@ -8,13 +8,14 @@ import {
   isGeneratedSecretName,
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import { useAccessReview } from '@odh-dashboard/internal/api/index';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
-import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
+import { AdvancedSettingsStepContent, accessReviewResource } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
@@ -60,6 +61,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
   const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
+
+  const [canCreateRoleBindings] = useAccessReview({
+    ...accessReviewResource,
+    namespace: currentProjectName,
+  });
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
   // TODO in same jira, replace deployMethod with applyFieldData for all other fields
@@ -144,7 +150,10 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           serverResource,
           serverResourceTemplateName,
           overwrite,
-          wizardState.initialData,
+          {
+            ...wizardState.initialData,
+            canCreateRoleBindings,
+          },
           applyFieldData,
         );
       } catch (error) {
@@ -156,6 +165,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     [
       applyExtensionsLoaded,
       applyFieldData,
+      canCreateRoleBindings,
       deployMethod,
       deployMethodLoaded,
       existingDeployment,
