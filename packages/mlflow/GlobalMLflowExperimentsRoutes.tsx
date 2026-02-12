@@ -22,8 +22,11 @@ import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
+import {
+  mlflowExperimentsBaseRoute,
+  WORKSPACE_QUERY_PARAM,
+} from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import MlflowExperimentsPage from './MlflowExperimentsPage';
-import { mlflowExperimentsBaseRoute, WORKSPACE_QUERY_PARAM } from './routes';
 
 const experimentsPageTitle = 'Experiments';
 

@@ -31,6 +31,7 @@ import { isInternalRouteIntegrationsApp } from '#~/utilities/utils';
 import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { mlflowExperimentsPath } from '#~/routes/pipelines/mlflow';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -156,12 +157,12 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       return (
         <Link
           data-testid="mlflow-app-link"
-          to="/develop-train/mlflow/experiments"
+          to={mlflowExperimentsPath}
           className={css('odh-card__footer__link', !mlflowEnabled && 'm-disabled')}
           onClick={() =>
             fireLinkTrackingEvent('Launch MLflow clicked', {
               from: window.location.pathname,
-              to: '/develop-train/mlflow/experiments',
+              to: mlflowExperimentsPath,
               section: 'enabled-apps',
             })
           }

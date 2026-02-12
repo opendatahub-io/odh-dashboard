@@ -31,10 +31,10 @@ import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils
 import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   mlflowExperimentsBaseRoute,
+  mlflowExperimentsPath,
   WORKSPACE_QUERY_PARAM,
   MLFLOW_PROXY_BASE_PATH,
-  MLFLOW_EXPERIMENTS_ROUTE,
-} from './routes';
+} from '@odh-dashboard/internal/routes/pipelines/mlflow';
 
 const experimentsPageTitle = 'Experiments';
 
@@ -87,7 +87,7 @@ const MlflowExperimentsPage: React.FC = () => {
             {breadcrumbs.map((b, idx) => {
               const isLast = idx === breadcrumbs.length - 1;
               // Prepend the host's base route and workspace param to MLflow's relative path
-              const fullPath = `${MLFLOW_EXPERIMENTS_ROUTE}${b.path}?workspace=${encodeURIComponent(
+              const fullPath = `${mlflowExperimentsPath}${b.path}?workspace=${encodeURIComponent(
                 workspace,
               )}`;
               return (

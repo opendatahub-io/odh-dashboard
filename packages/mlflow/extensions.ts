@@ -1,7 +1,9 @@
 import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
-// Allow this import as it consists of types and enums only.
+// Allow these imports as they consist of enums and constants only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+// eslint-disable-next-line no-restricted-syntax
+import { globMlflowAll } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 
 /**
  * MLflow host-side extensions.
@@ -17,7 +19,7 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
     },
     properties: {
-      path: '/develop-train/mlflow/*',
+      path: globMlflowAll,
       component: () => import('./GlobalMLflowExperimentsRoutes'),
     },
   },

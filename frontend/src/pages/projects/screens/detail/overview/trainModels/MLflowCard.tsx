@@ -18,10 +18,9 @@ import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { mlflowExperimentsPath, WORKSPACE_QUERY_PARAM } from '#~/routes/pipelines/mlflow';
 
-const MLFLOW_EXPERIMENTS_ROUTE = '/develop-train/mlflow/experiments';
 const MLFLOW_DEFAULT_PATH = '/experiments';
-const WORKSPACE_QUERY_PARAM = 'workspace';
 
 export const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): string => {
   const queryIndex = hashPathQuery.indexOf('?');
@@ -79,7 +78,7 @@ const MLflowCard: React.FC = () => {
             <Button
               data-testid="embedded-mlflow-experiments-link"
               variant="link"
-              onClick={() => navigate(MLFLOW_EXPERIMENTS_ROUTE)}
+              onClick={() => navigate(mlflowExperimentsPath)}
             >
               Go to <strong>Experiments</strong>
             </Button>
