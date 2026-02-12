@@ -22,6 +22,7 @@ const useNIMAccountConfigMock = jest.mocked(useNIMAccountConfig);
 
 const mockInferenceServiceData: CreatingInferenceServiceObject = {
   name: 'test-inference',
+  k8sName: 'test-inference',
   project: 'test-project',
   servingRuntimeName: 'test-runtime',
   format: { name: '' },
@@ -31,6 +32,11 @@ const mockInferenceServiceData: CreatingInferenceServiceObject = {
     dataConnection: '',
     awsData: [],
   },
+  externalRoute: false,
+  tokenAuth: false,
+  tokens: [],
+  maxReplicas: 1,
+  minReplicas: 1,
 };
 
 const mockSetInferenceServiceData = jest.fn();
