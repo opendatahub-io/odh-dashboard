@@ -18,6 +18,7 @@ filters:
       - gen-ai-approvers
       - nim-serving-approvers
       - autorag-approvers
+      - eval-hub-approvers
 
   # Catchall
   '.*':
@@ -167,3 +168,12 @@ filters:
       - autorag-reviewers
     labels:
       - 'area/autorag'
+
+  # Eval Hub
+  'packages/eval-hub/.*':
+    approvers:
+      - eval-hub-approvers
+    reviewers:
+      - eval-hub-reviewers
+    labels:
+      - 'area/eval-hub'

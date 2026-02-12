@@ -198,3 +198,14 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+
+  # Eval Hub
+  eval-hub-approvers:
+    - ikeola13
+    - pnaik1
+    - ederign
+
+  eval-hub-reviewers:
+    - ikeola13
+    - pnaik1
+    - ederign
