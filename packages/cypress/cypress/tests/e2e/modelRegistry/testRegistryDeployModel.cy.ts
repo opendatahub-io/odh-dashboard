@@ -95,7 +95,7 @@ describe('Verify models can be deployed from model registry', () => {
   });
 
   it(
-    '[Automation Bug: RHOAIENG-48809]Registers a model and deploys it via model registry',
+    'Registers a model and deploys it via model registry',
     {
       tags: [
         '@Dashboard',
