@@ -66,7 +66,6 @@ export const mockNimService = ({
     annotations: {
       'openshift.io/display-name': displayName,
       'serving.kserve.io/deploymentMode': 'Standard',
-      ...(tokenAuth && { 'security.opendatahub.io/enable-auth': 'true' }),
     },
     labels: {
       ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
@@ -104,6 +103,11 @@ export const mockNimService = ({
     }),
     ...(nodeSelector && { nodeSelector }),
     ...(tolerations && { tolerations }),
+    ...(tokenAuth && {
+      annotations: {
+        'security.opendatahub.io/enable-auth': 'true',
+      },
+    }),
   },
   status: {
     state,
