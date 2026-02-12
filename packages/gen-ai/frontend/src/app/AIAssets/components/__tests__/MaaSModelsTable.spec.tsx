@@ -4,7 +4,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
+import type { AIModel, LlamaModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import MaaSModelsTable from '~/app/AIAssets/components/MaaSModelsTable';
 import useMaaSModelsFilter from '~/app/AIAssets/hooks/useMaaSModelsFilter';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
@@ -31,6 +32,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org',
   ready: true,
   url: 'https://example.com/model',
+  display_name: 'Test MaaS Model',
+  description: 'A test MaaS model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 
@@ -64,7 +68,10 @@ describe('MaaSModelsTable', () => {
   });
 
   it('should render all models when no filters applied', () => {
-    const models = [createMockMaaSModel({ id: 'model-1' }), createMockMaaSModel({ id: 'model-2' })];
+    const models = [
+      createMockMaaSModel({ id: 'model-1', display_name: 'Model One' }),
+      createMockMaaSModel({ id: 'model-2', display_name: 'Model Two' }),
+    ];
 
     mockUseMaaSModelsFilter.mockReturnValue({
       filterData: {},
@@ -79,13 +86,16 @@ describe('MaaSModelsTable', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByText('model-1')).toBeInTheDocument();
-    expect(screen.getByText('model-2')).toBeInTheDocument();
+    expect(screen.getByText('Model One')).toBeInTheDocument();
+    expect(screen.getByText('Model Two')).toBeInTheDocument();
     expect(mockUseMaaSModelsFilter).toHaveBeenCalledWith(models);
   });
 
   it('should render only filtered models from hook', () => {
-    const models = [createMockMaaSModel({ id: 'model-1' }), createMockMaaSModel({ id: 'model-2' })];
+    const models = [
+      createMockMaaSModel({ id: 'model-1', display_name: 'Model One' }),
+      createMockMaaSModel({ id: 'model-2', display_name: 'Model Two' }),
+    ];
 
     mockUseMaaSModelsFilter.mockReturnValue({
       filterData: { name: 'model-1' },
@@ -100,12 +110,12 @@ describe('MaaSModelsTable', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByText('model-1')).toBeInTheDocument();
-    expect(screen.queryByText('model-2')).not.toBeInTheDocument();
+    expect(screen.getByText('Model One')).toBeInTheDocument();
+    expect(screen.queryByText('Model Two')).not.toBeInTheDocument();
   });
 
   it('should render Tier information popover in toolbar', () => {
-    const models = [createMockMaaSModel({ id: 'model-1' })];
+    const models = [createMockMaaSModel({ id: 'model-1', display_name: 'Model One' })];
 
     mockUseMaaSModelsFilter.mockReturnValue({
       filterData: {},

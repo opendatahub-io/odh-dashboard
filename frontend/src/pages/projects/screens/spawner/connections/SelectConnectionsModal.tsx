@@ -84,7 +84,7 @@ export const SelectConnectionsModal: React.FC<Props> = ({
     <Modal isOpen variant="medium" onClose={onClose}>
       <ModalHeader title="Attach existing connections" />
       <ModalBody>
-        <Form>
+        <Form onSubmit={(e) => e.preventDefault()}>
           {envVarConflicts.length > 0 && (
             <DuplicateEnvVarWarning envVarConflicts={envVarConflicts} />
           )}

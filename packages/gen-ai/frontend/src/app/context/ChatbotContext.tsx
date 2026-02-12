@@ -1,6 +1,7 @@
 import React from 'react';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import { AIModel, LlamaModel, LlamaStackDistributionModel, MaaSModel } from '~/app/types';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
@@ -19,8 +20,6 @@ type ChatbotContextProps = {
   modelsError: Error | undefined;
   lsdStatusError: Error | undefined;
   refresh: () => void;
-  selectedModel: string;
-  setSelectedModel: (model: string) => void;
   lastInput: string;
   setLastInput: (input: string) => void;
 };
@@ -43,14 +42,11 @@ export const ChatbotContext = React.createContext<ChatbotContextProps>({
   modelsError: undefined,
   lsdStatusError: undefined,
   refresh: () => undefined,
-  selectedModel: '',
-  setSelectedModel: () => undefined,
   lastInput: '',
   setLastInput: () => undefined,
 });
 
 export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ children }) => {
-  const [selectedModel, setSelectedModel] = React.useState('');
   const [lastInput, setLastInput] = React.useState('');
   const [activelyRefreshing, setActivelyRefreshing] = React.useState(true);
   const {
@@ -107,8 +103,6 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
       modelsError,
       lsdStatusError,
       refresh,
-      selectedModel,
-      setSelectedModel,
       lastInput,
       setLastInput,
     }),
@@ -125,7 +119,6 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
       modelsLoaded,
       modelsError,
       lsdStatusError,
-      selectedModel,
       lastInput,
       setLastInput,
       refresh,

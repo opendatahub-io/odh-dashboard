@@ -6,17 +6,30 @@ import {
   APIOptions,
   NotReadyError,
 } from 'mod-arch-core';
-import { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import { useGenAiAPI } from './useGenAiAPI';
 
 const useFetchMaaSModels = (): FetchStateObject<MaaSModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
+
+  // TODO: Uncomment when extension is ready to be used
+  // const getMaaSModelsExtension = useExtensions(isMaaSModelsExtension);
+
   const fetchMaaSModels = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(
     async (opts: APIOptions) => {
       if (!apiAvailable) {
         return Promise.reject(new NotReadyError('API not yet available'));
       }
-      return api.getMaaSModels(opts).then((r) => r);
+
+      // if (getMaaSModelsExtension.length > 0) {
+      //   const extensionFn = getMaaSModelsExtension[0].properties.getMaaSModels;
+      //   return extensionFn().then((fn) => fn(opts));
+      // }
+      // Promise.reject(new Error('MaaS models extension not found'));
+
+      const rawData = await api.getMaaSModels(opts);
+      // Ensure we always return an array, even if API returns null
+      return Array.isArray(rawData) ? rawData : [];
     },
     [api, apiAvailable],
   );

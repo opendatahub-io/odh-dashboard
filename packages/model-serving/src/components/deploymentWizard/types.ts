@@ -1,3 +1,4 @@
+import React from 'react';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
@@ -70,6 +71,14 @@ export enum ModelStateToggleLabel {
   START = 'Start',
   STOP = 'Stop',
 }
+
+export enum WizardStepTitle {
+  MODEL_DETAILS = 'Model details',
+  MODEL_DEPLOYMENT = 'Model deployment',
+  ADVANCED_SETTINGS = 'Advanced settings',
+  REVIEW = 'Review',
+}
+
 export type ModelLocationData = {
   type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
@@ -135,6 +144,19 @@ export type WizardFormData = {
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
   } & Record<string, unknown>;
 };
+
+export type WizardReviewItem = {
+  key: string;
+  label: string;
+  value: (wizardState: WizardFormData['state']) => React.ReactNode;
+  optional?: boolean;
+  isVisible?: (wizardState: WizardFormData['state']) => boolean;
+};
+
+export type WizardReviewSection = {
+  title?: string;
+  items: WizardReviewItem[];
+};
 // wizard form data
 
 // Export field data types
@@ -169,18 +191,35 @@ export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | strin
   isActive: (wizardFormData: RecursivePartial<WizardFormData['state']>) => boolean;
 };
 
-export type WizardField<T = unknown> = DeploymentWizardFieldBase<string> & {
+export type WizardField<
+  FieldData = unknown,
+  ExternalData = unknown,
+> = DeploymentWizardFieldBase<string> & {
   type: 'addition';
   parentId?: string;
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
   reducerFunctions: {
     // TODO: make dispatch function that clears if this field's dependencies are changing
-    setFieldData: (fieldData: T) => T;
-    getInitialFieldData: (fieldData?: T) => T;
-    validationSchema?: z.ZodSchema<T>;
+    setFieldData: (fieldData: FieldData) => FieldData;
+    getInitialFieldData: (fieldData?: FieldData, externalData?: ExternalData) => FieldData;
+    validationSchema?: z.ZodSchema<FieldData>;
   };
-  // externalDataHook: ... // TODO: add this if we need to fetch data for the field.
-  component: React.FC<{ id: string; value: T; onChange: (value: T) => void }>;
+  externalDataHook?: (initialData?: InitialWizardFormData) => {
+    data: ExternalData;
+    loaded: boolean;
+    loadError?: Error;
+  };
+  component: React.FC<{
+    id: string;
+    value: FieldData;
+    onChange: (value: FieldData) => void;
+    externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
+  }>;
+  getReviewSections?: (
+    value: FieldData,
+    wizardState: WizardFormData['state'],
+    externalData?: ExternalData,
+  ) => WizardReviewSection[];
 };
 
 // actual fields

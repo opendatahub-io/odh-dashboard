@@ -122,6 +122,9 @@ export const mockMaaSModels = [
     owned_by: 'model-namespace',
     ready: true,
     url: 'http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local',
+    display_name: 'Granite 7B Lab',
+    description: 'IBM Granite 7B model optimized for lab experiments and testing',
+    usecase: 'Code generation, Text completion',
   },
   {
     id: 'llama-2-7b-chat',
@@ -130,6 +133,9 @@ export const mockMaaSModels = [
     owned_by: 'model-namespace',
     ready: true,
     url: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local',
+    display_name: 'Llama 2 7B Chat',
+    description: 'Meta Llama 2 7B model fine-tuned for conversational AI tasks',
+    usecase: 'Chat, Question answering',
   },
 ];
 

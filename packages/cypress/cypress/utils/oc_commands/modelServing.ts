@@ -691,10 +691,13 @@ export const verifyModelExternalToken = (
             return cy.wrap({ url, response });
           }
 
-          // Retry on 503 (Service Unavailable) or 502 (Bad Gateway) - external route not ready yet
-          if ((response.status === 503 || response.status === 502) && attemptNumber < maxAttempts) {
+          // Retry on 503 (Service Unavailable), 502 (Bad Gateway), or 400 (Bad Request) - external route/model not ready yet
+          if (
+            (response.status === 503 || response.status === 502 || response.status === 400) &&
+            attemptNumber < maxAttempts
+          ) {
             cy.log(
-              `Service unavailable (${response.status}), retrying in ${waitTime / 1000} seconds...`,
+              `Service not ready (${response.status}), retrying in ${waitTime / 1000} seconds...`,
             );
             return cy
               .wait(waitTime)

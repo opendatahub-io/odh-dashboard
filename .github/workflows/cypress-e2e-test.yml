@@ -1,27 +1,65 @@
 name: Cypress e2e Test
 
-# This workflow executes E2E tests on the ODH (Open Data Hub) dash-e2e cluster.
-# It triggers automatically after test.yml completes successfully (via workflow_run).
-# The test-variables.yml downloaded from GitLab contains RHOAI namespaces by default,
-# which are overridden with ODH namespaces from the ODH_NAMESPACES GitHub secret.
+# =============================================================================
+# E2E Test Workflow with Cluster Failover and Dynamic Tag Selection
+# =============================================================================
+#
+# TRIGGERS:
+#   - Automatically after "Test" workflow completes on PRs
+#   - Manually via workflow_dispatch (Actions tab → Run workflow)
+#
+# CLUSTER FAILOVER:
+#   Primary:   dash-e2e-int (checked first via DSC health)
+#   Secondary: dash-e2e     (used if primary is unhealthy)
+#   Health Check: Logs into cluster → checks DSC conditions (Available, Degraded, odh-dashboardReady)
+#
+# TEST SELECTION:
+#   Default (always run):
+#     - @ci-dashboard-set-1
+#     - @ci-dashboard-set-2
+#
+#   Run additional tests via PR labels:
+#     Add labels with 'test:' prefix to your PR:
+#       test:Pipelines    → @Pipelines
+#       test:ModelServing → @ModelServing
+#       test:Workbenches  → @Workbenches
+#     Any 'test:<TagName>' label maps to '@<TagName>' Cypress grep tag
+#
+#   Run additional tests manually:
+#     1. Go to Actions tab → "Cypress e2e Test" workflow
+#     2. Click "Run workflow"
+#     3. Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
+#
+# LIMITS:
+#   - Max 5 additional tags beyond defaults (prevents runner exhaustion)
+#   - 10 runners shared across 30+ devs
+#
+# REQUIRED SECRETS:
+#   PRIMARY:   OC_SERVER_PRIMARY, OCP_CONSOLE_URL_PRIMARY, ODH_DASHBOARD_URL_PRIMARY
+#   SECONDARY: OC_SERVER, OCP_CONSOLE_URL, ODH_DASHBOARD_URL
+#   AUTH:      GITLAB_TOKEN, GITLAB_TEST_VARS_URL, ODH_NAMESPACES
+# =============================================================================
 
 on:
-  # Trigger after test.yml completes successfully
   workflow_run:
     workflows: ["Test"]
     types: [completed]
-  # Allow manual trigger for testing/debugging
-  workflow_dispatch:
 
-# Concurrency control: Only run latest E2E tests for each PR/branch
-# Cancels in-progress E2E runs when new commits are pushed
+  workflow_dispatch:
+    inputs:
+      additional_tags:
+        description: 'Extra test tags (e.g., @Pipelines,@Workbenches)'
+        required: false
+        default: ''
+        type: string
+
 concurrency:
   group: e2e-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: read
   actions: read
   statuses: write
 
@@ -29,47 +67,254 @@ env:
   NODE_VERSION: 22.x
   DO_NOT_TRACK: 1
 
+# =============================================================================
+# JOBS
+# =============================================================================
 jobs:
-  # Set pending status on PR
+
+  # ---------------------------------------------------------------------------
+  # Cluster Selection - Health check with automatic failover
+  # ---------------------------------------------------------------------------
+  select-cluster:
+    if: >-
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.workflow_run.event == 'pull_request' && 
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: self-hosted
+    outputs:
+      cluster_name: ${{ steps.select.outputs.cluster_name }}
+    steps:
+      - name: Download test credentials
+        run: |
+          echo "🔧 Downloading test credentials for cluster health check..."
+          curl -fk -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+            "${{ secrets.GITLAB_TEST_VARS_URL }}" \
+            -o /tmp/test-variables.yml
+          echo "✅ Downloaded test credentials"
+
+      - name: Select healthy cluster
+        id: select
+        env:
+          PRIMARY_SERVER: ${{ secrets.OC_SERVER_PRIMARY }}
+          PRIMARY_DASHBOARD: ${{ secrets.ODH_DASHBOARD_URL_PRIMARY }}
+          SECONDARY_SERVER: ${{ secrets.OC_SERVER }}
+          SECONDARY_DASHBOARD: ${{ secrets.ODH_DASHBOARD_URL }}
+        run: |
+          # Extract credentials from test-variables.yml
+          TEST_VARS_FILE="/tmp/test-variables.yml"
+          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+          echo "::add-mask::$OC_PASSWORD"
+          echo "::add-mask::$OC_USERNAME"
+
+          # Check DSC health by logging in and verifying conditions
+          check_dsc_health() {
+            local server_url="$1"
+            local cluster_name="$2"
+            
+            [[ -z "$server_url" ]] && echo "  ❌ Server URL is empty" && return 1
+            
+            echo "  🔗 Attempting login to: $server_url"
+            
+            # Try to login
+            LOGIN_OUTPUT=$(oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$server_url" --insecure-skip-tls-verify 2>&1) || true
+            if ! oc whoami > /dev/null 2>&1; then
+              echo "  ❌ Failed to login to $cluster_name"
+              echo "  📝 Login output: $LOGIN_OUTPUT" | head -5
+              return 1
+            fi
+            echo "  ✅ Login successful"
+            
+            # Get DSC status with full output for debugging
+            echo "  🔍 Fetching DataScienceCluster status..."
+            DSC_JSON=$(oc get datasciencecluster -o json 2>&1)
+            DSC_EXIT_CODE=$?
+            
+            if [[ $DSC_EXIT_CODE -ne 0 ]]; then
+              echo "  ❌ Failed to get DSC (exit code: $DSC_EXIT_CODE)"
+              echo "  📝 Output: $DSC_JSON" | head -5
+              return 1
+            fi
+            
+            if [[ -z "$DSC_JSON" || "$DSC_JSON" == "null" || "$DSC_JSON" == '{"apiVersion":"datasciencecluster.opendatahub.io/v1","items":[],"kind":"List","metadata":{"resourceVersion":""}}' ]]; then
+              echo "  ❌ No DataScienceCluster found on $cluster_name"
+              return 1
+            fi
+            
+            # Print DSC name and status for debugging
+            DSC_NAME=$(echo "$DSC_JSON" | jq -r '.items[0].metadata.name // "unknown"')
+            echo "  📦 DSC Name: $DSC_NAME"
+            
+            # Check phase - this is the most reliable indicator
+            PHASE=$(echo "$DSC_JSON" | jq -r '.items[0].status.phase // "Unknown"')
+            echo "  📊 DSC Phase: $PHASE"
+            
+            # Print all conditions for debugging
+            echo "  📋 DSC Conditions:"
+            echo "$DSC_JSON" | jq -r '.items[0].status.conditions[]? | "     - \(.type): \(.status) (\(.reason // "no reason"))"' 2>/dev/null || echo "     (no conditions found)"
+            
+            # If phase is Ready, cluster is healthy
+            if [[ "$PHASE" == "Ready" ]]; then
+              echo "  ✅ DSC is Ready!"
+              return 0
+            fi
+            
+            # Phase not Ready - check conditions for more detail
+            AVAILABLE=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Available") | .status' 2>/dev/null || echo "")
+            DEGRADED=$(echo "$DSC_JSON" | jq -r '.items[0].status.conditions[] | select(.type=="Degraded") | .status' 2>/dev/null || echo "")
+            
+            # Fallback: if conditions show healthy even though phase isn't Ready
+            if [[ "$AVAILABLE" == "True" && "$DEGRADED" != "True" ]]; then
+              echo "  ✅ Conditions look healthy despite phase=$PHASE"
+              return 0
+            fi
+            
+            echo "  ❌ DSC not healthy (Phase: $PHASE, Available: $AVAILABLE, Degraded: $DEGRADED)"
+            return 1
+          }
+
+          echo "🔍 Checking PRIMARY cluster (dash-e2e-int)..."
+          if check_dsc_health "$PRIMARY_SERVER" "dash-e2e-int"; then
+            echo "✅ PRIMARY cluster is healthy and ready"
+            echo "cluster_name=dash-e2e-int" >> $GITHUB_OUTPUT
+          else
+            echo ""
+            echo "⚠️ PRIMARY unavailable or not ready, trying SECONDARY (dash-e2e)..."
+            if check_dsc_health "$SECONDARY_SERVER" "dash-e2e"; then
+              echo "✅ SECONDARY cluster is healthy and ready"
+              echo "cluster_name=dash-e2e" >> $GITHUB_OUTPUT
+            else
+              echo ""
+              echo "❌ All clusters unavailable or unhealthy"
+              exit 1
+            fi
+          fi
+          
+          # Clean up credentials file
+          rm -f /tmp/test-variables.yml
+
+  # ---------------------------------------------------------------------------
+  # Status - Set pending status on PR (independent - runs before cluster selection)
+  # ---------------------------------------------------------------------------
   set-pending-status:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
+    if: >-
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.workflow_run.event == 'pull_request' && 
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
-      - name: Set E2E pending status
+      - name: Set pending status
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
-          gh api repos/${{ github.repository }}/statuses/$SHA \
+          gh api repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha || github.sha }} \
             -f state=pending \
             -f context="Cypress E2E Tests" \
-            -f description="E2E tests running on dash-e2e-odh cluster" \
+            -f description="E2E tests starting..." \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
+  # ---------------------------------------------------------------------------
+  # Tag Resolution - Build test matrix from defaults + PR labels/input
+  # ---------------------------------------------------------------------------
   get-test-tags:
-    needs: [set-pending-status]
-    # Only run if test.yml succeeded for a pull_request (or manual trigger) events.
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success') }}
-    runs-on: self-hosted
+    needs: [select-cluster]
+    runs-on: ubuntu-latest
     outputs:
-      test-tags: ${{ steps.set-tags.outputs.test-tags }}
+      matrix: ${{ steps.build.outputs.matrix }}
+      source: ${{ steps.build.outputs.source }}
     steps:
-      - name: Set default test tags
-        id: set-tags
-        # Test sets:
-        # @ci-dashboard-set-1: Pipelines (Import and Run), Workbenches (create with storage), Project Creation, User Login
-        # @ci-dashboard-set-2: Model Stop/Start, Cluster Settings, Connection Creation, Cluster Storage Creation
+      - name: Get PR labels
+        id: labels
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "test-tags=[\"@ci-dashboard-set-1\",\"@ci-dashboard-set-2\"]" >> $GITHUB_OUTPUT
+          # Get PR number - try multiple methods for fork PR compatibility
+          PR_NUM="${{ github.event.workflow_run.pull_requests[0].number }}"
+          
+          # Method 2: commits API (works for same-repo PRs)
+          if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
+            PR_NUM=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
+              --jq '.[0].number' 2>/dev/null || echo "")
+          fi
+          
+          # Method 3: search API (works for fork PRs)
+          if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
+            PR_NUM=$(gh api "search/issues?q=repo:${{ github.repository }}+is:pr+is:open+sha:${{ github.event.workflow_run.head_sha }}" \
+              --jq '.items[0].number' 2>/dev/null || echo "")
+          fi
 
+          if [[ -n "$PR_NUM" && "$PR_NUM" != "null" ]]; then
+            LABELS=$(gh api "repos/${{ github.repository }}/issues/$PR_NUM/labels" \
+              --jq '[.[].name] | join(",")' 2>/dev/null || echo "")
+            echo "labels=$LABELS" >> $GITHUB_OUTPUT
+            echo "📋 PR #$PR_NUM labels: $LABELS"
+          else
+            echo "⚠️ Could not find PR number for SHA ${{ github.event.workflow_run.head_sha }}"
+          fi
+
+      - name: Build test matrix
+        id: build
+        run: |
+          # Configuration
+          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion
+          
+          # Defaults - these ALWAYS run
+          TAGS="@ci-dashboard-set-1,@ci-dashboard-set-2"
+          SOURCE="default"
+          EXTRA_COUNT=0
+
+          # Priority 1: Manual input (workflow_dispatch)
+          if [[ -n "${{ inputs.additional_tags }}" ]]; then
+            for tag in $(echo "${{ inputs.additional_tags }}" | tr ',' ' '); do
+              if [[ $EXTRA_COUNT -lt $MAX_EXTRA_TAGS ]]; then
+                TAGS="$TAGS,$tag"
+                EXTRA_COUNT=$((EXTRA_COUNT + 1))
+              fi
+            done
+            SOURCE="manual"
+            echo "📝 Added manual tags (limit: $MAX_EXTRA_TAGS)"
+
+          # Priority 2: PR labels (test:* pattern)
+          elif [[ -n "${{ steps.labels.outputs.labels }}" ]]; then
+            for label in $(echo "${{ steps.labels.outputs.labels }}" | tr ',' ' '); do
+              if [[ "$label" == test:* && $EXTRA_COUNT -lt $MAX_EXTRA_TAGS ]]; then
+                tag="@${label#test:}"
+                tag="${tag#@}"  # Remove double @
+                tag="@$tag"
+                TAGS="$TAGS,$tag"
+                EXTRA_COUNT=$((EXTRA_COUNT + 1))
+                SOURCE="pr-labels"
+                echo "🏷️ Label '$label' → $tag"
+              fi
+            done
+          fi
+
+          if [[ $EXTRA_COUNT -ge $MAX_EXTRA_TAGS ]]; then
+            echo "⚠️ Tag limit reached ($MAX_EXTRA_TAGS max). Some tags were not added."
+          fi
+
+          # Convert to JSON matrix (deduplicated)
+          MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
+            sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
+          
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "source=$SOURCE" >> $GITHUB_OUTPUT
+          echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
+
+  # ---------------------------------------------------------------------------
+  # E2E Tests - Run Cypress tests for each tag in parallel
+  # ---------------------------------------------------------------------------
   e2e-tests:
-    needs: [set-pending-status, get-test-tags]
+    needs: [select-cluster, set-pending-status, get-test-tags]
     runs-on: self-hosted
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        test-tag: ${{ fromJson(needs.get-test-tags.outputs.test-tags) }}
+        tag: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
+    env:
+      CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
     steps:
       - name: Calculate unique port for this workflow run
         run: |
@@ -77,9 +322,9 @@ jobs:
           BASE_PORT=$((4000 + (${{ github.run_id }} % 1000) * 5))
 
           # Add matrix offset to separate concurrent jobs within same PR
-          if [[ "${{ matrix.test-tag }}" == *"set-1"* ]]; then
+          if [[ "${{ matrix.tag }}" == *"set-1"* ]]; then
             MATRIX_OFFSET=0
-          elif [[ "${{ matrix.test-tag }}" == *"set-2"* ]]; then
+          elif [[ "${{ matrix.tag }}" == *"set-2"* ]]; then
             MATRIX_OFFSET=1
           else
             MATRIX_OFFSET=2
@@ -94,13 +339,11 @@ jobs:
 
           echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
           echo "PORT_INFO_FILE=$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id" >> $GITHUB_ENV
-          echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.test-tag }} (run_id: ${{ github.run_id }})"
+          echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # For workflow_run, checkout the commit that triggered test.yml
-          # For manual trigger, checkout the current ref
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Restore npm dependencies cache
@@ -142,108 +385,104 @@ jobs:
       - name: Download test configuration
         run: |
           echo "🔧 Downloading test configuration from GitLab..."
-
-          if [ -n "${{ secrets.GITLAB_TOKEN }}" ] && [ -n "${{ secrets.GITLAB_TEST_VARS_URL }}" ]; then
-            if curl -f -k -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
+          curl -fk -H "Authorization: Bearer ${{ secrets.GITLAB_TOKEN }}" \
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
-                        -o ${{ github.workspace }}/packages/cypress/test-variables.yml; then
-              echo "✅ Successfully downloaded test configuration"
-            else
-              echo "❌ Failed to download test configuration from GitLab"
-              exit 1
-            fi
-          else
-            echo "⚠️  GitLab secrets not available"
-            echo "💡 This workflow requires GITLAB_TOKEN and GITLAB_TEST_VARS_URL secrets"
-            exit 1
-          fi
+            -o ${{ github.workspace }}/packages/cypress/test-variables.yml
+          echo "✅ Downloaded test configuration"
 
       - name: Login to OpenShift cluster
+        env:
+          OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
+          OC_SERVER_SECONDARY: ${{ secrets.OC_SERVER }}
         run: |
-          # Read credentials from downloaded test-variables.yml
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
-          # Extract OC_USERNAME from OCP_ADMIN_USER section
+          # Extract credentials
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-
-          # Extract OC_PASSWORD from OCP_ADMIN_USER section
           OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
-
-          # Mask sensitive data in logs
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
 
-          echo "Logging in to OpenShift cluster..."
-          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="${{ secrets.OC_SERVER }}" --insecure-skip-tls-verify > /dev/null 2>&1
+          # Look up server URL based on selected cluster (avoids GitHub secret masking in outputs)
+          if [ "$CLUSTER_NAME" = "dash-e2e-int" ]; then
+            CLUSTER_URL="$OC_SERVER_PRIMARY"
+          elif [ "$CLUSTER_NAME" = "dash-e2e" ]; then
+            CLUSTER_URL="$OC_SERVER_SECONDARY"
+          else
+            echo "❌ Unknown or empty CLUSTER_NAME: '$CLUSTER_NAME'" >&2
+            echo "Expected 'dash-e2e-int' or 'dash-e2e'" >&2
+            exit 1
+          fi
+
+          if [ -z "$CLUSTER_URL" ]; then
+            echo "❌ CLUSTER_URL is empty for cluster '$CLUSTER_NAME'" >&2
+            echo "Check that OC_SERVER_PRIMARY/OC_SERVER secrets are configured" >&2
+            exit 1
+          fi
+
+          echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
+          oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
 
           if [ $? -eq 0 ]; then
-            echo "✅ Successfully logged in to OpenShift cluster (dash-e2e-odh)"
+            echo "✅ Successfully logged in to $CLUSTER_NAME"
           else
             echo "❌ Failed to login to OpenShift cluster"
             exit 1
           fi
 
-          # Export OpenShift configuration for Cypress tests
-          export KUBECONFIG="$HOME/.kube/config"
-          echo "KUBECONFIG=$KUBECONFIG" >> $GITHUB_ENV
+          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
-      - name: Override namespace values from secrets
+      - name: Override namespace values
+        env:
+          DASHBOARD_URL_PRIMARY: ${{ secrets.ODH_DASHBOARD_URL_PRIMARY }}
+          DASHBOARD_URL_SECONDARY: ${{ secrets.ODH_DASHBOARD_URL }}
+          ODH_NAMESPACES: ${{ secrets.ODH_NAMESPACES }}
         run: |
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
-          echo "Overriding RHOAI namespaces with ODH namespaces from secrets..."
+          # Look up dashboard URL based on selected cluster (secrets passed as step-level env for security)
+          if [ "$CLUSTER_NAME" = "dash-e2e-int" ]; then
+            DASHBOARD_URL="$DASHBOARD_URL_PRIMARY"
+          elif [ "$CLUSTER_NAME" = "dash-e2e" ]; then
+            DASHBOARD_URL="$DASHBOARD_URL_SECONDARY"
+          else
+            echo "❌ Unknown or empty CLUSTER_NAME: '$CLUSTER_NAME'" >&2
+            echo "Expected 'dash-e2e-int' or 'dash-e2e'" >&2
+            exit 1
+          fi
 
-          # Helper function to set or update a key-value pair in YAML
-          set_yaml_value() {
-            local key="$1"
-            local value="$2"
-            if [ -z "$value" ]; then
-              return
-            fi
-            # Remove leading/trailing whitespace from value
-            value=$(echo "$value" | xargs)
-            if grep -q "^${key}:" "$TEST_VARS_FILE"; then
-              sed -i "s|^${key}:.*|${key}: ${value}|" "$TEST_VARS_FILE"
-            else
-              echo "${key}: ${value}" >> "$TEST_VARS_FILE"
-            fi
-          }
+          if [ -z "$DASHBOARD_URL" ]; then
+            echo "❌ DASHBOARD_URL is empty for cluster '$CLUSTER_NAME'" >&2
+            echo "Check that ODH_DASHBOARD_URL_PRIMARY/ODH_DASHBOARD_URL secrets are configured" >&2
+            exit 1
+          fi
 
-          # Read ODH namespace values from GitHub secret
-          # This overrides the default RHOAI namespaces in test-variables.yml
-          ODH_NAMESPACES="${{ secrets.ODH_NAMESPACES }}"
+          # Set dashboard URL for selected cluster
+          sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
 
           if [ -z "$ODH_NAMESPACES" ]; then
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
             exit 0
           fi
 
-          # Mask namespace values in logs
           echo "::add-mask::$ODH_NAMESPACES"
-
           echo "📝 Overriding namespaces with ODH values..."
 
-          # Parse comma-separated values from secret
-          # Format: OPERATOR_NAMESPACE,APPLICATIONS_NAMESPACE,NOTEBOOKS_NAMESPACE,OPERATOR_NAME,ODH_DASHBOARD_PROJECT_NAME
           IFS=',' read -r OPERATOR_NS APPLICATIONS_NS NOTEBOOKS_NS OPERATOR_NAME PROJECT_NAME <<< "$ODH_NAMESPACES"
 
-          # Override RHOAI namespaces with ODH values
-          set_yaml_value "PRODUCT" "ODH"
-          set_yaml_value "OPERATOR_NAMESPACE" "$OPERATOR_NS"
-          set_yaml_value "APPLICATIONS_NAMESPACE" "$APPLICATIONS_NS"
-          set_yaml_value "MONITORING_NAMESPACE" "$APPLICATIONS_NS"
-          set_yaml_value "NOTEBOOKS_NAMESPACE" "$NOTEBOOKS_NS"
-          set_yaml_value "OPERATOR_NAME" "$OPERATOR_NAME"
-          set_yaml_value "ODH_DASHBOARD_PROJECT_NAME" "$PROJECT_NAME"
+          sed -i "s|^PRODUCT:.*|PRODUCT: ODH|" "$TEST_VARS_FILE"
+          sed -i "s|^OPERATOR_NAMESPACE:.*|OPERATOR_NAMESPACE: $OPERATOR_NS|" "$TEST_VARS_FILE"
+          sed -i "s|^APPLICATIONS_NAMESPACE:.*|APPLICATIONS_NAMESPACE: $APPLICATIONS_NS|" "$TEST_VARS_FILE"
+          sed -i "s|^MONITORING_NAMESPACE:.*|MONITORING_NAMESPACE: $APPLICATIONS_NS|" "$TEST_VARS_FILE"
+          sed -i "s|^NOTEBOOKS_NAMESPACE:.*|NOTEBOOKS_NAMESPACE: $NOTEBOOKS_NS|" "$TEST_VARS_FILE"
+          sed -i "s|^OPERATOR_NAME:.*|OPERATOR_NAME: $OPERATOR_NAME|" "$TEST_VARS_FILE"
+          sed -i "s|^ODH_DASHBOARD_PROJECT_NAME:.*|ODH_DASHBOARD_PROJECT_NAME: $PROJECT_NAME|" "$TEST_VARS_FILE"
 
-          echo "✅ Overridden namespaces with ODH values"
-          echo "Namespace configuration updated"
+          echo "✅ Namespace configuration updated"
 
       - name: Set test configuration
         run: |
-          export CY_TEST_CONFIG="${{ github.workspace }}/packages/cypress/test-variables.yml"
-          echo "CY_TEST_CONFIG=$CY_TEST_CONFIG" >> $GITHUB_ENV
-          echo "✅ Test configuration set (Cypress will connect to localhost:${WEBPACK_PORT})"
+          echo "CY_TEST_CONFIG=${{ github.workspace }}/packages/cypress/test-variables.yml" >> $GITHUB_ENV
 
       - name: Start Cypress Server
         run: |
@@ -318,7 +557,7 @@ jobs:
           echo "PORT_INFO_FILE=$PORT_INFO_FILE" >> $GITHUB_ENV
 
           echo "✅ Port ${WEBPACK_PORT} is free and claimed by run_id: $CURRENT_RUN_ID"
-          echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} (dash-e2e-odh)..."
+          echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack and filter sensitive output
           cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
@@ -363,34 +602,26 @@ jobs:
         run: |
           cd frontend
 
-          echo "🧪 Running E2E tests for ${{ matrix.test-tag }}..."
+          echo "🧪 Running E2E tests for ${{ matrix.tag }}..."
           echo "🚀 Running tests against live dashboard on port ${WEBPACK_PORT}"
+          echo "📌 Tag source: ${{ needs.get-test-tags.outputs.source }}"
 
-          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.test-tag }}"
+          export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
-          # Run Cypress tests with Chrome browser
-          # Videos are recorded and automatically uploaded on failure (default Cypress behavior)
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
-            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.test-tag }}",grepFilterSpecs=true \
+            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
-
-      - name: Test tag name
-        if: ${{ always() }}
-        run: |
-          TEST_TAG_NAME=$(echo '${{ matrix.test-tag }}' | tr '/' '_' | tr '@' '_')
-          echo "TEST_TAG_NAME=$TEST_TAG_NAME" >> $GITHUB_ENV
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-${{ matrix.test-tag }}
+          name: e2e-results-${{ matrix.tag }}
           path: |
             packages/cypress/results/
             packages/cypress/videos/
             packages/cypress/screenshots/
-            packages/cypress/coverage/
           retention-days: 7
 
       - name: Log test completion
@@ -398,46 +629,65 @@ jobs:
         run: |
           echo "🏁 E2E Test completed!"
           echo "Status: ${{ job.status }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Test Tag: ${{ matrix.test-tag }}"
+          echo "Test Tag: ${{ matrix.tag }}"
+          echo "Cluster: $CLUSTER_NAME"
           echo "Run ID: ${{ github.run_id }}"
-          echo ""
-          echo "📊 Test artifacts uploaded to:"
-          echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-  # Update status on PR commit with final E2E test result
+  # ---------------------------------------------------------------------------
+  # Final Status - Update PR with test results
+  # ---------------------------------------------------------------------------
   set-final-status:
-    needs: [set-pending-status, e2e-tests]
+    needs: [select-cluster, e2e-tests]
+    if: >-
+      always() && 
+      (github.event_name == 'workflow_dispatch' || 
+       (github.event.workflow_run.event == 'pull_request' && 
+        github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-latest
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
-      - name: Set E2E final status
+      - name: Set final status
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
-          RESULT="${{ needs.e2e-tests.result }}"
+          E2E_RESULT="${{ needs.e2e-tests.result }}"
+          CLUSTER_RESULT="${{ needs.select-cluster.result }}"
+          CLUSTER="${{ needs.select-cluster.outputs.cluster_name }}"
           
-          if [ "$RESULT" = "success" ]; then
+          echo "📊 Job results: select-cluster=$CLUSTER_RESULT, e2e-tests=$E2E_RESULT"
+          
+          # Handle cluster selection failure first
+          if [[ "$CLUSTER_RESULT" == "failure" ]]; then
+            STATE="failure"
+            DESC="Cluster health check failed - no healthy cluster available"
+          elif [[ "$E2E_RESULT" == "success" ]]; then
             STATE="success"
-            DESC="All E2E tests passed"
-          elif [ "$RESULT" = "cancelled" ]; then
+            DESC="All tests passed on $CLUSTER"
+          elif [[ "$E2E_RESULT" == "cancelled" ]]; then
             STATE="error"
-            DESC="E2E tests were cancelled"
-          elif [ "$RESULT" = "skipped" ]; then
-            echo "E2E tests were skipped - not posting status"
+            DESC="Tests cancelled"
+          elif [[ "$E2E_RESULT" == "skipped" && "$CLUSTER_RESULT" == "skipped" ]]; then
+            # Both skipped means test.yml failed - don't post status
+            echo "Both jobs skipped (test.yml likely failed) - not posting status"
             exit 0
+          elif [[ "$E2E_RESULT" == "skipped" ]]; then
+            STATE="failure"
+            DESC="Tests skipped due to upstream failure"
           else
             STATE="failure"
-            DESC="E2E tests failed"
+            DESC="Tests failed on ${CLUSTER:-unknown cluster}"
           fi
           
-          gh api repos/${{ github.repository }}/statuses/$SHA \
-            -f state=$STATE \
+          echo "📝 Posting status: state=$STATE, description=$DESC"
+          
+          gh api repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha || github.sha }} \
+            -f state="$STATE" \
             -f context="Cypress E2E Tests" \
             -f description="$DESC" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
+  # ---------------------------------------------------------------------------
+  # Cleanup - Stop all servers started by this workflow run
+  # ---------------------------------------------------------------------------
   cleanup-server:
     needs: [e2e-tests]
     runs-on: self-hosted
@@ -466,7 +716,6 @@ jobs:
                     PID=$(cat "$PID_FILE")
                     if ps -p "$PID" > /dev/null 2>&1; then
                       echo "🛑 Killing process $PID on port $PORT (run_id: $CURRENT_RUN_ID)"
-                      # Kill the main process and all its children (including Chrome processes spawned by Cypress)
                       pkill -P "$PID" 2>/dev/null || true
                       kill "$PID" 2>/dev/null || true
                       KILLED_COUNT=$((KILLED_COUNT + 1))
@@ -477,49 +726,18 @@ jobs:
                   PORT_PID=$(lsof -ti:${PORT} 2>/dev/null | head -1)
                   if [ -n "$PORT_PID" ]; then
                     echo "🛑 Killing process $PORT_PID on port $PORT"
-                    # Kill children processes too
                     pkill -P "$PORT_PID" 2>/dev/null || true
                     kill "$PORT_PID" 2>/dev/null || true
                   fi
                   
-                  # Clean up any orphaned Chrome processes that might be related to Cypress
+                  # Clean up orphaned Chrome processes
                   ALL_PORT_PIDS=$(lsof -ti:${PORT} 2>/dev/null || true)
                   if [ -n "$ALL_PORT_PIDS" ]; then
                     for port_pid in $ALL_PORT_PIDS; do
-                      # Check if this is a Chrome/Chromium process
                       if ps -p "$port_pid" -o comm= 2>/dev/null | grep -qE "chrome|chromium"; then
                         echo "🛑 Killing Chrome process $port_pid (using port $PORT)"
-                        # Kill the Chrome process and all its children
                         pkill -P "$port_pid" 2>/dev/null || true
                         kill "$port_pid" 2>/dev/null || true
-                      fi
-                    done
-                  fi
-                  
-                  # Also look for Chrome processes that are children of our webpack process
-                  if [ -n "$PID" ] && ps -p "$PID" > /dev/null 2>&1; then
-                    CHROME_CHILDREN=$(pgrep -P "$PID" -f "chrome|chromium" 2>/dev/null || true)
-                    if [ -n "$CHROME_CHILDREN" ]; then
-                      echo "🧹 Cleaning up Chrome processes spawned by webpack (PID $PID)..."
-                      for chrome_pid in $CHROME_CHILDREN; do
-                        echo "🛑 Killing Chrome process $chrome_pid (child of webpack PID $PID)"
-                        pkill -P "$chrome_pid" 2>/dev/null || true
-                        kill "$chrome_pid" 2>/dev/null || true
-                      done
-                    fi
-                  fi
-                  
-                  # Fallback: Look for Chrome processes with Cypress-specific flags that might be orphaned
-                  # These are Chrome processes that Cypress spawned but might not be directly related to our port
-                  # We only kill them if they're accessing our port to be safe
-                  ORPHANED_CHROME=$(pgrep -f "chrome.*--test-type|chromium.*--test-type" 2>/dev/null || true)
-                  if [ -n "$ORPHANED_CHROME" ]; then
-                    for chrome_pid in $ORPHANED_CHROME; do
-                      # Only kill if it's accessing our port (to avoid killing other users' Chrome processes)
-                      if lsof -p "$chrome_pid" 2>/dev/null | grep -q ":${PORT}"; then
-                        echo "🛑 Killing orphaned Chrome process $chrome_pid (accessing port $PORT)"
-                        pkill -P "$chrome_pid" 2>/dev/null || true
-                        kill "$chrome_pid" 2>/dev/null || true
                       fi
                     done
                   fi
@@ -531,7 +749,7 @@ jobs:
             done
           fi
 
-          # Clean up any stale port files older than 24 hours
+          # Clean up stale port files older than 24 hours
           find "$PORT_INFO_DIR" -name "*.run_id" -mtime +1 -delete 2>/dev/null || true
           find "$PORT_INFO_DIR" -name "*.pid" -mtime +1 -delete 2>/dev/null || true
 

@@ -5,7 +5,8 @@ import {
   EmptyState,
   EmptyStateVariant,
   Flex,
-  Gallery,
+  Grid,
+  GridItem,
   Spinner,
   Title,
 } from '@patternfly/react-core';
@@ -13,6 +14,7 @@ import { ChartBarIcon, SearchIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useCatalogModelsBySources } from '~/app/hooks/modelCatalog/useCatalogModelsBySource';
+import { useHasVisibleFiltersApplied } from '~/app/hooks/modelCatalog/useHasVisibleFiltersApplied';
 import { CatalogModel, CategoryName, SourceLabel } from '~/app/modelCatalogTypes';
 import ModelCatalogCard from '~/app/pages/modelCatalog/components/ModelCatalogCard';
 import {
@@ -21,10 +23,15 @@ import {
   getBasicFiltersOnly,
   getActiveLatencyFieldName,
   getSortParams,
+  generateCategoryName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { BASIC_FILTER_KEYS } from '~/concepts/modelCatalog/const';
+import {
+  BASIC_FILTER_KEYS,
+  ModelCatalogNumberFilterKey,
+  parseLatencyFilterKey,
+} from '~/concepts/modelCatalog/const';
 
 type ModelCatalogPageProps = {
   searchTerm: string;
@@ -47,7 +54,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     performanceViewEnabled,
     sortBy,
   } = React.useContext(ModelCatalogContext);
-  const filtersApplied = hasFiltersApplied(filterData);
+  const filtersApplied = useHasVisibleFiltersApplied();
 
   // When performance view is disabled, exclude performance filters from API queries
   // Memoize to prevent infinite re-fetching
@@ -68,6 +75,24 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     [sortBy, performanceViewEnabled, activeLatencyField],
   );
 
+  // Derive performance params to pass to the models API when performance view is enabled
+  const performanceParams = React.useMemo(() => {
+    if (!performanceViewEnabled) {
+      return undefined;
+    }
+
+    const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+    const latencyProperty = activeLatencyField
+      ? parseLatencyFilterKey(activeLatencyField).propertyKey
+      : undefined;
+
+    return {
+      targetRPS,
+      latencyProperty,
+      recommendations: true,
+    };
+  }, [performanceViewEnabled, filterData, activeLatencyField]);
+
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     '',
     selectedSourceLabel === CategoryName.allModels ? undefined : selectedSourceLabel,
@@ -78,6 +103,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     undefined, // filterQuery - will be computed from filterData and filterOptions
     sortParams.orderBy,
     sortParams.sortOrder,
+    performanceParams,
   );
 
   const loaded = catalogModelsLoaded && filterOptionsLoaded;
@@ -147,9 +173,14 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
         variant={EmptyStateVariant.lg}
         description={
           <>
-            Select the <strong>All models</strong> category to view all models with performance
-            data, or turn <strong>Model performance view</strong> off to view models in the selected
-            category.
+            No models in the{' '}
+            <strong>
+              {selectedSourceLabel === 'null'
+                ? CategoryName.otherModels
+                : generateCategoryName(selectedSourceLabel || '')}
+            </strong>{' '}
+            category have performance data. Select another model category, or turn off model
+            performance view to see models in the selected category.
           </>
         }
         primaryAction={
@@ -159,7 +190,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
         }
         secondaryAction={
           <Button variant="link" onClick={handleDisablePerformanceView}>
-            Turn <strong>Model performance view</strong> off
+            Turn off model performance view
           </Button>
         }
       />
@@ -192,16 +223,17 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   return (
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
-      <Gallery hasGutter minWidths={{ default: '300px' }}>
+      <Grid hasGutter>
         {catalogModels.items.map((model: CatalogModel) => (
-          <ModelCatalogCard
-            key={`${model.name}/${model.source_id}`}
-            model={model}
-            source={getSourceFromSourceId(model.source_id || '', catalogSources)}
-            truncate
-          />
+          <GridItem key={`${model.name}/${model.source_id}`} sm={6} md={6} lg={6} xl={6} xl2={3}>
+            <ModelCatalogCard
+              model={model}
+              source={getSourceFromSourceId(model.source_id || '', catalogSources)}
+              truncate
+            />
+          </GridItem>
         ))}
-      </Gallery>
+      </Grid>
       {catalogModels.hasMore && (
         <Bullseye className="pf-v6-u-mt-lg">
           {catalogModels.isLoadingMore ? (

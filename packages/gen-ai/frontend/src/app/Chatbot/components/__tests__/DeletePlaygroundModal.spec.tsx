@@ -75,8 +75,6 @@ const mockChatbotContextValue = {
   maasModelsError: undefined,
   modelsError: undefined,
   lsdStatusError: undefined,
-  selectedModel: '',
-  setSelectedModel: jest.fn(),
   lastInput: '',
   setLastInput: jest.fn(),
 };

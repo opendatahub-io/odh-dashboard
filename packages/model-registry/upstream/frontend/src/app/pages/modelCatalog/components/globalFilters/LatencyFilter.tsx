@@ -102,23 +102,23 @@ const LatencyFilter: React.FC = () => {
     return defaultFilterState;
   });
 
-  // Update local filter when active filter changes
   React.useEffect(() => {
-    if (currentActiveFilter) {
-      setLocalFilter({
-        metric: currentActiveFilter.metric,
-        percentile: currentActiveFilter.percentile,
-        value: currentActiveFilter.value,
-      });
+    if (isOpen) {
+      // Use currentActiveFilter or defaultFilterState
+      const initialState = currentActiveFilter
+        ? {
+            metric: currentActiveFilter.metric,
+            percentile: currentActiveFilter.percentile,
+            value: currentActiveFilter.value,
+          }
+        : defaultFilterState;
+      setLocalFilter(initialState);
     }
-  }, [currentActiveFilter]);
+  }, [isOpen, currentActiveFilter, defaultFilterState]);
 
   const { minValue, maxValue, isSliderDisabled } = React.useMemo((): SliderRange => {
-    // Use full filter key for accessing filterOptions
     const filterKey = getLatencyFilterKey(localFilter.metric, localFilter.percentile);
 
-    // Always get range from filterOptions (which provides the full range across all artifacts)
-    // Don't use performanceArtifacts since we may not have all of them in memory when paginating
     const latencyFilter = filterOptions?.filters?.[filterKey];
     if (latencyFilter && 'range' in latencyFilter && latencyFilter.range) {
       return {
@@ -130,6 +130,22 @@ const LatencyFilter: React.FC = () => {
     return FALLBACK_LATENCY_RANGE;
   }, [localFilter.metric, localFilter.percentile, filterOptions]);
 
+  // Reset value to max when metric or percentile changes (range changes)
+  // This ensures the value is always valid for the current range
+  const prevMetricRef = React.useRef(localFilter.metric);
+  const prevPercentileRef = React.useRef(localFilter.percentile);
+
+  React.useEffect(() => {
+    const metricChanged = prevMetricRef.current !== localFilter.metric;
+    const percentileChanged = prevPercentileRef.current !== localFilter.percentile;
+
+    if (metricChanged || percentileChanged) {
+      setLocalFilter((prev) => ({ ...prev, value: maxValue }));
+      prevMetricRef.current = localFilter.metric;
+      prevPercentileRef.current = localFilter.percentile;
+    }
+  }, [localFilter.metric, localFilter.percentile, maxValue]);
+
   const clampedValue = React.useMemo(
     () => Math.min(Math.max(localFilter.value, minValue), maxValue),
     [localFilter.value, minValue, maxValue],
@@ -139,8 +155,8 @@ const LatencyFilter: React.FC = () => {
       // When there's an active filter, show the full specification with actual selected values
       return (
         <>
-          <strong>Latency:</strong> {currentActiveFilter.metric} | {currentActiveFilter.percentile}{' '}
-          | Under {formatLatency(currentActiveFilter.value)}
+          <strong>Latency:</strong> {currentActiveFilter.metric} at {currentActiveFilter.percentile}{' '}
+          ≤ {formatLatency(currentActiveFilter.value)}
         </>
       );
     }
@@ -160,21 +176,19 @@ const LatencyFilter: React.FC = () => {
   };
 
   const handleReset = () => {
-    // Reset to default latency filter (performance filters should reset to defaults, not clear)
-    // First clear any existing latency filter
-    if (currentActiveFilter) {
-      setFilterData(currentActiveFilter.fieldName, undefined);
-    }
-
-    // Apply the default latency filter
-    const defaultFilterKey = getLatencyFilterKey(
-      defaultFilterState.metric,
-      defaultFilterState.percentile,
-    );
-    setFilterData(defaultFilterKey, defaultFilterState.value);
-
-    // Reset local filter to default
-    setLocalFilter(defaultFilterState);
+    // Reset to the filter state that was active when menu opened
+    const resetState = currentActiveFilter
+      ? {
+          metric: currentActiveFilter.metric,
+          percentile: currentActiveFilter.percentile,
+          value: currentActiveFilter.value,
+        }
+      : defaultFilterState;
+    setLocalFilter(resetState);
+    // Update the refs so the useEffect doesn't think metric/percentile changed
+    // This prevents the value from being reset to maxValue
+    prevMetricRef.current = resetState.metric;
+    prevPercentileRef.current = resetState.percentile;
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
@@ -214,7 +228,7 @@ const LatencyFilter: React.FC = () => {
                   ) {
                     const selectedMetric = METRIC_OPTIONS.find((opt) => opt.value === value);
                     if (selectedMetric) {
-                      setLocalFilter({ ...localFilter, metric: selectedMetric.value });
+                      setLocalFilter((prev) => ({ ...prev, metric: selectedMetric.value }));
                     }
                   }
                   setIsMetricOpen(false);
@@ -273,7 +287,10 @@ const LatencyFilter: React.FC = () => {
                           (opt) => opt.value === value,
                         );
                         if (selectedPercentile) {
-                          setLocalFilter({ ...localFilter, percentile: selectedPercentile.value });
+                          setLocalFilter((prev) => ({
+                            ...prev,
+                            percentile: selectedPercentile.value,
+                          }));
                         }
                       }
                       setIsPercentileOpen(false);
@@ -368,7 +385,7 @@ const LatencyFilter: React.FC = () => {
               onClick={handleApplyFilter}
               isDisabled={isSliderDisabled}
             >
-              Apply filter
+              Apply
             </Button>
           </FlexItem>
           <FlexItem>

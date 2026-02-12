@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import type { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import MaaSModelTableRowEndpoint from '~/app/AIAssets/components/MaaSModelTableRowEndpoint';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 
@@ -21,6 +21,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org',
   ready: true,
   url: 'https://example.com/maas/model',
+  display_name: 'Test MaaS Model',
+  description: 'A test MaaS model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 

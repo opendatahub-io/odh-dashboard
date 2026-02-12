@@ -1,0 +1,1198 @@
+# Cypress Mock Test Rules
+
+Comprehensive guidelines for creating and maintaining Cypress mock tests with fully mocked backends for fast, isolated component and integration testing.
+
+## Test Sources & Context Requirements
+
+**CRITICAL**: Always ask for context before implementing any mock test. Never proceed without understanding the test source and purpose.
+
+### Test Source Indicators
+
+**New Feature Tests**:
+- JIRA tickets for new dashboard features requiring component/integration testing
+- Requirements from design documents or feature specifications
+- References to new UI components, pages, or workflows
+- Features that need rapid feedback without cluster dependencies
+
+**Component Enhancement Tests**:
+- Updates to existing components requiring new test coverage
+- Bug fixes that need regression testing
+- Refactoring that requires validation of existing behavior
+
+### Required Context for New Features
+
+1. **JIRA ticket and requirements** - Understand the feature scope and acceptance criteria
+2. **UI/UX specifications** - Review designs, user flows, and interaction patterns
+3. **API contracts** - Understand backend endpoints and data structures
+4. **Existing mock tests** - Find similar tests for patterns and reusable mocks
+5. **Related page objects** - Identify existing page objects or need for new ones
+
+### Mock Tests vs E2E Tests
+
+- **Mock Tests**: Fast, isolated tests with all network requests mocked. Run without cluster access. Test UI logic, state management, and component interactions.
+- **E2E Tests**: Full integration tests against live clusters with real backend APIs. Test end-to-end workflows and actual system integration.
+- **Use mock tests for**: Component behavior, form validation, table interactions, modal flows, routing, permission checks, API error handling.
+- **Use E2E tests for**: Actual cluster operations, real data persistence, cross-service workflows, production-like scenarios.
+
+### Implementation Approach
+
+1. **Gather Context** - Always ask for and review all context before starting
+2. **Review Existing Tests** - Search for similar tests in the mocked directory first
+3. **Review Existing Mocks** - Check `__mocks__` folder for reusable mock data
+4. **Review Page Objects** - Find existing page objects or plan new ones
+5. **Plan Test Structure** - Break down into test scenarios with proper describe/it blocks
+6. **Implement with Standards** - Follow all patterns below
+7. **Verify and Test** - Run linting and execute tests locally
+
+## Framework Structure and Standards
+
+### Folder Structure
+
+**Main Dashboard Tests** (`packages/cypress/cypress/`):
+
+```text
+packages/cypress/cypress/
+├── fixtures/mocked/       # Test fixture files (rarely used for mocks)
+├── pages/                 # Page Object Model files (shared with E2E)
+├── tests/mocked/          # Mock test files organized by feature area
+├── utils/                 # Utility functions (shared with E2E)
+└── types.ts               # Type definitions
+```
+
+**Module-Based Tests** (e.g., `packages/gen-ai/frontend/src/__tests__/cypress/cypress/`):
+
+```text
+packages/<module-name>/frontend/src/__tests__/cypress/cypress/
+├── __mocks__/             # Module-specific mock functions (TypeScript)
+├── fixtures/mocked/       # Module-specific test data (YAML/JSON)
+├── pages/                 # Module-specific page objects
+├── support/               # Module-specific commands and helpers
+├── tests/mocked/          # Module-specific mock tests
+└── utils/                 # Module-specific utilities
+```
+
+### Module-Based Architecture (e.g., Gen AI)
+
+**CRITICAL: Understanding BFF (Backend For Frontend) vs Pure Mock Tests**
+
+Some modules like `gen-ai`, `model-registry`, etc. have a **BFF (Backend For Frontend)** architecture:
+
+**BFF Architecture:**
+- Modules have a `bff/` directory with a Go backend service
+- BFF handles API proxying, authentication, and business logic
+- Frontend communicates with BFF, BFF communicates with backend services
+
+**Two Testing Approaches:**
+
+1. **Pure Mock Tests (Default for Mock Tests)** - NO BFF Running
+   - All network requests are intercepted with Cypress `cy.intercept*` commands
+   - Frontend runs standalone with webpack dev server
+   - BFF is NOT started
+   - Fastest approach, true component isolation
+   - **Commands:**
+     ```bash
+     # In module frontend directory (e.g., packages/gen-ai/frontend)
+     npm run test:cypress-ci  # Starts frontend dev server + runs mocked tests
+     npm run cypress:run:mock # Just runs tests (server must be running)
+     ```
+   - **Environment:** `CY_MOCK=1` flag is set, runs on port 8080 (frontend only)
+
+2. **E2E Tests with BFF** - BFF Running with Mock Clients
+   - BFF runs with mock flags: `MOCK_LS_CLIENT=true`, `MOCK_K8S_CLIENT=true`, etc.
+   - Frontend communicates with real BFF, BFF mocks external services
+   - More integration-like, tests BFF logic
+   - **Commands:**
+     ```bash
+     # In module frontend directory
+     npm run cypress:server      # Starts BFF with mocks (cd ../bff && make run PORT=9001)
+     npm run cypress:run:e2e     # Runs E2E tests against BFF
+     ```
+   - **Environment:** Runs on port 4010 (with BFF)
+
+**When to Use Each Approach:**
+
+| Scenario | Approach | Why |
+|----------|----------|-----|
+| Testing UI components | Pure Mock Tests | Fast, isolated, no BFF needed |
+| Testing form validation | Pure Mock Tests | UI logic only |
+| Testing table interactions | Pure Mock Tests | Component behavior |
+| Testing BFF API logic | E2E with BFF | Need actual BFF processing |
+| Testing authentication flow | E2E with BFF | Auth handled by BFF |
+| Testing complex data transformations | E2E with BFF | BFF transforms data |
+
+**Default for Mock Tests: NO BFF**
+
+Unless specifically testing BFF logic, mock tests should run WITHOUT the BFF using pure Cypress intercepts. This is faster and provides true component isolation.
+
+**Example - Gen AI Module Structure:**
+
+```text
+packages/gen-ai/
+├── bff/                           # Go backend service
+│   ├── cmd/                       # BFF entry point
+│   ├── Makefile                   # BFF commands (make run)
+│   └── ...
+├── frontend/
+│   ├── src/__tests__/cypress/     # Cypress tests
+│   └── package.json               # Test scripts
+│       ├── cypress:server         # Runs BFF: "cd ../bff && make run PORT=9001"
+│       ├── cypress:server:dev     # Runs frontend only: webpack dev server
+│       ├── cypress:run:mock       # Mock tests (CY_MOCK=1, no BFF)
+│       ├── cypress:run:e2e        # E2E tests (with BFF)
+│       └── test:cypress-ci        # CI: "npm run cypress:server:dev" + mock tests
+└── package.json                   # Module root scripts
+```
+
+**Running Mock Tests for Modules:**
+
+```bash
+# From module root (e.g., packages/gen-ai)
+npm run test:cypress-ci            # Builds + starts frontend + runs tests
+
+# From module frontend directory
+cd packages/gen-ai/frontend
+npm run test:cypress-ci            # Same as above
+
+# Development mode (separate terminals)
+npm run cypress:server:dev         # Terminal 1: Start webpack dev server
+npm run cypress:run:mock           # Terminal 2: Run mock tests
+npm run cypress:open               # Terminal 2: Or open Cypress GUI
+```
+
+**IMPORTANT: Check Module Documentation**
+
+Each module may have specific setup requirements. Always check:
+- `packages/<module>/frontend/package.json` - Available test scripts
+- `packages/<module>/frontend/src/__tests__/cypress/README.md` - Module-specific docs
+- `packages/<module>/bff/Makefile` - BFF configuration (if applicable)
+
+### Test Data Management
+
+**MANDATORY: Use mocks from `@odh-dashboard/internal/__mocks__`**:
+- All mock data MUST come from the `@odh-dashboard/internal/__mocks__` package (source: `frontend/src/__mocks__/`)
+- NEVER create inline mock data in test files
+- Import and use existing mock functions (e.g., `mockDashboardConfig`, `mockK8sResourceList`)
+- If a mock doesn't exist, create it in `frontend/src/__mocks__` and make it reusable
+- Mock functions should accept partial data and merge with defaults
+
+**Example mock usage**:
+
+```typescript
+import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+
+cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
+```
+
+**No test-variables.yml needed**:
+- Mock tests do NOT use `test-variables.yml`
+- All configuration is mocked via interceptors
+- Users, credentials, and environment data are mocked inline or from `__mocks__`
+
+**No fixtures needed for most tests**:
+- Mock tests rarely need fixture files
+- Use `__mocks__` functions instead
+- Only use fixtures for complex, static test data that can't be easily mocked
+
+### Test Organization
+
+**File naming**: Use descriptive names matching feature area
+- `featureName.cy.ts` for main functionality
+- Group related tests in feature directories (e.g., `connectionTypes/`, `clusterSettings/`)
+- One file per page or feature area
+
+**MANDATORY: Use proper describe/it structure**:
+
+```typescript
+describe('Feature Name', () => {
+  beforeEach(() => {
+    // Common setup for all tests in this describe block
+    asProductAdminUser(); // or appropriate user mock
+
+    // Common intercepts that ALL tests need
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+    cy.interceptOdh('GET /api/some-resource', []);
+  });
+
+  it('should describe specific behavior', () => {
+    // Test-specific intercepts
+    cy.interceptOdh('POST /api/resource', { success: true }).as('createResource');
+
+    // Visit the page
+    somePage.visit();
+
+    // Test implementation
+    somePage.findButton().click();
+
+    // Wait and assert
+    cy.wait('@createResource');
+  });
+
+  it('should handle another scenario', () => {
+    // Another test with its own specific setup
+  });
+});
+```
+
+**Access control testing pattern**:
+
+```typescript
+it('Feature should not be available for non-admin users', () => {
+  asProjectAdminUser(); // Non-admin user
+  cy.visitWithLogin('/some-admin-page');
+  pageNotfound.findPage().should('exist');
+  somePage.findNavItem().should('not.exist');
+});
+
+describe('Feature (admin access)', () => {
+  beforeEach(() => {
+    asProductAdminUser(); // Admin user
+    // ... intercepts
+  });
+
+  it('should be accessible for admin users', () => {
+    somePage.visit();
+    somePage.findNavItem().should('exist');
+  });
+});
+```
+
+**Feature flag testing pattern**:
+
+```typescript
+it('Feature should be hidden by feature flag', () => {
+  asProductAdminUser();
+
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableFeatureName: true, // Feature disabled
+    }),
+  );
+
+  somePage.visit();
+  somePage.shouldBeEmpty(); // or appropriate validation
+});
+```
+
+### Test Structure Best Practices
+
+**CRITICAL: Focus on essential flows, not exhaustive edge cases**
+
+Before writing tests, review existing tests of similar features to learn established patterns. When writing mock tests:
+
+1. **Prioritize main user flows** - Test the happy path and critical error scenarios
+2. **Avoid over-testing** - Don't test every possible edge case (save that for unit tests)
+3. **Keep tests focused** - Each test should validate one specific behavior or flow
+4. **Aim for 3-7 tests per feature** - Not 15+ granular tests
+5. **Combine related validations** - Group related assertions in fewer tests
+
+**CRITICAL: DO NOT use tags or cy.step() in mock tests** (with module exceptions)
+
+**General rule**: Mock tests should NOT include:
+- ❌ **Tags** - Do NOT add `tags: ['@Feature', '@Smoke']` to test definitions
+- ❌ **cy.step()** - Do NOT wrap test steps in `cy.step('description')` calls
+
+**Exception**: The **GenAI module** uses tags and `cy.step()` in their mock tests (team decision). When working on GenAI tests, follow the existing patterns in `mcpServers.cy.ts`.
+
+**GOOD (Mock test style - clean and simple):**
+
+```typescript
+it('should do something', () => {
+  somePage.visit();
+  somePage.clickButton();
+  somePage.verifyResult();
+});
+```
+
+**Example: Good test coverage (focused)**
+
+```typescript
+describe('User Management', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptK8s(AuthModel, mockAuth({}));
+    cy.interceptK8sList(
+      GroupModel,
+      mockK8sResourceList([mockGroup({}), mockGroup({ name: 'odh-admins-1' })]),
+    );
+    userManagement.visit();
+  });
+
+  it('Administrator group setting', () => {
+    // ✅ Tests the complete admin group flow in one test
+    const administratorGroupSection = userManagement.getAdministratorGroupSection();
+    userManagement.findSubmitButton().should('be.disabled');
+    administratorGroupSection.findChipItem(/^odh-admins$/).should('exist');
+    administratorGroupSection.clearMultiChipItem();
+    administratorGroupSection.selectMultiGroup('odh-admins');
+    administratorGroupSection.removeChipItem('odh-admins');
+    administratorGroupSection.findErrorText().should('exist');
+    administratorGroupSection.findMultiGroupOptions('odh-admins').click();
+    userManagement.findSubmitButton().should('be.enabled');
+  });
+
+  it('User group setting', () => {
+    // ✅ Tests the main user group flow with save and payload validation
+    const userGroupSection = userManagement.getUserGroupSection();
+    userGroupSection.clearMultiChipItem();
+    userGroupSection.selectMultiGroup('odh-admins');
+
+    const mockedAuth = mockAuth({ allowedGroups: ['odh-admins'] });
+    cy.interceptK8s('PATCH', AuthModel, mockedAuth).as('saveGroupSetting');
+
+    userManagement.findSubmitButton().click();
+    cy.wait('@saveGroupSetting').then((interception) => {
+      // Validate the actual PATCH payload structure
+      expect(interception.request.body).to.eql([
+        { value: ['odh-admins'], op: 'replace', path: '/spec/adminGroups' },
+        { value: ['odh-admins'], op: 'replace', path: '/spec/allowedGroups' },
+      ]);
+    });
+    userManagement.shouldHaveSuccessAlertMessage();
+  });
+
+  it('redirect from v2 to v3 route', () => {
+    // ✅ Tests route redirect
+    cy.visitWithLogin('/groupSettings');
+    cy.findByTestId('app-page-title').contains('User management');
+    cy.url().should('include', '/settings/user-management');
+  });
+});
+```
+
+**Minimal mocking principle**:
+
+Only mock what's necessary for the test. Don't over-mock endpoints that aren't used:
+
+```typescript
+// ✅ GOOD: Only mocks what's needed
+describe('User Management', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptK8s(AuthModel, mockAuth({}));
+    cy.interceptK8sList(GroupModel, mockK8sResourceList([mockGroup({})]));
+    // That's it - just Auth and Groups
+  });
+});
+
+// ❌ BAD: Mocks unnecessary endpoints
+describe('User Management', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({})); // Not needed!
+    cy.interceptOdh('GET /api/notifications', []); // Not needed!
+    cy.interceptK8s(AuthModel, mockAuth({}));
+    cy.interceptK8sList(GroupModel, mockK8sResourceList([mockGroup({})]));
+  });
+});
+```
+
+**Payload validation in interceptors**:
+
+When testing save/update operations, validate the actual request payload structure, not just that it was called:
+
+```typescript
+// ✅ GOOD: Validates the actual PATCH payload with JSONPath operations
+cy.wait('@saveGroupSetting').then((interception) => {
+  expect(interception.request.body).to.eql([
+    { value: ['odh-admins'], op: 'replace', path: '/spec/adminGroups' },
+    { value: ['odh-admins'], op: 'replace', path: '/spec/allowedGroups' },
+  ]);
+  expect(interception.response?.body.spec).to.eql({
+    adminGroups: ['odh-admins'],
+    allowedGroups: ['odh-admins'],
+  });
+});
+
+// ❌ BAD: Just checks that patches exist
+cy.wait('@patchAuth').then((interception) => {
+  expect(interception.request.body).to.have.property('patches');
+  const { patches } = interception.request.body;
+  expect(patches).to.be.an('array');
+});
+```
+
+### Navigation and Page Interactions
+
+**MANDATORY: Use page objects with testIDs for ALL UI interactions**:
+
+**CRITICAL RULE: Always add `data-testid` to components first, then create page object methods**
+
+- **NEVER use `cy.findByTestId()` directly in tests** - Always use page object methods
+- **NEVER use `cy.findByRole()` directly in tests** - Always use page object methods
+- **NEVER use `cy.get()` directly in test files** - Always use page object methods
+- **NEVER use brittle selectors** (text, placeholders, CSS classes) - Add testIDs instead
+
+**Process when a UI element needs testing**:
+1. ✅ **Check if `data-testid` exists** - Search the React component
+2. ✅ **If missing, ADD `data-testid` to component** - Modify the React/TSX file
+3. ✅ **Create page object method** - Use `cy.findByTestId('testid-name')`
+4. ✅ **Use page object method in test** - e.g., `chatbotPage.findButton()`
+
+**If a brittle selector exists in old code**:
+1. 🔧 **Add `data-testid` to the component**
+2. 🔧 **Update page object to use testID**
+3. 🔧 **Tests automatically become more robust**
+
+**Examples of testID naming conventions**:
+- Buttons: `create-button`, `save-button`, `delete-playground-button`
+- Inputs: `temperature-input`, `message-input`, `search-input`
+- Toggles: `streaming-toggle`, `rag-toggle-switch`
+- Sections: `rag-section-title`, `mcp-servers-section-title`
+- Menus: `header-kebab-menu-toggle`, `configure-menu-item`
+- Actions: `empty-state-action-button`, `submit-form-button`
+
+Search existing page objects first before creating new ones
+
+**CRITICAL: Selector Priority and data-testid Requirements**
+
+**RULE #1: ALWAYS use `data-testid` for test selectors**
+
+`data-testid` attributes are **MANDATORY** for all interactive elements and key UI components. Never use brittle selectors when a testID can be added.
+
+**Process for adding testIDs**:
+1. **Check if testID exists** - Search the component for `data-testid`
+2. **If missing, ADD IT** - Modify the React component to add `data-testid="descriptive-name"`
+3. **Use kebab-case naming** - e.g., `message-input`, `delete-button`, `user-settings-form`
+4. **Be specific and descriptive** - e.g., `header-kebab-menu-toggle` not just `button`
+5. **Update page object** - Use `cy.findByTestId('testid-name')` in page object method
+
+**Selector Priority** (in order of preference):
+1. ✅ `data-testid` - **REQUIRED** for all interactive elements, buttons, inputs, forms, modals
+2. ✅ `findByLabelText` / `findByRole` - ONLY if testID cannot be added (e.g., external library components)
+3. ⚠️ Text content - ONLY for non-interactive content like headings, static labels (NOT for buttons or inputs)
+4. ❌ **NEVER USE**: DOM structure, CSS classes, placeholders, parent().find() chains
+
+**Examples of CORRECT testID usage**:
+
+```typescript
+class ExamplePage {
+  // ✅ BEST: data-testid on component
+  // Component: <Button data-testid="save-button">Save</Button>
+  findSaveButton() {
+    return cy.findByTestId('save-button');
+  }
+
+  // ✅ BEST: data-testid on input
+  // Component: <TextInput data-testid="temperature-input" />
+  findTemperatureInput() {
+    return cy.findByTestId('temperature-input');
+  }
+
+  // ✅ BEST: data-testid on section
+  // Component: <Title data-testid="rag-section-title">RAG</Title>
+  findRAGSection() {
+    return cy.findByTestId('rag-section-title').parent();
+  }
+
+  // ✅ ACCEPTABLE: Semantic query ONLY if testID cannot be added
+  findSystemInstructionInput() {
+    return cy.findByLabelText(/System instructions/i);
+  }
+}
+```
+
+**Examples of INCORRECT selectors (DO NOT DO THIS)**:
+
+```typescript
+// ❌ BAD: Placeholder text
+cy.get('textarea[placeholder*="Send"]')
+
+// ❌ BAD: Text + DOM traversal
+cy.findByText(/Temperature/i).parent().find('input')
+
+// ❌ BAD: Generic CSS selectors
+cy.get('input[type="checkbox"]')
+
+// ❌ BAD: Button text without testID
+cy.findByRole('button', { name: /Delete/i })
+
+// ❌ BAD: Class names
+cy.get('.pf-chatbot__message--bot')
+```
+
+**Page object pattern** (stored in `pages/` directory):
+
+```typescript
+class FeaturePage {
+  visit() {
+    cy.visitWithLogin('/feature-path');
+    this.wait();
+  }
+
+  private wait() {
+    cy.findByTestId('app-page-title');
+    cy.testA11y(); // Accessibility testing
+  }
+
+  findNavItem() {
+    return appChrome.findNavItem({
+      name: 'Feature Name',
+      rootSection: 'Settings',
+    });
+  }
+
+  findButton() {
+    return cy.findByTestId('feature-button');
+  }
+
+  findInput() {
+    return cy.findByTestId('feature-input');
+  }
+
+  shouldBeEmpty() {
+    cy.findByTestId('feature-empty-state').should('exist');
+    return this;
+  }
+}
+
+export const featurePage = new FeaturePage();
+```
+
+**CRITICAL: Never add timeouts to page object methods**
+
+❌ **BAD - Timeout in page object**:
+
+```typescript
+class ChatbotPage {
+  findMessageInput() {
+    // ❌ NEVER do this - timeouts belong in tests, not page objects
+    return cy.findByTestId('chatbot-message-bar', { timeout: 20000 });
+  }
+}
+```
+
+✅ **GOOD - Timeout in test**:
+
+```typescript
+class ChatbotPage {
+  findMessageInput() {
+    // ✅ GOOD - No timeout in page object
+    return cy.findByTestId('chatbot-message-bar');
+  }
+}
+
+// In test file:
+it('should load message input', () => {
+  // ✅ GOOD - Timeout specified in test when needed
+  chatbotPage.findMessageInput({ timeout: 20000 }).should('be.visible');
+});
+```
+
+**Why?**
+- Page objects should be reusable across different test scenarios
+- Different tests may need different timeouts
+- Timeouts are test-specific concerns, not page structure concerns
+- Keeps page objects clean and focused on element location
+
+**When to use timeouts in tests**:
+- Slow-loading dynamic content (e.g., API-dependent UI)
+- Elements that appear after animations or transitions
+- First interaction with a page after navigation
+- **Always specify timeout at the test level, never in page objects**
+
+**Table row page object pattern**:
+
+```typescript
+class FeatureTableRow extends TableRow {
+  findName() {
+    return this.find().findByTestId('row-name');
+  }
+
+  findStatus() {
+    return this.find().findByTestId('row-status');
+  }
+
+  shouldHaveName(name: string) {
+    this.findName().should('have.text', name);
+    return this;
+  }
+}
+
+class FeaturePage {
+  findTable() {
+    return cy.findByTestId('feature-table');
+  }
+
+  getTableRow(name: string) {
+    return new FeatureTableRow(() =>
+      this.findTable().findAllByTestId('table-row-title').contains(name).parents('tr'),
+    );
+  }
+}
+```
+
+### Backend Mocking with Interceptors
+
+**MANDATORY: Mock ALL network requests**:
+- Use `cy.interceptOdh()` for Dashboard API endpoints
+- Use `cy.interceptK8s()` for Kubernetes API resources (single resource)
+- Use `cy.interceptK8sList()` for Kubernetes API lists
+- NEVER make real network requests in mock tests
+
+**ODH API interceptor patterns**:
+
+```typescript
+// GET request
+cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+
+// GET with path parameters
+cy.interceptOdh(
+  'GET /api/connection-types/:name',
+  { path: { name: 'my-connection' } },
+  mockConnectionTypeConfigMap({ name: 'my-connection' }),
+);
+
+// POST request with alias for waiting
+cy.interceptOdh('POST /api/connection-types', { success: true }).as('createConnection');
+
+// PUT request
+cy.interceptOdh('PUT /api/cluster-settings', { success: true }).as('updateSettings');
+
+// DELETE request
+cy.interceptOdh(
+  'DELETE /api/connection-types/:name',
+  { path: { name: 'test-connection' } },
+  { success: true },
+).as('deleteConnection');
+
+// Error response
+cy.interceptOdh('POST /api/connection-types', {
+  success: false,
+  error: 'Connection type already exists',
+});
+```
+
+**Kubernetes API interceptor patterns**:
+
+```typescript
+import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { ProjectModel } from '../../../utils/models';
+
+// List resources
+cy.interceptK8sList(
+  { model: ProjectModel },
+  mockK8sResourceList([
+    mockProjectK8sResource({ name: 'project-1' }),
+    mockProjectK8sResource({ name: 'project-2' }),
+  ]),
+);
+
+// List with namespace
+cy.interceptK8sList(
+  { model: SomeModel, ns: 'opendatahub' },
+  mockK8sResourceList([mockResource({})]),
+);
+
+// Single resource
+cy.interceptK8s(
+  { model: ProjectModel, name: 'my-project' },
+  mockProjectK8sResource({ name: 'my-project' }),
+);
+```
+
+**Waiting for requests and validating payloads**:
+
+```typescript
+cy.interceptOdh('POST /api/connection-types', { success: true }).as('createConnection');
+
+// Trigger action that makes request
+somePage.findSubmitButton().click();
+
+// Wait and validate request payload
+cy.wait('@createConnection').then((interception) => {
+  expect(interception.request.body).to.containSubset({
+    name: 'my-connection',
+    displayName: 'My Connection',
+  });
+});
+
+// Or validate entire payload
+cy.wait('@createConnection').then((interception) => {
+  expect(interception.request.body).to.eql({
+    name: 'my-connection',
+    displayName: 'My Connection',
+    enabled: true,
+  });
+});
+```
+
+### Validation and Assertion Patterns
+
+**Use page objects for all validations**:
+
+```typescript
+// Good: Through page object
+featurePage.findStatus().should('have.text', 'Active');
+featurePage.shouldBeEmpty();
+row.shouldHaveName('Test Item');
+
+// Bad: Direct cy commands
+cy.findByTestId('status').should('have.text', 'Active');
+```
+
+**Use helper utilities for common assertions**:
+
+```typescript
+import { be } from '../../../utils/should';
+
+// Table sorting
+table.findTableHeaderButton('Name').should(be.sortAscending);
+table.findTableHeaderButton('Name').should(be.sortDescending);
+
+// Validation states
+input.findHint().should(be.error);
+input.findHint().should(be.default);
+alert.findAlert().should(be.warning);
+```
+
+**Form validation pattern**:
+
+```typescript
+it('should validate form inputs', () => {
+  featurePage.visit();
+
+  // Initially disabled
+  featurePage.findSubmitButton().should('be.disabled');
+
+  // Fill required fields
+  featurePage.findNameInput().type('Test Name');
+  featurePage.findSubmitButton().should('be.enabled');
+
+  // Clear and check validation
+  featurePage.findNameInput().clear();
+  featurePage.findSubmitButton().should('be.disabled');
+  featurePage.findNameHint().should(be.error);
+});
+```
+
+**Error handling pattern**:
+
+```typescript
+it('should display error message on API failure', () => {
+  cy.interceptOdh('POST /api/resource', {
+    success: false,
+    error: 'Resource already exists',
+  });
+
+  featurePage.visit();
+  featurePage.findNameInput().type('Test');
+  featurePage.findSubmitButton().click();
+
+  featurePage.findFooterError().should('contain.text', 'Resource already exists');
+  featurePage.findSubmitButton().should('be.enabled'); // Can retry
+});
+```
+
+### Code Quality and Linting
+
+**MANDATORY: Always lint before claiming test is complete**:
+
+> **Linting/fixing commands (must run from packages/cypress directory):**
+> ```bash
+> cd packages/cypress
+> npm run lint -- --fix
+> ```
+
+**All linting errors must be fixed**:
+- No test is ready until ALL linting errors are resolved
+- Use object destructuring for variables
+- Proper formatting and spacing
+- No unused variables or imports
+- No `any` types unless absolutely necessary
+- Follow existing code patterns
+- Use proper TypeScript types from imports
+
+### Creating Reusable Mocks
+
+**When to create a new mock function**:
+- New API endpoint or resource type needs mocking
+- Complex data structure used in multiple tests
+- Default test data needs to be consistent across tests
+
+**Mock function pattern** (in `frontend/src/__mocks__` folder, exposed as `@odh-dashboard/internal/__mocks__`):
+
+```typescript
+// mockFeature.ts
+import type { Feature } from '#~/types';
+
+export const mockFeature = (options?: Partial<Feature>): Feature => ({
+  id: 'test-feature',
+  name: 'Test Feature',
+  enabled: true,
+  description: 'Test description',
+  createdAt: '2024-01-01T00:00:00Z',
+  ...options, // Override with provided options
+});
+
+export const mockFeatureList = (count = 3): Feature[] =>
+  Array.from({ length: count }, (_, i) =>
+    mockFeature({
+      id: `feature-${i}`,
+      name: `Feature ${i}`
+    }),
+  );
+```
+
+**Using mock functions in tests**:
+
+```typescript
+import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeature';
+
+// Default mock
+cy.interceptOdh('GET /api/features/:id', mockFeature({}));
+
+// Custom mock
+cy.interceptOdh('GET /api/features/:id', mockFeature({
+  name: 'Custom Name',
+  enabled: false,
+}));
+
+// Multiple items
+cy.interceptOdh('GET /api/features', [
+  mockFeature({ id: 'feature-1' }),
+  mockFeature({ id: 'feature-2', enabled: false }),
+]);
+```
+
+### Test Independence and Reusability
+
+**Each test must be independent**:
+- Tests should not depend on execution order
+- Use `beforeEach` for common setup
+- Each test should set up its own specific data
+- No shared mutable state between tests
+
+**Reusability principles**:
+- Extract common intercept setup to `initIntercepts` function
+- Reuse page objects across multiple test files
+- Reuse mock data from `__mocks__` folder
+- Create utility functions for repeated test patterns
+
+### Accessibility Testing
+
+**MANDATORY: All page visits should include accessibility testing**:
+
+```typescript
+class FeaturePage {
+  visit() {
+    cy.visitWithLogin('/feature-path');
+    this.wait();
+  }
+
+  private wait() {
+    cy.findByTestId('app-page-title');
+    cy.testA11y(); // Runs accessibility checks
+  }
+}
+```
+
+**Additional accessibility testing**:
+
+```typescript
+// Test accessibility after modal opens
+modal.shouldBeOpen();
+cy.testA11y();
+
+// Test accessibility after page state change
+featurePage.findButton().click();
+cy.testA11y();
+```
+
+## Test Execution and Debugging
+
+### Running Mock Tests
+
+**From workspace root**:
+
+```bash
+# Run all mock tests (build + start server + run tests)
+npm run test:cypress-ci
+
+# Run specific test file
+npm run test:cypress-ci -- --spec "**/featureName.cy.ts"
+```
+
+**Development workflow** (requires separate terminals):
+
+```bash
+cd frontend
+
+# Terminal 1: Start dev server (auto-rebuilds on changes)
+npm run cypress:server:dev
+
+# Terminal 2: Open Cypress GUI for interactive testing
+npm run cypress:open:mock
+
+# OR run tests headless
+npm run cypress:run:mock
+
+# Run specific test
+npm run cypress:run:mock -- --spec "**/featureName.cy.ts"
+```
+
+**Production-like testing**:
+
+```bash
+# Build frontend once
+npm run cypress:server:build
+
+# Start HTTP server
+npm run cypress:server
+
+# Run tests (in another terminal)
+npm run cypress:run:mock
+```
+
+### Debugging Failed Tests
+
+**Common failure patterns**:
+
+1. **Intercept not matching**:
+   - Check endpoint URL matches exactly
+   - Verify path parameters are correct
+   - Ensure method (GET/POST/PUT/DELETE) matches
+
+2. **Element not found**:
+   - Verify `data-testid` exists in UI
+   - Check page object method is correct
+   - Ensure page has loaded (use `.wait()` in page object)
+
+3. **Timing issues**:
+   - Use `.should()` assertions (auto-retry)
+   - Wait for intercepts with `.as()` and `cy.wait()`
+   - Never use `cy.wait(milliseconds)` for arbitrary delays
+
+4. **Assertion failures**:
+   - Check mock data matches expected values
+   - Verify request payload structure
+   - Use `.containSubset()` for partial matching
+
+**Debugging commands**:
+
+```bash
+# Open Cypress GUI with memory optimization
+npm run cypress:open:mock -- --config numTestsKeptInMemory=0
+
+# Run with verbose output
+DEBUG=cypress:* npm run cypress:run:mock
+```
+
+## Implementation Checklist
+
+### Before writing any test:
+
+- [ ] Gathered all required context (JIRA, requirements, designs)
+- [ ] Searched for similar tests in `tests/mocked/` directory
+- [ ] Reviewed existing page objects in `pages/` directory
+- [ ] Checked `__mocks__` folder for reusable mock data
+- [ ] Identified API endpoints that need mocking
+- [ ] Planned test scenarios and edge cases
+
+### During implementation:
+
+- [ ] Use `beforeEach` for common setup
+- [ ] Use `describe` and `it` blocks properly
+- [ ] Mock ALL network requests with interceptors
+- [ ] Use page objects for ALL UI interactions (never direct `cy.findByTestId`)
+- [ ] Create `data-testid` attributes if they don't exist
+- [ ] Create page object methods for new UI elements
+- [ ] Use `.as()` and `cy.wait()` for request validation
+- [ ] Use mock data from `__mocks__` folder
+- [ ] Test access control scenarios (admin vs non-admin)
+- [ ] Test feature flags if applicable
+- [ ] Test error handling scenarios
+- [ ] Include accessibility testing (`cy.testA11y()`)
+
+### After implementation:
+
+- [ ] Run linting: `cd packages/cypress && npm run lint -- --fix`
+- [ ] Fix ALL linting errors
+- [ ] Run test locally: `npm run test:cypress-ci -- --spec "**/yourTest.cy.ts"`
+- [ ] Verify test passes consistently (run 2-3 times)
+- [ ] Test in Cypress GUI for visual verification
+- [ ] Review test coverage - did you test all scenarios?
+- [ ] Document any new page objects or mocks created
+- [ ] Clean up any commented code or console.logs
+
+### Quality gates:
+
+- [ ] No direct `cy.findByTestId`, `cy.findByRole`, or `cy.get` in tests
+- [ ] All selectors are in page objects
+- [ ] All mock data comes from `@odh-dashboard/internal/__mocks__`
+- [ ] All network requests are mocked
+- [ ] No arbitrary `cy.wait(milliseconds)`
+- [ ] Test is independent (doesn't depend on other tests)
+- [ ] Accessibility testing included
+- [ ] Zero linting errors
+- [ ] Test passes consistently
+
+## Differences from E2E Tests
+
+| Aspect | Mock Tests | E2E Tests |
+|--------|-----------|-----------|
+| **Backend** | All requests mocked | Real cluster APIs |
+| **Speed** | Very fast (seconds) | Slower (minutes) |
+| **Setup** | No cluster needed | Requires cluster access |
+| **Data** | Mocked from `@odh-dashboard/internal/__mocks__` | Real cluster resources |
+| **Test Variables** | Not used | Uses `test-variables.yml` |
+| **OC Commands** | Never used | Used for setup/cleanup |
+| **Intercepts** | ALWAYS required | Not used |
+| **User Context** | Mocked (asProductAdminUser) | Real login |
+| **Use Case** | UI logic, validation, forms | Full integration, workflows |
+| **CI/CD** | Runs on every PR | Runs periodically |
+
+## Module-Specific Testing Patterns
+
+### Overview
+
+Some modules (like GenAI) have their own Cypress test suites with unique patterns and helper functions. When working with module-specific tests:
+
+1. **Always check for existing test helpers** - Modules may have centralized setup functions
+2. **Follow established patterns** - Look at existing passing tests in the module
+3. **Use module-specific intercepts** - Different modules may use different intercept commands
+4. **Respect module conventions** - Tags, steps, and structure may vary by module (e.g., GenAI uses `tags` and `cy.step()` in mock tests)
+
+### Module Testing Best Practices
+
+**CRITICAL**: When creating tests for any module, ALWAYS:
+
+1. **Discover the existing pattern first**:
+   - Find similar passing tests in the module
+   - Identify helper functions (look for `*TestHelpers.ts` files)
+   - Check for test configuration files (YAML, JSON)
+   - Review page objects specific to the module
+
+2. **Use helper functions consistently**:
+   - Never manually replicate setup that helpers provide
+   - Helpers ensure consistent configuration and state
+   - Deviating from helpers leads to hard-to-debug failures
+
+3. **Wait for UI readiness**:
+   - After navigation, always wait for key UI elements
+   - Don't assume the page is ready after `visit()`
+   - Check for specific elements before interaction
+
+### Example: GenAI Module Pattern
+
+The GenAI module demonstrates these principles well:
+
+```typescript
+import {
+  loadMCPTestConfig,
+  initIntercepts,
+  navigateToChatbot,
+  type MCPTestConfig,
+} from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
+
+describe('My GenAI Feature Test', () => {
+  let config: MCPTestConfig;
+
+  before(() => {
+    loadMCPTestConfig().then((data) => {
+      config = data;
+    });
+  });
+
+  it('should test feature', { tags: ['@GenAI', '@MyFeature'] }, () => {
+    const namespace = config.defaultNamespace;
+    const { name: serverName, url: serverUrl } = config.servers.github;
+
+    cy.step('Setup base mocks with MCP servers');
+    initIntercepts({
+      config,
+      namespace,
+      serverName,
+      serverUrl,
+    });
+
+    cy.step('Navigate to chatbot playground');
+    navigateToChatbot(namespace);
+
+    cy.step('Wait for chatbot playground to be ready');
+    chatbotPage.findChatbotPlayground().should('be.visible');
+
+    // Your test steps here...
+  });
+});
+```
+
+**Key Principles (using GenAI as example)**:
+- Use helper functions when they exist (`initIntercepts()` consolidates 10+ mocks into one call)
+- Follow navigation helpers (`navigateToChatbot()`) for consistent page state
+- ALWAYS wait for UI readiness after navigation before interacting with elements
+- Use module-specific intercepts (`cy.interceptGenAi()` vs `cy.interceptOdh()`)
+
+### Universal Pattern: Discover Before Implementing
+
+**Step 1**: Find existing working tests in the module
+**Step 2**: Identify helper functions (look for `*TestHelpers.ts`, `*Helpers.ts`)
+**Step 3**: Use the same pattern - don't deviate
+**Step 4**: Wait for UI elements before interaction
+
+### Common Mistakes (All Modules)
+
+❌ **Setting up mocks manually when helpers exist**
+
+```typescript
+// Antipattern - hard to maintain, easy to forget mocks
+cy.interceptApi('GET /endpoint1', mock1());
+cy.interceptApi('GET /endpoint2', mock2());
+// ... many more
+```
+
+✅ **Use helper functions**
+
+```typescript
+// Correct - consistent, maintainable
+setupBaseHelpers({ config, ...options });
+```
+
+❌ **Navigating without waiting for UI**
+
+```typescript
+// Antipattern - race conditions, flaky tests
+myPage.visit();
+myPage.clickButton(); // May fail!
+```
+
+✅ **Wait for specific UI elements**
+
+```typescript
+// Correct - reliable, explicit
+myPage.visit();
+myPage.findMainContent().should('be.visible');
+myPage.findButton().should('be.visible');
+myPage.clickButton(); // Safe
+```
+
+**GenAI module demonstrates these principles**:
+- See `mcpServers.cy.ts` for working examples
+- Helper: `mcpServersTestHelpers.ts`
+- Page objects: `packages/gen-ai/frontend/src/__tests__/cypress/cypress/pages/`
+
+
+## Final Notes
+
+**Mock tests are for fast feedback**:
+- Run on every code change
+- Test component behavior in isolation
+- Validate form logic, validation, and UI states
+- Test error handling and edge cases
+- No cluster dependencies
+
+**When to use mock vs E2E**:
+- Mock: Testing UI components, forms, tables, modals, routing, permission checks
+- E2E: Testing actual cluster operations, data persistence, cross-service workflows
+
+**Best practices summary**:
+1. Always use page objects (never direct selectors in tests)
+2. Always mock network requests (use interceptors)
+3. Always use reusable mocks from `@odh-dashboard/internal/__mocks__`
+4. Always test access control and feature flags
+5. Always test error scenarios
+6. Always lint before finishing
+7. Always run tests locally before committing

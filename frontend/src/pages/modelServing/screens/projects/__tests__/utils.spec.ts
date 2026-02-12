@@ -22,7 +22,7 @@ import {
   getNIMData,
   getNIMResource,
   updateServingRuntimeTemplate,
-} from '#~/pages/modelServing/screens/projects/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 
@@ -33,8 +33,8 @@ jest.mock('#~/api', () => ({
   getInferenceServiceContext: jest.fn(),
 }));
 
-jest.mock('#~/pages/modelServing/screens/projects/nimUtils', () => ({
-  ...jest.requireActual('#~/pages/modelServing/screens/projects/nimUtils'),
+jest.mock('#~/pages/modelServing/screens/projects/nim/nimUtils', () => ({
+  ...jest.requireActual('#~/pages/modelServing/screens/projects/nim/nimUtils'),
   getNIMData: jest.fn(),
   getNIMResource: jest.fn(),
 }));

@@ -30,6 +30,14 @@ describe('Verify project access for user types in Training Jobs', () => {
   let gpuQuota: number;
   const uuid = generateTestUUID();
 
+  const shouldSkip = () => {
+    if (skipTest) {
+      cy.log('Skipping test - Trainer is RHOAI-specific and not available on ODH.');
+      return true;
+    }
+    return false;
+  };
+
   retryableBefore(() => {
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
@@ -94,7 +102,7 @@ describe('Verify project access for user types in Training Jobs', () => {
   });
 
   after(() => {
-    if (skipTest) {
+    if (shouldSkip()) {
       cy.log('Skipping cleanup: Tests were skipped');
       return;
     }
@@ -112,17 +120,14 @@ describe('Verify project access for user types in Training Jobs', () => {
     });
   });
 
-  beforeEach(function skipIfNotRHOAI() {
-    if (skipTest) {
-      cy.log('Skipping test - Trainer component is RHOAI-specific and not available on ODH.');
-      this.skip();
-    }
-  });
-
   it(
     'Admin can access project and view training job',
     { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
+      if (shouldSkip()) {
+        return;
+      }
+
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -142,6 +147,10 @@ describe('Verify project access for user types in Training Jobs', () => {
     'Regular user cannot access project without permissions',
     { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
+      if (shouldSkip()) {
+        return;
+      }
+
       cy.step('Log in as regular user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
@@ -158,6 +167,10 @@ describe('Verify project access for user types in Training Jobs', () => {
     'Regular user can access project after admin grants permission',
     { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
+      if (shouldSkip()) {
+        return;
+      }
+
       cy.step('Grant edit role to regular user via oc command');
       addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'edit');
 

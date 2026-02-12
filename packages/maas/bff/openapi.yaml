@@ -1,0 +1,533 @@
+openapi: 3.0.3
+info:
+  title: MaaS BFF API
+  version: 1.0.0
+  description: Backend for Frontend (BFF) API for Model as a Service (MaaS)
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: /maas
+    description: Base path for MaaS BFF
+
+security:
+  - bearerAuth: []
+
+paths:
+  /healthcheck:
+    get:
+      summary: Health Check
+      operationId: getHealthCheck
+      description: Returns the health status of the service
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+        '500':
+          description: Internal Server Error
+
+  /api/v1/user:
+    get:
+      summary: Get Current User
+      operationId: getCurrentUser
+      description: Returns information about the currently authenticated user
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request (missing identity)
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+  /api/v1/namespaces:
+    get:
+      summary: Get Namespaces
+      operationId: getNamespaces
+      description: Returns a list of namespaces accessible to the user
+      responses:
+        '200':
+          description: List of namespaces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Namespace'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+  /api/v1/tiers:
+    get:
+      summary: List Tiers
+      operationId: listTiers
+      description: Returns a list of available tiers
+      responses:
+        '200':
+          description: List of tiers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tier'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+  /api/v1/tier:
+    post:
+      summary: Create Tier
+      operationId: createTier
+      description: Creates a new tier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/Tier'
+      responses:
+        '201':
+          description: Tier created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Tier'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict (Tier already exists)
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+
+  /api/v1/tier/{name}:
+    get:
+      summary: Get Tier
+      operationId: getTier
+      description: Returns details of a specific tier
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tier details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Tier'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Tier not found
+        '500':
+          description: Internal Server Error
+    put:
+      summary: Update Tier
+      operationId: updateTier
+      description: Updates an existing tier
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/Tier'
+      responses:
+        '200':
+          description: Tier updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Tier'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Tier not found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Delete Tier
+      operationId: deleteTier
+      description: Deletes a specific tier
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tier deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Tier not found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /api/v1/api-keys:
+    get:
+      summary: List API Keys
+      operationId: listApiKeys
+      description: Returns a list of API keys for the authenticated user
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/APIKeyMetadata'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+    delete:
+      summary: Delete All API Keys
+      operationId: deleteAllApiKeys
+      description: Deletes all API keys for the authenticated user
+      responses:
+        '200':
+          description: All API keys deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+  /api/v1/api-key:
+    post:
+      summary: Create API Key
+      operationId: createApiKey
+      description: Creates a new API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APIKeyRequest'
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/APIKeyResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+  /api/v1/api-key/{id}:
+    get:
+      summary: Get API Key
+      operationId: getApiKey
+      description: Returns details of a specific API key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: API key details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/APIKeyMetadata'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '404':
+          description: API key not found
+        '500':
+          description: Internal Server Error
+
+  /api/v1/models:
+    get:
+      summary: List MaaS Models
+      operationId: listModels
+      description: Returns a list of available MaaS models
+      responses:
+        '200':
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Model'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+        system_info:
+          type: object
+          properties:
+            version:
+              type: string
+
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+        clusterAdmin:
+          type: boolean
+
+    Namespace:
+      type: object
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+
+    Tier:
+      type: object
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        level:
+          type: integer
+        groups:
+          type: array
+          items:
+            type: string
+        models:
+          type: array
+          items:
+            type: string
+        limits:
+          $ref: '#/components/schemas/TierLimits'
+      required:
+        - name
+
+    TierLimits:
+      type: object
+      properties:
+        tokensPerUnit:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateLimit'
+        requestsPerUnit:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateLimit'
+
+    RateLimit:
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int64
+        time:
+          type: integer
+          format: int64
+        unit:
+          type: string
+          enum: [hour, minute, second, millisecond]
+
+    APIKeyRequest:
+      type: object
+      properties:
+        expiration:
+          type: string
+          description: "Duration string (e.g., '4h', '30m') or seconds"
+        name:
+          type: string
+        description:
+          type: string
+
+    APIKeyResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expiration:
+          type: string
+        expiresAt:
+          type: integer
+          format: int64
+        jti:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    APIKeyMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        creationDate:
+          type: string
+          format: date-time
+        expirationDate:
+          type: string
+          format: date-time
+          description: Scheduled expiration date of the API key
+        status:
+          type: string
+          enum: [active, expired]
+        expiredAt:
+          type: string
+          format: date-time
+          description: Actual timestamp when the key expired or was revoked
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The model identifier
+          example: llama-2-7b-chat
+        object:
+          type: string
+          description: The object type, always "model"
+          example: model
+        created:
+          type: integer
+          description: The Unix timestamp (in seconds) when the model was created
+          example: 1672531200
+          format: int64
+        owned_by:
+          type: string
+          description: The organization that owns the model
+          example: model-namespace
+        ready:
+          type: boolean
+          description: Model ready status
+          example: true
+        url:
+          type: string
+          description: Model URL (optional)
+          example: https://api.example.com/v1/models/llama-2-7b-chat
+      example:
+        created: 1672531200
+        id: llama-2-7b-chat
+        object: model
+        owned_by: model-namespace
+        ready: true
+        url: https://api.example.com/v1/models/llama-2-7b-chat
+      required:
+        - id
+        - object
+        - created
+        - owned_by
+        - ready

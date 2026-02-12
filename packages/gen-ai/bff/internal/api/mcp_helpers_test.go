@@ -156,24 +156,10 @@ func TestParseMCPEndpointParams(t *testing.T) {
 }
 
 func TestSetupMCPEndpoint(t *testing.T) {
+	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: logger,
-		Ctx:    ctx,
-		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
-	require.NoError(t, err)
-
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
-		AuthMethod: "user_token",
-	}, logger)
+	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 	require.NoError(t, err)
 
 	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
@@ -277,24 +263,10 @@ func TestSetupMCPEndpoint(t *testing.T) {
 // where real implementations are used.
 
 func TestFindMCPServerConfig(t *testing.T) {
+	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: logger,
-		Ctx:    ctx,
-		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
-	require.NoError(t, err)
-
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
-		AuthMethod: "user_token",
-	}, logger)
+	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 	require.NoError(t, err)
 
 	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
@@ -595,24 +567,10 @@ func TestMapMCPErrorToHTTPError(t *testing.T) {
 
 // Integration test combining multiple helper functions
 func TestMCPHelpersIntegration(t *testing.T) {
+	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testEnv := k8smocks.TestEnvInput{
-		Users:  k8smocks.DefaultTestUsers,
-		Logger: logger,
-		Ctx:    ctx,
-		Cancel: cancel,
-	}
-
-	testEnvironment, ctrlClient, err := k8smocks.SetupEnvTest(testEnv)
-	require.NoError(t, err)
-
-	mockK8sFactory, err := k8smocks.NewMockedKubernetesClientFactory(ctrlClient, testEnvironment, config.EnvConfig{
-		AuthMethod: "user_token",
-	}, logger)
+	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 	require.NoError(t, err)
 
 	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
@@ -626,6 +584,11 @@ func TestMCPHelpersIntegration(t *testing.T) {
 		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 		mcpClientFactory:        mockMCPFactory,
 	}
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Errorf("Failed to shutdown app: %v", err)
+		}
+	}()
 
 	t.Run("complete flow with valid parameters", func(t *testing.T) {
 		// Step 1: Parse parameters

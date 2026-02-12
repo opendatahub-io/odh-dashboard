@@ -191,8 +191,8 @@ export const navigateToPlayground = (namespace: string): void => {
   appChrome.visit();
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
-  playgroundPage.mcpPanel.expandMCPPanelIfNeeded();
-  playgroundPage.mcpPanel.verifyMCPPanelVisible();
+  playgroundPage.mcpTab.openMCPTab();
+  playgroundPage.mcpTab.verifyMCPTabVisible();
 };
 
 /**

@@ -7,6 +7,7 @@ import {
   mockModelId,
   mockSourceSettings,
   mockSuccessResponse,
+  mockMetrics,
   mockNamespace,
   defaultMcpProps,
 } from './consts';
@@ -94,7 +95,8 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0]).toMatchObject({
         role: 'bot',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -165,7 +167,8 @@ describe('useChatbotMessages', () => {
           chat_context: [
             {
               role: 'assistant',
-              content: 'Send a message to test your configuration',
+              content:
+                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
             },
           ],
           instructions: '',
@@ -229,7 +232,8 @@ describe('useChatbotMessages', () => {
           chat_context: [
             {
               role: 'assistant',
-              content: 'Send a message to test your configuration',
+              content:
+                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
             },
           ],
           instructions: '',
@@ -375,7 +379,8 @@ describe('useChatbotMessages', () => {
           chat_context: [
             {
               role: 'assistant',
-              content: 'Send a message to test your configuration',
+              content:
+                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
             },
           ],
           instructions: '',
@@ -417,14 +422,16 @@ describe('useChatbotMessages', () => {
       expect(firstCall.chat_context).toHaveLength(1);
       expect(firstCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
 
       const secondCall = mockCreateResponse.mock.calls[1][0];
       expect(secondCall.chat_context).toHaveLength(3);
       expect(secondCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
@@ -450,7 +457,8 @@ describe('useChatbotMessages', () => {
       expect(call.chat_context).toHaveLength(1);
       expect(call.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
     });
 
@@ -486,7 +494,8 @@ describe('useChatbotMessages', () => {
       expect(secondCall.chat_context).toHaveLength(3);
       expect(secondCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
@@ -531,7 +540,8 @@ describe('useChatbotMessages', () => {
       expect(secondCall.chat_context).toHaveLength(3);
       expect(secondCall.chat_context![0]).toMatchObject({
         role: 'assistant',
-        content: 'Send a message to test your configuration',
+        content:
+          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
       });
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
@@ -602,6 +612,62 @@ describe('useChatbotMessages', () => {
 
       // Verify isDefaultExpanded is false in streaming mode too
       expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+    });
+  });
+
+  describe('metrics handling', () => {
+    it('should include metrics in non-streaming response', async () => {
+      const mockResponseWithMetrics: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        metrics: mockMetrics,
+      };
+
+      mockCreateResponse.mockResolvedValueOnce(mockResponseWithMetrics);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test message');
+      });
+
+      const botMessage = result.current.messages[2];
+
+      expect(botMessage.metrics).toBeDefined();
+      expect(botMessage.metrics?.latency_ms).toBe(1500);
+      expect(botMessage.metrics?.usage?.total_tokens).toBe(60);
+    });
+
+    it('should include metrics in streaming response', async () => {
+      const mockStreamingResponseWithMetrics: SimplifiedResponseData = {
+        ...mockSuccessResponse,
+        metrics: {
+          ...mockMetrics,
+          time_to_first_token_ms: 200,
+        },
+      };
+
+      mockCreateResponse.mockImplementation(
+        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+          if (opts?.onStreamData) {
+            opts.onStreamData('Streaming content');
+          }
+          return Promise.resolve(mockStreamingResponseWithMetrics);
+        },
+      );
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Test streaming');
+      });
+
+      const botMessage = result.current.messages[2];
+
+      expect(botMessage.metrics).toBeDefined();
+      expect(botMessage.metrics?.latency_ms).toBe(1500);
+      expect(botMessage.metrics?.time_to_first_token_ms).toBe(200);
     });
   });
 });

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import type { DashboardResource } from '@perses-dev/core';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
-import HeaderProjectSelector from './HeaderProjectSelector';
 import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
+import NamespaceUrlSync from './NamespaceUrlSync';
 import PersesWrapper from '../perses/PersesWrapper';
 import PersesBoard from '../perses/PersesBoard';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
@@ -17,6 +17,10 @@ import {
   hasClusterDetailsVariables,
   DASHBOARD_QUERY_PARAM,
 } from '../utils/dashboardUtils';
+import {
+  transformNamespaceVariable,
+  NAMESPACE_URL_PARAM,
+} from '../utils/transformDashboardVariables';
 
 export type DashboardContentProps = {
   dashboards: DashboardResource[];
@@ -28,7 +32,6 @@ export type DashboardContentProps = {
  */
 const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
   const navigate = useNavigate();
-  const { '*': projectName = '' } = useParams();
   const [searchParams] = useSearchParams();
   const { projects } = React.useContext(ProjectsContext);
 
@@ -38,10 +41,31 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
   // Get dashboard name from query param
   const dashboardNameFromUrl = searchParams.get(DASHBOARD_QUERY_PARAM) || '';
 
-  // Get all project names for the regex union when "All projects" is selected
+  // Get all project names to populate the namespace variable options
   const allProjectNames = React.useMemo(
     () => projects.map((project) => project.metadata.name),
     [projects],
+  );
+
+  // Get initial namespace value from URL to preserve selection across tab switches
+  const initialNamespaceValue = React.useMemo(() => {
+    const urlValue = searchParams.get(NAMESPACE_URL_PARAM);
+    if (!urlValue) {
+      return undefined;
+    }
+    // Handle comma-separated values for multi-select
+    return urlValue.includes(',') ? urlValue.split(',') : urlValue;
+  }, [searchParams]);
+
+  // Transform the active dashboard to use static namespace options when projects are available
+  // This prevents Perses from running a Prometheus query when we can provide the options directly
+  // Also sets the initial namespace value from URL to preserve selection across tab switches
+  const transformedDashboards = React.useMemo(
+    () =>
+      dashboards.map((dashboard) =>
+        transformNamespaceVariable(dashboard, allProjectNames, initialNamespaceValue),
+      ),
+    [dashboards, allProjectNames, initialNamespaceValue],
   );
 
   // Find the active dashboard by name, defaulting to first dashboard
@@ -49,16 +73,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     if (!dashboardNameFromUrl) {
       return 0;
     }
-    const index = dashboards.findIndex((d) => d.metadata.name === dashboardNameFromUrl);
+    const index = transformedDashboards.findIndex((d) => d.metadata.name === dashboardNameFromUrl);
     return index >= 0 ? index : 0;
-  }, [dashboards, dashboardNameFromUrl]);
+  }, [transformedDashboards, dashboardNameFromUrl]);
 
-  // Guard against empty dashboards array
-  if (dashboards.length === 0) {
-    return null;
-  }
-
-  const activeDashboard = dashboards[activeDashboardIndex] || dashboards[0];
+  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
   const activeDashboardName = activeDashboard.metadata.name;
 
   // Check if the active dashboard needs cluster details variables
@@ -72,36 +91,28 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
         return;
       }
       event.preventDefault();
-      navigate(buildDashboardUrl(projectName, String(eventKey), searchParams.toString()));
+      // Use replace to avoid creating extra history entries when switching tabs
+      navigate(buildDashboardUrl(String(eventKey), searchParams.toString()), { replace: true });
     },
-    [navigate, projectName, searchParams],
+    [navigate, searchParams],
   );
 
-  // Handle project change - update URL path
-  const handleProjectChange = React.useCallback(
-    (newProject: string) => {
-      navigate(buildDashboardUrl(newProject, activeDashboardName, searchParams.toString()));
-    },
-    [navigate, activeDashboardName, searchParams],
-  );
+  // Guard against empty dashboards array
+  if (transformedDashboards.length === 0) {
+    return null;
+  }
 
   return (
     <div ref={setRelativeLinkHandlerRef}>
       <PersesWrapper key={activeDashboardName} dashboardResource={activeDashboard}>
         {needsClusterDetails && <ClusterDetailsVariablesProvider />}
+        <NamespaceUrlSync />
         <ApplicationsPage
           title={DASHBOARD_PAGE_TITLE}
           description={DASHBOARD_PAGE_DESCRIPTION}
           loaded
           empty={false}
           headerAction={<HeaderTimeRangeControls />}
-          headerContent={
-            <HeaderProjectSelector
-              selectedProject={projectName}
-              onProjectChange={handleProjectChange}
-              allProjectNames={allProjectNames}
-            />
-          }
         >
           <Tabs
             data-testid="observability-dashboard-tabs"
@@ -111,16 +122,12 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
             mountOnEnter
             unmountOnExit
           >
-            {dashboards.map((dashboard) => (
+            {transformedDashboards.map((dashboard) => (
               <Tab
                 key={dashboard.metadata.name}
                 eventKey={dashboard.metadata.name}
                 title={<TabTitleText>{getDashboardDisplayName(dashboard)}</TabTitleText>}
-                href={buildDashboardUrl(
-                  projectName,
-                  dashboard.metadata.name,
-                  searchParams.toString(),
-                )}
+                href={buildDashboardUrl(dashboard.metadata.name, searchParams.toString())}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
                   <PersesBoard />

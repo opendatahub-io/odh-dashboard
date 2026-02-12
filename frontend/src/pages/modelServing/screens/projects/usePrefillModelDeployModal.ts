@@ -29,7 +29,7 @@ import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { PrefilledConnection } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
-import useLabeledConnections from './useLabeledConnections';
+import useLabeledConnections from './nim/useLabeledConnections';
 
 export type ModelDeployPrefillInfo = {
   modelName: string;

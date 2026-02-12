@@ -49,6 +49,7 @@ type MockResourceConfigType = {
   region?: string;
   uid?: string;
   uri?: string;
+  annotations?: Record<string, string>;
 };
 
 export const mockSecretK8sResource = ({
@@ -61,6 +62,7 @@ export const mockSecretK8sResource = ({
   endPoint = 'aHR0cHM6Ly9zMy5hbWF6b25hd3MuY29tLw==',
   region = 'dXMtZWFzdC0x',
   uid = genUID('secret'),
+  annotations = {},
 }: MockResourceConfigType): SecretKind =>
   mockCustomSecretK8sResource({
     name,
@@ -72,6 +74,7 @@ export const mockSecretK8sResource = ({
     annotations: {
       'opendatahub.io/connection-type': connectionType,
       'openshift.io/display-name': displayName,
+      ...annotations,
     },
     data: data || {
       AWS_ACCESS_KEY_ID: 'c2RzZA==',

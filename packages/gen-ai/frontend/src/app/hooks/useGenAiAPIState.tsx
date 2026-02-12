@@ -21,6 +21,8 @@ import {
   getMCPServers,
   getMCPServerStatus,
   createResponse,
+  getGuardrailsStatus,
+  getSafetyConfig,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -50,6 +52,8 @@ const useGenAiAPIState = (
       getMCPServers: getMCPServers(path, queryParameters),
       getMCPServerStatus: getMCPServerStatus(path, queryParameters),
       getBFFConfig: getBFFConfig(path, queryParameters),
+      getGuardrailsStatus: getGuardrailsStatus(path, queryParameters),
+      getSafetyConfig: getSafetyConfig(path, queryParameters),
     }),
     [queryParameters],
   );

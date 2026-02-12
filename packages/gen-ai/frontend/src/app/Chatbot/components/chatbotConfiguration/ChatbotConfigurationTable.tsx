@@ -17,12 +17,16 @@ type ChatbotConfigurationTableProps = {
   allModels: AIModel[];
   selectedModels: AIModel[];
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
+  maxTokensMap: Map<string, number | undefined>;
+  onMaxTokensChange: (modelName: string, value: number | undefined) => void;
 };
 
 const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   allModels,
   selectedModels,
   setSelectedModels,
+  maxTokensMap,
+  onMaxTokensChange,
 }) => {
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
@@ -106,6 +110,8 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               isChecked={isSelected(model)}
               onToggleCheck={() => toggleSelection(model)}
               model={model}
+              maxTokens={maxTokensMap.get(model.model_name)}
+              onMaxTokensChange={(value) => onMaxTokensChange(model.model_name, value)}
             />
           )}
           selectAll={{

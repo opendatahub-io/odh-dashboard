@@ -11,7 +11,7 @@ import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import './MetricsPageTabs.scss';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import PerformanceTab from './performance/PerformanceTab';

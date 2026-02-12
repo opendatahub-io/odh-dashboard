@@ -11,7 +11,6 @@ import TypeaheadSelect, {
 import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionDetailsHelperText';
 import {
   getConnectionTypeDisplayName,
-  getConnectionTypeRef,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
@@ -22,7 +21,7 @@ import {
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../../types';
-import { isExistingModelLocation } from '../../utils';
+import { isExistingModelLocation, resolveConnectionType } from '../../utils';
 
 type ExistingConnectionFieldProps = {
   children?: React.ReactNode;
@@ -90,53 +89,27 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
             toggleWidth="450px"
             selectOptions={options}
             onSelect={(_, value) => {
-              if (
-                modelLocationData &&
-                (!selectedConnection ||
-                  getResourceNameFromK8sResource(selectedConnection) !== value)
-              ) {
-                resetModelLocationData?.();
+              const alreadySelectedConnection =
+                selectedConnection && getResourceNameFromK8sResource(selectedConnection) === value;
+              if (alreadySelectedConnection) {
+                return;
               }
+
+              resetModelLocationData?.();
 
               const newConnection = projectConnections.find(
                 (conn) => getResourceNameFromK8sResource(conn) === value,
               );
               if (!newConnection) return;
-
               onSelect(newConnection);
-
-              const newConnectionType = connectionTypes.find(
-                (ct) => ct.metadata.name === getConnectionTypeRef(newConnection),
-              );
-
-              if (newConnectionType) {
-                const additionalFields: { modelPath?: string; modelUri?: string } = {};
-
-                if (
-                  isModelServingCompatible(
-                    newConnectionType,
-                    ModelServingCompatibleTypes.S3ObjectStorage,
-                  )
-                ) {
-                  additionalFields.modelPath = newConnection.data?.AWS_S3_FOLDER_PATH ?? '';
-                }
-
-                if (isModelServingCompatible(newConnectionType, ModelServingCompatibleTypes.OCI)) {
-                  additionalFields.modelUri = newConnection.data?.OCI_MODEL_URI ?? '';
-                }
-
-                if (isModelServingCompatible(newConnectionType, ModelServingCompatibleTypes.URI)) {
-                  additionalFields.modelUri = window.atob(newConnection.data?.URI ?? '');
-                }
-
-                setModelLocationData?.({
-                  type: ModelLocationType.EXISTING,
-                  connectionTypeObject: newConnectionType,
-                  connection: getResourceNameFromK8sResource(newConnection),
-                  fieldValues: {},
-                  additionalFields,
-                });
-              }
+              const newConnectionType = resolveConnectionType(newConnection, connectionTypes);
+              setModelLocationData?.({
+                type: ModelLocationType.EXISTING,
+                connectionTypeObject: newConnectionType,
+                connection: getResourceNameFromK8sResource(newConnection),
+                fieldValues: {},
+                additionalFields: modelLocationData?.additionalFields ?? {},
+              });
             }}
             popperProps={{ appendTo: 'inline' }}
             previewDescription={false}
@@ -159,11 +132,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
           selectedConnectionType?.metadata.name === ConnectionTypeRefs.S3) && (
           <StackItem>
             <ConnectionS3FolderPathField
-              folderPath={
-                isExistingModelLocation(modelLocationData)
-                  ? modelLocationData.additionalFields.modelPath ?? ''
-                  : ''
-              }
+              folderPath={modelLocationData?.additionalFields.modelPath ?? ''}
               setFolderPath={(path) => {
                 if (isExistingModelLocation(modelLocationData) && setModelLocationData) {
                   setModelLocationData({

@@ -99,15 +99,14 @@ class ModelServingGlobal {
   }
 
   private findModelsTable() {
-    // TODO be more precise
-    return cy.findByTestId('inference-service-table');
+    return cy.findByTestId('deployments-table');
   }
 
   getModelRow(name: string) {
     return this.findModelsTable().find(`[data-label=Name]`).contains(name).parents('tr');
   }
 
-  getInferenceServiceRow(name: string) {
+  getDeploymentRow(name: string) {
     return new InferenceServiceRow(() => this.getModelRow(name));
   }
 
@@ -664,6 +663,14 @@ class ModelServingRow extends TableRow {
     return this.find().find(`[data-label="API protocol"]`);
   }
 
+  findServingRuntime() {
+    return this.find().find(`[data-label="Serving runtime"]`);
+  }
+
+  findServiceRuntime() {
+    return this.findServingRuntime();
+  }
+
   findLastDeployed() {
     return this.find().find(`[data-label="Last deployed"]`);
   }
@@ -710,7 +717,7 @@ class KServeRow extends ModelServingRow {
   }
 }
 
-class InferenceServiceRow extends TableRow {
+class InferenceServiceRow extends ModelServingRow {
   findServingRuntimeVersionLabel() {
     return this.find().findByTestId('serving-runtime-version-label');
   }
@@ -737,36 +744,8 @@ class InferenceServiceRow extends TableRow {
       });
   }
 
-  findLastDeployed() {
-    return this.find().find(`[data-label="Last deployed"]`);
-  }
-
   findLastDeployedTimestamp() {
     return this.find().findByTestId('last-deployed-timestamp');
-  }
-
-  findAPIProtocol() {
-    return this.find().find(`[data-label="API protocol"]`);
-  }
-
-  findInternalServiceButton() {
-    return this.find().findByTestId('internal-service-button');
-  }
-
-  findInternalServicePopover() {
-    return cy.findByTestId('internal-service-popover');
-  }
-
-  findExternalServiceButton() {
-    return this.find().findByTestId('internal-external-service-button');
-  }
-
-  findExternalServicePopover() {
-    return cy.findByTestId('external-service-popover');
-  }
-
-  findServingRuntime() {
-    return this.find().find(`[data-label="Serving runtime"]`);
   }
 
   findProject() {
@@ -835,7 +814,7 @@ class ModelServingSection {
   }
 
   findKServeTable() {
-    return this.find().findByTestId('kserve-inference-service-table');
+    return this.findDeploymentsTable();
   }
 
   findModelServerDeployedName(name: string) {
@@ -863,7 +842,7 @@ class ModelServingSection {
   }
 
   findKServeTableHeaderButton(name: string) {
-    return this.findKServeTable().find('thead').findByRole('button', { name });
+    return this.findDeploymentsTableHeaderButton(name);
   }
 
   findInternalExternalServiceButton() {
@@ -876,7 +855,7 @@ class ModelServingSection {
 
   getKServeRow(name: string) {
     return new KServeRow(() =>
-      this.findKServeTable().find('[data-label=Name]').contains(name).parents('tr'),
+      this.findDeploymentsTable().find('[data-label=Name]').contains(name).parents('tr'),
     );
   }
 
@@ -888,17 +867,22 @@ class ModelServingSection {
     return this.find().findByTestId('add-server-button');
   }
 
-  findInferenceServiceTable() {
-    return cy.findByTestId('inference-service-table');
+  findDeploymentsTable() {
+    return cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="section-model-server"]').length > 0) {
+        return cy.findByTestId('section-model-server').findByTestId('deployments-table');
+      }
+      return cy.findByTestId('deployments-table');
+    });
   }
 
-  findInferenceServiceTableHeaderButton(name: string) {
-    return this.findInferenceServiceTable().find('thead').findByRole('button', { name });
+  findDeploymentsTableHeaderButton(name: string) {
+    return this.findDeploymentsTable().find('thead').findByRole('button', { name });
   }
 
-  getInferenceServiceRow(name: string) {
+  getDeploymentRow(name: string) {
     return new InferenceServiceRow(() =>
-      this.findInferenceServiceTable()
+      this.findDeploymentsTable()
         .find('tbody')
         .find('[data-label="Name"]')
         .contains(name)

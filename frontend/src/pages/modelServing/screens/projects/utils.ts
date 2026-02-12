@@ -34,7 +34,7 @@ import {
   updateServingRuntime,
 } from '#~/api';
 import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
-import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   isModelServingCompatible,

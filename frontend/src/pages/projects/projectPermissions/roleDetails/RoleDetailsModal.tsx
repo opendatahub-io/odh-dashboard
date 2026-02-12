@@ -14,7 +14,6 @@ import {
   getRoleByRef,
   getRoleDescription,
   getRoleDisplayName,
-  getRoleLabelTypeForRoleRef,
 } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
@@ -24,12 +23,17 @@ import RoleDetailsModalAssigneesTab from './RoleDetailsModalAssigneesTab';
 type RoleDetailsModalProps = {
   roleRef: RoleRef;
   onClose: () => void;
+  showAssigneesTab?: boolean;
 };
 
 type TabKey = 'details' | 'assignees';
 const isTabKey = (key: unknown): key is TabKey => key === 'details' || key === 'assignees';
 
-const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({ roleRef, onClose }) => {
+const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({
+  roleRef,
+  onClose,
+  showAssigneesTab = true,
+}) => {
   const { roles, clusterRoles } = usePermissionsContext();
 
   const role = React.useMemo(
@@ -59,29 +63,33 @@ const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({ roleRef, onClose })
           >
             <FlexItem>{getRoleDisplayName(roleRef, role)}</FlexItem>
             <FlexItem>
-              <RoleLabel type={getRoleLabelTypeForRoleRef(roleRef, role)} />
+              <RoleLabel roleRef={roleRef} role={role} />
             </FlexItem>
           </Flex>
         }
         description={getRoleDescription(roleRef, role)}
       />
       <ModalBody>
-        <Tabs
-          activeKey={activeTabKey}
-          onSelect={(_e, key) => {
-            if (isTabKey(key)) {
-              setActiveTabKey(key);
-            }
-          }}
-          aria-label="Role details tabs"
-        >
-          <Tab eventKey="details" title={<TabTitleText>Role details</TabTitleText>}>
-            <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
-          </Tab>
-          <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
-            <RoleDetailsModalAssigneesTab roleRef={roleRef} />
-          </Tab>
-        </Tabs>
+        {showAssigneesTab ? (
+          <Tabs
+            activeKey={activeTabKey}
+            onSelect={(_e, key) => {
+              if (isTabKey(key)) {
+                setActiveTabKey(key);
+              }
+            }}
+            aria-label="Role details tabs"
+          >
+            <Tab eventKey="details" title={<TabTitleText>Role details</TabTitleText>}>
+              <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
+            </Tab>
+            <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
+              <RoleDetailsModalAssigneesTab roleRef={roleRef} />
+            </Tab>
+          </Tabs>
+        ) : (
+          <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
+        )}
       </ModalBody>
     </Modal>
   );

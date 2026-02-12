@@ -1,0 +1,6 @@
+approvers:
+  - nim-serving-approvers
+reviewers:
+  - nim-serving-reviewers
+labels:
+  - 'area/nim'

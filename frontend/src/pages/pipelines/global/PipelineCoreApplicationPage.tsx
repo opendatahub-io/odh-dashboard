@@ -6,6 +6,7 @@ import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreP
 import { PipelineServerTimedOut, usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getGenericErrorCode } from '#~/api/errorUtils';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 
 export type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export type PipelineCoreApplicationPageProps = {
   overrideTimeout?: boolean;
   /** Custom domain name for 403 error messages (e.g., "pipeline runs", "artifacts") */
   accessDomain?: string;
+  objectType?: ProjectObjectType;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'loaded' | 'empty' | 'emptyStatePage' | 'headerContent' | 'provideChildrenPadding'
@@ -25,6 +27,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
   overrideChildPadding,
   overrideTimeout = false,
   accessDomain = 'pipelines',
+  objectType,
   ...pageProps
 }) => {
   const { pipelinesServer, pipelineLoadError } = usePipelinesAPI();
@@ -43,7 +46,9 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       loadErrorPage={loadErrorPage}
       empty={!pipelinesServer.installed}
       emptyStatePage={<NoPipelineServer variant={ButtonVariant.primary} />}
-      headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
+      headerContent={
+        <PipelineCoreProjectSelector getRedirectPath={getRedirectPath} objectType={objectType} />
+      }
       provideChildrenPadding={!overrideChildPadding}
     >
       {!overrideTimeout && pipelinesServer.timedOut && pipelinesServer.compatible ? (

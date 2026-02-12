@@ -5,6 +5,9 @@ import {
   CatalogSource,
   CatalogSourceList,
   ModelCatalogFilterStates,
+  CatalogArtifactType,
+  CatalogArtifacts,
+  MetricsType,
 } from '~/app/modelCatalogTypes';
 import {
   AllLanguageCode,
@@ -13,6 +16,7 @@ import {
   ModelCatalogProvider,
   ModelCatalogStringFilterKey,
   ModelCatalogTask,
+  ModelCatalogTensorType,
   UseCaseOptionValue,
 } from '~/concepts/modelCatalog/const';
 import { CatalogSourceStatus } from '~/concepts/modelCatalogSettings/const';
@@ -24,8 +28,11 @@ import {
   getUniqueSourceLabels,
   hasSourcesWithoutLabels,
   hasFiltersApplied,
+  getArchitecturesFromArtifacts,
   getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
+import { ModelRegistryMetadataType } from '~/app/types';
 
 // TODO: Implement performance filters.
 describe('filtersToFilterQuery', () => {
@@ -37,6 +44,7 @@ describe('filtersToFilterQuery', () => {
     hardware_type = [],
     hardware_configuration = [],
     use_case = [],
+    tensor_type = [],
     rps_mean = undefined,
     ttft_mean = undefined,
   }: {
@@ -48,6 +56,7 @@ describe('filtersToFilterQuery', () => {
     hardware_configuration?: string[];
     use_case?: UseCaseOptionValue[];
     rps_mean?: number;
+    tensor_type?: ModelCatalogTensorType[];
     ttft_mean?: number;
   }): ModelCatalogFilterStates => ({
     [ModelCatalogStringFilterKey.TASK]: tasks,
@@ -58,6 +67,7 @@ describe('filtersToFilterQuery', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
     'artifacts.ttft_mean.double_value': ttft_mean,
   });
 
@@ -149,6 +159,16 @@ describe('filtersToFilterQuery', () => {
           AllLanguageCode.TL,
         ],
       },
+      [ModelCatalogStringFilterKey.TENSOR_TYPE]: {
+        type: 'string',
+        values: [
+          ModelCatalogTensorType.FP16,
+          ModelCatalogTensorType.FP8,
+          ModelCatalogTensorType.INT4,
+          ModelCatalogTensorType.INT8,
+          ModelCatalogTensorType.MXFP4,
+        ],
+      },
       [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
         type: 'string',
         values: ['GPU', 'CPU', 'TPU', 'FPGA'],
@@ -218,11 +238,16 @@ describe('filtersToFilterQuery', () => {
       ).toBe("language='ca'");
       expect(
         filtersToFilterQuery(
-          // eslint-disable-next-line camelcase
           mockFormData({ use_case: [UseCaseOptionValue.CHATBOT] }),
           mockFilterOptions,
         ),
       ).toBe("artifacts.use_case.string_value='chatbot'");
+      expect(
+        filtersToFilterQuery(
+          mockFormData({ tensor_type: [ModelCatalogTensorType.FP16] }),
+          mockFilterOptions,
+        ),
+      ).toBe("tensor_type.string_value='FP16'");
     });
 
     it('handles multiple arrays of a single data point', () => {
@@ -268,7 +293,30 @@ describe('filtersToFilterQuery', () => {
           mockFilterOptions,
         ),
       ).toBe("language IN ('ca','pt')");
+      expect(
+        filtersToFilterQuery(
+          mockFormData({ tensor_type: [ModelCatalogTensorType.FP16, ModelCatalogTensorType.FP8] }),
+          mockFilterOptions,
+        ),
+      ).toBe("tensor_type.string_value IN ('FP16','FP8')");
       // Note: use_case is now single-select, so multi-select test is not applicable
+    });
+
+    it('handles all tensor type enum values', () => {
+      expect(
+        filtersToFilterQuery(
+          mockFormData({
+            tensor_type: [
+              ModelCatalogTensorType.FP16,
+              ModelCatalogTensorType.FP8,
+              ModelCatalogTensorType.INT4,
+              ModelCatalogTensorType.INT8,
+              ModelCatalogTensorType.MXFP4,
+            ],
+          }),
+          mockFilterOptions,
+        ),
+      ).toBe("tensor_type.string_value IN ('FP16','FP8','INT4','INT8','MXFP4')");
     });
 
     it('handles multiple arrays with mixed count of data points', () => {
@@ -291,12 +339,26 @@ describe('filtersToFilterQuery', () => {
         "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND license='mit' AND language IN ('ca','pt','vi','zsm')",
       );
     });
+
+    it('handles tensor type combined with other basic filters', () => {
+      expect(
+        filtersToFilterQuery(
+          mockFormData({
+            tasks: [ModelCatalogTask.TEXT_TO_TEXT],
+            tensor_type: [ModelCatalogTensorType.FP16, ModelCatalogTensorType.INT8],
+            provider: [ModelCatalogProvider.GOOGLE],
+          }),
+          mockFilterOptions,
+        ),
+      ).toBe(
+        "tasks='text-to-text' AND provider='Google' AND tensor_type.string_value IN ('FP16','INT8')",
+      );
+    });
   });
 
   // TODO: Implement performance filters.
   //   describe('less than values', () => {
   //     it('handles TimeToFirstToken - ttft', () => {
-  //       // eslint-disable-next-line camelcase
   //       expect(filtersToFilterQuery(mockFormData({ ttft_mean: 100 }), mockFilterOptions)).toBe(
   //         'ttft_mean < 100',
   //       );
@@ -305,7 +367,6 @@ describe('filtersToFilterQuery', () => {
 
   //   describe('greater than values', () => {
   //     it('handles TimeToFirstToken - ttft', () => {
-  //       // eslint-disable-next-line camelcase
   //       expect(filtersToFilterQuery(mockFormData({ rps_mean: 7 }), mockFilterOptions)).toBe(
   //         'rps_mean > 7',
   //       );
@@ -317,11 +378,9 @@ describe('filtersToFilterQuery', () => {
   //       expect(
   //         filtersToFilterQuery(
   //           mockFormData({
-  //             // eslint-disable-next-line camelcase
   //             ttft_mean: 100,
   //             tasks: [ModelCatalogTask.TEXT_TO_TEXT],
   //             license: [ModelCatalogLicense.APACHE_2_0, ModelCatalogLicense.MIT],
-  //             // eslint-disable-next-line camelcase
   //             rps_mean: 3,
   //           }),
   //           mockFilterOptions,
@@ -655,6 +714,7 @@ describe('hasFiltersApplied', () => {
     hardware_type = [],
     hardware_configuration = [],
     use_case = [],
+    tensor_type = [],
     rps_mean = undefined,
     ttft_mean = undefined,
   }: {
@@ -665,6 +725,7 @@ describe('hasFiltersApplied', () => {
     hardware_type?: string[];
     hardware_configuration?: string[];
     use_case?: UseCaseOptionValue[];
+    tensor_type?: ModelCatalogTensorType[];
     rps_mean?: number;
     ttft_mean?: number;
   }): ModelCatalogFilterStates => ({
@@ -676,6 +737,7 @@ describe('hasFiltersApplied', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
     'artifacts.ttft_mean.double_value': ttft_mean,
   });
 
@@ -692,6 +754,7 @@ describe('hasFiltersApplied', () => {
             license: [],
             provider: [],
             language: [],
+            tensor_type: [],
             hardware_type: [],
             use_case: [],
             rps_mean: undefined,
@@ -703,6 +766,9 @@ describe('hasFiltersApplied', () => {
 
     it('returns true when a string filter array has values', () => {
       expect(hasFiltersApplied(mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT] }))).toBe(
+        true,
+      );
+      expect(hasFiltersApplied(mockFormData({ tensor_type: [ModelCatalogTensorType.FP16] }))).toBe(
         true,
       );
       expect(hasFiltersApplied(mockFormData({ provider: [ModelCatalogProvider.GOOGLE] }))).toBe(
@@ -748,6 +814,10 @@ describe('hasFiltersApplied', () => {
         ),
       ).toBe(true);
     });
+
+    it('returns false when tensor_type is an empty array', () => {
+      expect(hasFiltersApplied(mockFormData({ tensor_type: [] }))).toBe(false);
+    });
   });
 
   describe('with filterKeys parameter (checks only specific filters)', () => {
@@ -766,6 +836,14 @@ describe('hasFiltersApplied', () => {
       });
       expect(hasFiltersApplied(filterData, [ModelCatalogStringFilterKey.TASK])).toBe(true);
       expect(hasFiltersApplied(filterData, [ModelCatalogStringFilterKey.PROVIDER])).toBe(true);
+      expect(hasFiltersApplied(filterData, [ModelCatalogStringFilterKey.TENSOR_TYPE])).toBe(false);
+
+      const filterDataWithTensorType = mockFormData({
+        tensor_type: [ModelCatalogTensorType.FP16],
+      });
+      expect(
+        hasFiltersApplied(filterDataWithTensorType, [ModelCatalogStringFilterKey.TENSOR_TYPE]),
+      ).toBe(true);
     });
 
     it('returns true when checking multiple keys and at least one is applied', () => {
@@ -830,6 +908,357 @@ describe('hasFiltersApplied', () => {
       });
       expect(hasFiltersApplied(filterData, [])).toBe(false);
     });
+  });
+});
+
+describe('getArchitecturesFromArtifacts', () => {
+  it('should return empty array when artifacts array is empty', () => {
+    const result = getArchitecturesFromArtifacts([]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when no model artifact exists', () => {
+    const metricsArtifact: CatalogArtifacts = {
+      artifactType: CatalogArtifactType.metricsArtifact,
+      metricsType: MetricsType.performanceMetrics,
+    };
+    const result = getArchitecturesFromArtifacts([metricsArtifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when model artifact has no customProperties', () => {
+    const artifact = mockCatalogModelArtifact({ customProperties: undefined });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when model artifact has empty customProperties', () => {
+    const artifact = mockCatalogModelArtifact({ customProperties: {} });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when architecture property does not exist', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        other_property: {
+          string_value: 'some value',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when architecture property has empty string value', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when architecture property has wrong metadata type', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          int_value: '123',
+          metadataType: ModelRegistryMetadataType.INT,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when architecture contains invalid JSON', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: 'not valid json',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should log a warning when architecture JSON is invalid', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: 'not valid json',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+
+    getArchitecturesFromArtifacts([artifact]);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Failed to parse architecture JSON:',
+      'not valid json',
+      expect.any(Error),
+    );
+    warnSpy.mockRestore();
+    process.env.NODE_ENV = originalEnv;
+  });
+
+  it('should return empty array when architecture JSON is not an array', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '{"arch": "amd64"}',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return single valid architecture', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64']);
+  });
+
+  it('should return multiple valid architectures', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", "arm64", "s390x", "ppc64le"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64', 's390x', 'ppc64le']);
+  });
+
+  it('should normalize architectures to lowercase', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["AMD64", "ARM64", "S390X", "PPC64LE"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64', 's390x', 'ppc64le']);
+  });
+
+  it('should handle mixed case architectures', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["Amd64", "aRm64", "S390x"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64', 's390x']);
+  });
+
+  it('should return all architecture types without validation', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", "custom-arch", "arm64", "unknown"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'custom-arch', 'arm64', 'unknown']);
+  });
+
+  it('should filter out non-string items from JSON array', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", 123, null, "arm64", true, "s390x"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64', 's390x']);
+  });
+
+  it('should return all architecture strings without validation', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["custom1", "custom2", "unknown"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['custom1', 'custom2', 'unknown']);
+  });
+
+  it('should return empty array when array contains only non-string types', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '[123, null, true, {}]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should handle customProperties with multiple properties including architecture', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        provider: {
+          string_value: 'Red Hat',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+        architecture: {
+          string_value: '["amd64", "arm64"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+        size: {
+          string_value: '8GB',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64']);
+  });
+
+  it('should find model artifact among multiple artifacts', () => {
+    const metricsArtifact: CatalogArtifacts = {
+      artifactType: CatalogArtifactType.metricsArtifact,
+      metricsType: MetricsType.performanceMetrics,
+    };
+    const modelArtifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", "arm64"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([metricsArtifact, modelArtifact]);
+    expect(result).toEqual(['amd64', 'arm64']);
+  });
+
+  it('should use first model artifact when multiple model artifacts exist', () => {
+    const modelArtifact1 = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const modelArtifact2 = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["arm64"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([modelArtifact1, modelArtifact2]);
+    // Should return architectures from first model artifact
+    expect(result).toEqual(['amd64']);
+  });
+
+  it('should handle empty JSON array', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '[]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual([]);
+  });
+
+  it('should handle whitespace in JSON', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '  [ "amd64" , "arm64" ]  ',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64']);
+  });
+
+  it('should return all common CPU architecture types', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", "arm64", "s390x", "ppc64le"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toHaveLength(4);
+    expect(result).toContain('amd64');
+    expect(result).toContain('arm64');
+    expect(result).toContain('s390x');
+    expect(result).toContain('ppc64le');
+  });
+
+  it('should deduplicate architectures when duplicates exist', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", "AMD64", "amd64"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64']); // Should return only one instance
+  });
+
+  it('should deduplicate mixed case architectures across multiple values', () => {
+    const artifact = mockCatalogModelArtifact({
+      customProperties: {
+        architecture: {
+          string_value: '["amd64", "arm64", "AMD64", "ARM64", "amd64", "s390x"]',
+          metadataType: ModelRegistryMetadataType.STRING,
+        },
+      },
+    });
+    const result = getArchitecturesFromArtifacts([artifact]);
+    expect(result).toEqual(['amd64', 'arm64', 's390x']);
   });
 });
 

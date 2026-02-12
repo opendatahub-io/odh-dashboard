@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import useMaaSModelsFilter from '~/app/AIAssets/hooks/useMaaSModelsFilter';
 import { AssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
-import type { MaaSModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 
 const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   id: 'test-maas-model',
@@ -12,6 +12,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org',
   ready: true,
   url: 'https://example.com/model',
+  display_name: 'Test MaaS Model',
+  description: 'A test MaaS model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 

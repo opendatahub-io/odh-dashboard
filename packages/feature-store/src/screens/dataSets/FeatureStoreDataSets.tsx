@@ -1,6 +1,7 @@
 import React from 'react';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreDataSetsListView from './DataSetTable/FeatureStoreDatasetListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
@@ -10,10 +11,10 @@ import { featureStoreRoute } from '../../routes';
 import useFeatureStoreDataSets from '../../apiHooks/useFeatureStoreDataSets';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import { getFeatureStoreObjectDescription } from '../../utils';
+import { FeatureStoreObject } from '../../const';
 
 const title = 'Datasets';
-const description =
-  'View and manage datasets created from feature services. Datasets are point-in-time-correct snapshots of feature services,data and are used for training,  or validation, and analysis.';
 
 const FeatureStoreDataSets = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -57,7 +58,7 @@ const FeatureStoreDataSets = (): React.ReactElement => {
           }
         />
       }
-      description={description}
+      description={getFeatureStoreObjectDescription(FeatureStoreObject.DATA_SETS)}
       loadError={dataSetsLoadError}
       loaded={dataSetsLoaded}
       headerContent={

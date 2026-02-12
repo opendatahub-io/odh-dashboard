@@ -105,3 +105,27 @@ export class NewChatModal extends Modal {
     );
   }
 }
+
+export class CompareChatModal extends Modal {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('compare-chat-modal');
+  }
+
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-compare-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('cancel-compare-button');
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText('Start a chat compare session?');
+  }
+
+  findWarningMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByText(
+      /Starting a new chat compare session will delete your current chat session/i,
+    );
+  }
+}

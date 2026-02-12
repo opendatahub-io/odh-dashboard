@@ -11,14 +11,17 @@ import {
   MenuToggle,
   Tooltip,
 } from '@patternfly/react-core';
-import { CodeIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
+import { CodeIcon, ColumnsIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
   onViewCode: () => void;
   onConfigurePlayground: () => void;
   onDeletePlayground: () => void;
   onNewChat: () => void;
+  onCompareChat: () => void;
+  isCompareMode: boolean;
 };
 
 const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
@@ -26,8 +29,13 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onConfigurePlayground,
   onDeletePlayground,
   onNewChat,
+  onCompareChat,
+  isCompareMode,
 }) => {
-  const { lsdStatus, lastInput, selectedModel } = React.useContext(ChatbotContext);
+  const { lsdStatus, lastInput } = React.useContext(ChatbotContext);
+  // Might need to iterate through selectedModels for each config during comparison mode
+  const configIds = useChatbotConfigStore(selectConfigIds);
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configIds[0]));
   const isViewCodeDisabled = !lastInput || !selectedModel;
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
 
@@ -50,6 +58,20 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
       <ActionListGroup>
         {lsdStatus?.phase === 'Ready' && (
           <>
+            {/* Hide compare button when in compare mode - use close button on pane to exit */}
+            {!isCompareMode && (
+              <ActionListItem>
+                <Button
+                  variant="link"
+                  aria-label="Compare chat"
+                  icon={<ColumnsIcon />}
+                  onClick={onCompareChat}
+                  data-testid="compare-chat-button"
+                >
+                  Compare chat
+                </Button>
+              </ActionListItem>
+            )}
             <ActionListItem>
               <Button
                 variant="link"

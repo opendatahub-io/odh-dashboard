@@ -60,10 +60,10 @@ describe('AI Assets - MCP Servers', () => {
       playgroundPage.verifyOnPlaygroundPage(namespace);
 
       cy.step('Verify no modal appears during auto-unlock');
-      playgroundPage.mcpPanel.verifyNoModalShown();
+      playgroundPage.mcpTab.verifyNoModalShown();
 
-      cy.step('Expand MCP panel');
-      playgroundPage.mcpPanel.expandMCPPanelIfNeeded();
+      cy.step('Open MCP tab');
+      playgroundPage.mcpTab.openMCPTab();
 
       cy.step('Wait for auto-unlock status check');
       cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
@@ -72,10 +72,10 @@ describe('AI Assets - MCP Servers', () => {
       cy.wait('@toolsRequestAutoConnect', { timeout: 10000 });
 
       cy.step('Verify server is auto-unlocked and functional');
-      playgroundPage.mcpPanel.verifyServerAutoUnlocked(serverName, serverUrl);
+      playgroundPage.mcpTab.verifyServerAutoUnlocked(serverName, serverUrl);
 
       cy.step('Verify no modal appeared during flow');
-      playgroundPage.mcpPanel.verifyNoModalShown();
+      playgroundPage.mcpTab.verifyNoModalShown();
     },
   );
 });

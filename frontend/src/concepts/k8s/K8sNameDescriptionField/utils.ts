@@ -30,7 +30,8 @@ export enum LimitNameResourceType {
   PROJECT,
   /** Workbenches create routes */
   WORKBENCH,
-  // TODO: Support Model Serving?
+  /** Model deployments create routes */
+  MODEL_DEPLOYMENT,
   PVC,
 }
 /** K8s max DNS subdomain name length */
@@ -41,6 +42,7 @@ const MAX_PVC_NAME_LENGTH = 63;
 export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.PROJECT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
+  [LimitNameResourceType.MODEL_DEPLOYMENT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
 };
 

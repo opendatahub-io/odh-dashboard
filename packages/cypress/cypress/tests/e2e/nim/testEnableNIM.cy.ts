@@ -2,12 +2,14 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { explorePage } from '../../../pages/explore';
 import { enabledPage } from '../../../pages/enabled';
 import { nimCard } from '../../../pages/components/NIMCard';
-import { toastNotifications } from '../../../pages/components/ToastNotifications';
 import {
   deleteNIMAccount,
   applyNIMApplication,
   checkNIMApplicationExists,
+  waitForNIMAccountValidation,
 } from '../../../utils/oc_commands/nimCommands';
+import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { retryableBefore } from '../../../utils/retryableHooks';
 
 /**
  * NIM Application Enablement Test
@@ -21,13 +23,40 @@ import {
  * 6. Verifies the validation process and success notification
  * 7. Confirms the NIM application appears on the Enabled page
  *
- * The test is designed to work in both ODH and RHOAI environments,
- * automatically handling cases where NIM is not included by default.
+ * NOTE: NIM is a RHOAI-specific feature. This test is skipped on ODH deployments.
  */
 describe('Verify NIM enable flow', () => {
-  before(() => {
-    cy.step('Clean up any existing NIM account before test');
-    deleteNIMAccount();
+  let skipTest = false;
+
+  const shouldSkip = () => {
+    if (skipTest) {
+      cy.log('Skipping test - NIM is RHOAI-specific and not available on ODH.');
+      return true;
+    }
+    return false;
+  };
+
+  retryableBefore(() => {
+    // Check if the operator is RHOAI, if it's not (ODH), skip the test
+    cy.step('Check if the operator is RHOAI');
+    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator')
+      .then((result) => {
+        if (!result.stdout.includes('rhods-operator')) {
+          cy.log('RHOAI operator not found, skipping the test (NIM is RHOAI-specific).');
+          skipTest = true;
+        } else {
+          cy.log('RHOAI operator confirmed:', result.stdout);
+        }
+      })
+      .then(() => {
+        // If not skipping, proceed with test setup
+        if (skipTest) {
+          return;
+        }
+
+        cy.step('Clean up any existing NIM account before test');
+        return deleteNIMAccount();
+      });
   });
 
   it(
@@ -36,6 +65,11 @@ describe('Verify NIM enable flow', () => {
       tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'],
     },
     function enableAndValidateNIMFlow() {
+      // Skip test if running on ODH
+      if (shouldSkip()) {
+        return;
+      }
+
       cy.step('Login to the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -159,13 +193,19 @@ function executeNIMTestSteps(): void {
   nimCard.getNIMSubmit().click();
   cy.step('Wait for validation to complete and verify the validation message');
   nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
-  // Wait for validation to complete (up to 120 seconds for NVIDIA API call with network issues)
-  nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
-  cy.step('Check for success notification');
-  toastNotifications
-    .findToastNotification(0)
-    .should('contain.text', 'NVIDIA NIM has been added to the Enabled page');
-  cy.step('Visit the enabled applications page');
+
+  // Wait for NIM account validation by checking the account status fields via oc command.
+  // This is more reliable than waiting for UI elements and allows up to 7 minutes
+  // for the NVIDIA API validation to complete.
+  cy.step('Wait for NIM account validation via oc command (up to 7 minutes)');
+  waitForNIMAccountValidation();
+
+  // Verify that the enable modal closes automatically after successful validation
+  // Note: This test only runs on RHOAI where the modal closes automatically
+  cy.step('Verify the enable modal closes automatically after validation');
+  nimCard.findEnableModal().should('not.exist', { timeout: 30000 });
+
+  cy.step('Visit the enabled applications page to verify NIM is enabled');
   enabledPage.visit();
   cy.step('Validate NIM Card contents on Enabled page');
   nimCard

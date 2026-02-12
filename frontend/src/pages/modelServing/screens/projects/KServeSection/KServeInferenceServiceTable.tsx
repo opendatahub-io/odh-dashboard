@@ -10,8 +10,8 @@ import DeleteInferenceServiceModal from '#~/pages/modelServing/screens/global/De
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
-import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 
 const KServeInferenceServiceTable: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
@@ -51,7 +51,7 @@ const KServeInferenceServiceTable: React.FC = () => {
     <>
       <Table
         data={inferenceServices}
-        data-testid="kserve-inference-service-table"
+        data-testid="deployments-table"
         columns={columns}
         disableRowRenderSupport
         defaultSortColumn={1}

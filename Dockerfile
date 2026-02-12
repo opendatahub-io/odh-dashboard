@@ -28,6 +28,12 @@ RUN npm run build
 # This is needed to remove the dev dependencies that were installed in the previous step
 RUN npm prune --omit=dev
 
+# Remove esbuild binaries to ensure FIPS compliance
+# esbuild is a build-time dependency transitively included through @perses-dev/plugin-system
+# -> @module-federation/enhanced -> @module-federation/cli -> @modern-js/node-bundle-require
+# These Go binaries are NOT needed at runtime and are NOT FIPS compliant
+RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
+
 FROM ${BASE_IMAGE} as runtime
 
 WORKDIR /usr/src/app

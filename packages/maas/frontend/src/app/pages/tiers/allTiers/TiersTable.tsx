@@ -30,7 +30,7 @@ const TiersTable: React.FC<TiersTableProps> = ({ tiers, onDeleteTier }) => {
       toolbarContent={
         <Toolbar>
           <ToolbarContent>
-            <ToolbarItem>
+            <ToolbarItem style={{ minWidth: '15rem' }}>
               <SearchInput
                 placeholder="Filter by name or description"
                 value={filterValue}

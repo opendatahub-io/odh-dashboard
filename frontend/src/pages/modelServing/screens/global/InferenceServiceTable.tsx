@@ -8,8 +8,8 @@ import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModa
 import ResourceTr from '#~/components/ResourceTr';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
-import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -61,7 +61,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   return (
     <>
       <Table
-        data-testid="inference-service-table"
+        data-testid="deployments-table"
         data={inferenceServices}
         columns={mappedColumns}
         loading={isLoading}

@@ -41,7 +41,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
-  const { theme, setTheme } = useThemeContext();
+  const { theme, setAllThemes } = useThemeContext();
   const notification = useNotification();
 
   React.useEffect(() => {
@@ -205,16 +205,18 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                 aria-label="light theme"
                 icon={<SunIcon />}
                 isSelected={theme === 'light'}
+                data-testid="light-theme-toggle"
                 onChange={() => {
-                  setTheme('light');
+                  setAllThemes('light');
                 }}
               />
               <ToggleGroupItem
                 aria-label="dark theme"
                 icon={<MoonIcon />}
                 isSelected={theme === 'dark'}
+                data-testid="dark-theme-toggle"
                 onChange={() => {
-                  setTheme('dark');
+                  setAllThemes('dark');
                 }}
               />
             </ToggleGroup>

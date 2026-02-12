@@ -102,7 +102,7 @@ describe('ModelServing - tolerations tests', () => {
   });
 
   it(
-    'Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
+    '[Automation Bug: RHOAIENG-48809] Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
     // TODO: Add the below tags once this feature is enabled in 2.20+
     //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
     {
@@ -112,6 +112,7 @@ describe('ModelServing - tolerations tests', () => {
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
+        '@Maintain',
       ],
     },
     () => {

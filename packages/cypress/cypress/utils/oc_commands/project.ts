@@ -52,7 +52,7 @@ export const deleteOpenShiftProject = (
   options: { timeout?: number; wait?: boolean; ignoreNotFound?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const { timeout, wait = true, ignoreNotFound = false } = options;
-  const waitFlag = wait ? '' : '--wait=false';
+  const waitFlag = wait ? '--wait' : '--wait=false';
   const ignoreNotFoundFlag = ignoreNotFound ? '--ignore-not-found' : '';
   const ocCommand = `oc delete project ${projectName} ${waitFlag} ${ignoreNotFoundFlag}`.trim();
 

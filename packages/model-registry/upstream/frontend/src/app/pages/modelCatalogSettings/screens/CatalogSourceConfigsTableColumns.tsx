@@ -6,7 +6,7 @@ import { CatalogSourceConfig } from '~/app/modelCatalogTypes';
 export const catalogSourceConfigsColumns: SortableData<CatalogSourceConfig>[] = [
   {
     field: 'name',
-    label: 'Name',
+    label: 'Source name',
     sortable: (a, b) => a.name.localeCompare(b.name),
     width: 15,
   },
@@ -16,7 +16,7 @@ export const catalogSourceConfigsColumns: SortableData<CatalogSourceConfig>[] = 
     sortable: false,
     info: {
       popover:
-        'Applies only to Hugging Face sources. Shows the organization the source syncs models from (for example, Google). Only models within this organization are included in the catalog.',
+        'Applies only to Hugging Face sources. Shows the organization the source syncs models from (for example, google). Only models within this organization are included in the catalog.',
     },
     width: 15,
   },

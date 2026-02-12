@@ -1,0 +1,450 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import {
+  ProgressStep,
+  ProgressStepper,
+} from '@patternfly/react-core/dist/esm/components/ProgressStepper';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import {
+  Drawer,
+  DrawerActions,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerHead,
+  DrawerPanelBody,
+  DrawerPanelContent,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { useNotification } from 'mod-arch-core';
+import useGenericObjectState from '~/app/hooks/useGenericObjectState';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
+import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindSelection';
+import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
+import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
+import { WorkspaceFormData } from '~/app/types';
+import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
+import { useTypedNavigate } from '~/app/routerHelper';
+import {
+  ApiErrorEnvelope,
+  WorkspacekindsImageConfigValue,
+  WorkspacekindsPodConfigValue,
+  WorkspacekindsWorkspaceKind,
+} from '~/generated/data-contracts';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
+import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
+import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
+import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
+import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
+import { LoadError } from '~/app/components/LoadError';
+import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
+
+enum WorkspaceFormSteps {
+  KindSelection,
+  ImageSelection,
+  PodConfigSelection,
+  Properties,
+}
+
+const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
+  [WorkspaceFormSteps.KindSelection]:
+    'A workspace kind is a template for creating a workspace, which is an isolated area where you can work with models in your preferred IDE, such as Jupyter Notebook.',
+  [WorkspaceFormSteps.ImageSelection]:
+    'Select a workspace image and image version to use for the workspace. A workspace image is a container image that contains the software and dependencies needed to run a workspace.',
+  [WorkspaceFormSteps.PodConfigSelection]:
+    'Select a pod config to use for the workspace. A pod config is a configuration that defines the resources and settings for a workspace.',
+  [WorkspaceFormSteps.Properties]: 'Configure properties for your workspace.',
+};
+
+const WorkspaceForm: React.FC = () => {
+  const navigate = useTypedNavigate();
+  const notification = useNotification();
+  const { api } = useNotebookAPI();
+
+  const { mode, namespace, workspaceName, workspaceKindName } = useWorkspaceFormLocationData();
+  const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceFormData({
+    namespace,
+    workspaceName,
+    workspaceKindName,
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
+  const [drawerExpanded, setDrawerExpanded] = useState(false);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
+
+  const [data, setData, resetData, replaceData] =
+    useGenericObjectState<WorkspaceFormData>(initialFormData);
+
+  useEffect(() => {
+    if (!initialFormDataLoaded || mode === 'create') {
+      return;
+    }
+    replaceData(initialFormData);
+  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+
+  // Open drawer automatically in edit mode on KindSelection step
+  useEffect(() => {
+    if (
+      initialFormDataLoaded &&
+      mode !== 'create' &&
+      currentStep === WorkspaceFormSteps.KindSelection
+    ) {
+      setDrawerExpanded(true);
+    }
+  }, [initialFormDataLoaded, mode, currentStep]);
+
+  const getStepVariant = useCallback(
+    (step: WorkspaceFormSteps) => {
+      if (step > currentStep) {
+        return 'pending';
+      }
+      if (step < currentStep) {
+        return 'success';
+      }
+      return 'info';
+    },
+    [currentStep],
+  );
+
+  const isStepValid = useCallback(
+    (step: WorkspaceFormSteps) => {
+      switch (step) {
+        case WorkspaceFormSteps.KindSelection:
+          return !!data.kind;
+        case WorkspaceFormSteps.ImageSelection:
+          return !!data.imageConfig;
+        case WorkspaceFormSteps.PodConfigSelection:
+          return !!data.podConfig;
+        case WorkspaceFormSteps.Properties:
+          return !!data.properties.workspaceName.trim();
+        default:
+          return false;
+      }
+    },
+    [data.kind, data.imageConfig, data.podConfig, data.properties.workspaceName],
+  );
+
+  const showDrawer = useCallback(
+    (step: WorkspaceFormSteps) =>
+      // Only show drawer for steps that have drawer content
+      step !== WorkspaceFormSteps.Properties && isStepValid(step),
+    [isStepValid],
+  );
+
+  const previousStep = useCallback(() => {
+    const newStep = currentStep - 1;
+    setCurrentStep(newStep);
+    setDrawerExpanded(showDrawer(newStep));
+  }, [currentStep, showDrawer]);
+
+  const nextStep = useCallback(() => {
+    const newStep = currentStep + 1;
+    setCurrentStep(newStep);
+    setDrawerExpanded(showDrawer(newStep));
+  }, [currentStep, showDrawer]);
+
+  const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
+
+  const isCurrentStepValid = useMemo(() => isStepValid(currentStep), [isStepValid, currentStep]);
+
+  const selectedImage = useMemo(
+    () =>
+      data.kind?.podTemplate.options.imageConfig.values.find(
+        (image) => image.id === data.imageConfig,
+      ),
+    [data.kind, data.imageConfig],
+  );
+
+  const selectedPodConfig = useMemo(
+    () =>
+      data.kind?.podTemplate.options.podConfig.values.find(
+        (podConfig) => podConfig.id === data.podConfig,
+      ),
+    [data.kind, data.podConfig],
+  );
+
+  const canGoToNextStep = useMemo(
+    () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
+    [currentStep],
+  );
+
+  const canSubmit = useMemo(
+    () => !isSubmitting && !canGoToNextStep && isCurrentStepValid,
+    [canGoToNextStep, isSubmitting, isCurrentStepValid],
+  );
+
+  const handleSubmit = useCallback(async () => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await submitFormData({ mode, data, api, namespace });
+      navigate('workspaces');
+      notification.success(
+        `Workspace '${data.properties.workspaceName}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
+      );
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [data, mode, navigate, api, namespace, notification]);
+
+  const cancel = useCallback(() => {
+    navigate('workspaces');
+  }, [navigate]);
+
+  const handleKindSelect = useCallback(
+    (kind: WorkspacekindsWorkspaceKind | undefined) => {
+      if (!kind) {
+        return;
+      }
+      if (mode === 'create') {
+        resetData();
+        setData('kind', kind);
+      }
+      setDrawerExpanded(true);
+    },
+    [mode, resetData, setData],
+  );
+
+  const handleImageSelect = useCallback(
+    (image: WorkspacekindsImageConfigValue | undefined) => {
+      if (image) {
+        setData('imageConfig', image.id);
+        setDrawerExpanded(true);
+      }
+    },
+    [setData],
+  );
+
+  const handlePodConfigSelect = useCallback(
+    (podConfig: WorkspacekindsPodConfigValue | undefined) => {
+      if (podConfig) {
+        setData('podConfig', podConfig.id);
+        setDrawerExpanded(true);
+      }
+    },
+    [setData],
+  );
+
+  const getDrawerContent = () => {
+    switch (currentStep) {
+      case WorkspaceFormSteps.KindSelection:
+        return <WorkspaceFormKindDetails workspaceKind={data.kind} />;
+      case WorkspaceFormSteps.ImageSelection:
+        return <WorkspaceFormImageDetails workspaceImage={selectedImage} />;
+      case WorkspaceFormSteps.PodConfigSelection:
+        return <WorkspaceFormPodConfigDetails workspacePodConfig={selectedPodConfig} />;
+      default:
+        return null;
+    }
+  };
+
+  const getDrawerTitle = () => {
+    switch (currentStep) {
+      case WorkspaceFormSteps.KindSelection:
+        return 'Workspace Kind';
+      case WorkspaceFormSteps.ImageSelection:
+        return 'Image';
+      case WorkspaceFormSteps.PodConfigSelection:
+        return 'Pod Config';
+      default:
+        return '';
+    }
+  };
+
+  if (initialFormDataError) {
+    return <LoadError title="Failed to load workspace data" error={initialFormDataError} />;
+  }
+
+  if (!initialFormDataLoaded) {
+    return <LoadingSpinner />;
+  }
+
+  const panelContent = (
+    <DrawerPanelContent>
+      <DrawerHead>
+        <Title headingLevel="h1">{getDrawerTitle()}</Title>
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => setDrawerExpanded(false)} />
+        </DrawerActions>
+      </DrawerHead>
+      <DrawerPanelBody className="workspace-form__drawer-panel-body">
+        {getDrawerContent()}
+      </DrawerPanelBody>
+    </DrawerPanelContent>
+  );
+
+  return (
+    <Drawer isInline isExpanded={drawerExpanded}>
+      <DrawerContent panelContent={panelContent}>
+        <DrawerContentBody>
+          <Flex
+            direction={{ default: 'column' }}
+            flexWrap={{ default: 'nowrap' }}
+            style={{ height: '100%' }}
+          >
+            <FlexItem>
+              <PageSection>
+                <Stack hasGutter>
+                  <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
+                    <FlexItem>
+                      <Content>
+                        <h1 data-testid="workspace-form-title">{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
+                        <p>{stepDescriptions[currentStep]}</p>
+                      </Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <ProgressStepper
+                        aria-label="Workspace form stepper"
+                        data-testid="workspace-form-stepper"
+                      >
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
+                          isCurrent={currentStep === WorkspaceFormSteps.KindSelection}
+                          id="kind-selection-step"
+                          titleId="kind-selection-step-title"
+                          aria-label="Kind selection step"
+                        >
+                          Workspace Kind
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
+                          isCurrent={currentStep === WorkspaceFormSteps.ImageSelection}
+                          id="image-selection-step"
+                          titleId="image-selection-step-title"
+                          aria-label="Image selection step"
+                        >
+                          Image
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
+                          isCurrent={currentStep === WorkspaceFormSteps.PodConfigSelection}
+                          id="pod-config-selection-step"
+                          titleId="pod-config-selection-step-title"
+                          aria-label="Pod config selection step"
+                        >
+                          Pod Config
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.Properties)}
+                          isCurrent={currentStep === WorkspaceFormSteps.Properties}
+                          id="properties-step"
+                          titleId="properties-step-title"
+                          aria-label="Properties step"
+                        >
+                          Properties
+                        </ProgressStep>
+                      </ProgressStepper>
+                    </FlexItem>
+                  </Flex>
+                </Stack>
+              </PageSection>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <PageSection style={{ height: '100%' }} isFilled>
+                <Stack hasGutter>
+                  {error && (
+                    <StackItem>
+                      <ErrorAlert
+                        title={`Failed to ${mode === 'create' ? 'create' : 'edit'} workspace`}
+                        content={error}
+                        testId="workspace-form-error"
+                      />
+                    </StackItem>
+                  )}
+                  <StackItem isFilled>
+                    {currentStep === WorkspaceFormSteps.KindSelection && (
+                      <WorkspaceFormKindSelection
+                        mode={mode}
+                        selectedKind={data.kind}
+                        onSelect={handleKindSelect}
+                      />
+                    )}
+                    {currentStep === WorkspaceFormSteps.ImageSelection && (
+                      <WorkspaceFormImageSelection
+                        selectedImage={selectedImage}
+                        onSelect={handleImageSelect}
+                        images={data.kind?.podTemplate.options.imageConfig.values ?? []}
+                      />
+                    )}
+                    {currentStep === WorkspaceFormSteps.PodConfigSelection && (
+                      <WorkspaceFormPodConfigSelection
+                        selectedPodConfig={selectedPodConfig}
+                        onSelect={handlePodConfigSelect}
+                        podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
+                      />
+                    )}
+                    {currentStep === WorkspaceFormSteps.Properties && (
+                      <WorkspaceFormPropertiesSelection
+                        mode={mode}
+                        selectedProperties={data.properties}
+                        onSelect={(properties) => setData('properties', properties)}
+                        selectedImage={selectedImage}
+                      />
+                    )}
+                  </StackItem>
+                </Stack>
+              </PageSection>
+            </FlexItem>
+            <FlexItem>
+              <PageSection>
+                <Flex>
+                  <FlexItem>
+                    <Button
+                      variant="secondary"
+                      ouiaId="Secondary"
+                      onClick={previousStep}
+                      isDisabled={!canGoToPreviousStep}
+                      data-testid="previous-button"
+                    >
+                      Previous
+                    </Button>
+                  </FlexItem>
+                  <FlexItem>
+                    {canGoToNextStep ? (
+                      <Button
+                        variant="primary"
+                        ouiaId="Primary"
+                        onClick={nextStep}
+                        isDisabled={!isCurrentStepValid}
+                        data-testid="next-button"
+                      >
+                        Next
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        ouiaId="Primary"
+                        onClick={handleSubmit}
+                        isDisabled={!canSubmit}
+                        data-testid="submit-button"
+                      >
+                        {mode === 'create' ? 'Create' : 'Save'}
+                      </Button>
+                    )}
+                  </FlexItem>
+                  <FlexItem>
+                    <Button variant="link" onClick={cancel} data-testid="cancel-button">
+                      Cancel
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </PageSection>
+            </FlexItem>
+          </Flex>
+        </DrawerContentBody>
+      </DrawerContent>
+    </Drawer>
+  );
+};
+
+export { WorkspaceForm };

@@ -28,7 +28,7 @@ import {
   pipelineRunsGlobal,
   restoreExperimentModal,
 } from '../../../pages/pipelines';
-import { experimentsTabs } from '../../../pages/pipelines/experiments';
+import { experimentsPage, experimentsTabs } from '../../../pages/pipelines/experiments';
 import { verifyRelativeURL } from '../../../utils/url';
 import {
   DataSciencePipelineApplicationModel,
@@ -87,6 +87,16 @@ describe('Experiments', () => {
       experimentsTabs.getActiveExperimentsTable().findEmptyState().should('exist');
       experimentsTabs.findArchivedTab().click();
       experimentsTabs.getArchivedExperimentsTable().findEmptyState().should('exist');
+    });
+
+    it('shows deprecated alert when MLflow is enabled', () => {
+      initIntercepts();
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+      experimentsTabs.mockGetExperiments(projectName, mockExperiments);
+      experimentsTabs.visit(projectName);
+      experimentsPage.findPipelineExperimentDeprecatedAlert().should('exist');
+      experimentsPage.findEmbeddedMLflowExperimentsLink().should('exist').click();
+      cy.url().should('contain', '/develop-train/experiments-mlflow');
     });
 
     it('experiments table time', () => {

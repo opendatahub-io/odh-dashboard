@@ -632,7 +632,6 @@ describe('Project Details', () => {
         'GET /api/config',
         mockDashboardConfig({
           mlflow: true,
-          embedMLflow: true,
         }),
       );
 
@@ -643,7 +642,7 @@ describe('Project Details', () => {
 
       cy.findByTestId('mlflow-jump-link')
         .should('have.attr', 'href')
-        .and('include', `${mockMLflowLink.spec.href}/#/workspaces/test-project/experiments`);
+        .and('include', `${mockMLflowLink.spec.href}/#/experiments?workspace=test-project`);
       cy.findByTestId('embedded-mlflow-experiments-link').should('be.visible').click();
       cy.url().should('include', '/develop-train/experiments-mlflow');
     });

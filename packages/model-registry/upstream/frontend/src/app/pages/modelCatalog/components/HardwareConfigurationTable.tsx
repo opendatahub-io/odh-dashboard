@@ -9,7 +9,7 @@ import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelC
 import { ManageColumnsModal } from '~/app/shared/components/manageColumns/ManageColumnsModal';
 import HardwareConfigurationTableRow from './HardwareConfigurationTableRow';
 import HardwareConfigurationFilterToolbar from './HardwareConfigurationFilterToolbar';
-import { useHardwareConfigColumns } from './useHardwareConfigColumns';
+import { useHardwareConfigColumns, ControlledTableSortProps } from './useHardwareConfigColumns';
 
 type HardwareConfigurationTableProps = {
   performanceArtifacts: CatalogPerformanceMetricsArtifact[];
@@ -28,8 +28,12 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
   // Get the active latency filter field name (if any)
   const activeLatencyField = getActiveLatencyFieldName(filterData);
 
-  // Use the custom hook that combines manage columns with latency filter effects
-  const { columns, manageColumnsResult } = useHardwareConfigColumns(activeLatencyField);
+  // Use the custom hook that combines manage columns with the latency filter + sort logic
+  const {
+    columns,
+    manageColumnsResult,
+    sortState: { sortIndex, sortDirection, onSortIndexChange, onSortDirectionChange },
+  } = useHardwareConfigColumns(activeLatencyField);
 
   if (isLoading) {
     return <Spinner size="lg" />;
@@ -47,7 +51,7 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
       onClick={manageColumnsResult.openModal}
       data-testid="manage-columns-button"
     >
-      Manage columns
+      Customize columns
     </Button>
   );
 
@@ -58,6 +62,14 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
       toolbarActions={manageColumnsButton}
     />
   );
+
+  // Controlled sort props exist at runtime but not in mod-arch-shared Table typings yet
+  const controlledSortProps: ControlledTableSortProps = {
+    sortIndex,
+    sortDirection,
+    onSortIndexChange,
+    onSortDirectionChange,
+  };
 
   return (
     <>
@@ -71,9 +83,10 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
           columns={columns}
           toolbarContent={toolbarContent}
           onClearFilters={handleClearFilters}
-          defaultSortColumn={0}
+          defaultSortColumn={sortIndex}
+          {...controlledSortProps}
           emptyTableView={<DashboardEmptyTableView onClearFilters={handleClearFilters} />}
-          rowRenderer={(artifact) => (
+          rowRenderer={(artifact: CatalogPerformanceMetricsArtifact) => (
             <HardwareConfigurationTableRow
               key={artifact.customProperties?.config_id?.string_value}
               performanceArtifact={artifact}
@@ -84,7 +97,7 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
       </OuterScrollContainer>
       <ManageColumnsModal
         manageColumnsResult={manageColumnsResult}
-        description="Manage the columns that will appear in the hardware configuration table."
+        description="Manage the columns that appear in the hardware configuration table."
         dataTestId="hardware-config-manage-columns"
       />
     </>

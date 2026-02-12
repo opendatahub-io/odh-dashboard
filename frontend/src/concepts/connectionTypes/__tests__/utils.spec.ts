@@ -544,6 +544,43 @@ describe('useTrimInputHandlers', () => {
     trimInputOnPaste('', handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('foo');
   });
+
+  it('inserts trimmed pasted text at cursor position within existing value', () => {
+    const handleChange = jest.fn();
+
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: {
+        getData: () => '  PASTED  ',
+      },
+      currentTarget: {
+        value: 'hello world',
+        selectionStart: 5,
+        selectionEnd: 5,
+      },
+    } as unknown as React.ClipboardEvent<HTMLInputElement>;
+
+    trimInputOnPaste('hello world', handleChange)(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('helloPASTED world');
+  });
+
+  it('replaces selected text with trimmed pasted text', () => {
+    const handleChange = jest.fn();
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: {
+        getData: () => '  REPLACEMENT  ',
+      },
+      currentTarget: {
+        value: 'hello world',
+        selectionStart: 6,
+        selectionEnd: 11,
+      },
+    } as unknown as React.ClipboardEvent<HTMLInputElement>;
+
+    trimInputOnPaste('hello world', handleChange)(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('hello REPLACEMENT');
+  });
 });
 describe('isModelServingEnvVar', () => {
   it('should identify model serving env vars', () => {

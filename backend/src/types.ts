@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      autoRag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
       disableLLMd: boolean;
@@ -1325,3 +1326,12 @@ export enum OdhPlatformType {
   SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
   MANAGED_RHOAI = 'OpenShift AI Cloud Service',
 } // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
+
+export type KubeResponseBody<T> = {
+  kind: string;
+  apiVersion: string;
+  metadata?: {
+    resourceVersion?: string;
+  };
+  items?: T[];
+};

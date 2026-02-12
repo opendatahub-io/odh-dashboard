@@ -25,6 +25,8 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       uploadSource: jest.fn().mockResolvedValue({ data: null }),
       getFileUploadStatus: jest.fn().mockResolvedValue({ data: null }),
       getBFFConfig: jest.fn().mockResolvedValue({ isCustomLSD: false }),
+      getGuardrailsStatus: jest.fn().mockResolvedValue({ data: null }),
+      getSafetyConfig: jest.fn().mockResolvedValue({ data: null }),
     },
   },
   refreshAPIState: jest.fn(),

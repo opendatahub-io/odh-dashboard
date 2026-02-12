@@ -13,6 +13,9 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
+    '@openshift/dynamic-plugin-sdk': {
+      singleton: true,
+    },
     '@odh-dashboard/plugin-core': {
       singleton: true,
       requiredVersion: '0.0.0',
@@ -21,6 +24,7 @@ const moduleFederationConfig = {
   exposes: {
     './extensions': './src/odh/extensions',
     './extension-points': './src/odh/extension-points',
+    './AIAssetsMaaSTab': './src/app/AIAssets/AIAssetsMaaSTab',
   },
   runtime: false,
   // Enable runtime for proper HMR in development

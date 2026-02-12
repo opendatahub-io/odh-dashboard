@@ -84,6 +84,9 @@ const NGC_API_KEY = testConfig?.NGC_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 
+// BYOIDC cluster authentication settings
+const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
+
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
   LDAP_CONTRIBUTOR_USER,
@@ -98,6 +101,7 @@ export const cypressEnv = {
   NGC_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
+  CLUSTER_AUTH,
 };
 
 // re-export the updated process env

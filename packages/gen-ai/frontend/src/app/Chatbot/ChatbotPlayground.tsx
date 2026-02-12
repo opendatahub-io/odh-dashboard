@@ -1,45 +1,100 @@
 import * as React from 'react';
-import { Divider, Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import {
-  Chatbot,
-  ChatbotContent,
-  ChatbotDisplayMode,
-  ChatbotFooter,
-  ChatbotFootnote,
-  ChatbotWelcomePrompt,
-  MessageBar,
-  MessageBox,
-} from '@patternfly/chatbot';
+  Divider,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DropEvent,
+} from '@patternfly/react-core';
+import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot';
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
-import { TokenInfo } from '~/app/types';
+import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
-import { DEFAULT_SYSTEM_INSTRUCTIONS, FILE_UPLOAD_CONFIG, ERROR_MESSAGES } from './const';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
-import useChatbotMessages from './hooks/useChatbotMessages';
+import { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import ChatbotPaneHeader from './components/ChatbotPaneHeader';
+import ChatbotMessageInput from './components/ChatbotMessageInput';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
-import { ChatbotMessages } from './ChatbotMessagesList';
 import ViewCodeModal from './components/ViewCodeModal';
 import NewChatModal from './components/NewChatModal';
+import ChatbotPane from './ChatbotPane';
+import {
+  useChatbotConfigStore,
+  selectSelectedModel,
+  selectConfigIds,
+  selectGuardrail,
+  DEFAULT_CONFIG_ID,
+  getConfigDisplayLabel,
+} from './store';
+
+/**
+ * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
+ */
+interface ComparePaneWrapperProps {
+  configId: string;
+  displayLabel: string;
+  onModelChange: (model: string) => void;
+  onSettingsClick: () => void;
+  onClose: () => void;
+  children: React.ReactNode;
+  /** Metrics from the last response (latency, tokens, TTFT) */
+  metrics?: ResponseMetrics | null;
+  /** Whether a response is currently being generated */
+  isLoading?: boolean;
+}
+
+const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
+  configId,
+  displayLabel,
+  onModelChange,
+  onSettingsClick,
+  onClose,
+  children,
+  metrics,
+  isLoading,
+}) => {
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+
+  return (
+    <ChatbotPane
+      configId={configId}
+      displayLabel={displayLabel}
+      selectedModel={selectedModel}
+      onModelChange={onModelChange}
+      onSettingsClick={onSettingsClick}
+      onClose={onClose}
+      metrics={metrics}
+      isLoading={isLoading}
+    >
+      {children}
+    </ChatbotPane>
+  );
+};
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
   setIsViewCodeModalOpen: (isOpen: boolean) => void;
   isNewChatModalOpen: boolean;
   setIsNewChatModalOpen: (isOpen: boolean) => void;
+  activePaneConfigId?: string;
+  setActivePaneConfigId?: (configId: string) => void;
+  onClosePane?: (configId: string) => void;
+  clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -47,47 +102,47 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsViewCodeModalOpen,
   isNewChatModalOpen,
   setIsNewChatModalOpen,
+  activePaneConfigId = DEFAULT_CONFIG_ID,
+  setActivePaneConfigId,
+  onClosePane,
+  clearAllMessagesRef,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
-  const { getToolSelections } = useMCPToolSelections();
-  const {
-    models,
-    modelsLoaded,
-    aiModels,
-    maasModels,
-    selectedModel,
-    setSelectedModel,
-    lastInput,
-    setLastInput,
-  } = React.useContext(ChatbotContext);
+  const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
+    React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
-
-  const [systemInstruction, setSystemInstruction] = React.useState<string>(
-    DEFAULT_SYSTEM_INSTRUCTIONS,
-  );
-  const [isStreamingEnabled, setIsStreamingEnabled] = React.useState<boolean>(true);
-  const [temperature, setTemperature] = React.useState<number>(0.1);
   const isDarkMode = useDarkMode();
 
+  // Store state
+  const configIds = useChatbotConfigStore(selectConfigIds);
+  const isCompareMode = configIds.length > 1;
+  const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+  const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+  const guardrail = useChatbotConfigStore(selectGuardrail(primaryConfigId));
+
+  // Guardrails
+  const {
+    data: guardrailModelConfigs,
+    modelNames: guardrailModelNames,
+    loaded: guardrailModelsLoaded,
+    error: guardrailModelsError,
+  } = useFetchGuardrailModels();
+
+  // Router state
   const location = useLocation();
   const selectedAAModel = location.state?.model;
   const mcpServersFromRoute = React.useMemo(() => {
     const servers = location.state?.mcpServers;
     return Array.isArray(servers) ? servers : [];
   }, [location.state?.mcpServers]);
-
   const mcpServerStatusesFromRoute = React.useMemo(() => {
     const statuses = location.state?.mcpServerStatuses;
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
 
-  // Handle router state for MCP servers - initialize state with router value
-  const [selectedMcpServerIds, setSelectedMcpServerIds] =
-    React.useState<string[]>(mcpServersFromRoute);
-
-  // MCP hooks - fetch servers and manage statuses
+  // MCP hooks
   const {
     data: mcpServers = [],
     loaded: mcpServersLoaded,
@@ -95,31 +150,142 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   } = useFetchMCPServers();
   const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
     useMCPServerStatuses(mcpServers, mcpServersLoaded);
-
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
-  const shouldClearRouterState = React.useMemo(
-    () =>
-      Boolean(
-        location.state &&
-          (location.state.mcpServers || location.state.model || location.state.mcpServerStatuses),
-      ),
-    [location.state],
+  // UI state
+  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
+
+  // Custom hooks
+  const alertManagement = useAlertManagement();
+  const fileManagement = useFileManagement({
+    onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
+    onShowErrorAlert: alertManagement.onShowErrorAlert,
+  });
+  const sourceManagement = useSourceManagement({
+    onShowSuccessAlert: alertManagement.onShowUploadSuccessAlert,
+    onShowErrorAlert: alertManagement.onShowErrorAlert,
+    onFileUploadComplete: fileManagement.refreshFiles,
+    uploadedFiles: fileManagement.files,
+    isFilesLoading: fileManagement.isLoading,
+  });
+
+  // Message hooks tracking
+  const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
+  const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
+  const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
+  const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
+    new Map(),
   );
 
-  // Clear router state after a brief delay to ensure child components have consumed it
+  // Callbacks
+  const setSelectedModel = React.useCallback(
+    (model: string) => {
+      useChatbotConfigStore.getState().updateSelectedModel(primaryConfigId, model);
+    },
+    [primaryConfigId],
+  );
+
+  const handleMessagesHookReady = React.useCallback(
+    (configIdParam: string, hook: UseChatbotMessagesReturn) => {
+      messageHooksRef.current.set(configIdParam, hook);
+      setLoadingStates((prev) => {
+        if (prev.get(configIdParam) === hook.isLoading) {
+          return prev;
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.isLoading);
+        return next;
+      });
+      setDisabledStates((prev) => {
+        if (prev.get(configIdParam) === hook.isMessageSendButtonDisabled) {
+          return prev;
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.isMessageSendButtonDisabled);
+        return next;
+      });
+      // Track metrics for pane header display
+      setMetricsStates((prev) => {
+        if (prev.get(configIdParam) === hook.lastResponseMetrics) {
+          return prev;
+        }
+        const next = new Map(prev);
+        next.set(configIdParam, hook.lastResponseMetrics);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const getHookReadyCallback = React.useCallback(
+    (configId: string) => (hook: UseChatbotMessagesReturn) =>
+      handleMessagesHookReady(configId, hook),
+    [handleMessagesHookReady],
+  );
+
+  const handleModelChange = React.useCallback(
+    (configId: string) => (model: string) => {
+      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
+    },
+    [],
+  );
+
+  const handlePaneSettingsClick = React.useCallback(
+    (configId: string) => {
+      setActivePaneConfigId?.(configId);
+      setIsDrawerExpanded(true);
+    },
+    [setActivePaneConfigId],
+  );
+
+  const handleSendMessage = React.useCallback(
+    (message: string) => {
+      messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message));
+      setLastInput(message);
+    },
+    [setLastInput],
+  );
+
+  const handleStopStreaming = React.useCallback(() => {
+    messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
+  }, []);
+
+  const handleAttach = React.useCallback(
+    <T extends File>(acceptedFiles: T[], _fileRejections: unknown, event: DropEvent) => {
+      sourceManagement.handleSourceDrop(event, acceptedFiles).catch((error) => {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        alertManagement.onShowErrorAlert(
+          `Failed to process files: ${errorMessage}`,
+          'File Upload Error',
+        );
+      });
+    },
+    [sourceManagement, alertManagement],
+  );
+
+  // Effects
   React.useEffect(() => {
-    if (shouldClearRouterState) {
-      const timeoutId = setTimeout(() => {
-        window.history.replaceState({}, '');
-      }, 100);
+    useChatbotConfigStore.getState().resetConfiguration({
+      selectedMcpServerIds: mcpServersFromRoute,
+    });
+    return () => {
+      useChatbotConfigStore.getState().resetConfiguration();
+    };
+  }, [mcpServersFromRoute, selectedAAModel]);
+
+  React.useEffect(() => {
+    const shouldClear = Boolean(
+      location.state?.mcpServers || location.state?.model || location.state?.mcpServerStatuses,
+    );
+    if (shouldClear) {
+      const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
       return () => clearTimeout(timeoutId);
     }
     return undefined;
-  }, [shouldClearRouterState]);
+  }, [location.state]);
 
   React.useEffect(() => {
-    if (modelsLoaded && models.length > 0 && !selectedModel) {
+    if (modelsLoaded && models.length > 0 && !primarySelectedModel) {
       if (selectedAAModel) {
         setSelectedModel(selectedAAModel);
       } else {
@@ -134,108 +300,131 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   }, [
     modelsLoaded,
     models,
-    selectedModel,
+    primarySelectedModel,
     setSelectedModel,
     aiModels,
     maasModels,
     bffConfig,
     selectedAAModel,
-    mcpServersFromRoute,
   ]);
 
-  // Custom hooks for managing different aspects of the chatbot
-  const alertManagement = useAlertManagement();
+  React.useEffect(() => {
+    if (guardrailModelsLoaded && guardrailModelNames.length > 0 && !guardrail) {
+      useChatbotConfigStore.getState().updateGuardrail(primaryConfigId, guardrailModelNames[0]);
+    }
+  }, [guardrailModelsLoaded, guardrailModelNames, guardrail, primaryConfigId]);
 
-  // File management hook for displaying uploaded files
-  const fileManagement = useFileManagement({
-    onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
-    onShowErrorAlert: alertManagement.onShowErrorAlert,
-  });
+  // Cleanup stale message hooks
+  React.useEffect(() => {
+    const staleKeys = Array.from(messageHooksRef.current.keys()).filter(
+      (key) => !configIds.includes(key),
+    );
+    if (staleKeys.length > 0) {
+      staleKeys.forEach((key) => messageHooksRef.current.delete(key));
+      setLoadingStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => next.delete(key));
+        return next;
+      });
+      setDisabledStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => next.delete(key));
+        return next;
+      });
 
-  const sourceManagement = useSourceManagement({
-    onShowSuccessAlert: alertManagement.onShowUploadSuccessAlert,
-    onShowErrorAlert: alertManagement.onShowErrorAlert,
-    onFileUploadComplete: () => {
-      // Refresh the uploaded files list when a file upload completes
-      fileManagement.refreshFiles();
-    },
-    uploadedFiles: fileManagement.files,
-    isFilesLoading: fileManagement.isLoading,
-  });
+      // Remove from metrics states
+      setMetricsStates((prev) => {
+        const next = new Map(prev);
+        staleKeys.forEach((key) => {
+          next.delete(key);
+        });
+        return next;
+      });
+    }
+  }, [configIds]);
 
-  const chatbotMessages = useChatbotMessages({
-    modelId: selectedModel,
-    selectedSourceSettings: sourceManagement.selectedSourceSettings,
-    systemInstruction,
-    isRawUploaded: sourceManagement.isRawUploaded,
-    username,
-    isStreamingEnabled,
-    temperature,
-    currentVectorStoreId: fileManagement.currentVectorStoreId,
-    selectedServerIds: selectedMcpServerIds,
-    mcpServers,
-    mcpServerStatuses,
-    mcpServerTokens,
-    toolSelections: getToolSelections,
-    namespace: namespace?.name,
-  });
+  // Expose clearAllMessages to parent
+  React.useEffect(() => {
+    const ref = clearAllMessagesRef;
+    if (ref) {
+      ref.current = () => {
+        messageHooksRef.current.forEach((hook) => hook.clearConversation());
+      };
+    }
+    return () => {
+      if (ref) {
+        ref.current = null;
+      }
+    };
+  }, [clearAllMessagesRef]);
 
-  // Create alert components
-  const uploadSuccessAlert = (
-    <SourceUploadSuccessAlert
-      isVisible={alertManagement.showUploadSuccessAlert}
-      alertKey={alertManagement.uploadAlertKey}
-      onClose={alertManagement.onHideUploadSuccessAlert}
-    />
-  );
+  // Alerts
+  const alerts = {
+    uploadSuccessAlert: (
+      <SourceUploadSuccessAlert
+        isVisible={alertManagement.showUploadSuccessAlert}
+        alertKey={alertManagement.uploadAlertKey}
+        onClose={alertManagement.onHideUploadSuccessAlert}
+      />
+    ),
+    deleteSuccessAlert: (
+      <SourceDeleteSuccessAlert
+        isVisible={alertManagement.showDeleteSuccessAlert}
+        alertKey={alertManagement.deleteAlertKey}
+        onClose={alertManagement.onHideDeleteSuccessAlert}
+      />
+    ),
+    errorAlert: (
+      <SourceUploadErrorAlert
+        isVisible={alertManagement.showErrorAlert}
+        alertKey={alertManagement.errorAlertKey}
+        onClose={alertManagement.onHideErrorAlert}
+        errorMessage={alertManagement.errorMessage}
+        title={alertManagement.errorTitle}
+      />
+    ),
+  };
 
-  const deleteSuccessAlert = (
-    <SourceDeleteSuccessAlert
-      isVisible={alertManagement.showDeleteSuccessAlert}
-      alertKey={alertManagement.deleteAlertKey}
-      onClose={alertManagement.onHideDeleteSuccessAlert}
-    />
-  );
+  // Settings panel header label
+  const settingsHeaderLabel = isCompareMode
+    ? `Configure ${getConfigDisplayLabel(configIds.indexOf(activePaneConfigId))}`
+    : 'Configure';
 
-  const errorAlert = (
-    <SourceUploadErrorAlert
-      isVisible={alertManagement.showErrorAlert}
-      alertKey={alertManagement.errorAlertKey}
-      onClose={alertManagement.onHideErrorAlert}
-      errorMessage={alertManagement.errorMessage}
-      title={alertManagement.errorTitle}
-    />
-  );
-
-  // Settings panel content
-  const settingsPanelContent = (
-    <ChatbotSettingsPanel
-      selectedModel={selectedModel}
-      onModelChange={setSelectedModel}
-      alerts={{ uploadSuccessAlert, deleteSuccessAlert, errorAlert }}
-      sourceManagement={sourceManagement}
-      fileManagement={fileManagement}
-      systemInstruction={systemInstruction}
-      onSystemInstructionChange={setSystemInstruction}
-      isStreamingEnabled={isStreamingEnabled}
-      onStreamingToggle={setIsStreamingEnabled}
-      temperature={temperature}
-      onTemperatureChange={setTemperature}
-      onMcpServersChange={setSelectedMcpServerIds}
-      initialSelectedServerIds={mcpServersFromRoute}
-      initialServerStatuses={mcpServerStatusesFromRoute}
-      selectedServersCount={selectedMcpServerIds.length}
-      mcpServers={mcpServers}
-      mcpServersLoaded={mcpServersLoaded}
-      mcpServersLoadError={mcpServersLoadError}
-      mcpServerTokens={mcpServerTokens}
-      onMcpServerTokensChange={setMcpServerTokens}
-      checkMcpServerStatus={checkMcpServerStatus}
-    />
+  // Render chatbot content for a config
+  const renderChatbotContent = (configId: string) => (
+    <Chatbot
+      displayMode={ChatbotDisplayMode.embedded}
+      data-testid={isCompareMode ? `chatbot-${configId}` : 'chatbot'}
+    >
+      <ChatbotContent
+        style={{
+          backgroundColor: isDarkMode
+            ? 'var(--pf-t--global--dark--background--color--100)'
+            : 'var(--pf-t--global--background--color--100)',
+        }}
+      >
+        <ChatbotConfigInstance
+          key={`${configId}-chatbot-instance`}
+          configId={configId}
+          username={username}
+          selectedSourceSettings={sourceManagement.selectedSourceSettings}
+          currentVectorStoreId={fileManagement.currentVectorStoreId}
+          mcpServers={mcpServers}
+          mcpServerStatuses={mcpServerStatuses}
+          mcpServerTokens={mcpServerTokens}
+          namespace={namespace?.name}
+          showWelcomePrompt
+          welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
+          onMessagesHookReady={getHookReadyCallback(configId)}
+          guardrailModelConfigs={guardrailModelConfigs}
+        />
+      </ChatbotContent>
+    </Chatbot>
   );
 
   return (
     <>
+      {/* Modals */}
       <ChatbotSourceSettingsModal
         isOpen={sourceManagement.isSourceSettingsOpen}
         onToggle={sourceManagement.handleModalClose}
@@ -248,140 +437,111 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isOpen={isViewCodeModalOpen}
         onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
         input={lastInput}
-        model={selectedModel}
-        systemInstruction={systemInstruction}
         files={fileManagement.files}
-        isRagEnabled={sourceManagement.isRawUploaded}
-        selectedMcpServerIds={selectedMcpServerIds}
         mcpServers={mcpServers}
         mcpServerTokens={mcpServerTokens}
-        toolSelections={getToolSelections}
         namespace={namespace?.name}
       />
       <NewChatModal
         isOpen={isNewChatModalOpen}
-        onClose={() => {
-          setIsNewChatModalOpen(false);
-        }}
+        onClose={() => setIsNewChatModalOpen(false)}
         onConfirm={() => {
-          chatbotMessages.clearConversation();
+          messageHooksRef.current.forEach((hook) => hook.clearConversation());
           setIsNewChatModalOpen(false);
         }}
       />
-      <Drawer isExpanded isInline position="right">
-        <Divider />
-        <DrawerContent panelContent={settingsPanelContent}>
-          <DrawerContentBody>
-            <Chatbot displayMode={ChatbotDisplayMode.embedded} data-testid="chatbot">
-              <ChatbotContent
-                style={{
-                  backgroundColor: isDarkMode
-                    ? 'var(--pf-t--global--dark--background--color--100)'
-                    : 'var(--pf-t--global--background--color--100)',
-                }}
-              >
-                <MessageBox position="bottom">
-                  <ChatbotWelcomePrompt
-                    title={username ? `Hello, ${username}` : 'Hello'}
-                    description="Welcome to the model playground."
-                    data-testid="chatbot-welcome-prompt"
-                  />
-                  <ChatbotMessages
-                    messageList={chatbotMessages.messages}
-                    scrollRef={chatbotMessages.scrollToBottomRef}
-                    isLoading={chatbotMessages.isLoading}
-                    isStreamingWithoutContent={chatbotMessages.isStreamingWithoutContent}
-                  />
-                </MessageBox>
-              </ChatbotContent>
-              <ChatbotFooter
-                style={{
-                  backgroundColor: isDarkMode
-                    ? 'var(--pf-t--global--dark--background--color--100)'
-                    : 'var(--pf-t--global--background--color--100)',
-                  borderTop: '1px solid var(--pf-t--global--border--color--default)',
-                  paddingTop: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    border: isDarkMode
-                      ? 'none'
-                      : '1px solid var(--pf-t--global--border--color--default)',
-                    borderRadius: '2.25rem',
-                  }}
-                >
-                  <MessageBar
-                    onSendMessage={(message) => {
-                      if (typeof message === 'string') {
-                        chatbotMessages.handleMessageSend(message);
-                        setLastInput(message);
-                      }
-                    }}
-                    handleStopButton={chatbotMessages.handleStopStreaming}
-                    hasAttachButton={false}
-                    isSendButtonDisabled={chatbotMessages.isMessageSendButtonDisabled}
-                    hasStopButton={chatbotMessages.isLoading}
-                    data-testid="chatbot-message-bar"
-                    onAttach={async (acceptedFiles, fileRejections, event) => {
-                      try {
-                        // Use the existing source upload functionality
-                        await sourceManagement.handleSourceDrop(event, acceptedFiles);
-                      } catch (error) {
-                        // Handle any unexpected errors during file processing
-                        const errorMessage =
-                          error instanceof Error ? error.message : 'Unknown error occurred';
-                        alertManagement.onShowErrorAlert(
-                          `Failed to process files: ${errorMessage}`,
-                          'File Upload Error',
-                        );
-                      }
-                    }}
-                    onAttachRejected={(fileRejections) => {
-                      // Handle file rejection errors with specific error types
-                      const errorMessages = fileRejections
-                        .map((rejection) => {
-                          const fileErrors = rejection.errors.map((error) => {
-                            switch (error.code) {
-                              case 'file-too-large':
-                                return ERROR_MESSAGES.FILE_TOO_LARGE;
-                              case 'too-many-files':
-                                return ERROR_MESSAGES.TOO_MANY_FILES;
-                              case 'file-invalid-type':
-                                return `File type not supported. Accepted types: ${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}`;
-                              default:
-                                return error.message;
-                            }
-                          });
-                          return `${rejection.file.name}: ${fileErrors.join(', ')}`;
-                        })
-                        .join('; ');
 
-                      alertManagement.onShowErrorAlert(
-                        `${ERROR_MESSAGES.FILE_UPLOAD_REJECTED}: ${errorMessages}`,
-                        'File Upload Error',
-                      );
-                    }}
-                    allowedFileTypes={FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES}
-                    maxSize={FILE_UPLOAD_CONFIG.MAX_FILE_SIZE}
-                    maxFiles={FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE}
-                    buttonProps={{
-                      attach: {
-                        tooltipContent: `Upload files (${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}, max ${FILE_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB)`,
-                        inputTestId: 'chatbot-attach-input',
-                      },
-                      send: {
-                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                        props: {
-                          'data-testid': 'chatbot-send-button',
-                        } as React.ComponentProps<'button'>,
-                      },
-                    }}
-                  />
-                </div>
-                <ChatbotFootnote {...{ label: 'This chatbot uses AI. Check for mistakes.' }} />
-              </ChatbotFooter>
-            </Chatbot>
+      {/* Main layout */}
+      <Drawer isExpanded={isDrawerExpanded} isInline={!isCompareMode} position="left">
+        <Divider />
+        <DrawerContent
+          panelContent={
+            <ChatbotSettingsPanel
+              key={`settings-panel-${activePaneConfigId}`}
+              configId={activePaneConfigId}
+              headerLabel={settingsHeaderLabel}
+              alerts={alerts}
+              sourceManagement={sourceManagement}
+              fileManagement={fileManagement}
+              initialServerStatuses={mcpServerStatusesFromRoute}
+              mcpServers={mcpServers}
+              mcpServersLoaded={mcpServersLoaded}
+              mcpServersLoadError={mcpServersLoadError}
+              mcpServerTokens={mcpServerTokens}
+              onMcpServerTokensChange={setMcpServerTokens}
+              checkMcpServerStatus={checkMcpServerStatus}
+              guardrailModels={guardrailModelNames}
+              guardrailModelsLoaded={guardrailModelsLoaded}
+              onCloseClick={() => setIsDrawerExpanded(false)}
+              guardrailModelsError={guardrailModelsError}
+            />
+          }
+        >
+          <DrawerContentBody style={{ padding: 0, height: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Single mode header */}
+              {!isCompareMode && (
+                <ChatbotPaneHeader
+                  selectedModel={primarySelectedModel || ''}
+                  onModelChange={setSelectedModel}
+                  onSettingsClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                  metrics={metricsStates.get(primaryConfigId)}
+                  isLoading={loadingStates.get(primaryConfigId)}
+                  hasDivider
+                />
+              )}
+
+              {/* Chat panes */}
+              <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                {configIds.map((configId, index) => (
+                  <React.Fragment key={configId}>
+                    {isCompareMode && index > 0 && (
+                      <Divider orientation={{ default: 'vertical' }} />
+                    )}
+                    <div
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {isCompareMode ? (
+                        <ComparePaneWrapper
+                          configId={configId}
+                          displayLabel={getConfigDisplayLabel(index)}
+                          onModelChange={handleModelChange(configId)}
+                          onSettingsClick={() => handlePaneSettingsClick(configId)}
+                          onClose={() => onClosePane?.(configId)}
+                          metrics={metricsStates.get(configId)}
+                          isLoading={loadingStates.get(configId)}
+                        >
+                          {renderChatbotContent(configId)}
+                        </ComparePaneWrapper>
+                      ) : (
+                        renderChatbotContent(configId)
+                      )}
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Message input */}
+              <ChatbotMessageInput
+                onSendMessage={handleSendMessage}
+                onStopStreaming={handleStopStreaming}
+                isLoading={Array.from(loadingStates.values()).some(Boolean)}
+                isSendDisabled={
+                  !modelsLoaded ||
+                  !primarySelectedModel ||
+                  Array.from(disabledStates.values()).some(Boolean)
+                }
+                showAttachButton={!isCompareMode}
+                onAttach={handleAttach}
+                onShowErrorAlert={alertManagement.onShowErrorAlert}
+                isDarkMode={isDarkMode}
+              />
+            </div>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>

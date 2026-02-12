@@ -70,6 +70,31 @@ class ModelDetailsPage {
   findLabelByIndex(index: number) {
     return cy.findAllByTestId('model-catalog-label').eq(index);
   }
+
+  findPerformanceInsightsTab() {
+    return cy.findByTestId('performance-insights-tab');
+  }
+
+  findOverviewTab() {
+    return cy.findByTestId('model-overview-tab');
+  }
+
+  clickPerformanceInsightsTab() {
+    this.findPerformanceInsightsTab().click();
+    return this;
+  }
+
+  findHardwareConfigurationTable() {
+    return cy.findByTestId('hardware-configuration-table');
+  }
+
+  findHardwareConfigurationTableRows() {
+    return cy.get('[data-testid="hardware-configuration-table"] tbody tr');
+  }
+
+  findWorkloadTypeFilter() {
+    return cy.findByTestId('workload-type-filter');
+  }
 }
 
 export const modelDetailsPage = new ModelDetailsPage();

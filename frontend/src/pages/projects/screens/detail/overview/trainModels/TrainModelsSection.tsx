@@ -11,7 +11,6 @@ const TrainModelsSection: React.FC = () => {
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const mlflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
-  const mlflowEmbedEnabled = useIsAreaAvailable(SupportedArea.EMBED_MLFLOW).status;
 
   if (!workbenchEnabled && !pipelinesEnabled) {
     return null;
@@ -34,7 +33,7 @@ const TrainModelsSection: React.FC = () => {
             ) : null}
           </Gallery>
         </StackItem>
-        {mlflowEnabled && mlflowEmbedEnabled ? (
+        {mlflowEnabled ? (
           <StackItem>
             <MLflowCard />
           </StackItem>

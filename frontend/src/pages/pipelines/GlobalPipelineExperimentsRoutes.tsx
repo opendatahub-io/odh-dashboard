@@ -48,6 +48,7 @@ const GlobalPipelineExperimentsRoutes: React.FC = () => (
           }
           description={experimentsPageDescription}
           getInvalidRedirectPath={experimentsBaseRoute}
+          objectType={ProjectObjectType.pipelineExperiment}
         />
       }
     >

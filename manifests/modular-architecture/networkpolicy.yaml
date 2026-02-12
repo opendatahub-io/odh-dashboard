@@ -19,4 +19,10 @@ spec:
           protocol: TCP
         - port: 8243
           protocol: TCP
-      # Empty 'from' means allow from all sources to these ports.
+      from:
+        # Allow traffic from OpenShift ingress controller
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+        # Allow traffic from pods in the same namespace
+        - podSelector: {}

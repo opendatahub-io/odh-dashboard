@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MCPServerToolsModal from '~/app/Chatbot/mcp/MCPServerToolsModal';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
-import { useMCPToolSelections } from '~/app/hooks/useMCPToolSelections';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import {
   mockServer,
   mockSingleTool,
@@ -18,7 +18,11 @@ import {
 
 // Mock dependencies
 jest.mock('~/app/hooks/useMCPServerTools');
-jest.mock('~/app/hooks/useMCPToolSelections');
+jest.mock('~/app/Chatbot/store', () => ({
+  useChatbotConfigStore: {
+    getState: jest.fn(),
+  },
+}));
 jest.mock('~/app/context/GenAiContext', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mockReact = require('react');
@@ -28,9 +32,6 @@ jest.mock('~/app/context/GenAiContext', () => {
 });
 
 const mockUseMCPServerTools = useMCPServerTools as jest.MockedFunction<typeof useMCPServerTools>;
-const mockUseMCPToolSelections = useMCPToolSelections as jest.MockedFunction<
-  typeof useMCPToolSelections
->;
 
 describe('MCPServerToolsModal', () => {
   const mockOnClose = jest.fn();
@@ -38,6 +39,7 @@ describe('MCPServerToolsModal', () => {
   const mockSaveToolSelections = jest.fn();
 
   const defaultProps = {
+    configId: 'default',
     isOpen: true,
     onClose: mockOnClose,
     server: mockServer,
@@ -47,7 +49,7 @@ describe('MCPServerToolsModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseMCPToolSelections.mockReturnValue({
+    (useChatbotConfigStore.getState as jest.Mock).mockReturnValue({
       getToolSelections: mockGetToolSelections,
       saveToolSelections: mockSaveToolSelections,
     });
@@ -219,7 +221,7 @@ describe('MCPServerToolsModal', () => {
       expect(mockSaveToolSelections).toHaveBeenCalled();
     });
 
-    const savedToolNames = mockSaveToolSelections.mock.calls[0][2];
+    const savedToolNames = mockSaveToolSelections.mock.calls[0][3];
     expect(savedToolNames).toHaveLength(8);
     expect(savedToolNames).toEqual([
       'kubernetes_pod_list',
@@ -270,7 +272,7 @@ describe('MCPServerToolsModal', () => {
       expect(mockSaveToolSelections).toHaveBeenCalled();
     });
 
-    const savedToolNames = mockSaveToolSelections.mock.calls[0][2];
+    const savedToolNames = mockSaveToolSelections.mock.calls[0][3];
     expect(savedToolNames).toHaveLength(2);
     expect(savedToolNames).toEqual(['redis_get', 'redis_set']);
   });
@@ -308,6 +310,7 @@ describe('MCPServerToolsModal', () => {
     // Empty array [] means NO tools are allowed for this MCP server
     await waitFor(() => {
       expect(mockSaveToolSelections).toHaveBeenCalledWith(
+        'default',
         'test-namespace',
         'http://test-server.com',
         [], // Empty array = NO tools allowed
@@ -341,6 +344,7 @@ describe('MCPServerToolsModal', () => {
     // undefined = ALL tools allowed (no restriction on tools)
     await waitFor(() => {
       expect(mockSaveToolSelections).toHaveBeenCalledWith(
+        'default',
         'test-namespace',
         'http://test-server.com',
         undefined, // undefined = ALL tools allowed
@@ -368,6 +372,7 @@ describe('MCPServerToolsModal', () => {
       });
 
       expect(mockGetToolSelections).toHaveBeenCalledWith(
+        'default',
         'test-namespace',
         'http://test-server.com',
       );

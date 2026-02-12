@@ -25,4 +25,10 @@ export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
     sortable: (a, b) => a.usecase.localeCompare(b.usecase),
     width: 30,
   },
+  {
+    label: 'Max tokens',
+    field: 'max_tokens',
+    width: 20,
+    sortable: false, // Not sortable since it's an input field
+  },
 ];

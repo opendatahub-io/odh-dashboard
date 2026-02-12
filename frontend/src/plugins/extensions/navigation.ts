@@ -171,7 +171,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW, SupportedArea.EMBED_MLFLOW],
+      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
     },
     properties: {
       id: 'experiments-mlflow',
@@ -179,6 +179,7 @@ const extensions: NavExtension[] = [
       href: '/develop-train/experiments-mlflow',
       section: 'develop-and-train',
       path: '/develop-train/experiments-mlflow/*',
+      label: 'Tech Preview',
     },
   },
 

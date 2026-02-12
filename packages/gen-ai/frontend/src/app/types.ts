@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
+import type { MaaSModel, MaaSTokenRequest, MaaSTokenResponse } from '~/odh/extension-points/maas';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
@@ -18,6 +19,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   is_maas_model: boolean;
+  max_tokens?: number; // Optional per-model token limit (128-128000)
 };
 
 export type FileCounts = {
@@ -96,12 +98,21 @@ export type CreateResponseRequest = {
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
+  input_shield_id?: string;
+  output_shield_id?: string;
 };
 
 export type SimplifiedUsage = {
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
+};
+
+// Response metrics from BFF (latency, TTFT, usage)
+export type ResponseMetrics = {
+  latency_ms: number;
+  time_to_first_token_ms?: number; // Only present for streaming responses
+  usage?: SimplifiedUsage;
 };
 
 // File citation annotation from RAG responses
@@ -123,7 +134,8 @@ export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: s
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
-  text: string;
+  text?: string;
+  refusal?: string;
   annotations?: ContentAnnotation[];
 };
 
@@ -142,6 +154,7 @@ export type BackendResponseData = {
   created_at: number;
   output?: OutputItem[];
   usage?: SimplifiedUsage;
+  metrics?: ResponseMetrics; // Response metrics from BFF (latency, TTFT, usage)
 };
 
 // MCP tool call data extracted from backend response
@@ -169,6 +182,7 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
 };
 
 export type FileError = {
@@ -309,6 +323,32 @@ export type BFFConfig = {
   isCustomLSD: boolean;
 };
 
+export type GuardrailsCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+};
+
+export type GuardrailsStatus = {
+  name: string;
+  phase: string;
+  conditions?: GuardrailsCondition[];
+};
+
+/** Guardrail model config from safety config endpoint */
+export type GuardrailModelConfig = {
+  model_name: string;
+  input_shield_id: string;
+  output_shield_id: string;
+};
+
+/** Response from /lsd/safety endpoint */
+export type SafetyConfigResponse = {
+  guardrail_models: GuardrailModelConfig[];
+};
+
 export interface AAModelResponse {
   model_name: string;
   model_id: string;
@@ -337,24 +377,6 @@ export interface AIModel extends AAModelResponse {
   maasModelId?: string;
 }
 
-export interface MaaSModel {
-  id: string;
-  object: string;
-  created: number;
-  owned_by: string;
-  ready: boolean;
-  url: string;
-}
-
-export type MaaSTokenRequest = {
-  expiration?: string; // Optional - only present when expiration is provided
-};
-
-export interface MaaSTokenResponse {
-  token: string;
-  expiresAt: number;
-}
-
 export type {
   MCPServerFromAPI,
   MCPConfigMapInfo,
@@ -378,6 +400,7 @@ export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
+  enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
 };
 
 export type DeleteLSDRequest = {
@@ -408,6 +431,8 @@ export type GenAiAPIs = {
   getMCPServers: GetMCPServers;
   getMCPServerStatus: GetMCPServerStatus;
   getBFFConfig: GetBFFConfig;
+  getGuardrailsStatus: GetGuardrailsStatus;
+  getSafetyConfig: GetSafetyConfig;
 };
 
 export type ModArchRestGET<T> = (
@@ -432,7 +457,10 @@ type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
 type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
-  opts?: APIOptions & { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal },
+  opts?: APIOptions & {
+    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    abortSignal?: AbortSignal;
+  },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
 type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
@@ -445,3 +473,5 @@ type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
 type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
+type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
+type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;

@@ -35,7 +35,7 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to AI catalog settings');
+      cy.step('Navigate to AI catalog sources');
       modelCatalogSettings.navigate();
 
       cy.step('Verify configmap shows source as enabled');
@@ -50,7 +50,7 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
       cy.step('Verify model catalog cards are visible');
       modelCatalog.findModelCatalogCards().should('exist');
 
-      cy.step('Navigate back to AI catalog settings');
+      cy.step('Navigate back to AI catalog sources');
       modelCatalogSettings.navigate();
 
       cy.step(`Disable the ${testData.sourceName} source`);

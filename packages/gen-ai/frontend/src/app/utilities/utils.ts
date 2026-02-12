@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
-import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig, MaaSModel } from '~/app/types';
+import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 
 /**
  * Generates a UUID v4 string
@@ -119,11 +120,11 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   serving_runtime: 'MaaS',
   api_protocol: 'OpenAI',
   version: '',
-  usecase: 'LLM',
-  description: '', //TODO: MaaS models don't have description yet, bff needs to be updated to provide it
+  usecase: maasModel.usecase || 'LLM',
+  description: maasModel.description || '',
   endpoints: [`internal: ${maasModel.url}`],
   status: maasModel.ready ? 'Running' : 'Stop',
-  display_name: maasModel.id,
+  display_name: maasModel.display_name || maasModel.id,
   sa_token: {
     name: '',
     token_name: '',

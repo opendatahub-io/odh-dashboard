@@ -148,7 +148,7 @@ items:
     name: {{DATABASE_NAME}}
     namespace: {{NAMESPACE}}
   stringData:
-    database-name: "model_registry"
+    database-name: "model-registry"
     database-password: "TheBlurstOfTimes" # notsecret
     database-user: "mlmduser" # notsecret
 kind: List

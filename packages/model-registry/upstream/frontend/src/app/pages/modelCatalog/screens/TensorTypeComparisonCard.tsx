@@ -16,10 +16,10 @@ import React from 'react';
 import { Link } from 'react-router';
 import { useCatalogModelsBySources } from '~/app/hooks/modelCatalog/useCatalogModelsBySource';
 import { CatalogModel } from '~/app/modelCatalogTypes';
-import { catalogModelDetailsFromModel } from '~/app/routes/modelCatalog/catalogModel';
+import { catalogModelDetailsTabFromModel } from '~/app/routes/modelCatalog/catalogModel';
 import { getStringValue } from '~/app/utils';
 import { getModelName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
+import { EMPTY_CUSTOM_PROPERTY_VALUE, ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import { sortModelsWithCurrentFirst } from '~/app/pages/modelCatalog/utils/validatedModelUtils';
 
 type TensorTypeComparisonCardProps = {
@@ -45,7 +45,13 @@ const TensorTypeComparisonCard: React.FC<TensorTypeComparisonCardProps> = ({ mod
     [catalogModels.items, model.name],
   );
 
+  // Hide the card if there's no variant group ID
   if (!variantGroupId || variantGroupId === EMPTY_CUSTOM_PROPERTY_VALUE) {
+    return null;
+  }
+
+  // Hide the card if there's only one variant (the current model)
+  if (catalogModelsLoaded && !catalogModelsLoadError && sortedModels.length <= 1) {
     return null;
   }
 
@@ -57,11 +63,14 @@ const TensorTypeComparisonCard: React.FC<TensorTypeComparisonCardProps> = ({ mod
             <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
               <FlexItem>
                 <Title headingLevel="h2" size="lg">
-                  Compression level comparison
+                  Model variants by tensor type
                 </Title>
               </FlexItem>
               <FlexItem>
-                <p>View benchmark performance of this model&apos;s available compression levels.</p>
+                <p>
+                  Compare benchmark performance across tensor types to understand accuracy and
+                  efficiency tradeoffs.
+                </p>
               </FlexItem>
             </Flex>
           </FlexItem>
@@ -77,13 +86,6 @@ const TensorTypeComparisonCard: React.FC<TensorTypeComparisonCardProps> = ({ mod
               </Alert>
             ) : !catalogModelsLoaded ? (
               <Spinner size="lg" data-testid="compression-comparison-loading" />
-            ) : sortedModels.length === 0 ? (
-              <Alert
-                variant="info"
-                isInline
-                title="No compression variants found"
-                data-testid="compression-comparison-empty"
-              />
             ) : (
               <Flex
                 gap={{ default: 'gapMd' }}
@@ -155,8 +157,9 @@ const TensorTypeComparisonCard: React.FC<TensorTypeComparisonCardProps> = ({ mod
                                   />
                                 ) : (
                                   <Link
-                                    to={catalogModelDetailsFromModel(
-                                      encodeURIComponent(variant.name || ''),
+                                    to={catalogModelDetailsTabFromModel(
+                                      ModelDetailsTab.PERFORMANCE_INSIGHTS,
+                                      variant.name || '',
                                       variant.source_id,
                                     )}
                                     data-testid={`compression-link-${index}`}

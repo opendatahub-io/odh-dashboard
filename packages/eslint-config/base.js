@@ -20,6 +20,7 @@ module.exports = {
     'public-cypress',
     'node_modules',
     'dist',
+    'CLAUDE.md',
   ],
   rules: {
     'arrow-body-style': 'error',

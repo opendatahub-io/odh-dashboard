@@ -21,7 +21,7 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
           onClick={onFooterClick}
           data-testid="integration-instructions-footer-link"
         >
-          Go to <strong>Data science projects</strong>
+          Go to <strong>Projects</strong>
         </Link>
       </StackItem>
     </Stack>
@@ -35,8 +35,8 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
           permission to access the feature store.
           <br />
           <br />
-          In a project with the required permission, create or edit a workbench and select the
-          desired feature store in the <strong>Connected feature stores</strong> field.
+          In a compatible project, create or edit a workbench and select the desired feature store
+          in the <strong>Feature stores</strong> field.
         </p>
       </StackItem>
       <StackItem>{footerContent}</StackItem>

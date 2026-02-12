@@ -34,14 +34,14 @@ const setupMocksForMCSettingAccess = () => {
   );
 };
 
-it('AI catalog settings should not be available for non product admins', () => {
+it('AI catalog sources should not be available for non product admins', () => {
   asProjectAdminUser();
   modelCatalogSettings.visit(false);
   pageNotfound.findPage().should('exist');
   modelCatalogSettings.findNavItem().should('not.exist');
 });
 
-it('AI catalog settings should be available for product admins with capabilities', () => {
+it('AI catalog sources should be available for product admins with capabilities', () => {
   setupMocksForMCSettingAccess();
   // check page is accessible
   modelCatalogSettings.visit(true);

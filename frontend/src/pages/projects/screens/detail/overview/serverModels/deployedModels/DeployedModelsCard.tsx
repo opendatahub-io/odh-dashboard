@@ -14,7 +14,7 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import DeployedModelsGallery from './DeployedModelsGallery';
 
 enum FilterStates {

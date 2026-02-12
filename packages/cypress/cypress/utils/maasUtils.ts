@@ -1,5 +1,9 @@
 import type { Tier, TierLimits } from '@odh-dashboard/maas/types/tier';
-import type { APIKey } from '@odh-dashboard/maas/types/api-key';
+import type {
+  APIKey,
+  CreateAPIKeyResponse,
+  CreateAPIKeyRequest,
+} from '@odh-dashboard/maas/types/api-key';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -74,6 +78,26 @@ export const mockAPIKeys = (): APIKey[] => [
     status: 'expired',
   },
 ];
+
+export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
+  return {
+    token:
+      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    expiration: '4h',
+    expiresAt: 1769544565,
+    jti: 'mock-jti-abc123def456',
+    name: 'production-backend',
+    description: 'Production API key for backend service',
+  };
+};
+
+export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
+  return {
+    name: 'production-backend',
+    description: 'Production API key for backend service',
+    expiration: '4h',
+  };
+};
 
 export const mockTier = ({
   name = 'free',

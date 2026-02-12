@@ -116,9 +116,7 @@ export const useExtractFormDataFromDeployment = (
 
       // Extract hardware profile configuration if the extension supports it
       hardwareProfile:
-        typeof formDataExtension?.properties.extractHardwareProfileConfig === 'function'
-          ? formDataExtension.properties.extractHardwareProfileConfig(deployment) ?? undefined
-          : undefined,
+        formDataExtension?.properties.extractHardwareProfileConfig(deployment) ?? undefined,
 
       // Extract model format information if available
       modelFormat:
@@ -127,16 +125,11 @@ export const useExtractFormDataFromDeployment = (
           : undefined,
 
       // Extract replica count configuration
-      numReplicas:
-        typeof formDataExtension?.properties.extractReplicas === 'function'
-          ? formDataExtension.properties.extractReplicas(deployment) ?? undefined
-          : undefined,
+      numReplicas: formDataExtension?.properties.extractReplicas(deployment) ?? undefined,
 
       // Extract model location data (where the model is stored)
       modelLocationData:
-        typeof formDataExtension?.properties.extractModelLocationData === 'function'
-          ? formDataExtension.properties.extractModelLocationData(deployment) ?? undefined
-          : undefined,
+        formDataExtension?.properties.extractModelLocationData(deployment) ?? undefined,
 
       // Determine if external route is enabled for this deployment
       externalRoute: getExternalRouteFromDeployment(deployment),
@@ -154,31 +147,20 @@ export const useExtractFormDataFromDeployment = (
           : undefined,
 
       // Extract runtime arguments if available
-      runtimeArgs:
-        typeof formDataExtension?.properties.extractRuntimeArgs === 'function'
-          ? formDataExtension.properties.extractRuntimeArgs(deployment) ?? undefined
-          : undefined,
+      runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
 
       // Extract environment variables configuration
       environmentVariables:
-        typeof formDataExtension?.properties.extractEnvironmentVariables === 'function'
-          ? formDataExtension.properties.extractEnvironmentVariables(deployment) ?? undefined
-          : undefined,
+        formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
 
       // Extract model availability data
       modelAvailability:
-        typeof formDataExtension?.properties.extractModelAvailabilityData === 'function'
-          ? formDataExtension.properties.extractModelAvailabilityData(deployment) ?? undefined
-          : undefined,
+        formDataExtension?.properties.extractModelAvailabilityData(deployment) ?? undefined,
 
       // Determine model server configuration based on deployment type
       modelServer:
-        typeof formDataExtension?.properties.extractModelServerTemplate === 'function'
-          ? formDataExtension.properties.extractModelServerTemplate(
-              deployment,
-              dashboardNamespace,
-            ) ?? undefined
-          : undefined,
+        formDataExtension?.properties.extractModelServerTemplate(deployment, dashboardNamespace) ??
+        undefined,
       // Always set to true for existing deployments
       isEditing: true,
       // Include extracted data from dynamic wizard fields (spread as top-level properties)

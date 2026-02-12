@@ -10,6 +10,10 @@ class PermissionsTab {
     this.wait();
   }
 
+  visitAssignRoles(projectName: string) {
+    cy.visitWithLogin(`/projects/${projectName}/permissions/assign`);
+  }
+
   private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();

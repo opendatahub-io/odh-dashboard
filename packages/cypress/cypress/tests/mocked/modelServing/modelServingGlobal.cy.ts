@@ -290,15 +290,12 @@ describe('Model Serving Global', () => {
         servingType: 'NVIDIA NIM serving enabled',
       },
     ].forEach((row) => {
-      modelServingSection.getInferenceServiceRow(row.model).findProject().findByText(row.project);
-      modelServingSection
-        .getInferenceServiceRow(row.model)
-        .findProject()
-        .findByText(row.servingType);
+      modelServingSection.getDeploymentRow(row.model).findProject().findByText(row.project);
+      modelServingSection.getDeploymentRow(row.model).findProject().findByText(row.servingType);
     });
     // Double check NIM Runtime is listed
     modelServingSection
-      .getInferenceServiceRow('NIM Model')
+      .getDeploymentRow('NIM Model')
       .findServingRuntime()
       .should('contain.text', 'NVIDIA NIM');
 
@@ -422,11 +419,11 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.visit('test-project');
 
-    const latestRow = modelServingSection.getInferenceServiceRow('Latest Model');
+    const latestRow = modelServingSection.getDeploymentRow('Latest Model');
     latestRow.findServingRuntimeVersionLabel().should('contain.text', '1.0.0');
     latestRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Latest');
 
-    const outdatedRow = modelServingSection.getInferenceServiceRow('Outdated Model');
+    const outdatedRow = modelServingSection.getDeploymentRow('Outdated Model');
     outdatedRow.findServingRuntimeVersionLabel().should('contain.text', '0.5.0');
     outdatedRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Outdated');
   });
@@ -440,13 +437,42 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingSection
-      .getInferenceServiceRow('Test Inference Service')
+      .getDeploymentRow('Test Inference Service')
       .findServingRuntimeVersionLabel()
       .should('not.exist');
     modelServingSection
-      .getInferenceServiceRow('Test Inference Service')
+      .getDeploymentRow('Test Inference Service')
       .findServingRuntimeVersionStatusLabel()
       .should('not.exist');
+  });
+
+  it('Check table row expandable section', () => {
+    initIntercepts({
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          runtimeName: 'llama-service',
+        }),
+      ],
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          name: 'llama-service',
+          displayName: 'Llama Service',
+          namespace: 'test-project',
+        }),
+      ],
+    });
+
+    modelServingGlobal.visit('test-project');
+    const kserveRow = modelServingSection.getKServeRow('Llama Service');
+    kserveRow.findExpansion().should(be.collapsed);
+    kserveRow.findToggleButton().click();
+    kserveRow.findDescriptionListItem('Framework').next('dd').should('have.text', 'onnx-1');
+    kserveRow
+      .findDescriptionListItem('Hardware profile')
+      .next('dd')
+      .should('have.text', 'Small Profile');
   });
 
   describe('Table filter and pagination', () => {
@@ -532,7 +558,7 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findSortButton('Last deployed').click();
       modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
 
-      const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
+      const oldModelRow = modelServingSection.getDeploymentRow('Old Model');
       oldModelRow.findLastDeployedTimestamp().trigger('mouseenter');
       cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
     });
@@ -633,7 +659,7 @@ describe('Model Serving Global', () => {
 
       // Verify "Deleted" label appears in hardware profile column
       const deletedLabel = modelServingGlobal
-        .getInferenceServiceRow('Test Model')
+        .getDeploymentRow('Test Model')
         .findHardwareProfileDeletedLabel();
 
       deletedLabel.should('be.visible');
@@ -641,7 +667,7 @@ describe('Model Serving Global', () => {
 
       // Verify "Deleted" popover shows correct message
       const popover = modelServingGlobal
-        .getInferenceServiceRow('Test Model')
+        .getDeploymentRow('Test Model')
         .findHardwareProfileDeletedPopover();
       popover.title().should('be.visible');
       popover.body().should('be.visible');
@@ -694,14 +720,14 @@ describe('Model Serving Global', () => {
 
       // Verify "Disabled" label appears in hardware profile column
       const disabledLabel = modelServingGlobal
-        .getInferenceServiceRow('Test Model')
+        .getDeploymentRow('Test Model')
         .findHardwareProfileDisabledLabel();
       disabledLabel.should('be.visible');
       disabledLabel.click();
 
       // Verify "Disabled" popover shows correct message
       const popover = modelServingGlobal
-        .getInferenceServiceRow('Test Model')
+        .getDeploymentRow('Test Model')
         .findHardwareProfileDisabledPopover();
       popover.title().should('be.visible');
       popover.body().should('be.visible');
@@ -754,14 +780,14 @@ describe('Model Serving Global', () => {
 
       // Verify "Updated" label appears in hardware profile column
       const updatedLabel = modelServingGlobal
-        .getInferenceServiceRow('Test Model')
+        .getDeploymentRow('Test Model')
         .findHardwareProfileUpdatedLabel();
       updatedLabel.should('be.visible');
       updatedLabel.click();
 
       // Verify "Updated" popover shows correct message
       const popover = modelServingGlobal
-        .getInferenceServiceRow('Test Model')
+        .getDeploymentRow('Test Model')
         .findHardwareProfileUpdatedPopover();
       popover.title().should('be.visible');
       popover.body().should('be.visible');
@@ -789,7 +815,7 @@ describe('Model Serving Global', () => {
 
       modelServingGlobal.visit('test-project');
 
-      const modelRow = modelServingGlobal.getInferenceServiceRow('Test Model');
+      const modelRow = modelServingGlobal.getDeploymentRow('Test Model');
       const errorIcon = modelRow.findHardwareProfileErrorIcon();
       errorIcon.should('exist');
       errorIcon.trigger('mouseenter');

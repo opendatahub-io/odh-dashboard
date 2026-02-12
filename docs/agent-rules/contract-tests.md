@@ -1,0 +1,987 @@
+# Contract Test Rules
+
+Comprehensive guidelines for creating and maintaining contract tests for ODH Dashboard modules.
+
+## What Are Contract Tests?
+
+Contract tests validate that your frontend (consumer) and the Mock BFF (provider substitute) agree on the API contract by checking real HTTP responses against OpenAPI/JSON Schemas. These are **consumer-driven contract tests** that ensure your module's frontend expectations match what the backend API actually provides.
+
+### Contract Tests vs Other Test Types
+
+- **Contract Tests**: Validate API contracts between frontend and BFF using OpenAPI schemas
+- **E2E Tests**: End-to-end user journeys on live clusters with real backend APIs
+- **Mock Tests**: Component testing with mocked backends for fast, isolated testing
+- **Unit Tests**: Test individual functions and components in isolation
+
+Contract tests sit between mock tests and E2E tests - they verify the integration layer without requiring a full cluster deployment.
+
+## Core Principles
+
+### 1. Use the Central Framework
+
+**MANDATORY**: Always use the `@odh-dashboard/contract-tests` package for all contract testing needs.
+
+**Why?**
+- Consistent test configuration across all modules
+- Shared utilities and matchers
+- Automatic BFF lifecycle management
+- Standard reporting and validation
+- Reduced maintenance burden
+
+### 2. Minimal Module Code
+
+**CRITICAL**: Modules should contain **ONLY** the tests themselves and minimal configuration.
+
+**What belongs in the module:**
+- ✅ Test files in `contract-tests/__tests__/*.test.ts`
+- ✅ One script in `package.json`: `test:contract`
+- ✅ OpenAPI schema files (if not already in `upstream/api/openapi/`)
+
+**What does NOT belong in the module:**
+- ❌ Jest configuration files (`jest.config.js`)
+- ❌ Custom test utilities (put in central package if needed)
+- ❌ BFF management scripts (handled by framework)
+- ❌ Schema validation logic (use framework utilities)
+- ❌ API client implementations (use `ContractApiClient`)
+
+## Implementation Guide
+
+### Prerequisites
+
+Before implementing contract tests, ensure your module has:
+
+1. **Mock BFF Backend** in `bff/` or `upstream/bff/`
+   - Must have a `cmd/` directory with `main.go`
+   - Must accept required mock flags (see [BFF Requirements](#bff-requirements))
+   - Must expose `/healthcheck` endpoint
+   - Must support OpenShift build structure
+
+2. **OpenAPI Specification**
+   - Store in `bff/openapi/src/*.yaml` OR `upstream/api/openapi/*.yaml`
+   - Must define all endpoints with request/response schemas
+   - Must follow OpenAPI 3.0+ specification
+   - Should define reusable components/schemas
+
+### Step 1: Add Framework Dependency
+
+Add the contract-tests framework to your module's `package.json`:
+
+```json
+{
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "*"
+  }
+}
+```
+
+### Step 2: Add Test Script
+
+Add a single script to your module's `package.json`:
+
+**Standard BFF location** (`bff/` in module root):
+```json
+{
+  "scripts": {
+    "test:contract": "odh-ct-bff-consumer --bff-dir bff"
+  }
+}
+```
+
+**Custom BFF location** (e.g., `upstream/bff/`):
+```json
+{
+  "scripts": {
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
+  }
+}
+```
+
+**Custom mock flags** (if your BFF needs different flags):
+```json
+{
+  "scripts": {
+    "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client' odh-ct-bff-consumer --bff-dir bff"
+  }
+}
+```
+
+### Step 3: Create Test Directory Structure
+
+Create the following structure in your module:
+
+```text
+your-module/
+├── contract-tests/           # Contract tests directory
+│   └── __tests__/
+│       └── *.test.ts        # Your test files
+├── bff/                     # OR upstream/bff/
+│   ├── cmd/
+│   │   └── main.go          # BFF server
+│   ├── openapi/
+│   │   └── src/
+│   │       └── your-api.yaml # OpenAPI spec
+│   ├── go.mod
+│   ├── go.sum
+│   └── Makefile
+└── package.json             # With test:contract script
+```
+
+### Step 4: Write Contract Tests
+
+Create test files in `contract-tests/__tests__/`:
+
+```typescript
+/**
+ * @jest-environment node
+ */
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+
+describe('Your Module API Contract Tests', () => {
+  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+  const apiClient = new ContractApiClient({
+    baseUrl,
+    defaultHeaders: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters',
+    },
+  });
+
+  // Load your OpenAPI schema (adjust path to match your structure)
+  const apiSchema = loadOpenAPISchema('bff/openapi/src/your-api.yaml');
+  // OR for upstream location:
+  // const apiSchema = loadOpenAPISchema('upstream/api/openapi/your-api.yaml');
+
+  describe('Health Check Endpoint', () => {
+    it('should return health status', async () => {
+      const result = await apiClient.get('/healthcheck');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+
+  describe('Your API Endpoint', () => {
+    it('should successfully retrieve data', async () => {
+      const result = await apiClient.get('/api/v1/your-endpoint');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SuccessResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+
+    it('should handle error cases', async () => {
+      const result = await apiClient.get('/api/v1/your-endpoint?invalid=param');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ErrorResponse/content/application/json/schema',
+        status: 400,
+      });
+    });
+  });
+});
+```
+
+### Step 5: Run Tests
+
+From your module directory:
+
+```bash
+npm run test:contract
+```
+
+From the workspace root (using Turbo):
+
+```bash
+npx turbo run test:contract --filter=@odh-dashboard/your-module
+```
+
+## Test Writing Patterns
+
+### Test File Structure
+
+**MANDATORY structure for all contract test files:**
+
+```typescript
+/**
+ * @jest-environment node
+ */
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+
+describe('Feature Area Name', () => {
+  // Setup API client with base URL and headers
+  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+  const apiClient = new ContractApiClient({
+    baseUrl,
+    defaultHeaders: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters',
+    },
+  });
+
+  // Load OpenAPI schema ONCE per describe block
+  const apiSchema = loadOpenAPISchema('path/to/your-api.yaml');
+
+  describe('Specific Endpoint', () => {
+    it('should test specific behavior', async () => {
+      const result = await apiClient.get('/endpoint');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ResponseName/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+});
+```
+
+### OpenAPI Schema References
+
+**Reference format**: Use JSON Pointer syntax to reference schemas:
+
+```typescript
+// Reference a named response
+ref: '#/components/responses/SuccessResponse/content/application/json/schema'
+
+// Reference a schema component
+ref: '#/components/schemas/ModelList'
+
+// Reference a response status code
+ref: '#/paths/~1api~1v1~1models/get/responses/200/content/application~1json/schema'
+```
+
+**Path encoding**: Special characters in paths must be encoded:
+- `/` becomes `~1`
+- `~` becomes `~0`
+
+### Testing Different HTTP Methods
+
+```typescript
+describe('HTTP Methods', () => {
+  it('should handle GET requests', async () => {
+    const result = await apiClient.get('/api/v1/resource');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/GetResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+
+  it('should handle POST requests', async () => {
+    const requestBody = {
+      name: 'test-resource',
+      description: 'Test description',
+    };
+    const result = await apiClient.post('/api/v1/resource', requestBody);
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/CreateResponse/content/application/json/schema',
+      status: 201,
+    });
+  });
+
+  it('should handle PUT requests', async () => {
+    const updateData = { status: 'active' };
+    const result = await apiClient.put('/api/v1/resource/123', updateData);
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/UpdateResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+
+  it('should handle DELETE requests', async () => {
+    const result = await apiClient.delete('/api/v1/resource/123');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/DeleteResponse/content/application/json/schema',
+      status: 204,
+    });
+  });
+});
+```
+
+### Testing Query Parameters
+
+```typescript
+describe('Query Parameters', () => {
+  it('should handle namespace parameter', async () => {
+    const result = await apiClient.get('/api/v1/models?namespace=default');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+
+  it('should handle multiple parameters', async () => {
+    const result = await apiClient.get('/api/v1/models?namespace=default&limit=10&offset=0');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+});
+```
+
+### Testing Error Responses
+
+**MANDATORY**: Always test error cases, not just success paths.
+
+```typescript
+describe('Error Handling', () => {
+  it('should return 400 for invalid parameters', async () => {
+    const result = await apiClient.get('/api/v1/models?namespace=');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/BadRequestError/content/application/json/schema',
+      status: 400,
+    });
+  });
+
+  it('should return 404 for non-existent resources', async () => {
+    const result = await apiClient.get('/api/v1/models/nonexistent');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/NotFoundError/content/application/json/schema',
+      status: 404,
+    });
+  });
+
+  it('should return 500 for server errors', async () => {
+    // Trigger server error scenario in your mock BFF
+    const result = await apiClient.get('/api/v1/models?trigger-error=true');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ServerError/content/application/json/schema',
+      status: 500,
+    });
+  });
+});
+```
+
+### Testing with Custom Headers
+
+```typescript
+describe('Custom Headers', () => {
+  it('should accept custom headers per request', async () => {
+    const result = await apiClient.get('/api/v1/user-specific', {
+      headers: {
+        'x-custom-header': 'custom-value',
+        'authorization': 'Bearer token123',
+      },
+    });
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/UserResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+});
+```
+
+### Testing Empty Responses
+
+```typescript
+describe('Empty Responses', () => {
+  it('should handle empty list responses', async () => {
+    const result = await apiClient.get('/api/v1/models?namespace=empty');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      status: 200,
+    });
+    // Additional assertion for empty array
+    expect(result.data.models).toEqual([]);
+  });
+});
+```
+
+## BFF Requirements
+
+### Required Structure
+
+Your Mock BFF must have the following structure:
+
+```text
+bff/
+├── cmd/
+│   └── main.go              # Entry point
+├── internal/
+│   ├── api/
+│   │   └── handlers.go
+│   ├── models/
+│   └── repositories/
+├── openapi/
+│   └── src/
+│       └── your-api.yaml
+├── go.mod
+├── go.sum
+├── Makefile
+└── README.md
+```
+
+### Required Command-Line Flags
+
+Your BFF's `main.go` must accept these flags:
+
+```go
+import "flag"
+
+type Config struct {
+    MockK8Client  bool
+    MockMRClient  bool
+    // Add other mock flags as needed
+    Port          int
+    AllowedOrigins string
+}
+
+func main() {
+    cfg := &Config{}
+
+    // REQUIRED flags
+    flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
+    flag.BoolVar(&cfg.MockMRClient, "mock-mr-client", false, "Use mock Model Registry client")
+    flag.IntVar(&cfg.Port, "port", 8080, "API server port")
+    flag.StringVar(&cfg.AllowedOrigins, "allowed-origins", "*", "CORS allowed origins")
+
+    flag.Parse()
+
+    // Initialize with mock clients when flags are set
+    // ...
+}
+```
+
+**Default mock flags**: `--mock-k8s-client --mock-mr-client --port 8108 --allowed-origins=*`
+
+### Required Health Endpoint
+
+Your BFF **MUST** expose a health check endpoint:
+
+```go
+// Example health check handler
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+    response := map[string]interface{}{
+        "status": "healthy",
+        "timestamp": time.Now().Unix(),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(response)
+}
+
+// Register route
+http.HandleFunc("/healthcheck", healthCheckHandler)
+```
+
+The framework waits for this endpoint to return 200 before running tests.
+
+### BFF Lifecycle
+
+The contract test runner automatically manages your BFF:
+
+1. **Starts** BFF using `go run ./cmd` with mock flags
+2. **Waits** for `/healthcheck` to return 200 (up to 30 seconds)
+3. **Runs** contract tests against the BFF
+4. **Stops** BFF process when tests complete or fail
+5. **Cleans up** all resources
+
+**You do NOT need to:**
+- Write BFF startup scripts
+- Manage BFF process lifecycle
+- Wait for BFF readiness in tests
+- Clean up BFF processes
+
+### Custom Mock Flags
+
+If your BFF requires different or additional mock flags:
+
+```json
+{
+  "scripts": {
+    "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --mock-custom-service' odh-ct-bff-consumer --bff-dir bff"
+  }
+}
+```
+
+## OpenAPI Schema Best Practices
+
+### Schema Organization
+
+**Recommended structure**:
+
+```yaml
+openapi: 3.0.0
+info:
+  title: Your Module API
+  version: 1.0.0
+
+components:
+  schemas:
+    # Reusable data models
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+
+    ModelList:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+        total:
+          type: integer
+      required:
+        - models
+        - total
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+      required:
+        - message
+
+  responses:
+    # Reusable response definitions
+    SuccessResponse:
+      description: Successful operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ModelList'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+paths:
+  /api/v1/models:
+    get:
+      summary: List models
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+```
+
+### Schema Requirements
+
+**MANDATORY**:
+- ✅ Define all response schemas in `components/responses`
+- ✅ Use `$ref` to reference reusable components
+- ✅ Define required fields with `required` array
+- ✅ Include both success and error responses
+- ✅ Document all query parameters
+- ✅ Include response status codes
+
+**AVOID**:
+- ❌ Inline schemas without references
+- ❌ Missing required field definitions
+- ❌ Undocumented error responses
+- ❌ Incomplete parameter specifications
+
+## Running Contract Tests
+
+### Local Development
+
+**Run tests for single module**:
+
+```bash
+cd packages/your-module
+npm run test:contract
+```
+
+**Run with HTML reports** (auto-opens browser):
+
+```bash
+npm run test:contract -- --open
+```
+
+### Using Turbo (Recommended for CI)
+
+**Run all contract tests**:
+
+```bash
+npx turbo run test:contract
+```
+
+**Run for specific module**:
+
+```bash
+npx turbo run test:contract --filter=@odh-dashboard/your-module
+```
+
+**Run with reports**:
+
+```bash
+npx turbo run test:contract -- --open
+```
+
+### CI/CD Integration
+
+Contract tests run automatically in CI/CD pipelines via Turbo:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Run Contract Tests
+  run: npx turbo run test:contract
+```
+
+The framework handles:
+- ✅ BFF compilation and startup
+- ✅ Health checking
+- ✅ Test execution
+- ✅ Report generation
+- ✅ Cleanup on success or failure
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### BFF Won't Start
+
+**Symptoms**: Tests fail with "BFF health check failed"
+
+**Solutions**:
+1. Verify BFF has `cmd/main.go` entry point
+2. Check BFF accepts required mock flags
+3. Ensure `/healthcheck` endpoint exists
+4. Check BFF logs for startup errors
+5. Verify Go module dependencies are correct
+
+**Debug manually**:
+```bash
+cd bff
+go run ./cmd --mock-k8s-client --port 8108
+curl http://localhost:8108/healthcheck
+```
+
+#### Schema Validation Fails
+
+**Symptoms**: Tests fail with "Schema validation error"
+
+**Solutions**:
+1. Verify OpenAPI file path in `loadOpenAPISchema()`
+2. Check schema reference path uses correct JSON Pointer syntax
+3. Ensure response matches schema (all required fields present)
+4. Validate OpenAPI schema is valid YAML/JSON
+
+**Verify schema**:
+```bash
+# Install OpenAPI validator
+npm install -g @apidevtools/swagger-cli
+
+# Validate your schema
+swagger-cli validate bff/openapi/src/your-api.yaml
+```
+
+#### Test Fails with 404
+
+**Symptoms**: API endpoint returns 404
+
+**Solutions**:
+1. Verify endpoint path matches BFF routes
+2. Check base URL is correct
+3. Ensure BFF is running on expected port
+4. Verify mock mode doesn't disable routes
+
+#### Wrong Status Code
+
+**Symptoms**: Expected 200, got 500 (or other mismatch)
+
+**Solutions**:
+1. Check BFF logs for errors
+2. Verify mock clients are properly initialized
+3. Ensure request parameters are valid
+4. Check BFF handles mock mode correctly
+
+#### TypeScript Errors
+
+**Symptoms**: Import errors or type mismatches
+
+**Solutions**:
+1. Verify `@odh-dashboard/contract-tests` is in `devDependencies`
+2. Run `npm install` in your module directory
+3. Check TypeScript can find the types
+4. Ensure `@jest-environment node` comment exists
+
+### Manual BFF Testing
+
+Before writing contract tests, verify your BFF works:
+
+```bash
+# Start BFF manually
+cd bff
+go run ./cmd --mock-k8s-client --mock-mr-client --port 8108
+
+# Test health endpoint
+curl http://localhost:8108/healthcheck
+
+# Test your API endpoints
+curl http://localhost:8108/api/v1/your-endpoint
+
+# Test with headers
+curl -H "kubeflow-userid: user@example.com" \
+     http://localhost:8108/api/v1/your-endpoint
+```
+
+## Examples
+
+### Gen AI Module
+
+**Package.json**:
+```json
+{
+  "scripts": {
+    "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-maas-client' odh-ct-bff-consumer --bff-dir bff"
+  },
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "*"
+  }
+}
+```
+
+**Test file** (`contract-tests/__tests__/testGenAiContract.test.ts`):
+```typescript
+/**
+ * @jest-environment node
+ */
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+
+describe('Gen AI API Contract Tests', () => {
+  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+  const apiClient = new ContractApiClient({
+    baseUrl,
+    defaultHeaders: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters',
+    },
+  });
+
+  const apiSchema = loadOpenAPISchema('bff/openapi/src/gen-ai.yaml');
+
+  describe('LSD Models Endpoint', () => {
+    it('should list available AI models', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/lsd/models?namespace=default');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+});
+```
+
+### Model Registry Module
+
+**Package.json**:
+```json
+{
+  "scripts": {
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff"
+  },
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "*"
+  }
+}
+```
+
+**Test file** (`contract-tests/__tests__/testModelRegistryContract.test.ts`):
+```typescript
+/**
+ * @jest-environment node
+ */
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+
+describe('Model Registry List Endpoint', () => {
+  const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
+  const apiClient = new ContractApiClient({
+    baseUrl,
+    defaultHeaders: {
+      'kubeflow-userid': 'dev-user@example.com',
+      'kubeflow-groups': 'system:masters',
+    },
+  });
+
+  const apiSchema = loadOpenAPISchema('upstream/api/openapi/mod-arch.yaml');
+
+  it('should successfully retrieve model registries list', async () => {
+    const result = await apiClient.get('/api/v1/model_registry?namespace=default');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+});
+```
+
+## Implementation Checklist
+
+### Before Implementation
+
+- [ ] Verified module has a Mock BFF with required structure
+- [ ] Confirmed BFF accepts required mock flags
+- [ ] Verified BFF has `/healthcheck` endpoint
+- [ ] OpenAPI schema exists and is valid
+- [ ] Reviewed existing contract test implementations
+
+### During Implementation
+
+- [ ] Added `@odh-dashboard/contract-tests` to `devDependencies`
+- [ ] Added single `test:contract` script to `package.json`
+- [ ] Created `contract-tests/__tests__/` directory
+- [ ] Used `ContractApiClient` for all API calls
+- [ ] Loaded OpenAPI schema with `loadOpenAPISchema()`
+- [ ] Used `toMatchContract` matcher for validation
+- [ ] Tested both success and error cases
+- [ ] Included `@jest-environment node` comment
+- [ ] Did NOT create jest.config or custom utilities in module
+
+### After Implementation
+
+- [ ] Ran tests locally: `npm run test:contract`
+- [ ] Verified all tests pass
+- [ ] Checked tests run via Turbo: `npx turbo run test:contract --filter=@odh-dashboard/your-module`
+- [ ] Reviewed HTML reports for completeness
+- [ ] Documented any custom BFF flags required
+- [ ] Added module to CI/CD contract test suite
+
+## Advanced Topics
+
+### Custom Matchers
+
+The framework provides `toMatchContract`, but you can add additional assertions:
+
+```typescript
+it('should return valid data structure', async () => {
+  const result = await apiClient.get('/api/v1/models');
+
+  // Contract validation
+  expect(result).toMatchContract(apiSchema, {
+    ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+    status: 200,
+  });
+
+  // Additional assertions
+  expect(result.data.models).toBeInstanceOf(Array);
+  expect(result.data.models.length).toBeGreaterThan(0);
+  expect(result.data.models[0]).toHaveProperty('id');
+});
+```
+
+### Testing Pagination
+
+```typescript
+describe('Pagination', () => {
+  it('should handle pagination parameters', async () => {
+    const result = await apiClient.get('/api/v1/models?limit=10&offset=0');
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      status: 200,
+    });
+    expect(result.data.models.length).toBeLessThanOrEqual(10);
+  });
+});
+```
+
+### Testing with Setup/Teardown
+
+```typescript
+describe('Resource Lifecycle', () => {
+  let createdResourceId: string;
+
+  afterAll(async () => {
+    // Cleanup if needed
+    if (createdResourceId) {
+      await apiClient.delete(`/api/v1/resource/${createdResourceId}`);
+    }
+  });
+
+  it('should create resource', async () => {
+    const result = await apiClient.post('/api/v1/resource', {
+      name: 'test-resource',
+    });
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/CreateResponse/content/application/json/schema',
+      status: 201,
+    });
+    createdResourceId = result.data.id;
+  });
+
+  it('should retrieve created resource', async () => {
+    const result = await apiClient.get(`/api/v1/resource/${createdResourceId}`);
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/GetResponse/content/application/json/schema',
+      status: 200,
+    });
+  });
+});
+```
+
+## Best Practices Summary
+
+### DO ✅
+
+- Use the central `@odh-dashboard/contract-tests` framework
+- Keep modules minimal (only tests and one script)
+- Load OpenAPI schemas with `loadOpenAPISchema()`
+- Test both success and error responses
+- Use descriptive test names
+- Group related tests in describe blocks
+- Include `@jest-environment node` comment
+- Use `ContractApiClient` for all HTTP requests
+- Reference schemas using JSON Pointer syntax
+- Validate BFF manually before writing tests
+
+### DON'T ❌
+
+- Create jest.config files in modules
+- Write custom API client code
+- Implement BFF lifecycle management
+- Inline schema definitions in tests
+- Skip error case testing
+- Use arbitrary timeouts or waits
+- Hardcode ports or URLs (use environment variables)
+- Copy utilities from central package to modules
+- Skip schema validation for convenience
+
+## Getting Help
+
+### Resources
+
+- **Central Package README**: `/packages/contract-tests/README.md`
+- **Example Implementations**:
+  - Gen AI: `/packages/gen-ai/contract-tests/`
+  - Model Registry: `/packages/model-registry/contract-tests/`
+- **OpenAPI Spec**: Review your module's OpenAPI schema files
+- **BFF Documentation**: Check your BFF's README
+
+### Common Questions
+
+**Q: My BFF is in a non-standard location, what do I do?**
+A: Use the `--bff-dir` flag with the relative path: `odh-ct-bff-consumer --bff-dir path/to/bff`
+
+**Q: My BFF needs custom mock flags, how do I specify them?**
+A: Set the `BFF_MOCK_FLAGS` environment variable: `BFF_MOCK_FLAGS='--mock-client' npm run test:contract`
+
+**Q: Can I run tests against a manually started BFF?**
+A: Yes, set `CONTRACT_MOCK_BFF_URL`: `CONTRACT_MOCK_BFF_URL=http://localhost:8080 npm run test:contract`
+
+**Q: How do I debug failing schema validation?**
+A: Use OpenAPI validation tools to verify your schema, then compare the actual API response against expected schema.
+
+**Q: Should contract tests replace E2E tests?**
+A: No, they complement each other. Contract tests validate API contracts, E2E tests validate full user workflows.
+
+**Q: Do I need to create a Makefile in my module for contract tests?**
+A: No, the BFF's Makefile is sufficient. The framework uses it automatically.

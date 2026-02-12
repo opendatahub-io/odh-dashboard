@@ -234,6 +234,7 @@ export const mockDeploymentWizardState = (
         modelDeploymentLoaded: true,
         advancedOptionsLoaded: true,
         summaryLoaded: true,
+        externalDataLoaded: true,
       },
       advancedOptions: {
         isExternalRouteVisible: true,

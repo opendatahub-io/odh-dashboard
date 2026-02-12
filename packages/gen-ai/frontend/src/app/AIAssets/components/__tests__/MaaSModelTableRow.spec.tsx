@@ -4,7 +4,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
+import type { AIModel, LlamaModel } from '~/app/types';
+import type { MaaSModel } from '~/odh/extension-points/maas';
 import MaaSModelTableRow from '~/app/AIAssets/components/MaaSModelTableRow';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
@@ -48,6 +49,9 @@ const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   owned_by: 'test-org',
   ready: true,
   url: 'https://example.com/model',
+  display_name: 'Test Model',
+  description: 'A test model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 
@@ -96,7 +100,8 @@ describe('MaaSModelTableRow', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByText('test-model')).toBeInTheDocument();
+    // Display name is shown in the UI
+    expect(screen.getByText('Test Model')).toBeInTheDocument();
     expect(screen.getByText('MaaS')).toBeInTheDocument();
   });
 

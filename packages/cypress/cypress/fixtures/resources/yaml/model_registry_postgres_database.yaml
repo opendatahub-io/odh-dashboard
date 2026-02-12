@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: {{DATABASE_NAME}}
+    namespace: {{NAMESPACE}}
+    labels:
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
+      app.kubernetes.io/managed-by: kustomize
+  stringData:
+    database-name: "model-registry"
+    database-password: "TheBlurstOfTimes"
+    database-user: "modelregistryuser"
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: {{DATABASE_NAME}}
+    namespace: {{NAMESPACE}}
+    labels:
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
+      app.kubernetes.io/managed-by: kustomize
+  spec:
+    ports:
+    - name: postgresql
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector:
+      name: {{DATABASE_NAME}}
+    type: ClusterIP
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: {{DATABASE_NAME}}
+    namespace: {{NAMESPACE}}
+    labels:
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
+      app.kubernetes.io/managed-by: kustomize
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 5Gi
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: {{DATABASE_NAME}}
+    namespace: {{NAMESPACE}}
+    labels:
+      app.kubernetes.io/name: {{DATABASE_NAME}}
+      app.kubernetes.io/instance: {{DATABASE_NAME}}
+      app.kubernetes.io/part-of: {{DATABASE_NAME}}
+      app.kubernetes.io/managed-by: kustomize
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: {{DATABASE_NAME}}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: {{DATABASE_NAME}}
+          sidecar.istio.io/inject: "false"
+      spec:
+        containers:
+        - name: postgresql
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: {{DATABASE_NAME}}
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: {{DATABASE_NAME}}
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                key: database-name
+                name: {{DATABASE_NAME}}
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - /usr/bin/pg_isready
+                - -U
+                - modelregistryuser
+                - -d
+                - model-registry
+            initialDelaySeconds: 30
+            timeoutSeconds: 2
+          readinessProbe:
+            exec:
+              command:
+                - psql
+                - -w
+                - -U
+                - modelregistryuser
+                - -d
+                - model-registry
+                - -c
+                - SELECT 1
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: {{DATABASE_NAME}}-data
+        volumes:
+        - name: {{DATABASE_NAME}}-data
+          persistentVolumeClaim:
+            claimName: {{DATABASE_NAME}}
+metadata: {}

@@ -54,13 +54,16 @@ export const handleConnectionCreation = async (
   }
 
   const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri-v1';
+  const formSecretName = createConnectionData.nameDesc?.k8sName.value;
   const actualSecretName = (() => {
     if (dryRun && !createConnectionData.saveConnection) {
       // Always generate a new name for non-saved secrets
       return getGeneratedSecretName();
     }
-    // Otherwise, reuse whatever was passed or saved
-    return secretName ?? createConnectionData.nameDesc?.k8sName.value ?? getGeneratedSecretName();
+    if (createConnectionData.saveConnection && formSecretName) {
+      return formSecretName;
+    }
+    return secretName ?? formSecretName ?? getGeneratedSecretName();
   })();
 
   const description = createConnectionData.nameDesc?.description ?? '';

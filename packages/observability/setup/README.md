@@ -73,11 +73,11 @@ If running against a cluster with the observability stack, ensure that monitorin
 
 ## 4. Apply Dashboard Resources
 
-Apply the dashboard resources to your cluster:
+Apply the dashboard resources to your cluster if not available:
 
 ```bash
-oc apply -n opendatahub -f packages/observability/setup/perses-dashboard-cluster.yaml
-oc apply -n opendatahub -f packages/observability/setup/perses-dashboard-model.yaml
+oc apply -n opendatahub -f manifests/rhoai/shared/observability/perses-dashboard-cluster.yaml
+oc apply -n opendatahub -f manifests/rhoai/shared/observability/perses-dashboard-model.yaml
 ```
 
 **Note:** If running on a cluster that doesn't support the monitoring stack, you also need to apply the data source:

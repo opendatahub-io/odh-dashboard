@@ -196,6 +196,9 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  // BYOIDC cluster authentication settings
+  CLUSTER_AUTH?: string;
+  CLUSTER_OIDC_ISSUER?: string;
 };
 
 export type DataScienceProjectData = {
@@ -405,6 +408,14 @@ export type ModelRegistryTestData = {
   permissionsRegistryNamePrefix: string;
   testProjectNamePrefix: string;
   rhodsUsersGroup: string;
+
+  // Database configuration testing
+  databaseName: string;
+  newDatabaseHost: string;
+  newDatabasePort: string;
+  newDatabaseName: string;
+  newDatabaseUsername: string;
+  newDatabasePassword: string;
 };
 
 export type ManageRegistryPermissionsTestData = {

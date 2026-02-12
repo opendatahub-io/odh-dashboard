@@ -2,12 +2,15 @@ package models
 
 // MaaSModel represents a Model as a Service model based on the OpenAPI spec
 type MaaSModel struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	OwnedBy string `json:"owned_by"`
-	Ready   bool   `json:"ready"`
-	URL     string `json:"url"`
+	ID          string `json:"id"`
+	Object      string `json:"object"`
+	Created     int64  `json:"created"`
+	OwnedBy     string `json:"owned_by"`
+	Ready       bool   `json:"ready"`
+	URL         string `json:"url"`
+	DisplayName string `json:"display_name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Usecase     string `json:"usecase,omitempty"`
 }
 
 // MaaSModelsResponse represents the response structure for listing MaaS models

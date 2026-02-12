@@ -62,6 +62,10 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.log.error(`Failed to retrieve console cluster info: ${errorHandler(e)}`);
   }
 
+  if (DEV_MODE && !namespace) {
+    fastify.log.error('Make sure you set the OC_PROJECT env var.');
+  }
+
   fastify.decorate('kube', {
     config: kc,
     currentContext,

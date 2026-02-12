@@ -26,6 +26,18 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   getRowByRoleLink(roleName: string) {
     return new TableRow(() => this.findRoleLink(roleName).parents('tr'));
   }
+
+  findManageRolesAction(rowName: string) {
+    return this.getRowByName(rowName).findKebabAction('Manage permissions');
+  }
+
+  findTableHeaderButton(name: string | RegExp) {
+    return this.find().find('thead').findByRole('button', { name });
+  }
+
+  clickColumnSort(name: string | RegExp) {
+    return this.findTableHeaderButton(name).click();
+  }
 }
 
 class RoleDetailsModal extends Contextual<HTMLElement> {
@@ -80,6 +92,42 @@ class ProjectRbacPermissionsTab {
     projectDetails.visitSection(projectName, 'permissions');
   }
 
+  findAssignRolesButton() {
+    return cy.findByTestId('permissions-assign-roles-button');
+  }
+
+  findAssignRolesPage() {
+    return cy.findByTestId('project-permissions-assign-roles-page');
+  }
+
+  findAssignRolesSubjectReadonly() {
+    return cy.findByTestId('assign-roles-subject-readonly');
+  }
+
+  findAssignRolesSubjectTypeahead() {
+    return cy.findByTestId('assign-roles-subject-typeahead-toggle');
+  }
+
+  findAssignRolesSubjectClearButton() {
+    return this.findAssignRolesSubjectTypeahead().find('button[aria-label="Clear input value"]');
+  }
+
+  findAssignRolesSubjectKindRadio(kind: 'user' | 'group') {
+    return cy.findByTestId(`assign-roles-subject-kind-${kind}`);
+  }
+
+  findAssignRolesSaveButton() {
+    return cy.findByTestId('assign-roles-save');
+  }
+
+  findAssignRolesBreadcrumbProjects() {
+    return cy.findByTestId('assign-roles-breadcrumb-projects');
+  }
+
+  findAssignRolesBreadcrumbProject() {
+    return cy.findByTestId('assign-roles-breadcrumb-project');
+  }
+
   findUsersTable() {
     return this.getUsersTable().find();
   }
@@ -123,42 +171,6 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId('clear-filters-button');
   }
 
-  findAddUserButton() {
-    return cy.findByTestId('add-user-button');
-  }
-
-  findAddGroupButton() {
-    return cy.findByTestId('add-group-button');
-  }
-
-  findAddRow(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-row`);
-  }
-
-  findAddRowSubjectTypeaheadToggle(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-subject-typeahead-toggle`);
-  }
-
-  findAddRowSubjectInput(subjectKind: 'user' | 'group') {
-    return this.findAddRowSubjectTypeaheadToggle(subjectKind).find('input');
-  }
-
-  findAddRowRoleSelectToggle(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-role-select-toggle`);
-  }
-
-  findAddRowSaveButton(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-save`);
-  }
-
-  findAddRowCancelButton(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-cancel`);
-  }
-
-  findAddRowSaveError(subjectKind: 'user' | 'group') {
-    return cy.findByTestId(`permissions-add-${subjectKind}-save-error`);
-  }
-
   // For PatternFly typeahead, options are rendered in a popper and not in the table DOM subtree.
   // Keep this as a simple global query by role (more consistent than wiring ids into the component).
   findTypeaheadOption(optionLabel: string | RegExp) {
@@ -167,23 +179,6 @@ class ProjectRbacPermissionsTab {
 
   findTypeaheadOptions(optionLabel: string | RegExp) {
     return cy.findAllByRole('option', { name: optionLabel, hidden: true });
-  }
-
-  selectAddRowSubject(subjectKind: 'user' | 'group', subjectName: string) {
-    const name = subjectName.trim();
-
-    // Typing will open the popper menu and filter options.
-    this.findAddRowSubjectInput(subjectKind).clear().type(name);
-
-    // Click whichever option (existing or creatable) contains the typed text.
-    // Use `contains` to handle text split across nested elements.
-    return cy.contains('[role="option"], [role="menuitem"]', name).first().click();
-  }
-
-  selectAddRowRole(subjectKind: 'user' | 'group', roleRefKey: string) {
-    this.findAddRowRoleSelectToggle(subjectKind).click();
-    // SimpleSelect renders a non-clickable list-item wrapper for each option. Click the inner button.
-    return cy.findByTestId(roleRefKey).should('not.be.disabled').find('button').click();
   }
 
   findEditRowRoleSelectToggle(subjectKind: 'user' | 'group') {
@@ -213,6 +208,86 @@ class ProjectRbacPermissionsTab {
 
   getRoleDetailsModal() {
     return new RoleDetailsModal(() => cy.findByTestId('role-details-modal'));
+  }
+
+  getDiscardChangesModal() {
+    return new DiscardChangesModal(() => cy.findByTestId('discard-changes-modal'));
+  }
+
+  getNavigationBlockerModal() {
+    return new NavigationBlockerModal(() => cy.findByTestId('navigation-blocker-modal'));
+  }
+
+  getManageRolesTable() {
+    return new ManageRolesTable(() => cy.findByTestId('manage-roles-table'));
+  }
+
+  getRoleAssignmentChangesModal() {
+    return new RoleAssignmentChangesModal(() => cy.findByTestId('assign-roles-confirm-modal'));
+  }
+}
+
+class DiscardChangesModal extends Contextual<HTMLElement> {
+  findDiscardButton() {
+    return this.find().findByTestId('discard-changes-confirm');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('discard-changes-cancel');
+  }
+
+  shouldContainMessage(text: string | RegExp) {
+    return this.find().contains(text);
+  }
+}
+
+class NavigationBlockerModal extends Contextual<HTMLElement> {
+  findDiscardButton() {
+    return this.find().findByTestId('confirm-discard-changes');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-discard-changes');
+  }
+}
+
+class ManageRolesTable extends Contextual<HTMLElement> {
+  findRoleRow(roleName: string) {
+    return this.find().find('[data-label="Role"]').contains(roleName).closest('tr');
+  }
+
+  findRoleCheckbox(roleName: string) {
+    return this.findRoleRow(roleName).find('input[type="checkbox"]');
+  }
+
+  toggleRole(roleName: string) {
+    return this.findRoleCheckbox(roleName).click();
+  }
+}
+
+class RoleAssignmentChangesModal extends Contextual<HTMLElement> {
+  findSaveButton() {
+    return this.find().findByTestId('assign-roles-confirm-save');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('assign-roles-confirm-cancel');
+  }
+
+  findCustomRoleWarning() {
+    return this.find().findByTestId('assign-roles-confirm-custom-role-warning');
+  }
+
+  findError() {
+    return this.find().findByTestId('assign-roles-confirm-error');
+  }
+
+  findAssigningSection() {
+    return this.find().findByTestId('assign-roles-confirm-assigning-section');
+  }
+
+  findUnassigningSection() {
+    return this.find().findByTestId('assign-roles-confirm-unassigning-section');
   }
 }
 

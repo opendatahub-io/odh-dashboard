@@ -1,9 +1,20 @@
 /* eslint-disable camelcase */
-import { SimplifiedResponseData, ChatbotSourceSettings, TokenInfo } from '~/app/types';
+import {
+  SimplifiedResponseData,
+  ChatbotSourceSettings,
+  TokenInfo,
+  ResponseMetrics,
+} from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 
 // Test constants
 export const mockModelId = 'test-model-id';
+
+export const mockMetrics: ResponseMetrics = {
+  latency_ms: 1500,
+  time_to_first_token_ms: 200,
+  usage: { input_tokens: 10, output_tokens: 50, total_tokens: 60 },
+};
 
 export const mockSourceSettings: ChatbotSourceSettings = {
   vectorStore: 'test-vector-db',

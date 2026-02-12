@@ -258,6 +258,10 @@ const deleteDatabasePasswordSecret = async (
     // The user may have deleted their own secret and we don't want to block deleting the model registry.
     return;
   }
+  // If no secret exists (e.g., when using default database with generateDeployment), skip deletion
+  if (!existingSecret) {
+    return;
+  }
   const response = await fastify.kube.coreV1Api.deleteNamespacedSecret(
     existingSecret.metadata.name,
     modelRegistryNamespace,

@@ -9,6 +9,11 @@ import {
 
 global.TextEncoder = TextEncoder as typeof global.TextEncoder;
 
+// Polyfill structuredClone for jsdom environment
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj)) as T;
+}
+
 const tryExpect = (expectFn: () => void) => {
   try {
     expectFn();

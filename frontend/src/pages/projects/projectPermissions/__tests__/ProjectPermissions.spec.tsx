@@ -3,13 +3,21 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { SubjectScopeFilter } from '#~/pages/projects/projectPermissions/const';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => jest.fn(),
+  };
+});
+
 jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
   usePermissionsContext: () => ({ loaded: true, error: undefined }),
 }));
 
 jest.mock('#~/pages/projects/projectPermissions/SubjectRolesTableSection', () => ({
   __esModule: true,
-  default: ({ subjectKind }: { subjectKind: 'user' | 'group' }) => (
+  default: ({ subjectKind }: { subjectKind: string }) => (
     <div data-testid={`mock-subject-roles-section-${subjectKind}`} />
   ),
 }));
@@ -43,7 +51,11 @@ jest.mock('#~/components/FilterToolbar', () => ({
 }));
 
 describe('ProjectPermissions', () => {
-  it('shows/hides Users and Groups sections based on subject scope', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should show/hide Users and Groups sections based on subject scope', () => {
     render(<ProjectPermissions />);
 
     // default scope = all => show both

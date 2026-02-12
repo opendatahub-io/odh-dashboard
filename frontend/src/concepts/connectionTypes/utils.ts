@@ -487,7 +487,11 @@ export const trimInputOnPaste =
       return;
     }
     e.preventDefault();
-    onChange(trimmed);
+    const { selectionStart, selectionEnd } = e.currentTarget;
+    const current = value ?? '';
+    const start = current.slice(0, selectionStart ?? 0);
+    const newValue = start + trimmed + current.slice(selectionEnd ?? 0);
+    onChange(newValue);
   };
 
 export const getConnectionProtocolType = (

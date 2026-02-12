@@ -35,6 +35,9 @@ import (
 	// Import KServe types
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+
+	// Import TrustyAI GuardrailsOrchestrator types
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 )
 
 const (
@@ -380,6 +383,50 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	return resp.Status.Allowed, nil
 }
 
+// CanListGuardrailsOrchestrator performs a SubjectAccessReview to check if the user has permission to list GuardrailsOrchestrator resources
+func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	// Create a new config with the token from the request identity
+	config := rest.CopyConfig(kc.Config)
+	config.BearerToken = identity.Token
+	config.BearerTokenFile = ""
+
+	// Create a kubernetes clientset to use the authorization API
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kc.Logger.Error("failed to create kubernetes clientset for SAR", "error", err)
+		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	// Create SelfSubjectAccessReview to check if user can list GuardrailsOrchestrator resources
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "trustyai.opendatahub.io",
+				Resource:  "guardrailsorchestrators",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform GuardrailsOrchestrator list SAR", "error", err)
+		return false, wrapK8sSubjectAccessReviewError(err, namespace)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -470,12 +517,39 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
-// GetGuardrailsOrchestratorStatus fetches the status of the GuardrailsOrchestrator CR
-// Real implementation not yet available - returns error
+// GetGuardrailsOrchestratorStatus lists GuardrailsOrchestrators in the namespace and returns the first one found.
 func (kc *TokenKubernetesClient) GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error) {
-	// Real implementation not yet available
-	// Use MOCK_K8S_CLIENT=true to test with mock data
-	return nil, fmt.Errorf("guardrailsOrchestrator %q not found in namespace %q", constants.GuardrailsOrchestratorName, namespace)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	guardrailsList := &gorchv1alpha1.GuardrailsOrchestratorList{}
+	listOptions := &client.ListOptions{
+		Namespace: namespace,
+	}
+
+	err := kc.Client.List(ctx, guardrailsList, listOptions)
+	if err != nil {
+		kc.Logger.Error("failed to list GuardrailsOrchestrators", "error", err, "namespace", namespace)
+		return nil, NewK8sErrorWithNamespace(ErrCodeInternalError,
+			fmt.Sprintf("failed to list guardrailsOrchestrators: %v", err), namespace, 500)
+	}
+
+	if len(guardrailsList.Items) == 0 {
+		return nil, NewK8sErrorWithNamespace(ErrCodeNotFound,
+			"guardrailsOrchestrator not found", namespace, 404)
+	}
+
+	guardrailsCR := guardrailsList.Items[0]
+	phase := guardrailsCR.Status.Phase
+	if phase == "" {
+		phase = constants.GuardrailsPhaseProgressing
+	}
+
+	return &models.GuardrailsStatus{
+		Name:       guardrailsCR.Name,
+		Phase:      phase,
+		Conditions: guardrailsCR.Status.Conditions,
+	}, nil
 }
 
 func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
@@ -870,7 +944,44 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromLLMInferenceService(llmSv
 	return displayName
 }
 
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailModel *models.GuardrailModel, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+// findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
+// This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
+func (kc *TokenKubernetesClient) findGuardrailsServiceAccountTokenSecret(ctx context.Context, namespace string) (string, error) {
+	// Look for the guardrails service account
+	saName := constants.DefaultGuardrailsServiceAccountName
+
+	// Check if the service account exists
+	var sa corev1.ServiceAccount
+	err := kc.Client.Get(ctx, types.NamespacedName{Name: saName, Namespace: namespace}, &sa)
+	if err != nil {
+		kc.Logger.Debug("guardrails service account not found", "name", saName, "namespace", namespace, "error", err)
+		return "", fmt.Errorf("guardrails service account '%s' not found in namespace '%s': %w", saName, namespace, err)
+	}
+
+	// Find the token secret for this service account (same pattern as findSecretForServiceAccount)
+	secretName := kc.findSecretForServiceAccount(ctx, namespace, saName)
+	if secretName == "" {
+		// Fallback: Search for any secret starting with "guardrails-service" that is a service account token
+		var secretList corev1.SecretList
+		err := kc.Client.List(ctx, &secretList, client.InNamespace(namespace))
+		if err == nil {
+			for _, secret := range secretList.Items {
+				if secret.Type == corev1.SecretTypeServiceAccountToken &&
+					strings.HasPrefix(secret.Name, "guardrails-service") {
+					kc.Logger.Debug("found guardrails token secret by prefix matching", "secretName", secret.Name)
+					return secret.Name, nil
+				}
+			}
+		}
+		kc.Logger.Debug("no token secret found for guardrails service account", "serviceAccount", saName)
+		return "", fmt.Errorf("no token secret found for guardrails service account '%s'", saName)
+	}
+
+	kc.Logger.Debug("found guardrails service account token secret", "serviceAccount", saName, "secretName", secretName)
+	return secretName, nil
+}
+
+func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailsFeatureEnabled bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -986,8 +1097,71 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		}
 	}
 
-	// Step 2: Create LlamaStackDistribution resource first
+	// Step 1b: If the guardrails feature is enabled, find the guardrails service account token secret
+	// This follows the same pattern as VLLM token discovery
+	// Fail fast if the guardrails feature is enabled but the token is missing - this is a security feature
+	// and users should not have a false sense of protection from a non-functional guardrail setup
+	// The guardrailsReady variable tracks whether guardrails were successfully configured
+	// with a valid token. If guardrailsFeatureEnabled is true and the orchestrator is ready but the token
+	// cannot be found, we return an error instead of silently setting guardrailsReady to false.
+	guardrailsReady := false
+
+	// Only auto-detect infrastructure if feature flag is enabled
+	if guardrailsFeatureEnabled {
+		guardrailStatus, err := kc.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
+		if err == nil && guardrailStatus.Phase == constants.GuardrailsPhaseReady {
+			guardrailsTokenSecret, tokenErr := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
+			if tokenErr != nil {
+				return nil, fmt.Errorf("guardrails are enabled but token secret could not be found: %w", tokenErr)
+			}
+			envVars = append(envVars, corev1.EnvVar{
+				Name: constants.GuardrailAuthTokenEnvName,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: guardrailsTokenSecret,
+						},
+						Key: "token",
+					},
+				},
+			})
+			guardrailsReady = true
+			kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
+		}
+	}
+
+	// Step 2: Generate ConfigMap content first (before creating LSD)
 	configMapName := "llama-stack-config"
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models, guardrailsReady, maasClient)
+	if err != nil {
+		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
+	}
+
+	// Step 3: Create ConfigMap BEFORE creating LSD (without owner reference yet)
+	// This prevents the LSD from failing with "ConfigMap not found" during initial reconciliation
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				OpenDataHubDashboardLabelKey: "true",
+				"llamastack.io/distribution": lsdName,
+			},
+		},
+		Data: map[string]string{
+			constants.LlamaStackConfigYAMLKey: runYAML,
+		},
+	}
+
+	if err := kc.Client.Create(ctx, configMap); err != nil {
+		kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace, "configMapName", configMapName)
+		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
+	}
+
+	kc.Logger.Info("ConfigMap created successfully (before LSD creation)", "namespace", namespace, "configMapName", configMapName)
+
+	// Step 4: Create LlamaStackDistribution
 	lsd := &lsdapi.LlamaStackDistribution{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
@@ -1001,6 +1175,11 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		},
 		Spec: lsdapi.LlamaStackDistributionSpec{
 			Replicas: 1,
+			Network: &lsdapi.NetworkSpec{
+				AllowedFrom: &lsdapi.AllowedFromSpec{
+					Namespaces: []string{namespace},
+				},
+			},
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
 					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
@@ -1043,55 +1222,21 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	// Create the LlamaStackDistribution
 	if err := kc.Client.Create(ctx, lsd); err != nil {
 		kc.Logger.Error("failed to create LlamaStackDistribution", "error", err, "namespace", namespace, "lsdName", lsdName)
+
+		// Clean up the ConfigMap we just created since LSD creation failed
+		if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+			kc.Logger.Error("failed to clean up ConfigMap after LSD creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
+		} else {
+			kc.Logger.Info("ConfigMap cleaned up after LSD creation failure", "namespace", namespace, "configMapName", configMapName)
+		}
+
 		return nil, fmt.Errorf("failed to create LlamaStackDistribution: %w", err)
 	}
 
 	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
 
-	// Step 3: Create ConfigMap with owner reference to the LSD
-	if err := kc.createConfigMapWithOwnerReference(ctx, namespace, configMapName, lsdName, models, lsd, maasClient); err != nil {
-		// If ConfigMap creation fails, we should clean up the LSD
-		kc.Logger.Error("failed to create ConfigMap with owner reference", "error", err)
-		// Note: In a production environment, you might want to delete the LSD here
-		// For now, we'll return the error but keep the LSD
-		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
-	}
-
-	return lsd, nil
-}
-
-// createConfigMapWithOwnerReference creates a ConfigMap and sets up owner reference to LSD
-func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.Context, namespace, configMapName, lsdName string, models []models.InstallModel, lsd *lsdapi.LlamaStackDistribution, maasClient maas.MaaSClientInterface) error {
-	// Step 1: Create ConfigMap with models configuration
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models, maasClient)
-	if err != nil {
-		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
-		return fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
-	}
-
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				OpenDataHubDashboardLabelKey: "true",
-				"llamastack.io/distribution": lsdName,
-			},
-		},
-		Data: map[string]string{
-			constants.LlamaStackConfigYAMLKey: runYAML,
-		},
-	}
-
-	// Create the ConfigMap
-	if err := kc.Client.Create(ctx, configMap); err != nil {
-		kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace, "configMapName", configMapName)
-		return fmt.Errorf("failed to create ConfigMap: %w", err)
-	}
-
-	kc.Logger.Info("ConfigMap created successfully", "namespace", namespace, "configMapName", configMapName)
-
-	// Step 2: Update ConfigMap with owner reference to the LSD
+	// Step 5: Update ConfigMap to add owner reference to the LSD
+	// This ensures the ConfigMap is garbage collected when the LSD is deleted
 	configMap.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         "llamastack.io/v1alpha1",
@@ -1107,11 +1252,12 @@ func (kc *TokenKubernetesClient) createConfigMapWithOwnerReference(ctx context.C
 		kc.Logger.Error("failed to update ConfigMap with owner reference", "error", err, "namespace", namespace, "configMapName", configMapName)
 		// Don't fail the entire operation, just log the warning
 		kc.Logger.Warn("ConfigMap will not be automatically garbage collected when LSD is deleted")
-		return fmt.Errorf("failed to update ConfigMap with owner reference: %w", err)
+		// Continue without failing - the LSD is created successfully
+	} else {
+		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
-	kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
-	return nil
+	return lsd, nil
 }
 
 // ensureVLLMCompatibleURL ensures the URL has /v1 suffix for vLLM provider compatibility
@@ -1127,7 +1273,7 @@ func ensureVLLMCompatibleURL(url string) string {
 }
 
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, maasClient maas.MaaSClientInterface) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
@@ -1189,8 +1335,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			// Create provider and model for MaaS model
 			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
 			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, "llm", nil)
-			kc.Logger.Debug("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL)
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, "llm", nil, model.MaxTokens)
+			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 		} else {
 			// Handle regular models
 			modelDetails, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
@@ -1207,14 +1353,53 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			metadata := modelDetails["metadata"].(map[string]interface{})
 
 			// Create provider and model for regular model
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, modelID, modelType, metadata)
-			kc.Logger.Debug("Added regular LLM model to configuration", "model", modelID, "endpoint", endpointURL)
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, modelID, modelType, metadata, model.MaxTokens)
+			kc.Logger.Info("Added regular LLM model to configuration", "model", modelID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 
 		}
 	}
 
 	// Ensure storage field is present before serialization (defensive check)
 	config.EnsureStorageField()
+
+	// Add guardrails configuration if enabled
+	// When enableGuardrails is true, automatically add safety shields for all selected models
+	if enableGuardrails && len(installModels) > 0 {
+		guardrailConfigs := make([]models.GuardrailInput, len(installModels))
+
+		// Default policies for guardrails (input includes jailbreak, output does not)
+		defaultInputPolicies := models.DefaultInputGuardrailPolicies()
+		defaultOutputPolicies := models.DefaultOutputGuardrailPolicies()
+		lsdServiceURL := fmt.Sprintf("http://%s-service.%s.svc.cluster.local:8321/v1/chat/completions", lsdName, namespace)
+		kc.Logger.Debug("Using Llama Stack service URL for guardrails", "url", lsdServiceURL)
+
+		for i, model := range installModels {
+			// Determine provider ID and token env var based on model type
+			var providerID, tokenEnvVar string
+			if model.IsMaaSModel {
+				// MaaS models use maas-vllm-inference-{index} provider
+				providerID = fmt.Sprintf("maas-vllm-inference-%d", i+1)
+				tokenEnvVar = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
+			} else {
+				// Regular models use vllm-inference-{index} provider
+				providerID = fmt.Sprintf("vllm-inference-%d", i+1)
+				tokenEnvVar = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
+			}
+
+			guardrailConfigs[i] = models.GuardrailInput{
+				ModelName:      model.ModelName,
+				ProviderID:     providerID,
+				TokenEnvVar:    tokenEnvVar,
+				ModelURL:       lsdServiceURL,
+				DetectorURL:    constants.DefaultDetectorURL, // Always use constant default
+				InputPolicies:  defaultInputPolicies,
+				OutputPolicies: defaultOutputPolicies,
+			}
+		}
+
+		config.AddGuardrailsToConfig(guardrailConfigs)
+		kc.Logger.Debug("Added guardrails to configuration for all models", "count", len(installModels))
+	}
 
 	// Convert the config to YAML
 	configYAML, err := config.ToYAML()
@@ -1633,7 +1818,8 @@ func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(confi
 			continue
 		}
 
-		var inputShieldID, outputShieldID, modelName string
+		// Map to group shields by model name
+		modelShields := make(map[string]*models.GuardrailModelConfig)
 
 		for shieldID, shieldConfig := range shields {
 			shieldIDStr, ok := shieldID.(string)
@@ -1656,28 +1842,34 @@ func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(confi
 							continue
 						}
 
-						if mn, ok := gc["guardrail_model"].(string); ok && modelName == "" {
-							modelName = mn
+						modelName, ok := gc["guardrail_model"].(string)
+						if !ok || modelName == "" {
+							continue
+						}
+
+						// Get or create the config for this model
+						if _, exists := modelShields[modelName]; !exists {
+							modelShields[modelName] = &models.GuardrailModelConfig{
+								ModelName: modelName,
+							}
 						}
 
 						// Determine if this is input or output shield
 						if strings.Contains(guardrailKeyStr, "input") {
-							inputShieldID = shieldIDStr
+							modelShields[modelName].InputShieldID = shieldIDStr
 						} else if strings.Contains(guardrailKeyStr, "output") {
-							outputShieldID = shieldIDStr
+							modelShields[modelName].OutputShieldID = shieldIDStr
 						}
 					}
 				}
 			}
 		}
 
-		// Create guardrail model config if we found shields
-		if inputShieldID != "" || outputShieldID != "" {
-			guardrailModels = append(guardrailModels, models.GuardrailModelConfig{
-				ModelName:      modelName,
-				InputShieldID:  inputShieldID,
-				OutputShieldID: outputShieldID,
-			})
+		// Add all discovered model configs
+		for _, config := range modelShields {
+			if config.InputShieldID != "" || config.OutputShieldID != "" {
+				guardrailModels = append(guardrailModels, *config)
+			}
 		}
 	}
 

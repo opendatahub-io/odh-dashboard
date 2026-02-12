@@ -1,6 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { modelRegistryPermissions } from '../../../pages/modelRegistryPermissions';
-import { retryableBeforeEach } from '../../../utils/retryableHooks';
+import { retryableBefore, retryableBeforeEach } from '../../../utils/retryableHooks';
+import { isBYOIDCCluster, skipSuiteIfBYOIDC } from '../../../utils/skipUtils';
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
@@ -20,6 +21,9 @@ import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { checkModelRegistryRoleBindings } from '../../../utils/oc_commands/roleBindings';
 
 describe('Verify model registry permissions can be managed', () => {
+  // Skip entire suite on BYOIDC clusters
+  skipSuiteIfBYOIDC('Multiple permissions management tests are not supported on BYOIDC clusters');
+
   let testData: ModelRegistryTestData;
   let registryName: string;
   let testProjectName: string;
@@ -27,7 +31,7 @@ describe('Verify model registry permissions can be managed', () => {
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
 
-  before(() => {
+  retryableBefore(() => {
     cy.step('Load test data from fixture');
     loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then(
       (fixtureData: ModelRegistryTestData) => {
@@ -305,6 +309,12 @@ describe('Verify model registry permissions can be managed', () => {
   );
 
   after(() => {
+    // Skip cleanup on BYOIDC clusters since setup was skipped
+    if (isBYOIDCCluster()) {
+      cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
+      return;
+    }
+
     cy.clearCookies();
     cy.clearLocalStorage();
 

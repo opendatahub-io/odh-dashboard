@@ -421,6 +421,9 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
     const chartsTheme: PersesChartsTheme = generateChartsTheme(muiTheme, {
       echartsTheme: {
         color: patternflyChartsMultiUnorderedPalette,
+        tooltip: {
+          backgroundColor: 'var(--pf-t--global--background--color--inverse--default)',
+        },
       },
       thresholds: {
         defaultColor: patternflyBlue300,

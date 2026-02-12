@@ -6,7 +6,7 @@ createRegistryName: "e2e-test-registry"
 operatorDeploymentName: "model-registry-operator-controller-manager"
 
 # First model (Object Storage)
-objectStorageModelName: "test-object-storage-model"
+objectStorageModelName: "test-object-model"
 objectStorageModelDescription: "E2E test model using object storage"
 version1Name: "v1.0"
 version1Description: "First version of the object storage test model"
@@ -43,3 +43,11 @@ deployProjectNamePrefix: "test-deploy-project"
 permissionsRegistryNamePrefix: "test-mr-permissions-registry"
 testProjectNamePrefix: "test-mr-permissions-project"
 rhodsUsersGroup: "rhods-users"
+
+# Database configuration testing
+databaseName: "model-registry-db-test"
+newDatabaseHost: "model-registry-db-test-new"
+newDatabasePort: "3307"
+newDatabaseName: "model_registry_updated"
+newDatabaseUsername: "mlmduser_updated"
+newDatabasePassword: "NewTestPassword123"

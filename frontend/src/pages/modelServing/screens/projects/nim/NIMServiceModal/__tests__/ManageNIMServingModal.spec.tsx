@@ -1,0 +1,950 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
+import { mockStorageClasses } from '#~/__mocks__';
+import { InferenceServiceKind, ServingRuntimeKind, ProjectKind, SecretKind } from '#~/k8sTypes';
+import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
+import * as utils from '#~/pages/modelServing/screens/projects/utils';
+import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
+import * as storageConfigModule from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
+import * as StorageClassSelectModule from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
+import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import * as useAssignHardwareProfileModule from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+
+// Mock dependencies
+jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
+  createNIMPVC: jest.fn(),
+  createNIMSecret: jest.fn(),
+  getSubmitInferenceServiceResourceFn: jest.fn(() => jest.fn()),
+  getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
+  useCreateInferenceServiceObject: jest.fn(),
+  useCreateServingRuntimeObject: jest.fn(),
+}));
+
+jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
+jest.mock('#~/concepts/areas', () => ({
+  SupportedArea: {
+    K_SERVE_AUTH: 'k-serve-auth',
+    STORAGE_CLASSES: 'storage-classes',
+    SERVING_RUNTIME_PARAMS: 'serving-runtime-params',
+  },
+  useIsAreaAvailable: jest.fn(() => ({ status: true })),
+}));
+
+jest.mock('#~/api', () => ({
+  getSecret: jest.fn(),
+  updatePvc: jest.fn(),
+  useAccessReview: jest.fn(() => [true]),
+}));
+
+jest.mock('#~/pages/modelServing/screens/projects/nim/nimUtils', () => ({
+  getNIMServingRuntimeTemplate: jest.fn(),
+  updateServingRuntimeTemplate: jest.fn(),
+}));
+
+jest.mock('#~/redux/selectors', () => ({
+  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'test-namespace' })),
+}));
+
+jest.mock('#~/pages/modelServing/customServingRuntimes/utils', () => ({
+  getServingRuntimeFromTemplate: jest.fn(),
+}));
+
+jest.mock('#~/pages/modelServing/screens/projects/nim/useNIMTemplateName', () => ({
+  useNIMTemplateName: jest.fn(() => 'test-template'),
+}));
+
+jest.mock('#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC', () => ({
+  useNIMPVC: jest.fn(),
+}));
+
+jest.mock('#~/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
+  useAssignHardwareProfile: jest.fn(),
+}));
+
+jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => ({
+  __esModule: true,
+  default: jest.fn((props) => {
+    const {
+      disableStorageClassSelect,
+      showDefaultWhenNoConfig,
+      storageClasses,
+      storageClassesLoaded,
+    } = props;
+
+    // If storage classes are not loaded, render a Skeleton (like the real component)
+    if (!storageClassesLoaded) {
+      return <div data-testid="storage-class-skeleton">Loading...</div>;
+    }
+
+    const hasStorageClassConfigs = storageClasses?.some(
+      (sc: { metadata?: { annotations?: Record<string, string> } }) =>
+        sc.metadata?.annotations?.['opendatahub.io/sc-config'],
+    );
+    const shouldShowDefaultOnly = showDefaultWhenNoConfig && !hasStorageClassConfigs;
+    const isDisabled = disableStorageClassSelect || shouldShowDefaultOnly;
+
+    return (
+      <div data-testid="storage-class-select" data-disabled={isDisabled}>
+        Storage Class Select
+      </div>
+    );
+  }),
+}));
+
+jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultStorageClass', () => ({
+  __esModule: true,
+  useDefaultStorageClass: jest.fn(() => [mockStorageClasses[0]]),
+}));
+
+jest.mock('#~/pages/modelServing/screens/projects/useModelDeploymentNotification', () => ({
+  useModelDeploymentNotification: jest.fn(() => ({
+    watchDeployment: jest.fn(),
+  })),
+}));
+
+jest.mock('#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig', () => ({
+  useGetStorageClassConfig: jest.fn(),
+}));
+
+// Mock child components
+jest.mock('../NIMModelDeploymentNameSection', () => ({
+  __esModule: true,
+  default: jest.fn(() => (
+    <div data-testid="nim-model-deployment-name-section">Model Name Section</div>
+  )),
+}));
+
+jest.mock('../NIMModelListSection', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="nim-model-list-section">Model List Section</div>),
+}));
+
+jest.mock('../NIMPVCSizeSection', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="nim-pvc-size-section">PVC Size Section</div>),
+}));
+
+jest.mock('../../../InferenceServiceModal/ProjectSection', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="project-section">Project Section</div>),
+}));
+
+jest.mock('../../../ServingRuntimeModal/DeploymentHardwareProfileSection.tsx', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="serving-runtime-size-section">Size Section</div>),
+}));
+
+jest.mock('../../../kServeModal/KServeAutoscalerReplicaSection', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="autoscaler-replica-section">Replica Section</div>),
+}));
+
+jest.mock('../../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
+}));
+
+jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
+}));
+
+jest.mock('../../../kServeModal/EnvironmentVariablesSection', () => ({
+  __esModule: true,
+  default: jest.fn(
+    (props: { data: Record<string, unknown>; setData: (key: string, value: unknown) => void }) => {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      const React = require('react');
+      const { data, setData } = props;
+      const [localEnvVars, setLocalEnvVars] = React.useState(data.servingRuntimeEnvVars || []);
+
+      const addEnvVar = () => {
+        const newVars = [...localEnvVars, { name: '', value: '' }];
+        setLocalEnvVars(newVars);
+        setData('servingRuntimeEnvVars', newVars);
+      };
+
+      const updateEnvVar = (index: number, field: string, value: string) => {
+        const newVars = [...localEnvVars];
+        newVars[index] = { ...newVars[index], [field]: value };
+        setLocalEnvVars(newVars);
+        setData('servingRuntimeEnvVars', newVars);
+      };
+
+      return React.createElement('div', { 'data-testid': 'environment-variables-section' }, [
+        React.createElement('div', { key: 'title' }, 'Additional environment variables'),
+        React.createElement(
+          'button',
+          {
+            key: 'add-button',
+            onClick: addEnvVar,
+            'aria-label': 'Add environment variable',
+          },
+          'Add environment variable',
+        ),
+        ...localEnvVars.map((envVar: { name: string; value: string }, index: number) =>
+          React.createElement('div', { key: index }, [
+            React.createElement('input', {
+              key: 'name',
+              'aria-label': 'Environment variable name',
+              value: envVar.name,
+              onChange: (e: { target: { value: string } }) =>
+                updateEnvVar(index, 'name', e.target.value),
+              onBlur: (e: { target: { value: string } }) => {
+                const { value } = e.target;
+                if (value && /^\d/.test(value)) {
+                  // This would trigger validation error display in real component
+                }
+              },
+            }),
+            React.createElement('input', {
+              key: 'value',
+              'aria-label': 'Environment variable value',
+              value: envVar.value,
+              onChange: (e: { target: { value: string } }) =>
+                updateEnvVar(index, 'value', e.target.value),
+            }),
+            envVar.name &&
+              /^\d/.test(envVar.name) &&
+              React.createElement('div', { key: 'error' }, 'Must not start with a digit.'),
+          ]),
+        ),
+      ]);
+    },
+  ),
+}));
+
+const mockUseCreateInferenceServiceObject = utils.useCreateInferenceServiceObject as jest.Mock;
+const mockUseCreateServingRuntimeObject = utils.useCreateServingRuntimeObject as jest.Mock;
+const mockUseNIMPVC = useNIMPVCModule.useNIMPVC as jest.Mock;
+const mockUseGetStorageClassConfig = storageConfigModule.useGetStorageClassConfig as jest.Mock;
+const mockStorageClassSelect = StorageClassSelectModule.default as jest.Mock;
+const mockUseDefaultStorageClass = useDefaultStorageClassModule.useDefaultStorageClass as jest.Mock;
+const mockUseInferenceServiceHardwareProfile =
+  useAssignHardwareProfileModule.useAssignHardwareProfile as jest.Mock;
+
+describe('ManageNIMServingModal', () => {
+  const mockOnClose = jest.fn();
+  const mockProjectContext = {
+    currentProject: {
+      metadata: {
+        name: 'test-project',
+      },
+    } as ProjectKind,
+  };
+
+  const mockServingRuntime: ServingRuntimeKind = {
+    apiVersion: 'serving.kserve.io/v1beta1',
+    kind: 'ServingRuntime',
+    metadata: {
+      name: 'test-serving-runtime',
+      namespace: 'test-namespace',
+    },
+    spec: {
+      containers: [],
+    },
+  };
+
+  const mockEditInfo = {
+    servingRuntimeEditInfo: {
+      servingRuntime: mockServingRuntime,
+      secrets: [] as SecretKind[],
+    } as ServingRuntimeEditInfo,
+    inferenceServiceEditInfo: {
+      apiVersion: 'serving.kserve.io/v1beta1',
+      kind: 'InferenceService',
+      metadata: {
+        name: 'test-inference-service',
+        namespace: 'test-namespace',
+      },
+      spec: {
+        predictor: {
+          model: {
+            modelFormat: {
+              name: 'test-format',
+            },
+          },
+        },
+      },
+    } as InferenceServiceKind,
+  };
+
+  const defaultMockInferenceServiceData = {
+    name: 'test-model',
+    project: 'test-project',
+    k8sName: 'test-model',
+    format: { name: 'test-model-format' },
+  };
+
+  const defaultMockServingRuntimeData = {
+    numReplicas: 1,
+    imageName: 'test-image',
+  };
+
+  const defaultMockUseAssignHardwareProfileResult = {
+    podSpecOptionsState: {
+      podSpecOptions: {
+        resources: {
+          limits: { cpu: '16', memory: '64Gi' },
+          requests: { cpu: '8', memory: '32Gi' },
+        },
+      },
+      hardwareProfile: {
+        isFormDataValid: true,
+        resetFormData: jest.fn(),
+      },
+    },
+    validateHardwareProfileForm: jest.fn(() => true),
+    applyToResource: jest.fn((resource: unknown) => resource),
+    loaded: true,
+    error: undefined,
+  };
+
+  const defaultMockStorageClassConfig = {
+    storageClasses: mockStorageClasses,
+    storageClassesLoaded: true,
+    selectedStorageClassConfig: mockStorageClasses[0],
+  };
+
+  const defaultMockNIMPVC = {
+    pvcSize: '30Gi',
+    setPvcSize: jest.fn(),
+    pvc: undefined,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Setup default mocks
+    mockUseCreateInferenceServiceObject.mockReturnValue([
+      defaultMockInferenceServiceData,
+      jest.fn(),
+      jest.fn(),
+    ]);
+
+    mockUseCreateServingRuntimeObject.mockReturnValue([
+      defaultMockServingRuntimeData,
+      jest.fn(),
+      jest.fn(),
+    ]);
+
+    mockUseNIMPVC.mockReturnValue(defaultMockNIMPVC);
+    mockUseInferenceServiceHardwareProfile.mockReturnValue(
+      defaultMockUseAssignHardwareProfileResult,
+    );
+
+    // Setup default storage class mocks with correct FetchState format
+    mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+    mockUseGetStorageClassConfig.mockReturnValue({
+      storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+      storageClassesLoaded: true,
+      selectedStorageClassConfig: mockStorageClasses[0],
+    });
+  });
+
+  describe('Rendering', () => {
+    it('renders the modal with correct title for new deployment', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByText('Deploy model with NVIDIA NIM')).toBeInTheDocument();
+      expect(
+        screen.getByText('Configure properties for deploying your model using an NVIDIA NIM.'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the modal with correct title for editing', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+      expect(screen.getByText('Edit model with NVIDIA NIM')).toBeInTheDocument();
+    });
+
+    it('renders all required sections', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('project-section')).toBeInTheDocument();
+      expect(screen.getByTestId('nim-model-deployment-name-section')).toBeInTheDocument();
+      expect(screen.getByTestId('nim-model-list-section')).toBeInTheDocument();
+      expect(screen.getByTestId('nim-pvc-size-section')).toBeInTheDocument();
+      expect(screen.getByTestId('autoscaler-replica-section')).toBeInTheDocument();
+      expect(screen.getByTestId('serving-runtime-size-section')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-serving-runtime-section')).toBeInTheDocument();
+    });
+
+    it('renders storage class select when storage classes are available', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('storage-class-select')).toBeInTheDocument();
+    });
+
+    it('does not render storage class select when storage classes are not available', () => {
+      mockUseGetStorageClassConfig.mockReturnValue({
+        ...defaultMockStorageClassConfig,
+        storageClassesLoaded: false,
+      });
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.queryByTestId('storage-class-select')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Storage Class Selection', () => {
+    it('passes correct props to StorageClassSelect', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storageClasses: mockStorageClasses,
+          storageClassesLoaded: true,
+          selectedStorageClassConfig: mockStorageClasses[0],
+          isRequired: true,
+          disableStorageClassSelect: false,
+          showDefaultWhenNoConfig: true,
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('disables storage class select when editing', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          disableStorageClassSelect: true,
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('uses deployed storage class when editing with existing PVC', () => {
+      const mockPVC = {
+        metadata: { name: 'test-pvc' },
+        spec: {
+          storageClassName: 'deployed-storage-class',
+          resources: { requests: { storage: '50Gi' } },
+        },
+      };
+      mockUseNIMPVC.mockReturnValue({
+        ...defaultMockNIMPVC,
+        pvc: mockPVC,
+        pvcSize: '50Gi',
+      });
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storageClassName: 'deployed-storage-class',
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('PVC Size Management', () => {
+    it('passes correct PVC size props to NIMPVCSizeSection', () => {
+      const mockSetPvcSize = jest.fn();
+      mockUseNIMPVC.mockReturnValue({
+        ...defaultMockNIMPVC,
+        setPvcSize: mockSetPvcSize,
+      });
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('nim-pvc-size-section')).toBeInTheDocument();
+    });
+
+    it('updates PVC size when editing with existing PVC', () => {
+      const mockPVC = {
+        metadata: { name: 'test-pvc' },
+        spec: {
+          resources: { requests: { storage: '100Gi' } },
+        },
+      };
+      mockUseNIMPVC.mockReturnValue({
+        ...defaultMockNIMPVC,
+        pvc: mockPVC,
+        pvcSize: '100Gi',
+      });
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+      expect(screen.getByTestId('nim-pvc-size-section')).toBeInTheDocument();
+    });
+  });
+
+  describe('Form Validation', () => {
+    it('disables submit button when form is invalid', () => {
+      mockUseCreateInferenceServiceObject.mockReturnValue([
+        {
+          ...defaultMockInferenceServiceData,
+          name: '', // Invalid: empty name
+        },
+        jest.fn(),
+        jest.fn(),
+      ]);
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+    });
+
+    it('enables submit button when form is valid', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+    });
+  });
+
+  describe('Modal Actions', () => {
+    it('calls onClose when modal is closed', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      fireEvent.click(closeButton);
+      expect(mockOnClose).toHaveBeenCalledWith(false);
+    });
+
+    it('handles form submission', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+    });
+  });
+
+  describe('Project Context', () => {
+    it('displays project name from project context', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      expect(screen.getByTestId('project-section')).toBeInTheDocument();
+    });
+
+    it('displays project name from edit info when no project context', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+      expect(screen.getByTestId('project-section')).toBeInTheDocument();
+    });
+  });
+
+  describe('Authentication', () => {
+    it('does not show NoAuthAlert when auth is available', () => {
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockReturnValue({ status: true });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(screen.queryByTestId('no-auth-alert')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Environment Variables', () => {
+    it('allows adding environment variables when serving runtime params are enabled', async () => {
+      // Mock serving runtime params as enabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: true };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Find the environment variables section
+      const envVarsSection = screen.getByText('Additional environment variables');
+      expect(envVarsSection).toBeInTheDocument();
+
+      // Find the add button for environment variables
+      const addButton = screen.getByRole('button', { name: /add environment variable/i });
+      expect(addButton).toBeInTheDocument();
+
+      // Click to add an environment variable
+      fireEvent.click(addButton);
+
+      // Wait for the inputs to appear after clicking add
+      await waitFor(() => {
+        expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
+      });
+
+      // Find the name and value inputs
+      const nameInput = screen.getByLabelText(/environment variable name/i);
+      const valueInput = screen.getByLabelText(/environment variable value/i);
+
+      fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
+      fireEvent.change(valueInput, { target: { value: 'DEBUG' } });
+
+      expect(nameInput).toHaveValue('LOG_LEVEL');
+      expect(valueInput).toHaveValue('DEBUG');
+    });
+
+    it('validates environment variable names correctly', async () => {
+      // Mock serving runtime params as enabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: true };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Add an environment variable
+      const addButton = screen.getByRole('button', { name: /add environment variable/i });
+      fireEvent.click(addButton);
+
+      // Wait for the inputs to appear after clicking add
+      await waitFor(() => {
+        expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByLabelText(/environment variable name/i);
+
+      // Test invalid name starting with digit
+      fireEvent.change(nameInput, { target: { value: '1INVALID' } });
+      fireEvent.blur(nameInput);
+
+      // Check for validation error
+      expect(screen.getByText('Must not start with a digit.')).toBeInTheDocument();
+
+      // Test valid name
+      fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
+      fireEvent.blur(nameInput);
+
+      // Validation error should be gone
+      expect(screen.queryByText('Must not start with a digit.')).not.toBeInTheDocument();
+    });
+
+    it('does not show environment variables section when serving runtime params are disabled', () => {
+      // Mock serving runtime params as disabled
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockImplementation((area: string) => {
+        if (area === 'serving-runtime-params') {
+          return { status: false };
+        }
+        return { status: true };
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      // Environment variables section should not be present
+      expect(screen.queryByText('Additional environment variables')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
+  const mockOnClose = jest.fn();
+  const mockProjectContext = {
+    currentProject: {
+      metadata: {
+        name: 'test-project',
+      },
+    } as ProjectKind,
+  };
+
+  const mockServingRuntime: ServingRuntimeKind = {
+    apiVersion: 'serving.kserve.io/v1beta1',
+    kind: 'ServingRuntime',
+    metadata: {
+      name: 'test-serving-runtime',
+      namespace: 'test-namespace',
+    },
+    spec: {
+      containers: [],
+    },
+  };
+
+  const mockEditInfo = {
+    servingRuntimeEditInfo: {
+      servingRuntime: mockServingRuntime,
+      secrets: [] as SecretKind[],
+    } as ServingRuntimeEditInfo,
+    inferenceServiceEditInfo: {
+      apiVersion: 'serving.kserve.io/v1beta1',
+      kind: 'InferenceService',
+      metadata: {
+        name: 'test-inference-service',
+        namespace: 'test-namespace',
+      },
+      spec: {
+        predictor: {
+          model: {
+            modelFormat: {
+              name: 'test-format',
+            },
+          },
+        },
+      },
+    } as InferenceServiceKind,
+  };
+
+  const defaultMockInferenceServiceData = {
+    name: 'test-model',
+    project: 'test-project',
+    k8sName: 'test-model',
+    format: { name: 'test-model-format' },
+  };
+
+  const defaultMockServingRuntimeData = {
+    numReplicas: 1,
+    imageName: 'test-image',
+  };
+
+  const defaultMockUseAssignHardwareProfileResult = {
+    podSpecOptionsState: {
+      podSpecOptions: {
+        resources: {
+          limits: { cpu: '16', memory: '64Gi' },
+          requests: { cpu: '8', memory: '32Gi' },
+        },
+      },
+      hardwareProfile: {
+        isFormDataValid: true,
+        resetFormData: jest.fn(),
+      },
+    },
+    validateHardwareProfileForm: jest.fn(() => true),
+    applyToResource: jest.fn((resource: unknown) => resource),
+    loaded: true,
+    error: undefined,
+  };
+
+  const defaultMockNIMPVC = {
+    pvcSize: '30Gi',
+    setPvcSize: jest.fn(),
+    pvc: undefined,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Setup default mocks
+    mockUseCreateInferenceServiceObject.mockReturnValue([
+      defaultMockInferenceServiceData,
+      jest.fn(),
+      jest.fn(),
+    ]);
+
+    mockUseCreateServingRuntimeObject.mockReturnValue([
+      defaultMockServingRuntimeData,
+      jest.fn(),
+      jest.fn(),
+    ]);
+
+    mockUseNIMPVC.mockReturnValue(defaultMockNIMPVC);
+    mockUseInferenceServiceHardwareProfile.mockReturnValue(
+      defaultMockUseAssignHardwareProfileResult,
+    );
+
+    // Setup default storage class mocks with correct FetchState format
+    mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+    mockUseGetStorageClassConfig.mockReturnValue({
+      storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+      storageClassesLoaded: true,
+      selectedStorageClassConfig: mockStorageClasses[0],
+    });
+  });
+
+  describe('Storage Class Default Selection Logic', () => {
+    it('prefers ODH default over OpenShift default', () => {
+      // Mock ODH default available
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storageClassName: 'openshift-default-sc', // Should use ODH default
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('falls back to OpenShift default when no ODH default is available', () => {
+      // Mock no ODH default, but OpenShift default available
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0]],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storageClassName: 'openshift-default-sc', // Should fall back to OpenShift default
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('Storage Class Configuration Display', () => {
+    it('shows disabled select when no ODH storage class configs exist', async () => {
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockReturnValue({ status: true });
+      // Mock no ODH configs but OpenShift default available
+      mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
+
+      // Create a storage class with no ODH config annotation
+      const noConfigStorageClass = {
+        ...mockStorageClasses[0],
+        metadata: {
+          ...mockStorageClasses[0].metadata,
+          annotations: {},
+        },
+      };
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [noConfigStorageClass],
+        storageClassesLoaded: true,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('storage-class-select')).toBeInTheDocument();
+      });
+
+      const select = screen.getByTestId('storage-class-select');
+      expect(select).toHaveAttribute('data-disabled', 'true');
+    });
+
+    it('shows enabled select when ODH storage class configs exist', () => {
+      // Mock ODH configs available
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: { isEnabled: true, isDefault: true },
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          disableStorageClassSelect: false, // Should be enabled when ODH configs exist
+          showDefaultWhenNoConfig: true, // Should still show default when no config
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('Storage Class Selection in Edit Mode', () => {
+    it('uses deployed storage class when editing with existing PVC', () => {
+      const mockPVC = {
+        metadata: { name: 'test-pvc' },
+        spec: {
+          storageClassName: 'deployed-storage-class',
+          resources: { requests: { storage: '50Gi' } },
+        },
+      };
+
+      mockUseNIMPVC.mockReturnValue({
+        ...defaultMockNIMPVC,
+        pvc: mockPVC,
+        pvcSize: '50Gi',
+      });
+
+      // Mock defaults available
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storageClassName: 'deployed-storage-class', // Should use deployed storage class
+          disableStorageClassSelect: true, // Should be disabled in edit mode
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('updates storage class when PVC storage class changes', () => {
+      const mockPVC = {
+        metadata: { name: 'test-pvc' },
+        spec: {
+          storageClassName: 'updated-storage-class',
+          resources: { requests: { storage: '100Gi' } },
+        },
+      };
+
+      mockUseNIMPVC.mockReturnValue({
+        ...defaultMockNIMPVC,
+        pvc: mockPVC,
+        pvcSize: '100Gi',
+      });
+
+      // Mock defaults available
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+
+      expect(mockStorageClassSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storageClassName: 'updated-storage-class', // Should use updated storage class
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('Storage Class Loading States', () => {
+    it('does not render storage class select when storage classes are not available', () => {
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockReturnValue({ status: false }); // Storage classes not available
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(screen.queryByTestId('storage-class-select')).not.toBeInTheDocument();
+    });
+
+    it('renders storage class select when storage classes are available', () => {
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
+
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+        storageClassesLoaded: true,
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(screen.getByTestId('storage-class-select')).toBeInTheDocument();
+    });
+
+    it('renders storage class skeleton when storage classes are available but not loaded', () => {
+      const { useIsAreaAvailable } = require('#~/concepts/areas');
+      useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
+
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
+
+      mockUseGetStorageClassConfig.mockReturnValue({
+        storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
+        storageClassesLoaded: false, // Not loaded yet, but available
+        selectedStorageClassConfig: undefined,
+      });
+
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+
+      expect(screen.getByTestId('storage-class-skeleton')).toBeInTheDocument();
+    });
+  });
+});

@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   Bullseye,
+  Button,
   Divider,
   PageSection,
   SearchInput,
@@ -13,13 +14,13 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router-dom';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import FilterToolbar from '#~/components/FilterToolbar';
 import SimpleSelect from '#~/components/SimpleSelect';
-import type { RoleRef } from '#~/concepts/permissions/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import SubjectRolesTableSection from './SubjectRolesTableSection';
-import RoleDetailsModal from './roleDetails/RoleDetailsModal';
 import {
   FilterDataType,
   initialFilterData,
@@ -31,13 +32,13 @@ import {
 } from './const';
 
 const ProjectPermissions: React.FC = () => {
+  const navigate = useNavigate();
   const { loaded, error } = usePermissionsContext();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const [subjectScope, setSubjectScope] = React.useState<SubjectScopeFilter>(
     SubjectScopeFilter.all,
   );
   const [filterData, setFilterData] = React.useState<FilterDataType>(initialFilterData);
-  const [selectedRoleRef, setSelectedRoleRef] = React.useState<RoleRef>();
-
   const clearFilters = React.useCallback(() => {
     setFilterData(initialFilterData);
   }, []);
@@ -65,12 +66,6 @@ const ProjectPermissions: React.FC = () => {
           </StackItem>
         ) : (
           <>
-            {selectedRoleRef ? (
-              <RoleDetailsModal
-                roleRef={selectedRoleRef}
-                onClose={() => setSelectedRoleRef(undefined)}
-              />
-            ) : null}
             <StackItem>
               <Toolbar clearAllFilters={clearFilters}>
                 <ToolbarContent>
@@ -122,6 +117,17 @@ const ProjectPermissions: React.FC = () => {
                       }));
                     }}
                   />
+                  <ToolbarItem>
+                    <Button
+                      variant="primary"
+                      data-testid="permissions-assign-roles-button"
+                      onClick={() =>
+                        navigate(`/projects/${currentProject.metadata.name}/permissions/assign`)
+                      }
+                    >
+                      Manage permissions
+                    </Button>
+                  </ToolbarItem>
                 </ToolbarContent>
               </Toolbar>
             </StackItem>
@@ -131,7 +137,6 @@ const ProjectPermissions: React.FC = () => {
                   subjectKind="user"
                   filterData={filterData}
                   onClearFilters={clearFilters}
-                  onRoleClick={setSelectedRoleRef}
                 />
               </StackItem>
             ) : null}
@@ -141,7 +146,6 @@ const ProjectPermissions: React.FC = () => {
                   subjectKind="group"
                   filterData={filterData}
                   onClearFilters={clearFilters}
-                  onRoleClick={setSelectedRoleRef}
                 />
               </StackItem>
             ) : null}

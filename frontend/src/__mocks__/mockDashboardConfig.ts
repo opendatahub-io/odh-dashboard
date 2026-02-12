@@ -40,6 +40,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  autoRag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
@@ -48,14 +49,12 @@ export type MockDashboardConfigType = {
   pvcSize?: string;
   mlflow?: boolean;
   projectRBAC?: boolean;
-  embedMLflow?: boolean;
   disableLLMd?: boolean;
 };
 
 export const mockDashboardConfig = ({
   mlflow = false,
   projectRBAC = false,
-  embedMLflow = false,
   disableInfo = false,
   disableSupport = false,
   disableClusterManager = false,
@@ -63,6 +62,7 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
+  autoRag = false,
   modelAsService = true,
   maasApiKeys = false,
   disableAppLauncher = false,
@@ -218,7 +218,6 @@ export const mockDashboardConfig = ({
     dashboardConfig: {
       mlflow,
       projectRBAC,
-      embedMLflow,
       enablement: true,
       disableInfo,
       disableSupport,
@@ -239,6 +238,7 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      autoRag,
       modelAsService,
       maasApiKeys,
       disableKServeAuth,

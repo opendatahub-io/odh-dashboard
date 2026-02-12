@@ -83,21 +83,12 @@ func TestAttachLlamaStackClient(t *testing.T) {
 	})
 
 	t.Run("should retrieve service url from LlamaStackDistribution when no env provided", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		testEnv, ctrlClient, err := k8smocks.SetupEnvTest(k8smocks.TestEnvInput{
-			Users: k8smocks.DefaultTestUsers, Logger: slog.Default(), Ctx: ctx, Cancel: cancel,
-		})
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 		require.NoError(t, err)
-		defer func() {
-			_ = testEnv.Stop()
-		}()
-
-		k8sFactory, _ := k8smocks.NewTokenClientFactory(ctrlClient, testEnv.Config, slog.Default())
 		mockFactory := &CapturingMockClientFactory{}
 
 		app := App{
+			logger:                  slog.Default(),
 			kubernetesClientFactory: k8sFactory,
 			llamaStackClientFactory: mockFactory,
 			repositories:            repositories.NewRepositories(),

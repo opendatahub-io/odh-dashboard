@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, Radio } from '@patternfly/react-core';
+import { Alert, FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import DatabaseConnectionField from './DatabaseConnectionField';
 import { PipelineServerConfigType } from './types';
@@ -22,7 +22,8 @@ export const PipelinesDatabaseSection = ({
         <Radio
           name="database-type-radio"
           id="default-database-connection-type-radio"
-          label="Default database on the cluster"
+          label="Default database (non-production)"
+          description="MariaDB database enabled by default on the cluster."
           isChecked={config.database.useDefault}
           onChange={() =>
             setConfig({
@@ -33,12 +34,26 @@ export const PipelinesDatabaseSection = ({
               },
             })
           }
+          body={
+            config.database.useDefault && (
+              <Stack hasGutter>
+                <StackItem>
+                  <Alert
+                    variant="info"
+                    isInline
+                    title="This default database is for development and testing purposes only. It is not supported by Red Hat for production use cases."
+                  />
+                </StackItem>
+              </Stack>
+            )
+          }
         />
         <Radio
           name="database-type-radio"
           data-testid="external-database-type-radio"
           id="external-database-type-radio"
-          label="External MySQL database"
+          label="External database"
+          description="Connect a MySQL database."
           isChecked={!config.database.useDefault}
           onChange={() =>
             setConfig({

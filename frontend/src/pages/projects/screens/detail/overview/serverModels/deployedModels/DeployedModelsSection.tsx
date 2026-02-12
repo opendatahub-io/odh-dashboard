@@ -22,7 +22,7 @@ import OverviewCard from '#~/pages/projects/screens/detail/overview/components/O
 import AddModelFooter from '#~/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import ModelServingContextProvider from '#~/pages/modelServing/ModelServingContext';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert.tsx';

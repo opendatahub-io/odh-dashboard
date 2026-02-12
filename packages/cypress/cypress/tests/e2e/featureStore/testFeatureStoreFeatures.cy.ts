@@ -27,6 +27,14 @@ describe('Feature Store Page Validation', () => {
   let skipTest = false;
   const uuid = generateTestUUID();
 
+  const shouldSkip = () => {
+    if (skipTest) {
+      cy.log('Skipping test - Feature Store is RHOAI-specific and not available on ODH.');
+      return true;
+    }
+    return false;
+  };
+
   retryableBefore(() => {
     // Skip on ODH (test is RHOAI-specific)
     cy.step('Check if the operator is RHOAI');
@@ -77,7 +85,7 @@ describe('Feature Store Page Validation', () => {
   });
 
   after(() => {
-    if (skipTest) {
+    if (shouldSkip()) {
       cy.log('Skipping cleanup: Tests were skipped');
       return;
     }
@@ -86,17 +94,14 @@ describe('Feature Store Page Validation', () => {
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
-  beforeEach(function skipIfNotRHOAI() {
-    if (skipTest) {
-      cy.log('Skipping test - Feature Store is RHOAI-specific and not available on ODH.');
-      this.skip();
-    }
-  });
-
   it(
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
     { tags: ['@Dashboard', '@FeatureStore', '@Sanity', '@SanitySet1'] },
     () => {
+      if (shouldSkip()) {
+        return;
+      }
+
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step(`Navigate to the Feature Store Overview page`);

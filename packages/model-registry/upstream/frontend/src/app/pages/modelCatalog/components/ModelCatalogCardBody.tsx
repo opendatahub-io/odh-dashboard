@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   Button,
   Content,
   ContentVariants,
@@ -8,7 +7,7 @@ import {
   List,
   ListItem,
   Popover,
-  Spinner,
+  Skeleton,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -35,6 +34,7 @@ import {
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import { useNotification } from '~/app/hooks/useNotification';
 
 type ModelCatalogCardBodyProps = {
   model: CatalogModel;
@@ -50,6 +50,8 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
   const [currentPerformanceIndex, setCurrentPerformanceIndex] = useState(0);
   const { filterData, filterOptions, performanceViewEnabled } =
     React.useContext(ModelCatalogContext);
+  const notification = useNotification();
+  const errorNotificationShown = React.useRef(false);
 
   const handlePreviousBenchmark = () => {
     setCurrentPerformanceIndex((prev) => (prev > 0 ? prev - 1 : performanceMetrics.length - 1));
@@ -107,15 +109,32 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
 
   const isLoading = isValidated && !performanceArtifactsLoaded;
 
+  // Show toast notification when error occurs, then fall back to description
+  React.useEffect(() => {
+    if (performanceArtifactsError && isValidated && !errorNotificationShown.current) {
+      notification.error(
+        `Error loading performance artifacts for ${model.name}`,
+        performanceArtifactsError.message,
+      );
+      errorNotificationShown.current = true;
+    }
+    if (!performanceArtifactsError) {
+      errorNotificationShown.current = false;
+    }
+  }, [performanceArtifactsError, isValidated, model.name, notification]);
+
   if (isLoading) {
-    return <Spinner />;
+    return <Skeleton width="100%" screenreaderText="Loading model artifacts" />;
   }
 
+  // On error, fall back to showing description
   if (performanceArtifactsError && isValidated) {
     return (
-      <Alert variant="danger" isInline title={performanceArtifactsError.name}>
-        {performanceArtifactsError.message}
-      </Alert>
+      <TruncatedText
+        content={model.description || ''}
+        maxLines={4}
+        data-testid="model-catalog-card-description"
+      />
     );
   }
 
@@ -164,6 +183,17 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       currentPerformanceIndex,
     );
 
+    // If no valid metrics, fall back to showing description
+    if (!metrics) {
+      return (
+        <TruncatedText
+          content={model.description || ''}
+          maxLines={4}
+          data-testid="model-catalog-card-description"
+        />
+      );
+    }
+
     // Get the selected latency metric from filters, or default to TTFT
     const activeLatencyField = latencyFieldName;
     const latencyValue =
@@ -206,17 +236,16 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                       </p>
                       <List>
                         <ListItem>
-                          <strong>TTFT (Time to First Token)</strong> - The time between when a
-                          request is sent to a model and when the model begins streaming its first
-                          token in the response.
+                          <strong>TTFT (Time to First Token)</strong> - Time until the model starts
+                          responding. Best for interactive experiences.
                         </ListItem>
                         <ListItem>
-                          <strong>ITL (Inter-Token Latency)</strong> - The average time between
-                          successive output tokens after the model has started generating.
+                          <strong>ITL (Inter-Token Latency)</strong> - Time between tokens during
+                          generation. Important for smooth streaming and audio.
                         </ListItem>
                         <ListItem>
-                          <strong>E2E (End-to-End latency)</strong> - The total time from when the
-                          request is sent until the last token is received.
+                          <strong>E2E (End-to-End latency)</strong> - Total time to generate the
+                          full response. Best for summarization, batch jobs, and code generation.
                         </ListItem>
                       </List>
                     </div>

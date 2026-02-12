@@ -12,6 +12,7 @@ import ProjectView from './screens/projects/ProjectView';
 import ProjectDetailsContextProvider from './ProjectDetailsContext';
 import SpawnerPage from './screens/spawner/SpawnerPage';
 import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
+import ProjectPermissionsAssignRoles from './projectPermissions/ProjectPermissionsAssignRoles';
 
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
@@ -24,6 +25,8 @@ const ProjectViewRoutes: React.FC = () => {
         <Route index element={<ProjectDetails />} />
         <Route path="spawner" element={<SpawnerPage />} />
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
+        <Route path="permissions" element={<Navigate to="..?section=permissions" replace />} />
+        <Route path="permissions/assign" element={<ProjectPermissionsAssignRoles />} />
         {modelMetricsEnabled && (
           <>
             <Route path="metrics/model" element={<ProjectInferenceExplainabilityWrapper />}>

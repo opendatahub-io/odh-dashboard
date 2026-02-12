@@ -8,6 +8,8 @@ import {
 import { KnownLabels } from '#~/k8sTypes';
 import type { RoleRef, SupportedSubjectKind } from '#~/concepts/permissions/types';
 import { roleBindingHasSubject } from '#~/concepts/permissions/utils.ts';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
+import type { RoleAssignmentChanges } from './manageRoles/types';
 
 export const buildRoleBindingSubject = (
   subjectKind: SupportedSubjectKind,
@@ -40,6 +42,23 @@ export const findRoleBindingForRoleRef = ({
   roleRef: RoleRef;
 }): RoleBindingKind | undefined =>
   roleBindings.find((rb) => matchesRoleRefInNamespace(rb, namespace, roleRef));
+
+// Returns ALL RoleBindings that match the given namespace + roleRef and contain the subject.
+// Used for complete role removal when multiple RoleBindings grant the same role.
+export const findAllRoleBindingsForSubjectAndRoleRef = ({
+  roleBindings,
+  namespace,
+  roleRef,
+  subject,
+}: {
+  roleBindings: RoleBindingKind[];
+  namespace: string;
+  roleRef: RoleRef;
+  subject: RoleBindingSubject;
+}): RoleBindingKind[] =>
+  roleBindings.filter(
+    (rb) => matchesRoleRefInNamespace(rb, namespace, roleRef) && roleBindingHasSubject(rb, subject),
+  );
 
 // Ensures the subject is assigned to the desired RoleRef by patching an existing RoleBinding (if any)
 // or creating a new RoleBinding when none exists.
@@ -111,30 +130,83 @@ export const removeSubjectFromRoleBinding = async ({
   await patchRoleBindingSubjects(roleBinding.metadata.name, namespace, remainingSubjects);
 };
 
-// Moves a single subject from one RoleBinding to another roleRef in a subject-scoped way:
-// 1) Add subject to the target roleRef (patch existing RB or create a new RB)
-// 2) Remove subject from the source RB (patch subjects or delete RB if it becomes empty)
-export const moveSubjectRoleBinding = async ({
+export type ApplyRoleAssignmentResult = {
+  success: boolean;
+  totalOperations: number;
+  successCount: number;
+  failedCount: number;
+  errors: Error[];
+};
+
+/**
+ * Applies role assignment changes (assigning/unassigning) for a subject.
+ * - For assigning: creates or patches RoleBindings to add the subject.
+ * - For unassigning: removes the subject from RoleBindings (or deletes if empty).
+ *
+ * Uses allSettledPromises to attempt all operations and report results.
+ * @returns A result object with success status and error details.
+ */
+export const applyRoleAssignmentChanges = async ({
   roleBindings,
   namespace,
   subjectKind,
-  subject,
-  fromRoleBinding,
-  toRoleRef,
+  subjectName,
+  changes,
 }: {
   roleBindings: RoleBindingKind[];
   namespace: string;
   subjectKind: SupportedSubjectKind;
-  subject: RoleBindingSubject;
-  fromRoleBinding: RoleBindingKind;
-  toRoleRef: RoleRef;
-}): Promise<void> => {
-  await upsertRoleBinding({
-    roleBindings,
-    namespace,
-    subjectKind,
-    subject,
-    roleRef: toRoleRef,
+  subjectName: string;
+  changes: RoleAssignmentChanges;
+}): Promise<ApplyRoleAssignmentResult> => {
+  const subject = buildRoleBindingSubject(subjectKind, subjectName);
+
+  // Process all assignments
+  const assignPromises = changes.assigning.map((row) =>
+    upsertRoleBinding({
+      roleBindings,
+      namespace,
+      subjectKind,
+      subject,
+      roleRef: row.roleRef,
+    }),
+  );
+
+  // Process all unassignments - remove from ALL matching RoleBindings to ensure
+  // the role is completely removed even if duplicate RoleBindings exist
+  const unassignPromises = changes.unassigning.flatMap((row) => {
+    const matchingRoleBindings = findAllRoleBindingsForSubjectAndRoleRef({
+      roleBindings,
+      namespace,
+      roleRef: row.roleRef,
+      subject,
+    });
+    if (matchingRoleBindings.length === 0) {
+      // No RoleBinding found for this roleRef - nothing to remove
+      return [];
+    }
+    return matchingRoleBindings.map((roleBinding) =>
+      removeSubjectFromRoleBinding({
+        namespace,
+        roleBinding,
+        subject,
+      }),
+    );
   });
-  await removeSubjectFromRoleBinding({ namespace, roleBinding: fromRoleBinding, subject });
+
+  // Execute all mutations in parallel, waiting for all to complete
+  const allPromises = [...assignPromises, ...unassignPromises];
+  const [successes, fails] = await allSettledPromises<void, Error>(allPromises);
+
+  const errors = fails.map((f) =>
+    f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
+  );
+
+  return {
+    success: fails.length === 0,
+    totalOperations: allPromises.length,
+    successCount: successes.length,
+    failedCount: fails.length,
+    errors,
+  };
 };

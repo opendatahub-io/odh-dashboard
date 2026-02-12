@@ -5,6 +5,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import axe from 'react-axe';
 import { DEPLOYMENT_MODE, URL_PREFIX } from '~/app/utilities/const';
 import App from '~/app/App';
+import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DEPLOYMENT_MODE,
@@ -30,9 +31,11 @@ const root = ReactDOM.createRoot(document.getElementById('root') as Element);
 root.render(
   <React.StrictMode>
     <Router>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <App />
-      </ModularArchContextProvider>
+      <PluginStoreContextProvider>
+        <ModularArchContextProvider config={modularArchConfig}>
+          <App />
+        </ModularArchContextProvider>
+      </PluginStoreContextProvider>
     </Router>
   </React.StrictMode>,
 );

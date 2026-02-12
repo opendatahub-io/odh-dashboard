@@ -121,10 +121,13 @@ describe('Compression Level Comparison Card', () => {
       modelCatalog.findCompressionComparisonCard().should('exist');
       modelCatalog
         .findCompressionComparisonCard()
-        .should('contain', 'Compression level comparison');
+        .should('contain', 'Model variants by tensor type');
       modelCatalog
         .findCompressionComparisonCard()
-        .should('contain', 'View benchmark performance of this model');
+        .should(
+          'contain',
+          'Compare benchmark performance across tensor types to understand accuracy and efficiency tradeoffs.',
+        );
     });
 
     it('should display exactly 4 variant models', () => {
@@ -167,9 +170,10 @@ describe('Compression Level Comparison Card', () => {
       modelCatalog.findCompressionDivider(3).should('exist');
     });
 
-    it('should navigate to variant model when clicking link', () => {
+    it('should navigate to variant model Performance Insights tab when clicking link', () => {
       modelCatalog.findCompressionVariantLink(1).click();
-      cy.url().should('include', encodeURIComponent('repo1/granite-8b-int4'));
+      cy.url().should('include', 'granite-8b-int4');
+      cy.url().should('include', 'performance-insights');
     });
   });
 
@@ -229,11 +233,20 @@ describe('Compression Level Comparison Card', () => {
       visitPerformanceTab(mockVariantModels[0].name);
     });
 
-    it('should display empty alert when no variants found', () => {
-      modelCatalog.findCompressionComparisonEmpty().should('exist');
-      modelCatalog
-        .findCompressionComparisonEmpty()
-        .should('contain', 'No compression variants found');
+    it('should NOT display the card when no variants found', () => {
+      modelCatalog.findCompressionComparisonCard().should('not.exist');
+    });
+  });
+
+  describe('Single variant state', () => {
+    beforeEach(() => {
+      // Only the current model is returned as a variant
+      initIntercepts({ variantModels: [mockVariantModels[0]] });
+      visitPerformanceTab(mockVariantModels[0].name);
+    });
+
+    it('should NOT display the card when there is only one variant (the current model)', () => {
+      modelCatalog.findCompressionComparisonCard().should('not.exist');
     });
   });
 

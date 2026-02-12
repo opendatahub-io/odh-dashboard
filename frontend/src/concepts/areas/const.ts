@@ -4,17 +4,17 @@ import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from '.
 export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
+  autoRag: false,
   modelAsService: false,
   maasApiKeys: false,
   mlflow: false,
-  projectRBAC: false,
+  projectRBAC: true,
   observabilityDashboard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  embedMLflow: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -206,9 +206,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
-  },
-  [SupportedArea.EMBED_MLFLOW]: {
-    featureFlags: ['embedMLflow'],
   },
 };
 
