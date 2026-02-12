@@ -10,7 +10,6 @@ import {
   ModelServingCompatibleTypes,
   parseConnectionSecretValues,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import usePvcs from '@odh-dashboard/internal/pages/modelServing/usePvcs';
 import { z } from 'zod';
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
 import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
@@ -27,6 +26,7 @@ import { ExistingConnectionField } from './modelLocationFields/ExistingConnectio
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
+import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { resolveConnectionType } from '../utils';
 

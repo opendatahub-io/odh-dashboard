@@ -25,7 +25,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import { ModelLocationInputFields } from './ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
 
