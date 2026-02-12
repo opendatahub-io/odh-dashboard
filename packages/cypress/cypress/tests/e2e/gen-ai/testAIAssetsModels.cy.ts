@@ -660,14 +660,30 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
+        cy.step('Scale model deployment to 0 replicas to make it inactive');
+        cy.exec(
+          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
+          { failOnNonZeroExit: false },
+        );
+
+        cy.step('Wait for deployment to scale down');
+        cy.exec(
+          `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
+          { failOnNonZeroExit: false, timeout: 65000 },
+        );
+
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        // Since our test model is Active, we verify the button is NOT disabled
-        aiAssetsPage
-          .findAddToPlaygroundButton(testData.modelDeploymentName)
-          .should('not.be.disabled');
+        cy.step('Verify button is disabled for inactive model');
+        aiAssetsPage.findAddToPlaygroundButton(testData.modelDeploymentName).should('be.disabled');
+
+        cy.step('Restore model deployment to active state');
+        cy.exec(
+          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
+          { failOnNonZeroExit: false },
+        );
       },
     );
 
@@ -786,14 +802,30 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
+        cy.step('Scale model deployment to 0 replicas to make it inactive');
+        cy.exec(
+          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
+          { failOnNonZeroExit: false },
+        );
+
+        cy.step('Wait for deployment to scale down');
+        cy.exec(
+          `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
+          { failOnNonZeroExit: false, timeout: 65000 },
+        );
+
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        // Since our test model is Active, we verify the button is NOT disabled
-        aiAssetsPage
-          .findTryInPlaygroundButton(testData.modelDeploymentName)
-          .should('not.be.disabled');
+        cy.step('Verify button is disabled for inactive model');
+        aiAssetsPage.findTryInPlaygroundButton(testData.modelDeploymentName).should('be.disabled');
+
+        cy.step('Restore model deployment to active state');
+        cy.exec(
+          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
+          { failOnNonZeroExit: false },
+        );
       },
     );
 
