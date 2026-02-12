@@ -179,13 +179,17 @@ module.exports = smp.wrap(
               // ignore
             }
 
-            const headers = {
-              Authorization: `Bearer ${token}`,
+            // Function to get current token dynamically (allows oc login switching during tests)
+            const getCurrentToken = () => {
+              try {
+                return execSync('oc whoami --show-token', { stdio: ['pipe', 'pipe', 'ignore'] })
+                  .toString()
+                  .trim();
+              } catch (e) {
+                console.warn('Failed to get current oc token, using cached token');
+                return token;
+              }
             };
-            if (shouldFwdAccessToken) {
-              console.info('Supplying x-forwarded-access-token header');
-              headers['x-forwarded-access-token'] = token;
-            }
 
             return [
               {
@@ -193,7 +197,13 @@ module.exports = smp.wrap(
                 target: `https://${dashboardHost}`,
                 secure: false,
                 changeOrigin: true,
-                headers,
+                onProxyReq: (proxyReq) => {
+                  const currentToken = getCurrentToken();
+                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+                  if (shouldFwdAccessToken) {
+                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
+                  }
+                },
               },
               {
                 context: ['/wss/k8s'],
@@ -201,7 +211,13 @@ module.exports = smp.wrap(
                 secure: false,
                 ws: true,
                 changeOrigin: true,
-                headers,
+                onProxyReq: (proxyReq) => {
+                  const currentToken = getCurrentToken();
+                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+                  if (shouldFwdAccessToken) {
+                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
+                  }
+                },
               },
             ];
           }
