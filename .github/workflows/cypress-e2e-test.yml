@@ -397,9 +397,15 @@ jobs:
         run: |
           TEST_VARS_FILE="${{ github.workspace }}/packages/cypress/test-variables.yml"
 
-          # Extract credentials
-          OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
-          OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+          # Extract credentials based on test type
+          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
+            echo "🔑 Using non-admin credentials (TEST_USER_3) for @NonAdmin tests"
+            OC_USERNAME=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+            OC_PASSWORD=$(grep -A 10 "^TEST_USER_3:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+          else
+            OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
+            OC_PASSWORD=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "PASSWORD:" | head -1 | sed 's/.*PASSWORD: //' | tr -d ' ')
+          fi
           echo "::add-mask::$OC_PASSWORD"
           echo "::add-mask::$OC_USERNAME"
 
@@ -459,6 +465,10 @@ jobs:
 
           # Set dashboard URL for selected cluster
           sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
+
+          # Export dashboard host (without protocol) for webpack ODH_DASHBOARD_HOST
+          DASHBOARD_HOST=$(echo "$DASHBOARD_URL" | sed 's|https\?://||' | sed 's|/.*||')
+          echo "DASHBOARD_HOST=$DASHBOARD_HOST" >> $GITHUB_ENV
 
           if [ -z "$ODH_NAMESPACES" ]; then
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
@@ -560,7 +570,14 @@ jobs:
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack and filter sensitive output
-          cd frontend && ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          # For non-admin tests, set ODH_DASHBOARD_HOST since non-admin can't run 'oc get routes'
+          EXTRA_ENV=""
+          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
+            EXTRA_ENV="ODH_DASHBOARD_HOST=${DASHBOARD_HOST}"
+            echo "📍 Using explicit dashboard host for non-admin: ${DASHBOARD_HOST}"
+          fi
+
+          cd frontend && env $EXTRA_ENV ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
@@ -609,8 +626,15 @@ jobs:
           export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${{ matrix.tag }}"
           mkdir -p "$CY_RESULTS_DIR"
 
+          # Set IS_NON_ADMIN_RUN flag for non-admin tests to skip admin-only setup hooks
+          EXTRA_CYPRESS_ENV=""
+          if [[ "${{ matrix.tag }}" == "@NonAdmin" ]]; then
+            EXTRA_CYPRESS_ENV="IS_NON_ADMIN_RUN=true,"
+            echo "🔐 Running in non-admin mode - admin setup hooks will be skipped"
+          fi
+
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
-            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
+            --env ${EXTRA_CYPRESS_ENV}skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Upload test results
