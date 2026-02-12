@@ -161,18 +161,25 @@ export const assembleNIMService = (
     [KnownLabels.DASHBOARD_RESOURCE]: 'true',
   };
 
-  // Enable token auth if requested
-  if (tokenAuth) {
-    nimService.metadata.annotations['security.opendatahub.io/enable-auth'] = 'true';
-  } else {
-    delete nimService.metadata.annotations['security.opendatahub.io/enable-auth'];
-  }
-
   // Set external route visibility
   if (externalRoute) {
     nimService.metadata.labels['networking.kserve.io/visibility'] = 'exposed';
   } else {
     delete nimService.metadata.labels['networking.kserve.io/visibility'];
+  }
+
+  // Set spec.annotations - these are propagated to the InferenceService by the NIM Operator
+  // This is needed for token authentication to work correctly
+  nimService.spec.annotations = {
+    ...nimService.spec.annotations,
+  };
+
+  // Set token auth in spec.annotations so it's propagated to InferenceService
+  // The NIM Operator propagates spec.annotations to the InferenceService it creates
+  if (tokenAuth) {
+    nimService.spec.annotations['security.opendatahub.io/enable-auth'] = 'true';
+  } else {
+    delete nimService.spec.annotations['security.opendatahub.io/enable-auth'];
   }
 
   // Update spec
