@@ -126,7 +126,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Create custom serving runtime for Gen AI',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime', '@Bug', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
@@ -175,15 +175,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: [
-        '@Sanity',
-        '@SanitySet1',
-        '@GenAI',
-        '@ModelServing',
-        '@Deployment',
-        '@Bug',
-        '@NonConcurrent',
-      ],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
@@ -261,7 +253,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@Bug', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
