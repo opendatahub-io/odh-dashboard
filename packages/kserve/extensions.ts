@@ -1,7 +1,7 @@
-// eslint-disable-next-line no-restricted-syntax
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
@@ -145,14 +145,13 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       extractHardwareProfileConfig: () =>
-        import('./src/hardware').then((m) => (deployment) => ({
-          data: m.extractHardwareProfileConfig(deployment),
-        })),
-      extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
-      extractReplicas: () =>
-        import('./src/hardware').then((m) => (deployment) => ({
-          data: m.extractReplicas(deployment),
-        })),
+        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
+      // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+      extractModelFormat: () =>
+        import('@odh-dashboard/internal/pages/modelServing/screens/global/extractModelFormat').then(
+          (m) => m.extractKServeModelFormatWithNIM,
+        ),
+      extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
         import('./src/hardware').then((m) => m.extractEnvironmentVariables),
