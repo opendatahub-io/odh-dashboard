@@ -1,4 +1,4 @@
-import { ClusterQueueKind } from '#~/k8sTypes';
+import { ClusterQueueKind, WorkloadKind } from '#~/k8sTypes';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
@@ -50,18 +50,49 @@ export type ConsumedResource = {
 };
 
 /**
+ * Extracts the assigned flavor name from a Kueue Workload's admission.
+ * Used to show consumed/quota for the flavor this workload is using (workbench, model deployment, etc.).
+ * @returns The flavor name from the first pod set's flavors, or undefined if not admitted
+ */
+export const getAssignedFlavorFromWorkload = (
+  workload: WorkloadKind | null | undefined,
+): string | undefined => {
+  const podSetAssignments = workload?.status?.admission?.podSetAssignments;
+  const assignment = podSetAssignments && podSetAssignments[0];
+  const flavors = assignment?.flavors;
+  if (!flavors || typeof flavors !== 'object') {
+    return undefined;
+  }
+  const first = Object.values(flavors)[0];
+  return typeof first === 'string' ? first : undefined;
+};
+
+/**
  * Computes total quota and consumed usage per resource from a ClusterQueue's
  * flavorsUsage and resourceGroups. Used by workbench Resources tab and model serving.
+ *
+ * @param clusterQueue - The ClusterQueue
+ * @param assignedFlavorName - When provided, only this flavor's usage and quota are returned (for workload-specific remaining)
  */
-export const getAllConsumedResources = (clusterQueue: ClusterQueueKind): ConsumedResource[] => {
+export const getAllConsumedResources = (
+  clusterQueue: ClusterQueueKind,
+  assignedFlavorName?: string,
+): ConsumedResource[] => {
   if (!clusterQueue.status?.flavorsUsage?.[0] || !clusterQueue.spec.resourceGroups?.[0]) {
     return [];
   }
 
   const { flavorsUsage } = clusterQueue.status;
+  const flavorsToUse = assignedFlavorName
+    ? flavorsUsage.filter((f) => f.name === assignedFlavorName)
+    : flavorsUsage;
+  if (flavorsToUse.length === 0) {
+    return [];
+  }
+
   const resourceMap = new Map<string, { consumed: string | number; quota: string | number }>();
 
-  flavorsUsage.forEach((flavor) => {
+  flavorsToUse.forEach((flavor) => {
     const { resources: flavorResources = [] } = flavor;
     flavorResources.forEach((resource) => {
       if (!resourceMap.has(resource.name)) {

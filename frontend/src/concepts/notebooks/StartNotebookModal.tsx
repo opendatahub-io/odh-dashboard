@@ -43,6 +43,7 @@ import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress } from '#~/utilities/notebookControllerUtils';
 import useClusterQueue from '#~/utilities/useClusterQueue';
+import useAssignedFlavor from '#~/utilities/useAssignedFlavor';
 import { getAllConsumedResources } from '#~/utilities/clusterQueueUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
@@ -115,8 +116,17 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     loaded: clusterQueueLoaded,
     error: clusterQueueError,
   } = useClusterQueue(shouldShowResources ? clusterQueueName : undefined);
+  const workloadNamespace =
+    shouldShowResources && project.metadata.name ? project.metadata.name : undefined;
+  const assignedFlavorName = useAssignedFlavor(
+    workloadNamespace,
+    localQueueName ?? undefined,
+    notebook != null ? notebook.metadata.name : undefined,
+  );
   const quotaSource = clusterQueue?.spec.cohort ?? '-';
-  const consumedResources = clusterQueue ? getAllConsumedResources(clusterQueue) : [];
+  const consumedResources = clusterQueue
+    ? getAllConsumedResources(clusterQueue, assignedFlavorName)
+    : [];
   const hasClusterQueueError = Boolean(clusterQueueError);
 
   React.useEffect(() => {

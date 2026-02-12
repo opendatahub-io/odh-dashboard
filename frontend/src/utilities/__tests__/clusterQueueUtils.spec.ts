@@ -1,9 +1,13 @@
-import { ClusterQueueKind } from '#~/k8sTypes';
-import { getAllConsumedResources } from '#~/utilities/clusterQueueUtils';
+import { ClusterQueueKind, WorkloadKind } from '#~/k8sTypes';
+import {
+  getAllConsumedResources,
+  getAssignedFlavorFromWorkload,
+} from '#~/utilities/clusterQueueUtils';
 
 const COVERED_RESOURCES = ['cpu', 'memory', 'nvidia.com/gpu'];
 const DEFAULT_FLAVOR = 'default-flavor';
 const OTHER_FLAVOR = 'other-flavor';
+const KUEUE_API_VERSION = 'kueue.x-k8s.io/v1beta1';
 
 const DEFAULT_SPEC_RESOURCES = [
   { name: 'cpu', nominalQuota: 100 },
@@ -19,7 +23,7 @@ const DEFAULT_USAGE_RESOURCES = [
 
 const baseClusterQueue = (): ClusterQueueKind =>
   ({
-    apiVersion: 'kueue.x-k8s.io/v1beta1',
+    apiVersion: KUEUE_API_VERSION,
     kind: 'ClusterQueue',
     metadata: { name: 'default' },
     spec: {
@@ -34,6 +38,114 @@ const baseClusterQueue = (): ClusterQueueKind =>
       flavorsUsage: [{ name: DEFAULT_FLAVOR, resources: DEFAULT_USAGE_RESOURCES }],
     },
   } as ClusterQueueKind);
+
+describe('getAssignedFlavorFromWorkload', () => {
+  const admittedWorkload = (flavors: Record<string, string>): WorkloadKind =>
+    ({
+      apiVersion: KUEUE_API_VERSION,
+      kind: 'Workload',
+      metadata: { name: 'test-workload' },
+      spec: { podSets: [], queueName: 'my-queue' },
+      status: {
+        admission: {
+          clusterQueue: 'default',
+          podSetAssignments: [{ name: 'main', flavors }],
+        },
+      },
+    } as WorkloadKind);
+
+  it('returns undefined when workload is null or undefined', () => {
+    expect(getAssignedFlavorFromWorkload(null)).toBeUndefined();
+    expect(getAssignedFlavorFromWorkload(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined when status.admission is missing', () => {
+    const wNoStatus = { ...admittedWorkload({ cpu: 'small' }), status: undefined };
+    expect(getAssignedFlavorFromWorkload(wNoStatus as WorkloadKind)).toBeUndefined();
+    const wEmptyStatus = { ...admittedWorkload({ cpu: 'small' }), status: {} };
+    expect(getAssignedFlavorFromWorkload(wEmptyStatus as WorkloadKind)).toBeUndefined();
+  });
+
+  it('returns undefined when podSetAssignments is missing or empty', () => {
+    const base = admittedWorkload({ cpu: 'small' });
+    const admission = base.status?.admission;
+    const wNoAssignments = {
+      ...base,
+      status: {
+        ...base.status,
+        admission: {
+          ...admission,
+          clusterQueue: admission?.clusterQueue ?? 'default',
+          podSetAssignments: undefined as unknown as NonNullable<
+            typeof admission
+          >['podSetAssignments'],
+        },
+      },
+    };
+    expect(getAssignedFlavorFromWorkload(wNoAssignments as WorkloadKind)).toBeUndefined();
+    const wEmptyAssignments = {
+      ...base,
+      status: { ...base.status, admission: { clusterQueue: 'default', podSetAssignments: [] } },
+    };
+    expect(getAssignedFlavorFromWorkload(wEmptyAssignments as WorkloadKind)).toBeUndefined();
+  });
+
+  it('returns undefined when flavors is missing or not an object', () => {
+    const base = admittedWorkload({ cpu: 'small' });
+    const wNoFlavors = {
+      ...base,
+      status: {
+        ...base.status,
+        admission: {
+          clusterQueue: 'default',
+          podSetAssignments: [
+            { name: 'main', flavors: undefined as unknown as Record<string, string> },
+          ],
+        },
+      },
+    };
+    expect(getAssignedFlavorFromWorkload(wNoFlavors as WorkloadKind)).toBeUndefined();
+    const wFlavorsArray = {
+      ...base,
+      status: {
+        ...base.status,
+        admission: {
+          clusterQueue: 'default',
+          podSetAssignments: [{ name: 'main', flavors: [] as unknown as Record<string, string> }],
+        },
+      },
+    };
+    expect(getAssignedFlavorFromWorkload(wFlavorsArray as WorkloadKind)).toBeUndefined();
+  });
+
+  it('returns the flavor name from the first resource in flavors', () => {
+    expect(getAssignedFlavorFromWorkload(admittedWorkload({ cpu: 'small', memory: 'small' }))).toBe(
+      'small',
+    );
+    expect(
+      getAssignedFlavorFromWorkload(
+        admittedWorkload({ cpu: 'large', memory: 'large', 'nvidia.com/gpu': 'large' }),
+      ),
+    ).toBe('large');
+  });
+
+  it('returns undefined when first flavor value is not a string', () => {
+    const base = admittedWorkload({ cpu: 'small' });
+    const w = {
+      ...base,
+      status: {
+        ...base.status,
+        admission: {
+          clusterQueue: 'default',
+          podSetAssignments: [
+            { name: 'main', flavors: { cpu: 1 } as unknown as Record<string, string> },
+          ],
+        },
+      },
+    };
+    expect(getAssignedFlavorFromWorkload(w as WorkloadKind)).toBeUndefined();
+  });
+});
 
 describe('getAllConsumedResources', () => {
   it('returns empty array when status.flavorsUsage is missing or empty', () => {
@@ -237,5 +349,69 @@ describe('getAllConsumedResources', () => {
     const cpu = result.find((r) => r.name === 'cpu');
     expect(cpu?.total).toBe('100');
     expect(cpu?.consumed).toBe('9700m');
+  });
+
+  it('filters by assignedFlavorName when provided (single-flavor usage/quota)', () => {
+    const cq = baseClusterQueue();
+    const cqMultiFlavor = {
+      ...cq,
+      spec: {
+        ...cq.spec,
+        resourceGroups: [
+          {
+            coveredResources: COVERED_RESOURCES,
+            flavors: [
+              { name: DEFAULT_FLAVOR, resources: DEFAULT_SPEC_RESOURCES },
+              {
+                name: OTHER_FLAVOR,
+                resources: [
+                  { name: 'cpu', nominalQuota: 50 },
+                  { name: 'memory', nominalQuota: '100Gi' },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      status: {
+        ...cq.status,
+        flavorsUsage: [
+          { name: DEFAULT_FLAVOR, resources: DEFAULT_USAGE_RESOURCES },
+          {
+            name: OTHER_FLAVOR,
+            resources: [
+              { name: 'cpu', total: '5000m' },
+              { name: 'memory', total: '50Gi' },
+            ],
+          },
+        ],
+      },
+    };
+
+    const resultDefault = getAllConsumedResources(
+      cqMultiFlavor as ClusterQueueKind,
+      DEFAULT_FLAVOR,
+    );
+    expect(resultDefault).toHaveLength(3);
+    expect(resultDefault.find((r) => r.name === 'cpu')).toMatchObject({
+      total: '100',
+      consumed: '9700m',
+    });
+
+    const resultOther = getAllConsumedResources(cqMultiFlavor as ClusterQueueKind, OTHER_FLAVOR);
+    expect(resultOther).toHaveLength(2);
+    expect(resultOther.find((r) => r.name === 'cpu')).toMatchObject({
+      total: '50',
+      consumed: '5000m',
+    });
+    expect(resultOther.find((r) => r.name === 'memory')).toMatchObject({
+      total: '100Gi',
+      consumed: '50Gi',
+    });
+  });
+
+  it('returns empty array when assignedFlavorName does not match any flavor', () => {
+    const cq = baseClusterQueue();
+    expect(getAllConsumedResources(cq, 'nonexistent-flavor')).toEqual([]);
   });
 });
