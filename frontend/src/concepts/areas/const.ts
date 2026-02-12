@@ -10,7 +10,7 @@ export const techPreviewFlags = {
   mlflow: false,
   projectRBAC: true,
   observabilityDashboard: false,
-  YAMLViewer: false,
+  deploymentWizardYAMLViewer: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -209,7 +209,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['projectRBAC'],
   },
   [SupportedArea.YAML_VIEWER]: {
-    featureFlags: ['YAMLViewer'],
+    featureFlags: ['deploymentWizardYAMLViewer'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
 };
