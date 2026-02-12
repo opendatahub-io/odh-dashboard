@@ -112,7 +112,6 @@ describe('ModelServing - tolerations tests', () => {
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
-        '@Maintain',
       ],
     },
     () => {
