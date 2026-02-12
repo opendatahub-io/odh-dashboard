@@ -197,7 +197,10 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   // Serving Runtime Validation
   const isDisabledServingRuntime =
-    namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
+    namespace === '' ||
+    actionInProgress ||
+    createDataServingRuntime.imageName === undefined ||
+    accountConfig.loading;
 
   const baseInputValueValid = createDataInferenceService.minReplicas >= 1;
 
@@ -419,14 +422,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               />
             </StackItem>
             <StackItem>
-              <StackItem>
-                <NIMModelListSection
-                  inferenceServiceData={createDataInferenceService}
-                  setInferenceServiceData={setCreateDataInferenceService}
-                  setServingRuntimeData={setCreateDataServingRuntime}
-                  isEditing={!!editInfo}
-                />
-              </StackItem>
+              <NIMModelListSection
+                inferenceServiceData={createDataInferenceService}
+                setInferenceServiceData={setCreateDataInferenceService}
+                setServingRuntimeData={setCreateDataServingRuntime}
+                isEditing={!!editInfo}
+              />
             </StackItem>
             <StackItem>
               {isStorageClassesAvailable && (
