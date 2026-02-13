@@ -425,11 +425,11 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       expect(screen.getByRole('button')).toBeInTheDocument();
@@ -440,7 +440,6 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
@@ -461,6 +460,7 @@ describe('ModelLocationSelectField', () => {
               },
             },
           }}
+          pvcs={mockPvcs}
         />,
       );
       expect(screen.getByTestId('model-location-select')).toBeInTheDocument();
@@ -471,7 +471,6 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
@@ -482,6 +481,7 @@ describe('ModelLocationSelectField', () => {
             additionalFields: {},
             connectionTypeObject: undefined,
           }}
+          pvcs={mockPvcs}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -514,7 +514,6 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
@@ -525,6 +524,7 @@ describe('ModelLocationSelectField', () => {
             additionalFields: {},
             connectionTypeObject: mockConnectionTypes[0],
           }}
+          pvcs={mockPvcs}
         />,
       );
       const uriInput = screen.getByTestId('field URI');
@@ -546,7 +546,6 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
@@ -563,6 +562,7 @@ describe('ModelLocationSelectField', () => {
             additionalFields: { modelPath: 'path' },
             connectionTypeObject: mockConnectionTypes[1],
           }}
+          pvcs={mockPvcs}
         />,
       );
       const s3Input = screen.getByTestId('field AWS_S3_BUCKET');
@@ -589,7 +589,6 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
@@ -604,6 +603,7 @@ describe('ModelLocationSelectField', () => {
             additionalFields: { modelUri: 'oci://test' },
             connectionTypeObject: mockConnectionTypes[2],
           }}
+          pvcs={mockPvcs}
         />,
       );
       const ociInput = screen.getByTestId('field OCI_HOST');
@@ -624,7 +624,6 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
@@ -635,6 +634,7 @@ describe('ModelLocationSelectField', () => {
             additionalFields: {},
             connectionTypeObject: undefined,
           }}
+          pvcs={mockPvcs}
         />,
       );
       const modalLocationSelect = screen.getByTestId('model-location-select');
@@ -672,12 +672,12 @@ describe('ModelLocationSelectField', () => {
         <ModelLocationSelectField
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
-          projectName={undefined}
           resetModelLocationData={jest.fn()}
           modelLocationData={newData}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       expect(screen.getByTestId('field CUSTOM_URI_FIELD')).toBeInTheDocument();
@@ -698,11 +698,11 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          projectName="test-project"
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -736,11 +736,11 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          projectName="test-project"
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -794,11 +794,11 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          projectName="test-project"
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -819,11 +819,11 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          projectName="test-project"
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -837,11 +837,11 @@ describe('ModelLocationSelectField', () => {
       render(
         <ModelLocationSelectField
           setModelLocationData={mockSetModelLocationData}
-          projectName="test-project"
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
+          pvcs={mockPvcs}
         />,
       );
       const button = screen.getByTestId('model-location-select');

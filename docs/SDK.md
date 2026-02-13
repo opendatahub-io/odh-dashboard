@@ -48,7 +48,7 @@ See the [k8s pass through API] here.
 
 In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add the `DEV_IMPERSONATE_USER` and `DEV_IMPERSONATE_PASSWORD` environment variables to your local setup with valid k8s username and password in your cluster. This will bypass the regular pass-through flow and will add that specific headers to the calls. The steps to impersonate another user are listed as follows:
 
-1. Create a new env variable in your `.env.local` file with this format `DEV_IMPERSONATE_USER=<username>` and `DEV_IMPERSONATE_PASSWORD=<password>`
+1. Create a new env variable in your `.env.local` file with this format `DEV_IMPERSONATE_USER=<username>` and `DEV_IMPERSONATE_PASSWORD=<password>`. If you're on ROSA make sure you set `DEV_OAUTH_PREFIX=oauth`.
 2. Run the dev server for ODH dashboard. If you don't know how to run a local dev server, please refer to [CONTRIBUTING]
 3. Click on the username on the top right corner to open the dropdown menu, and choose `Start impersonate`, then the page will refresh and you will be impersonating as the user you set up in step 1
 4. To stop impersonating, click on the `Stop impersonate` button in the header toolbar
