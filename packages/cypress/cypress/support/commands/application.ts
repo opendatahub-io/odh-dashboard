@@ -313,6 +313,44 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
     }
     cy.step(`Navigate to: ${fullUrl}`);
 
+    // When running against localhost (webpack dev server), check if we need to switch oc user
+    const baseUrl = Cypress.config('baseUrl') || '';
+    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      cy.exec('oc whoami', { failOnNonZeroExit: false }).then((result) => {
+        const currentOcUser = result.stdout.trim();
+        const requestedUser = credentials.USERNAME;
+
+        if (currentOcUser !== requestedUser) {
+          cy.log(
+            `🔄 Switching oc user from "${currentOcUser}" to "${requestedUser}" for localhost testing`,
+          );
+
+          const ocServer = Cypress.env('OC_SERVER');
+          if (!ocServer) {
+            cy.log(
+              '⚠️ OC_SERVER not set - cannot switch oc user. Tests may fail if user mismatch.',
+            );
+          } else {
+            // Perform oc login as the requested user
+            cy.exec(
+              `oc login -u "${requestedUser}" -p "${credentials.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
+              { failOnNonZeroExit: false },
+            ).then((loginResult) => {
+              if (loginResult.code === 0) {
+                cy.log(`✅ Successfully switched oc user to "${requestedUser}"`);
+              } else {
+                cy.log(
+                  `❌ Failed to switch oc user: ${loginResult.stderr || loginResult.stdout}`,
+                );
+              }
+            });
+          }
+        } else {
+          cy.log(`✅ Already logged in as "${requestedUser}" via oc`);
+        }
+      });
+    }
+
     if (isBYOIDCCluster) {
       cy.log('BYOIDC cluster detected - using Keycloak authentication');
     }
