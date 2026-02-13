@@ -217,43 +217,6 @@ describe('GuardrailsPanel - Event Tracking', () => {
     });
   });
 
-  describe('Info Icon Click Tracking', () => {
-    it('should fire tracking event when info icon is clicked', async () => {
-      const user = userEvent.setup();
-      render(<GuardrailsPanel {...defaultProps} />);
-
-      const infoButton = screen.getByLabelText('More info for guardrail model field');
-      await user.click(infoButton);
-
-      await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Model Info Icon Selected', {
-          infoClicked: true,
-        });
-      });
-    });
-
-    it('should track multiple info icon clicks', async () => {
-      const user = userEvent.setup();
-      render(<GuardrailsPanel {...defaultProps} />);
-
-      const infoButton = screen.getByLabelText('More info for guardrail model field');
-
-      // Click once
-      await user.click(infoButton);
-
-      await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Model Info Icon Selected', {
-          infoClicked: true,
-        });
-      });
-
-      // Click again
-      await user.click(infoButton);
-
-      expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
-    });
-  });
-
   describe('Combined Tracking Scenarios', () => {
     it('should track model selection and toggle changes independently', async () => {
       const user = userEvent.setup();
@@ -297,40 +260,31 @@ describe('GuardrailsPanel - Event Tracking', () => {
       });
     });
 
-    it('should track user workflow: info icon, model selection, enable guardrails', async () => {
+    it('should track user workflow: model selection and enable guardrails', async () => {
       const user = userEvent.setup();
       render(<GuardrailsPanel {...defaultProps} />);
 
-      // 1. Click info icon
-      const infoButton = screen.getByLabelText('More info for guardrail model field');
-      await user.click(infoButton);
-
-      // 2. Select a model
+      // 1. Select a model
       const modelToggle = screen.getByTestId('guardrail-model-toggle');
       await user.click(modelToggle);
       const modelOption = screen.getByText('model-2');
       await user.click(modelOption);
 
-      // 3. Enable both guardrails
+      // 2. Enable input guardrails
       const inputSwitch = screen.getByTestId('user-input-guardrails-switch');
       await user.click(inputSwitch);
 
       await waitFor(() => {
-        expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(3);
+        expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
       });
 
       // Verify the sequence of events
       expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(
         1,
-        'Guardrail Model Info Icon Selected',
-        { infoClicked: true },
-      );
-      expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(
-        2,
         'Guardrails Model Dropdown Option Selected',
         { selectedModel: 'model-2' },
       );
-      expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(3, 'Guardrails Enabled', {
+      expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(2, 'Guardrails Enabled', {
         inputEnabled: true,
         outputEnabled: false,
       });
