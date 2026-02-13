@@ -169,14 +169,27 @@ func CleanupMLflowState(
 	}
 }
 
-// resolveUVBinary finds the uv binary, checking the local bin directory first.
+// resolveUVBinary finds the uv binary by walking up to the project root (go.mod),
+// then checking <projectRoot>/bin/uv. Falls back to PATH lookup.
+// This mirrors getFirstFoundEnvTestBinaryDir's strategy for locating project-local tools
+// regardless of which directory Go test sets as cwd.
 func resolveUVBinary() (string, error) {
-	// Check project-local bin/ first (installed by make uv)
 	cwd, err := os.Getwd()
 	if err == nil {
-		localUV := filepath.Join(cwd, "bin", "uv")
-		if _, err := os.Stat(localUV); err == nil {
-			return localUV, nil
+		projectRoot := cwd
+		for {
+			if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+				localUV := filepath.Join(projectRoot, "bin", "uv")
+				if _, err := os.Stat(localUV); err == nil {
+					return localUV, nil
+				}
+				break
+			}
+			parent := filepath.Dir(projectRoot)
+			if parent == projectRoot {
+				break
+			}
+			projectRoot = parent
 		}
 	}
 
