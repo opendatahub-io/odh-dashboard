@@ -50,6 +50,8 @@ type App struct {
 	fileUploadJobTracker    *services.FileUploadJobTracker
 	// Used only when MockK8sClient is enabled
 	testEnvState *k8smocks.TestEnvState
+	// Used only when MockMLflowClient is enabled and MLflow is started as a child process
+	mlflowState *mlflowmocks.MLflowState
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -174,7 +176,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize MLflow client factory
 	var mlflowFactory mlflowpkg.MLflowClientFactory
+	var mlflowState *mlflowmocks.MLflowState
 	if cfg.MockMLflowClient {
+		if os.Getenv("MLFLOW_TRACKING_URI") == "" {
+			// Start MLflow as child process (like envtest manages kube-apiserver)
+			mlflowState, err = mlflowmocks.SetupMLflow(logger)
+			if err != nil {
+				return nil, fmt.Errorf("failed to start MLflow: %w", err)
+			}
+		}
 		logger.Info("Using mock MLflow client factory")
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else {
@@ -217,6 +227,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
 		testEnvState:            testEnvState,
+		mlflowState:             mlflowState,
 	}
 	return app, nil
 }
@@ -232,6 +243,19 @@ func (app *App) Shutdown() error {
 				app.logger.Error(fmt.Sprintf(format, args...))
 			},
 			func(format string, args ...interface{}) {
+				app.logger.Info(fmt.Sprintf(format, args...))
+			},
+		)
+	}
+
+	if app.mlflowState != nil {
+		app.logger.Info("stopping MLflow server...")
+		mlflowmocks.CleanupMLflowState(
+			app.mlflowState,
+			func(format string, args ...any) {
+				app.logger.Error(fmt.Sprintf(format, args...))
+			},
+			func(format string, args ...any) {
 				app.logger.Info(fmt.Sprintf(format, args...))
 			},
 		)

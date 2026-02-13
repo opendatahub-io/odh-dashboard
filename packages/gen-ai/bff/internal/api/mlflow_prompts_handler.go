@@ -12,7 +12,7 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 
 	response, err := app.repositories.MLflowPrompts.ListPrompts(ctx)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		app.handleMLflowClientError(w, r, err)
 		return
 	}
 

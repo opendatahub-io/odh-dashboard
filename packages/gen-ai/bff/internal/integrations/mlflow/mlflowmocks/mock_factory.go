@@ -2,10 +2,13 @@ package mlflowmocks
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 )
+
+const defaultTrackingURI = "http://127.0.0.1:5001"
 
 // MockClientFactory creates MLflow clients pointing to a local MLflow instance.
 // Unlike other mocks that return fake data, this connects to a real local MLflow
@@ -15,12 +18,13 @@ type MockClientFactory struct {
 	mu     sync.Mutex
 }
 
-// NewMockClientFactory creates a factory that connects to local MLflow on port 5001.
+// NewMockClientFactory creates a factory that connects to local MLflow.
+// Uses MLFLOW_TRACKING_URI env var if set, otherwise defaults to http://127.0.0.1:5001.
 func NewMockClientFactory() mlflow.MLflowClientFactory {
 	return &MockClientFactory{}
 }
 
-// GetClient returns a shared MLflow client connected to localhost:5001.
+// GetClient returns a shared MLflow client connected to the local MLflow instance.
 func (f *MockClientFactory) GetClient(_ context.Context) (mlflow.ClientInterface, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -29,7 +33,12 @@ func (f *MockClientFactory) GetClient(_ context.Context) (mlflow.ClientInterface
 		return f.client, nil
 	}
 
-	client, err := mlflow.NewClient("http://localhost:5001", true)
+	trackingURI := os.Getenv("MLFLOW_TRACKING_URI")
+	if trackingURI == "" {
+		trackingURI = defaultTrackingURI
+	}
+
+	client, err := mlflow.NewClient(trackingURI, true)
 	if err != nil {
 		return nil, err
 	}

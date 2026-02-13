@@ -20,13 +20,13 @@ const (
 
 type EnvConfig struct {
 	// General BFF configuration
-	Port            int
-	StaticAssetsDir string
-	LogLevel        slog.Level
-	AllowedOrigins  []string
-	MockLSClient    bool
-	MockK8sClient   bool
-	MockMCPClient   bool
+	Port             int
+	StaticAssetsDir  string
+	LogLevel         slog.Level
+	AllowedOrigins   []string
+	MockLSClient     bool
+	MockK8sClient    bool
+	MockMCPClient    bool
 	MockMaaSClient   bool
 	MockMLflowClient bool
 

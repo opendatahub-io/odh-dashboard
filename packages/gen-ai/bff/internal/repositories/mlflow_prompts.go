@@ -37,7 +37,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context) (*models.MLfl
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
-			CreationTimestamp:  p.CreationTimestamp,
+			CreationTimestamp: p.CreationTimestamp,
 		}
 	}
 
