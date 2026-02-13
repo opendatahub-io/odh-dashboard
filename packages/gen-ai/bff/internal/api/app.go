@@ -20,6 +20,8 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
+	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,6 +42,7 @@ type App struct {
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
+	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -169,6 +172,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// Initialize MLflow client factory
+	var mlflowFactory mlflowpkg.MLflowClientFactory
+	if cfg.MockMLflowClient {
+		logger.Info("Using mock MLflow client factory")
+		mlflowFactory = mlflowmocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
+		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL)
+	}
+
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
 	logger.Debug("Initialized shared memory store")
@@ -197,6 +210,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		llamaStackClientFactory: llamaStackClientFactory,
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
+		mlflowClientFactory:     mlflowFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -314,6 +328,9 @@ func (app *App) Routes() http.Handler {
 	// Tokens (MaaS)
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// MLflow API routes
+	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
 
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))

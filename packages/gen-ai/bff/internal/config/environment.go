@@ -27,13 +27,17 @@ type EnvConfig struct {
 	MockLSClient    bool
 	MockK8sClient   bool
 	MockMCPClient   bool
-	MockMaaSClient  bool
+	MockMaaSClient   bool
+	MockMLflowClient bool
 
 	// Llama Stack Configuration
 	LlamaStackURL string
 
 	// MaaS (Model as a Service) Configuration
 	MaaSURL string
+
+	// MLflow Configuration
+	MLflowURL string
 
 	// Filter models configuration
 	FilteredModelKeywords []string
