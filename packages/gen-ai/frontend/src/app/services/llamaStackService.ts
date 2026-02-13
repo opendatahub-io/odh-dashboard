@@ -331,7 +331,7 @@ const streamCreateResponse = (
                           fullContent = '';
                           // Track guardrail violation on first non-empty refusal delta
                           fireMiscTrackingEvent('Guardrail Activated', {
-                            ViolationDetected: true,
+                            violationDetected: true,
                           });
                         }
                         fullContent += data.delta;

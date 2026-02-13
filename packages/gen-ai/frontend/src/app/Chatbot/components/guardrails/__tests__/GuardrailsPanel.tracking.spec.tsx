@@ -97,8 +97,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: false,
+          inputEnabled: true,
+          outputEnabled: false,
         });
       });
     });
@@ -117,8 +117,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: false,
+          inputEnabled: true,
+          outputEnabled: false,
         });
       });
     });
@@ -135,8 +135,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: false,
-          OutputEnabled: true,
+          inputEnabled: false,
+          outputEnabled: true,
         });
       });
 
@@ -145,8 +145,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: true,
+          inputEnabled: true,
+          outputEnabled: true,
         });
       });
     });
@@ -162,8 +162,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: false,
-          OutputEnabled: true,
+          inputEnabled: false,
+          outputEnabled: true,
         });
       });
     });
@@ -182,8 +182,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: false,
-          OutputEnabled: true,
+          inputEnabled: false,
+          outputEnabled: true,
         });
       });
     });
@@ -200,8 +200,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: false,
+          inputEnabled: true,
+          outputEnabled: false,
         });
       });
 
@@ -210,8 +210,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: true,
+          inputEnabled: true,
+          outputEnabled: true,
         });
       });
     });
@@ -227,7 +227,7 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Model Info Icon Selected', {
-          InfoClicked: true,
+          infoClicked: true,
         });
       });
     });
@@ -243,7 +243,7 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Model Info Icon Selected', {
-          InfoClicked: true,
+          infoClicked: true,
         });
       });
 
@@ -278,8 +278,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: false,
+          inputEnabled: true,
+          outputEnabled: false,
         });
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(2);
       });
@@ -290,8 +290,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
       await waitFor(() => {
         expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
-          InputEnabled: true,
-          OutputEnabled: true,
+          inputEnabled: true,
+          outputEnabled: true,
         });
         expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(3);
       });
@@ -323,7 +323,7 @@ describe('GuardrailsPanel - Event Tracking', () => {
       expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(
         1,
         'Guardrail Model Info Icon Selected',
-        { InfoClicked: true },
+        { infoClicked: true },
       );
       expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(
         2,
@@ -331,8 +331,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
         { selectedModel: 'model-2' },
       );
       expect(fireMiscTrackingEvent).toHaveBeenNthCalledWith(3, 'Guardrails Enabled', {
-        InputEnabled: true,
-        OutputEnabled: false,
+        inputEnabled: true,
+        outputEnabled: false,
       });
     });
   });

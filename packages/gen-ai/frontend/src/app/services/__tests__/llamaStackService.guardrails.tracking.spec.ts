@@ -79,7 +79,7 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
 
       // Verify tracking event was fired
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
-        ViolationDetected: true,
+        violationDetected: true,
       });
 
       // Verify it was only called once (on first refusal)
@@ -149,7 +149,7 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
 
       // Verify tracking event was fired only once on first refusal
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
-        ViolationDetected: true,
+        violationDetected: true,
       });
       expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
 
@@ -274,7 +274,7 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
 
       // Verify tracking event was fired when refusal started
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
-        ViolationDetected: true,
+        violationDetected: true,
       });
       expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
 
@@ -339,7 +339,7 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
       // content appending and tracking with if (data.delta). Empty-string deltas are
       // falsy, so receivedRefusal flag is set only when the first non-empty delta arrives.
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
-        ViolationDetected: true,
+        violationDetected: true,
       });
       expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
     });

@@ -66,39 +66,30 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
   };
 
   const handleUserInputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    // Read current output state before update
-    const currentOutputEnabled =
-      useChatbotConfigStore.getState().configurations[configId]?.guardrailModelOutputEnabled ??
-      false;
-
     // Update state
     updateUserInputEnabled(configId, checked);
 
     // Fire tracking with the new input value and current output value
     fireMiscTrackingEvent('Guardrails Enabled', {
-      InputEnabled: checked,
-      OutputEnabled: currentOutputEnabled,
+      inputEnabled: checked,
+      outputEnabled: modelOutputEnabled,
     });
   };
 
   const handleModelOutputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    // Read current input state before update
-    const currentInputEnabled =
-      useChatbotConfigStore.getState().configurations[configId]?.guardrailUserInputEnabled ?? false;
-
     // Update state
     updateModelOutputEnabled(configId, checked);
 
     // Fire tracking with current input value and the new output value
     fireMiscTrackingEvent('Guardrails Enabled', {
-      InputEnabled: currentInputEnabled,
-      OutputEnabled: checked,
+      inputEnabled: userInputEnabled,
+      outputEnabled: checked,
     });
   };
 
   const handleInfoIconClick = () => {
     fireMiscTrackingEvent('Guardrail Model Info Icon Selected', {
-      InfoClicked: true,
+      infoClicked: true,
     });
   };
 
