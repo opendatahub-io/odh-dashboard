@@ -626,11 +626,11 @@ jobs:
           echo "🔄 Tests can dynamically switch users via cy.visitWithLogin when running against localhost"
           echo "🔗 OC_SERVER for user switching: ${OC_SERVER}"
           
+          # Export OC_SERVER so Cypress config can access it
+          export CYPRESS_OC_SERVER="${OC_SERVER}"
+          
           BASE_URL=http://localhost:${WEBPACK_PORT} npm run cypress:run:chrome -- \
-            --env "OC_SERVER=${OC_SERVER}" \
-            --env "skipTags=@Bug @Maintain @NonConcurrent" \
-            --env "grepTags=${{ matrix.tag }}" \
-            --env "grepFilterSpecs=true" \
+            --env skipTags="@Bug @Maintain @NonConcurrent",grepTags="${{ matrix.tag }}",grepFilterSpecs=true \
             --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
 
       - name: Upload test results
