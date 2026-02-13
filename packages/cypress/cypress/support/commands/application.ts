@@ -316,38 +316,75 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
     // When running against localhost (webpack dev server), check if we need to switch oc user
     const baseUrl = Cypress.config('baseUrl') || '';
     if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      cy.log('🔍 Localhost detected - checking if oc user switch is needed');
       cy.exec('oc whoami', { failOnNonZeroExit: false }).then((result) => {
         const currentOcUser = result.stdout.trim();
         const requestedUser = credentials.USERNAME;
 
-        if (currentOcUser !== requestedUser) {
+        if (result.code !== 0) {
           cy.log(
-            `🔄 Switching oc user from "${currentOcUser}" to "${requestedUser}" for localhost testing`,
+            `⚠️ oc whoami failed (exit code: ${result.code}) - may not be logged into cluster`,
           );
+          cy.log(`Error: ${result.stderr || 'No error message'}`);
+          return cy.wrap(null);
+        }
 
+        cy.log(
+          `📊 Current oc user: ${currentOcUser ? '***' : 'none'}, Requested: ${
+            requestedUser ? '***' : 'none'
+          }`,
+        );
+
+        if (currentOcUser !== requestedUser) {
+          cy.log(`🔄 User mismatch detected - initiating oc login`);
+
+          // Try to get OC_SERVER from Cypress env or fallback to checking if it can be inferred
           const ocServer = Cypress.env('OC_SERVER');
           if (!ocServer) {
-            cy.log(
-              '⚠️ OC_SERVER not set - cannot switch oc user. Tests may fail if user mismatch.',
-            );
-          } else {
-            // Perform oc login as the requested user
-            cy.exec(
+            cy.log('⚠️ OC_SERVER not set in Cypress env');
+            cy.log('💡 Set CYPRESS_OC_SERVER environment variable or pass via --env OC_SERVER=...');
+            cy.log('⚠️ Cannot switch oc user - tests may fail if user permissions mismatch');
+            return cy.wrap(null); // Return a chainable to maintain flow
+          }
+
+          // Extract cluster name from URL (e.g., "dash-e2e-int" from "https://api.dash-e2e-int.osp...")
+          const clusterName = ocServer.match(/api\.([^.]+)/)?.[1] || 'unknown';
+          cy.log(`🔗 Switching oc context to cluster: ${clusterName}`);
+
+          // Perform oc login as the requested user
+          return cy
+            .exec(
               `oc login -u "${requestedUser}" -p "${credentials.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
               { failOnNonZeroExit: false },
-            ).then((loginResult) => {
+            )
+            .then((loginResult) => {
               if (loginResult.code === 0) {
-                cy.log(`✅ Successfully switched oc user to "${requestedUser}"`);
+                cy.log(`✅ oc login successful - user switched`);
+                // Verify the switch worked
+                cy.exec('oc whoami', { failOnNonZeroExit: false }).then((verifyResult) => {
+                  const newUser = verifyResult.stdout.trim();
+                  if (newUser === requestedUser) {
+                    cy.log(`✅ Verified: Now logged in as requested user`);
+                  } else {
+                    cy.log(
+                      `⚠️ Verification failed: Expected ${requestedUser ? '***' : 'none'}, got ${
+                        newUser ? '***' : 'none'
+                      }`,
+                    );
+                  }
+                });
               } else {
+                cy.log(`❌ oc login failed (exit code: ${loginResult.code})`);
+                cy.log(`Error: ${loginResult.stderr || loginResult.stdout || 'No error message'}`);
                 cy.log(
-                  `❌ Failed to switch oc user: ${loginResult.stderr || loginResult.stdout}`,
+                  '💡 Check: 1) Credentials are correct, 2) OC_SERVER is reachable, 3) User has cluster access',
                 );
               }
             });
-          }
-        } else {
-          cy.log(`✅ Already logged in as "${requestedUser}" via oc`);
         }
+
+        cy.log(`✅ Already logged in as correct user via oc`);
+        return cy.wrap(null); // Return a chainable to maintain flow
       });
     }
 
