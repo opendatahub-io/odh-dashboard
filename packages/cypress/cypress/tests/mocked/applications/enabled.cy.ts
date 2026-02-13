@@ -80,7 +80,7 @@ describe('Enabled Page', () => {
       cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
       enabledPage.visit();
       mlflowCard.findApplicationLink().click();
-      cy.url().should('include', '/develop-train/experiments-mlflow');
+      cy.url().should('include', '/develop-train/mlflow/experiments');
     });
   });
 });
