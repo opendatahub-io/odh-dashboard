@@ -185,6 +185,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Info("Using mock MLflow client factory")
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else {
+		if cfg.MLflowURL == "" {
+			return nil, fmt.Errorf("mlflow-url is required when mock-mlflow-client is disabled")
+		}
 		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
 		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL)
 	}

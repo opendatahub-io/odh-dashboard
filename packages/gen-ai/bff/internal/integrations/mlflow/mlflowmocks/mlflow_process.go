@@ -40,9 +40,15 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		return nil, nil
 	}
 
-	// Pre-flight: skip if MLflow is already running (e.g. from make mlflow-up)
+	// Pre-flight: skip process startup if MLflow is already running (e.g. from make mlflow-up),
+	// but still seed prompts so tests have expected data.
 	if isMLflowHealthy() {
 		logger.Info("MLflow already running, skipping child process startup", slog.Int("port", mlflowPort))
+		trackingURI := fmt.Sprintf("http://127.0.0.1:%d", mlflowPort)
+		os.Setenv("MLFLOW_TRACKING_URI", trackingURI)
+		if err := SeedPrompts(trackingURI, logger); err != nil {
+			return nil, fmt.Errorf("failed to seed already-running MLflow: %w", err)
+		}
 		return nil, nil
 	}
 

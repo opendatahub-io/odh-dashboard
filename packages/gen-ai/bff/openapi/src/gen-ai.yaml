@@ -3955,3 +3955,5 @@ tags:
   # =============================================================================
   - name: MCP
     description: Model Context Protocol (MCP) server management and tool discovery
+  - name: MLflow
+    description: MLflow Prompt Registry operations for listing and discovering registered prompts

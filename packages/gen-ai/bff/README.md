@@ -421,38 +421,40 @@ HTTP/1.1 204 No Content
 
 ```json
 {
-  "prompts": [
-    {
-      "name": "vet-appointment-dora",
-      "description": "Schedule a veterinary appointment for Dora",
-      "latest_version": 2,
-      "tags": {
-        "pet": "dora",
-        "breed": "mixed"
+  "data": {
+    "prompts": [
+      {
+        "name": "vet-appointment-dora",
+        "description": "Schedule a veterinary appointment for Dora",
+        "latest_version": 2,
+        "tags": {
+          "pet": "dora",
+          "breed": "mixed"
+        },
+        "creation_timestamp": "2025-01-15T10:30:00Z"
       },
-      "creation_timestamp": "2025-01-15T10:30:00Z"
-    },
-    {
-      "name": "pet-health-bella",
-      "description": "Health check summary for Bella",
-      "latest_version": 1,
-      "tags": {
-        "pet": "bella",
-        "category": "health"
+      {
+        "name": "pet-health-bella",
+        "description": "Health check summary for Bella",
+        "latest_version": 1,
+        "tags": {
+          "pet": "bella",
+          "category": "health"
+        },
+        "creation_timestamp": "2025-01-15T10:31:00Z"
       },
-      "creation_timestamp": "2025-01-15T10:31:00Z"
-    },
-    {
-      "name": "medication-reminder-ellie",
-      "description": "Medication reminders for Ellie",
-      "latest_version": 2,
-      "tags": {
-        "pet": "ellie",
-        "category": "medication"
-      },
-      "creation_timestamp": "2025-01-15T10:32:00Z"
-    }
-  ]
+      {
+        "name": "medication-reminder-ellie",
+        "description": "Medication reminders for Ellie",
+        "latest_version": 2,
+        "tags": {
+          "pet": "ellie",
+          "category": "medication"
+        },
+        "creation_timestamp": "2025-01-15T10:32:00Z"
+      }
+    ]
+  }
 }
 ```
 
@@ -1017,48 +1019,50 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 
 ```json
 {
-  "prompts": [
-    {
-      "name": "vet-appointment-dora",
-      "description": "",
-      "latest_version": 2,
-      "tags": {
-        "pet": "dora",
-        "breed": "mixed"
+  "data": {
+    "prompts": [
+      {
+        "name": "vet-appointment-dora",
+        "description": "",
+        "latest_version": 2,
+        "tags": {
+          "pet": "dora",
+          "breed": "mixed"
+        },
+        "creation_timestamp": "2025-01-15T10:30:00Z"
       },
-      "creation_timestamp": "2025-01-15T10:30:00Z"
-    },
-    {
-      "name": "pet-health-bella",
-      "description": "",
-      "latest_version": 1,
-      "tags": {
-        "pet": "bella",
-        "category": "health"
+      {
+        "name": "pet-health-bella",
+        "description": "",
+        "latest_version": 1,
+        "tags": {
+          "pet": "bella",
+          "category": "health"
+        },
+        "creation_timestamp": "2025-01-15T10:31:00Z"
       },
-      "creation_timestamp": "2025-01-15T10:31:00Z"
-    },
-    {
-      "name": "medication-reminder-ellie",
-      "description": "",
-      "latest_version": 2,
-      "tags": {
-        "pet": "ellie",
-        "category": "medication"
+      {
+        "name": "medication-reminder-ellie",
+        "description": "",
+        "latest_version": 2,
+        "tags": {
+          "pet": "ellie",
+          "category": "medication"
+        },
+        "creation_timestamp": "2025-01-15T10:32:00Z"
       },
-      "creation_timestamp": "2025-01-15T10:32:00Z"
-    },
-    {
-      "name": "pet-adoption-letter",
-      "description": "",
-      "latest_version": 1,
-      "tags": {
-        "category": "adoption",
-        "type": "letter"
-      },
-      "creation_timestamp": "2025-01-15T10:33:00Z"
-    }
-  ]
+      {
+        "name": "pet-adoption-letter",
+        "description": "",
+        "latest_version": 1,
+        "tags": {
+          "category": "adoption",
+          "type": "letter"
+        },
+        "creation_timestamp": "2025-01-15T10:33:00Z"
+      }
+    ]
+  }
 }
 ```
 
