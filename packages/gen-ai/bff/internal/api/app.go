@@ -178,12 +178,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	var mlflowFactory mlflowpkg.MLflowClientFactory
 	var mlflowState *mlflowmocks.MLflowState
 	if cfg.MockMLflowClient {
-		if os.Getenv("MLFLOW_TRACKING_URI") == "" {
-			// Start MLflow as child process (like envtest manages kube-apiserver)
-			mlflowState, err = mlflowmocks.SetupMLflow(logger)
-			if err != nil {
-				return nil, fmt.Errorf("failed to start MLflow: %w", err)
-			}
+		mlflowState, err = mlflowmocks.SetupMLflow(logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to start MLflow: %w", err)
 		}
 		logger.Info("Using mock MLflow client factory")
 		mlflowFactory = mlflowmocks.NewMockClientFactory()

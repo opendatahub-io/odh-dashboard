@@ -590,46 +590,54 @@ paths:
               schema:
                 type: object
                 properties:
-                  prompts:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          description: Unique name identifying the prompt
-                          example: 'vet-appointment-dora'
-                        description:
-                          type: string
-                          description: Human-readable description of the prompt
-                          example: 'Schedule a veterinary appointment for Dora'
-                        latest_version:
-                          type: integer
-                          description: Latest version number of the prompt
-                          example: 2
-                        tags:
+                  data:
+                    type: object
+                    properties:
+                      prompts:
+                        type: array
+                        items:
                           type: object
-                          additionalProperties:
-                            type: string
-                          description: User-defined metadata tags
-                          example:
-                            pet: 'dora'
-                            category: 'health'
-                        creation_timestamp:
-                          type: string
-                          format: date-time
-                          description: When the prompt was first created
-                          example: '2025-01-15T10:30:00Z'
-                      required:
-                        - name
-                        - description
-                        - latest_version
-                        - creation_timestamp
-                  next_page_token:
-                    type: string
-                    description: Token for fetching the next page of results
+                          properties:
+                            name:
+                              type: string
+                              description: Unique name identifying the prompt
+                              example: 'vet-appointment-dora'
+                            description:
+                              type: string
+                              description: Human-readable description of the prompt
+                              example: 'Schedule a veterinary appointment for Dora'
+                            latest_version:
+                              type: integer
+                              description: Latest version number of the prompt
+                              example: 2
+                            tags:
+                              type: object
+                              additionalProperties:
+                                type: string
+                              description: User-defined metadata tags
+                              example:
+                                pet: 'dora'
+                                category: 'health'
+                            creation_timestamp:
+                              type: string
+                              format: date-time
+                              description: When the prompt was first created
+                              example: '2025-01-15T10:30:00Z'
+                          required:
+                            - name
+                            - description
+                            - latest_version
+                            - creation_timestamp
+                      next_page_token:
+                        type: string
+                        description: Token for fetching the next page of results
+                    required:
+                      - prompts
+                  metadata:
+                    type: object
+                    nullable: true
                 required:
-                  - prompts
+                  - data
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

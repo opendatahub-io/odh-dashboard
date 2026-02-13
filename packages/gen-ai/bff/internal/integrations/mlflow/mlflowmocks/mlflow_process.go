@@ -31,9 +31,15 @@ type MLflowState struct {
 }
 
 // SetupMLflow starts a local MLflow server as a child process.
-// If MLflow is already running on the target port, it returns nil (no-op).
-// The caller is responsible for calling CleanupMLflowState on shutdown.
+// If MLFLOW_TRACKING_URI is already set or MLflow is already running on the target port,
+// it returns nil (no-op). The caller is responsible for calling CleanupMLflowState on shutdown.
 func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
+	// Pre-flight: skip if externally managed (e.g. MLFLOW_TRACKING_URI set by operator)
+	if uri := os.Getenv("MLFLOW_TRACKING_URI"); uri != "" {
+		logger.Info("MLFLOW_TRACKING_URI already set, assuming externally managed", slog.String("uri", uri))
+		return nil, nil
+	}
+
 	// Pre-flight: skip if MLflow is already running (e.g. from make mlflow-up)
 	if isMLflowHealthy() {
 		logger.Info("MLflow already running, skipping child process startup", slog.Int("port", mlflowPort))
@@ -98,7 +104,10 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	)
 
 	if err := SeedPrompts(trackingURI, logger); err != nil {
-		logger.Error("Failed to seed MLflow prompts", slog.Any("error", err))
+		// Clean up the process we just started
+		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		cancel()
+		return nil, fmt.Errorf("failed to seed MLflow: %w", err)
 	}
 
 	return &MLflowState{

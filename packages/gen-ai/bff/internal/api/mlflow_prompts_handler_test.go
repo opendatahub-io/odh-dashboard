@@ -13,7 +13,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 
 	Describe("GET /api/v1/mlflow/prompts", func() {
 
-		It("should return all seeded prompts", func() {
+		It("should return all seeded prompts in envelope", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
@@ -23,13 +23,13 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			Expect(resp.Header.Get("Content-Type")).To(Equal("application/json"))
 
-			var response models.MLflowPromptsResponse
-			ReadJSONResponse(resp, &response)
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
 
-			Expect(response.Prompts).To(HaveLen(4))
+			Expect(envelope.Data.Prompts).To(HaveLen(4))
 
 			promptsByName := make(map[string]models.MLflowPrompt)
-			for _, p := range response.Prompts {
+			for _, p := range envelope.Data.Prompts {
 				promptsByName[p.Name] = p
 			}
 
@@ -48,7 +48,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			}
 		})
 
-		It("should return response with prompts field", func() {
+		It("should return response wrapped in data envelope", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
@@ -61,7 +61,30 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var raw map[string]any
 			ReadJSONResponse(resp, &raw)
 
-			Expect(raw).To(HaveKey("prompts"))
+			Expect(raw).To(HaveKey("data"))
+			data, ok := raw["data"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			Expect(data).To(HaveKey("prompts"))
+		})
+
+		It("should return 400 when namespace parameter is missing", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("should return 405 for unsupported HTTP methods", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodPost,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusMethodNotAllowed))
 		})
 	})
 })

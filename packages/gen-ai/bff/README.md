@@ -566,7 +566,7 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 The MLflow mock connects to a real local MLflow instance (unlike other mocks that use hardcoded data).
 When `MOCK_MLFLOW_CLIENT=true` is set, the BFF automatically starts MLflow as a child process on port 5001, seeds it with sample prompts, and stops it on shutdown. If MLflow is already running (e.g. from `make mlflow-up`), the BFF will use the existing instance without seeding.
 
-When `MLFLOW_TRACKING_URI` is set (e.g. during `make test`), the BFF assumes MLflow is externally managed and skips the child process.
+When `MLFLOW_TRACKING_URI` is already set, the BFF assumes MLflow is externally managed and skips the child process.
 
 **Environment Variables:**
 
