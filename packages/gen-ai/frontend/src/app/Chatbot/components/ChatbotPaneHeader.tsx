@@ -18,6 +18,8 @@ interface ChatbotPaneHeaderProps {
   metrics?: ResponseMetrics | null;
   /** Whether a response is currently being generated */
   isLoading?: boolean;
+  /** Whether dark mode is enabled */
+  isDarkMode?: boolean;
   /** Whether to show a divider below the header */
   hasDivider?: boolean;
   /** Test ID prefix for the header elements */
@@ -36,12 +38,15 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   onCloseClick,
   metrics,
   isLoading,
+  isDarkMode,
   hasDivider,
   testIdPrefix = 'chatbot',
 }) => (
   <div
     style={{
-      backgroundColor: 'var(--pf-t--global--background--color--100)',
+      backgroundColor: isDarkMode
+        ? 'var(--pf-t--global--dark--background--color--100)'
+        : 'var(--pf-t--global--background--color--100)',
       padding: '1rem 1.5rem',
     }}
   >

@@ -487,6 +487,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   onSettingsClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
+                  isDarkMode={isDarkMode}
                   hasDivider
                 />
               )}
