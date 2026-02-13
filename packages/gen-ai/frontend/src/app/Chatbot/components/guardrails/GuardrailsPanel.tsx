@@ -6,12 +6,14 @@ import {
   HelperText,
   HelperTextItem,
   MenuToggle,
+  Popover,
   Select,
   SelectOption,
   SelectList,
   Switch,
 } from '@patternfly/react-core';
-import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   useChatbotConfigStore,
@@ -85,13 +87,25 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
     });
   };
 
+  const handleInfoIconClick = () => {
+    fireMiscTrackingEvent('Guardrail Model Info Icon Selected', {
+      infoClicked: true,
+    });
+  };
+
   return (
     <Form>
       <FormGroup
         label="Guardrail model"
         fieldId="guardrail-model"
         labelHelp={
-          <FieldGroupHelpLabelIcon content="This is the model that enforces the guardrails." />
+          <Popover bodyContent="This is the model that enforces the guardrails.">
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+              onClick={handleInfoIconClick}
+            />
+          </Popover>
         }
       >
         <Select
