@@ -180,9 +180,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockMLflowClient {
 		mlflowState, err = mlflowmocks.SetupMLflow(logger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to start MLflow: %w", err)
+			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
 		}
-		logger.Info("Using mock MLflow client factory")
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else {
 		if cfg.MLflowURL == "" {
