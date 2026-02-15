@@ -43,7 +43,10 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	// Pre-flight: skip process startup if MLflow is already running (e.g. from make mlflow-up),
 	// but still seed prompts so tests have expected data.
 	if isMLflowHealthy() {
-		logger.Info("MLflow already running, skipping child process startup", slog.Int("port", mlflowPort))
+		logger.Warn("MLflow already running on port — reusing existing instance. "+
+			"Its database may contain stale data from previous dev sessions, which can cause test failures. "+
+			fmt.Sprintf("Stop the external MLflow process (lsof -t -i :%d | xargs kill) and re-run for a clean state.", mlflowPort),
+			slog.Int("port", mlflowPort))
 		trackingURI := fmt.Sprintf("http://127.0.0.1:%d", mlflowPort)
 		os.Setenv("MLFLOW_TRACKING_URI", trackingURI)
 		if err := SeedPrompts(trackingURI, logger); err != nil {

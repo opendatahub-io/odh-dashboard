@@ -229,6 +229,20 @@ make dev-start-debug
 
 Once everything is running and ready, you can click on the 'Run and Debug' tab in left navbar, and in the top dropdown, select and run 'Attach to Delve (make dev-start-debug)'. Now you should be able to set breakpoints in order to debug code inside packages/gen-ai/bff.
 
+To debug with all mock clients enabled (no real services needed):
+
+```bash
+cd packages/gen-ai
+make dev-start-mock-debug
+```
+
+**Shutting down:** Always detach the VSCode debugger first (`Shift+F5` or click the stop button in the debug toolbar), then `Ctrl+C` the terminal. If the process gets orphaned (e.g. you forgot to detach first), clean it up with:
+
+```bash
+lsof -t -i :8080 | xargs kill   # BFF
+lsof -t -i :2345 | xargs kill   # Delve
+```
+
 ## Building and Running with Docker
 
 The project includes a multi-stage Dockerfile that builds both the frontend and backend components and creates a minimal production image.
