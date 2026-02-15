@@ -1,7 +1,7 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports, no-restricted-syntax
+import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports, no-restricted-syntax
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
