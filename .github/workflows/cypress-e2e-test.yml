@@ -489,11 +489,15 @@ jobs:
             exit 1
           fi
 
+          # Mask dashboard URL to prevent exposure in logs
+          echo "::add-mask::$DASHBOARD_URL"
+
           # Set dashboard URL for selected cluster
           sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
 
           # Export dashboard host (without protocol) for webpack ODH_DASHBOARD_HOST
-          DASHBOARD_HOST=$(echo "$DASHBOARD_URL" | sed 's|https\?://||' | sed 's|/.*||')
+          DASHBOARD_HOST=$(echo "$DASHBOARD_URL" | sed -E 's|https?://||' | sed 's|/.*||')
+          echo "::add-mask::$DASHBOARD_HOST"
           echo "DASHBOARD_HOST=$DASHBOARD_HOST" >> $GITHUB_ENV
 
           if [ -z "$ODH_NAMESPACES" ]; then
