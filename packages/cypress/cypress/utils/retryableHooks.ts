@@ -14,7 +14,6 @@ export const retryableBefore = <T>(fn: () => void | Promise<void> | Cypress.Chai
     if (this.currentTest?.isPending() || !shouldRun) {
       return;
     }
-
     shouldRun = false;
     setupPerformed = true;
     cy.wrap(null).then(fn);
