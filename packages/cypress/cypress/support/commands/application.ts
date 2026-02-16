@@ -313,6 +313,54 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
     }
     cy.step(`Navigate to: ${fullUrl}`);
 
+    // When running against localhost (webpack dev server), check if we need to switch oc user
+    const baseUrl = Cypress.config('baseUrl') || '';
+    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      cy.log('🔍 Localhost detected - checking if oc user switch is needed');
+      cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then((result) => {
+        const currentOcUser = result.stdout.trim();
+        const requestedUser = credentials.USERNAME;
+
+        if (result.code !== 0) {
+          cy.log(
+            `⚠️ oc whoami failed (exit code: ${result.code}) - may not be logged into cluster`,
+          );
+          return cy.wrap(null);
+        }
+
+        if (currentOcUser !== requestedUser) {
+          cy.log(
+            `🔄 Switching oc user from ${currentOcUser ? '***' : 'none'} to ${
+              requestedUser ? '***' : 'none'
+            }`,
+          );
+
+          const ocServer = Cypress.env('OC_SERVER');
+          if (!ocServer) {
+            cy.log('⚠️ OC_SERVER not set - cannot switch oc user');
+            cy.log('⚠️ Tests may fail if user permissions mismatch');
+            return cy.wrap(null);
+          }
+
+          return cy
+            .exec(
+              `oc login -u "${requestedUser}" -p "${credentials.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
+              { failOnNonZeroExit: false, log: false },
+            )
+            .then((loginResult) => {
+              if (loginResult.code === 0) {
+                cy.log(`✅ oc user switched successfully`);
+              } else {
+                cy.log(`❌ oc login failed (exit code: ${loginResult.code})`);
+              }
+            });
+        }
+
+        cy.log(`✅ Already logged in as correct oc user`);
+        return cy.wrap(null);
+      });
+    }
+
     if (isBYOIDCCluster) {
       cy.log('BYOIDC cluster detected - using Keycloak authentication');
     }
