@@ -174,7 +174,7 @@ module.exports = smp.wrap(
 
             if (!dashboardHost) {
               // default to legacy behavior if ODH_SUBDOMAIN is not set
-              const subdomain = devLegacy ? `${app}-${odhProject}` : `data-science-gateway`;
+              const subdomain = devLegacy ? `${app}-${odhProject}` : `rh-ai`;
               console.info(
                 `Failed to GET dashboard hostname, constructing hostname using subdomain '${subdomain}'.`,
               );
