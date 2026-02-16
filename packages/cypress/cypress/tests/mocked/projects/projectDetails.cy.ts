@@ -644,7 +644,7 @@ describe('Project Details', () => {
         .should('have.attr', 'href')
         .and('include', `${mockMLflowLink.spec.href}/#/experiments?workspace=test-project`);
       cy.findByTestId('embedded-mlflow-experiments-link').should('be.visible').click();
-      cy.url().should('include', '/develop-train/experiments-mlflow');
+      cy.url().should('include', '/develop-train/mlflow/experiments');
     });
 
     it('should not show MLflow card in overview when MLflow is disabled', () => {

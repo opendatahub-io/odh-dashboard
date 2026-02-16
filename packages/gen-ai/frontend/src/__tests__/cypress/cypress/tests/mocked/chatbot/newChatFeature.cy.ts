@@ -86,11 +86,7 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
     cy.wait('@aaModels');
 
     // Verify that a model is selected by checking the dropdown shows a model name
-    // Use .first() since there are two model dropdowns (header and settings panel)
-    cy.findAllByTestId('model-selector-toggle')
-      .first()
-      .should('be.visible')
-      .and('contain', 'Llama');
+    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   it(

@@ -37,10 +37,10 @@ export const getFeatureStoreObjectDisplayName = (
       return 'Feature views';
     case FeatureStoreObject.FEATURE_SERVICES:
       return 'Feature services';
-    case FeatureStoreObject.DATA_SETS:
-      return 'Datasets';
     case FeatureStoreObject.DATA_SOURCES:
       return 'Data sources';
+    case FeatureStoreObject.DATA_SETS:
+      return 'Datasets';
     case FeatureStoreObject.OVERVIEW:
       return 'Feature store overview';
     case FeatureStoreObject.FEATURES:

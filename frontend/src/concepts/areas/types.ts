@@ -60,6 +60,8 @@ export enum SupportedArea {
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   LLMD_SERVING = 'llmd-serving',
+  YAML_VIEWER = 'yaml-viewer',
+
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
   KUEUE = 'kueue',
