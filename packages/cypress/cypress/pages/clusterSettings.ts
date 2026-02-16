@@ -2,7 +2,7 @@ import { appChrome } from './appChrome';
 
 class ClusterSettings {
   visit(wait = true) {
-    cy.visitWithLogin('/settings/cluster/general');
+    cy.visit('/settings/cluster/general');
     if (wait) {
       this.wait();
     }
