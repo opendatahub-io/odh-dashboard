@@ -245,7 +245,23 @@ Cypress.on('command:enqueued', (command) => {
       cy.task('log', `${command.args[0]}`);
     }
   } else if (command.name === 'exec') {
-    cy.task('log', `[EXEC] ${command.args[0]}`);
+    // Respect log: false option and sanitize sensitive commands
+    if (command.attributes?.log === false) {
+      // Don't log commands marked with log: false
+      return;
+    }
+    // Sanitize oc login commands to hide credentials
+    let execCommand = command.args[0];
+    if (typeof execCommand === 'string' && execCommand.includes('oc login')) {
+      execCommand = execCommand
+        .replace(/-u\s+"[^"]+"/g, '-u "***"')
+        .replace(/-u\s+'[^']+'/g, "-u '***'")
+        .replace(/-p\s+"[^"]+"/g, '-p "***"')
+        .replace(/-p\s+'[^']+'/g, "-p '***'")
+        .replace(/--server="[^"]+"/g, '--server="***"')
+        .replace(/--server='[^']+'/g, "--server='***'");
+    }
+    cy.task('log', `[EXEC] ${execCommand}`);
   } else if (command.name === 'log') {
     cy.task('log', `${command.args[0]}`);
   }
