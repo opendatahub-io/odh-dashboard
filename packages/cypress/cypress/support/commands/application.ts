@@ -317,7 +317,7 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
     const baseUrl = Cypress.config('baseUrl') || '';
     if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
       cy.log('🔍 Localhost detected - checking if oc user switch is needed');
-      cy.exec('oc whoami', { failOnNonZeroExit: false }).then((result) => {
+      cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then((result) => {
         const currentOcUser = result.stdout.trim();
         const requestedUser = credentials.USERNAME;
 
@@ -351,28 +351,30 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
           const clusterName = ocServer.match(/api\.([^.]+)/)?.[1] || 'unknown';
           cy.log(`🔗 Switching oc context to cluster: ${clusterName}`);
 
-          // Perform oc login as the requested user
+          // Perform oc login as the requested user (log: false to prevent credential exposure)
           return cy
             .exec(
               `oc login -u "${requestedUser}" -p "${credentials.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
-              { failOnNonZeroExit: false },
+              { failOnNonZeroExit: false, log: false },
             )
             .then((loginResult) => {
               if (loginResult.code === 0) {
                 cy.log(`✅ oc login successful - user switched`);
                 // Verify the switch worked
-                cy.exec('oc whoami', { failOnNonZeroExit: false }).then((verifyResult) => {
-                  const newUser = verifyResult.stdout.trim();
-                  if (newUser === requestedUser) {
-                    cy.log(`✅ Verified: Now logged in as requested user`);
-                  } else {
-                    cy.log(
-                      `⚠️ Verification failed: Expected ${requestedUser ? '***' : 'none'}, got ${
-                        newUser ? '***' : 'none'
-                      }`,
-                    );
-                  }
-                });
+                cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then(
+                  (verifyResult) => {
+                    const newUser = verifyResult.stdout.trim();
+                    if (newUser === requestedUser) {
+                      cy.log(`✅ Verified: Now logged in as requested user`);
+                    } else {
+                      cy.log(
+                        `⚠️ Verification failed: Expected ${requestedUser ? '***' : 'none'}, got ${
+                          newUser ? '***' : 'none'
+                        }`,
+                      );
+                    }
+                  },
+                );
               } else {
                 cy.log(`❌ oc login failed (exit code: ${loginResult.code})`);
                 cy.log(`Error: ${loginResult.stderr || loginResult.stdout || 'No error message'}`);
