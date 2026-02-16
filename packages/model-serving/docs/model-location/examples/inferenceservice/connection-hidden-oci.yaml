@@ -1,0 +1,17 @@
+# InferenceService with hidden OCI Connection (via Connections API)
+# Requires: connections/hidden-oci-connection.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-hidden-oci-conn
+  annotations:
+    opendatahub.io/connections: secret-oci456
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storageUri: "oci://quay.io/private-repo/model-image:v1"
+      # webhook will populate this
+      # imagePullSecrets:
+      #   - name: secret-oci456
