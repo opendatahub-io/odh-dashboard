@@ -337,9 +337,11 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
 
           const ocServer = Cypress.env('OC_SERVER');
           if (!ocServer) {
-            cy.log('⚠️ OC_SERVER not set - cannot switch oc user');
-            cy.log('⚠️ Tests may fail if user permissions mismatch');
-            return cy.wrap(null);
+            const errorMsg =
+              'OC_SERVER is required to switch oc user but was not set in Cypress env. ' +
+              'Set CYPRESS_OC_SERVER environment variable or pass via --env OC_SERVER=...';
+            cy.log(`❌ ${errorMsg}`);
+            throw new Error(errorMsg);
           }
 
           return cy
@@ -351,7 +353,11 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
               if (loginResult.code === 0) {
                 cy.log(`✅ oc user switched successfully`);
               } else {
-                cy.log(`❌ oc login failed (exit code: ${loginResult.code})`);
+                const errorMsg =
+                  `oc login failed (exit code: ${loginResult.code}). ` +
+                  `Output: ${loginResult.stdout || loginResult.stderr || 'No output'}`;
+                cy.log(`❌ ${errorMsg}`);
+                throw new Error(errorMsg);
               }
             });
         }
