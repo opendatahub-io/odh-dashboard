@@ -43,7 +43,6 @@ export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
-  canCreateRoleBindings = true,
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -173,7 +172,7 @@ export const useModelDeploymentWizard = (
     state,
     dispatch,
     fields,
-    canCreateRoleBindings,
+    canCreateRoleBindings: true, // Default value, will be updated by the component
     loaded: {
       modelSourceLoaded,
       modelDeploymentLoaded,
