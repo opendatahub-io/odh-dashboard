@@ -51,7 +51,10 @@ class AIAssetsPage {
   }
 
   findModelsTableRow(modelName: string) {
-    return this.findModelsTable().contains('tr', modelName);
+    // Scope to name column to avoid partial matches with model names that are substrings of others
+    return this.findModelsTable()
+      .find('tr')
+      .filter(`:has([data-label="Model deployment name"]:contains("${modelName}"))`);
   }
 
   // Models Tab - Empty State
@@ -92,20 +95,17 @@ class AIAssetsPage {
 
   filterByName(name: string) {
     this.selectFilterType('Name');
-    this.findSearchInput().clear().type(name);
-    this.findSearchInput().type('{enter}');
+    this.findSearchInput().clear().type(`${name}{enter}`);
   }
 
   filterByKeyword(keyword: string) {
     this.selectFilterType('Keyword');
-    this.findSearchInput().clear().type(keyword);
-    this.findSearchInput().type('{enter}');
+    this.findSearchInput().clear().type(`${keyword}{enter}`);
   }
 
   filterByUseCase(useCase: string) {
     this.selectFilterType('Use case');
-    this.findSearchInput().clear().type(useCase);
-    this.findSearchInput().type('{enter}');
+    this.findSearchInput().clear().type(`${useCase}{enter}`);
   }
 
   clearAllFilters() {
@@ -247,7 +247,7 @@ class AIAssetsPage {
   }
 
   verifyModelDoesNotExist(modelName: string) {
-    this.findModelsTable().contains('tr', modelName).should('not.exist');
+    this.findModelsTableRow(modelName).should('not.exist');
   }
 }
 
