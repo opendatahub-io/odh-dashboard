@@ -405,7 +405,7 @@ jobs:
 
       - name: Upload per-module assessment
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: app-gate-${{ matrix.module }}
           path: ${{ github.workspace }}/app-gate/*.md
@@ -471,7 +471,7 @@ jobs:
           # yamllint enable rule:line-length
 
       - name: Upload summary as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: quality-gates-summary
           path: quality-gates-summary.md
