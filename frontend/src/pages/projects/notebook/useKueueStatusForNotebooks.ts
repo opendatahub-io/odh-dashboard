@@ -42,7 +42,7 @@ export const useKueueStatusForNotebooks = (
   }, [useKueue, workloads, notebooks]);
 
   return {
-    kueueStatusByNotebookName: useKueue ? kueueStatusByNotebookName : {},
+    kueueStatusByNotebookName,
     isLoading: useKueue && !loaded,
     error: useKueue && watchError ? watchError.message : null,
   };
