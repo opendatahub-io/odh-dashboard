@@ -4,6 +4,7 @@ import type {
   RouteExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
+const ADMIN_USER = 'ADMIN_USER';
 const PLUGIN_OBSERVABILITY = 'plugin-observability';
 
 const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
@@ -17,7 +18,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_OBSERVABILITY],
+      required: [PLUGIN_OBSERVABILITY, ADMIN_USER],
     },
     properties: {
       id: 'observability-dashboard',
@@ -36,7 +37,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       component: () => import('./src/pages/DashboardPage'),
     },
     flags: {
-      required: [PLUGIN_OBSERVABILITY],
+      required: [PLUGIN_OBSERVABILITY, ADMIN_USER],
     },
   },
 ];

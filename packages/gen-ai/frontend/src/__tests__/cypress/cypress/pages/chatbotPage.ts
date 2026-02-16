@@ -147,13 +147,13 @@ class ChatbotPage {
 
   // Model Selection
   // Model dropdown is now in the toolbar (moved from Model tab)
-  // Note: There may be multiple model dropdowns (header + settings panel), so use .first()
+  // Use specific test ID for chatbot header model selector
   findModelDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findAllByTestId('model-selector-toggle').first();
+    return cy.findByTestId('chatbot-model-selector-toggle');
   }
 
   findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findAllByTestId('model-selector-toggle').first();
+    return cy.findByTestId('chatbot-model-selector-toggle');
   }
 
   verifyModelSelected(): void {
@@ -422,7 +422,7 @@ class ChatbotPage {
 
   // Find pane model selector by pane index
   findPaneModelSelector(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findChatbotPaneByIndex(index).findByTestId('model-selector-toggle');
+    return this.findChatbotPaneByIndex(index).findByTestId('chatbot-model-selector-toggle');
   }
 
   // Find pane label text (e.g., "Model 1", "Model 2")
