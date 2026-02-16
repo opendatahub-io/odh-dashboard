@@ -8,14 +8,27 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { EventStatus, NotebookStatus } from '#~/types';
+import { getKueueStatusInfo } from '#~/concepts/kueue';
+import {
+  KUEUE_STATUSES_OVERRIDE_WORKBENCH,
+  type KueueWorkloadStatusWithMessage,
+} from '#~/concepts/kueue/types';
 
 type NotebookStateStatusProps = {
   isStarting: boolean;
   isStopping: boolean;
   isRunning: boolean;
   notebookStatus?: NotebookStatus | null;
+  kueueStatus?: KueueWorkloadStatusWithMessage | null;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
+};
+
+type StatusLabelSettings = {
+  label: string;
+  color?: LabelProps['color'];
+  status?: LabelProps['status'];
+  icon: React.ReactNode;
 };
 
 const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
@@ -23,19 +36,24 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
   isStopping,
   isRunning,
   notebookStatus,
+  kueueStatus = null,
   isCompact,
   onClick,
 }) => {
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
 
-  const statusLabelSettings = React.useMemo((): {
-    label: string;
-    color?: LabelProps['color'];
-    status?: LabelProps['status'];
-    icon: React.ReactNode;
-  } => {
+  const labelSettings = React.useMemo<StatusLabelSettings>(() => {
     if (isError) {
       return { label: 'Failed', status: 'danger', icon: <ExclamationCircleIcon /> };
+    }
+    if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
+      const info = getKueueStatusInfo(kueueStatus.status);
+      return {
+        label: info.label,
+        color: info.color,
+        status: info.status,
+        icon: <info.IconComponent className={info.iconClassName} />,
+      };
     }
     if (isStarting) {
       return {
@@ -55,19 +73,19 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
       return { label: 'Running', status: 'success', icon: <PlayIcon /> };
     }
     return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
-  }, [isError, isRunning, isStarting, isStopping]);
+  }, [kueueStatus, isError, isRunning, isStarting, isStopping]);
 
   return (
     <Label
       isCompact={isCompact}
-      color={statusLabelSettings.color}
-      status={statusLabelSettings.status}
-      icon={statusLabelSettings.icon}
+      color={labelSettings.color}
+      status={labelSettings.status}
+      icon={labelSettings.icon}
       data-testid="notebook-status-text"
       style={{ width: 'fit-content' }}
       onClick={onClick}
     >
-      {statusLabelSettings.label}
+      {labelSettings.label}
     </Label>
   );
 };

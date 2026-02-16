@@ -11,6 +11,11 @@ import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
+import {
+  KUEUE_STATUSES_OVERRIDE_WORKBENCH,
+  type KueueWorkloadStatusWithMessage,
+} from '#~/concepts/kueue/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
 
@@ -38,6 +43,20 @@ const getNotebookStatusTextDecoration = (
     ? undefined
     : 'none';
 
+const getStatusSubtitle = (
+  isStarting: boolean,
+  notebookStatus: NotebookStatus | null,
+  kueueStatus: KueueWorkloadStatusWithMessage | null,
+): string | null => {
+  if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
+    return kueueStatus.message?.trim() || kueueStatus.status;
+  }
+  if (isStarting) {
+    return notebookStatus?.currentEvent || 'Waiting for server request to start...';
+  }
+  return null;
+};
+
 const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   notebookState,
   stopNotebook,
@@ -45,7 +64,9 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   isVertical = true,
 }) => {
   const navigate = useNavigate();
+  const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
   const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
+  const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
   const [unstableNotebookStatus, events] = useNotebookStatus(
     isStarting,
     notebook,
@@ -56,6 +77,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const [isStartModalOpen, setStartModalOpen] = React.useState(false);
+  const statusSubtitle = getStatusSubtitle(isStarting, notebookStatus, kueueStatus);
 
   return (
     <>
@@ -71,12 +93,13 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
             isRunning={isRunning}
             isStopping={isStopping}
             notebookStatus={notebookStatus}
+            kueueStatus={kueueStatus}
             onClick={() => setStartModalOpen(true)}
           />
         </FlexItem>
-        {isStarting ? (
+        {statusSubtitle != null ? (
           <UnderlinedTruncateButton
-            content={notebookStatus?.currentEvent || 'Waiting for server request to start...'}
+            content={statusSubtitle}
             color={getNotebookStatusColor(notebookStatus)}
             textDecoration={getNotebookStatusTextDecoration(notebookStatus, isStarting)}
             onClick={() => setStartModalOpen(true)}
@@ -91,6 +114,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           isStopping={isStopping}
           notebookStatus={notebookStatus}
           events={events}
+          kueueStatus={kueueStatus}
           onClose={() => {
             setStartModalOpen(false);
           }}
