@@ -229,6 +229,7 @@ export const mockDeploymentWizardState = (
           isVisible: true,
         },
       },
+      canCreateRoleBindings: true,
       loaded: {
         modelSourceLoaded: true,
         modelDeploymentLoaded: true,
