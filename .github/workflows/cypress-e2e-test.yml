@@ -341,6 +341,32 @@ jobs:
           echo "PORT_INFO_FILE=$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id" >> $GITHUB_ENV
           echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
 
+      - name: Cleanup old test artifacts
+        continue-on-error: true
+        run: |
+          echo "🧹 Cleaning up old test artifacts (>2 days)..."
+          
+          # Clean old Cypress results/screenshots/videos from workspace (>2 days old)
+          find ${{ github.workspace }}/packages/cypress/results -type f -mtime +2 -delete 2>/dev/null || true
+          find ${{ github.workspace }}/packages/cypress/screenshots -type f -mtime +2 -delete 2>/dev/null || true
+          find ${{ github.workspace }}/packages/cypress/videos -type f -mtime +2 -delete 2>/dev/null || true
+          
+          # Clean old webpack logs (>2 days old)
+          find /tmp -name "webpack_*.log" -type f -mtime +2 -delete 2>/dev/null || true
+          
+          # Clean old Cypress cache (>2 days old)
+          find ~/.cache/Cypress -type f -mtime +2 -delete 2>/dev/null || true
+          
+          # Clean old temporary yaml files (>2 days old)
+          find /tmp -name "cypress-yaml-*.yaml" -type f -mtime +2 -delete 2>/dev/null || true
+          
+          # Clean empty directories
+          find ${{ github.workspace }}/packages/cypress/results -type d -empty -delete 2>/dev/null || true
+          find ${{ github.workspace }}/packages/cypress/screenshots -type d -empty -delete 2>/dev/null || true
+          find ${{ github.workspace }}/packages/cypress/videos -type d -empty -delete 2>/dev/null || true
+          
+          echo "✅ Cleanup complete (non-critical, continued on any errors)"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
