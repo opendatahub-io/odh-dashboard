@@ -44,16 +44,16 @@ describe('AI Assets - Models Tab', () => {
   // Hardware profile variables
   let hardwareProfileName: string;
 
-  retryableBefore(() => {
-    // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
-    Cypress.on('uncaught:exception', (err) => {
-      // Ignore SyntaxError from missing federated modules
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
-        return false;
-      }
-      return true;
-    });
+  // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
+  Cypress.on('uncaught:exception', (err) => {
+    // Ignore SyntaxError from missing federated modules
+    if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
+      return false;
+    }
+    return true;
+  });
 
+  retryableBefore(() => {
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
     getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
@@ -164,9 +164,10 @@ describe('AI Assets - Models Tab', () => {
           .should('be.enabled')
           .click()
           .then(() => {
-            cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
-              timeout: 30000,
-            });
+            cy.url({ timeout: 30000 }).should(
+              'include',
+              '/settings/model-resources-operations/serving-runtimes',
+            );
           });
 
         cy.step(`Verify serving runtime ${servingRuntimeName} was created`);
@@ -249,7 +250,9 @@ describe('AI Assets - Models Tab', () => {
 
         cy.step('Wait for redirect after model deployment submission');
         cy.url().should('include', `/projects/${projectName}`);
-        modelServingSection.findModelServerDeployedName(testData.modelDeploymentName);
+        modelServingSection
+          .findModelServerDeployedName(testData.modelDeploymentName)
+          .should('exist');
 
         cy.step('Verify model deployment was created and started');
         waitForResource('inferenceService', testData.inferenceServiceName, projectName);
@@ -353,7 +356,7 @@ describe('AI Assets - Models Tab', () => {
     );
 
     it(
-      'Test loading state with spinner',
+      'TODO: Test loading state with spinner',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
       },
@@ -363,6 +366,9 @@ describe('AI Assets - Models Tab', () => {
         }
 
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+        // TODO: implement assertions - should assert the spinner/progressbar element appears
+        // (e.g., query for aria-role="progressbar" or a .spinner selector in the aiAssetsPage.navigate/project load flow)
+        // and then disappears
         // Loading state is shown during initial navigation
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.findModelsTab().should('be.visible');
@@ -442,7 +448,7 @@ describe('AI Assets - Models Tab', () => {
     );
 
     it(
-      'Test that filter chips appear with correct colors',
+      'TODO: Test that filter chips appear with correct colors',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Filtering'],
       },
@@ -455,6 +461,8 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
+        // TODO: implement assertions - select filters and assert the chip elements have
+        // the expected CSS class or background-color style
         aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
         aiAssetsPage
           .findActiveFilterChip('Name', testData.filterByNameValue ?? '')
@@ -589,7 +597,7 @@ describe('AI Assets - Models Tab', () => {
     );
 
     it(
-      'Test endpoint format validation',
+      'TODO: Test endpoint format validation',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Endpoints'],
       },
@@ -602,6 +610,9 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
+        // TODO: implement assertions - locate the endpoint input/control used in the test
+        // and assert its value/validation message matches the expected URL regex
+        // or that submitting invalid formats shows an error
         // Endpoint format is validated by the UI displaying the URL correctly
         aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
         aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
@@ -684,6 +695,11 @@ describe('AI Assets - Models Tab', () => {
           `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
           { failOnNonZeroExit: false },
         );
+
+        cy.step('Wait for model to become ready');
+        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+          checkReady: true,
+        });
       },
     );
 
@@ -764,7 +780,7 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.addModelToPlayground(testData.modelDeploymentName);
         cy.findByTestId('modal-submit-button').should('be.enabled').click();
 
-        cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+        cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
       },
     );
   });
@@ -826,6 +842,11 @@ describe('AI Assets - Models Tab', () => {
           `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
           { failOnNonZeroExit: false },
         );
+
+        cy.step('Wait for model to become ready');
+        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+          checkReady: true,
+        });
       },
     );
 
@@ -844,7 +865,7 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.switchToModelsTab();
 
         aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
-        cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+        cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
       },
     );
 
@@ -863,7 +884,7 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.switchToModelsTab();
 
         aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
-        cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
+        cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
 
         genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
       },
@@ -1068,7 +1089,7 @@ describe('AI Assets - Models Tab', () => {
   // User Story: Table Pagination
   describe('Table Pagination', () => {
     it(
-      'Test pagination controls appear when needed',
+      'TODO: Test pagination controls appear when needed',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
       },
@@ -1081,6 +1102,8 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
+        // TODO: implement assertions - operate the pagination UI and assert that
+        // next/prev buttons or page numbers exist
         // With only one model, pagination may not appear
         aiAssetsPage.findModelsTable().should('exist');
       },
@@ -1110,7 +1133,7 @@ describe('AI Assets - Models Tab', () => {
     );
 
     it(
-      'Test changing page size',
+      'TODO: Test changing page size',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
       },
@@ -1123,13 +1146,15 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
+        // TODO: implement assertions - click page size dropdown used by aiAssetsPage,
+        // select a different size, assert that row count changes accordingly
         // Page size testing requires multiple models
         aiAssetsPage.findModelsTable().should('exist');
       },
     );
 
     it(
-      'Test that page state persists during session',
+      'TODO: Test that page state persists during session',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Pagination'],
       },
@@ -1142,6 +1167,8 @@ describe('AI Assets - Models Tab', () => {
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
+        // TODO: implement assertions - navigate to a different page, return and assert
+        // the page index or query param persisted
         aiAssetsPage.getVisibleRowCount().should('be.gte', 1);
       },
     );
