@@ -23,6 +23,7 @@ import { useDeploymentWizardReducer, type WizardFormAction } from './useDeployme
 import type { ExternalDataMap } from './ExternalDataLoader';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
+  canCreateRoleBindings: boolean;
   loaded: {
     modelSourceLoaded: boolean;
     modelDeploymentLoaded: boolean;
@@ -42,6 +43,7 @@ export const useModelDeploymentWizard = (
   initialData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
+  canCreateRoleBindings = true,
 ): UseModelDeploymentWizardState => {
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
@@ -171,6 +173,7 @@ export const useModelDeploymentWizard = (
     state,
     dispatch,
     fields,
+    canCreateRoleBindings,
     loaded: {
       modelSourceLoaded,
       modelDeploymentLoaded,

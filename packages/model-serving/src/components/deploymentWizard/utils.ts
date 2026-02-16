@@ -79,7 +79,7 @@ export const getTokenAuthenticationFromDeployment = (
 };
 
 export const deployModel = async (
-  wizardState: WizardFormData,
+  wizardState: WizardFormData & { canCreateRoleBindings: boolean },
   secretName: string,
   exitWizard: () => void,
   deployMethod?: (
@@ -126,7 +126,7 @@ export const deployModel = async (
             true,
             undefined,
             undefined,
-            initialWizardData,
+            { ...initialWizardData, canCreateRoleBindings: wizardState.canCreateRoleBindings },
             applyFieldData,
           ),
         ]
@@ -160,7 +160,7 @@ export const deployModel = async (
     false,
     actualSecretName,
     overwrite,
-    initialWizardData,
+    { ...initialWizardData, canCreateRoleBindings: wizardState.canCreateRoleBindings },
     applyFieldData,
   );
 
