@@ -92,10 +92,6 @@ module.exports = smp.wrap(
             const app = process.env.ODH_APP || 'odh-dashboard';
             console.info('Using project:', odhProject);
 
-            if (dashboardHost) {
-              console.info('Using explicit ODH_DASHBOARD_HOST:', dashboardHost);
-            }
-
             // try to get dashboard host from HttpRoute and Gateway
             try {
               // Get the HttpRoute resource as JSON
@@ -159,8 +155,6 @@ module.exports = smp.wrap(
                 }).toString(),
               ).host.replace(/^[^.]+\./, `${subdomain}.`);
             }
-
-            console.info('Dashboard host:', dashboardHost);
 
             let shouldFwdAccessToken = false;
             // Detect if oauth-proxy is being used for legacy compatibility
