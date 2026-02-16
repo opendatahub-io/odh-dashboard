@@ -76,10 +76,6 @@ describe('AI Assets - Models Tab', () => {
           testData = yaml.load(yamlContent) as GenAiTestData;
           projectName = `ai-assets-models-test-${uuid}`;
 
-          if (!projectName) {
-            throw new Error('Project name is undefined or empty');
-          }
-
           cy.log(`Creating project ${projectName} using oc commands`);
           return createCleanProject(projectName);
         })
@@ -976,7 +972,7 @@ describe('AI Assets - Models Tab', () => {
   describe('Empty State Handling', () => {
     const emptyProjectName = `ai-assets-empty-test-${uuid}`;
 
-    before(() => {
+    retryableBefore(() => {
       if (!skipTest) {
         createCleanProject(emptyProjectName);
       }
