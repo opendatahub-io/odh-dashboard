@@ -187,7 +187,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
   it(
     'Test User - should not have access rights to view the Cluster Settings tab',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1216', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1216', '@Dashboard', '@ci-dashboard-set-2'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
