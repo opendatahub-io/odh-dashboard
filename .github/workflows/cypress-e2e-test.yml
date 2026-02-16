@@ -598,13 +598,10 @@ jobs:
           # Give server time to initialize
           sleep 20
 
-          # Show filtered webpack status (hide sensitive cluster URLs)
+          # Show filtered webpack status (hide sensitive information)
           if [ -f /tmp/webpack_${WEBPACK_PORT}.log ]; then
             tail -20 /tmp/webpack_${WEBPACK_PORT}.log | \
-              grep -v "Dashboard host:" | \
-              grep -v "Proxy created:" | \
-              grep -v "Logged in as user:" | \
-              grep -v "Using project:" || true
+              grep -v "Logged in as user:" || true
           fi
 
       - name: Wait for Server Ready
