@@ -7,7 +7,6 @@ import {
 } from '@odh-dashboard/internal/k8sTypes';
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { Form, Stack, StackItem, Alert, FormGroup, FormSection } from '@patternfly/react-core';
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
@@ -26,14 +25,14 @@ export const accessReviewResource: AccessReviewResourceAttributes = {
 
 type AdvancedSettingsStepContentProps = {
   wizardState: UseModelDeploymentWizardState;
-  projectName?: string;
   externalData: ExternalDataMap;
+  allowCreate: boolean;
 };
 
 export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentProps> = ({
   wizardState,
-  projectName,
   externalData,
+  allowCreate,
 }) => {
   const externalRouteData = wizardState.state.externalRoute.data;
   const tokenAuthData = wizardState.state.tokenAuthentication.data;
@@ -83,11 +82,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     }
     return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
   };
-
-  const [allowCreate] = useAccessReview({
-    ...accessReviewResource,
-    namespace: projectName,
-  });
 
   const handleExternalRouteChange = (checked: boolean) => {
     wizardState.state.externalRoute.setData(checked);
@@ -181,7 +175,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                     <RuntimeArgsField
                       data={wizardState.state.runtimeArgs.data}
                       onChange={wizardState.state.runtimeArgs.setData}
-                      allowCreate={allowCreate}
                       predefinedArgs={getKServeContainerArgs(selectedModelServer)}
                     />
                   </StackItem>
@@ -189,7 +182,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                     <EnvironmentVariablesField
                       data={wizardState.state.environmentVariables.data}
                       onChange={wizardState.state.environmentVariables.setData}
-                      allowCreate={allowCreate}
                       predefinedVars={getKServeContainerEnvVarStrs(selectedModelServer)}
                     />
                   </StackItem>

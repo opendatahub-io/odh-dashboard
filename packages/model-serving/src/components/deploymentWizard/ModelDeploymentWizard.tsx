@@ -53,14 +53,20 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
-  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
-  const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
-  const currentProjectName = wizardState.state.project.projectName ?? undefined;
+  const currentProjectName = project?.metadata.name;
 
   const [canCreateRoleBindings] = useAccessReview({
     ...accessReviewResource,
     namespace: currentProjectName,
   });
+
+  const wizardState = useModelDeploymentWizard(
+    existingData,
+    currentProjectName,
+    externalData,
+    canCreateRoleBindings,
+  );
+  const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
   // TODO in same jira, replace deployMethod with applyFieldData for all other fields
@@ -145,10 +151,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           serverResource,
           serverResourceTemplateName,
           overwrite,
-          {
-            ...wizardState.initialData,
-            canCreateRoleBindings,
-          },
+          wizardState.initialData,
           applyFieldData,
         );
       } catch (error) {
@@ -160,7 +163,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     [
       applyExtensionsLoaded,
       applyFieldData,
-      canCreateRoleBindings,
       deployMethod,
       deployMethodLoaded,
       existingDeployment,
@@ -253,8 +255,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             {wizardState.loaded.advancedOptionsLoaded ? (
               <AdvancedSettingsStepContent
                 wizardState={wizardState}
-                projectName={currentProjectName}
                 externalData={externalData}
+                allowCreate={canCreateRoleBindings}
               />
             ) : (
               <Spinner data-testid="spinner" />
