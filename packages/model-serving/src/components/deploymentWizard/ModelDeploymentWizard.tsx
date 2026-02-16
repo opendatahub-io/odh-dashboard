@@ -58,19 +58,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
-  const currentProjectName = project?.metadata.name;
+  const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
+  const currentProjectName = wizardState.state.project.projectName ?? undefined;
 
+  // Check if user has permission to create rolebindings (admins can, contributors cannot)
   const [canCreateRoleBindings] = useAccessReview({
     ...accessReviewResource,
     namespace: currentProjectName,
   });
 
-  const wizardState = useModelDeploymentWizard(
-    existingData,
-    currentProjectName,
-    externalData,
-    canCreateRoleBindings,
-  );
+  // Update wizard state with the current permission value
+  wizardState.canCreateRoleBindings = canCreateRoleBindings;
   const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
