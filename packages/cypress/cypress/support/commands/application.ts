@@ -427,12 +427,14 @@ Cypress.Commands.add(
     return cy
       .wrap(subject)
       .findKebab(isDropdownToggle)
+      .should('exist')
       .then(($el) => {
         if ($el.attr('aria-expanded') === 'false') {
-          cy.wrap($el).click();
+          // Re-query the kebab button before clicking to avoid detached element issues
+          cy.wrap(subject).findKebab(isDropdownToggle).should('exist').click();
         }
-        return cy.findByRole('menuitem', { name });
-      });
+      })
+      .then(() => cy.findByRole('menuitem', { name }));
   },
 );
 
