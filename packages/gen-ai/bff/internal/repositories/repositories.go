@@ -20,6 +20,7 @@ type Repositories struct {
 	LlamaStackDistribution *LlamaStackDistributionRepository
 	MCPClient              *MCPClientRepository
 	Guardrails             *GuardrailsRepository
+	MLflowPrompts          *MLflowPromptsRepository
 }
 
 // NewRepositories creates domain-specific repositories.
@@ -37,6 +38,7 @@ func NewRepositories() *Repositories {
 		LlamaStackDistribution: NewLlamaStackDistributionRepository(),
 		MCPClient:              nil, // Will be initialized separately with MCP client factory
 		Guardrails:             NewGuardrailsRepository(),
+		MLflowPrompts:          NewMLflowPromptsRepository(),
 	}
 }
 

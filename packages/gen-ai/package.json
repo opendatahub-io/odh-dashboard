@@ -25,7 +25,7 @@
   },
   "scripts": {
     "install:module": "npm install --prefix frontend",
-    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-maas-client' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-maas-client --mock-mlflow-client' odh-ct-bff-consumer --bff-dir bff",
     "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9102 -s -L",

@@ -383,3 +383,22 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 		next(w, r, ps)
 	}
 }
+
+// AttachMLflowClient middleware retrieves the MLflow client from the factory and attaches it to context.
+// The factory returns a shared singleton client, so this middleware only injects it into the request context.
+func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get MLflow client: %w", err))
+			return
+		}
+
+		ctx = context.WithValue(ctx, constants.MLflowClientKey, mlflowClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}

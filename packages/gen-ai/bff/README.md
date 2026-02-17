@@ -175,6 +175,14 @@ curl -i -H "Authorization: Bearer $TOKEN" \
      "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
 ```
 
+#### Test MLflow Endpoints
+
+**List MLflow Prompts:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default"
+```
+
 #### Test Authentication (Should Fail)
 
 **Request without token:**
@@ -409,6 +417,47 @@ HTTP/1.1 204 No Content
 }
 ```
 
+**MLflow Prompts Response:**
+
+```json
+{
+  "data": {
+    "prompts": [
+      {
+        "name": "vet-appointment-dora",
+        "description": "Schedule a veterinary appointment for Dora",
+        "latest_version": 2,
+        "tags": {
+          "pet": "dora",
+          "breed": "mixed"
+        },
+        "creation_timestamp": "2025-01-15T10:30:00Z"
+      },
+      {
+        "name": "pet-health-bella",
+        "description": "Health check summary for Bella",
+        "latest_version": 1,
+        "tags": {
+          "pet": "bella",
+          "category": "health"
+        },
+        "creation_timestamp": "2025-01-15T10:31:00Z"
+      },
+      {
+        "name": "medication-reminder-ellie",
+        "description": "Medication reminders for Ellie",
+        "latest_version": 2,
+        "tags": {
+          "pet": "ellie",
+          "category": "medication"
+        },
+        "creation_timestamp": "2025-01-15T10:32:00Z"
+      }
+    ]
+  }
+}
+```
+
 ### Error Responses
 
 **Missing Authentication (400 Bad Request):**
@@ -514,7 +563,21 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 - `MOCK_MAAS_CLIENT=true`: Enables mock MaaS client
 - `MOCK_MAAS_CLIENT=false` (or not set): Uses real MaaS server
 
-#### 6. Combined Mock Mode (All Services)
+#### 6. Mock MLflow Client
+
+The MLflow mock connects to a real local MLflow instance (unlike other mocks that use hardcoded data).
+When `MOCK_MLFLOW_CLIENT=true` is set, the BFF automatically starts MLflow as a child process on port 5001, seeds it with sample prompts, and stops it on shutdown. If MLflow is already running (e.g. from `make mlflow-up`), the BFF will use the existing instance without seeding.
+
+When `MLFLOW_TRACKING_URI` is already set, the BFF assumes MLflow is externally managed and skips the child process.
+
+**Environment Variables:**
+
+- `MOCK_MLFLOW_CLIENT=true`: Enables mock MLflow client (auto-starts and seeds local MLflow on port 5001)
+- `MOCK_MLFLOW_CLIENT=false` (or not set): Uses configured `MLFLOW_URL`
+- `MLFLOW_URL`: MLflow tracking server URL (production/real mode)
+- `MLFLOW_TRACKING_URI`: When set, the BFF skips starting MLflow and connects to this URI instead
+
+#### 7. Combined Mock Mode (All Services)
 
 **Start BFF with All Mock Clients:**
 
@@ -527,7 +590,14 @@ MOCK_K8S_CLIENT=true \
 MOCK_LS_CLIENT=true \
 MOCK_MCP_CLIENT=true \
 MOCK_MAAS_CLIENT=true \
+MOCK_MLFLOW_CLIENT=true \
 make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+Or from `packages/gen-ai/`, use the convenience target that starts everything (including MLflow):
+
+```bash
+make dev-start-mock
 ```
 
 ### Mock Authentication Tokens
@@ -935,6 +1005,71 @@ HTTP/1.1 204 No Content
 
 **Mock Data Source:** Hardcoded in `internal/integrations/maas/maasmocks/`
 
+### Testing Mock MLflow Endpoints
+
+#### List MLflow Prompts (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "prompts": [
+      {
+        "name": "vet-appointment-dora",
+        "description": "",
+        "latest_version": 2,
+        "tags": {
+          "pet": "dora",
+          "breed": "mixed"
+        },
+        "creation_timestamp": "2025-01-15T10:30:00Z"
+      },
+      {
+        "name": "pet-health-bella",
+        "description": "",
+        "latest_version": 1,
+        "tags": {
+          "pet": "bella",
+          "category": "health"
+        },
+        "creation_timestamp": "2025-01-15T10:31:00Z"
+      },
+      {
+        "name": "medication-reminder-ellie",
+        "description": "",
+        "latest_version": 2,
+        "tags": {
+          "pet": "ellie",
+          "category": "medication"
+        },
+        "creation_timestamp": "2025-01-15T10:32:00Z"
+      },
+      {
+        "name": "pet-adoption-letter",
+        "description": "",
+        "latest_version": 1,
+        "tags": {
+          "category": "adoption",
+          "type": "letter"
+        },
+        "creation_timestamp": "2025-01-15T10:33:00Z"
+      }
+    ]
+  }
+}
+```
+
+> **Note:** Timestamps and exact values will vary. Sample prompts are automatically seeded when the BFF starts MLflow as a child process. If using an externally managed MLflow instance, run `make mlflow-seed` (from `bff/`) to seed data manually.
+
+**Mock Data Source:** Local MLflow instance on port 5001 via `internal/integrations/mlflow/mlflowmocks/`
+
 ### Troubleshooting Mock Mode
 
 **Common Issues:**
@@ -965,3 +1100,4 @@ HTTP/1.1 204 No Content
 - **LS Mock Data:** `internal/integrations/llamastack/lsmocks/`
 - **MCP Mock Data:** `internal/integrations/mcp/mcpmocks/`
 - **MaaS Mock Data:** `internal/integrations/maas/maasmocks/`
+- **MLflow Mock Data:** `internal/integrations/mlflow/mlflowmocks/` (connects to local MLflow on port 5001)
