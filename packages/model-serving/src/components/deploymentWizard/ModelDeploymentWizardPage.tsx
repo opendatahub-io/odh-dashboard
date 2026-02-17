@@ -9,8 +9,11 @@ import {
   EmptyStateBody,
   EmptyState,
   Spinner,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
@@ -38,8 +41,14 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
   );
 };
 
+const LLMD_SERVING_ID = 'llmd-serving';
+
 export const ModelDeploymentWizardPage: React.FC = () => {
   const location = useLocation();
+  const [viewMode, setViewMode] = React.useState<'form' | 'yaml-preview' | 'yaml-edit'>('form');
+  const [selectedModelServer, setSelectedModelServer] = React.useState<string | undefined>();
+  const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
+  const isLLMdSelected = selectedModelServer === LLMD_SERVING_ID;
 
   // Extract state from navigation
   const existingData = location.state?.initialData;
@@ -99,6 +108,28 @@ export const ModelDeploymentWizardPage: React.FC = () => {
         existingDeployment={existingDeployment}
         returnRoute={returnRoute}
         cancelReturnRoute={cancelReturnRoute}
+        viewMode={viewMode}
+        onModelServerChange={setSelectedModelServer}
+        headerAction={
+          isYAMLViewerEnabled && isLLMdSelected ? (
+            <ToggleGroup aria-label="Deployment view mode">
+              <ToggleGroupItem
+                data-testid="form-view"
+                text="Form"
+                buttonId="form-view"
+                isSelected={viewMode === 'form'}
+                onChange={() => setViewMode('form')}
+              />
+              <ToggleGroupItem
+                data-testid="yaml-view"
+                text="YAML"
+                buttonId="yaml-view"
+                isSelected={viewMode === 'yaml-preview'}
+                onChange={() => setViewMode('yaml-preview')}
+              />
+            </ToggleGroup>
+          ) : undefined
+        }
       />
     </ModelDeploymentsProvider>
   );

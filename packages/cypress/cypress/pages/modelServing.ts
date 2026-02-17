@@ -1334,6 +1334,14 @@ class ModelServingWizard extends Wizard {
   findReviewStepModelDetailsSection() {
     return cy.findByTestId('review-step-model-details');
   }
+
+  findYAMLViewerToggle(name: string) {
+    return cy.findByRole('button', { name });
+  }
+
+  findYAMLCodeEditor() {
+    return cy.findByTestId('yaml-editor');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

@@ -22,6 +22,7 @@ import { InitialWizardFormData, WizardStepTitle } from './types';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
+import { DeploymentWizardYAMLView } from './useDeploymentWizardYAMLView';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -33,6 +34,9 @@ type ModelDeploymentWizardProps = {
   existingDeployment?: Deployment;
   returnRoute?: string;
   cancelReturnRoute?: string;
+  headerAction?: React.ReactNode;
+  viewMode?: 'form' | 'yaml-preview' | 'yaml-edit';
+  onModelServerChange?: (modelServerName: string | undefined) => void;
 };
 
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
@@ -44,6 +48,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   existingDeployment,
   returnRoute,
   cancelReturnRoute,
+  headerAction,
+  viewMode = 'form',
+  onModelServerChange,
 }) => {
   const onRefresh = useRefreshWizardPage(existingDeployment);
   const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
@@ -55,6 +62,12 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
   const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
+
+  React.useEffect(() => {
+    if (onModelServerChange) {
+      onModelServerChange(wizardState.state.modelServer.data?.name);
+    }
+  }, [wizardState.state.modelServer.data?.name, onModelServerChange]);
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
   // TODO in same jira, replace deployMethod with applyFieldData for all other fields
@@ -194,7 +207,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         `}
       </style>
-      <ApplicationsPage title={title} description={description} loaded empty={false}>
+      <ApplicationsPage
+        title={title}
+        description={description}
+        loaded
+        empty={false}
+        headerAction={headerAction}
+      >
         <ExternalDataLoader
           fields={wizardState.fields}
           initialData={existingData}
@@ -210,7 +229,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
         >
           <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
-            {wizardState.loaded.modelSourceLoaded ? (
+            {viewMode === 'yaml-preview' ? (
+              <DeploymentWizardYAMLView />
+            ) : wizardState.loaded.modelSourceLoaded ? (
               <ModelSourceStepContent
                 wizardState={wizardState}
                 validation={validation.modelSource}
@@ -222,9 +243,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           <WizardStep
             name={WizardStepTitle.MODEL_DEPLOYMENT}
             id="model-deployment-step"
-            isDisabled={!validation.isModelSourceStepValid}
+            isDisabled={viewMode === 'form' && !validation.isModelSourceStepValid}
           >
-            {wizardState.loaded.modelDeploymentLoaded ? (
+            {viewMode === 'yaml-preview' ? (
+              <DeploymentWizardYAMLView />
+            ) : wizardState.loaded.modelDeploymentLoaded ? (
               <ModelDeploymentStepContent
                 projectName={currentProjectName}
                 wizardState={wizardState}
@@ -237,10 +260,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             name={WizardStepTitle.ADVANCED_SETTINGS}
             id="advanced-options-step"
             isDisabled={
-              !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
+              viewMode === 'form' &&
+              (!validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid)
             }
           >
-            {wizardState.loaded.advancedOptionsLoaded ? (
+            {viewMode === 'yaml-preview' ? (
+              <DeploymentWizardYAMLView />
+            ) : wizardState.loaded.advancedOptionsLoaded ? (
               <AdvancedSettingsStepContent
                 wizardState={wizardState}
                 projectName={currentProjectName}
@@ -254,12 +280,15 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             name={WizardStepTitle.REVIEW}
             id="summary-step"
             isDisabled={
-              !validation.isModelSourceStepValid ||
-              !validation.isModelDeploymentStepValid ||
-              !validation.isAdvancedSettingsStepValid
+              viewMode === 'form' &&
+              (!validation.isModelSourceStepValid ||
+                !validation.isModelDeploymentStepValid ||
+                !validation.isAdvancedSettingsStepValid)
             }
           >
-            {wizardState.loaded.summaryLoaded ? (
+            {viewMode === 'yaml-preview' ? (
+              <DeploymentWizardYAMLView />
+            ) : wizardState.loaded.summaryLoaded ? (
               <ReviewStepContent
                 wizardState={wizardState}
                 projectName={currentProjectName}

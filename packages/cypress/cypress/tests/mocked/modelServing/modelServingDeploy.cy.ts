@@ -69,6 +69,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableNIMModelServing: true,
       disableKServe: false,
+      deploymentWizardYAMLViewer: true,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -1689,6 +1690,48 @@ describe('Model Serving Deploy Wizard', () => {
     // Verify wizard reloads - the error should be cleared and we should be back on step 1
     modelServingWizard.findErrorMessageAlert().should('not.exist');
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
+  });
+
+  it('Should show YAML preview mode when LLMd is selected', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
+    modelServingWizard.findModelLocationSelect().should('exist');
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard
+      .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+      .should('exist')
+      .click();
+
+    // YAML Viewer
+    modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
+    modelServingWizard.findYAMLCodeEditor().should('exist');
+
+    modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+    modelServingWizard.findYAMLViewerToggle('YAML').should('not.exist');
   });
 
   describe('redirect from v2 to v3 route', () => {
