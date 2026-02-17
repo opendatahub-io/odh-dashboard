@@ -135,7 +135,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     onFetchTools: toolsManagement.fetchToolsCount,
   });
 
-  // Table integration
+  // Table integration (checkboxes for selecting servers)
   const { isSelected, toggleSelection } = useCheckboxTableBase(
     transformedServers,
     selection.selectedServers,
