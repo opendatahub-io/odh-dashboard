@@ -28,8 +28,8 @@ dev-install-dependencies: ## Install dependencies for frontend
 	cd frontend && npm install
 
 .PHONY: dev-bff-mock
-dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MaaS, MCP)
-	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MaaS, MCP, MLflow)
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
 
 .PHONY: dev-bff
 dev-bff:
@@ -43,8 +43,12 @@ dev-bff-debug: ## Run BFF with Delve debugger (VSCode can attach - requires Delv
 dev-frontend: ## Run only the frontend in development mode
 	cd frontend && npm run start:dev
 
+.PHONY: dev-mlflow-up
+dev-mlflow-up: ## Start local MLflow tracking server for development
+	cd bff && make mlflow-up
+
 .PHONY: dev-start-mock
-dev-start-mock: ## Run both frontend and bff in development mode
+dev-start-mock: ## Run frontend and bff (all mocks) in development mode
 	make -j 2 dev-bff-mock dev-frontend
 
 .PHONY: dev-portforward
