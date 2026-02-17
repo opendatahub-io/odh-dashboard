@@ -52,9 +52,13 @@ class AIAssetsPage {
 
   findModelsTableRow(modelName: string) {
     // Scope to name column to avoid partial matches with model names that are substrings of others
+    // Use a safe text-based lookup instead of injecting modelName into a selector
     return this.findModelsTable()
       .find('tr')
-      .filter(`:has([data-label="Model deployment name"]:contains("${modelName}"))`);
+      .filter((_, row) => {
+        const nameCell = Cypress.$(row).find('[data-label="Model deployment name"]');
+        return nameCell.text().trim() === modelName;
+      });
   }
 
   // Models Tab - Empty State
@@ -113,7 +117,8 @@ class AIAssetsPage {
   }
 
   findActiveFilterChip(filterType: string, value: string) {
-    return this.findModelsTableToolbar().contains('.pf-v6-c-label', `${filterType}: ${value}`);
+    // Use a stable selector instead of PatternFly-specific classes
+    return this.findModelsTableToolbar().findByRole('listitem').contains(`${filterType}: ${value}`);
   }
 
   removeFilterChip(filterType: string, value: string) {
