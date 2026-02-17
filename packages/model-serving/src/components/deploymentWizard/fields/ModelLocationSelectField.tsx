@@ -57,6 +57,22 @@ export type ModelLocationField = {
 };
 // Component
 
+const s3Option = {
+  key: 'S3',
+  label: 'S3 object storage',
+  value: ModelLocationType.NEW,
+};
+const ociOption = {
+  key: 'OCI',
+  label: 'OCI compliant registry',
+  value: ModelLocationType.NEW,
+};
+const uriOption = {
+  key: 'URI',
+  label: 'URI',
+  value: ModelLocationType.NEW,
+};
+
 type ModelLocationSelectFieldProps = {
   modelLocation?: ModelLocationData['type'];
   validationProps?: FieldValidationProps;
@@ -81,21 +97,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   selectedConnection,
   pvcs,
 }) => {
-  const s3Option = {
-    key: 'S3',
-    label: 'S3 object storage',
-    value: ModelLocationType.NEW,
-  };
-  const ociOption = {
-    key: 'OCI',
-    label: 'OCI compliant registry',
-    value: ModelLocationType.NEW,
-  };
-  const uriOption = {
-    key: 'URI',
-    label: 'URI',
-    value: ModelLocationType.NEW,
-  };
   const [modelServingConnectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
 
   // Filtered types for the dropdown so only enabled types are shown
@@ -149,7 +150,12 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       }
     }
     return undefined;
-  }, [modelLocationData?.connectionTypeObject, modelLocation, connections]);
+  }, [
+    modelLocationData?.connectionTypeObject,
+    modelLocationData?.connection,
+    modelLocation,
+    connections,
+  ]);
 
   // State for user selections (overrides computed when user changes)
   const [userSelectedKey, setUserSelectedKey] = React.useState<
@@ -189,6 +195,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     selectedKey,
     selectedConnection,
     modelLocation,
+    s3ConnectionTypes,
+    ociConnectionTypes,
+    uriConnectionTypes,
   ]);
 
   const selectedConnectionType = React.useMemo(() => {
@@ -207,7 +216,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       }
     }
     return undefined;
-  }, [modelLocationData, modelServingConnectionTypes, selectedConnection]);
+  }, [
+    modelLocationData,
+    s3ConnectionTypes,
+    ociConnectionTypes,
+    uriConnectionTypes,
+    selectedConnection,
+  ]);
 
   // Makes sure we don't show the existing connection option if we only have generated connections
   const nonGeneratedConnections = React.useMemo(() => {
@@ -236,7 +251,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     if (uriConnectionTypes.length > 0 || hasURISelected) {
       options.push({ key: uriOption.key, label: uriOption.label });
     }
-
     return options;
   }, [
     nonGeneratedConnections.length,
@@ -288,6 +302,15 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 options={selectOptions}
                 onChange={(key) => {
                   if (key === '__placeholder__') {
+                    return;
+                  }
+                  const currentKey =
+                    selectedKey?.key ??
+                    (modelLocation === ModelLocationType.PVC ||
+                    modelLocation === ModelLocationType.EXISTING
+                      ? modelLocation
+                      : undefined);
+                  if (key === currentKey) {
                     return;
                   }
                   setSelectedConnection(undefined);
