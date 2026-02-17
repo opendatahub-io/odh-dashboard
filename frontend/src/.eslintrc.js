@@ -31,6 +31,12 @@ module.exports = require('@odh-dashboard/eslint-config')
               ],
               message: 'Feature imports are restricted. Use extensions instead.',
             },
+            {
+              group: ['@patternfly/react-core'],
+              importNames: ['Modal', 'ModalBody', 'ModalHeader', 'ModalFooter', 'ModalVariant'],
+              message:
+                'Avoid using the PatternFly Modal directly. Use <ContentModal /> from ~/components/modals instead.',
+            },
           ],
         },
       ],
