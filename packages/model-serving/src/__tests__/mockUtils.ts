@@ -228,8 +228,8 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           isVisible: true,
         },
+        canCreateRoleBindings: true,
       },
-      canCreateRoleBindings: true,
       loaded: {
         modelSourceLoaded: true,
         modelDeploymentLoaded: true,

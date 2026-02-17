@@ -5,6 +5,8 @@ import {
   extractK8sNameDescriptionFieldData,
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
@@ -23,7 +25,6 @@ import { useDeploymentWizardReducer, type WizardFormAction } from './useDeployme
 import type { ExternalDataMap } from './ExternalDataLoader';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
-  canCreateRoleBindings: boolean;
   loaded: {
     modelSourceLoaded: boolean;
     modelDeploymentLoaded: boolean;
@@ -47,6 +48,12 @@ export const useModelDeploymentWizard = (
   // Step 1: Model Source
   const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
+
+  const [canCreateRoleBindings] = useAccessReview({
+    ...accessReviewResource,
+    namespace: project.projectName ?? undefined,
+  });
+
   const modelLocationData = useModelLocationData(
     project.projectName,
     initialData?.modelLocationData,
@@ -140,6 +147,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       modelServer,
       deploymentStrategy,
+      canCreateRoleBindings,
     }),
     [
       project,
@@ -157,6 +165,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       modelServer,
       deploymentStrategy,
+      canCreateRoleBindings,
     ],
   );
 
@@ -172,7 +181,6 @@ export const useModelDeploymentWizard = (
     state,
     dispatch,
     fields,
-    canCreateRoleBindings: true, // Default value, will be updated by the component
     loaded: {
       modelSourceLoaded,
       modelDeploymentLoaded,

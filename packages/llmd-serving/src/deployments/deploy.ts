@@ -219,7 +219,7 @@ export const deployLLMdDeployment = async (
     (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) ??
     false;
 
-  if (initialWizardData?.canCreateRoleBindings !== false) {
+  if (wizardData.canCreateRoleBindings) {
     await setUpTokenAuth(
       wizardData.tokenAuthentication.data,
       wizardData.k8sNameDesc.data.k8sName.value,
