@@ -21,6 +21,7 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
 import MCPServerConfigModal from './MCPServerConfigModal';
@@ -32,7 +33,6 @@ import useServerTools from './hooks/useServerTools';
 import useTokenValidation from './hooks/useTokenValidation';
 import useServerSelection from './hooks/useServerSelection';
 import useAutoUnlock from './hooks/useAutoUnlock';
-import useDarkMode from '../hooks/useDarkMode';
 
 interface MCPServersPanelProps {
   configId: string;
