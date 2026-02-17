@@ -584,11 +584,20 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
+        cy.step('Navigate to AI Assets page and switch to Models tab');
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
+        cy.step(`Copy endpoint for ${testData.modelDeploymentName} and verify clipboard content`);
         aiAssetsPage.copyEndpoint(testData.modelDeploymentName);
+
+        cy.step('Verify the endpoint URL was copied to clipboard');
+        cy.window()
+          .its('navigator.clipboard')
+          .invoke('readText')
+          .should('include', 'https://')
+          .and('include', testData.inferenceServiceName);
       },
     );
 
