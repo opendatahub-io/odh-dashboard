@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/model-registry",
   "description": "Model registry plugin.",
   "version": "0.0.0",
+  "e2eCiTags": ["@ModelRegistryCI"],
   "scripts": {
     "install:module": "npm install --prefix upstream/frontend",
     "lint": "eslint .",

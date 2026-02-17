@@ -1,7 +1,7 @@
 name: Cypress e2e Test
 
 # =============================================================================
-# E2E Test Workflow with Cluster Failover and Dynamic Tag Selection
+# E2E Test Workflow with Cluster Failover and Smart Test Selection
 # =============================================================================
 #
 # TRIGGERS:
@@ -13,25 +13,34 @@ name: Cypress e2e Test
 #   Secondary: dash-e2e     (used if primary is unhealthy)
 #   Health Check: Logs into cluster → checks DSC conditions (Available, Degraded, odh-dashboardReady)
 #
-# TEST SELECTION:
+# TEST SELECTION (priority order):
 #   Default (always run):
 #     - @ci-dashboard-set-1
 #     - @ci-dashboard-set-2
 #
-#   Run additional tests via PR labels:
-#     Add labels with 'test:' prefix to your PR:
-#       test:Pipelines    → @Pipelines
-#       test:ModelServing → @ModelServing
-#       test:Workbenches  → @Workbenches
-#     Any 'test:<TagName>' label maps to '@<TagName>' Cypress grep tag
+#   1. Manual input (workflow_dispatch):
+#      Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
 #
-#   Run additional tests manually:
-#     1. Go to Actions tab → "Cypress e2e Test" workflow
-#     2. Click "Run workflow"
-#     3. Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
+#   2. PR labels (test:* pattern):
+#      Add labels with 'test:' prefix to your PR:
+#        test:Pipelines    → @Pipelines
+#        test:ModelServing → @ModelServing
+#        test:Workbenches  → @Workbenches
+#      Any 'test:<TagName>' label maps to '@<TagName>' Cypress grep tag
+#
+#   3. Auto-detected from PR changes (always additive):
+#      Turbo detects changed packages → reads "e2eCiTags" from package.json
+#      Git diff detects changed frontend sub-areas → inline mapping resolves tags
+#      All auto-detected tags are consolidated into ONE additional matrix job
+#
+#      To add auto-detection for a package:
+#        Add "e2eCiTags": ["@YourTagCI"] to the package's package.json
+#      To add auto-detection for a frontend area:
+#        Add an entry to .github/frontend-ci-tags.json
 #
 # LIMITS:
-#   - Max 5 additional tags beyond defaults (prevents runner exhaustion)
+#   - Max 5 additional tags for labels/manual (prevents runner exhaustion)
+#   - Auto-detected tags are consolidated into 1 job (no limit needed)
 #   - 10 runners shared across 30+ devs
 #
 # REQUIRED SECRETS:
@@ -214,7 +223,7 @@ jobs:
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
-  # Tag Resolution - Build test matrix from defaults + PR labels/input
+  # Tag Resolution - Build test matrix from defaults + PR labels/input + auto-detection
   # ---------------------------------------------------------------------------
   get-test-tags:
     needs: [select-cluster]
@@ -223,6 +232,20 @@ jobs:
       matrix: ${{ steps.build.outputs.matrix }}
       source: ${{ steps.build.outputs.source }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install turbo
+        run: npm install -g turbo@^2.4.2
+
       - name: Get PR labels
         id: labels
         if: github.event_name == 'workflow_run'
@@ -253,16 +276,119 @@ jobs:
             echo "⚠️ Could not find PR number for SHA ${{ github.event.workflow_run.head_sha }}"
           fi
 
+      - name: Detect changed areas
+        id: detect
+        run: |
+          # =================================================================
+          # Smart Test Selection: Detect changed areas and resolve CI tags
+          #
+          # Layer 1: Turbo detects changed packages → reads e2eCiTags from
+          #          each package.json (self-service, teams opt in)
+          # Layer 2: For frontend changes, git diff identifies sub-areas →
+          #          inline mapping resolves CI tags
+          # =================================================================
+
+          AUTO_TAGS=""
+
+          # --- Layer 1: Turbo-based package detection ---
+          echo "🔍 Running Turbo change detection..."
+
+          # Determine base ref for comparison
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha || 'origin/main' }}"
+          else
+            BASE_SHA="origin/main"
+          fi
+          HEAD_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+
+          echo "  📌 Comparing $BASE_SHA...$HEAD_SHA"
+
+          # Get changed packages from turbo (uses dependency graph)
+          CHANGED_PACKAGES=$(turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
+            | jq -r '.packages[]' 2>/dev/null || echo "")
+
+          if [[ -n "$CHANGED_PACKAGES" ]]; then
+            echo "  📦 Changed workspaces detected by Turbo:"
+            echo "$CHANGED_PACKAGES" | while read -r pkg; do echo "     - $pkg"; done
+
+            # For each changed package, check for e2eCiTags in its package.json
+            for pkg_dir in packages/*/; do
+              pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
+              if echo "$CHANGED_PACKAGES" | grep -qx "$pkg_name"; then
+                ci_tags=$(jq -r '.e2eCiTags[]? // empty' "$pkg_dir/package.json" 2>/dev/null)
+                if [[ -n "$ci_tags" ]]; then
+                  for tag in $ci_tags; do
+                    echo "  ✅ $pkg_name → $tag"
+                    AUTO_TAGS="$AUTO_TAGS $tag"
+                  done
+                else
+                  echo "  ⏭️  $pkg_name (no e2eCiTags — defaults only)"
+                fi
+              fi
+            done
+          else
+            echo "  ℹ️  No package changes detected by Turbo"
+          fi
+
+          # --- Layer 2: Frontend sub-area detection ---
+          # Turbo sees the entire frontend as one workspace. When it changes,
+          # use git diff to identify which sub-areas were modified.
+          if echo "$CHANGED_PACKAGES" | grep -qx "odh-dashboard-frontend"; then
+            echo ""
+            echo "🔍 Frontend changed — detecting sub-areas via git diff..."
+
+            # Load frontend directory → CI tag mapping from external JSON file
+            # To add a new area: edit .github/frontend-ci-tags.json
+            MAPPING_FILE=".github/frontend-ci-tags.json"
+            if [[ ! -f "$MAPPING_FILE" ]]; then
+              echo "  ⚠️  $MAPPING_FILE not found — skipping frontend sub-area detection"
+            else
+              echo "  📄 Loaded mappings from $MAPPING_FILE"
+
+              # Get changed frontend files
+              CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" -- frontend/src/ 2>/dev/null || echo "")
+
+              if [[ -n "$CHANGED_FILES" ]]; then
+                # Scan pages/, concepts/, api/, routes/ using the same mapping
+                for src_dir in pages concepts api routes; do
+                  DIRS=$(echo "$CHANGED_FILES" | grep "^frontend/src/$src_dir/" | \
+                    sed "s|^frontend/src/$src_dir/||" | cut -d'/' -f1 | sort -u)
+
+                  for dir in $DIRS; do
+                    tag=$(jq -r --arg d "$dir" '.[$d] // empty' "$MAPPING_FILE")
+                    if [[ -n "$tag" ]]; then
+                      echo "  ✅ $src_dir/$dir → $tag"
+                      AUTO_TAGS="$AUTO_TAGS $tag"
+                    fi
+                  done
+                done
+              fi
+            fi
+          fi
+
+          # Deduplicate auto-detected tags
+          if [[ -n "$AUTO_TAGS" ]]; then
+            AUTO_TAGS=$(echo "$AUTO_TAGS" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+            echo ""
+            echo "🏷️  Auto-detected CI tags: $AUTO_TAGS"
+          else
+            echo ""
+            echo "ℹ️  No area-specific CI tags detected — defaults only"
+          fi
+
+          echo "auto_tags=$AUTO_TAGS" >> $GITHUB_OUTPUT
+
       - name: Build test matrix
         id: build
         run: |
           # Configuration
-          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion
+          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
           
           # Defaults - these ALWAYS run
           TAGS="@ci-dashboard-set-1,@ci-dashboard-set-2"
           SOURCE="default"
           EXTRA_COUNT=0
+          AUTO_DETECTED_ENTRY=""
 
           # Priority 1: Manual input (workflow_dispatch)
           if [[ -n "${{ inputs.additional_tags }}" ]]; then
@@ -294,9 +420,45 @@ jobs:
             echo "⚠️ Tag limit reached ($MAX_EXTRA_TAGS max). Some tags were not added."
           fi
 
+          # Priority 3: Auto-detected from PR changes (always additive, consolidated into ONE job)
+          AUTO_TAGS="${{ steps.detect.outputs.auto_tags }}"
+          if [[ -n "$AUTO_TAGS" ]]; then
+            # Remove any auto-detected tags that already appear in manual/label TAGS
+            # to prevent the same tests running in two separate matrix jobs
+            EXISTING_TAGS=$(echo "$TAGS" | tr ',' '\n' | sort -u)
+            FILTERED_AUTO=""
+            for auto_tag in $AUTO_TAGS; do
+              if echo "$EXISTING_TAGS" | grep -qx "$auto_tag"; then
+                echo "⏭️  Skipping $auto_tag from auto-detected (already in manual/label tags)"
+              else
+                FILTERED_AUTO="$FILTERED_AUTO $auto_tag"
+              fi
+            done
+            FILTERED_AUTO=$(echo "$FILTERED_AUTO" | xargs)
+
+            if [[ -n "$FILTERED_AUTO" ]]; then
+              # Consolidate remaining auto-detected tags into a single matrix entry
+              # Cypress grep treats space-separated tags as OR, so one job covers all areas
+              AUTO_DETECTED_ENTRY="$FILTERED_AUTO"
+              if [[ "$SOURCE" == "default" ]]; then
+                SOURCE="auto-detected"
+              else
+                SOURCE="$SOURCE+auto-detected"
+              fi
+              echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY"
+            else
+              echo "ℹ️  All auto-detected tags already covered by manual/label tags"
+            fi
+          fi
+
           # Convert to JSON matrix (deduplicated)
           MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
             sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
+
+          # Append the consolidated auto-detected entry as a single matrix item
+          if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
+            MATRIX=$(echo "$MATRIX" | jq --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
+          fi
           
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT

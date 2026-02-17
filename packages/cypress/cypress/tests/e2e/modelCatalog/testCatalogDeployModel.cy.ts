@@ -59,7 +59,7 @@ describe('Verify a model can be deployed from model catalog', () => {
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@ModelCatalogCI'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
