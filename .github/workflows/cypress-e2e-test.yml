@@ -457,8 +457,11 @@ jobs:
 
           # Append the consolidated auto-detected entry as a single matrix item
           if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
-            MATRIX=$(echo "$MATRIX" | jq --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
+            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
           fi
+          
+          # Ensure compact JSON for GitHub Actions output
+          MATRIX=$(echo "$MATRIX" | jq -c '.')
           
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT
