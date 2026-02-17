@@ -35,7 +35,7 @@ module.exports = require('@odh-dashboard/eslint-config')
               group: ['@patternfly/react-core'],
               importNames: ['Modal', 'ModalBody', 'ModalHeader', 'ModalFooter', 'ModalVariant'],
               message:
-                'Avoid using the PatternFly Modal directly. Use <ContentModal /> from ~/components/modals instead.',
+                'Avoid using the PatternFly Modal directly. Use ContentModal component from ~/components/modals instead.',
             },
           ],
         },
