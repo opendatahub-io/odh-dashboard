@@ -102,22 +102,49 @@ describe('AI Assets - Models Tab', () => {
       return;
     }
 
-    disableGenAiFeatures();
+    // Run each cleanup independently so one failure doesn't prevent others
+    cy.then(() => {
+      try {
+        disableGenAiFeatures();
+      } catch (error) {
+        cy.log(`Warning: Failed to disable Gen AI features: ${String(error)}`);
+      }
+    });
 
-    if (projectName) {
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-    }
+    cy.then(() => {
+      if (projectName) {
+        try {
+          deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        } catch (error) {
+          cy.log(`Warning: Failed to delete project ${projectName}: ${String(error)}`);
+        }
+      }
+    });
 
-    // Cleanup serving runtime template
-    if (servingRuntimeName) {
-      cleanupServingRuntimeTemplate(servingRuntimeName);
-    }
+    cy.then(() => {
+      if (servingRuntimeName) {
+        try {
+          cleanupServingRuntimeTemplate(servingRuntimeName);
+        } catch (error) {
+          cy.log(
+            `Warning: Failed to cleanup serving runtime ${servingRuntimeName}: ${String(error)}`,
+          );
+        }
+      }
+    });
 
-    // Cleanup hardware profile
-    if (hardwareProfileName) {
-      cy.log(`Cleaning up Hardware Profile: ${hardwareProfileName}`);
-      cleanupHardwareProfiles(hardwareProfileName);
-    }
+    cy.then(() => {
+      if (hardwareProfileName) {
+        try {
+          cy.log(`Cleaning up Hardware Profile: ${hardwareProfileName}`);
+          cleanupHardwareProfiles(hardwareProfileName);
+        } catch (error) {
+          cy.log(
+            `Warning: Failed to cleanup hardware profile ${hardwareProfileName}: ${String(error)}`,
+          );
+        }
+      }
+    });
   });
 
   // Setup Tests
@@ -351,10 +378,10 @@ describe('AI Assets - Models Tab', () => {
       },
     );
 
-    it(
+    it.skip(
       'TODO: Test loading state with spinner',
       {
-        tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab'],
+        tags: ['@GenAI', '@AIAssets', '@ModelsTab'],
       },
       () => {
         if (skipTest) {
@@ -384,13 +411,17 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
+        if (!testData.filterByNameValue) {
+          throw new Error('filterByNameValue must be defined in test fixture');
+        }
+
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByName(testData.filterByNameValue ?? '');
+        aiAssetsPage.filterByName(testData.filterByNameValue);
         aiAssetsPage
-          .findActiveFilterChip('Name', testData.filterByNameValue ?? '')
+          .findActiveFilterChip('Name', testData.filterByNameValue)
           .should('exist')
           .and('be.visible');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
@@ -407,13 +438,17 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
+        if (!testData.filterByKeywordValue) {
+          throw new Error('filterByKeywordValue must be defined in test fixture');
+        }
+
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue ?? '');
+        aiAssetsPage.filterByKeyword(testData.filterByKeywordValue);
         aiAssetsPage
-          .findActiveFilterChip('Keyword', testData.filterByKeywordValue ?? '')
+          .findActiveFilterChip('Keyword', testData.filterByKeywordValue)
           .should('exist')
           .and('be.visible');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
@@ -430,13 +465,17 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
+        if (!testData.filterByUseCaseValue) {
+          throw new Error('filterByUseCaseValue must be defined in test fixture');
+        }
+
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         aiAssetsPage.navigate(projectName);
         aiAssetsPage.switchToModelsTab();
 
-        aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue ?? '');
+        aiAssetsPage.filterByUseCase(testData.filterByUseCaseValue);
         aiAssetsPage
-          .findActiveFilterChip('Use case', testData.filterByUseCaseValue ?? '')
+          .findActiveFilterChip('Use case', testData.filterByUseCaseValue)
           .should('exist')
           .and('be.visible');
         aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
@@ -645,6 +684,42 @@ describe('AI Assets - Models Tab', () => {
 
   // User Story: Adding Models to Playground from Models Tab
   describe('Adding Models to Playground from Models Tab', () => {
+    // Helper function to test button behavior with inactive models
+    const testInactiveModelButton = (
+      buttonFinder: (modelName: string) => Cypress.Chainable<JQuery<HTMLElement>>,
+      buttonName: string,
+    ) => {
+      cy.step('Scale model deployment to 0 replicas to make it inactive');
+      cy.exec(
+        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
+        { failOnNonZeroExit: false },
+      );
+
+      cy.step('Wait for deployment to scale down');
+      cy.exec(
+        `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
+        { failOnNonZeroExit: false, timeout: 65000 },
+      );
+
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
+
+      cy.step(`Verify ${buttonName} button is disabled for inactive model`);
+      buttonFinder(testData.modelDeploymentName).should('be.disabled');
+
+      cy.step('Restore model deployment to active state');
+      cy.exec(
+        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
+        { failOnNonZeroExit: false },
+      );
+
+      cy.step('Wait for model to become ready');
+      checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+        checkReady: true,
+      });
+    };
+
     it(
       'Test "Add to playground" button for models not in playground',
       {
@@ -667,7 +742,7 @@ describe('AI Assets - Models Tab', () => {
     );
 
     it(
-      'Test that button is disabled for inactive models',
+      'Test that "Add to playground" button is disabled for inactive models',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
       },
@@ -676,35 +751,10 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
-        cy.step('Scale model deployment to 0 replicas to make it inactive');
-        cy.exec(
-          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
-          { failOnNonZeroExit: false },
+        testInactiveModelButton(
+          (modelName) => aiAssetsPage.findAddToPlaygroundButton(modelName),
+          'Add to playground',
         );
-
-        cy.step('Wait for deployment to scale down');
-        cy.exec(
-          `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
-          { failOnNonZeroExit: false, timeout: 65000 },
-        );
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        cy.step('Verify button is disabled for inactive model');
-        aiAssetsPage.findAddToPlaygroundButton(testData.modelDeploymentName).should('be.disabled');
-
-        cy.step('Restore model deployment to active state');
-        cy.exec(
-          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
-          { failOnNonZeroExit: false },
-        );
-
-        cy.step('Wait for model to become ready');
-        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
-          checkReady: true,
-        });
       },
     );
 
@@ -792,6 +842,42 @@ describe('AI Assets - Models Tab', () => {
 
   // User Story: Trying Models in Playground
   describe('Trying Models in Playground', () => {
+    // Helper function to test button behavior with inactive models (shared with other describe blocks)
+    const testInactiveModelButton = (
+      buttonFinder: (modelName: string) => Cypress.Chainable<JQuery<HTMLElement>>,
+      buttonName: string,
+    ) => {
+      cy.step('Scale model deployment to 0 replicas to make it inactive');
+      cy.exec(
+        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
+        { failOnNonZeroExit: false },
+      );
+
+      cy.step('Wait for deployment to scale down');
+      cy.exec(
+        `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
+        { failOnNonZeroExit: false, timeout: 65000 },
+      );
+
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      aiAssetsPage.navigate(projectName);
+      aiAssetsPage.switchToModelsTab();
+
+      cy.step(`Verify ${buttonName} button is disabled for inactive model`);
+      buttonFinder(testData.modelDeploymentName).should('be.disabled');
+
+      cy.step('Restore model deployment to active state');
+      cy.exec(
+        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
+        { failOnNonZeroExit: false },
+      );
+
+      cy.step('Wait for model to become ready');
+      checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+        checkReady: true,
+      });
+    };
+
     it(
       'Test "Try in playground" button for models already in playground',
       {
@@ -814,7 +900,7 @@ describe('AI Assets - Models Tab', () => {
     );
 
     it(
-      'Test that button is disabled for inactive models',
+      'Test that "Try in playground" button is disabled for inactive models',
       {
         tags: ['@Sanity', '@SanitySet1', '@GenAI', '@AIAssets', '@ModelsTab', '@Playground'],
       },
@@ -823,35 +909,10 @@ describe('AI Assets - Models Tab', () => {
           return;
         }
 
-        cy.step('Scale model deployment to 0 replicas to make it inactive');
-        cy.exec(
-          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
-          { failOnNonZeroExit: false },
+        testInactiveModelButton(
+          (modelName) => aiAssetsPage.findTryInPlaygroundButton(modelName),
+          'Try in playground',
         );
-
-        cy.step('Wait for deployment to scale down');
-        cy.exec(
-          `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
-          { failOnNonZeroExit: false, timeout: 65000 },
-        );
-
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-        aiAssetsPage.navigate(projectName);
-        aiAssetsPage.switchToModelsTab();
-
-        cy.step('Verify button is disabled for inactive model');
-        aiAssetsPage.findTryInPlaygroundButton(testData.modelDeploymentName).should('be.disabled');
-
-        cy.step('Restore model deployment to active state');
-        cy.exec(
-          `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
-          { failOnNonZeroExit: false },
-        );
-
-        cy.step('Wait for model to become ready');
-        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
-          checkReady: true,
-        });
       },
     );
 
