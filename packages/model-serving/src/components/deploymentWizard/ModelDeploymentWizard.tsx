@@ -8,14 +8,13 @@ import {
   isGeneratedSecretName,
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
-import { AdvancedSettingsStepContent, accessReviewResource } from './steps/AdvancedOptionsStep';
+import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
 import { useDeployMethod } from './useDeployMethod';
@@ -60,15 +59,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 
   const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
   const currentProjectName = wizardState.state.project.projectName ?? undefined;
-
-  // Check if user has permission to create rolebindings (admins can, contributors cannot)
-  const [canCreateRoleBindings] = useAccessReview({
-    ...accessReviewResource,
-    namespace: currentProjectName,
-  });
-
-  // Update wizard state with the current permission value
-  wizardState.canCreateRoleBindings = canCreateRoleBindings;
   const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
@@ -300,7 +290,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                   <AdvancedSettingsStepContent
                     wizardState={wizardState}
                         externalData={externalData}
-                    allowCreate={canCreateRoleBindings}
+                    allowCreate={wizardState.state.canCreateRoleBindings}
               />
                 ) : (
                   <Spinner data-testid="spinner" />
