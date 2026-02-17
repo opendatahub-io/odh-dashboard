@@ -140,7 +140,8 @@ make dev-start-federated
 ```
 
 ## Docker Deployment
-Under development
+
+Docker deployment documentation is coming soon. For now, please use the local development setup described above in the Quick Start section.
 
 ## Configuration
 

@@ -17,7 +17,6 @@ For detailed prerequisites, setup instructions, and configuration options, see t
 **Start both frontend and BFF together:**
 
 ```bash
-
 cd packages/autorag
 
 # With mocked services (fastest for local development)
