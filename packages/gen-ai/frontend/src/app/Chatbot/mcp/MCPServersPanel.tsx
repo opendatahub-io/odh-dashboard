@@ -13,7 +13,8 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import SupportIcon from '~/app/bgimages/support-icon.svg';
+import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
+import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -31,6 +32,7 @@ import useServerTools from './hooks/useServerTools';
 import useTokenValidation from './hooks/useTokenValidation';
 import useServerSelection from './hooks/useServerSelection';
 import useAutoUnlock from './hooks/useAutoUnlock';
+import useDarkMode from '../hooks/useDarkMode';
 
 interface MCPServersPanelProps {
   configId: string;
@@ -59,6 +61,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   onToolsWarningChange,
   onActiveToolsCountChange,
 }) => {
+  const isDarkMode = useDarkMode();
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
 
@@ -250,7 +253,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
         variant={EmptyStateVariant.xs}
         data-testid="ai-assets-empty-state"
         icon={() => (
-          <img src={SupportIcon} alt="Support icon" style={{ width: '56px', height: '56px' }} />
+          <img
+            src={isDarkMode ? SupportIconLight : SupportIconDark}
+            alt="Support icon"
+            style={{ width: '56px', height: '56px' }}
+          />
         )}
         headingLevel="h6"
         titleText="No MCP servers available"
