@@ -184,11 +184,23 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   }, [totalActiveTools, onActiveToolsCountChange]);
 
   const handleConfigModalClose = React.useCallback(() => {
+    if (configModal.selectedItem) {
+      const serverToDeselect = transformedServers.find(
+        (server) => server.id === configModal.selectedItem!.id,
+      );
+      if (serverToDeselect && isSelected(serverToDeselect)) {
+        const tokenInfo = tokenManagement.getToken(serverToDeselect.connectionUrl);
+        const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+        if (!isAuthenticated) {
+          toggleSelection(serverToDeselect);
+        }
+      }
+    }
     configModal.closeModal();
     fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
     });
-  }, [configModal]);
+  }, [configModal, transformedServers, isSelected, toggleSelection, tokenManagement]);
 
   const handleToolsModalClose = React.useCallback(() => {
     toolsModal.closeModal();
