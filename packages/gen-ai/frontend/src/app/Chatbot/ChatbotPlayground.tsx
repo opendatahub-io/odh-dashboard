@@ -488,6 +488,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
+                  isDarkMode={isDarkMode}
                 />
               )}
 
