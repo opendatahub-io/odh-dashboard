@@ -13,7 +13,7 @@ module.exports = {
             group: ['@patternfly/react-core'],
             importNames: ['Modal', 'ModalBody', 'ModalHeader', 'ModalFooter', 'ModalVariant'],
             message:
-              'Avoid using the PatternFly Modal directly. Use ContentModal component from ~/components/modals instead.',
+              "Avoid using the PatternFly Modal directly. Use the project's ContentModal wrapper instead.",
           },
         ],
       },
