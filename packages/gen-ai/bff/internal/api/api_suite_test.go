@@ -35,6 +35,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/services"
 )
@@ -201,11 +202,12 @@ func TestAPIHandlers(t *testing.T) {
 
 // SharedTestContext holds common test infrastructure for HTTP tests
 type SharedTestContext struct {
-	App        *App
-	Server     *httptest.Server
-	HTTPClient *http.Client
-	BaseURL    string
-	Logger     *slog.Logger
+	App         *App
+	Server      *httptest.Server
+	HTTPClient  *http.Client
+	BaseURL     string
+	Logger      *slog.Logger
+	mlflowState *mlflowmocks.MLflowState
 }
 
 var testCtx *SharedTestContext
@@ -255,6 +257,7 @@ var _ = BeforeSuite(func() {
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
 		maasClientFactory:       maasmocks.NewMockClientFactory(),
 		mcpClientFactory:        mcpFactory,
+		mlflowClientFactory:     mlflowmocks.NewMockClientFactory(),
 		dashboardNamespace:      "opendatahub",
 		memoryStore:             memStore,
 		rootCAs:                 nil,
@@ -272,12 +275,18 @@ var _ = BeforeSuite(func() {
 		Timeout: 30 * time.Second,
 	}
 
+	// Start MLflow as a child process (SetupMLflow also seeds sample prompts)
+	By("Starting MLflow")
+	mlflowState, mlflowErr := mlflowmocks.SetupMLflow(logger)
+	Expect(mlflowErr).NotTo(HaveOccurred())
+
 	testCtx = &SharedTestContext{
-		App:        app,
-		Server:     server,
-		HTTPClient: httpClient,
-		BaseURL:    server.URL,
-		Logger:     logger,
+		App:         app,
+		Server:      server,
+		HTTPClient:  httpClient,
+		BaseURL:     server.URL,
+		Logger:      logger,
+		mlflowState: mlflowState,
 	}
 
 	By("HTTP test environment setup complete")
@@ -287,6 +296,14 @@ var _ = AfterSuite(func() {
 	By("tearing down HTTP test environment")
 	if testCtx != nil && testCtx.Server != nil {
 		testCtx.Server.Close()
+	}
+	if testCtx != nil && testCtx.mlflowState != nil {
+		By("stopping MLflow server")
+		mlflowmocks.CleanupMLflowState(
+			testCtx.mlflowState,
+			func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+			func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+		)
 	}
 })
 
