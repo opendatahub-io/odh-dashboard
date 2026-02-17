@@ -159,7 +159,7 @@ pushd "$BFF_DIR" >/dev/null
 
 # Provision envtest assets if setup helper missing
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
-  if [[ ! -x ./bin/setup-envtest-release-0.17 ]]; then
+  if [[ ! -x ./bin/setup-envtest-release-0.19 ]]; then
     if command -v make >/dev/null 2>&1; then
       log_info "setup-envtest missing; attempting to provision via 'make envtest'"
       if make envtest; then
@@ -169,8 +169,8 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
       fi
     fi
   fi
-  if [[ -x ./bin/setup-envtest-release-0.17 ]]; then
-    ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path || true)
+  if [[ -x ./bin/setup-envtest-release-0.19 ]]; then
+    ASSETS_PATH=$(./bin/setup-envtest-release-0.19 use 1.29.0 --bin-dir "$(pwd)/bin" --print path || true)
     if [[ -n "$ASSETS_PATH" ]]; then
       export KUBEBUILDER_ASSETS="$ASSETS_PATH"
       log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"

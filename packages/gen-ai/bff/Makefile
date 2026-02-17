@@ -66,7 +66,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.1.0
-ENVTEST_VERSION ?= release-0.17
+ENVTEST_VERSION ?= release-0.19
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
