@@ -1,4 +1,4 @@
-import { Form, FormGroup, TextInput } from '@patternfly/react-core';
+import { Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import experimentForm from '~/app/forms/experiment.form';
@@ -39,7 +39,7 @@ function ExperimentForm(): React.JSX.Element {
             label="Description"
             isRequired={requiredFields.includes(field.name)}
           >
-            <TextInput
+            <TextArea
               {...field}
               id={field.name}
               aria-describedby={`${field.name}-helper`}

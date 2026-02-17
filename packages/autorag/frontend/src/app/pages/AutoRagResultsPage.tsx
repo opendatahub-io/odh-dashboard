@@ -18,8 +18,8 @@ function AutoRagResultsPage(): React.JSX.Element {
       title={experiment?.display_name}
       empty={invalidPipelineRunId}
       emptyStatePage={<InvalidPipelineRun />}
-      loadError={pipelineRunQuery.error ?? undefined}
-      loaded={!pipelineRunQuery.isLoading && !experimentQuery.isLoading}
+      loadError={pipelineRunQuery.error ?? experimentQuery.error ?? undefined}
+      loaded={pipelineRunQuery.isFetched && experimentQuery.isFetched}
       provideChildrenPadding
       removeChildrenTopPadding
     >
