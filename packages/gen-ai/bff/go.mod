@@ -15,7 +15,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.37.0
 	github.com/openai/openai-go/v2 v2.7.1
-	github.com/opendatahub-io/mlflow-go v0.0.0-20260213170237-033e282c00e0
+	github.com/opendatahub-io/mlflow-go v0.0.0-20260217185448-15e28bb768a5
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/cors v1.11.1
 	github.com/shirou/gopsutil/v4 v4.25.12

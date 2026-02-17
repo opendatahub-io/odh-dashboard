@@ -211,6 +211,46 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 
+		It("should return 400 for invalid prompt name", func() {
+			req := models.MLflowRegisterPromptRequest{
+				Name:     "foo/bar",
+				Template: "Hello {{name}}",
+			}
+
+			resp := MakeRequest(JSONRequest(
+				http.MethodPost,
+				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
+				req,
+			))
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("should return Location header on successful creation", func() {
+			promptName := "test-location-header"
+			deletePromptBestEffort(promptName)
+
+			req := models.MLflowRegisterPromptRequest{
+				Name:          promptName,
+				Template:      "Hello {{name}}",
+				CommitMessage: "test location header",
+			}
+
+			resp := MakeRequest(JSONRequest(
+				http.MethodPost,
+				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
+				req,
+			))
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusCreated))
+			Expect(resp.Header.Get("Location")).To(ContainSubstring(promptName))
+			Expect(resp.Header.Get("Location")).To(ContainSubstring("version=1"))
+
+			deletePromptBestEffort(promptName)
+		})
+
 		It("should return 400 when both messages and template are provided", func() {
 			req := models.MLflowRegisterPromptRequest{
 				Name:     "test-both-prompt",
@@ -427,6 +467,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
 				createReq,
 			))
+			defer createResp.Body.Close()
 			var createEnvelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(createResp, &createEnvelope)
 			Expect(createResp.StatusCode).To(Equal(http.StatusCreated))
@@ -438,6 +479,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				Method: http.MethodGet,
 				Path:   basePath + "?namespace=default",
 			})
+			defer getResp.Body.Close()
 			var getEnvelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(getResp, &getEnvelope)
 			Expect(getResp.StatusCode).To(Equal(http.StatusOK))
@@ -458,6 +500,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
 				updateReq,
 			))
+			defer updateResp.Body.Close()
 			var updateEnvelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(updateResp, &updateEnvelope)
 			Expect(updateResp.StatusCode).To(Equal(http.StatusCreated))
@@ -468,6 +511,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				Method: http.MethodGet,
 				Path:   basePath + "?namespace=default&version=1",
 			})
+			defer v1Resp.Body.Close()
 			var v1Envelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(v1Resp, &v1Envelope)
 			Expect(v1Resp.StatusCode).To(Equal(http.StatusOK))
@@ -479,6 +523,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				Method: http.MethodGet,
 				Path:   basePath + "?namespace=default",
 			})
+			defer latestResp.Body.Close()
 			var latestEnvelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(latestResp, &latestEnvelope)
 			Expect(latestResp.StatusCode).To(Equal(http.StatusOK))
@@ -490,6 +535,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				Method: http.MethodGet,
 				Path:   basePath + "/versions?namespace=default",
 			})
+			defer versionsResp.Body.Close()
 			var versionsEnvelope MLflowPromptVersionsEnvelope
 			ReadJSONResponse(versionsResp, &versionsEnvelope)
 			Expect(versionsResp.StatusCode).To(Equal(http.StatusOK))
@@ -500,6 +546,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
 			})
+			defer listResp.Body.Close()
 			var listEnvelope MLflowPromptsEnvelope
 			ReadJSONResponse(listResp, &listEnvelope)
 			Expect(listResp.StatusCode).To(Equal(http.StatusOK))

@@ -2,12 +2,18 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
+
+// validPromptName matches alphanumerics, hyphens, underscores, and dots (MLflow naming rules).
+var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
 // MLflowPromptsEnvelope is the response envelope for MLflow prompts
 type MLflowPromptsEnvelope = Envelope[models.MLflowPromptsResponse, None]
@@ -55,6 +61,10 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		app.badRequestResponse(w, r, errors.New("name is required"))
 		return
 	}
+	if !validPromptName.MatchString(req.Name) {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid prompt name %q: must start with an alphanumeric character and contain only alphanumerics, hyphens, underscores, or dots", req.Name))
+		return
+	}
 
 	hasMessages := len(req.Messages) > 0
 	hasTemplate := req.Template != ""
@@ -77,7 +87,11 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		Data: *result,
 	}
 
-	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
+	headers := http.Header{
+		"Location": {fmt.Sprintf("%s/%s?version=%d", constants.MLflowPromptsPath, result.Name, result.Version)},
+	}
+
+	if err := app.WriteJSON(w, http.StatusCreated, response, headers); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

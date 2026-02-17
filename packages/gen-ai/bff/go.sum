@@ -266,8 +266,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260122200903-ebb5f0ad6d07 h1:gvgOxDyJP8vD6x4X9wxjzzxYN4P03aYLcy5R1a6WpBc=
 github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260122200903-ebb5f0ad6d07/go.mod h1:6vZ0LLj0Zb4BRabmoQLjYM666LlBL7n7FCh4VnJKgRk=
-github.com/opendatahub-io/mlflow-go v0.0.0-20260213170237-033e282c00e0 h1:6TG7K85vmiXo2MxdGxvX4A0laPSAOJu2ucghK/eJv5U=
-github.com/opendatahub-io/mlflow-go v0.0.0-20260213170237-033e282c00e0/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
+github.com/opendatahub-io/mlflow-go v0.0.0-20260217185448-15e28bb768a5 h1:/07oJyKyXUumfMh9W5/zl6hbZdS2kU0EUOcNszToyjU=
+github.com/opendatahub-io/mlflow-go v0.0.0-20260217185448-15e28bb768a5/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/perimeterx/marshmallow v1.1.5 h1:a2LALqQ1BlHM8PZblsDdidgv1mWi1DgC2UmX50IvK2s=
