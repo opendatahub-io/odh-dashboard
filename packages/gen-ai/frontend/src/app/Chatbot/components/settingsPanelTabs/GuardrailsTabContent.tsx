@@ -3,6 +3,7 @@ import { EmptyState, EmptyStateBody, Spinner, Bullseye } from '@patternfly/react
 import GuardrailsPanel from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
 import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import TabContentWrapper from './TabContentWrapper';
 
 interface GuardrailsTabContentProps {
@@ -10,7 +11,6 @@ interface GuardrailsTabContentProps {
   guardrailModels: string[];
   guardrailModelsLoaded: boolean;
   guardrailModelsError?: Error;
-  isDarkMode?: boolean;
 }
 
 const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> = ({
@@ -18,8 +18,8 @@ const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> =
   guardrailModels,
   guardrailModelsLoaded,
   guardrailModelsError,
-  isDarkMode,
 }) => {
+  const isDarkMode = useDarkMode();
   if (guardrailModelsLoaded && guardrailModels.length === 0) {
     return (
       <EmptyState
