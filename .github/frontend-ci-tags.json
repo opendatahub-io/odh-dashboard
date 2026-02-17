@@ -1,0 +1,14 @@
+{
+  "pipelines": "@PipelinesCI",
+  "modelServing": "@ModelServingCI",
+  "modelRegistry": "@ModelRegistryCI",
+  "modelCatalog": "@ModelCatalogCI",
+  "notebookController": "@WorkbenchesCI",
+  "hardwareProfiles": "@HardwareProfilesCI",
+  "connectionTypes": "@ConnectionTypesCI",
+  "distributedWorkloads": "@DistributedWorkloadsCI",
+  "modelServingKServe": "@ModelServingCI",
+  "clusterSettings": "@SettingsCI",
+  "groupSettings": "@SettingsCI",
+  "projects": "@ProjectsCI"
+}
