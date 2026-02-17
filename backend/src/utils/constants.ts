@@ -91,6 +91,7 @@ export const blankDashboardCR: DashboardConfig = {
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
+      deploymentWizardYAMLViewer: false,
     },
     notebookController: {
       enabled: true,

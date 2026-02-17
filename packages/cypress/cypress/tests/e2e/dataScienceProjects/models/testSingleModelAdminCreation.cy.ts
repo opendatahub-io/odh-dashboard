@@ -94,6 +94,12 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -113,7 +119,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       // Verify model deployment is ready
-      checkInferenceServiceState(testData.singleModelAdminName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelAdminName);

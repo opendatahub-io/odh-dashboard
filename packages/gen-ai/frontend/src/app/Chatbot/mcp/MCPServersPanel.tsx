@@ -13,13 +13,15 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import SupportIcon from '~/app/bgimages/support-icon.svg';
+import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
+import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
 import MCPServerConfigModal from './MCPServerConfigModal';
@@ -59,6 +61,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   onToolsWarningChange,
   onActiveToolsCountChange,
 }) => {
+  const isDarkMode = useDarkMode();
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
 
@@ -132,7 +135,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     onFetchTools: toolsManagement.fetchToolsCount,
   });
 
-  // Table integration
+  // Table integration (checkboxes for selecting servers)
   const { isSelected, toggleSelection } = useCheckboxTableBase(
     transformedServers,
     selection.selectedServers,
@@ -250,7 +253,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
         variant={EmptyStateVariant.xs}
         data-testid="ai-assets-empty-state"
         icon={() => (
-          <img src={SupportIcon} alt="Support icon" style={{ width: '56px', height: '56px' }} />
+          <img
+            src={isDarkMode ? SupportIconLight : SupportIconDark}
+            alt="Support icon"
+            style={{ width: '56px', height: '56px' }}
+          />
         )}
         headingLevel="h6"
         titleText="No MCP servers available"
