@@ -1,0 +1,22 @@
+# LLMInferenceService with hidden S3 Connection (via Connections API)
+# Hidden connections have generated names and are owned by the deployment
+# Requires: connections/hidden-s3-connection.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-hidden-s3-conn
+  annotations:
+    opendatahub.io/connections: secret-abc123
+    opendatahub.io/connection-path: models/my-model
+spec:
+  model:
+    name: my-model
+    uri: "" # Webhook will populate based on connection
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

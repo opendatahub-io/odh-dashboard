@@ -1,0 +1,12 @@
+# InferenceService with PVC storage (real PVC)
+# Requires: pvcs/test-model-pvc.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-pvc
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storageUri: pvc://test-model-pvc/models/my-model

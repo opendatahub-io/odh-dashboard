@@ -30,7 +30,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     };
   };
   spec: {
-    model: {
+    model?: {
       uri: string;
       name?: string;
     };

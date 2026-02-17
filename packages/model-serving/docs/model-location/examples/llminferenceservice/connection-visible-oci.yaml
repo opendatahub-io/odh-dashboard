@@ -1,0 +1,23 @@
+# LLMInferenceService with visible OCI Connection (via Connections API)
+# Requires: connections/visible-oci-connection.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-visible-oci-conn
+  annotations:
+    opendatahub.io/connections: my-oci-connection
+spec:
+  model:
+    name: my-model
+    uri: oci://quay.io/private-repo/model-image:v1
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    # webhook will populate this
+    # imagePullSecrets:
+    #   - name: my-oci-connection
+    containers:
+      - name: main

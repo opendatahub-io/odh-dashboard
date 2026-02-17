@@ -1,0 +1,20 @@
+# InferenceService with hidden S3 Connection (via Connections API)
+# Hidden connections have generated names and are owned by the deployment
+# Requires: connections/hidden-s3-connection.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-hidden-s3-conn
+  annotations:
+    opendatahub.io/connections: secret-abc123
+    opendatahub.io/connection-path: models/my-model
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      # webhook will populate this
+      # storage:
+      #   key: secret-abc123
+      #   path: models/my-model
+      # serviceAccountName: secret-abc123-sa

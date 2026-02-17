@@ -1,0 +1,17 @@
+# LLMInferenceService with public S3 URI
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-direct-uri-public-s3
+spec:
+  model:
+    name: my-model
+    uri: s3://public-bucket/models/my-model
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

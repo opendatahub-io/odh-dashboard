@@ -1,0 +1,19 @@
+# InferenceService with visible S3 Connection (via Connections API)
+# Requires: connections/visible-s3-connection.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-visible-s3-conn
+  annotations:
+    opendatahub.io/connections: my-s3-connection
+    opendatahub.io/connection-path: models/my-model
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      # webhook will populate this
+      # storage:
+      #   key: my-s3-connection
+      #   path: models/my-model
+      # serviceAccountName: my-s3-connection-sa

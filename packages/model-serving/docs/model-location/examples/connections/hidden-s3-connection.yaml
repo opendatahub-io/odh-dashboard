@@ -1,0 +1,22 @@
+# Hidden S3 Connection - does NOT show in Connections list
+# Has generated name pattern: secret-[6chars]
+# ownerReferences would be added by webhook/controller
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-abc123
+  labels:
+    opendatahub.io/dashboard: "false"
+    opendatahub.io/connection-type: "true"
+    opendatahub.io/managed: "true" # Won't work if missing
+  annotations:
+    opendatahub.io/connection-type: s3
+    opendatahub.io/connection-type-protocol: s3
+    opendatahub.io/connection-type-ref: s3
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: hidden-key
+  AWS_SECRET_ACCESS_KEY: hidden-secret
+  AWS_S3_ENDPOINT: https://s3.amazonaws.com
+  AWS_S3_BUCKET: hidden-bucket
+  AWS_DEFAULT_REGION: us-east-1

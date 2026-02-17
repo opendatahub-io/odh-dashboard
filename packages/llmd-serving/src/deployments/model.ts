@@ -155,12 +155,16 @@ export const extractEnvironmentVariables = (
 };
 
 export const getModelLocationUri = (deployment: LLMInferenceServiceKind): string | undefined => {
-  return deployment.spec.model.uri;
+  return deployment.spec.model?.uri;
 };
 
 const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<string, string> => {
   const additionalFields: Record<string, string> = {};
   const { model } = deployment.spec;
+
+  if (!model?.uri) {
+    return additionalFields;
+  }
 
   const connectionType = getConnectionTypeFromUri(model.uri);
   if (connectionType === ModelServingCompatibleTypes.S3ObjectStorage) {
@@ -169,7 +173,7 @@ const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<st
   }
 
   if (connectionType === ModelServingCompatibleTypes.OCI) {
-    additionalFields.modelUri = model.uri || '';
+    additionalFields.modelUri = model.uri;
   }
 
   return additionalFields;

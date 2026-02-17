@@ -1,0 +1,18 @@
+# LLMInferenceService with PVC storage (real PVC)
+# Requires: pvcs/test-model-pvc.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-pvc
+spec:
+  model:
+    name: my-model
+    uri: pvc://test-model-pvc/models/my-model
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

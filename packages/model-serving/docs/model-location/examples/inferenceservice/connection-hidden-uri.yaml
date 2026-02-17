@@ -1,0 +1,15 @@
+# InferenceService with hidden URI Connection (via Connections API)
+# Hidden connections have generated names and are owned by the deployment
+# Requires: connections/hidden-uri-connection.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-hidden-uri-conn
+  annotations:
+    opendatahub.io/connections: secret-uri789
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      # storageUri is populated by webhook from the URI connection
