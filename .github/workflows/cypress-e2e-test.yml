@@ -333,7 +333,8 @@ jobs:
           # --- Layer 2: Frontend sub-area detection ---
           # Turbo sees the entire frontend as one workspace. When it changes,
           # use git diff to identify which sub-areas were modified.
-          if echo "$CHANGED_PACKAGES" | grep -qx "odh-dashboard-frontend"; then
+          # Note: Turbo reports the root/frontend workspace as "//"
+          if echo "$CHANGED_PACKAGES" | grep -qx "//"; then
             echo ""
             echo "🔍 Frontend changed — detecting sub-areas via git diff..."
 
