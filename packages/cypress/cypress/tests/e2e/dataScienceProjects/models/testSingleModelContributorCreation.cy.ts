@@ -96,6 +96,12 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -110,8 +116,9 @@ describe('Verify Model Creation and Validation using the UI', () => {
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       // Verify model deployment is ready
-      checkInferenceServiceState(testData.singleModelName, projectName, { checkReady: true });
-      cy.reload();
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       modelServingSection.findModelMetricsLink(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element
       attemptToClickTooltip();

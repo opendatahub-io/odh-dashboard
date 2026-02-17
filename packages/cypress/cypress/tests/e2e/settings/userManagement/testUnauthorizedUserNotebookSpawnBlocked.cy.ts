@@ -1,6 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { userManagement } from '../../../../pages/userManagement';
 import { header } from '../../../../pages/components/Header';
+import { restoreDefaultGroupsConfig } from '../../../../utils/oc_commands/groupConfig';
 
 describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () => {
   it(
@@ -56,35 +57,7 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
   );
 
   after(() => {
-    // Clear cookies and local storage
-    cy.clearCookies();
-    cy.clearLocalStorage();
-
-    // Reload the page forcefully
-    cy.reload(true);
-
-    // Authentication and navigation
-    cy.step('Login as an Admnin and restore settings');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-    // Visit User Management
-    cy.step('Visit User Management');
-    userManagement.visit();
-
-    cy.step('Clear the current Data Science User Groups');
-    userManagement.getUserGroupSection().clearMultiChipItem();
-    const userGroupSection = userManagement.getUserGroupSection();
-
-    cy.step('Select rhods-admin and save it');
-    // Click the text field to open the dropdown
-    userGroupSection.findMultiGroupSelectButton().click();
-    // Click the 'rhods-admin' option from the dropdown
-    userGroupSection.findMultiGroupOptions('system:authenticated').click();
-    // Click outside the dropdown to close it (e.g., clicking on the page title)
-    cy.findByTestId('app-page-title').click();
-    // Submit the form
-    userManagement.findSubmitButton().click();
-    // Validate that changes were saved successfully
-    userManagement.shouldHaveSuccessAlertMessage();
+    cy.step('Restore default groups configuration');
+    restoreDefaultGroupsConfig();
   });
 });
