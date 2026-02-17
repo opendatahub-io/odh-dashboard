@@ -12,9 +12,9 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { MaaSModel } from '~/odh/extension-points/maas';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
+import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type MaaSModelTableRowEndpointProps = {
   model: MaaSModel;
@@ -50,18 +50,17 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
               hoverTip="Copy"
               clickTip="Copied"
               aria-label={`MaaS route URL for ${model.id}`}
-              onCopy={async () => {
-                try {
-                  await navigator.clipboard.writeText(model.url || '');
-                  fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
+              onCopy={() =>
+                copyToClipboardWithTracking(
+                  model.url || '',
+                  'Available Endpoints Endpoint Copied',
+                  {
                     assetType: 'maas_model',
                     endpointType: 'maas_route',
                     copyTarget: 'endpoint',
-                  });
-                } catch {
-                  // Do nothing
-                }
-              }}
+                  },
+                )
+              }
             >
               {model.url}
             </ClipboardCopy>
@@ -107,17 +106,16 @@ const MaaSModelTableRowEndpoint: React.FC<MaaSModelTableRowEndpointProps> = ({ m
                         hoverTip="Copy"
                         clickTip="Copied"
                         aria-label="Generated MaaS API token"
-                        onCopy={async () => {
-                          try {
-                            await navigator.clipboard.writeText(tokenData.token);
-                            fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
+                        onCopy={() =>
+                          copyToClipboardWithTracking(
+                            tokenData.token,
+                            'Available Endpoints Service Token Copied',
+                            {
                               assetType: 'maas_model',
                               copyTarget: 'service_token',
-                            });
-                          } catch {
-                            // Do nothing
-                          }
-                        }}
+                            },
+                          )
+                        }
                       >
                         {tokenData.token}
                       </ClipboardCopy>

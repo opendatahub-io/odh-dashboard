@@ -10,8 +10,8 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel } from '~/app/types';
+import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type AIModelsTableRowEndpointProps = {
   model: AIModel;
@@ -58,18 +58,13 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   hoverTip="Copy URL"
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
-                  onCopy={async () => {
-                    try {
-                      await navigator.clipboard.writeText(endpoint);
-                      fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
-                        assetType: 'model',
-                        endpointType: isExternal ? 'external' : 'internal',
-                        copyTarget: 'endpoint',
-                      });
-                    } catch {
-                      // Do nothing
-                    }
-                  }}
+                  onCopy={() =>
+                    copyToClipboardWithTracking(endpoint, 'Available Endpoints Endpoint Copied', {
+                      assetType: 'model',
+                      endpointType: isExternal ? 'external' : 'internal',
+                      copyTarget: 'endpoint',
+                    })
+                  }
                 >
                   {endpoint}
                 </ClipboardCopy>
@@ -90,17 +85,16 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     hoverTip="Copy"
                     clickTip="Copied"
                     aria-label={`External endpoint API token for ${model.model_name}`}
-                    onCopy={async () => {
-                      try {
-                        await navigator.clipboard.writeText(model.sa_token.token);
-                        fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
+                    onCopy={() =>
+                      copyToClipboardWithTracking(
+                        model.sa_token.token,
+                        'Available Endpoints Service Token Copied',
+                        {
                           assetType: 'model',
                           copyTarget: 'service_token',
-                        });
-                      } catch {
-                        // Do nothing
-                      }
-                    }}
+                        },
+                      )
+                    }
                   >
                     {model.sa_token.token}
                   </ClipboardCopy>
