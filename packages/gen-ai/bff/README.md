@@ -183,6 +183,13 @@ curl -i -H "Authorization: Bearer $TOKEN" \
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default"
 ```
 
+**Filter MLflow Prompts by Name Prefix:**
+
+```bash
+# Returns only prompts whose name starts with "pet" (e.g. "pet-health-bella", "pet-adoption-letter")
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=pet"
+```
+
 **List MLflow Prompts with Pagination:**
 
 ```bash
@@ -1065,6 +1072,9 @@ HTTP/1.1 204 No Content
 
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace"
+
+# Filter by name prefix (returns "pet-health-bella" and "pet-adoption-letter")
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace&filter_name=pet"
 ```
 
 **Expected Response (200 OK):**

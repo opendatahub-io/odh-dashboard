@@ -38,7 +38,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 		}
 	}
 	if nameFilter != "" {
-		opts = append(opts, promptregistry.WithNameFilter(nameFilter))
+		opts = append(opts, promptregistry.WithNameFilter(nameFilter+"%"))
 	}
 
 	promptList, err := client.ListPrompts(ctx, opts...)

@@ -594,12 +594,13 @@ paths:
           schema:
             type: integer
             example: 10
-        - name: name
+        - name: filter_name
           in: query
-          description: Filter prompts by name pattern
+          description: Filter prompts by name prefix (e.g. "pet" matches "pet-health-bella", "pet-adoption-letter")
           required: false
           schema:
             type: string
+            example: pet
       responses:
         '200':
           description: Successful response with MLflow prompts list

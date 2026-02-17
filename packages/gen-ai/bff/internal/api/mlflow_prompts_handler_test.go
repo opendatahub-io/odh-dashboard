@@ -115,6 +115,24 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(envelope.Data.Prompts).To(HaveLen(2))
 			Expect(envelope.Data.NextPageToken).NotTo(BeEmpty())
 		})
+
+		It("should filter prompts by name prefix using filter_name", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=pet",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(len(envelope.Data.Prompts)).To(BeNumerically(">=", 2))
+			for _, p := range envelope.Data.Prompts {
+				Expect(p.Name).To(HavePrefix("pet"), "all returned prompts should start with 'pet'")
+			}
+		})
 	})
 
 	Describe("POST /api/v1/mlflow/prompts", func() {

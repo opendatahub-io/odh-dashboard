@@ -30,7 +30,7 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 
 	pageToken := r.URL.Query().Get("page_token")
 	maxResults := r.URL.Query().Get("max_results")
-	nameFilter := r.URL.Query().Get("name")
+	nameFilter := r.URL.Query().Get("filter_name")
 
 	result, err := app.repositories.MLflowPrompts.ListPrompts(ctx, pageToken, maxResults, nameFilter)
 	if err != nil {
