@@ -138,15 +138,15 @@ jobs:
 
           if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
-            
+
             # Get directories and create JSON array - force compact output with -c
             DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
-            
+
             # Output in the correct format for GitHub Actions
             echo "test-groups=$DIRS" >> "$GITHUB_OUTPUT"
-            
+
             echo "Generated test groups:"
             cat "$GITHUB_OUTPUT"
           else
@@ -166,7 +166,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25.5'
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
