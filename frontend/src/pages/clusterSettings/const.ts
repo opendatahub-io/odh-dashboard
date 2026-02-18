@@ -1,5 +1,6 @@
 import { ClusterSettingsType } from '#~/types';
 
+// Cluster settings constants for PVC and culler configuration
 export const DEFAULT_PVC_SIZE = 20;
 export const MIN_PVC_SIZE = 1;
 export const MAX_PVC_SIZE = 16384;

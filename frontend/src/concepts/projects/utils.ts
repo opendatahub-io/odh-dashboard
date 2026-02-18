@@ -1,6 +1,7 @@
 import { KnownLabels, ProjectKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
+// Project utility functions for data science projects
 export const isAiProject = (project: ProjectKind): boolean => {
   return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
 };

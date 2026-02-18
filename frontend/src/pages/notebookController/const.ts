@@ -1,5 +1,6 @@
 import { NotebookControllerUserState } from '#~/types';
 
+// Notebook controller constants for workbench management
 export const CUSTOM_VARIABLE = 'Custom variable';
 export const EMPTY_KEY = '---NO KEY---';
 export const CURRENT_BROWSER_TAB_PREFERENCE = 'odh.dashboard.kfnbc.tab.preference';
