@@ -37,6 +37,12 @@ import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utili
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
+  isNIMOperatorManaged,
+  getModelNameFromNIMInferenceService,
+  filterNIMSystemEnvVars,
+  getInferenceServiceDisplayName,
+} from '#~/pages/modelServing/screens/global/nimOperatorUtils';
+import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
@@ -176,18 +182,55 @@ export const useCreateInferenceServiceObject = (
 
   const [, setCreateData] = createInferenceServiceState;
 
-  const existingName =
+  // Check if this is a NIM Operator-managed deployment
+  const isNIMManaged = existingData && isNIMOperatorManaged(existingData);
+
+  // For NIM Operator deployments, fetch the display name from NIMService
+  const [existingName, setExistingName] = React.useState<string>(
     existingData?.metadata.annotations?.['openshift.io/display-name'] ||
-    existingData?.metadata.name ||
-    '';
+      existingData?.metadata.name ||
+      '',
+  );
+
+  // Fetch display name from NIMService if this is a NIM Operator deployment
+  React.useEffect(() => {
+    if (existingData && isNIMManaged) {
+      getInferenceServiceDisplayName(existingData)
+        .then((name) => setExistingName(name))
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch display name from NIMService:', error);
+          // Fall back to existing value
+        });
+    }
+  }, [existingData, isNIMManaged]);
+
   const existingStorage =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.storage) || undefined;
   const existingUri =
     useDeepCompareMemoize(existingData?.spec.predictor.model?.storageUri) || undefined;
   const existingServingRuntime = existingData?.spec.predictor.model?.runtime || '';
   const existingProject = existingData?.metadata.namespace || '';
-  const existingFormat =
-    useDeepCompareMemoize(existingData?.spec.predictor.model?.modelFormat) || undefined;
+
+  // Extract format - for NIM Operator, parse from container image
+  const existingFormatFromModel = useDeepCompareMemoize(
+    existingData?.spec.predictor.model?.modelFormat,
+  );
+  const existingFormat = React.useMemo(() => {
+    if (existingFormatFromModel) {
+      return existingFormatFromModel;
+    }
+
+    if (isNIMManaged) {
+      const modelName = getModelNameFromNIMInferenceService(existingData);
+      if (modelName) {
+        return { name: modelName };
+      }
+    }
+
+    return undefined;
+  }, [existingFormatFromModel, isNIMManaged, existingData]);
+
   const existingMinReplicas =
     existingData?.spec.predictor.minReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
   const existingMaxReplicas =
@@ -201,7 +244,24 @@ export const useCreateInferenceServiceObject = (
 
   const existingServingRuntimeArgs = existingData?.spec.predictor.model?.args;
 
-  const existingServingRuntimeEnvVars = existingData?.spec.predictor.model?.env;
+  // Extract env vars - for NIM Operator, get from containers and filter system vars
+  const existingServingRuntimeEnvVars = React.useMemo(() => {
+    const modelEnvVars = existingData?.spec.predictor.model?.env;
+
+    if (modelEnvVars) {
+      return modelEnvVars;
+    }
+
+    if (isNIMManaged) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
+      const predictor = existingData.spec.predictor as any;
+      const containerEnvVars = predictor?.containers?.[0]?.env;
+      // Filter out system-managed env vars that the NIM Operator adds automatically
+      return filterNIMSystemEnvVars(containerEnvVars);
+    }
+
+    return undefined;
+  }, [existingData, isNIMManaged]);
 
   React.useEffect(() => {
     if (existingName) {

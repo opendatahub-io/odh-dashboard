@@ -1,6 +1,6 @@
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersion,
@@ -17,13 +17,18 @@ import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRu
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
 import { SupportedArea } from '#~/concepts/areas/types.ts';
+import { isNIMOperatorManaged } from './nimOperatorUtils';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
+  inferenceService?: InferenceServiceKind;
 };
 
-const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => {
+const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, inferenceService }) => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+
+  // Check if this is a NIM Operator-managed deployment
+  const isNIMManaged = inferenceService && isNIMOperatorManaged(inferenceService);
 
   const templateName = servingRuntime
     ? getTemplateNameFromServingRuntime(servingRuntime)
@@ -40,6 +45,23 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
     return undefined;
   }, [template, templateLoaded, templateError, servingRuntime]);
 
+  // Display for NIM Operator-managed deployments
+  if (isNIMManaged) {
+    return (
+      <Stack>
+        <StackItem>NVIDIA NIM</StackItem>
+        <StackItem>
+          <LabelGroup>
+            <ScopedLabel isProject={false} color="purple" isCompact>
+              Operator-managed
+            </ScopedLabel>
+          </LabelGroup>
+        </StackItem>
+      </Stack>
+    );
+  }
+
+  // Display for regular ServingRuntime-based deployments
   return (
     <>
       {servingRuntime ? (

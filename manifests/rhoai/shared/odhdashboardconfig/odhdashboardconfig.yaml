@@ -9,6 +9,8 @@ spec:
   dashboardConfig:
     # Overrides only -- see blankDashboardCR
     disableTracking: false
+    # NIM Operator integration - set to false after installing NVIDIA NIM Operator to use NIMService objects
+    disableNIMServices: true
   notebookController:
     enabled: true
     pvcSize: "20Gi"
