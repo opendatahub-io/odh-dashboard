@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -23,110 +23,110 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseMCPEndpointParams(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	app := &App{
-		logger: logger,
-	}
+var _ = Describe("ParseMCPEndpointParams", func() {
+	It("should validate all parameter cases", func() {
+		t := GinkgoT()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		app := &App{
+			logger: logger,
+		}
 
-	testCases := []struct {
-		name               string
-		queryParams        map[string]string
-		requireServerURL   bool
-		expectedNamespace  string
-		expectedServerURL  string
-		expectedDecodedURL string
-		expectError        bool
-		expectedErrorMsg   string
-	}{
-		{
-			name: "valid parameters with server URL required",
-			queryParams: map[string]string{
-				"namespace":  "test-namespace",
-				"server_url": "http%3A//localhost%3A9090/sse",
+		testCases := []struct {
+			name               string
+			queryParams        map[string]string
+			requireServerURL   bool
+			expectedNamespace  string
+			expectedServerURL  string
+			expectedDecodedURL string
+			expectError        bool
+			expectedErrorMsg   string
+		}{
+			{
+				name: "valid parameters with server URL required",
+				queryParams: map[string]string{
+					"namespace":  "test-namespace",
+					"server_url": "http%3A//localhost%3A9090/sse",
+				},
+				requireServerURL:   true,
+				expectedNamespace:  "test-namespace",
+				expectedServerURL:  "http%3A//localhost%3A9090/sse",
+				expectedDecodedURL: "http://localhost:9090/sse",
+				expectError:        false,
 			},
-			requireServerURL:   true,
-			expectedNamespace:  "test-namespace",
-			expectedServerURL:  "http%3A//localhost%3A9090/sse",
-			expectedDecodedURL: "http://localhost:9090/sse",
-			expectError:        false,
-		},
-		{
-			name: "valid parameters without server URL required",
-			queryParams: map[string]string{
-				"namespace": "test-namespace",
+			{
+				name: "valid parameters without server URL required",
+				queryParams: map[string]string{
+					"namespace": "test-namespace",
+				},
+				requireServerURL:   false,
+				expectedNamespace:  "test-namespace",
+				expectedServerURL:  "",
+				expectedDecodedURL: "",
+				expectError:        false,
 			},
-			requireServerURL:   false,
-			expectedNamespace:  "test-namespace",
-			expectedServerURL:  "",
-			expectedDecodedURL: "",
-			expectError:        false,
-		},
-		{
-			name: "missing namespace parameter",
-			queryParams: map[string]string{
-				"server_url": "http%3A//localhost%3A9090/sse",
+			{
+				name: "missing namespace parameter",
+				queryParams: map[string]string{
+					"server_url": "http%3A//localhost%3A9090/sse",
+				},
+				requireServerURL: true,
+				expectError:      true,
+				expectedErrorMsg: "namespace parameter is required",
 			},
-			requireServerURL: true,
-			expectError:      true,
-			expectedErrorMsg: "namespace parameter is required",
-		},
-		{
-			name: "missing server URL when required",
-			queryParams: map[string]string{
-				"namespace": "test-namespace",
+			{
+				name: "missing server URL when required",
+				queryParams: map[string]string{
+					"namespace": "test-namespace",
+				},
+				requireServerURL: true,
+				expectError:      true,
+				expectedErrorMsg: "server_url parameter is required",
 			},
-			requireServerURL: true,
-			expectError:      true,
-			expectedErrorMsg: "server_url parameter is required",
-		},
-		{
-			name: "invalid server URL encoding",
-			queryParams: map[string]string{
-				"namespace":  "test-namespace",
-				"server_url": "http://localhost%ZZ",
+			{
+				name: "invalid server URL encoding",
+				queryParams: map[string]string{
+					"namespace":  "test-namespace",
+					"server_url": "http://localhost%ZZ",
+				},
+				requireServerURL: true,
+				expectError:      true,
+				expectedErrorMsg: "invalid server_url parameter",
 			},
-			requireServerURL: true,
-			expectError:      true,
-			expectedErrorMsg: "invalid server_url parameter",
-		},
-		{
-			name: "empty namespace parameter",
-			queryParams: map[string]string{
-				"namespace":  "",
-				"server_url": "http%3A//localhost%3A9090/sse",
+			{
+				name: "empty namespace parameter",
+				queryParams: map[string]string{
+					"namespace":  "",
+					"server_url": "http%3A//localhost%3A9090/sse",
+				},
+				requireServerURL: true,
+				expectError:      true,
+				expectedErrorMsg: "namespace parameter is required",
 			},
-			requireServerURL: true,
-			expectError:      true,
-			expectedErrorMsg: "namespace parameter is required",
-		},
-		{
-			name: "empty server URL when required",
-			queryParams: map[string]string{
-				"namespace":  "test-namespace",
-				"server_url": "",
+			{
+				name: "empty server URL when required",
+				queryParams: map[string]string{
+					"namespace":  "test-namespace",
+					"server_url": "",
+				},
+				requireServerURL: true,
+				expectError:      true,
+				expectedErrorMsg: "server_url parameter is required",
 			},
-			requireServerURL: true,
-			expectError:      true,
-			expectedErrorMsg: "server_url parameter is required",
-		},
-		{
-			name: "complex URL with special characters",
-			queryParams: map[string]string{
-				"namespace":  "production",
-				"server_url": url.QueryEscape("https://api.example.com:8443/mcp/v1?token=abc123&env=prod"),
+			{
+				name: "complex URL with special characters",
+				queryParams: map[string]string{
+					"namespace":  "production",
+					"server_url": url.QueryEscape("https://api.example.com:8443/mcp/v1?token=abc123&env=prod"),
+				},
+				requireServerURL:   true,
+				expectedNamespace:  "production",
+				expectedServerURL:  url.QueryEscape("https://api.example.com:8443/mcp/v1?token=abc123&env=prod"),
+				expectedDecodedURL: "https://api.example.com:8443/mcp/v1?token=abc123&env=prod",
+				expectError:        false,
 			},
-			requireServerURL:   true,
-			expectedNamespace:  "production",
-			expectedServerURL:  url.QueryEscape("https://api.example.com:8443/mcp/v1?token=abc123&env=prod"),
-			expectedDecodedURL: "https://api.example.com:8443/mcp/v1?token=abc123&env=prod",
-			expectError:        false,
-		},
-	}
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Build URL with query parameters
+		for _, tc := range testCases {
 			baseURL := "http://example.com/test"
 			u, err := url.Parse(baseURL)
 			require.NoError(t, err)
@@ -151,85 +151,86 @@ func TestParseMCPEndpointParams(t *testing.T) {
 				assert.Equal(t, tc.expectedServerURL, serverURL)
 				assert.Equal(t, tc.expectedDecodedURL, decodedURL)
 			}
-		})
-	}
-}
+		}
+	})
+})
 
-func TestSetupMCPEndpoint(t *testing.T) {
-	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var _ = Describe("SetupMCPEndpoint", func() {
+	It("should validate all setup scenarios", func() {
+		t := GinkgoT()
+		ctx := context.Background()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
+		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(t, err)
 
-	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
-		config.EnvConfig{MockK8sClient: true},
-		logger,
-	)
+		mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
+			config.EnvConfig{MockK8sClient: true},
+			logger,
+		)
 
-	testCases := []struct {
-		name                  string
-		contextSetup          func(ctx context.Context) context.Context
-		repositories          *repositories.Repositories
-		expectError           bool
-		expectedErrorMsg      string
-		shouldReturnIdentity  bool
-		shouldReturnK8sClient bool
-	}{
-		{
-			name: "valid setup with request identity",
-			contextSetup: func(ctx context.Context) context.Context {
-				return context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-					Token: "FAKE_BEARER_TOKEN",
-				})
+		testCases := []struct {
+			name                  string
+			contextSetup          func(ctx context.Context) context.Context
+			repositories          *repositories.Repositories
+			expectError           bool
+			expectedErrorMsg      string
+			shouldReturnIdentity  bool
+			shouldReturnK8sClient bool
+		}{
+			{
+				name: "valid setup with request identity",
+				contextSetup: func(ctx context.Context) context.Context {
+					return context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+						Token: "FAKE_BEARER_TOKEN",
+					})
+				},
+				repositories:          repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+				expectError:           false,
+				shouldReturnIdentity:  true,
+				shouldReturnK8sClient: true,
 			},
-			repositories:          repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-			expectError:           false,
-			shouldReturnIdentity:  true,
-			shouldReturnK8sClient: true,
-		},
-		{
-			name: "missing request identity in context",
-			contextSetup: func(ctx context.Context) context.Context {
-				return ctx // Don't add RequestIdentity
+			{
+				name: "missing request identity in context",
+				contextSetup: func(ctx context.Context) context.Context {
+					return ctx // Don't add RequestIdentity
+				},
+				repositories:     repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+				expectError:      true,
+				expectedErrorMsg: "missing RequestIdentity in context",
 			},
-			repositories:     repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-			expectError:      true,
-			expectedErrorMsg: "missing RequestIdentity in context",
-		},
-		{
-			name: "nil request identity in context",
-			contextSetup: func(ctx context.Context) context.Context {
-				return context.WithValue(ctx, constants.RequestIdentityKey, (*integrations.RequestIdentity)(nil))
+			{
+				name: "nil request identity in context",
+				contextSetup: func(ctx context.Context) context.Context {
+					return context.WithValue(ctx, constants.RequestIdentityKey, (*integrations.RequestIdentity)(nil))
+				},
+				repositories:     repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+				expectError:      true,
+				expectedErrorMsg: "missing RequestIdentity in context",
 			},
-			repositories:     repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-			expectError:      true,
-			expectedErrorMsg: "missing RequestIdentity in context",
-		},
-		{
-			name: "wrong type in context",
-			contextSetup: func(ctx context.Context) context.Context {
-				return context.WithValue(ctx, constants.RequestIdentityKey, "wrong-type")
+			{
+				name: "wrong type in context",
+				contextSetup: func(ctx context.Context) context.Context {
+					return context.WithValue(ctx, constants.RequestIdentityKey, "wrong-type")
+				},
+				repositories:     repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+				expectError:      true,
+				expectedErrorMsg: "missing RequestIdentity in context",
 			},
-			repositories:     repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-			expectError:      true,
-			expectedErrorMsg: "missing RequestIdentity in context",
-		},
-		{
-			name: "nil MCP client repository",
-			contextSetup: func(ctx context.Context) context.Context {
-				return context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-					Token: "FAKE_BEARER_TOKEN",
-				})
+			{
+				name: "nil MCP client repository",
+				contextSetup: func(ctx context.Context) context.Context {
+					return context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+						Token: "FAKE_BEARER_TOKEN",
+					})
+				},
+				repositories:     repositories.NewRepositories(), // No MCP client
+				expectError:      true,
+				expectedErrorMsg: "MCP client not initialized",
 			},
-			repositories:     repositories.NewRepositories(), // No MCP client
-			expectError:      true,
-			expectedErrorMsg: "MCP client not initialized",
-		},
-	}
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		for _, tc := range testCases {
 			app := &App{
 				logger:                  logger,
 				kubernetesClientFactory: mockK8sFactory,
@@ -254,76 +255,72 @@ func TestSetupMCPEndpoint(t *testing.T) {
 					assert.NotNil(t, k8sClient)
 				}
 			}
-		})
-	}
-}
+		}
+	})
+})
 
-// Note: TestSetupMCPEndpointWithTokenValidation is skipped because the mock MCP factory
-// doesn't fully implement token extraction. This function is tested in integration tests
-// where real implementations are used.
+var _ = Describe("FindMCPServerConfig", func() {
+	It("should validate all server config cases", func() {
+		t := GinkgoT()
+		ctx := context.Background()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-func TestFindMCPServerConfig(t *testing.T) {
-	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(t, err)
 
-	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
+		mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
+			config.EnvConfig{MockK8sClient: true},
+			logger,
+		)
 
-	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
-		config.EnvConfig{MockK8sClient: true},
-		logger,
-	)
+		app := &App{
+			logger:                  logger,
+			kubernetesClientFactory: mockK8sFactory,
+			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+		}
 
-	app := &App{
-		logger:                  logger,
-		kubernetesClientFactory: mockK8sFactory,
-		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-	}
+		identity := &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		}
 
-	identity := &integrations.RequestIdentity{
-		Token: "FAKE_BEARER_TOKEN",
-	}
+		testCtx := context.WithValue(ctx, constants.RequestIdentityKey, identity)
+		k8sClient, err := mockK8sFactory.GetClient(testCtx)
+		require.NoError(t, err)
 
-	// Add request identity to context for k8s client
-	testCtx := context.WithValue(ctx, constants.RequestIdentityKey, identity)
-	k8sClient, err := mockK8sFactory.GetClient(testCtx)
-	require.NoError(t, err)
+		testCases := []struct {
+			name               string
+			decodedURL         string
+			expectError        bool
+			expectedErrorMsg   string
+			expectedServerName string
+		}{
+			{
+				name:               "find existing brave search server",
+				decodedURL:         "http://localhost:9090/sse",
+				expectError:        false,
+				expectedServerName: "brave-search-mcp-server",
+			},
+			{
+				name:               "find existing kubernetes server",
+				decodedURL:         "http://localhost:9091/mcp",
+				expectError:        false,
+				expectedServerName: "kubernetes-mcp-server",
+			},
+			{
+				name:             "server not found",
+				decodedURL:       "https://nonexistent-server.com/mcp",
+				expectError:      true,
+				expectedErrorMsg: "MCP server not found for URL",
+			},
+			{
+				name:               "find server with complex URL",
+				decodedURL:         "https://api.githubcopilot.com/mcp",
+				expectError:        false,
+				expectedServerName: "generic-mcp-server",
+			},
+		}
 
-	testCases := []struct {
-		name               string
-		decodedURL         string
-		expectError        bool
-		expectedErrorMsg   string
-		expectedServerName string
-	}{
-		{
-			name:               "find existing brave search server",
-			decodedURL:         "http://localhost:9090/sse",
-			expectError:        false,
-			expectedServerName: "brave-search-mcp-server",
-		},
-		{
-			name:               "find existing kubernetes server",
-			decodedURL:         "http://localhost:9091/mcp",
-			expectError:        false,
-			expectedServerName: "kubernetes-mcp-server",
-		},
-		{
-			name:             "server not found",
-			decodedURL:       "https://nonexistent-server.com/mcp",
-			expectError:      true,
-			expectedErrorMsg: "MCP server not found for URL",
-		},
-		{
-			name:               "find server with complex URL",
-			decodedURL:         "https://api.githubcopilot.com/mcp",
-			expectError:        false,
-			expectedServerName: "generic-mcp-server",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		for _, tc := range testCases {
 			config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, tc.decodedURL, "test-dashboard-namespace")
 
 			if tc.expectError {
@@ -335,99 +332,100 @@ func TestFindMCPServerConfig(t *testing.T) {
 				assert.NotEqual(t, models.MCPServerConfig{}, config)
 				assert.Equal(t, tc.decodedURL, config.URL)
 			}
-		})
-	}
-}
+		}
+	})
+})
 
-func TestHandleMCPClientError(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	app := &App{
-		logger: logger,
-	}
+var _ = Describe("HandleMCPClientError", func() {
+	It("should validate all error handling cases", func() {
+		t := GinkgoT()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		app := &App{
+			logger: logger,
+		}
 
-	testCases := []struct {
-		name                 string
-		inputError           error
-		expectedStatusCode   int
-		expectedContentType  string
-		expectedBodyContains string
-	}{
-		{
-			name: "NonSSEResponseError",
-			inputError: &mcp.NonSSEResponseError{
-				StatusCode: http.StatusBadRequest,
-				Body:       `{"error": "invalid request"}`,
-				Headers:    http.Header{"Content-Type": []string{"application/json"}},
+		testCases := []struct {
+			name                 string
+			inputError           error
+			expectedStatusCode   int
+			expectedContentType  string
+			expectedBodyContains string
+		}{
+			{
+				name: "NonSSEResponseError",
+				inputError: &mcp.NonSSEResponseError{
+					StatusCode: http.StatusBadRequest,
+					Body:       `{"error": "invalid request"}`,
+					Headers:    http.Header{"Content-Type": []string{"application/json"}},
+				},
+				expectedStatusCode:   http.StatusBadRequest,
+				expectedContentType:  "application/json",
+				expectedBodyContains: "invalid request",
 			},
-			expectedStatusCode:   http.StatusBadRequest,
-			expectedContentType:  "application/json",
-			expectedBodyContains: "invalid request",
-		},
-		{
-			name: "MCPError with status code",
-			inputError: &mcp.MCPError{
-				Code:       mcp.ErrCodeUnauthorized,
-				Message:    "Authentication failed",
-				StatusCode: http.StatusUnauthorized,
+			{
+				name: "MCPError with status code",
+				inputError: &mcp.MCPError{
+					Code:       mcp.ErrCodeUnauthorized,
+					Message:    "Authentication failed",
+					StatusCode: http.StatusUnauthorized,
+				},
+				expectedStatusCode:   http.StatusUnauthorized,
+				expectedBodyContains: "unauthorized",
 			},
-			expectedStatusCode:   http.StatusUnauthorized,
-			expectedBodyContains: "unauthorized",
-		},
-		{
-			name: "MCPError without status code - connection failed",
-			inputError: &mcp.MCPError{
-				Code:    mcp.ErrCodeConnectionFailed,
-				Message: "Cannot connect to server",
+			{
+				name: "MCPError without status code - connection failed",
+				inputError: &mcp.MCPError{
+					Code:    mcp.ErrCodeConnectionFailed,
+					Message: "Cannot connect to server",
+				},
+				expectedStatusCode:   http.StatusServiceUnavailable,
+				expectedBodyContains: "service_unavailable",
 			},
-			expectedStatusCode:   http.StatusServiceUnavailable,
-			expectedBodyContains: "service_unavailable",
-		},
-		{
-			name: "MCPError without status code - timeout",
-			inputError: &mcp.MCPError{
-				Code:    mcp.ErrCodeTimeout,
-				Message: "Request timed out",
+			{
+				name: "MCPError without status code - timeout",
+				inputError: &mcp.MCPError{
+					Code:    mcp.ErrCodeTimeout,
+					Message: "Request timed out",
+				},
+				expectedStatusCode:   http.StatusServiceUnavailable,
+				expectedBodyContains: "service_unavailable",
 			},
-			expectedStatusCode:   http.StatusServiceUnavailable,
-			expectedBodyContains: "service_unavailable",
-		},
-		{
-			name: "MCPError without status code - invalid response",
-			inputError: &mcp.MCPError{
-				Code:    mcp.ErrCodeInvalidResponse,
-				Message: "Invalid server response",
+			{
+				name: "MCPError without status code - invalid response",
+				inputError: &mcp.MCPError{
+					Code:    mcp.ErrCodeInvalidResponse,
+					Message: "Invalid server response",
+				},
+				expectedStatusCode:   http.StatusBadGateway,
+				expectedBodyContains: "bad_gateway",
 			},
-			expectedStatusCode:   http.StatusBadGateway,
-			expectedBodyContains: "bad_gateway",
-		},
-		{
-			name: "MCPError without status code - server unavailable",
-			inputError: &mcp.MCPError{
-				Code:    mcp.ErrCodeServerUnavailable,
-				Message: "Server is down",
+			{
+				name: "MCPError without status code - server unavailable",
+				inputError: &mcp.MCPError{
+					Code:    mcp.ErrCodeServerUnavailable,
+					Message: "Server is down",
+				},
+				expectedStatusCode:   http.StatusServiceUnavailable,
+				expectedBodyContains: "service_unavailable",
 			},
-			expectedStatusCode:   http.StatusServiceUnavailable,
-			expectedBodyContains: "service_unavailable",
-		},
-		{
-			name: "MCPError without status code - unknown error",
-			inputError: &mcp.MCPError{
-				Code:    "UNKNOWN_ERROR",
-				Message: "Something went wrong",
+			{
+				name: "MCPError without status code - unknown error",
+				inputError: &mcp.MCPError{
+					Code:    "UNKNOWN_ERROR",
+					Message: "Something went wrong",
+				},
+				expectedStatusCode:   http.StatusInternalServerError,
+				expectedBodyContains: "internal_server_error",
 			},
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "internal_server_error",
-		},
-		{
-			name:                 "Generic error",
-			inputError:           errors.New("generic error message"),
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "the server encountered a problem",
-		},
-	}
+			{
+				name:                 "Generic error",
+				inputError:           errors.New("generic error message"),
+				expectedStatusCode:   http.StatusInternalServerError,
+				expectedBodyContains: "the server encountered a problem",
+			},
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		for _, tc := range testCases {
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/test", nil)
 
@@ -441,157 +439,166 @@ func TestHandleMCPClientError(t *testing.T) {
 
 			body := rr.Body.String()
 			assert.Contains(t, body, tc.expectedBodyContains)
-		})
-	}
-}
+		}
+	})
+})
 
-func TestGetDefaultStatusCodeForMCPError(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	app := &App{
-		logger: logger,
-	}
+var _ = Describe("GetDefaultStatusCodeForMCPError", func() {
+	It("should map error codes to status codes", func() {
+		t := GinkgoT()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		app := &App{
+			logger: logger,
+		}
 
-	testCases := []struct {
-		errorCode          string
-		expectedStatusCode int
-	}{
-		{mcp.ErrCodeUnauthorized, http.StatusUnauthorized},
-		{mcp.ErrCodeConnectionFailed, http.StatusServiceUnavailable},
-		{mcp.ErrCodeTimeout, http.StatusServiceUnavailable},
-		{mcp.ErrCodeServerUnavailable, http.StatusServiceUnavailable},
-		{mcp.ErrCodeInvalidResponse, http.StatusBadGateway},
-		{"UNKNOWN_ERROR", http.StatusInternalServerError},
-		{"", http.StatusInternalServerError},
-	}
+		testCases := []struct {
+			errorCode          string
+			expectedStatusCode int
+		}{
+			{mcp.ErrCodeUnauthorized, http.StatusUnauthorized},
+			{mcp.ErrCodeConnectionFailed, http.StatusServiceUnavailable},
+			{mcp.ErrCodeTimeout, http.StatusServiceUnavailable},
+			{mcp.ErrCodeServerUnavailable, http.StatusServiceUnavailable},
+			{mcp.ErrCodeInvalidResponse, http.StatusBadGateway},
+			{"UNKNOWN_ERROR", http.StatusInternalServerError},
+			{"", http.StatusInternalServerError},
+		}
 
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("error_code_%s", tc.errorCode), func(t *testing.T) {
+		for _, tc := range testCases {
 			statusCode := app.getDefaultStatusCodeForMCPError(tc.errorCode)
 			assert.Equal(t, tc.expectedStatusCode, statusCode)
-		})
-	}
-}
+		}
+	})
+})
 
-func TestMapMCPErrorToHTTPError(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	app := &App{
-		logger: logger,
-	}
+var _ = Describe("MapMCPErrorToHTTPError", func() {
+	It("should map MCP errors to HTTP errors", func() {
+		t := GinkgoT()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		app := &App{
+			logger: logger,
+		}
 
-	testCases := []struct {
-		name               string
-		mcpError           *mcp.MCPError
-		statusCode         int
-		expectedCode       string
-		expectedStatusCode int
-		expectedMessage    string
-	}{
-		{
-			name: "unauthorized error",
-			mcpError: &mcp.MCPError{
-				Code:    mcp.ErrCodeUnauthorized,
-				Message: "Invalid credentials",
+		testCases := []struct {
+			name               string
+			mcpError           *mcp.MCPError
+			statusCode         int
+			expectedCode       string
+			expectedStatusCode int
+			expectedMessage    string
+		}{
+			{
+				name: "unauthorized error",
+				mcpError: &mcp.MCPError{
+					Code:    mcp.ErrCodeUnauthorized,
+					Message: "Invalid credentials",
+				},
+				statusCode:         http.StatusUnauthorized,
+				expectedCode:       "unauthorized",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedMessage:    "Invalid credentials",
 			},
-			statusCode:         http.StatusUnauthorized,
-			expectedCode:       "unauthorized",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedMessage:    "Invalid credentials",
-		},
-		{
-			name: "forbidden error",
-			mcpError: &mcp.MCPError{
-				Code:    "FORBIDDEN",
-				Message: "Access denied",
+			{
+				name: "forbidden error",
+				mcpError: &mcp.MCPError{
+					Code:    "FORBIDDEN",
+					Message: "Access denied",
+				},
+				statusCode:         http.StatusForbidden,
+				expectedCode:       "forbidden",
+				expectedStatusCode: http.StatusForbidden,
+				expectedMessage:    "Access denied",
 			},
-			statusCode:         http.StatusForbidden,
-			expectedCode:       "forbidden",
-			expectedStatusCode: http.StatusForbidden,
-			expectedMessage:    "Access denied",
-		},
-		{
-			name: "service unavailable error",
-			mcpError: &mcp.MCPError{
-				Code:    mcp.ErrCodeServerUnavailable,
-				Message: "Server is down",
+			{
+				name: "service unavailable error",
+				mcpError: &mcp.MCPError{
+					Code:    mcp.ErrCodeServerUnavailable,
+					Message: "Server is down",
+				},
+				statusCode:         http.StatusServiceUnavailable,
+				expectedCode:       "service_unavailable",
+				expectedStatusCode: http.StatusServiceUnavailable,
+				expectedMessage:    "Server is down",
 			},
-			statusCode:         http.StatusServiceUnavailable,
-			expectedCode:       "service_unavailable",
-			expectedStatusCode: http.StatusServiceUnavailable,
-			expectedMessage:    "Server is down",
-		},
-		{
-			name: "bad gateway error",
-			mcpError: &mcp.MCPError{
-				Code:    mcp.ErrCodeInvalidResponse,
-				Message: "Invalid server response",
+			{
+				name: "bad gateway error",
+				mcpError: &mcp.MCPError{
+					Code:    mcp.ErrCodeInvalidResponse,
+					Message: "Invalid server response",
+				},
+				statusCode:         http.StatusBadGateway,
+				expectedCode:       "bad_gateway",
+				expectedStatusCode: http.StatusBadGateway,
+				expectedMessage:    "Invalid response from MCP server: Invalid server response",
 			},
-			statusCode:         http.StatusBadGateway,
-			expectedCode:       "bad_gateway",
-			expectedStatusCode: http.StatusBadGateway,
-			expectedMessage:    "Invalid response from MCP server: Invalid server response",
-		},
-		{
-			name: "internal server error",
-			mcpError: &mcp.MCPError{
-				Code:    mcp.ErrCodeInternalError,
-				Message: "Internal error occurred",
+			{
+				name: "internal server error",
+				mcpError: &mcp.MCPError{
+					Code:    mcp.ErrCodeInternalError,
+					Message: "Internal error occurred",
+				},
+				statusCode:         http.StatusInternalServerError,
+				expectedCode:       "internal_server_error",
+				expectedStatusCode: http.StatusInternalServerError,
+				expectedMessage:    "Internal error occurred",
 			},
-			statusCode:         http.StatusInternalServerError,
-			expectedCode:       "internal_server_error",
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedMessage:    "Internal error occurred",
-		},
-		{
-			name: "unknown status code",
-			mcpError: &mcp.MCPError{
-				Code:    "CUSTOM_ERROR",
-				Message: "Custom error message",
+			{
+				name: "unknown status code",
+				mcpError: &mcp.MCPError{
+					Code:    "CUSTOM_ERROR",
+					Message: "Custom error message",
+				},
+				statusCode:         http.StatusTeapot, // Unusual status code
+				expectedCode:       "mcp_error",
+				expectedStatusCode: http.StatusBadGateway, // Should be mapped to bad gateway
+				expectedMessage:    "MCP server error (HTTP 418): Custom error message",
 			},
-			statusCode:         http.StatusTeapot, // Unusual status code
-			expectedCode:       "mcp_error",
-			expectedStatusCode: http.StatusBadGateway, // Should be mapped to bad gateway
-			expectedMessage:    "MCP server error (HTTP 418): Custom error message",
-		},
-	}
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		for _, tc := range testCases {
 			httpError := app.mapMCPErrorToHTTPError(tc.mcpError, tc.statusCode)
 
 			assert.Equal(t, tc.expectedStatusCode, httpError.StatusCode)
 			assert.Equal(t, tc.expectedCode, httpError.Code)
 			assert.Equal(t, tc.expectedMessage, httpError.Message)
-		})
-	}
-}
+		}
+	})
+})
 
-// Integration test combining multiple helper functions
-func TestMCPHelpersIntegration(t *testing.T) {
-	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
-
-	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
-		config.EnvConfig{MockK8sClient: true},
-		logger,
+var _ = Describe("MCPHelpersIntegration", func() {
+	var (
+		app *App
+		ctx context.Context
 	)
 
-	app := &App{
-		logger:                  logger,
-		kubernetesClientFactory: mockK8sFactory,
-		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-		mcpClientFactory:        mockMCPFactory,
-	}
-	defer func() {
-		if err := app.Shutdown(); err != nil {
-			t.Errorf("Failed to shutdown app: %v", err)
-		}
-	}()
+	BeforeEach(func() {
+		ctx = context.Background()
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	t.Run("complete flow with valid parameters", func(t *testing.T) {
-		// Step 1: Parse parameters
+		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(GinkgoT(), err)
+
+		mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
+			config.EnvConfig{MockK8sClient: true},
+			logger,
+		)
+
+		app = &App{
+			logger:                  logger,
+			kubernetesClientFactory: mockK8sFactory,
+			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+			mcpClientFactory:        mockMCPFactory,
+		}
+		DeferCleanup(func() {
+			if err := app.Shutdown(); err != nil {
+				GinkgoT().Errorf("Failed to shutdown app: %v", err)
+			}
+		})
+	})
+
+	It("complete flow with valid parameters", func() {
+		t := GinkgoT()
+
 		serverURL := "http://localhost:9090/sse"
 		encodedURL := url.QueryEscape(serverURL)
 		requestURL := fmt.Sprintf("/test?namespace=demo&server_url=%s", encodedURL)
@@ -604,7 +611,6 @@ func TestMCPHelpersIntegration(t *testing.T) {
 		assert.Equal(t, "demo", namespace)
 		assert.Equal(t, serverURL, decodedURL)
 
-		// Step 2: Setup endpoint (without token validation since mock doesn't support it fully)
 		testCtx := context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -615,21 +621,20 @@ func TestMCPHelpersIntegration(t *testing.T) {
 		assert.NotNil(t, k8sClient)
 		assert.Equal(t, "FAKE_BEARER_TOKEN", identity.Token)
 
-		// Step 3: Find server config
 		config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, decodedURL, "test-dashboard-namespace")
 		require.NoError(t, err)
 		assert.Equal(t, serverURL, config.URL)
 	})
 
-	t.Run("error handling flow", func(t *testing.T) {
-		// Test error handling with invalid parameters
+	It("error handling flow", func() {
+		t := GinkgoT()
+
 		req := httptest.NewRequest("GET", "/test?namespace=demo", nil) // Missing server_url
 
 		_, _, _, err := app.parseMCPEndpointParams(req, true)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "server_url parameter is required")
 
-		// Test error handling with ResponseWriter
 		rr := httptest.NewRecorder()
 		mcpErr := &mcp.MCPError{
 			Code:    mcp.ErrCodeUnauthorized,
@@ -639,4 +644,4 @@ func TestMCPHelpersIntegration(t *testing.T) {
 		app.handleMCPClientError(rr, req, mcpErr)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
-}
+})
