@@ -36,7 +36,7 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 
 ## Project Structure
 
-```
+```text
 packages/autorag/
 ├── api/openapi/
 │   └── autorag.yaml         # OpenAPI 3.0 specification
@@ -59,7 +59,7 @@ packages/autorag/
 
 ### Environment Configuration
 
-For local development, make sure to create `.env.local` files in `/packages/autorag` and in the root of the repository using the accompanying `.env.local.example` to customize environment variables:
+For local development, make sure to create a `.env.local` file in `/packages/autorag` using the accompanying `.env.local.example` to customize environment variables:
 
 ```bash
 # Copy the example environment file to create your local configuration
@@ -153,6 +153,7 @@ Key environment variables for the BFF:
 | `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
 | `DEV_MODE`          | Enables development features             | false      |
 | `MOCK_K8S_CLIENT`   | Use in-memory mock for Kubernetes        | false      |
+| `MOCK_HTTP_CLIENT`  | Use in-memory mock for HTTP client       | false      |
 | `STATIC_ASSETS_DIR` | Directory for frontend assets            | ./static   |
 | `LOG_LEVEL`         | Logging level (ERROR, WARN, INFO, DEBUG) | INFO       |
 

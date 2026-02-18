@@ -94,7 +94,7 @@ Before creating a pull request, verify:
 
 Use conventional commit format for clear history:
 
-```
+```text
 <type>: <brief description (max 72 chars)>
 
 <optional detailed explanation>
@@ -111,7 +111,7 @@ Related to <JIRA-ISSUE-KEY>
 - `chore` - Maintenance tasks, dependency updates
 
 **Example:**
-```
+```text
 feat: Add experiment status polling to dashboard
 
 Implement automatic polling every 30s to fetch experiment
@@ -174,10 +174,6 @@ Related to RHOAIENG-5678
 
 **AutoRAG Specific:**
 - [AutoRAG README](README.md) - Getting started and quick reference
-
-**AutoRAG Architecture:**
-- [AutoRAG Architecture](https://github.com/LukaszCmielowski/architecture-decision-records/blob/autox_arch_docs/documentation/components/autorag/README.md) - Overall design
-- [AutoRAG Engine ADRs](https://github.com/LukaszCmielowski/architecture-decision-records/tree/autorag_adr_docs/architecture-decision-records/autorag) - Core optimization engine decisions
 
 **ODH Dashboard:**
 - [ODH Contributing Guide](/CONTRIBUTING.md) - General contribution guidelines

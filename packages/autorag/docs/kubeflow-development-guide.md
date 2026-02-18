@@ -5,13 +5,13 @@
 ## Prerequisites
 
 - [Kubeflow repo](https://github.com/kubeflow/kubeflow/tree/master/components/centraldashboard#development)
-- [Mod Arch repo](../README.md)
+- [AutoRAG repo](../README.md)
 
 ## Setup
 
 ### Kubeflow repo (under centraldashboard)
 
-1. Change the [webpack config](https://github.com/kubeflow/kubeflow/blob/master/components/centraldashboard/webpack.config.js#L186) proxies to allow Mod Arch:
+1. Change the [webpack config](https://github.com/kubeflow/kubeflow/blob/master/components/centraldashboard/webpack.config.js#L186) proxies to allow AutoRAG:
 
 ```js
 // Add this to your webpack.config.js devServer options
@@ -36,7 +36,7 @@ module.exports = {
 npm run dev
 ```
 
-### Mod Arch repo
+### AutoRAG repo
 
 1. Just run the repo in kubeflow dev mode
 
@@ -46,7 +46,7 @@ make dev-start-kubeflow
 
 ### Access the cluster
 
-You need to have a kubeflow cluster up and running, to get the Mod Arch working you'll need to port-forward these two services:
+You need to have a kubeflow cluster up and running, to get the AutoRAG working you'll need to port-forward these two services:
 
 ```shell
 kubectl port-forward service/mod-arch-service 8085:8080 -n <targeted-namespace-of-the-mr-service>

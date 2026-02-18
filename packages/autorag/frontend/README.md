@@ -60,7 +60,7 @@ npm install && npm run start:dev
 
 ### Core Configuration Files
 
-```
+```text
 autorag/frontend/
 ├── tsconfig.json          # TypeScript compiler options
 ├── jest.config.js         # Jest testing configuration
