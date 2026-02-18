@@ -104,14 +104,26 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return filterEnabledConnectionTypes(modelServingConnectionTypes);
   }, [modelServingConnectionTypes]);
 
-  const uriConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
-    isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
+  const uriConnectionTypes = React.useMemo(
+    () =>
+      filteredModelServingConnectionTypes.filter((t) =>
+        isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
+      ),
+    [filteredModelServingConnectionTypes],
   );
-  const ociConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
-    isModelServingCompatible(t, ModelServingCompatibleTypes.OCI),
+  const ociConnectionTypes = React.useMemo(
+    () =>
+      filteredModelServingConnectionTypes.filter((t) =>
+        isModelServingCompatible(t, ModelServingCompatibleTypes.OCI),
+      ),
+    [filteredModelServingConnectionTypes],
   );
-  const s3ConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
-    isModelServingCompatible(t, ModelServingCompatibleTypes.S3ObjectStorage),
+  const s3ConnectionTypes = React.useMemo(
+    () =>
+      filteredModelServingConnectionTypes.filter((t) =>
+        isModelServingCompatible(t, ModelServingCompatibleTypes.S3ObjectStorage),
+      ),
+    [filteredModelServingConnectionTypes],
   );
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
   const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
