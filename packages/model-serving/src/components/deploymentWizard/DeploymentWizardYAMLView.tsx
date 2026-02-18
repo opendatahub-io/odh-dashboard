@@ -10,6 +10,7 @@ import {
   EmptyState,
   EmptyStateBody,
 } from '@patternfly/react-core';
+import { CodeIcon } from '@patternfly/react-icons';
 
 export const DeploymentWizardYAMLView: React.FC = () => {
   const [code, setCode] = React.useState('');
@@ -30,6 +31,7 @@ export const DeploymentWizardYAMLView: React.FC = () => {
           emptyState={
             <Bullseye>
               <EmptyState
+                icon={CodeIcon}
                 headingLevel="h4"
                 titleText="No YAML available"
                 data-testid="yaml-editor-empty-state"
@@ -41,7 +43,7 @@ export const DeploymentWizardYAMLView: React.FC = () => {
           data-testid="yaml-editor"
           code={code}
           onCodeChange={setCode}
-          language={Language.plaintext}
+          language={Language.yaml}
           isLanguageLabelVisible
         />
       </StackItem>
