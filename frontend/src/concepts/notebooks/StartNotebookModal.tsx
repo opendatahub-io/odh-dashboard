@@ -107,7 +107,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
-  const kueueStatus = kueueStatusProp ?? null;
+  const kueueStatus = kueueStatusProp;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
   React.useEffect(() => {
