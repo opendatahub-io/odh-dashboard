@@ -102,6 +102,8 @@ import icon from '~/app/assets/icons/workflow.svg';
 <span dangerouslySetInnerHTML={{ __html: icon }} />
 ```
 
+> **⚠️ Security Note**: This pattern is safe only for SVG files imported at build time via webpack. Never use `dangerouslySetInnerHTML` with SVG content from external or user-supplied sources.
+
 **CSS background SVG** (must be in `bgimages/` directory):
 ```css
 .workflow-container {
