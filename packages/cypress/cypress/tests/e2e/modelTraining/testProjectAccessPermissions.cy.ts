@@ -122,7 +122,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify project access for user types 
 
   it(
     'Admin can access project and view training job',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -145,7 +145,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify project access for user types 
 
   it(
     'Regular user cannot access project without permissions',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -165,7 +165,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify project access for user types 
 
   it(
     'Regular user can access project after admin grants permission',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
       if (shouldSkip()) {
         return;

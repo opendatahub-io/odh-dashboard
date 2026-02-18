@@ -6,7 +6,7 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
-describe('[Product Bug: RHOAIENG-49260] Verify RHODS Explore Section Contains Only Expected ISVs', () => {
+describe('[Automation Bug: RHOAIENG-49260] Verify RHODS Explore Section Contains Only Expected ISVs', () => {
   let expectedISVs: string[];
 
   retryableBefore(() => {

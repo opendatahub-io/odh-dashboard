@@ -6,10 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	"log/slog"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -20,33 +20,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestModelsAAHandler(t *testing.T) {
-	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-	require.NoError(t, err)
+var _ = Describe("ModelsAAHandler", func() {
+	var app App
 
-	// Create test app with real mock infrastructure
-	llamaStackClientFactory := lsmocks.NewMockClientFactory()
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  slog.Default(),
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: llamaStackClientFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
 
-	// Test successful case
-	t.Run("should return 200 with AA models data when models are found", func(t *testing.T) {
-		// Create request with proper context
+		llamaStackClientFactory := lsmocks.NewMockClientFactory()
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+	})
+
+	It("should return 200 with AA models data when models are found", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa", nil)
 		assert.NoError(t, err)
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "FAKE_BEARER_TOKEN", // Use one of the default test tokens
+			Token: "FAKE_BEARER_TOKEN",
 		})
 		req = req.WithContext(ctx)
 
@@ -73,7 +74,6 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.True(t, ok, "Data should be an array")
 		assert.Len(t, dataArray, 8, "Should return 8 mock AA models for mock-test-namespace-2 (5 InferenceService + 3 LLMInferenceService)")
 
-		// Check first model (granite-7b-code)
 		firstModel, ok := dataArray[0].(map[string]interface{})
 		assert.True(t, ok, "First model should be a map")
 		assert.Equal(t, "granite-7b-code", firstModel["model_name"])
@@ -84,14 +84,12 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "IBM Granite 7B model specialized for code generation tasks", firstModel["description"])
 		assert.Equal(t, "Running", firstModel["status"])
 
-		// Check endpoints array
 		endpoints, ok := firstModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Endpoints should be an array")
 		assert.Len(t, endpoints, 2, "Should have 2 endpoints")
 		assert.Equal(t, "internal: http://granite-7b-code.mock-test-namespace-2.svc.cluster.local:8080", endpoints[0])
 		assert.Equal(t, "external: https://granite-7b-code-mock-test-namespace-2.example.com", endpoints[1])
 
-		// Check second model (llama-3.1-8b-instruct)
 		secondModel, ok := dataArray[1].(map[string]interface{})
 		assert.True(t, ok, "Second model should be a map")
 		assert.Equal(t, "llama-3.1-8b-instruct", secondModel["model_name"])
@@ -102,14 +100,12 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "Meta Llama 3.1 8B parameter model optimized for instruction following", secondModel["description"])
 		assert.Equal(t, "Running", secondModel["status"])
 
-		// Check second model endpoints
 		secondEndpoints, ok := secondModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Second model endpoints should be an array")
 		assert.Len(t, secondEndpoints, 2, "Should have 2 endpoints")
 		assert.Equal(t, "internal: http://llama-3.1-8b-instruct.mock-test-namespace-2.svc.cluster.local:8080", secondEndpoints[0])
 		assert.Equal(t, "external: https://llama-3.1-8b-instruct-mock-test-namespace-2.example.com", secondEndpoints[1])
 
-		// Check third model
 		thirdModel, ok := dataArray[2].(map[string]interface{})
 		assert.True(t, ok, "Third model should be a map")
 		assert.Equal(t, "mistral-7b-instruct", thirdModel["model_name"])
@@ -120,13 +116,11 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "Mistral 7B instruction-tuned model for general purpose tasks", thirdModel["description"])
 		assert.Equal(t, "Stop", thirdModel["status"])
 
-		// Check third model endpoints
 		thirdEndpoints, ok := thirdModel["endpoints"].([]interface{})
 		assert.True(t, ok, "Third model endpoints should be an array")
 		assert.Len(t, thirdEndpoints, 1, "Should have 1 endpoint")
 		assert.Equal(t, "internal: http://mistral-7b-instruct.mock-test-namespace-2.svc.cluster.local:8080", thirdEndpoints[0])
 
-		// Check fourth model (ollama/llama3.2:3b)
 		fourthModel, ok := dataArray[3].(map[string]interface{})
 		assert.True(t, ok, "Fourth model should be a map")
 		assert.Equal(t, "ollama/llama3.2:3b", fourthModel["model_name"])
@@ -137,7 +131,6 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "Meta Llama 3.2 3B parameter model optimized for efficiency and performance", fourthModel["description"])
 		assert.Equal(t, "Running", fourthModel["status"])
 
-		// Check fifth model (ollama/all-minilm:l6-v2)
 		fifthModel, ok := dataArray[4].(map[string]interface{})
 		assert.True(t, ok, "Fifth model should be a map")
 		assert.Equal(t, "ollama/all-minilm:l6-v2", fifthModel["model_name"])
@@ -149,8 +142,8 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "Running", fifthModel["status"])
 	})
 
-	// Test error cases - simple parameter validation
-	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
+	It("should return error when namespace is missing from context", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa", nil)
 		assert.NoError(t, err)
 
@@ -174,11 +167,11 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "missing namespace in the context")
 	})
 
-	t.Run("should return error when RequestIdentity is missing from context", func(t *testing.T) {
+	It("should return error when RequestIdentity is missing from context", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa", nil)
 		assert.NoError(t, err)
 
-		// Add namespace to context but no RequestIdentity
 		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		req = req.WithContext(ctx)
 
@@ -201,4 +194,4 @@ func TestModelsAAHandler(t *testing.T) {
 		assert.Equal(t, "401", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "missing RequestIdentity in context")
 	})
-}
+})
