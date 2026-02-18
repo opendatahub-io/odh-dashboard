@@ -183,12 +183,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
 		}
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
-	} else {
-		if cfg.MLflowURL == "" {
-			return nil, fmt.Errorf("mlflow-url is required when mock-mlflow-client is disabled")
-		}
+	} else if cfg.MLflowURL != "" {
 		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
 		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL)
+	} else {
+		logger.Warn("MLflow URL not configured, MLflow endpoints will return 503")
+		mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
 	}
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
