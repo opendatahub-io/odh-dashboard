@@ -2,7 +2,7 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
 import { HardwareProfileBindingConfig, CrPathConfig } from './types';
 
-// Constants for hardware profile configuration and binding states
+// Hardware profile constants for resource allocation and tolerations
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';
 
