@@ -1102,17 +1102,17 @@ describe('Pipelines', () => {
     // Open the "Upload new version" modal
     pipelinesGlobal.findUploadVersionButton().click();
 
-    // Fill out the "Upload new version" modal
+    // Fill out the "Upload new version" modal and submit
     pipelineVersionImportModal.shouldBeOpen();
     pipelineVersionImportModal.selectPipelineByName('Test pipeline');
     pipelineVersionImportModal.fillVersionName('Argo workflow version');
     pipelineVersionImportModal.fillVersionDescription('Argo workflow version description');
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineVersionImportModal.submit();
 
-    // Verify error appears and submit button is disabled
+    // Verify error appears
     pipelineVersionImportModal.findImportModalError().should('exist');
     pipelineVersionImportModal.findImportModalError().contains('Unsupported pipeline version');
-    pipelineVersionImportModal.findSubmitButton().should('be.disabled');
   });
 
   it('imports a new pipeline version by url', () => {
