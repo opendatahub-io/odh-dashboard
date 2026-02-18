@@ -73,40 +73,43 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+
   # =============================================================================
-  # LLAMASTACK ENDPOINTS
+  # LSD ENDPOINTS
   # =============================================================================
-  /api/v1/llamastack/models:
-    summary: List available LlamaStack models
+  
+  /api/v1/lsd/models:
+    summary: List available LSD models
     description: >-
-      Lists all available models from LlamaStack instance, categorized by type (LLM vs embedding).
-      Returns models with their identifiers, creation timestamps, ownership information, and type categorization.
+      Lists all available models from LlamaStack Distribution (LSD).
+      Each model includes a type field (llm or embedding).
+      Returns models with their identifiers, creation timestamps, ownership information, and type.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
-        - LlamaStack
+        - LSD
       security:
         - Bearer: []
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace where LlamaStack is deployed
+          description: Kubernetes namespace where LSD is deployed
           required: true
           schema:
             type: string
             example: 'default'
       responses:
         "200":
-          $ref: "#/components/responses/LlamaStackModelsResponse"
+          $ref: "#/components/responses/LSDModelsResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
-      operationId: getLlamaStackModels
-      summary: Get LlamaStack Models
-      description: Returns available models from LlamaStack instance categorized by type
+      operationId: getLSDModels
+      summary: Get LSD Models
+      description: Returns available models from LlamaStack Distribution categorized by type
 components:
   schemas:
     Config:
@@ -121,12 +124,12 @@ components:
         clusterAdmin:
           type: boolean
           example: true
-    # LlamaStack Model Schemas
-    LlamaStackModel:
+
+    # LSD Model Schemas
+    LSDModel:
       type: object
       required:
         - id
-        - object
         - type
         - created
         - ownedBy
@@ -135,10 +138,6 @@ components:
           type: string
           description: Model identifier
           example: "ollama/llama3.2:3b"
-        object:
-          type: string
-          description: Object type (always "model")
-          example: "model"
         type:
           type: string
           enum: ["llm", "embedding"]
@@ -153,22 +152,28 @@ components:
           type: string
           description: Model owner/provider
           example: "llama_stack"
-    LlamaStackModelsData:
+    LSDModelList:
       type: object
       required:
+        - models
         - llm_models
         - embedding_models
       properties:
+        models:
+          type: array
+          description: Complete list of all LSD models with type field for categorization
+          items:
+            $ref: '#/components/schemas/LSDModel'
         llm_models:
           type: array
-          description: List of LLM models
+          description: Pre-filtered list of LLM models only
           items:
-            $ref: '#/components/schemas/LlamaStackModel'
+            $ref: '#/components/schemas/LSDModel'
         embedding_models:
           type: array
-          description: List of embedding models
+          description: Pre-filtered list of embedding models only
           items:
-            $ref: '#/components/schemas/LlamaStackModel'
+            $ref: '#/components/schemas/LSDModel'
 
     BaseResource:
       allOf:
@@ -285,9 +290,10 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
-    # LlamaStack Responses
-    LlamaStackModelsResponse:
-      description: List of available LlamaStack models categorized by type
+
+    # LSD Responses
+    LSDModelsResponse:
+      description: List of available LSD models with type field for categorization
       content:
         application/json:
           schema:
@@ -297,29 +303,42 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: '#/components/schemas/LlamaStackModelsData'
+                $ref: '#/components/schemas/LSDModelList'
           example:
             metadata: {}
             data:
-              llm_models:
+              models:
                 - id: "ollama/llama3.2:3b"
-                  object: "model"
                   type: "llm"
                   created: 1755721063
                   ownedBy: "llama_stack"
                 - id: "mistral-7b-instruct"
-                  object: "model"
+                  type: "llm"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+                - id: "ollama/all-minilm:l6-v2"
+                  type: "embedding"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+                - id: "nomic-embed-text"
+                  type: "embedding"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+              llm_models:
+                - id: "ollama/llama3.2:3b"
+                  type: "llm"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+                - id: "mistral-7b-instruct"
                   type: "llm"
                   created: 1755721063
                   ownedBy: "llama_stack"
               embedding_models:
                 - id: "ollama/all-minilm:l6-v2"
-                  object: "model"
                   type: "embedding"
                   created: 1755721063
                   ownedBy: "llama_stack"
                 - id: "nomic-embed-text"
-                  object: "model"
                   type: "embedding"
                   created: 1755721063
                   ownedBy: "llama_stack"
@@ -435,5 +454,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
-  - name: LlamaStack
-    description: LlamaStack model operations
+  - name: LSD
+    description: LlamaStack Distribution (LSD) operations
