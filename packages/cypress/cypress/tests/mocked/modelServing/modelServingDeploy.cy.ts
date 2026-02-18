@@ -1692,7 +1692,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
   });
 
-  it('Should show YAML preview mode when LLMd is selected', () => {
+  it('Should show YAML preview mode when toggled', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
