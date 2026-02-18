@@ -9,7 +9,6 @@ import {
   deleteTierModal,
   maasWizardField,
 } from '../../../../pages/modelsAsAService';
-import { htpasswd } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { loadTiersFixture, loadDSPFixture } from '../../../../utils/dataLoader';
 import type { TiersTestData, DataScienceProjectData } from '../../../../types';
@@ -27,11 +26,13 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 
 describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () => {
   let testData: TiersTestData;
   let projectName: string;
+  let contributor: string;
   let name: string;
   let description: string;
   let groups: string[];
@@ -75,6 +76,7 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
     loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         dspTestData = fixtureData;
+        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         projectName = `${dspTestData.projectResourceName}-${uuid}`;
         modelName = dspTestData.singleModelName;
         modelURI = dspTestData.modelLocationURI;
@@ -87,6 +89,7 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       .then(() => {
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
+        addUserToProject(projectName, contributor, 'edit');
         // Load Hardware Profile
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
         // Cleanup Hardware Profile if it already exists
@@ -104,13 +107,13 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
   it(
-    'Verify Tiers Creation in UI',
+    'Verify Tiers Creation and Deploy Model with Tier and Delete Tier',
     {
-      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@Tiers'],
+      tags: ['@Smoke', '@Dashboard', '@Tiers', '@devFeatureFlags'],
     },
     () => {
-      cy.step('Log into the application');
-      cy.visitWithLogin('/', htpasswd);
+      cy.step('Log into the application as cluster admin');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Tiers page');
       tiersPage.visit();
@@ -151,7 +154,6 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       tierDetailsPage
         .findLimits(`${tokenRateLimit.count} tokens per ${tokenRateLimit.time} hour`)
         .should('exist');
-      //tierDetailsPage.findLimits(`${requestRateLimit.count} requests per ${requestRateLimit.time} second').should('exist`);
 
       cy.step('Edit the tier');
       tierDetailsPage.findActionsButton().click();
@@ -178,6 +180,8 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       tierRow.findLimits().should('contain.text', limits);
 
       cy.step('Deploy model with this test Resource Tier');
+      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
@@ -198,9 +202,8 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       modelServingWizard.findNextButton().should('be.enabled').click();
       // Check the Save as MaaS checkbox and select the Specific tiers option and set the created tier name
       maasWizardField.findSaveAsMaaSCheckbox().click();
-      maasWizardField.findMaaSTierDropdown().click();
       maasWizardField.selectMaaSTierOption('Specific tiers');
-      maasWizardField.findMaaSTierNamesInput().clear().type(name);
+      maasWizardField.selectMaaSTierNames([name]);
 
       modelServingWizard.findNextButton().click();
       modelServingWizard.findSubmitButton().click();
@@ -208,7 +211,9 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       patchOpenShiftResource(resourceType, modelName, Image, projectName);
       cy.step('Verify that the Model is ready');
       checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
-      tiersPage.visit();
+
+      cy.step('Log into the application as cluster admin');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify Level Error');
       // create a new tier with the same name and level to verify the level and name error
