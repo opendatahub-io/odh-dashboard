@@ -59,7 +59,7 @@ describe('Verify Project - Creation and Deletion', () => {
         '@ODS-1783',
         '@ODS-1775',
         '@Dashboard',
-        '@ci-dashboard-set-1',
+        '@ci-dashboard-regression-tags',
         '@ProjectsCI',
       ],
     },

@@ -15,8 +15,7 @@ name: Cypress e2e Test
 #
 # TEST SELECTION (priority order):
 #   Default (always run):
-#     - @ci-dashboard-set-1
-#     - @ci-dashboard-set-2
+#     - @ci-dashboard-regression-tags
 #
 #   1. Manual input (workflow_dispatch):
 #      Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
@@ -386,7 +385,7 @@ jobs:
           MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
           
           # Defaults - these ALWAYS run
-          TAGS="@ci-dashboard-set-1,@ci-dashboard-set-2"
+          TAGS="@ci-dashboard-regression-tags"
           SOURCE="default"
           EXTRA_COUNT=0
           AUTO_DETECTED_ENTRY=""
