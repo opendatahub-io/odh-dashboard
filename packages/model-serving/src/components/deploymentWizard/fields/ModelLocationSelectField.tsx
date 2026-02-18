@@ -60,17 +60,14 @@ export type ModelLocationField = {
 const s3Option = {
   key: 'S3',
   label: 'S3 object storage',
-  value: ModelLocationType.NEW,
 };
 const ociOption = {
   key: 'OCI',
   label: 'OCI compliant registry',
-  value: ModelLocationType.NEW,
 };
 const uriOption = {
   key: 'URI',
   label: 'URI',
-  value: ModelLocationType.NEW,
 };
 
 type ModelLocationSelectFieldProps = {
@@ -97,7 +94,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   selectedConnection,
   pvcs,
 }) => {
-  const [modelServingConnectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
 
   // Filtered types for the dropdown so only enabled types are shown
   const filteredModelServingConnectionTypes = React.useMemo(() => {
@@ -216,10 +213,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     }
   }, [
     modelLocationData?.connectionTypeObject,
-    connectionTypesLoaded,
     selectedKey,
-    selectedConnection,
-    modelLocation,
     s3ConnectionTypes,
     ociConnectionTypes,
     uriConnectionTypes,
