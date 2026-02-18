@@ -395,6 +395,9 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx)
 		if err != nil {
 			if errors.Is(err, mlflowpkg.ErrMLflowNotConfigured) {
+				logger := helper.GetContextLoggerFromReq(r)
+				logger.Warn("MLflow endpoint called but MLflow is not configured",
+					"method", r.Method, "uri", r.URL.RequestURI())
 				app.errorResponse(w, r, &integrations.HTTPError{
 					StatusCode: http.StatusServiceUnavailable,
 					ErrorResponse: integrations.ErrorResponse{
