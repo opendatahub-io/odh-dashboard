@@ -62,6 +62,8 @@ interface ChatbotSettingsPanelProps {
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
   guardrailModelsError?: Error;
+  /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
+  isOverlay?: boolean;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -84,6 +86,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModelsLoaded = false,
   onCloseClick,
   guardrailModelsError,
+  isOverlay = false,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
@@ -156,12 +159,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     setActiveTabKey(tabIndex);
   };
 
+  // Overlay drawer (compare mode) needs explicit background color
+  const panelStyle: React.CSSProperties | undefined = isOverlay
+    ? {
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+      }
+    : undefined;
+
   return (
     <DrawerPanelContent
       isResizable
       defaultSize={panelWidth}
       minSize="300px"
       onResize={handlePanelResize}
+      style={panelStyle}
     >
       <DrawerHead>
         <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
