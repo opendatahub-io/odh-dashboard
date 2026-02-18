@@ -18,6 +18,8 @@ metadata:
   name: odh-mod-arch-maas-v3-3-on-push
   namespace: rhoai-tenant
 spec:
+  timeouts:
+    pipeline: 4h
   params:
   - name: git-url
     value: '{{source_url}}'
