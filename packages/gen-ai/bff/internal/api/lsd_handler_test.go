@@ -9,10 +9,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 	"time"
 
 	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,41 +37,39 @@ func cleanupTestNamespace(ctx context.Context, namespace string) {
 			Namespace: namespace,
 		},
 	}
-	// Ignore error - ConfigMap may not exist if already cleaned up
 	_ = testK8sClient.Delete(ctx, configMap)
 
 	lsdList := &lsdapi.LlamaStackDistributionList{}
-	// Ignore error - namespace may be empty or not exist
 	_ = testK8sClient.List(ctx, lsdList, client.InNamespace(namespace))
 	for _, lsd := range lsdList.Items {
-		// Ignore error - LSD may already be deleted
 		_ = testK8sClient.Delete(ctx, &lsd)
 	}
 }
 
-func TestLlamaStackDistributionStatusHandler(t *testing.T) {
-	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-	require.NoError(t, err)
+var _ = Describe("LlamaStackDistributionStatusHandler", func() {
+	var app App
 
-	// Create test app with real mock infrastructure
-	llamaStackClientFactory := lsmocks.NewMockClientFactory()
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  slog.Default(),
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: llamaStackClientFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
 
-	// Test successful case - similar to TestHealthCheckHandler
-	t.Run("should return 200 with data when LSD is found", func(t *testing.T) {
-		// Create request with proper context
+		llamaStackClientFactory := lsmocks.NewMockClientFactory()
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+	})
+
+	It("should return 200 with data when LSD is found", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/llamastack-distribution/status", nil)
 		assert.NoError(t, err)
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -106,8 +104,8 @@ func TestLlamaStackDistributionStatusHandler(t *testing.T) {
 		assert.Equal(t, "v0.2.0", dataMap["version"])
 	})
 
-	// Test error cases - simple parameter validation
-	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
+	It("should return error when namespace is missing from context", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/llamastack-distribution/status", nil)
 		assert.NoError(t, err)
 
@@ -131,11 +129,11 @@ func TestLlamaStackDistributionStatusHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "missing namespace in the context")
 	})
 
-	t.Run("should return error when RequestIdentity is missing from context", func(t *testing.T) {
+	It("should return error when RequestIdentity is missing from context", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/llamastack-distribution/status", nil)
 		assert.NoError(t, err)
 
-		// Add namespace to context but no RequestIdentity
 		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
 
@@ -158,24 +156,27 @@ func TestLlamaStackDistributionStatusHandler(t *testing.T) {
 		assert.Equal(t, "401", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "missing RequestIdentity in context")
 	})
-}
+})
 
-func TestLlamaStackDistributionInstallHandler(t *testing.T) {
-	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-	require.NoError(t, err)
+var _ = Describe("LlamaStackDistributionInstallHandler", func() {
+	var app App
 
-	// Create test app with real mock infrastructure
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  slog.Default(),
-		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(), // No LlamaStack client needed for this test
-	}
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
 
-	// Test successful installation
-	t.Run("should install LSD successfully with models", func(t *testing.T) {
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			repositories:            repositories.NewRepositories(), // No LlamaStack client needed for this test
+		}
+	})
+
+	It("should install LSD successfully with models", func() {
+		t := GinkgoT()
 		namespace := "mock-test-namespace-1"
 		ctx := context.Background()
 
@@ -215,7 +216,6 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Debug: Print the response to see what we're getting
 		t.Logf("Response body: %s", string(body))
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -230,12 +230,10 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		assert.Equal(t, "200", dataMap["httpStatus"])
 	})
 
-	// Test error case - missing request body
-	t.Run("should return error when request body is missing", func(t *testing.T) {
+	It("should return error when request body is missing", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", nil)
 		assert.NoError(t, err)
-
-		// Add namespace, identity, and MaaS client to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -264,8 +262,8 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "request body is required")
 	})
 
-	// Test error case - missing namespace
-	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
+	It("should return error when namespace is missing from context", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
@@ -277,8 +275,6 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
-
-		// Add identity to context but no namespace
 		ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -304,8 +300,8 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "missing namespace in the context")
 	})
 
-	// Test error case - LSD already exists
-	t.Run("should return error when LSD already exists in namespace", func(t *testing.T) {
+	It("should return error when LSD already exists in namespace", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
@@ -346,24 +342,27 @@ func TestLlamaStackDistributionInstallHandler(t *testing.T) {
 		assert.Equal(t, "400", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "LlamaStackDistribution already exists in namespace mock-test-namespace-2")
 	})
-}
+})
 
-func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
-	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-	require.NoError(t, err)
+var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
+	var app App
 
-	// Create test app with real mock infrastructure
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  slog.Default(),
-		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
 
-	// Test MaaS model handling
-	t.Run("should handle MaaS models correctly", func(t *testing.T) {
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+	})
+
+	It("should handle MaaS models correctly", func() {
+		t := GinkgoT()
 		namespace := "mock-test-namespace-1"
 		ctx := context.Background()
 
@@ -403,7 +402,6 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Debug: Print the response to see what we're getting
 		t.Logf("Response body: %s", string(body))
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -418,8 +416,8 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Equal(t, "200", dataMap["httpStatus"])
 	})
 
-	// Test MaaS model not ready scenario
-	t.Run("should handle MaaS model not ready", func(t *testing.T) {
+	It("should handle MaaS model not ready", func() {
+		t := GinkgoT()
 		namespace := "mock-test-namespace-3"
 		ctx := context.Background()
 
@@ -458,7 +456,6 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Debug: Print the response to see what we're getting
 		t.Logf("Response body: %s", string(body))
 
 		// Should still succeed but skip the not-ready model
@@ -474,8 +471,8 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Equal(t, "200", dataMap["httpStatus"])
 	})
 
-	// Test max_tokens validation - minimum value
-	t.Run("should reject max_tokens below minimum (128)", func(t *testing.T) {
+	It("should reject max_tokens below minimum (128)", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 127},
@@ -512,8 +509,8 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "max_tokens must be at least 128")
 	})
 
-	// Test max_tokens validation - maximum value
-	t.Run("should reject max_tokens above maximum (128000)", func(t *testing.T) {
+	It("should reject max_tokens above maximum (128000)", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false, "max_tokens": 128001},
@@ -550,8 +547,8 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "max_tokens must not exceed 128000")
 	})
 
-	// Test max_tokens validation - valid values
-	t.Run("should accept valid max_tokens values", func(t *testing.T) {
+	It("should accept valid max_tokens values", func() {
+		t := GinkgoT()
 		// Use a unique namespace for this test to avoid ConfigMap conflicts
 		testNamespace := fmt.Sprintf("max-tokens-valid-test-%d", time.Now().UnixNano())
 
@@ -601,8 +598,8 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Equal(t, "mock-lsd", dataMap["name"])
 	})
 
-	// Test max_tokens validation - boundary values
-	t.Run("should accept boundary max_tokens values (128 and 128000)", func(t *testing.T) {
+	It("should accept boundary max_tokens values (128 and 128000)", func() {
+		t := GinkgoT()
 		// Use a unique namespace for this test to avoid ConfigMap conflicts
 		testNamespace := fmt.Sprintf("max-tokens-boundary-test-%d", time.Now().UnixNano())
 
@@ -637,8 +634,8 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	// Test max_tokens validation - optional field (can be omitted)
-	t.Run("should accept models without max_tokens (optional field)", func(t *testing.T) {
+	It("should accept models without max_tokens (optional field)", func() {
+		t := GinkgoT()
 		// Use a unique namespace for this test to avoid ConfigMap conflicts
 		testNamespace := fmt.Sprintf("max-tokens-optional-test-%d", time.Now().UnixNano())
 
@@ -672,28 +669,28 @@ func TestLlamaStackDistributionInstallHandlerWithMaaSModels(t *testing.T) {
 		}
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
-}
+})
 
-func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
-	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-	require.NoError(t, err)
+var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
+	var app App
 
-	// Create test app with real mock infrastructure
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  slog.Default(),
-		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(), // No LlamaStack client needed for this test
-	}
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
 
-	// Test successful deletion
-	t.Run("should delete LSD successfully with valid k8s name", func(t *testing.T) {
-		// Use a unique namespace for this test to avoid conflicts with other tests
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			repositories:            repositories.NewRepositories(), // No LlamaStack client needed for this test
+		}
+	})
+
+	It("should delete LSD successfully with valid k8s name", func() {
+		t := GinkgoT()
 		testNamespace := fmt.Sprintf("delete-test-namespace-%d", time.Now().UnixNano())
-
-		// First, install an LSD to have something to delete
 		installRequestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "is_maas_model": false},
@@ -706,7 +703,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		require.NoError(t, err)
 		installReq.Header.Set("Content-Type", "application/json")
 
-		// Add namespace, identity, and MaaS client to context
 		installCtx := context.Background()
 		installCtx = context.WithValue(installCtx, constants.NamespaceQueryParameterKey, testNamespace)
 		installCtx = context.WithValue(installCtx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -719,7 +715,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		app.LlamaStackDistributionInstallHandler(installRr, installReq, nil)
 		require.Equal(t, http.StatusOK, installRr.Code, "Install should succeed first")
 
-		// Now test deletion
 		deleteRequestBody := map[string]interface{}{
 			"name": "mock-lsd", // This matches the k8s name created by the install operation
 		}
@@ -730,7 +725,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testNamespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -752,7 +746,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Debug: Print the response to see what we're getting
 		t.Logf("Response body: %s", string(body))
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -766,12 +759,11 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.Equal(t, "LlamaStackDistribution deleted successfully", dataMap["data"])
 	})
 
-	// Test error case - missing request body
-	t.Run("should return error when request body is missing", func(t *testing.T) {
+	It("should return error when request body is missing", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodDelete, "/gen-ai/api/v1/llamastack-distribution/delete", nil)
 		assert.NoError(t, err)
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -799,8 +791,8 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "request body is required")
 	})
 
-	// Test error case - empty name
-	t.Run("should return error when name is empty", func(t *testing.T) {
+	It("should return error when name is empty", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"name": "",
 		}
@@ -811,7 +803,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -839,8 +830,8 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "lsd name cannot be empty")
 	})
 
-	// Test error case - missing namespace
-	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
+	It("should return error when namespace is missing from context", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"name": "test-lsd",
 		}
@@ -850,8 +841,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		req, err := http.NewRequest(http.MethodDelete, "/gen-ai/api/v1/llamastack-distribution/delete", bytes.NewReader(jsonBody))
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
-
-		// Add identity to context but no namespace
 		ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -877,8 +866,8 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "missing namespace in the context")
 	})
 
-	// Test error case - LSD not found
-	t.Run("should return error when LSD with k8s name is not found", func(t *testing.T) {
+	It("should return error when LSD with k8s name is not found", func() {
+		t := GinkgoT()
 		requestBody := map[string]interface{}{
 			"name": "non-existent-lsd",
 		}
@@ -889,7 +878,6 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -917,8 +905,8 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "LlamaStackDistribution with name 'non-existent-lsd' not found")
 	})
 
-	// Test error case - empty namespace (no LSDs)
-	t.Run("should return error when no LSDs found in namespace", func(t *testing.T) {
+	It("should return error when no LSDs found in namespace", func() {
+		t := GinkgoT()
 		namespace := "mock-test-namespace-1"
 		ctx := context.Background()
 
@@ -959,4 +947,4 @@ func TestLlamaStackDistributionDeleteHandler(t *testing.T) {
 		assert.Equal(t, "400", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "no LlamaStackDistribution found in namespace mock-test-namespace-1 with OpenDataHubDashboardLabelKey annotation")
 	})
-}
+})

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -20,102 +20,108 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMCPToolsHandler(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var _ = Describe("MCPToolsHandler", func() {
+	var app *App
 
-	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
-		config.EnvConfig{MockK8sClient: true},
-		logger,
-	)
+	BeforeEach(func() {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
+		mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
+			config.EnvConfig{MockK8sClient: true},
+			logger,
+		)
 
-	app := &App{
-		config: config.EnvConfig{
-			Port:       4000,
-			AuthMethod: "user_token",
-		},
-		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-		kubernetesClientFactory: mockK8sFactory,
-		mcpClientFactory:        mockMCPFactory,
-	}
+		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(GinkgoT(), err)
 
-	testCases := []struct {
-		name                   string
-		serverURL              string
-		expectedStatus         string
-		expectedToolsCount     int
-		expectedServerName     string
-		expectedErrorCode      string
-		expectedStatusCode     int
-		shouldHaveErrorDetails bool
-	}{
-		{
-			name:               "successful tools retrieval from brave search server",
-			serverURL:          "http://localhost:9090/sse",
-			expectedStatus:     "success",
-			expectedToolsCount: 2,
-			expectedServerName: "brave-search-mcp-server",
-			expectedStatusCode: 200,
-		},
-		{
-			name:               "successful tools retrieval from kubernetes server",
-			serverURL:          "http://localhost:9091/mcp",
-			expectedStatus:     "success",
-			expectedToolsCount: 2,
-			expectedServerName: "kubernetes-mcp-server",
-			expectedStatusCode: 200,
-		},
-		{
-			name:               "successful tools retrieval from default transport server",
-			serverURL:          "http://localhost:9092/default-transport",
-			expectedStatus:     "success",
-			expectedToolsCount: 1,
-			expectedServerName: "default-transport-server",
-			expectedStatusCode: 200,
-		},
-		{
-			name:               "successful tools retrieval from invalid transport server",
-			serverURL:          "http://localhost:9093/invalid-transport",
-			expectedStatus:     "success",
-			expectedToolsCount: 1,
-			expectedServerName: "invalid-transport-server",
-			expectedStatusCode: 200,
-		},
-		{
-			name:                   "connection error - server unavailable",
-			serverURL:              "https://mcp-unavailable:8080/sse",
-			expectedStatus:         "error",
-			expectedToolsCount:     0,
-			expectedServerName:     "unavailable-server",
-			expectedErrorCode:      "connection_error",
-			expectedStatusCode:     200,
-			shouldHaveErrorDetails: true,
-		},
-		{
-			name:                   "authentication error",
-			serverURL:              "https://mcp-error:8080/mcp",
-			expectedStatus:         "error",
-			expectedToolsCount:     0,
-			expectedServerName:     "error-server",
-			expectedErrorCode:      "unauthorized",
-			expectedStatusCode:     200,
-			shouldHaveErrorDetails: true,
-		},
-		{
-			name:               "successful tools retrieval from github copilot server",
-			serverURL:          "https://api.githubcopilot.com/mcp",
-			expectedStatus:     "success",
-			expectedToolsCount: 40,
-			expectedServerName: "generic-mcp-server",
-			expectedStatusCode: 200,
-		},
-	}
+		app = &App{
+			config: config.EnvConfig{
+				Port:       4000,
+				AuthMethod: "user_token",
+			},
+			logger:                  logger,
+			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+			kubernetesClientFactory: mockK8sFactory,
+			mcpClientFactory:        mockMCPFactory,
+		}
+	})
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	It("should handle all tool retrieval cases", func() {
+		t := GinkgoT()
+
+		testCases := []struct {
+			name                   string
+			serverURL              string
+			expectedStatus         string
+			expectedToolsCount     int
+			expectedServerName     string
+			expectedErrorCode      string
+			expectedStatusCode     int
+			shouldHaveErrorDetails bool
+		}{
+			{
+				name:               "successful tools retrieval from brave search server",
+				serverURL:          "http://localhost:9090/sse",
+				expectedStatus:     "success",
+				expectedToolsCount: 2,
+				expectedServerName: "brave-search-mcp-server",
+				expectedStatusCode: 200,
+			},
+			{
+				name:               "successful tools retrieval from kubernetes server",
+				serverURL:          "http://localhost:9091/mcp",
+				expectedStatus:     "success",
+				expectedToolsCount: 2,
+				expectedServerName: "kubernetes-mcp-server",
+				expectedStatusCode: 200,
+			},
+			{
+				name:               "successful tools retrieval from default transport server",
+				serverURL:          "http://localhost:9092/default-transport",
+				expectedStatus:     "success",
+				expectedToolsCount: 1,
+				expectedServerName: "default-transport-server",
+				expectedStatusCode: 200,
+			},
+			{
+				name:               "successful tools retrieval from invalid transport server",
+				serverURL:          "http://localhost:9093/invalid-transport",
+				expectedStatus:     "success",
+				expectedToolsCount: 1,
+				expectedServerName: "invalid-transport-server",
+				expectedStatusCode: 200,
+			},
+			{
+				name:                   "connection error - server unavailable",
+				serverURL:              "https://mcp-unavailable:8080/sse",
+				expectedStatus:         "error",
+				expectedToolsCount:     0,
+				expectedServerName:     "unavailable-server",
+				expectedErrorCode:      "connection_error",
+				expectedStatusCode:     200,
+				shouldHaveErrorDetails: true,
+			},
+			{
+				name:                   "authentication error",
+				serverURL:              "https://mcp-error:8080/mcp",
+				expectedStatus:         "error",
+				expectedToolsCount:     0,
+				expectedServerName:     "error-server",
+				expectedErrorCode:      "unauthorized",
+				expectedStatusCode:     200,
+				shouldHaveErrorDetails: true,
+			},
+			{
+				name:               "successful tools retrieval from github copilot server",
+				serverURL:          "https://api.githubcopilot.com/mcp",
+				expectedStatus:     "success",
+				expectedToolsCount: 40,
+				expectedServerName: "generic-mcp-server",
+				expectedStatusCode: 200,
+			},
+		}
+
+		for _, tc := range testCases {
 			rr := httptest.NewRecorder()
 
 			encodedURL := url.QueryEscape(tc.serverURL)
@@ -174,10 +180,11 @@ func TestMCPToolsHandler(t *testing.T) {
 				assert.NotEmpty(t, response.Data.ServerInfo.ProtocolVersion)
 			}
 			assert.Greater(t, response.Data.LastChecked, int64(0))
-		})
-	}
+		}
+	})
 
-	t.Run("should return 400 when namespace parameter is missing", func(t *testing.T) {
+	It("should return 400 when namespace parameter is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		encodedURL := url.QueryEscape("http://localhost:9090/sse")
@@ -185,7 +192,6 @@ func TestMCPToolsHandler(t *testing.T) {
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -196,14 +202,14 @@ func TestMCPToolsHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should return 400 when server_url parameter is missing", func(t *testing.T) {
+	It("should return 400 when server_url parameter is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/mcp/tools?namespace=demo"
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -214,7 +220,8 @@ func TestMCPToolsHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should return 400 when request identity is missing", func(t *testing.T) {
+	It("should return 400 when request identity is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		encodedURL := url.QueryEscape("http://localhost:9090/sse")
@@ -227,7 +234,8 @@ func TestMCPToolsHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should return 404 when server config not found", func(t *testing.T) {
+	It("should return 404 when server config not found", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		encodedURL := url.QueryEscape("https://nonexistent-server.com/mcp")
@@ -235,7 +243,6 @@ func TestMCPToolsHandler(t *testing.T) {
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -246,7 +253,8 @@ func TestMCPToolsHandler(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
-	t.Run("should handle URL decoding correctly", func(t *testing.T) {
+	It("should handle URL decoding correctly", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		serverURL := "http://localhost:9090/sse"
@@ -255,7 +263,6 @@ func TestMCPToolsHandler(t *testing.T) {
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -275,4 +282,4 @@ func TestMCPToolsHandler(t *testing.T) {
 
 		assert.Equal(t, serverURL, response.Data.ServerURL)
 	})
-}
+})
