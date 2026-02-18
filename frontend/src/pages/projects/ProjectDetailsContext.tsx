@@ -61,7 +61,6 @@ export type ProjectDetailsContextType = {
   projectHardwareProfiles: CustomWatchK8sResult<HardwareProfileKind[]>;
   localQueues: FetchStateObject<LocalQueueKind[]>;
   kueueStatusByNotebookName: Record<string, KueueWorkloadStatusWithMessage | null>;
-  kueueStatusLoading: boolean;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
@@ -81,7 +80,6 @@ export const ProjectDetailsContext = React.createContext<ProjectDetailsContextTy
   projectHardwareProfiles: DEFAULT_LIST_WATCH_RESULT,
   localQueues: DEFAULT_LIST_FETCH_STATE,
   kueueStatusByNotebookName: {},
-  kueueStatusLoading: false,
 });
 
 const ProjectDetailsContextProvider: React.FC = () => {
@@ -91,7 +89,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const notebooks = useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL });
-  const { kueueStatusByNotebookName, isLoading: kueueStatusLoading } = useKueueStatusForNotebooks(
+  const { kueueStatusByNotebookName } = useKueueStatusForNotebooks(
     notebooks.data,
     project ?? undefined,
   );
@@ -155,14 +153,12 @@ const ProjectDetailsContextProvider: React.FC = () => {
             projectHardwareProfiles,
             localQueues,
             kueueStatusByNotebookName,
-            kueueStatusLoading,
           }
         : null,
     [
       project,
       notebooks,
       kueueStatusByNotebookName,
-      kueueStatusLoading,
       pvcs,
       connections,
       servingRuntimes,
@@ -177,7 +173,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       projectHardwareProfiles,
       localQueues,
       kueueStatusByNotebookName,
-      kueueStatusLoading,
     ],
   );
 

@@ -108,6 +108,106 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
   });
 
+  it('should return Succeeded when Finished with reason that matches neither failure nor success (fallback)', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Completed',
+        message: 'Work completed',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+  });
+
+  it('should return Succeeded when Finished with JobFinished reason (fallback)', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'JobFinished',
+        message: 'Job finished',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+  });
+
+  it('should return Failed when Finished with timeout in message', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Timeout',
+        message: 'Job timed out after 5 minutes',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Failed);
+  });
+
+  it('should return Failed when Finished with rejected in reason', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Rejected',
+        message: 'Request was rejected',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Failed);
+  });
+
+  it('should prefer explicit success over fallback when both exist', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Completed',
+        message: 'Done',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Succeeded',
+        message: 'Job completed successfully',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+    expect(result.message).toContain('successfully');
+  });
+
+  it('should use first Finished condition for Failed when multiple match failure', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Failed',
+        message: 'First failure',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+      {
+        type: 'Finished',
+        status: 'True',
+        reason: 'Error',
+        message: 'Second failure',
+        lastTransitionTime: '2026-02-16T08:00:01Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Failed);
+    expect(result.message).toBe('First failure');
+  });
+
   it('should return Running when PodsReady is True', () => {
     const workload = workloadWithConditions([
       {

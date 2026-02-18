@@ -11,6 +11,8 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 
 const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<WorkloadKind>);
 
+const TEST_NOTEBOOK_NAME = 'my-notebook';
+
 const mockedWorkload = mockWorkloadK8sResource({
   k8sName: 'test-workload',
   namespace: 'test-project',
@@ -85,86 +87,171 @@ describe('buildWorkloadMapForNotebooks', () => {
   });
 
   it('matches workload by kueue.x-k8s.io/job-name label', () => {
-    const wl = workloadWithJobNameLabel('wl-1', 'my-notebook');
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithJobNameLabel('wl-1', TEST_NOTEBOOK_NAME);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('matches workload by ownerRef kind Job and name', () => {
     const wl = mockWorkloadK8sResource({
       k8sName: 'wl-job',
       namespace: 'test-project',
-      ownerName: 'my-notebook',
+      ownerName: TEST_NOTEBOOK_NAME,
     });
-    const notebooks = [notebook('my-notebook')];
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
+  });
+
+  it('matches workload by ownerRef kind Job (explicit ownerReferences)', () => {
+    const wl = workloadWithOwnerRefs('wl-job', [{ kind: 'Job', name: TEST_NOTEBOOK_NAME }]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+    const result = buildWorkloadMapForNotebooks([wl], notebooks);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('matches workload by ownerRef kind Notebook and name', () => {
-    const wl = workloadWithOwnerRefs('wl-nb', [{ kind: 'Notebook', name: 'my-notebook' }]);
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithOwnerRefs('wl-nb', [{ kind: 'Notebook', name: TEST_NOTEBOOK_NAME }]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('matches workload by ownerRef kind StatefulSet with exact name', () => {
-    const wl = workloadWithOwnerRefs('wl-ss', [{ kind: 'StatefulSet', name: 'my-notebook' }]);
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithOwnerRefs('wl-ss', [{ kind: 'StatefulSet', name: TEST_NOTEBOOK_NAME }]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('matches workload by ownerRef kind StatefulSet with name prefix', () => {
-    const wl = workloadWithOwnerRefs('wl-ss', [{ kind: 'StatefulSet', name: 'my-notebook-0' }]);
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithOwnerRefs('wl-ss', [
+      { kind: 'StatefulSet', name: `${TEST_NOTEBOOK_NAME}-0` },
+    ]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('matches workload by ownerRef kind Pod with name notebookName-0', () => {
-    const wl = workloadWithOwnerRefs('wl-pod', [{ kind: 'Pod', name: 'my-notebook-0' }]);
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithOwnerRefs('wl-pod', [{ kind: 'Pod', name: `${TEST_NOTEBOOK_NAME}-0` }]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('matches workload by ownerRef kind Pod with name starting with notebookName-', () => {
-    const wl = workloadWithOwnerRefs('wl-pod', [{ kind: 'Pod', name: 'my-notebook-1' }]);
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithOwnerRefs('wl-pod', [{ kind: 'Pod', name: `${TEST_NOTEBOOK_NAME}-1` }]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('compares ownerRef kind case-insensitively', () => {
-    const wl = workloadWithOwnerRefs('wl-lower', [{ kind: 'pod', name: 'my-notebook-0' }]);
-    const notebooks = [notebook('my-notebook')];
+    const wl = workloadWithOwnerRefs('wl-lower', [
+      { kind: 'pod', name: `${TEST_NOTEBOOK_NAME}-0` },
+    ]);
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBe(wl);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
   it('prefers job-name label over ownerRef match', () => {
-    const wlByLabel = workloadWithJobNameLabel('wl-by-label', 'my-notebook');
+    const wlByLabel = workloadWithJobNameLabel('wl-by-label', TEST_NOTEBOOK_NAME);
     const wlByOwner = mockWorkloadK8sResource({
       k8sName: 'wl-by-owner',
       namespace: 'test-project',
-      ownerName: 'my-notebook',
+      ownerName: TEST_NOTEBOOK_NAME,
     });
-    const notebooks = [notebook('my-notebook')];
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
     const result = buildWorkloadMapForNotebooks([wlByOwner, wlByLabel], notebooks);
-    expect(result['my-notebook']).toBe(wlByLabel);
+    expect(result[TEST_NOTEBOOK_NAME]).toBe(wlByLabel);
   });
 
   it('returns null for notebook when no workload matches', () => {
     const wl = workloadWithJobNameLabel('wl-other', 'other-notebook');
-    const notebooks = [notebook('my-notebook'), notebook('other-notebook')];
+    const notebooks = [notebook(TEST_NOTEBOOK_NAME), notebook('other-notebook')];
     const result = buildWorkloadMapForNotebooks([wl], notebooks);
-    expect(result['my-notebook']).toBeNull();
+    expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
     expect(result['other-notebook']).toBe(wl);
   });
+  describe('workloadMatchesNotebook (ownerRef matching)', () => {
+    it('should not match when Job owner has different name', () => {
+      const wl = workloadWithOwnerRefs('wl-job', [{ kind: 'Job', name: 'other-job' }]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
+    });
 
-  it('handles notebook with missing metadata.name', () => {
+    it('should not match when Notebook owner has different name', () => {
+      const wl = workloadWithOwnerRefs('wl-nb', [{ kind: 'Notebook', name: 'other-notebook' }]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
+    });
+
+    it('should not match when StatefulSet owner name does not match or prefix', () => {
+      const wl = workloadWithOwnerRefs('wl-ss', [
+        { kind: 'StatefulSet', name: 'other-notebook-server' },
+      ]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
+    });
+
+    it('should not match when Pod owner name does not match or prefix', () => {
+      const wl = workloadWithOwnerRefs('wl-pod', [{ kind: 'Pod', name: 'other-pod-0' }]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
+    });
+
+    it('should not match when workload has no ownerReferences and no job-name label', () => {
+      const wl = mockWorkloadK8sResource({
+        k8sName: 'wl-orphan',
+        namespace: 'test-project',
+      });
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
+    });
+
+    it('should not match when ownerReferences is empty array', () => {
+      const wl = workloadWithOwnerRefs('wl-empty', []);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBeNull();
+    });
+
+    it('should match when first owner does not match but second owner matches', () => {
+      const wl = workloadWithOwnerRefs('wl-multi', [
+        { kind: 'Pod', name: 'other-pod-0' },
+        { kind: 'Job', name: TEST_NOTEBOOK_NAME },
+      ]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
+    });
+
+    it('should match ownerRef kind case-insensitively for Job', () => {
+      const wl = workloadWithOwnerRefs('wl-job-lower', [{ kind: 'job', name: TEST_NOTEBOOK_NAME }]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
+    });
+
+    it('should match ownerRef kind case-insensitively for Notebook', () => {
+      const wl = workloadWithOwnerRefs('wl-nb-lower', [
+        { kind: 'notebook', name: TEST_NOTEBOOK_NAME },
+      ]);
+      const notebooks = [notebook(TEST_NOTEBOOK_NAME)];
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+      expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
+    });
+  });
+
+  it('should set result[""] to null when notebook has empty metadata.name', () => {
     const nb = mockNotebookK8sResource({ name: 'x' });
     nb.metadata.name = '';
     const result = buildWorkloadMapForNotebooks([], [nb]);

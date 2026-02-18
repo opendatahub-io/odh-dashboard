@@ -1,5 +1,3 @@
-import type { ComponentType } from 'react';
-import type { LabelProps } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -9,7 +7,11 @@ import {
 } from '@patternfly/react-icons';
 import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
 
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './types';
+import {
+  KueueWorkloadStatus,
+  type KueueStatusInfo,
+  type KueueWorkloadStatusWithMessage,
+} from './types';
 
 const CONDITION_STATUS = { True: 'True', False: 'False' } as const;
 const CONDITION_TYPE = {
@@ -21,24 +23,34 @@ const CONDITION_TYPE = {
   Admitted: 'Admitted',
 } as const;
 
-function extractWorkloadConditions(
+const FAILURE_REGEX = /error|failed|rejected|timeout|timed out/;
+const SUCCESS_REGEX = /success|succeeded/;
+
+const extractWorkloadConditions = (
   conditions: WorkloadCondition[],
-): Record<string, WorkloadCondition | undefined> {
+): Record<string, WorkloadCondition | undefined> => {
+  let failedCondition: WorkloadCondition | undefined;
+  let succeededCondition: WorkloadCondition | undefined;
+  let succeededFallback: WorkloadCondition | undefined;
+
+  for (const condition of conditions) {
+    if (condition.status !== CONDITION_STATUS.True || condition.type !== CONDITION_TYPE.Finished) {
+      continue;
+    }
+    const conditionText = `${condition.message || ''} ${condition.reason || ''}`.toLowerCase();
+    if (FAILURE_REGEX.test(conditionText)) {
+      if (failedCondition === undefined) failedCondition = condition;
+    } else {
+      if (succeededFallback === undefined) succeededFallback = condition;
+      if (succeededCondition === undefined && SUCCESS_REGEX.test(conditionText)) {
+        succeededCondition = condition;
+      }
+    }
+  }
+
   return {
-    Failed: conditions.find(
-      ({ type, status, message, reason }) =>
-        status === CONDITION_STATUS.True &&
-        type === CONDITION_TYPE.Finished &&
-        /error|failed|rejected|timeout|timed out/.test(
-          `${message || ''} ${reason || ''}`.toLowerCase(),
-        ),
-    ),
-    Succeeded: conditions.find(
-      ({ type, status, message, reason }) =>
-        status === CONDITION_STATUS.True &&
-        type === CONDITION_TYPE.Finished &&
-        /success|succeeded/.test(`${message || ''} ${reason || ''}`.toLowerCase()),
-    ),
+    Failed: failedCondition,
+    Succeeded: succeededCondition !== undefined ? succeededCondition : succeededFallback,
     Evicted: conditions.find(
       ({ type, status }) => type === CONDITION_TYPE.Evicted && status === CONDITION_STATUS.True,
     ),
@@ -62,21 +74,21 @@ function extractWorkloadConditions(
       ({ type, status }) => type === CONDITION_TYPE.Admitted && status === CONDITION_STATUS.True,
     ),
   };
-}
+};
 
-function getMessageFromCondition(condition: WorkloadCondition | undefined): string | undefined {
+const getMessageFromCondition = (condition: WorkloadCondition | undefined): string | undefined => {
   if (!condition) return undefined;
   const s = (condition.message || condition.reason || '').trim();
   return s || undefined;
-}
+};
 
 /**
  * Returns Kueue status and message for a Workload from its conditions.
  * Priority order (first match wins): Failed → Inadmissible → Preempted → Succeeded → Running → Admitted → Queued.
  */
-export function getKueueWorkloadStatusWithMessage(
+export const getKueueWorkloadStatusWithMessage = (
   workload: WorkloadKind,
-): KueueWorkloadStatusWithMessage {
+): KueueWorkloadStatusWithMessage => {
   const conditions = workload.status?.conditions ?? [];
   const { Failed, Inadmissible, Evicted, Preempted, Succeeded, Running, Admitted, Pending } =
     extractWorkloadConditions(conditions);
@@ -103,15 +115,9 @@ export function getKueueWorkloadStatusWithMessage(
     status: filteredWorkload.status,
     message: getMessageFromCondition(filteredWorkload.condition),
   };
-}
+};
 
-export function getKueueStatusInfo(status: KueueWorkloadStatus): {
-  label: string;
-  status?: LabelProps['status'];
-  color?: LabelProps['color'];
-  IconComponent: ComponentType<React.SVGProps<SVGSVGElement>>;
-  iconClassName?: string;
-} {
+export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo => {
   switch (status) {
     case KueueWorkloadStatus.Queued:
       return { label: 'Queued', color: 'grey', IconComponent: OutlinedClockIcon };
@@ -155,4 +161,4 @@ export function getKueueStatusInfo(status: KueueWorkloadStatus): {
     default:
       return { label: status, color: 'grey', IconComponent: OutlinedClockIcon };
   }
-}
+};

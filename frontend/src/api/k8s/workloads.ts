@@ -19,12 +19,11 @@ export const listWorkloads = async (
   });
 };
 
-function workloadMatchesNotebook(wl: WorkloadKind, notebookName: string): boolean {
+const workloadMatchesNotebook = (wl: WorkloadKind, notebookName: string): boolean => {
   const owners = wl.metadata?.ownerReferences ?? [];
   for (const ref of owners) {
     const ownerKind = ref.kind.toLowerCase();
-    if (ownerKind === 'job' && ref.name === notebookName) return true;
-    if (ownerKind === 'notebook' && ref.name === notebookName) return true;
+    if ((ownerKind === 'job' || ownerKind === 'notebook') && ref.name === notebookName) return true;
     if (
       ownerKind === 'statefulset' &&
       (ref.name === notebookName || ref.name.startsWith(`${notebookName}-`))
@@ -37,7 +36,7 @@ function workloadMatchesNotebook(wl: WorkloadKind, notebookName: string): boolea
       return true;
   }
   return false;
-}
+};
 
 /**
  * Build a map of notebook name -> Workload (or null) from an in-memory list of workloads.
@@ -51,15 +50,15 @@ export const buildWorkloadMapForNotebooks = (
   for (const notebook of notebooks) {
     const notebookName = notebook.metadata.name;
     if (!notebookName) {
-      result[notebook.metadata.name || ''] = null;
+      result[notebookName] = null;
       continue;
     }
     const byJobName = workloads.find(
       (wl) => wl.metadata?.labels?.['kueue.x-k8s.io/job-name'] === notebookName,
     );
-    const filteredWorkload =
+    const matchedWorkload =
       byJobName ?? workloads.find((wl) => workloadMatchesNotebook(wl, notebookName)) ?? null;
-    result[notebookName] = filteredWorkload;
+    result[notebookName] = matchedWorkload;
   }
   return result;
 };

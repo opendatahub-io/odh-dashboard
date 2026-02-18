@@ -46,6 +46,14 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
     if (isError) {
       return { label: 'Failed', status: 'danger', icon: <ExclamationCircleIcon /> };
     }
+
+    if (isStopping) {
+      return {
+        label: 'Stopping',
+        color: 'grey',
+        icon: <SyncAltIcon className="odh-u-spin" />,
+      };
+    }
     if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
       const info = getKueueStatusInfo(kueueStatus.status);
       return {
@@ -60,13 +68,6 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
         label: 'Starting',
         color: 'blue',
         icon: <InProgressIcon className="odh-u-spin" />,
-      };
-    }
-    if (isStopping) {
-      return {
-        label: 'Stopping',
-        color: 'grey',
-        icon: <SyncAltIcon className="odh-u-spin" />,
       };
     }
     if (isRunning) {
