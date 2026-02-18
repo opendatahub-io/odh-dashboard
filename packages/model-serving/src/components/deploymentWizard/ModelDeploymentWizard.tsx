@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spinner, Wizard, WizardStep } from '@patternfly/react-core';
+import { Spinner, ToggleGroup, ToggleGroupItem, Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
@@ -7,6 +7,7 @@ import {
   getGeneratedSecretName,
   isGeneratedSecretName,
 } from '@odh-dashboard/internal/api/k8s/secrets';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
@@ -22,6 +23,8 @@ import { InitialWizardFormData, WizardStepTitle } from './types';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
+import { DeploymentWizardYAMLView } from './DeploymentWizardYAMLView';
+import { StepContentToggle } from './ModelDeploymentStepContentToggle';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -45,6 +48,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   returnRoute,
   cancelReturnRoute,
 }) => {
+  const [viewMode, setViewMode] = React.useState<'form' | 'yaml-preview' | 'yaml-edit'>('form');
+  const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const onRefresh = useRefreshWizardPage(existingDeployment);
   const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
     useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
@@ -194,7 +199,32 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           }
         `}
       </style>
-      <ApplicationsPage title={title} description={description} loaded empty={false}>
+      <ApplicationsPage
+        title={title}
+        description={description}
+        loaded
+        empty={false}
+        headerAction={
+          isYAMLViewerEnabled ? (
+            <ToggleGroup aria-label="Deployment view mode">
+              <ToggleGroupItem
+                data-testid="form-view"
+                text="Form"
+                buttonId="form-view"
+                isSelected={viewMode === 'form'}
+                onChange={() => setViewMode('form')}
+              />
+              <ToggleGroupItem
+                data-testid="yaml-view"
+                text="YAML"
+                buttonId="yaml-view"
+                isSelected={viewMode === 'yaml-preview'}
+                onChange={() => setViewMode('yaml-preview')}
+              />
+            </ToggleGroup>
+          ) : undefined
+        }
+      >
         <ExternalDataLoader
           fields={wizardState.fields}
           initialData={existingData}
@@ -210,28 +240,40 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
         >
           <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
-            {wizardState.loaded.modelSourceLoaded ? (
-              <ModelSourceStepContent
-                wizardState={wizardState}
-                validation={validation.modelSource}
-              />
-            ) : (
-              <Spinner data-testid="spinner" />
-            )}
+            <StepContentToggle
+              viewMode={viewMode}
+              yamlView={<DeploymentWizardYAMLView />}
+              contentView={
+                wizardState.loaded.modelSourceLoaded ? (
+                  <ModelSourceStepContent
+                    wizardState={wizardState}
+                    validation={validation.modelSource}
+                  />
+                ) : (
+                  <Spinner data-testid="spinner" />
+                )
+              }
+            />
           </WizardStep>
           <WizardStep
             name={WizardStepTitle.MODEL_DEPLOYMENT}
             id="model-deployment-step"
             isDisabled={!validation.isModelSourceStepValid}
           >
-            {wizardState.loaded.modelDeploymentLoaded ? (
-              <ModelDeploymentStepContent
-                projectName={currentProjectName}
-                wizardState={wizardState}
-              />
-            ) : (
-              <Spinner data-testid="spinner" />
-            )}
+            <StepContentToggle
+              viewMode={viewMode}
+              yamlView={<DeploymentWizardYAMLView />}
+              contentView={
+                wizardState.loaded.modelDeploymentLoaded ? (
+                  <ModelDeploymentStepContent
+                    projectName={currentProjectName}
+                    wizardState={wizardState}
+                  />
+                ) : (
+                  <Spinner data-testid="spinner" />
+                )
+              }
+            />
           </WizardStep>
           <WizardStep
             name={WizardStepTitle.ADVANCED_SETTINGS}
@@ -240,15 +282,21 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
             }
           >
-            {wizardState.loaded.advancedOptionsLoaded ? (
-              <AdvancedSettingsStepContent
-                wizardState={wizardState}
-                projectName={currentProjectName}
-                externalData={externalData}
-              />
-            ) : (
-              <Spinner data-testid="spinner" />
-            )}
+            <StepContentToggle
+              viewMode={viewMode}
+              yamlView={<DeploymentWizardYAMLView />}
+              contentView={
+                wizardState.loaded.advancedOptionsLoaded ? (
+                  <AdvancedSettingsStepContent
+                    wizardState={wizardState}
+                    projectName={currentProjectName}
+                    externalData={externalData}
+                  />
+                ) : (
+                  <Spinner data-testid="spinner" />
+                )
+              }
+            />
           </WizardStep>
           <WizardStep
             name={WizardStepTitle.REVIEW}
@@ -259,15 +307,21 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               !validation.isAdvancedSettingsStepValid
             }
           >
-            {wizardState.loaded.summaryLoaded ? (
-              <ReviewStepContent
-                wizardState={wizardState}
-                projectName={currentProjectName}
-                externalData={externalData}
-              />
-            ) : (
-              <Spinner data-testid="spinner" />
-            )}
+            <StepContentToggle
+              viewMode={viewMode}
+              yamlView={<DeploymentWizardYAMLView />}
+              contentView={
+                wizardState.loaded.summaryLoaded ? (
+                  <ReviewStepContent
+                    wizardState={wizardState}
+                    projectName={currentProjectName}
+                    externalData={externalData}
+                  />
+                ) : (
+                  <Spinner data-testid="spinner" />
+                )
+              }
+            />
           </WizardStep>
         </Wizard>
       </ApplicationsPage>
