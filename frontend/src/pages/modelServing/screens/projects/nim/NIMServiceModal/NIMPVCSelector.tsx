@@ -42,7 +42,7 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
 
   // Clear existing PVC name when model changes and the selected PVC is not compatible
   React.useEffect(() => {
-    if (existingPvcName && !loading && !showManualInput) {
+    if (existingPvcName && !loading && !showManualInput && hasCompatiblePVCs) {
       const isCurrentPvcCompatible = compatiblePVCs.some((pvc) => pvc.pvcName === existingPvcName);
       if (!isCurrentPvcCompatible) {
         setExistingPvcName('');
