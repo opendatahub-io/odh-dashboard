@@ -22,7 +22,6 @@ function ExperimentForm(): React.JSX.Element {
             <TextInput
               {...field}
               id={field.name}
-              aria-describedby={`${field.name}-helper`}
               type="text"
               isRequired={requiredFields.includes(field.name)}
             />
@@ -42,7 +41,6 @@ function ExperimentForm(): React.JSX.Element {
             <TextArea
               {...field}
               id={field.name}
-              aria-describedby={`${field.name}-helper`}
               type="text"
               isRequired={requiredFields.includes(field.name)}
             />

@@ -10,7 +10,8 @@ function AutoRagCreatePage(): React.JSX.Element {
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
 
-  const invalidNamespace = !!namespace && !namespaces.some((ns) => ns.name === namespace);
+  const invalidNamespace =
+    namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
   const getRedirectPath = (ns: string) => `${autoRagExperimentsPathname}/${ns}`;
 
   return (
