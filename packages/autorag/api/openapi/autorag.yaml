@@ -73,6 +73,40 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  # =============================================================================
+  # LLAMASTACK ENDPOINTS
+  # =============================================================================
+  /api/v1/llamastack/models:
+    summary: List available LlamaStack models
+    description: >-
+      Lists all available models from LlamaStack instance, categorized by type (LLM vs embedding).
+      Returns models with their identifiers, creation timestamps, ownership information, and type categorization.
+      Requires namespace parameter for proper multi-tenant isolation.
+    get:
+      tags:
+        - LlamaStack
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where LlamaStack is deployed
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        "200":
+          $ref: "#/components/responses/LlamaStackModelsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getLlamaStackModels
+      summary: Get LlamaStack Models
+      description: Returns available models from LlamaStack instance categorized by type
 components:
   schemas:
     Config:
@@ -87,6 +121,55 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+    # LlamaStack Model Schemas
+    LlamaStackModel:
+      type: object
+      required:
+        - id
+        - object
+        - type
+        - created
+        - ownedBy
+      properties:
+        id:
+          type: string
+          description: Model identifier
+          example: "ollama/llama3.2:3b"
+        object:
+          type: string
+          description: Object type (always "model")
+          example: "model"
+        type:
+          type: string
+          enum: ["llm", "embedding"]
+          description: Model type category
+          example: "llm"
+        created:
+          type: integer
+          format: int64
+          description: Unix timestamp when model was created
+          example: 1755721063
+        ownedBy:
+          type: string
+          description: Model owner/provider
+          example: "llama_stack"
+    LlamaStackModelsData:
+      type: object
+      required:
+        - llm_models
+        - embedding_models
+      properties:
+        llm_models:
+          type: array
+          description: List of LLM models
+          items:
+            $ref: '#/components/schemas/LlamaStackModel'
+        embedding_models:
+          type: array
+          description: List of embedding models
+          items:
+            $ref: '#/components/schemas/LlamaStackModel'
+
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -202,6 +285,45 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+    # LlamaStack Responses
+    LlamaStackModelsResponse:
+      description: List of available LlamaStack models categorized by type
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: '#/components/schemas/LlamaStackModelsData'
+          example:
+            metadata: {}
+            data:
+              llm_models:
+                - id: "ollama/llama3.2:3b"
+                  object: "model"
+                  type: "llm"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+                - id: "mistral-7b-instruct"
+                  object: "model"
+                  type: "llm"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+              embedding_models:
+                - id: "ollama/all-minilm:l6-v2"
+                  object: "model"
+                  type: "embedding"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+                - id: "nomic-embed-text"
+                  object: "model"
+                  type: "embedding"
+                  created: 1755721063
+                  ownedBy: "llama_stack"
+
     ConflictResponse:
       content:
         application/json:
@@ -313,3 +435,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: LlamaStack
+    description: LlamaStack model operations
