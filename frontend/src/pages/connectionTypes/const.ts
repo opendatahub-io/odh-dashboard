@@ -1,4 +1,3 @@
-// Connection types filtering options
 export enum ConnectionTypesOptions {
   keyword = 'Keyword',
   category = 'Category',

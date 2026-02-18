@@ -7,7 +7,6 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-// Group settings page for user management
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { isGroupEmpty } from '#~/utilities/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
