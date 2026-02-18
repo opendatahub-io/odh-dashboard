@@ -25,6 +25,12 @@ type NotebookStateStatusProps = {
   startNotebook: () => void;
   isVertical?: boolean;
 };
+type GetStatusSubtitleParams = {
+  isStarting: boolean;
+  isStopping: boolean;
+  notebookStatus: NotebookStatus | null;
+  kueueStatus: KueueWorkloadStatusWithMessage | null;
+};
 
 const getNotebookStatusColor = (notebookStatus?: NotebookStatus | null) =>
   notebookStatus?.currentStatus === EventStatus.ERROR
@@ -43,11 +49,15 @@ const getNotebookStatusTextDecoration = (
     ? undefined
     : 'none';
 
-const getStatusSubtitle = (
-  isStarting: boolean,
-  notebookStatus: NotebookStatus | null,
-  kueueStatus: KueueWorkloadStatusWithMessage | null,
-): string | null => {
+export const getStatusSubtitle = ({
+  isStarting,
+  isStopping,
+  notebookStatus,
+  kueueStatus,
+}: GetStatusSubtitleParams): string | null => {
+  if (isStopping) {
+    return null;
+  }
   if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
     return kueueStatus.message?.trim() || kueueStatus.status;
   }
@@ -77,7 +87,12 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
   const [isStartModalOpen, setStartModalOpen] = React.useState(false);
-  const statusSubtitle = getStatusSubtitle(isStarting, notebookStatus, kueueStatus);
+  const statusSubtitle = getStatusSubtitle({
+    isStarting,
+    isStopping,
+    notebookStatus,
+    kueueStatus,
+  });
 
   return (
     <>
