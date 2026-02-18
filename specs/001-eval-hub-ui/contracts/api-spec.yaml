@@ -1,0 +1,967 @@
+openapi: 3.0.3
+info:
+  title: Eval Hub BFF API
+  description: Backend for Frontend API for the Eval Hub UI - Model Evaluation Orchestration
+  version: 1.0.0
+  contact:
+    name: ODH Dashboard Team
+servers:
+  - url: /api
+    description: BFF API endpoints (proxied via ODH Dashboard at /lm-eval/api)
+
+tags:
+  - name: Evaluations
+    description: Evaluation lifecycle management
+  - name: Templates
+    description: Evaluation template management
+  - name: Tasks
+    description: Evaluation task catalog
+  - name: Models
+    description: Available models for evaluation
+  - name: Health
+    description: Service health and readiness
+
+paths:
+  # Evaluations
+  /evaluations:
+    get:
+      tags: [Evaluations]
+      summary: List evaluations
+      description: Retrieve a paginated list of evaluations for the authenticated user
+      operationId: listEvaluations
+      parameters:
+        - name: status
+          in: query
+          description: Filter by evaluation status
+          schema:
+            type: string
+            enum: [pending, running, completed, failed, cancelled]
+        - name: modelId
+          in: query
+          description: Filter by model ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: sortBy
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, name]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of evaluations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [Evaluations]
+      summary: Create and launch evaluation
+      description: Create a new evaluation and submit it to the backend service
+      operationId: createEvaluation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvaluationRequest'
+      responses:
+        '201':
+          description: Evaluation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Model or task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /evaluations/{id}:
+    get:
+      tags: [Evaluations]
+      summary: Get evaluation details
+      description: Retrieve detailed information about a specific evaluation
+      operationId: getEvaluation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Evaluation ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evaluation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags: [Evaluations]
+      summary: Cancel evaluation
+      description: Cancel a pending or running evaluation
+      operationId: cancelEvaluation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Evaluation ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evaluation cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+        '400':
+          description: Cannot cancel evaluation in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /evaluations/{id}/results:
+    get:
+      tags: [Evaluations]
+      summary: Get evaluation results
+      description: Retrieve detailed results for a completed evaluation
+      operationId: getEvaluationResults
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Evaluation ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationResult'
+        '400':
+          description: Results not available (evaluation not completed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /evaluations/{id}/export:
+    get:
+      tags: [Evaluations]
+      summary: Export evaluation results
+      description: Export evaluation results in specified format
+      operationId: exportEvaluationResults
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Evaluation ID
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          required: true
+          description: Export format
+          schema:
+            type: string
+            enum: [json, csv]
+      responses:
+        '200':
+          description: Exported results
+          content:
+            application/json:
+              schema:
+                type: object
+            text/csv:
+              schema:
+                type: string
+        '400':
+          description: Invalid format or results not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Templates
+  /templates:
+    get:
+      tags: [Templates]
+      summary: List templates
+      description: Retrieve evaluation templates for the authenticated user
+      operationId: listTemplates
+      parameters:
+        - name: includePublic
+          in: query
+          description: Include public templates from other users
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [Templates]
+      summary: Create template
+      description: Create a new evaluation template
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Template with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /templates/{id}:
+    get:
+      tags: [Templates]
+      summary: Get template
+      description: Retrieve a specific template
+      operationId: getTemplate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      tags: [Templates]
+      summary: Update template
+      description: Update an existing template
+      operationId: updateTemplate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Template name conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags: [Templates]
+      summary: Delete template
+      description: Delete an evaluation template
+      operationId: deleteTemplate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Template deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Tasks
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List evaluation tasks
+      description: Retrieve the catalog of available evaluation tasks
+      operationId: listTasks
+      parameters:
+        - name: category
+          in: query
+          description: Filter by task category
+          schema:
+            type: string
+            enum: [reasoning, knowledge, comprehension, generation, truthfulness, safety, multilingual]
+      responses:
+        '200':
+          description: List of evaluation tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get task details
+      description: Retrieve detailed information about a specific task
+      operationId: getTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Models
+  /models:
+    get:
+      tags: [Models]
+      summary: List available models
+      description: Retrieve list of models available for evaluation from KServe
+      operationId: listModels
+      parameters:
+        - name: namespace
+          in: query
+          description: Filter by Kubernetes namespace
+          schema:
+            type: string
+        - name: runtime
+          in: query
+          description: Filter by serving runtime
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by deployment status
+          schema:
+            type: string
+            enum: [ready, pending, failed]
+            default: ready
+      responses:
+        '200':
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Model'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /models/{id}:
+    get:
+      tags: [Models]
+      summary: Get model details
+      description: Retrieve detailed information about a specific model
+      operationId: getModel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Model ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Model details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Health
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Check if the BFF service is healthy
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Check if the BFF service is ready to serve requests
+      operationId: readinessCheck
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ready]
+                  dependencies:
+                    type: object
+                    properties:
+                      backendService:
+                        type: boolean
+                      modelRegistry:
+                        type: boolean
+
+components:
+  schemas:
+    # Evaluation schemas
+    Evaluation:
+      type: object
+      required: [id, userId, modelId, modelName, tasks, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        modelId:
+          type: string
+        modelName:
+          type: string
+        modelVersion:
+          type: string
+        tasks:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        parameters:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        error:
+          $ref: '#/components/schemas/EvaluationError'
+        resultsSummary:
+          type: object
+          properties:
+            overallScore:
+              type: number
+            tasksCompleted:
+              type: integer
+            tasksFailed:
+              type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+
+    CreateEvaluationRequest:
+      type: object
+      required: [modelId, tasks]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        modelId:
+          type: string
+        tasks:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        parameters:
+          type: object
+          additionalProperties: true
+
+    EvaluationListResponse:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evaluation'
+        total:
+          type: integer
+          description: Total number of evaluations matching filters
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+
+    EvaluationError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    # Result schemas
+    EvaluationResult:
+      type: object
+      required: [evaluationId, overallMetrics, taskResults, generatedAt, dataVersion]
+      properties:
+        evaluationId:
+          type: string
+          format: uuid
+        overallMetrics:
+          type: object
+          properties:
+            accuracy:
+              type: number
+            averageLatency:
+              type: number
+            totalSamples:
+              type: integer
+          additionalProperties: true
+        taskResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResult'
+        generatedAt:
+          type: string
+          format: date-time
+        dataVersion:
+          type: string
+
+    TaskResult:
+      type: object
+      required: [taskId, taskName, status, metrics, samples, executionTime]
+      properties:
+        taskId:
+          type: string
+        taskName:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed, skipped]
+        metrics:
+          type: object
+          additionalProperties: true
+        samples:
+          type: integer
+        executionTime:
+          type: number
+          description: Execution time in seconds
+        error:
+          type: string
+
+    # Template schemas
+    Template:
+      type: object
+      required: [id, userId, name, tasks, createdAt, updatedAt, usageCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        modelSelection:
+          $ref: '#/components/schemas/ModelSelection'
+        tasks:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        parameters:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        usageCount:
+          type: integer
+          minimum: 0
+        isPublic:
+          type: boolean
+          default: false
+
+    CreateTemplateRequest:
+      type: object
+      required: [name, tasks]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        modelSelection:
+          $ref: '#/components/schemas/ModelSelection'
+        tasks:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        parameters:
+          type: object
+          additionalProperties: true
+        isPublic:
+          type: boolean
+          default: false
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        modelSelection:
+          $ref: '#/components/schemas/ModelSelection'
+        tasks:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        parameters:
+          type: object
+          additionalProperties: true
+        isPublic:
+          type: boolean
+
+    ModelSelection:
+      type: object
+      nullable: true
+      properties:
+        modelId:
+          type: string
+          nullable: true
+        modelType:
+          type: string
+        runtime:
+          type: string
+
+    # Task schemas
+    Task:
+      type: object
+      required: [id, name, description, category, version, parameters, resultMetrics]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [reasoning, knowledge, comprehension, generation, truthfulness, safety, multilingual]
+        version:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParameterSchema'
+        resultMetrics:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        estimatedDuration:
+          type: integer
+          description: Estimated duration in seconds
+        sampleCount:
+          type: integer
+        referenceUrl:
+          type: string
+          format: uri
+
+    ParameterSchema:
+      type: object
+      required: [name, type, required, description]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [string, number, boolean, select]
+        default:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+        required:
+          type: boolean
+        description:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        min:
+          type: number
+        max:
+          type: number
+
+    # Model schemas
+    Model:
+      type: object
+      required: [id, name, namespace, runtime, endpoint, status, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        namespace:
+          type: string
+        runtime:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [ready, pending, failed]
+        createdAt:
+          type: string
+          format: date-time
+        capabilities:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    # Error schema
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
