@@ -1342,6 +1342,10 @@ class ModelServingWizard extends Wizard {
   findYAMLCodeEditor() {
     return cy.findByTestId('yaml-editor');
   }
+
+  findYAMLEditorEmptyState() {
+    return cy.findByTestId('yaml-editor-empty-state');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

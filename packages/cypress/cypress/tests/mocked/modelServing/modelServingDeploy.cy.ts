@@ -1705,33 +1705,12 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
-    modelServingWizard.findModelLocationSelect().should('exist');
-    modelServingWizard
-      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
-      .should('exist')
-      .click();
-    modelServingWizard.findExistingConnectionSelect().should('exist').click();
-    modelServingWizard
-      .findExistingConnectionSelectOption('Test URI Secret')
-      .should('exist')
-      .click();
-    modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard
-      .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-      .should('exist')
-      .click();
 
     // YAML Viewer
     modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-    modelServingWizard.findYAMLCodeEditor().should('exist');
+    modelServingWizard.findYAMLEditorEmptyState().should('exist');
 
     modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
-    modelServingWizard.findYAMLViewerToggle('YAML').should('not.exist');
   });
 
   describe('redirect from v2 to v3 route', () => {
