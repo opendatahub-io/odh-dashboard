@@ -176,6 +176,16 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
 
   // Use user selection if available, otherwise use computed
   const selectedKey = userSelectedKey ?? computedSelectedKey;
+
+  const currentKey = React.useMemo(
+    () =>
+      selectedKey?.key ??
+      (modelLocation === ModelLocationType.PVC || modelLocation === ModelLocationType.EXISTING
+        ? modelLocation
+        : undefined),
+    [selectedKey, modelLocation],
+  );
+
   React.useEffect(() => {
     if (!modelLocationData?.connectionTypeObject && !selectedKey) {
       setShowCustomTypeSelect(false);
@@ -196,7 +206,10 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       if (selectedKey.key === uriOption.key && uriConnectionTypes.length > 1) {
         setShowCustomTypeSelect(true);
         setTypeOptions(uriConnectionTypes);
+        return;
       }
+      setShowCustomTypeSelect(false);
+      setTypeOptions([]);
     } else {
       setShowCustomTypeSelect(false);
       setTypeOptions([]);
@@ -316,12 +329,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   if (key === '__placeholder__') {
                     return;
                   }
-                  const currentKey =
-                    selectedKey?.key ??
-                    (modelLocation === ModelLocationType.PVC ||
-                    modelLocation === ModelLocationType.EXISTING
-                      ? modelLocation
-                      : undefined);
                   if (key === currentKey) {
                     return;
                   }
@@ -404,13 +411,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 }}
                 onBlur={validationProps?.onBlur}
                 placeholder="Select model location"
-                value={
-                  selectedKey?.key ??
-                  (modelLocation === ModelLocationType.PVC ||
-                  modelLocation === ModelLocationType.EXISTING
-                    ? modelLocation
-                    : undefined)
-                }
+                value={currentKey}
                 toggleProps={{ style: { minWidth: '450px' } }}
               />
             </StackItem>
