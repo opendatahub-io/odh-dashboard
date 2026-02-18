@@ -3,12 +3,14 @@ import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObject
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCatalogFilterOptionList } from '~/app/hooks/modelCatalog/useCatalogFilterOptionList';
+import { useCatalogLabels } from '~/app/hooks/modelCatalog/useCatalogLabels';
 import { useCatalogSources } from '~/app/hooks/modelCatalog/useCatalogSources';
 import useModelCatalogAPIState, {
   ModelCatalogAPIState,
 } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
 import {
   CatalogFilterOptionsList,
+  CatalogLabelList,
   CatalogSource,
   CatalogSourceList,
   CategoryName,
@@ -36,6 +38,9 @@ export type ModelCatalogContextType = {
   catalogSourcesLoaded: boolean;
   catalogSourcesLoadError?: Error;
   catalogSources: CatalogSourceList | null;
+  catalogLabels: CatalogLabelList | null;
+  catalogLabelsLoaded: boolean;
+  catalogLabelsLoadError?: Error;
   selectedSource: CatalogSource | undefined;
   updateSelectedSource: (source: CatalogSource | undefined) => void;
   selectedSourceLabel: string | undefined;
@@ -54,6 +59,8 @@ export type ModelCatalogContextType = {
   setPerformanceViewEnabled: (enabled: boolean) => void;
   performanceFiltersChangedOnDetailsPage: boolean;
   setPerformanceFiltersChangedOnDetailsPage: (changed: boolean) => void;
+  lastViewedModelName: string | null;
+  setLastViewedModelName: (modelName: string | null) => void;
   clearAllFilters: () => void;
   resetPerformanceFiltersToDefaults: () => void;
   resetSinglePerformanceFilterToDefault: (filterKey: keyof ModelCatalogFilterStates) => void;
@@ -72,6 +79,9 @@ export const ModelCatalogContext = React.createContext<ModelCatalogContextType>(
   catalogSourcesLoaded: false,
   catalogSourcesLoadError: undefined,
   catalogSources: null,
+  catalogLabels: null,
+  catalogLabelsLoaded: false,
+  catalogLabelsLoadError: undefined,
   selectedSource: undefined,
   filterData: {
     [ModelCatalogStringFilterKey.TASK]: [],
@@ -98,6 +108,8 @@ export const ModelCatalogContext = React.createContext<ModelCatalogContextType>(
   setPerformanceViewEnabled: () => undefined,
   performanceFiltersChangedOnDetailsPage: false,
   setPerformanceFiltersChangedOnDetailsPage: () => undefined,
+  lastViewedModelName: null,
+  setLastViewedModelName: () => undefined,
   clearAllFilters: () => undefined,
   resetPerformanceFiltersToDefaults: () => undefined,
   resetSinglePerformanceFilterToDefault: () => undefined,
@@ -114,6 +126,7 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
   const [apiState, refreshAPIState] = useModelCatalogAPIState(hostPath, queryParams);
   const [catalogSources, catalogSourcesLoaded, catalogSourcesLoadError] =
     useCatalogSources(apiState);
+  const [catalogLabels, catalogLabelsLoaded, catalogLabelsLoadError] = useCatalogLabels(apiState);
   const [selectedSource, setSelectedSource] =
     React.useState<ModelCatalogContextType['selectedSource']>(undefined);
   const [filterData, baseSetFilterData] = useGenericObjectState<ModelCatalogFilterStates>({
@@ -135,6 +148,7 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
   const [basePerformanceViewEnabled, setBasePerformanceViewEnabled] = React.useState(false);
   const [performanceFiltersChangedOnDetailsPage, setPerformanceFiltersChangedOnDetailsPage] =
     React.useState(false);
+  const [lastViewedModelName, setLastViewedModelName] = React.useState<string | null>(null);
   const [sortBy, setSortBy] = React.useState<ModelCatalogSortOption | null>(null);
 
   const location = useLocation();
@@ -211,10 +225,7 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
         }
         return currentSortBy;
       });
-
-      if (!enabled) {
-        setPerformanceFiltersChangedOnDetailsPage(false);
-      }
+      setPerformanceFiltersChangedOnDetailsPage(false);
     },
     [resetPerformanceFiltersToDefaults],
   );
@@ -284,11 +295,30 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
     [baseSetFilterData, isOnDetailsPage],
   );
 
+  // Apply default performance filters on initial load if none are set
+  React.useEffect(() => {
+    if (
+      filterOptionsLoaded &&
+      filterOptions?.namedQueries?.[DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME] &&
+      filterData[ModelCatalogStringFilterKey.USE_CASE].length === 0
+    ) {
+      resetPerformanceFiltersToDefaults();
+    }
+  }, [
+    filterOptionsLoaded,
+    filterOptions?.namedQueries,
+    filterData,
+    resetPerformanceFiltersToDefaults,
+  ]);
+
   const contextValue = React.useMemo(
     () => ({
       catalogSourcesLoaded,
       catalogSourcesLoadError,
       catalogSources,
+      catalogLabels,
+      catalogLabelsLoaded,
+      catalogLabelsLoadError,
       selectedSource: selectedSource ?? undefined,
       updateSelectedSource: setSelectedSource,
       selectedSourceLabel: selectedSourceLabel ?? undefined,
@@ -304,6 +334,8 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
       setPerformanceViewEnabled,
       performanceFiltersChangedOnDetailsPage,
       setPerformanceFiltersChangedOnDetailsPage,
+      lastViewedModelName,
+      setLastViewedModelName,
       clearAllFilters,
       resetPerformanceFiltersToDefaults,
       resetSinglePerformanceFilterToDefault,
@@ -315,6 +347,9 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
       catalogSourcesLoaded,
       catalogSourcesLoadError,
       catalogSources,
+      catalogLabels,
+      catalogLabelsLoaded,
+      catalogLabelsLoadError,
       selectedSource,
       apiState,
       refreshAPIState,
@@ -328,6 +363,8 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
       setPerformanceViewEnabled,
       performanceFiltersChangedOnDetailsPage,
       setPerformanceFiltersChangedOnDetailsPage,
+      lastViewedModelName,
+      setLastViewedModelName,
       clearAllFilters,
       resetPerformanceFiltersToDefaults,
       resetSinglePerformanceFilterToDefault,

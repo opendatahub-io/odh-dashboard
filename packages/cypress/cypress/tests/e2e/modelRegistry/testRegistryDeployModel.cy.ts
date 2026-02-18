@@ -95,16 +95,9 @@ describe('Verify models can be deployed from model registry', () => {
   });
 
   it(
-    '[Automation Bug: RHOAIENG-48809]Registers a model and deploys it via model registry',
+    'Registers a model and deploys it via model registry',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelRegistry',
-        '@NonConcurrent',
-        '@Sanity',
-        '@SanitySet4',
-        '@Maintain',
-      ],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
     },
     () => {
       cy.step('Log into the application');
@@ -200,6 +193,12 @@ describe('Verify models can be deployed from model registry', () => {
       modelServingWizard
         .findModelDeploymentNameInput()
         .should('have.value', `${modelName} - ${testData.version1Name}`);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -215,7 +214,9 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Verify model deployment is ready
       cy.step('Verify the model is deployed and started in backend');
-      checkInferenceServiceState(`${modelName}-v10`, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       // Check deployment link and verify status in deployments view
       modelRegistry.navigate();
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();

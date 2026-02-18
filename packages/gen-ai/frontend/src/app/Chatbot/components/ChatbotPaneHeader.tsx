@@ -22,6 +22,7 @@ interface ChatbotPaneHeaderProps {
   hasDivider?: boolean;
   /** Test ID prefix for the header elements */
   testIdPrefix?: string;
+  isDarkMode?: boolean;
 }
 
 /**
@@ -38,10 +39,13 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isLoading,
   hasDivider,
   testIdPrefix = 'chatbot',
+  isDarkMode,
 }) => (
   <div
     style={{
-      backgroundColor: 'var(--pf-t--global--background--color--100)',
+      backgroundColor: isDarkMode
+        ? 'var(--pf-t--global--dark--background--color--100)'
+        : 'var(--pf-t--global--background--color--100)',
       padding: '1rem 1.5rem',
     }}
   >
@@ -57,7 +61,11 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
               <FlexItem style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</FlexItem>
             )}
             <FlexItem>
-              <ModelDetailsDropdown selectedModel={selectedModel} onModelChange={onModelChange} />
+              <ModelDetailsDropdown
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+                testId="chatbot-model-selector-toggle"
+              />
             </FlexItem>
             <FlexItem>
               <Button

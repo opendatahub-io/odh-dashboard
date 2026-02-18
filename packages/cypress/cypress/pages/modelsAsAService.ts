@@ -42,7 +42,7 @@ class TierTableRow extends TableRow {
 
 class TiersPage {
   visit(): void {
-    cy.visit('/maas/tiers?devFeatureFlags=genAiStudio%3Dtrue%2CmodelAsService%3Dtrue');
+    cy.visitWithLogin('/maas/tiers');
     this.wait();
   }
 
@@ -108,7 +108,7 @@ class TiersPage {
 
 class CreateTierPage {
   visit(): void {
-    cy.visit('/maas/tiers/create');
+    cy.visitWithLogin('/maas/tiers/create');
     this.wait();
   }
 
@@ -270,7 +270,7 @@ class CreateTierPage {
 
 class TierDetailsPage {
   visit(name: string): void {
-    cy.visit(`/maas/tiers/${name}`);
+    cy.visitWithLogin(`/maas/tiers/${name}`);
     this.wait();
   }
 
@@ -363,7 +363,7 @@ class MaaSWizardField {
 
 class APIKeysPage {
   visit(): void {
-    cy.visit('/maas/tokens');
+    cy.visitWithLogin('/maas/tokens');
     this.wait();
   }
 

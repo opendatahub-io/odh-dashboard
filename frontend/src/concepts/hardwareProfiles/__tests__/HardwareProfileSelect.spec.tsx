@@ -8,6 +8,7 @@ import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
+import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { HardwareProfileKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { SchedulingType } from '#~/types';
@@ -126,6 +127,7 @@ const renderComponent = (
           {
             currentProject,
             refresh: jest.fn(),
+            localQueues: DEFAULT_LIST_FETCH_STATE,
           } as unknown as ProjectDetailsContextType
         }
       >

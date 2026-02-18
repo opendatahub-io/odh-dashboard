@@ -26,6 +26,7 @@ import { ExistingConnectionField } from './modelLocationFields/ExistingConnectio
 import NewConnectionField from './modelLocationFields/NewConnectionField';
 import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
+import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { resolveConnectionType } from '../utils';
 
@@ -41,6 +42,7 @@ export type ModelLocationDataField = {
   setSelectedConnection: (connection: Connection | undefined) => void;
   isLoadingSecretData: boolean;
   disableInputFields: boolean;
+  pvcs: PersistentVolumeClaimKind[];
 };
 export const useModelLocationData = (
   projectName?: string,
@@ -48,6 +50,8 @@ export const useModelLocationData = (
 ): ModelLocationDataField => {
   // Gets all connection types, even disabled ones
   const [connectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const pvcs = usePvcs(projectName);
+  const pvcsLoaded = pvcs.loaded;
   const [connections, connectionsLoaded] = useServingConnections(projectName, true, false);
 
   const [draftModelLocationData, setDraftModelLocationData] = React.useState<
@@ -135,9 +139,10 @@ export const useModelLocationData = (
   const isLoadingSecretData =
     !!projectName &&
     !!existingData &&
-    existingData.type === ModelLocationType.EXISTING &&
+    (existingData.type === ModelLocationType.EXISTING ||
+      existingData.type === ModelLocationType.PVC) &&
     !draftModelLocationData &&
-    (!connectionsLoaded || !connectionTypesLoaded);
+    (!connectionsLoaded || !connectionTypesLoaded || !pvcsLoaded);
 
   return {
     data: effectiveModelLocationData,
@@ -151,6 +156,7 @@ export const useModelLocationData = (
     setSelectedConnection: updateSelectedConnection,
     isLoadingSecretData,
     disableInputFields: existingData?.disableInputFields ?? false,
+    pvcs: pvcs.data,
   };
 };
 

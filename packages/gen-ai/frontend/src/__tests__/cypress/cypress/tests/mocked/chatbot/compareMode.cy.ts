@@ -82,10 +82,7 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     cy.wait('@aaModels');
 
     // Verify model is selected
-    cy.findAllByTestId('model-selector-toggle')
-      .first()
-      .should('be.visible')
-      .and('contain', 'Llama');
+    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   afterEach(() => {

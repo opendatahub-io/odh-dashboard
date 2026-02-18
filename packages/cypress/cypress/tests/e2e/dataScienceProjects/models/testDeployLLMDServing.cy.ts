@@ -101,6 +101,12 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Select Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
@@ -124,7 +130,9 @@ describe('A user can deploy an LLMD model', () => {
       // workaround for model to be deployed without GPUs.
       patchOpenShiftResource(resourceType, modelName, Image, projectName);
       cy.step('Verify that the Model is ready');
-      checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       modelServingGlobal.visit(projectName);

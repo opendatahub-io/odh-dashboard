@@ -474,6 +474,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
               guardrailModelsError={guardrailModelsError}
+              isOverlay={isCompareMode}
             />
           }
         >
@@ -488,6 +489,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
+                  isDarkMode={isDarkMode}
                 />
               )}
 

@@ -940,6 +940,14 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-description');
   }
 
+  findResourceNameButton() {
+    return cy.findByTestId('model-deployment-editResourceLink');
+  }
+
+  findResourceNameInput() {
+    return cy.findByTestId('model-deployment-resourceName');
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
