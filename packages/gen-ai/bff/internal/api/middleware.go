@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	"github.com/rs/cors"
 )
 
@@ -392,6 +394,16 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 
 		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx)
 		if err != nil {
+			if errors.Is(err, mlflowpkg.ErrMLflowNotConfigured) {
+				app.errorResponse(w, r, &integrations.HTTPError{
+					StatusCode: http.StatusServiceUnavailable,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    "service_unavailable",
+						Message: "MLflow is not configured on this deployment",
+					},
+				})
+				return
+			}
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to get MLflow client: %w", err))
 			return
 		}
