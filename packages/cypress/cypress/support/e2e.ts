@@ -236,6 +236,17 @@ Cypress.on('command:end', function handleCommandEnd() {
   commandStack.pop();
 });
 
+/**
+ * Masks sensitive information in command strings before logging
+ * @param command - The command string to mask
+ * @returns The masked command string
+ */
+function maskSensitiveInfo(command: string): string {
+  // Mask passwords in oc login commands
+  // Pattern: -p "password" or -p 'password' or -p password
+  return command.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
+}
+
 Cypress.on('command:enqueued', (command) => {
   if (command.name === 'step') {
     if (commandStack.length === 0) {
@@ -245,7 +256,8 @@ Cypress.on('command:enqueued', (command) => {
       cy.task('log', `${command.args[0]}`);
     }
   } else if (command.name === 'exec') {
-    cy.task('log', `[EXEC] ${command.args[0]}`);
+    const maskedCommand = maskSensitiveInfo(command.args[0]);
+    cy.task('log', `[EXEC] ${maskedCommand}`);
   } else if (command.name === 'log') {
     cy.task('log', `${command.args[0]}`);
   }
