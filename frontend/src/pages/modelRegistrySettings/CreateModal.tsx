@@ -460,7 +460,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                         <FormGroup label="Database type" isRequired fieldId="mr-database-type">
                           <SimpleSelect
                             dataTestId="mr-database-type"
-                            toggleProps={{ id: 'mr-database-type-toggle' }}
+                            toggleProps={{ id: 'mr-database-type', 'aria-label': 'Database type' }}
                             isFullWidth
                             isDisabled={!!mr}
                             options={databaseTypeOptions}
