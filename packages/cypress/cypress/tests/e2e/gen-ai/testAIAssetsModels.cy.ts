@@ -695,44 +695,44 @@ describe('AI Assets - Models Tab', () => {
     );
   });
 
+  // Helper function to test button behavior with inactive models (shared across multiple test suites)
+  const testInactiveModelButton = (
+    buttonFinder: (modelName: string) => Cypress.Chainable<JQuery<HTMLElement>>,
+    buttonName: string,
+  ) => {
+    cy.step('Scale model deployment to 0 replicas to make it inactive');
+    cy.exec(
+      `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
+      { failOnNonZeroExit: false },
+    );
+
+    cy.step('Wait for deployment to scale down');
+    cy.exec(
+      `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
+      { failOnNonZeroExit: false, timeout: 65000 },
+    );
+
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+    aiAssetsPage.navigate(projectName);
+    aiAssetsPage.switchToModelsTab();
+
+    cy.step(`Verify ${buttonName} button is disabled for inactive model`);
+    buttonFinder(testData.modelDeploymentName).should('be.disabled');
+
+    cy.step('Restore model deployment to active state');
+    cy.exec(
+      `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
+      { failOnNonZeroExit: false },
+    );
+
+    cy.step('Wait for model to become ready');
+    checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+      checkReady: true,
+    });
+  };
+
   // User Story: Adding Models to Playground from Models Tab
   describe('Adding Models to Playground from Models Tab', () => {
-    // Helper function to test button behavior with inactive models
-    const testInactiveModelButton = (
-      buttonFinder: (modelName: string) => Cypress.Chainable<JQuery<HTMLElement>>,
-      buttonName: string,
-    ) => {
-      cy.step('Scale model deployment to 0 replicas to make it inactive');
-      cy.exec(
-        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
-        { failOnNonZeroExit: false },
-      );
-
-      cy.step('Wait for deployment to scale down');
-      cy.exec(
-        `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
-        { failOnNonZeroExit: false, timeout: 65000 },
-      );
-
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      aiAssetsPage.navigate(projectName);
-      aiAssetsPage.switchToModelsTab();
-
-      cy.step(`Verify ${buttonName} button is disabled for inactive model`);
-      buttonFinder(testData.modelDeploymentName).should('be.disabled');
-
-      cy.step('Restore model deployment to active state');
-      cy.exec(
-        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
-        { failOnNonZeroExit: false },
-      );
-
-      cy.step('Wait for model to become ready');
-      checkInferenceServiceState(testData.inferenceServiceName, projectName, {
-        checkReady: true,
-      });
-    };
-
     it(
       'Test "Add to playground" button for models not in playground',
       {
@@ -855,42 +855,6 @@ describe('AI Assets - Models Tab', () => {
 
   // User Story: Trying Models in Playground
   describe('Trying Models in Playground', () => {
-    // Helper function to test button behavior with inactive models (shared with other describe blocks)
-    const testInactiveModelButton = (
-      buttonFinder: (modelName: string) => Cypress.Chainable<JQuery<HTMLElement>>,
-      buttonName: string,
-    ) => {
-      cy.step('Scale model deployment to 0 replicas to make it inactive');
-      cy.exec(
-        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=0`,
-        { failOnNonZeroExit: false },
-      );
-
-      cy.step('Wait for deployment to scale down');
-      cy.exec(
-        `oc wait deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --for=jsonpath='{.status.replicas}'=0 --timeout=60s`,
-        { failOnNonZeroExit: false, timeout: 65000 },
-      );
-
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      aiAssetsPage.navigate(projectName);
-      aiAssetsPage.switchToModelsTab();
-
-      cy.step(`Verify ${buttonName} button is disabled for inactive model`);
-      buttonFinder(testData.modelDeploymentName).should('be.disabled');
-
-      cy.step('Restore model deployment to active state');
-      cy.exec(
-        `oc scale deployment/${testData.inferenceServiceName}-predictor -n ${projectName} --replicas=1`,
-        { failOnNonZeroExit: false },
-      );
-
-      cy.step('Wait for model to become ready');
-      checkInferenceServiceState(testData.inferenceServiceName, projectName, {
-        checkReady: true,
-      });
-    };
-
     it(
       'Test "Try in playground" button for models already in playground',
       {
