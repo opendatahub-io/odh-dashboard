@@ -242,9 +242,14 @@ Cypress.on('command:end', function handleCommandEnd() {
  * @returns The masked command string
  */
 function maskSensitiveInfo(command: string): string {
+  let masked = command;
+  // Mask usernames in oc login commands
+  // Pattern: -u "username" or -u 'username' or -u username
+  masked = masked.replace(/-u\s+(['"]?)([^\s'"]+)\1/g, '-u $1***$1');
   // Mask passwords in oc login commands
   // Pattern: -p "password" or -p 'password' or -p password
-  return command.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
+  masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
+  return masked;
 }
 
 Cypress.on('command:enqueued', (command) => {
