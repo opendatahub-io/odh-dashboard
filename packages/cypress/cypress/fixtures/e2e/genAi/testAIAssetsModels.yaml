@@ -1,7 +1,7 @@
 projectDescription: 'AI Assets Models Tab Test Project'
 # Model deployment configuration
 modelDeploymentName: 'llama-3.2-1b-instruct-ai-asset'
-inferenceServiceName: 'llama-32-1b-instruct-ai-asset'
+inferenceServiceName: 'llama-3-2-1b-instruct-ai-asset'
 connectionURI: 'oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct'
 modelType: 'Generative AI model (Example, LLM)'
 servingRuntime: 'vLLM CPU (amd64 - EXPERIMENTAL)'
