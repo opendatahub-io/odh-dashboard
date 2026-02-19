@@ -198,6 +198,83 @@ describe('useFormToResourcesTransformer', () => {
     });
   });
 
+  it('should pass navSourceMetadata to useWizardFieldApply when initialData has metadata', () => {
+    const navSourceMetadata = {
+      labels: {
+        'modelregistry.opendatahub.io/registered-model-id': '123',
+        'modelregistry.opendatahub.io/model-version-id': '456',
+        'modelregistry.opendatahub.io/name': 'test-registry',
+      },
+      annotations: {
+        'some-annotation-key': 'some-annotation-value',
+      },
+    };
+
+    const formDataWithMetadata: WizardFormData = {
+      initialData: { navSourceMetadata },
+      state: {} as WizardFormData['state'],
+    };
+
+    const deploymentWithMetadata: Deployment = {
+      ...mockDeployment,
+      model: {
+        ...mockDeployment.model,
+        metadata: {
+          ...mockDeployment.model.metadata,
+          labels: navSourceMetadata.labels,
+          annotations: navSourceMetadata.annotations,
+        },
+      },
+    };
+
+    const mockAssembleDeployment = jest.fn().mockReturnValue(mockDeployment);
+    const mockApplyFieldData = jest.fn().mockReturnValue(deploymentWithMetadata);
+
+    useDeployMethod.mockReturnValue({
+      deployMethod: {
+        properties: { assembleDeployment: mockAssembleDeployment },
+      },
+      deployMethodLoaded: true,
+      deployMethodErrors: [],
+    });
+    useWizardFieldApply.mockReturnValue({
+      applyFieldData: mockApplyFieldData,
+      applyExtensionsLoaded: true,
+      applyExtensionErrors: [],
+    });
+
+    const renderResult = testHook(useFormToResourcesTransformer)(formDataWithMetadata);
+
+    expect(useWizardFieldApply).toHaveBeenCalledWith(formDataWithMetadata.state, navSourceMetadata);
+    expect(renderResult).hookToStrictEqual({
+      resources: { model: deploymentWithMetadata.model },
+      loaded: true,
+      errors: [],
+    });
+  });
+
+  it('should pass undefined navSourceMetadata when initialData has no metadata', () => {
+    const formDataNoMetadata: WizardFormData = {
+      initialData: {},
+      state: {} as WizardFormData['state'],
+    };
+
+    useDeployMethod.mockReturnValue({
+      deployMethod: undefined,
+      deployMethodLoaded: true,
+      deployMethodErrors: [],
+    });
+    useWizardFieldApply.mockReturnValue({
+      applyFieldData: (d: Deployment) => d,
+      applyExtensionsLoaded: true,
+      applyExtensionErrors: [],
+    });
+
+    testHook(useFormToResourcesTransformer)(formDataNoMetadata);
+
+    expect(useWizardFieldApply).toHaveBeenCalledWith(formDataNoMetadata.state, undefined);
+  });
+
   it('should pass existingDeployment to assembleDeployment', () => {
     const existingDeployment: Deployment = {
       ...mockDeployment,
