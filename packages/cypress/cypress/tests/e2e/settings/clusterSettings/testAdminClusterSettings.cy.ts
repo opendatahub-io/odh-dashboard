@@ -56,9 +56,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         testData = yaml.load(yamlContent) as TestAdminClusterSettingsData;
         testUserName = LDAP_CLUSTER_ADMIN_USER.USERNAME;
         clusterRoleBindingName = `${testData.clusterRoleBindingNamePrefix}-${testUserName}-cluster-admin`;
-        cy.log(
-          `Loaded test data - User: ${testUserName}, ClusterRoleBinding: ${clusterRoleBindingName}`,
-        );
+        cy.log(`Loaded test data - User: ***, ClusterRoleBinding: ${clusterRoleBindingName}`);
       })
       .then(() => {
         // Retrieve the dashboard configuration
@@ -170,7 +168,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     },
     () => {
       // Authentication and navigation
-      cy.step(`Log into the application as ${testUserName}`);
+      cy.step('Log into the application as ***');
       cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Cluster Settings');
@@ -229,7 +227,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         'User Management page requires groups API not available on BYOIDC clusters',
       );
 
-      cy.step(`Log into the application as ${testUserName}`);
+      cy.step('Log into the application as ***');
       cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 
       cy.step('Verify Cluster Settings is visible in navigation');
