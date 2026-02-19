@@ -38,12 +38,7 @@ function ExperimentForm(): React.JSX.Element {
             label="Description"
             isRequired={requiredFields.includes(field.name)}
           >
-            <TextArea
-              {...field}
-              id={field.name}
-              type="text"
-              isRequired={requiredFields.includes(field.name)}
-            />
+            <TextArea {...field} id={field.name} isRequired={requiredFields.includes(field.name)} />
           </FormGroup>
         )}
       />
