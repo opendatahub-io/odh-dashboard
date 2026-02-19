@@ -92,11 +92,10 @@ const createApiKeySchema = z.object({
 type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
-  isOpen: boolean;
   onClose: () => void;
 };
 
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }) => {
+const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
@@ -131,22 +130,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
     return result.success;
   };
 
-  const clearForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      expirationDate: undefined,
-    });
-    setError(undefined);
-    setIsCreating(false);
-    setCreatedToken(undefined);
-  };
-
-  const handleClose = () => {
-    clearForm();
-    onClose();
-  };
-
   const handleSubmit = async () => {
     setIsCreating(true);
     setError(undefined);
@@ -173,7 +156,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
   };
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen={isOpen} onClose={handleClose}>
+    <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -357,7 +340,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
           <Button
             key="close"
             variant="primary"
-            onClick={handleClose}
+            onClick={onClose}
             data-testid="close-api-key-button"
           >
             Close
@@ -374,7 +357,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
             >
               Create API key
             </Button>
-            <Button key="cancel" variant="link" onClick={handleClose} isDisabled={isCreating}>
+            <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
               Cancel
             </Button>
           </>

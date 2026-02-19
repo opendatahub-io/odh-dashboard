@@ -18,13 +18,14 @@ const EmptyApiKeysPage: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) =>
           </Button>
         }
       />
-      <CreateApiKeyModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          onRefresh();
-        }}
-      />
+      {isModalOpen && (
+        <CreateApiKeyModal
+          onClose={() => {
+            setIsModalOpen(false);
+            onRefresh();
+          }}
+        />
+      )}
     </>
   );
 };
