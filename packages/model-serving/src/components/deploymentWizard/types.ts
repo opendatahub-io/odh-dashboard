@@ -1,4 +1,5 @@
 import React from 'react';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
@@ -100,7 +101,10 @@ export type ModelLocationData = {
  * (from WizardField2Extension) can be added with any string key.
  */
 export type InitialWizardFormData = {
+  // wizard
   wizardStartIndex?: number;
+  isEditing?: boolean;
+  // fields
   project?: ProjectKind | null;
   modelTypeField?: ModelTypeFieldData;
   k8sNameDesc?: K8sNameDescriptionFieldData;
@@ -114,14 +118,13 @@ export type InitialWizardFormData = {
   modelFormat?: SupportedModelFormats;
   modelLocationData?: ModelLocationData;
   modelServer?: ModelServerOption;
-  isEditing?: boolean;
   connections?: LabeledConnection[];
   initSelectedConnection?: LabeledConnection | undefined;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
-  transformData?: { metadata?: { labels?: Record<string, string> } };
-  // Add more field handlers as needed
+  // deploying — serializable metadata merged onto the deployment during assembly
+  navSourceMetadata?: K8sResourceCommon['metadata'];
 } & Record<string, unknown>;
 
 export type WizardFormData = {

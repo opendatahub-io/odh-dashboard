@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from './types';
 import {
@@ -20,10 +21,11 @@ type ResolvedApplyExtension = ResolvedExtension<WizardFieldApplyExtension<unknow
  */
 export const useWizardFieldApply = (
   wizardState: WizardFormData['state'],
+  navSourceMetadata?: K8sResourceCommon['metadata'],
 ): {
   applyFieldData: (deployment: Deployment) => Deployment;
   applyExtensionsLoaded: boolean;
-  applyExtensionErrors: unknown[];
+  applyExtensionErrors: Error[];
 } => {
   const [applyExtensions, applyExtensionsLoaded, applyExtensionErrors] = useResolvedExtensions(
     isWizardFieldApplyExtension,
@@ -57,15 +59,32 @@ export const useWizardFieldApply = (
           result = applyExt.properties.apply(result, fieldData, wizardState);
         }
       }
+      if (navSourceMetadata) {
+        if (navSourceMetadata.labels) {
+          result.model.metadata.labels = {
+            ...result.model.metadata.labels,
+            ...navSourceMetadata.labels,
+          };
+        }
+        if (navSourceMetadata.annotations) {
+          result.model.metadata.annotations = {
+            ...result.model.metadata.annotations,
+            ...navSourceMetadata.annotations,
+          };
+        }
+      }
 
       return result;
     },
-    [activeApplyExtensions, wizardState],
+    [activeApplyExtensions, wizardState, navSourceMetadata],
   );
 
-  return {
-    applyFieldData,
-    applyExtensionsLoaded,
-    applyExtensionErrors,
-  };
+  return React.useMemo(
+    () => ({
+      applyFieldData,
+      applyExtensionsLoaded,
+      applyExtensionErrors: applyExtensionErrors.filter((error): error is Error => Boolean(error)),
+    }),
+    [applyFieldData, applyExtensionsLoaded, applyExtensionErrors],
+  );
 };

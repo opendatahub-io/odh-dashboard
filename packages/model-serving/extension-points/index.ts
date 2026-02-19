@@ -289,6 +289,9 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
     priority?: number;
     supportsOverwrite?: boolean;
+    assembleDeployment?: CodeRef<
+      (wizardData: WizardFormData, existingDeployment?: D) => Deployment
+    >;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],

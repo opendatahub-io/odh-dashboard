@@ -12,9 +12,15 @@ import {
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
 
-export const DeploymentWizardYAMLView: React.FC = () => {
-  const [code, setCode] = React.useState('');
+type DeploymentWizardYAMLViewProps = {
+  code?: string;
+  setCode: (code: string) => void;
+};
 
+export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> = ({
+  code,
+  setCode,
+}) => {
   return (
     <Stack hasGutter>
       <StackItem>
@@ -26,7 +32,7 @@ export const DeploymentWizardYAMLView: React.FC = () => {
           </FlexItem>
         </Flex>
       </StackItem>
-      <StackItem>
+      <StackItem isFilled data-testid="yaml-editor">
         <CodeEditor
           emptyState={
             <Bullseye>
@@ -40,11 +46,14 @@ export const DeploymentWizardYAMLView: React.FC = () => {
               </EmptyState>
             </Bullseye>
           }
-          data-testid="yaml-editor"
           code={code}
           onCodeChange={setCode}
           language={Language.yaml}
           isLanguageLabelVisible
+          isFullHeight
+          isReadOnly
+          isCopyEnabled
+          isDownloadEnabled
         />
       </StackItem>
     </Stack>

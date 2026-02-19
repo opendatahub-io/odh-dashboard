@@ -23,8 +23,10 @@ import { InitialWizardFormData, WizardStepTitle } from './types';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
-import { DeploymentWizardYAMLView } from './DeploymentWizardYAMLView';
+import { DeploymentWizardYAMLView } from './yaml/DeploymentWizardYAMLView';
 import { StepContentToggle } from './ModelDeploymentStepContentToggle';
+import { useFormYamlResources } from './yaml/useYamlResourcesResult';
+import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
@@ -64,6 +66,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
   // TODO in same jira, replace deployMethod with applyFieldData for all other fields
   const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(wizardState.state);
+
+  const { resources } = useFormToResourcesTransformer(wizardState, existingDeployment);
+  const { yaml } = useFormYamlResources(resources);
 
   const secretName = React.useMemo(() => {
     return (
@@ -242,7 +247,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
             <StepContentToggle
               viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView />}
+              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
               contentView={
                 wizardState.loaded.modelSourceLoaded ? (
                   <ModelSourceStepContent
@@ -262,7 +267,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           >
             <StepContentToggle
               viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView />}
+              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
               contentView={
                 wizardState.loaded.modelDeploymentLoaded ? (
                   <ModelDeploymentStepContent
@@ -284,7 +289,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           >
             <StepContentToggle
               viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView />}
+              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
               contentView={
                 wizardState.loaded.advancedOptionsLoaded ? (
                   <AdvancedSettingsStepContent
@@ -309,7 +314,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           >
             <StepContentToggle
               viewMode={viewMode}
-              yamlView={<DeploymentWizardYAMLView />}
+              yamlView={<DeploymentWizardYAMLView code={yaml} setCode={() => undefined} />}
               contentView={
                 wizardState.loaded.summaryLoaded ? (
                   <ReviewStepContent
