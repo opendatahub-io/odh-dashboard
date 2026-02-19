@@ -855,4 +855,3 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.True(t, model2Found, "Model 2 should be found")
 	})
 }
-
