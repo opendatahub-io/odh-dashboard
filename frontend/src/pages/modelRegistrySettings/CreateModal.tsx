@@ -466,6 +466,10 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             options={databaseTypeOptions}
                             value={databaseType}
                             onChange={(key) => handleDatabaseTypeChange(key)}
+                            toggleLabel={
+                              databaseTypeOptions.find((o) => o.key === databaseType)?.label ??
+                              databaseType
+                            }
                           />
                         </FormGroup>
                         <FormGroup label="Host" isRequired fieldId="mr-host">
