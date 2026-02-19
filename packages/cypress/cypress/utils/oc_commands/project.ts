@@ -1,5 +1,6 @@
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Create an OpenShift Project
@@ -112,7 +113,12 @@ export const getOpenShiftProject = (projectName: string): Cypress.Chainable<stri
   const checkCommand = `oc get project "${projectName}" -o name`;
   cy.log(`Executing command: ${checkCommand}`);
   return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result: Cypress.Exec) => {
-    cy.log(`Command result: ${JSON.stringify(result)}`);
+    // Mask usernames in error messages before logging
+    const maskedResult = {
+      ...result,
+      stderr: maskSensitiveInfo(result.stderr || ''),
+    };
+    cy.log(`Command result: ${JSON.stringify(maskedResult)}`);
     // Use the utility function to handle command result
     handleOCCommandResult(result);
     // Use cy.wrap to ensure we're returning a Cypress chainable
@@ -148,7 +154,8 @@ export const getDashboardConfig = (key?: string): Cypress.Chainable<unknown> => 
 
   return cy.exec(command).then((result) => {
     if (result.code !== 0) {
-      throw new Error(`Failed to get DashboardConfig: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr || '');
+      throw new Error(`Failed to get DashboardConfig: ${maskedStderr}`);
     }
     const config = JSON.parse(result.stdout) as DashboardConfig;
 
@@ -172,7 +179,8 @@ export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unk
 
   return cy.exec(command).then((result) => {
     if (result.code !== 0) {
-      throw new Error(`Failed to get Notebook Controller Config: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr || '');
+      throw new Error(`Failed to get Notebook Controller Config: ${maskedStderr}`);
     }
 
     const config = JSON.parse(result.stdout) as Record<string, unknown>; // Adjust type as needed
@@ -199,11 +207,12 @@ export const getNotebookControllerCullerConfig = (key?: string): Cypress.Chainab
   cy.log('Executing command:', command);
 
   return cy.exec(command).then((result) => {
-    // Log the std error
-    cy.log('Command stderr:', result.stderr);
+    // Log the std error (mask usernames if present)
+    const maskedStderr = maskSensitiveInfo(result.stderr || '');
+    cy.log('Command stderr:', maskedStderr);
 
     if (result.code !== 0) {
-      return Cypress.Promise.resolve(`Error: ${result.stderr.trim()}`);
+      return Cypress.Promise.resolve(`Error: ${maskedStderr.trim()}`);
     }
 
     const trimmedOutput = result.stdout.trim();

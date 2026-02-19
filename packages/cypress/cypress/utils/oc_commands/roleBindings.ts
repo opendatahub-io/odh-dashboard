@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Check if a role binding exists for a specific subject in a model registry
@@ -76,7 +77,8 @@ export const deleteClusterRoleBinding = (
     if (result.code === 0) {
       cy.log(`Successfully deleted ClusterRoleBinding: ${maskedName}`);
     } else {
-      cy.log(`Failed to delete ClusterRoleBinding: ${maskedName}`, result.stderr);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`Failed to delete ClusterRoleBinding: ${maskedName}`, maskedStderr);
     }
     return cy.wrap(result);
   });

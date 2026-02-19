@@ -1,6 +1,7 @@
 import { execWithOutput } from './baseCommands';
 import { getModelRegistryNamespace } from './modelRegistry';
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Helper to parse YAML using either yq or jq (with Python fallback).
@@ -68,11 +69,12 @@ export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandL
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog-default-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
-      cy.log(`stderr: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
       throw new Error(
-        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${result.stderr}`,
+        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${maskedStderr}`,
       );
     }
     cy.log(`✓ model-catalog-default-sources ConfigMap exists in ${namespace}`);
@@ -91,7 +93,7 @@ export const verifyModelCatalogDeployment = (): Cypress.Chainable<CommandLineRes
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      const maskedStderr = result.stderr.replace(/User\s+(['"])([^'"]+)\1/g, 'User $1***$1');
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog deployment not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
       cy.log(`stderr: ${maskedStderr}`);
@@ -113,10 +115,11 @@ export const verifyModelCatalogService = (): Cypress.Chainable<CommandLineResult
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog service not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
-      cy.log(`stderr: ${result.stderr}`);
-      throw new Error(`model-catalog service not found in ${namespace}: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
+      throw new Error(`model-catalog service not found in ${namespace}: ${maskedStderr}`);
     }
     cy.log(`✓ model-catalog service exists in ${namespace}`);
     return cy.wrap(result);
@@ -201,9 +204,10 @@ export const verifyModelCatalogSourceEnabled = (
       // Fall back to default configmap
       execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
         if (defaultResult.code !== 0) {
+          const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
           cy.log(`ERROR: Failed to get source enabled status from both configmaps`);
-          cy.log(`stderr: ${defaultResult.stderr}`);
-          throw new Error(`Failed to verify source enabled status: ${defaultResult.stderr}`);
+          cy.log(`stderr: ${maskedStderr}`);
+          throw new Error(`Failed to verify source enabled status: ${maskedStderr}`);
         }
 
         const defaultValue = defaultResult.stdout.trim();
@@ -247,8 +251,9 @@ export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: Failed to check source enabled status`);
-      cy.log(`stderr: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
       return cy.wrap(false);
     }
     const isEnabled = result.stdout.trim() === 'true';
@@ -274,7 +279,8 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
   return cy.then(() => {
     execWithOutput(getCommand, 30).then((result: CommandLineResult) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get model-catalog-sources ConfigMap: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get model-catalog-sources ConfigMap: ${maskedStderr}`);
       }
 
       const updateCmd = getYamlUpdateCommand(sourceId);
@@ -287,9 +293,10 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
 
       execWithOutput(updateCommand, 60).then((patchResult: CommandLineResult) => {
         if (patchResult.code !== 0) {
+          const maskedStderr = maskSensitiveInfo(patchResult.stderr);
           cy.log(`stdout: ${patchResult.stdout}`);
-          cy.log(`stderr: ${patchResult.stderr}`);
-          throw new Error(`Failed to enable source ${sourceId}: ${patchResult.stderr}`);
+          cy.log(`stderr: ${maskedStderr}`);
+          throw new Error(`Failed to enable source ${sourceId}: ${maskedStderr}`);
         }
         cy.log(`✓ Successfully enabled source ${sourceId}`);
       });

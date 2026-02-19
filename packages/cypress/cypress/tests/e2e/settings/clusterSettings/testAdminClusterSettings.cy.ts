@@ -26,6 +26,7 @@ import {
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { applyOpenShiftYaml } from '../../../../utils/oc_commands/baseCommands';
 import { replacePlaceholdersInYaml } from '../../../../utils/yaml_files';
+import { maskSensitiveInfo } from '../../../../utils/maskSensitiveInfo';
 import {
   getClusterRoleBinding,
   deleteClusterRoleBinding,
@@ -127,7 +128,8 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
           })
           .then((result: CommandLineResult) => {
             if (result.code !== 0) {
-              throw new Error(`Failed to create ClusterRoleBinding: ${result.stderr}`);
+              const maskedStderr = maskSensitiveInfo(result.stderr);
+              throw new Error(`Failed to create ClusterRoleBinding: ${maskedStderr}`);
             }
             cy.log('Successfully created ClusterRoleBinding');
           });

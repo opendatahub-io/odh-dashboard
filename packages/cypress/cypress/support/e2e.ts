@@ -25,6 +25,7 @@ import '../utils/moduleFederationMock';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
 import { asProjectAdminUser } from '../utils/mockUsers';
+import { maskSensitiveInfo } from '../utils/maskSensitiveInfo';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const softAssert = require('soft-assert');
@@ -235,33 +236,6 @@ Cypress.on('command:start', function handleCommandStart(command) {
 Cypress.on('command:end', function handleCommandEnd() {
   commandStack.pop();
 });
-
-/**
- * Masks sensitive information in command strings and error messages
- * @param text - The text string to mask
- * @returns The masked text string
- */
-function maskSensitiveInfo(text: string): string {
-  let masked = text;
-  // Mask usernames in oc login commands
-  // Pattern: -u "username" or -u 'username' or -u username
-  masked = masked.replace(/-u\s+(['"]?)([^\s'"]+)\1/g, '-u $1***$1');
-  // Mask passwords in oc login commands
-  // Pattern: -p "password" or -p 'password' or -p password
-  masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
-  // Mask ClusterRoleBinding names containing usernames
-  masked = masked.replace(/cypress-test-[a-zA-Z0-9-]+(-cluster-admin)?/g, 'cypress-test-***$1');
-  // Mask usernames in oc adm policy add-role-to-user commands
-  masked = masked.replace(/(add-role-to-user\s+\w+\s+)[^\s]+(\s+-n)/g, '$1***$2');
-  // Mask usernames in oc get user commands
-  masked = masked.replace(/(oc get user\s+)[^\s]+(\s+-o)/g, '$1***$2');
-  // Mask project names containing test identifiers
-  masked = masked.replace(/cypress-[a-z-]+-(?:test-)?project-\d+/g, 'cypress-test-***');
-  // Mask usernames in OpenShift server error messages
-  // Pattern: User "username" or User 'username'
-  masked = masked.replace(/User\s+(['"])([^'"]+)\1/g, 'User $1***$1');
-  return masked;
-}
 
 Cypress.on('command:enqueued', (command) => {
   if (command.name === 'step') {
