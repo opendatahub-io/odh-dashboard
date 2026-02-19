@@ -15,3 +15,5 @@ export const EMPTY_CUSTOM_PROPERTY_STRING: ModelRegistryCustomProperty = {
   string_value: '',
   metadataType: ModelRegistryMetadataType.STRING,
 };
+
+// Trigger Model Catalog CI detection
