@@ -254,6 +254,12 @@ function maskSensitiveInfo(command: string): string {
   // Mask usernames in oc adm policy add-role-to-user commands
   // Pattern: add-role-to-user edit ldap-user2 -n
   masked = masked.replace(/(add-role-to-user\s+\w+\s+)[^\s]+(\s+-n)/g, '$1***$2');
+  // Mask usernames in oc get user commands
+  // Pattern: oc get user <username> -o
+  masked = masked.replace(/(oc get user\s+)[^\s]+(\s+-o)/g, '$1***$2');
+  // Mask project names containing test identifiers
+  // Pattern: cypress-test-project-776663, cypress-single-model-test-project-957237
+  masked = masked.replace(/cypress-[a-z-]+-(?:test-)?project-\d+/g, 'cypress-test-***');
   return masked;
 }
 
