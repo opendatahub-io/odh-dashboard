@@ -461,6 +461,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                           <SimpleSelect
                             dataTestId="mr-database-type"
                             toggleProps={{ id: 'mr-database-type', 'aria-label': 'Database type' }}
+                            popperProps={{ appendTo: 'inline' }}
                             isFullWidth
                             isDisabled={!!mr}
                             options={databaseTypeOptions}
