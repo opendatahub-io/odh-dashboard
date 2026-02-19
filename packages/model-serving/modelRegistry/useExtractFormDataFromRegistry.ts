@@ -12,7 +12,7 @@ import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
-import { getModelRegistryTransform } from './utils/deployUtils';
+import { getModelRegistryMetadata } from './utils/deployUtils';
 import {
   ModelLocationData,
   ModelLocationType,
@@ -108,8 +108,8 @@ export const useExtractFormDataFromRegistry = (
       // Set model name from prefill (k8s name will be auto-generated)
       k8sNameDesc,
 
-      // Set model registry info on transform data
-      transformData: getModelRegistryTransform(prefillInfo.modelRegistryInfo),
+      // Set model registry metadata (must be serializable for navigation state)
+      navSourceMetadata: getModelRegistryMetadata(prefillInfo.modelRegistryInfo),
 
       // Set model location data
       modelLocationData: (() => {

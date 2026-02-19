@@ -1709,8 +1709,30 @@ describe('Model Serving Deploy Wizard', () => {
     // YAML Viewer
     modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
     modelServingWizard.findYAMLEditorEmptyState().should('exist');
-
     modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
+
+    // Fill form to llmd and check yaml preview
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
+    modelServingWizard.findUrilocationInput().type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard
+      .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+      .should('exist')
+      .click();
+
+    // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
+    // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
+    modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
+    modelServingWizard.findYAMLCodeEditor().contains('apiVersion: serving.kserve.io/v1alpha1');
+    modelServingWizard.findYAMLCodeEditor().contains('kind: LLMInferenceService');
+    modelServingWizard.findYAMLCodeEditor().contains('name: test-model');
   });
 
   describe('redirect from v2 to v3 route', () => {

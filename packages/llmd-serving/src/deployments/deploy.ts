@@ -9,7 +9,6 @@ import {
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
-import * as _ from 'lodash-es';
 import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
@@ -30,7 +29,41 @@ import {
   updateLLMInferenceService,
 } from '../api/LLMInferenceService';
 
-type CreateLLMdInferenceServiceParams = {
+export const BaseLLMInferenceService = (
+  name?: string,
+  namespace?: string,
+  annotations?: Record<string, string>,
+): LLMInferenceServiceKind => {
+  return {
+    apiVersion: 'serving.kserve.io/v1alpha1',
+    kind: 'LLMInferenceService',
+    metadata: {
+      name: name ?? '',
+      namespace: namespace ?? '',
+      annotations: annotations ?? {},
+    },
+    spec: {
+      model: {
+        uri: '',
+        name: name ?? '',
+      },
+      router: {
+        scheduler: {},
+        route: {},
+        gateway: {},
+      },
+      template: {
+        containers: [
+          {
+            name: 'main',
+          },
+        ],
+      },
+    },
+  };
+};
+
+type CreateLLMInferenceServiceParams = {
   projectName: string;
   k8sName: string;
   modelLocationData: ModelLocationData;
@@ -49,12 +82,11 @@ type CreateLLMdInferenceServiceParams = {
  * Assembles an LLMInferenceServiceKind object from the given parameters.
  * This is a pure function that builds the desired state of the resource.
  */
-const assembleLLMdInferenceService = (
-  data: CreateLLMdInferenceServiceParams,
+const assembleLLMInferenceService = (
+  data: CreateLLMInferenceServiceParams,
   existingDeployment?: LLMInferenceServiceKind,
   connectionSecretName?: string,
   dryRun?: boolean,
-  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): LLMInferenceServiceKind => {
   const {
     projectName,
@@ -73,37 +105,11 @@ const assembleLLMdInferenceService = (
 
   let llmInferenceService: LLMInferenceServiceKind = existingDeployment
     ? { ...existingDeployment }
-    : {
-        apiVersion: 'serving.kserve.io/v1alpha1',
-        kind: 'LLMInferenceService',
-        metadata: {
-          name: k8sName,
-          namespace: projectName,
-          annotations: {
-            ...(displayName && { 'openshift.io/display-name': displayName }),
-            ...(description && { 'openshift.io/description': description }),
-            'opendatahub.io/model-type': 'generative',
-          },
-        },
-        spec: {
-          model: {
-            uri: '',
-            name: k8sName,
-          },
-          router: {
-            scheduler: {},
-            route: {},
-            gateway: {},
-          },
-          template: {
-            containers: [
-              {
-                name: 'main',
-              },
-            ],
-          },
-        },
-      };
+    : BaseLLMInferenceService(k8sName, projectName, {
+        ...(displayName && { 'openshift.io/display-name': displayName }),
+        ...(description && { 'openshift.io/description': description }),
+        'opendatahub.io/model-type': 'generative',
+      });
 
   llmInferenceService = applyDisplayNameDesc(llmInferenceService, displayName, description);
   llmInferenceService = applyDashboardResourceLabel(llmInferenceService);
@@ -127,9 +133,43 @@ const assembleLLMdInferenceService = (
   );
   llmInferenceService = applyModelAvailabilityData(llmInferenceService, modelAvailability);
   llmInferenceService = applyTokenAuthentication(llmInferenceService, tokenAuthentication);
-  llmInferenceService = _.merge(llmInferenceService, transformData);
 
   return llmInferenceService;
+};
+
+export const assembleLLMdDeployment = (
+  wizardData: WizardFormData,
+  existingDeployment?: LLMdDeployment,
+  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
+): LLMdDeployment => {
+  let result: LLMdDeployment = {
+    modelServingPlatformId: LLMD_SERVING_ID,
+    model: assembleLLMInferenceService(
+      {
+        projectName: wizardData.state.project.projectName ?? '',
+        k8sName: wizardData.state.k8sNameDesc.data.k8sName.value,
+        displayName: wizardData.state.k8sNameDesc.data.name,
+        description: wizardData.state.k8sNameDesc.data.description,
+        hardwareProfile: wizardData.state.hardwareProfileConfig.formData,
+        modelLocationData: wizardData.state.modelLocationData.data ?? {
+          type: ModelLocationType.NEW,
+          fieldValues: {},
+          additionalFields: {},
+        },
+        createConnectionData: wizardData.state.createConnectionData.data,
+        replicas: wizardData.state.numReplicas.data,
+        runtimeArgs: wizardData.state.runtimeArgs.data,
+        environmentVariables: wizardData.state.environmentVariables.data,
+        modelAvailability: wizardData.state.modelAvailability.data,
+        tokenAuthentication: wizardData.state.tokenAuthentication.data,
+      },
+      existingDeployment?.model,
+      wizardData.state.createConnectionData.data.nameDesc?.k8sName.value,
+      false,
+    ),
+  };
+  result = applyFieldData?.(result) ?? result;
+  return result;
 };
 
 /**
@@ -138,20 +178,18 @@ const assembleLLMdInferenceService = (
  * - Patch: When updating with overwrite=true (JSON Patch, less prone to conflicts)
  * - Update: When updating with overwrite=false (merge patch with removal handling)
  */
-const deployLLMdInferenceService = async (
-  params: CreateLLMdInferenceServiceParams,
+const deployLLMInferenceService = async (
+  params: CreateLLMInferenceServiceParams,
   existingDeployment: LLMInferenceServiceKind | undefined,
   connectionSecretName: string | undefined,
-  transformData: { metadata?: { labels?: Record<string, string> } } | undefined,
   opts?: { dryRun?: boolean; overwrite?: boolean },
   applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMInferenceServiceKind> => {
-  let newResource = assembleLLMdInferenceService(
+  let newResource = assembleLLMInferenceService(
     params,
     existingDeployment,
     connectionSecretName,
     opts?.dryRun,
-    transformData,
   );
 
   // Apply field data from wizard field extensions during assembly
@@ -187,7 +225,7 @@ export const deployLLMdDeployment = async (
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMdDeployment> => {
-  const params: CreateLLMdInferenceServiceParams = {
+  const params: CreateLLMInferenceServiceParams = {
     projectName,
     k8sName: wizardData.k8sNameDesc.data.k8sName.value,
     displayName: wizardData.k8sNameDesc.data.name,
@@ -206,11 +244,10 @@ export const deployLLMdDeployment = async (
     tokenAuthentication: wizardData.tokenAuthentication.data,
   };
 
-  const llmdInferenceService = await deployLLMdInferenceService(
+  const llmdInferenceService = await deployLLMInferenceService(
     params,
     existingDeployment?.model,
     connectionSecretName,
-    initialWizardData?.transformData,
     { dryRun, overwrite },
     applyFieldData,
   );

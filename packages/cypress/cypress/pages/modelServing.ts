@@ -1335,7 +1335,7 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('review-step-model-details');
   }
 
-  findYAMLViewerToggle(name: string) {
+  findYAMLViewerToggle(name: 'YAML' | 'Form') {
     return cy.findByRole('button', { name });
   }
 
