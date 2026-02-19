@@ -17,7 +17,7 @@ export type SubjectRoleRow = {
 };
 
 export enum AssignmentStatus {
-  CurrentlyAssigned = 'Currently assigned',
+  CurrentlyAssigned = 'Assigned',
   Assigning = 'Assigning',
   Unassigning = 'Unassigning',
 }

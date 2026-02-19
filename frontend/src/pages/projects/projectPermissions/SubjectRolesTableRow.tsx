@@ -24,7 +24,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
     : undefined;
 
   const actionItems = [
-    { title: 'Manage roles', onClick: onManageRoles },
+    { title: 'Manage permissions', onClick: onManageRoles },
     { title: 'Unassign', onClick: onRemove },
   ];
 

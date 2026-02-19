@@ -20,7 +20,7 @@ const AssignRolesFooterActions: React.FC<AssignRolesFooterActionsProps> = ({
       <Alert
         isInline
         variant="info"
-        title="Make sure to inform the specified user about the updated role assignments."
+        title="Users and groups are not notified of changes to their role assignments."
         data-testid="assign-roles-footer-alert"
       />
       <ActionList>

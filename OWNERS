@@ -10,12 +10,15 @@ filters:
       - hardware-profiles-approvers
       - model-registry-catalog-approvers
       - model-serving-metrics-approvers
+      - maas-approvers
       - pipelines-approvers
       - platform-approvers
       - quality-e2e-testing-approvers
       - workbenches-approvers
       - gen-ai-approvers
       - nim-serving-approvers
+      - autorag-approvers
+      - eval-hub-approvers
 
   # Catchall
   '.*':
@@ -139,6 +142,15 @@ filters:
     labels:
       - 'area/gen-ai'
 
+  # Models as a Service (MaaS)
+  'packages/maas/.*':
+    approvers:
+      - maas-approvers
+    reviewers:
+      - maas-reviewers
+    labels:
+      - 'area/maas'
+
   # Notebooks
   'packages/notebooks/.*':
     approvers:
@@ -147,3 +159,21 @@ filters:
       - notebooks-reviewers
     labels:
       - 'area/notebooks'
+
+  # AutoRAG
+  'packages/autorag/.*':
+    approvers:
+      - autorag-approvers
+    reviewers:
+      - autorag-reviewers
+    labels:
+      - 'area/autorag'
+
+  # Eval Hub
+  'packages/eval-hub/.*':
+    approvers:
+      - eval-hub-approvers
+    reviewers:
+      - eval-hub-reviewers
+    labels:
+      - 'area/eval-hub'

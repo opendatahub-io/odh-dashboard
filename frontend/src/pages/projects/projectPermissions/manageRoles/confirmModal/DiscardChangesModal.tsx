@@ -1,41 +1,28 @@
 import * as React from 'react';
 import ContentModal from '#~/components/modals/ContentModal';
-import {
-  PendingChangeType,
-  type SubjectKindSelection,
-} from '#~/pages/projects/projectPermissions/types';
+import { PendingChangeType } from '#~/pages/projects/projectPermissions/types';
 
 type DiscardChangesModalProps = {
   changeType: PendingChangeType;
-  subjectKind: SubjectKindSelection;
   onDiscard: () => void;
   onCancel: () => void;
 };
 
-const getModalMessage = (
-  changeType: PendingChangeType,
-  subjectKind: SubjectKindSelection,
-): React.ReactNode => {
+const getModalMessage = (changeType: PendingChangeType): React.ReactNode => {
   switch (changeType) {
     case PendingChangeType.Kind:
       return (
         <>
-          Switching the subject kind will discard any changes you&apos;ve made in the{' '}
-          <strong>Role assignment</strong> section.
+          Editing the subject kind will discard your changes. Discard changes and select the new
+          subject, or cancel to continue editing.
         </>
       );
     case PendingChangeType.Clear:
-      return (
-        <>
-          Clearing the {subjectKind} selection will discard any changes you&apos;ve made in the{' '}
-          <strong>Role assignment</strong> section.
-        </>
-      );
     case PendingChangeType.Switch:
       return (
         <>
-          Switching to a different {subjectKind} will discard any changes you&apos;ve made in the{' '}
-          <strong>Role assignment</strong> section.
+          Editing the subject name will discard your changes. Discard changes, or cancel to continue
+          editing.
         </>
       );
     default:
@@ -45,17 +32,16 @@ const getModalMessage = (
 
 const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
   changeType,
-  subjectKind,
   onDiscard,
   onCancel,
 }) => (
   <ContentModal
-    title="Discard changes"
+    title="Discard unsaved changes?"
     onClose={onCancel}
     variant="small"
     dataTestId="discard-changes-modal"
     titleIconVariant="warning"
-    contents={getModalMessage(changeType, subjectKind)}
+    contents={getModalMessage(changeType)}
     buttonActions={[
       {
         label: 'Discard',

@@ -8,7 +8,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 
-describe('Verify that users can provide contributor project permissions to non-admin users', () => {
+describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -39,7 +39,7 @@ describe('Verify that users can provide contributor project permissions to non-a
 
   it(
     'Verify that user can be added as a Contributor for a Project',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -71,7 +71,7 @@ describe('Verify that users can provide contributor project permissions to non-a
   );
   it(
     'Verify that user can access the created project as a Contributor',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);

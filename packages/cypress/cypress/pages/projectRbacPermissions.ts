@@ -28,7 +28,7 @@ class SubjectRolesTable extends Contextual<HTMLElement> {
   }
 
   findManageRolesAction(rowName: string) {
-    return this.getRowByName(rowName).findKebabAction('Manage roles');
+    return this.getRowByName(rowName).findKebabAction('Manage permissions');
   }
 
   findTableHeaderButton(name: string | RegExp) {

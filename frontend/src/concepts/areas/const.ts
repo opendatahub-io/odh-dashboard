@@ -4,11 +4,13 @@ import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from '.
 export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
+  autoRag: false,
   modelAsService: false,
   maasApiKeys: false,
   mlflow: false,
-  projectRBAC: false,
+  projectRBAC: true,
   observabilityDashboard: false,
+  deploymentWizardYAMLViewer: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -205,6 +207,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
+  },
+  [SupportedArea.YAML_VIEWER]: {
+    featureFlags: ['deploymentWizardYAMLViewer'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
   },
 };
 

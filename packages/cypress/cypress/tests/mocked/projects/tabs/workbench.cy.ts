@@ -1,7 +1,10 @@
 import {
   mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
+import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import {
   mockCustomSecretK8sResource,
   mockDashboardConfig,
@@ -20,12 +23,15 @@ import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8s
 import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
 import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/projects/types';
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
 import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import {
   ConfigMapModel,
+  ClusterQueueModel,
+  EventModel,
   ImageStreamModel,
   NotebookModel,
   PVCModel,
@@ -35,6 +41,7 @@ import {
   SecretModel,
   StorageClassModel,
   HardwareProfileModel,
+  LocalQueueModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { be } from '../../../../utils/should';
@@ -47,6 +54,7 @@ import {
   notebookConfirmModal,
   notebookImageUpdateModal,
   workbenchPage,
+  workbenchStatusModal,
   attachExistingStorageModal,
 } from '../../../../pages/workbench';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
@@ -484,6 +492,77 @@ const initIntercepts = ({
       mockK8sResourceList(mockProjectScopedHardwareProfiles),
     ).as('projectHardwareProfiles');
   }
+};
+
+const notebookWithKueueQueue = mockNotebookK8sResource({
+  lastImageSelection: 'test-imagestream:1.2',
+  opts: {
+    metadata: {
+      name: 'test-notebook',
+      labels: {
+        'opendatahub.io/notebook-image': 'true',
+        'kueue.x-k8s.io/queue-name': 'test-queue',
+      },
+      annotations: { 'opendatahub.io/image-display-name': 'Test image' },
+    },
+  },
+});
+
+const mockNotebookEvents = [
+  {
+    apiVersion: 'v1',
+    kind: 'Event',
+    metadata: { name: 'ev-1', namespace: 'test-project', uid: 'ev-1-uid' },
+    involvedObject: { name: 'test-notebook', kind: 'StatefulSet' },
+    lastTimestamp: '2024-01-15T10:00:00Z',
+    eventTime: '2024-01-15T10:00:00Z',
+    type: 'Normal' as const,
+    reason: 'Created',
+    message: 'Created container notebook',
+  },
+  {
+    apiVersion: 'v1',
+    kind: 'Event',
+    metadata: { name: 'ev-2', namespace: 'test-project', uid: 'ev-2-uid' },
+    involvedObject: { name: 'test-notebook', kind: 'StatefulSet' },
+    lastTimestamp: '2024-01-15T10:01:00Z',
+    eventTime: '2024-01-15T10:01:00Z',
+    type: 'Normal' as const,
+    reason: 'Started',
+    message: 'Started container notebook',
+  },
+];
+
+const initKueueEnabledForStatusModal = () => {
+  initIntercepts({ notebooks: [notebookWithKueueQueue] });
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+  );
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+        [DataScienceStackComponent.KUEUE]: { managementState: 'Unmanaged' },
+      },
+    }),
+  );
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+  );
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+  cy.interceptK8sList(
+    { model: LocalQueueModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+    ]),
+  );
+  cy.interceptK8s(
+    { model: ClusterQueueModel, name: 'test-cluster-queue' },
+    mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+  );
 };
 
 describe('Workbench page', () => {
@@ -995,6 +1074,108 @@ describe('Workbench page', () => {
     notebookRow.shouldHaveHardwareProfile('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
+  });
+
+  it('should display Local queue and Cluster queue in hardware profile popover when clicking profile in table and Kueue is enabled', () => {
+    const queueProfile = mockHardwareProfile({
+      name: 'queue-profile',
+      displayName: 'Queue Profile',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'test-queue',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+          resourceType: IdentifierResourceType.CPU,
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '4Gi',
+          defaultCount: '2Gi',
+          resourceType: IdentifierResourceType.MEMORY,
+        },
+      ],
+    });
+    const globalProfilesWithQueue = [...mockGlobalScopedHardwareProfiles, queueProfile];
+
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'queue-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              },
+            },
+          },
+        }),
+      ],
+      hardwareProfiles: {
+        global: globalProfilesWithQueue,
+        project: mockProjectScopedHardwareProfiles,
+      },
+    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+    );
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+          [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+    );
+    cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+    cy.interceptK8sList(
+      { model: LocalQueueModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+      ]),
+    );
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'queue-profile',
+      },
+      queueProfile,
+    );
+
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.shouldHaveHardwareProfile('Queue Profile');
+    notebookRow
+      .findHardwareProfileColumn()
+      .findByTestId('hardware-profile-details-popover')
+      .click();
+    hardwareProfileSection
+      .findDetails()
+      .should('be.visible')
+      .within(() => {
+        cy.contains('Local queue').should('be.visible');
+        cy.contains('test-queue').should('be.visible');
+        cy.contains('Cluster queue').should('be.visible');
+        cy.contains('test-cluster-queue').should('be.visible');
+      });
   });
 
   it('list workbench and table sorting', () => {
@@ -2242,5 +2423,57 @@ describe('Workbench page', () => {
       editSpawnerPage.shouldNotHaveFeatureStoreSelected('credit_scoring_local');
       editSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
     });
+  });
+
+  it('Workbench status modal shows Progress and Events log tabs; Resources tab only when Kueue enabled', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      { model: EventModel, ns: 'test-project' },
+      mockK8sResourceList(mockNotebookEvents),
+    );
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().click();
+
+    workbenchStatusModal.find().should('be.visible');
+    workbenchStatusModal.getNotebookStatus('Running');
+
+    workbenchStatusModal.findProgressTab().should('be.visible').click();
+    workbenchStatusModal.findProgressSteps().should('exist');
+
+    workbenchStatusModal.findEventlogTab().should('be.visible').click();
+    cy.findByTestId('event-logs').should('be.visible');
+
+    cy.findByTestId('expand-resources').should('not.exist');
+  });
+
+  it('Resources tab is visible when Kueue is enabled and component is present', () => {
+    initKueueEnabledForStatusModal();
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().click();
+
+    workbenchStatusModal.find().should('be.visible');
+    workbenchStatusModal.findProgressTab().should('be.visible');
+    workbenchStatusModal.findEventlogTab().should('be.visible');
+    workbenchStatusModal.findResourcesTab().should('be.visible');
+  });
+
+  it('Workbench status modal Resources tab displays cluster queue info when Kueue is enabled', () => {
+    initKueueEnabledForStatusModal();
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().click();
+
+    workbenchStatusModal.find().should('be.visible');
+    workbenchStatusModal.findResourcesTab().should('be.visible').click();
+
+    workbenchStatusModal.findClusterQueueSection().should('be.visible');
+    workbenchStatusModal.findQueueValue().should('contain.text', 'test-cluster-queue');
+    workbenchStatusModal.findQuotasSection().should('be.visible');
+    workbenchStatusModal.findQuotaSourceValue().should('be.visible');
   });
 });

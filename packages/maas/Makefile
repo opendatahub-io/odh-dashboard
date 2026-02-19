@@ -40,8 +40,8 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.0.2
-ENVTEST_VERSION ?= release-0.17
-ENVTEST_K8S_VERSION ?= 1.29.0
+ENVTEST_VERSION ?= release-0.19
+ENVTEST_K8S_VERSION ?= 1.29.3
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
@@ -78,7 +78,7 @@ test: fmt vet envtest
 	cd bff && \
 	ABS_BIN_DIR="$$(pwd)/../bin" && \
 	ASSETS_PATH="$$( $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir "$$ABS_BIN_DIR" -p path )" && \
-	ENVTEST_ASSETS_DIR="$$(dirname "$$(dirname "$$ASSETS_PATH")")" \
+	ENVTEST_ASSETS="$$ASSETS_PATH" \
 	go test ./internal/api -v
 
 ############ Dev Environment ############

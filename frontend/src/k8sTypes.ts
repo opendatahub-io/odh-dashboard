@@ -1301,12 +1301,14 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  autoRag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;
   mlflow?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  deploymentWizardYAMLViewer?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

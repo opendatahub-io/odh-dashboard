@@ -17,13 +17,21 @@ import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks.tsx';
 import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import {
-  MLFLOW_EXPERIMENTS_ROUTE,
-  MLFLOW_DEFAULT_PATH,
-  setWorkspaceQueryParam,
-} from '#~/routes/pipelines/mlflowExperiments';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { mlflowExperimentsPath, WORKSPACE_QUERY_PARAM } from '#~/routes/pipelines/mlflow';
 
-const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
+const MLFLOW_DEFAULT_PATH = '/experiments';
+
+export const setWorkspaceQueryParam = (hashPathQuery: string, workspace: string): string => {
+  const queryIndex = hashPathQuery.indexOf('?');
+  const pathname = queryIndex === -1 ? hashPathQuery : hashPathQuery.slice(0, queryIndex);
+  const existingQuery = queryIndex === -1 ? '' : hashPathQuery.slice(queryIndex + 1);
+  const params = new URLSearchParams(existingQuery);
+  params.set(WORKSPACE_QUERY_PARAM, workspace);
+  return `${pathname}?${params.toString()}`;
+};
+
+export const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: string): string => {
   const base = href.replace(/\/+$/, '');
   const hashPath = setWorkspaceQueryParam(MLFLOW_DEFAULT_PATH, projectName);
   return `${base}/#${hashPath}`;
@@ -70,7 +78,7 @@ const MLflowCard: React.FC = () => {
             <Button
               data-testid="embedded-mlflow-experiments-link"
               variant="link"
-              onClick={() => navigate(MLFLOW_EXPERIMENTS_ROUTE)}
+              onClick={() => navigate(mlflowExperimentsPath)}
             >
               Go to <strong>Experiments</strong>
             </Button>
@@ -85,6 +93,13 @@ const MLflowCard: React.FC = () => {
               rel="noopener noreferrer"
               icon={<ExternalLinkAltIcon />}
               iconPosition="right"
+              onClick={() =>
+                fireLinkTrackingEvent('Launch MLflow clicked', {
+                  from: window.location.pathname,
+                  href: mlflowWorkspaceHref,
+                  section: 'project-overview',
+                })
+              }
             >
               Launch MLflow
             </Button>

@@ -37,9 +37,11 @@ var _ = Describe("TestUserHandler", func() {
 
 		BeforeAll(func() {
 			By("creating the test app")
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig)
+			Expect(err).NotTo(HaveOccurred())
 			testApp = App{
 				kubernetesClientFactory: k8Factory,
-				repositories:            repositories.NewRepositories(logger, k8Factory, envConfig),
+				repositories:            repos,
 				logger:                  logger,
 			}
 		})

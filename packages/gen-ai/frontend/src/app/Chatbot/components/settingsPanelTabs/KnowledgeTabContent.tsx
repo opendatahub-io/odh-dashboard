@@ -6,8 +6,10 @@ import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManageme
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import UploadedFilesList from '~/app/Chatbot/components/UploadedFilesList';
+import { useChatbotConfigStore, selectRagEnabled, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
 interface KnowledgeTabContentProps {
+  configId?: string;
   sourceManagement: UseSourceManagementReturn;
   fileManagement: UseFileManagementReturn;
   alerts: {
@@ -18,17 +20,22 @@ interface KnowledgeTabContentProps {
 }
 
 const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = ({
+  configId = DEFAULT_CONFIG_ID,
   sourceManagement,
   fileManagement,
   alerts,
 }) => {
+  // Per-pane RAG toggle from Zustand store
+  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
+  const updateRagEnabled = useChatbotConfigStore((state) => state.updateRagEnabled);
+
   const headerActions = (
     <Switch
       id="rag-toggle-switch"
-      isChecked={sourceManagement.isRawUploaded}
+      isChecked={isRagEnabled}
       data-testid="rag-toggle-switch"
       onChange={(_, checked) => {
-        sourceManagement.setIsRawUploaded(checked);
+        updateRagEnabled(configId, checked);
         fireMiscTrackingEvent('Playground RAG Toggle Selected', {
           isRag: checked,
         });

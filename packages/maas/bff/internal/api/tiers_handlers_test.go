@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/julienschmidt/httprouter"
+
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
@@ -67,10 +68,12 @@ var _ = Describe("TiersHandlers", Ordered, func() {
 				GatewayName:             "maas-default-gateway",
 			}
 
+			repos, err := repositories.NewRepositories(nil, k8Factory, badCfg)
+			Expect(err).NotTo(HaveOccurred())
 			app := &App{
 				config:                  badCfg,
 				kubernetesClientFactory: k8Factory,
-				repositories:            repositories.NewRepositories(nil, k8Factory, badCfg),
+				repositories:            repos,
 				logger:                  slog.New(slog.NewTextHandler(io.Discard, nil)),
 			}
 

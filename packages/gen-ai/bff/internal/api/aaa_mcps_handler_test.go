@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -19,30 +19,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMCPListHandler(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var _ = Describe("MCPListHandler", func() {
+	var app *App
 
-	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
-		config.EnvConfig{MockK8sClient: true},
-		logger,
-	)
+	BeforeEach(func() {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
+		mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
+			config.EnvConfig{MockK8sClient: true},
+			logger,
+		)
 
-	app := &App{
-		config: config.EnvConfig{
-			Port:       4000,
-			AuthMethod: "user_token",
-		},
-		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-		kubernetesClientFactory: mockK8sFactory,
-		mcpClientFactory:        mockMCPFactory,
-		dashboardNamespace:      "opendatahub",
-	}
+		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(GinkgoT(), err)
 
-	t.Run("should return list of MCP servers successfully", func(t *testing.T) {
+		app = &App{
+			config: config.EnvConfig{
+				Port:       4000,
+				AuthMethod: "user_token",
+			},
+			logger:                  logger,
+			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+			kubernetesClientFactory: mockK8sFactory,
+			mcpClientFactory:        mockMCPFactory,
+			dashboardNamespace:      "opendatahub",
+		}
+	})
+
+	It("should return list of MCP servers successfully", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/aa/mcps?namespace=demo"
@@ -84,7 +89,8 @@ func TestMCPListHandler(t *testing.T) {
 		assert.NotEmpty(t, response.Data.ConfigMapInfo.LastUpdated, "ConfigMap info should have last updated timestamp")
 	})
 
-	t.Run("should return 400 when namespace parameter is missing", func(t *testing.T) {
+	It("should return 400 when namespace parameter is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/aa/mcps"
@@ -114,7 +120,8 @@ func TestMCPListHandler(t *testing.T) {
 		assert.Contains(t, errorInfo["message"], "namespace parameter is required")
 	})
 
-	t.Run("should return 400 when request identity is missing", func(t *testing.T) {
+	It("should return 400 when request identity is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/aa/mcps?namespace=demo"
@@ -138,7 +145,8 @@ func TestMCPListHandler(t *testing.T) {
 		assert.Contains(t, errorInfo["message"], "missing RequestIdentity in context")
 	})
 
-	t.Run("should handle empty server list", func(t *testing.T) {
+	It("should handle empty server list", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/aa/mcps?namespace=empty-namespace"
@@ -156,7 +164,8 @@ func TestMCPListHandler(t *testing.T) {
 		assert.True(t, rr.Code == http.StatusOK || rr.Code >= 400, "Should return either success or appropriate error")
 	})
 
-	t.Run("should accept namespace parameter but ignore it in implementation", func(t *testing.T) {
+	It("should accept namespace parameter but ignore it in implementation", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/aa/mcps?namespace=different-namespace"
@@ -183,4 +192,4 @@ func TestMCPListHandler(t *testing.T) {
 
 		require.NotNil(t, response.Data)
 	})
-}
+})

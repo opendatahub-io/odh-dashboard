@@ -119,4 +119,5 @@ type EnvConfig struct {
 	TiersConfigMapName      string
 	GatewayNamespace        string
 	GatewayName             string
+	MaasApiUrl              string
 }
