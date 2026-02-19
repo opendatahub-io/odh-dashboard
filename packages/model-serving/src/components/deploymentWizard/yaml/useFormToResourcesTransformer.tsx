@@ -29,7 +29,7 @@ export const useFormToResourcesTransformer = (
       return { resources: undefined, loaded, errors };
     }
     let deployment = assembleDeployment(formData, existingDeployment);
-    deployment = deployment = applyFieldData(deployment);
+    deployment = applyFieldData(deployment);
 
     return {
       resources: {

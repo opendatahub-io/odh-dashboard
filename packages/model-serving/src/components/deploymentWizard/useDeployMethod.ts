@@ -30,7 +30,9 @@ export const useDeployMethod = (
     return {
       deployMethod: sortedDeployExtensions.length > 0 ? sortedDeployExtensions[0] : undefined,
       deployMethodLoaded: deployExtensionsLoaded,
-      deployMethodErrors: deployExtensionsErrors.filter((error): error is Error => Boolean(error)),
+      deployMethodErrors: deployExtensionsErrors.filter(
+        (error): error is Error => error instanceof Error,
+      ),
     };
   }, [deployExtensions, deployExtensionsErrors, deployExtensionsLoaded, wizardData]);
 };

@@ -83,7 +83,9 @@ export const useWizardFieldApply = (
     () => ({
       applyFieldData,
       applyExtensionsLoaded,
-      applyExtensionErrors: applyExtensionErrors.filter((error): error is Error => Boolean(error)),
+      applyExtensionErrors: applyExtensionErrors.filter(
+        (error): error is Error => error instanceof Error,
+      ),
     }),
     [applyFieldData, applyExtensionsLoaded, applyExtensionErrors],
   );
