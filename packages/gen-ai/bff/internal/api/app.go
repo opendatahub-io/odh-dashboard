@@ -354,6 +354,11 @@ func (app *App) Routes() http.Handler {
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))

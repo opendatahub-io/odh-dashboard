@@ -57,6 +57,19 @@ export type ModelLocationField = {
 };
 // Component
 
+const s3Option = {
+  key: 'S3',
+  label: 'S3 object storage',
+};
+const ociOption = {
+  key: 'OCI',
+  label: 'OCI compliant registry',
+};
+const uriOption = {
+  key: 'URI',
+  label: 'URI',
+};
+
 type ModelLocationSelectFieldProps = {
   modelLocation?: ModelLocationData['type'];
   validationProps?: FieldValidationProps;
@@ -81,36 +94,33 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   selectedConnection,
   pvcs,
 }) => {
-  const s3Option = {
-    key: 'S3',
-    label: 'S3 object storage',
-    value: ModelLocationType.NEW,
-  };
-  const ociOption = {
-    key: 'OCI',
-    label: 'OCI compliant registry',
-    value: ModelLocationType.NEW,
-  };
-  const uriOption = {
-    key: 'URI',
-    label: 'URI',
-    value: ModelLocationType.NEW,
-  };
-  const [modelServingConnectionTypes, connectionTypesLoaded] = useWatchConnectionTypes(true);
+  const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
 
   // Filtered types for the dropdown so only enabled types are shown
   const filteredModelServingConnectionTypes = React.useMemo(() => {
     return filterEnabledConnectionTypes(modelServingConnectionTypes);
   }, [modelServingConnectionTypes]);
 
-  const uriConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
-    isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
+  const uriConnectionTypes = React.useMemo(
+    () =>
+      filteredModelServingConnectionTypes.filter((t) =>
+        isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
+      ),
+    [filteredModelServingConnectionTypes],
   );
-  const ociConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
-    isModelServingCompatible(t, ModelServingCompatibleTypes.OCI),
+  const ociConnectionTypes = React.useMemo(
+    () =>
+      filteredModelServingConnectionTypes.filter((t) =>
+        isModelServingCompatible(t, ModelServingCompatibleTypes.OCI),
+      ),
+    [filteredModelServingConnectionTypes],
   );
-  const s3ConnectionTypes = filteredModelServingConnectionTypes.filter((t) =>
-    isModelServingCompatible(t, ModelServingCompatibleTypes.S3ObjectStorage),
+  const s3ConnectionTypes = React.useMemo(
+    () =>
+      filteredModelServingConnectionTypes.filter((t) =>
+        isModelServingCompatible(t, ModelServingCompatibleTypes.S3ObjectStorage),
+      ),
+    [filteredModelServingConnectionTypes],
   );
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
   const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
@@ -149,7 +159,12 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       }
     }
     return undefined;
-  }, [modelLocationData?.connectionTypeObject, modelLocation, connections]);
+  }, [
+    modelLocationData?.connectionTypeObject,
+    modelLocationData?.connection,
+    modelLocation,
+    connections,
+  ]);
 
   // State for user selections (overrides computed when user changes)
   const [userSelectedKey, setUserSelectedKey] = React.useState<
@@ -158,6 +173,16 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
 
   // Use user selection if available, otherwise use computed
   const selectedKey = userSelectedKey ?? computedSelectedKey;
+
+  const currentKey = React.useMemo(
+    () =>
+      selectedKey?.key ??
+      (modelLocation === ModelLocationType.PVC || modelLocation === ModelLocationType.EXISTING
+        ? modelLocation
+        : undefined),
+    [selectedKey, modelLocation],
+  );
+
   React.useEffect(() => {
     if (!modelLocationData?.connectionTypeObject && !selectedKey) {
       setShowCustomTypeSelect(false);
@@ -178,17 +203,20 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       if (selectedKey.key === uriOption.key && uriConnectionTypes.length > 1) {
         setShowCustomTypeSelect(true);
         setTypeOptions(uriConnectionTypes);
+        return;
       }
+      setShowCustomTypeSelect(false);
+      setTypeOptions([]);
     } else {
       setShowCustomTypeSelect(false);
       setTypeOptions([]);
     }
   }, [
     modelLocationData?.connectionTypeObject,
-    connectionTypesLoaded,
     selectedKey,
-    selectedConnection,
-    modelLocation,
+    s3ConnectionTypes,
+    ociConnectionTypes,
+    uriConnectionTypes,
   ]);
 
   const selectedConnectionType = React.useMemo(() => {
@@ -207,7 +235,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
       }
     }
     return undefined;
-  }, [modelLocationData, modelServingConnectionTypes, selectedConnection]);
+  }, [
+    modelLocationData,
+    s3ConnectionTypes,
+    ociConnectionTypes,
+    uriConnectionTypes,
+    selectedConnection,
+  ]);
 
   // Makes sure we don't show the existing connection option if we only have generated connections
   const nonGeneratedConnections = React.useMemo(() => {
@@ -236,7 +270,6 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     if (uriConnectionTypes.length > 0 || hasURISelected) {
       options.push({ key: uriOption.key, label: uriOption.label });
     }
-
     return options;
   }, [
     nonGeneratedConnections.length,
@@ -288,6 +321,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 options={selectOptions}
                 onChange={(key) => {
                   if (key === '__placeholder__') {
+                    return;
+                  }
+                  if (key === currentKey) {
                     return;
                   }
                   setSelectedConnection(undefined);
@@ -369,13 +405,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 }}
                 onBlur={validationProps?.onBlur}
                 placeholder="Select model location"
-                value={
-                  selectedKey?.key ??
-                  (modelLocation === ModelLocationType.PVC ||
-                  modelLocation === ModelLocationType.EXISTING
-                    ? modelLocation
-                    : undefined)
-                }
+                value={currentKey}
                 toggleProps={{ style: { minWidth: '450px' } }}
               />
             </StackItem>

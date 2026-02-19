@@ -8,17 +8,34 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 )
 
 const (
-	mlflowPort    = 5001
-	mlflowVersion = "3.8.1"
-	healthTimeout = 30 * time.Second
-	healthPoll    = 2 * time.Second
-	shutdownWait  = 5 * time.Second
+	defaultMLflowPort    = 5001
+	defaultMLflowVersion = "3.9.0"
+	healthTimeout        = 30 * time.Second
+	healthPoll           = 2 * time.Second
+	shutdownWait         = 5 * time.Second
 )
+
+func mlflowPort() int {
+	if v := os.Getenv("MLFLOW_PORT"); v != "" {
+		if p, err := strconv.Atoi(v); err == nil {
+			return p
+		}
+	}
+	return defaultMLflowPort
+}
+
+func mlflowVersion() string {
+	if v := os.Getenv("MLFLOW_VERSION"); v != "" {
+		return v
+	}
+	return defaultMLflowVersion
+}
 
 // MLflowState tracks the MLflow child process, enabling targeted cleanup
 // when the BFF shuts down — preventing orphaned MLflow servers.
@@ -34,6 +51,9 @@ type MLflowState struct {
 // If MLFLOW_TRACKING_URI is already set or MLflow is already running on the target port,
 // it returns nil (no-op). The caller is responsible for calling CleanupMLflowState on shutdown.
 func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
+	port := mlflowPort()
+	version := mlflowVersion()
+
 	// Pre-flight: skip if externally managed (e.g. MLFLOW_TRACKING_URI set by operator)
 	if uri := os.Getenv("MLFLOW_TRACKING_URI"); uri != "" {
 		logger.Info("MLFLOW_TRACKING_URI already set, assuming externally managed", slog.String("uri", uri))
@@ -42,9 +62,12 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 
 	// Pre-flight: skip process startup if MLflow is already running (e.g. from make mlflow-up),
 	// but still seed prompts so tests have expected data.
-	if isMLflowHealthy() {
-		logger.Info("MLflow already running, skipping child process startup", slog.Int("port", mlflowPort))
-		trackingURI := fmt.Sprintf("http://127.0.0.1:%d", mlflowPort)
+	if isMLflowHealthy(port) {
+		logger.Warn("MLflow already running on port — reusing existing instance. "+
+			"Its database may contain stale data from previous dev sessions, which can cause test failures. "+
+			fmt.Sprintf("Stop the external MLflow process (lsof -t -i :%d | xargs kill) and re-run for a clean state.", port),
+			slog.Int("port", port))
+		trackingURI := fmt.Sprintf("http://127.0.0.1:%d", port)
 		os.Setenv("MLFLOW_TRACKING_URI", trackingURI)
 		if err := SeedPrompts(trackingURI, logger); err != nil {
 			return nil, fmt.Errorf("failed to seed already-running MLflow: %w", err)
@@ -70,10 +93,10 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd := exec.CommandContext(ctx, uvBin,
-		"run", "--with", "mlflow=="+mlflowVersion,
+		"run", "--with", "mlflow=="+version,
 		"mlflow", "server",
 		"--host", "127.0.0.1",
-		"--port", fmt.Sprintf("%d", mlflowPort),
+		"--port", fmt.Sprintf("%d", port),
 		"--backend-store-uri", fmt.Sprintf("sqlite:///%s/mlflow.db", dataDir),
 		"--default-artifact-root", filepath.Join(dataDir, "artifacts"),
 	)
@@ -90,10 +113,10 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 
 	logger.Info("MLflow process started, waiting for health check...",
 		slog.Int("pid", cmd.Process.Pid),
-		slog.Int("port", mlflowPort),
+		slog.Int("port", port),
 	)
 
-	if err := waitForMLflowHealth(logger); err != nil {
+	if err := waitForMLflowHealth(port, logger); err != nil {
 		// Clean up the process we just started
 		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 		cancel()
@@ -101,11 +124,11 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	}
 
 	// Set env var so MockClientFactory picks up the correct URI
-	trackingURI := fmt.Sprintf("http://127.0.0.1:%d", mlflowPort)
+	trackingURI := fmt.Sprintf("http://127.0.0.1:%d", port)
 	os.Setenv("MLFLOW_TRACKING_URI", trackingURI)
 
 	logger.Info("MLflow server started",
-		slog.Int("port", mlflowPort),
+		slog.Int("port", port),
 		slog.String("data_dir", dataDir),
 	)
 
@@ -118,7 +141,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 
 	return &MLflowState{
 		Cmd:     cmd,
-		Port:    mlflowPort,
+		Port:    port,
 		DataDir: dataDir,
 		Ctx:     ctx,
 		Cancel:  cancel,
@@ -203,9 +226,9 @@ func resolveUVBinary() (string, error) {
 	return exec.LookPath("uv")
 }
 
-func isMLflowHealthy() bool {
+func isMLflowHealthy(port int) bool {
 	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/health", mlflowPort))
+	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/health", port))
 	if err != nil {
 		return false
 	}
@@ -213,10 +236,10 @@ func isMLflowHealthy() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func waitForMLflowHealth(logger *slog.Logger) error {
+func waitForMLflowHealth(port int, logger *slog.Logger) error {
 	deadline := time.Now().Add(healthTimeout)
 	for time.Now().Before(deadline) {
-		if isMLflowHealthy() {
+		if isMLflowHealthy(port) {
 			return nil
 		}
 		logger.Debug("Waiting for MLflow health check...",
