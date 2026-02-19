@@ -1,16 +1,14 @@
-import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
 import {
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import { Namespace } from 'mod-arch-core';
 import * as React from 'react';
+import ProjectSelectorNavigator from '../common/ProjectSelectorNavigator';
 
 interface InvalidProjectProps {
   namespace?: string;
-  namespaces: Namespace[];
   getRedirectPath: (namespace: string) => string;
 }
 
@@ -21,10 +19,9 @@ function InvalidProject(props: InvalidProjectProps): React.JSX.Element {
       <EmptyStateFooter>
         <EmptyStateActions>
           <ProjectSelectorNavigator
+            namespace={props.namespace}
             getRedirectPath={props.getRedirectPath}
-            invalidDropdownPlaceholder="Select project"
-            primary
-            namespacesOverride={props.namespaces}
+            showTitle
           />
         </EmptyStateActions>
       </EmptyStateFooter>
