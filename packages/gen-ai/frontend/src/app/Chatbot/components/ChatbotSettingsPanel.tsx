@@ -68,6 +68,7 @@ interface ChatbotSettingsPanelProps {
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
+const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = DEFAULT_CONFIG_ID,
@@ -141,10 +142,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     return storedWidth || DEFAULT_WIDTH;
   });
 
+  // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
+  const [panelSizeKey, setPanelSizeKey] = React.useState(0);
+
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
   ) => {
+    if (width < AUTO_CLOSE_WIDTH_THRESHOLD) {
+      setPanelWidth(DEFAULT_WIDTH);
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, DEFAULT_WIDTH);
+      setPanelSizeKey((k) => k + 1);
+      onCloseClick?.();
+      return;
+    }
     const newWidth = `${width}px`;
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
@@ -168,6 +179,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
   return (
     <DrawerPanelContent
+      key={panelSizeKey}
       isResizable
       defaultSize={panelWidth}
       minSize="300px"
