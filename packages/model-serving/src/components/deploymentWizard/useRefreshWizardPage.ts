@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Deployment } from 'extension-points';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
+import type { Deployment } from '../../../extension-points';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 
 /**
