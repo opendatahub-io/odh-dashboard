@@ -45,11 +45,32 @@ jest.mock('@patternfly/react-core', () => {
           Resize 100
         </button>
         <button
+          data-testid="trigger-resize-149"
+          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 149, '')}
+          type="button"
+        >
+          Resize 149
+        </button>
+        <button
+          data-testid="trigger-resize-150"
+          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 150, '')}
+          type="button"
+        >
+          Resize 150
+        </button>
+        <button
           data-testid="trigger-resize-200"
           onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 200, '')}
           type="button"
         >
           Resize 200
+        </button>
+        <button
+          data-testid="trigger-resize-250"
+          onClick={() => onResize?.(mockResizeEvent as unknown as MouseEvent, 250, '')}
+          type="button"
+        >
+          Resize 250
         </button>
         {children}
       </div>
@@ -119,7 +140,7 @@ describe('ChatbotSettingsPanel', () => {
     useChatbotConfigStore.getState().resetConfiguration();
   });
 
-  it('should call onCloseClick and reset sessionStorage when panel is resized below 100px', async () => {
+  it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
     const user = userEvent.setup();
     const mockOnCloseClick = jest.fn();
     render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
@@ -131,28 +152,28 @@ describe('ChatbotSettingsPanel', () => {
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
   });
 
-  it('should call onCloseClick when panel is resized to 99px', async () => {
+  it('should call onCloseClick when panel is resized to 149px', async () => {
     const user = userEvent.setup();
     const mockOnCloseClick = jest.fn();
     render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
 
-    const resize99Button = screen.getByTestId('trigger-resize-99');
-    await user.click(resize99Button);
+    const resize149Button = screen.getByTestId('trigger-resize-149');
+    await user.click(resize149Button);
 
     expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
   });
 
-  it('should not call onCloseClick when panel is resized to 100px or more', async () => {
+  it('should not call onCloseClick when panel is resized to 150px or more', async () => {
     const user = userEvent.setup();
     const mockOnCloseClick = jest.fn();
     render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
 
-    const resize100Button = screen.getByTestId('trigger-resize-100');
-    await user.click(resize100Button);
+    const resize150Button = screen.getByTestId('trigger-resize-150');
+    await user.click(resize150Button);
 
     expect(mockOnCloseClick).not.toHaveBeenCalled();
-    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('100px');
+    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('150px');
 
     mockOnCloseClick.mockClear();
     const resize200Button = screen.getByTestId('trigger-resize-200');
