@@ -5,7 +5,7 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 describe('Verify AI Catalog Sources Access Control', () => {
   it(
     'Admin user can access AI catalog sources',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Log into the application as admin with aiCatalogSettings flag enabled');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -20,7 +20,7 @@ describe('Verify AI Catalog Sources Access Control', () => {
 
   it(
     'Non-admin user cannot access AI catalog sources',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Log into the application as non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
