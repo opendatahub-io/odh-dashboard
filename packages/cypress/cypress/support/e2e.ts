@@ -249,16 +249,13 @@ function maskSensitiveInfo(command: string): string {
   // Mask passwords in oc login commands
   // Pattern: -p "password" or -p 'password' or -p password
   masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
-  // Mask ClusterRoleBinding names containing usernames (e.g., cypress-test-ldap-user10-cluster-admin)
+  // Mask ClusterRoleBinding names containing usernames
   masked = masked.replace(/cypress-test-[a-zA-Z0-9-]+(-cluster-admin)?/g, 'cypress-test-***$1');
   // Mask usernames in oc adm policy add-role-to-user commands
-  // Pattern: add-role-to-user edit ldap-user2 -n
   masked = masked.replace(/(add-role-to-user\s+\w+\s+)[^\s]+(\s+-n)/g, '$1***$2');
   // Mask usernames in oc get user commands
-  // Pattern: oc get user <username> -o
   masked = masked.replace(/(oc get user\s+)[^\s]+(\s+-o)/g, '$1***$2');
   // Mask project names containing test identifiers
-  // Pattern: cypress-test-project-776663, cypress-single-model-test-project-957237
   masked = masked.replace(/cypress-[a-z-]+-(?:test-)?project-\d+/g, 'cypress-test-***');
   return masked;
 }
