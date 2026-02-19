@@ -82,12 +82,11 @@ paths:
     summary: List available LSD models
     description: >-
       Lists all available models from LlamaStack Distribution (LSD).
-      Each model includes a type field (llm or embedding).
-      Returns models with their identifiers, creation timestamps, ownership information, and type.
+      Returns models with their identifiers, creation timestamps, and ownership information.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
-        - LSD
+        - Models
       security:
         - Bearer: []
       parameters:
@@ -109,7 +108,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getLSDModels
       summary: Get LSD Models
-      description: Returns available models from LlamaStack Distribution categorized by type
+      description: Returns available models from LlamaStack Distribution
 components:
   schemas:
     Config:
@@ -128,32 +127,34 @@ components:
     # LSD Model Schemas
     LSDModel:
       type: object
+      description: Standard OpenAI-compatible model object from LlamaStack Distribution
       required:
         - id
-        - type
+        - object
         - created
-        - ownedBy
+        - owned_by
       properties:
         id:
           type: string
           description: Model identifier
           example: "ollama/llama3.2:3b"
-        type:
+        object:
           type: string
-          enum: ["llm", "embedding"]
-          description: Model type category
-          example: "llm"
+          enum: ["model"]
+          description: Object type (always "model")
+          example: "model"
         created:
           type: integer
           format: int64
           description: Unix timestamp when model was created
           example: 1755721063
-        ownedBy:
+        owned_by:
           type: string
           description: Model owner/provider
           example: "llama_stack"
-    LSDModelList:
+    LSDModelsData:
       type: object
+      description: List of models with server-side categorization of model type
       required:
         - models
         - llm_models
@@ -161,17 +162,17 @@ components:
       properties:
         models:
           type: array
-          description: Complete list of all LSD models with type field for categorization
+          description: Complete list of all available models
           items:
             $ref: '#/components/schemas/LSDModel'
         llm_models:
           type: array
-          description: Pre-filtered list of LLM models only
+          description: Pre-filtered LLM models (categorized server-side by model ID pattern)
           items:
             $ref: '#/components/schemas/LSDModel'
         embedding_models:
           type: array
-          description: Pre-filtered list of embedding models only
+          description: Pre-filtered embedding models (categorized server-side by model ID pattern)
           items:
             $ref: '#/components/schemas/LSDModel'
 
@@ -293,55 +294,53 @@ components:
 
     # LSD Responses
     LSDModelsResponse:
-      description: List of available LSD models with type field for categorization
+      description: List of available LSD models
       content:
         application/json:
           schema:
             type: object
+            required:
+              - data
             properties:
-              metadata:
-                type: object
-                description: Metadata about the response
               data:
-                $ref: '#/components/schemas/LSDModelList'
+                $ref: '#/components/schemas/LSDModelsData'
           example:
-            metadata: {}
             data:
               models:
                 - id: "ollama/llama3.2:3b"
-                  type: "llm"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
                 - id: "mistral-7b-instruct"
-                  type: "llm"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
                 - id: "ollama/all-minilm:l6-v2"
-                  type: "embedding"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
                 - id: "nomic-embed-text"
-                  type: "embedding"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
               llm_models:
                 - id: "ollama/llama3.2:3b"
-                  type: "llm"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
                 - id: "mistral-7b-instruct"
-                  type: "llm"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
               embedding_models:
                 - id: "ollama/all-minilm:l6-v2"
-                  type: "embedding"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
                 - id: "nomic-embed-text"
-                  type: "embedding"
+                  object: "model"
                   created: 1755721063
-                  ownedBy: "llama_stack"
+                  owned_by: "llama_stack"
 
     ConflictResponse:
       content:
@@ -454,5 +453,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
-  - name: LSD
-    description: LlamaStack Distribution (LSD) operations
+  - name: Models
+    description: AI model discovery and management from LlamaStack Distribution
