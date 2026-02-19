@@ -53,7 +53,7 @@ const dateToGoDuration = (selectedDate: Date): string => {
   if (minutes === 0) {
     return `${hours}h`;
   }
-  return `${hours}h ${minutes}m`;
+  return `${hours}h${minutes}m`;
 };
 
 const createApiKeySchema = z.object({
@@ -75,9 +75,17 @@ const createApiKeySchema = z.object({
         const dateAtMidnight = new Date(date);
         dateAtMidnight.setHours(0, 0, 0, 0);
         const today = getTodaysDate();
-        return dateAtMidnight > today;
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() + 1);
+        if (dateAtMidnight <= today) {
+          return false;
+        }
+        if (dateAtMidnight > maxDate) {
+          return false;
+        }
+        return true;
       },
-      { message: 'Date must be in the future (not today)' },
+      { message: 'Date must be in the future (not today) and not more than 1 year from today' },
     ),
 });
 
@@ -104,10 +112,18 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ isOpen, onClose }
   );
 
   const dateValidator = (date: Date) => {
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() + 1);
     const dateAtMidnight = new Date(date);
     dateAtMidnight.setHours(0, 0, 0, 0);
     const today = getTodaysDate();
-    return dateAtMidnight <= today ? 'Date must be in the future (not today)' : '';
+    if (dateAtMidnight <= today) {
+      return 'Date must be in the future (not today)';
+    }
+    if (dateAtMidnight > maxDate) {
+      return 'Date must be not more than 1 year from today';
+    }
+    return '';
   };
 
   const isFormValid = () => {
