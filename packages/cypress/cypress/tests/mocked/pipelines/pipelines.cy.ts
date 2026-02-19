@@ -1110,6 +1110,7 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
     pipelineVersionImportModal.submit();
 
+    // Verify error appears
     pipelineVersionImportModal.findImportModalError().should('exist');
     pipelineVersionImportModal.findImportModalError().contains('Unsupported pipeline version');
   });
