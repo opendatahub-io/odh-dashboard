@@ -103,6 +103,16 @@ func (c *LlamaStackConfig) EnsureStorageField() {
 	}
 }
 
+// EnsureDistroField normalizes the deprecated ImageName field into DistroName
+// to ensure backward compatibility when deserializing older configs.
+// When DistroName is empty and ImageName is non-empty, DistroName is set to ImageName.
+// TODO: This can be removed when Gen AI Studio GAs, as all configs will use DistroName.
+func (c *LlamaStackConfig) EnsureDistroField() {
+	if c.DistroName == "" && c.ImageName != "" {
+		c.DistroName = c.ImageName
+	}
+}
+
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
@@ -248,6 +258,7 @@ func (c *LlamaStackConfig) FromYAML(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML: failed to unmarshal YAML into config: %w", err)
 	}
+	c.EnsureDistroField()
 	return nil
 }
 
@@ -266,6 +277,7 @@ func (c *LlamaStackConfig) FromJSON(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON into config: %w", err)
 	}
+	c.EnsureDistroField()
 	return nil
 }
 
