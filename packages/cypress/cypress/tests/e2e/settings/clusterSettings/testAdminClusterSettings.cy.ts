@@ -56,7 +56,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         testData = yaml.load(yamlContent) as TestAdminClusterSettingsData;
         testUserName = LDAP_CLUSTER_ADMIN_USER.USERNAME;
         clusterRoleBindingName = `${testData.clusterRoleBindingNamePrefix}-${testUserName}-cluster-admin`;
-        cy.log(`Loaded test data - User: ***, ClusterRoleBinding: ${clusterRoleBindingName}`);
+        cy.log('Loaded test data - User: ***, ClusterRoleBinding: cypress-test-***-cluster-admin');
       })
       .then(() => {
         // Retrieve the dashboard configuration
