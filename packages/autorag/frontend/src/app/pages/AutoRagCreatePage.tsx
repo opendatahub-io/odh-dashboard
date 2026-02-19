@@ -10,8 +10,10 @@ function AutoRagCreatePage(): React.JSX.Element {
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
 
+  const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
+
   const getRedirectPath = (ns: string) => `${autoRagExperimentsPathname}/${ns}`;
 
   return (
@@ -20,7 +22,7 @@ function AutoRagCreatePage(): React.JSX.Element {
       description={
         <p>Automatically configure and optimize your Retrieval-Augmented Generation workflows.</p>
       }
-      empty={invalidNamespace}
+      empty={noNamespaces || invalidNamespace}
       emptyStatePage={<InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />}
       loadError={namespacesLoadError}
       loaded={namespacesLoaded}
