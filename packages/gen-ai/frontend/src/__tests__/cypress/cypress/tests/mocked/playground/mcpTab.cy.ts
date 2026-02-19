@@ -375,10 +375,15 @@ describe('Playground - MCP Servers', () => {
       mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify tools button is enabled after closing modal');
-      serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab
+        .getServerRow(serverName, serverUrl)
+        .findToolsButton()
+        .should('exist')
+        .and('not.have.attr', 'aria-disabled');
 
       cy.step('Click tools button to open tools modal');
-      serverRow.findToolsButton().click();
+      playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
 
       cy.step('Verify tools modal opens with tools');
       mcpToolsModal.find().should('be.visible');
@@ -415,7 +420,8 @@ describe('Playground - MCP Servers', () => {
           mcpToolsModal.find().should('not.exist');
 
           cy.step('Re-open tools modal to verify persistence');
-          serverRow.findToolsButton().click();
+          // Re-query the server row after modal close to avoid stale element reference
+          playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
           mcpToolsModal.find().should('be.visible');
 
           cy.step('Verify tool selection persisted (2 tools deselected)');
@@ -458,7 +464,8 @@ describe('Playground - MCP Servers', () => {
 
       cy.step('Close success modal and open tools modal');
       playgroundPage.mcpTab.closeSuccessModal();
-      serverRow.findToolsButton().click();
+      // Re-query the server row after modal close to avoid stale element reference
+      playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
@@ -551,7 +558,8 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
-            serverRow.findToolsButton().click();
+            // Re-query the server row after modal close to avoid stale element reference
+            playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
               .find()
