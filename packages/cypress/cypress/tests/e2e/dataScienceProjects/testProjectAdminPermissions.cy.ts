@@ -131,7 +131,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
     },
     () => {
       // Authentication and navigation
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation and validate permissions tab is accessible

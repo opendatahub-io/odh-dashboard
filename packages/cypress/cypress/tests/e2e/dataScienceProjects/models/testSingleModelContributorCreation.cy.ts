@@ -66,12 +66,12 @@ describe('Verify Model Creation and Validation using the UI', () => {
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing'],
     },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation, add user and provide contributor permissions
