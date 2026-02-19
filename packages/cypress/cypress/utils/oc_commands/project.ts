@@ -89,7 +89,7 @@ export const addUserToProject = (
   const ocCommand = `oc adm policy add-role-to-user ${role} ${userName} -n ${projectName}`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.code !== 0) {
-      cy.log(`ERROR Assigning role ${role} to user ${userName} in ${projectName} Project
+      cy.log(`ERROR Assigning role ${role} to user *** in ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.code}`);

@@ -1,7 +1,6 @@
 {
   "pipelines": "@PipelinesCI",
   "modelServing": "@ModelServingCI",
-  "modelRegistry": "@ModelRegistryCI",
   "modelCatalog": "@ModelCatalogCI",
   "notebookController": "@WorkbenchesCI",
   "hardwareProfiles": "@HardwareProfilesCI",

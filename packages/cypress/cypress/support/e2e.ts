@@ -251,6 +251,9 @@ function maskSensitiveInfo(command: string): string {
   masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
   // Mask ClusterRoleBinding names containing usernames (e.g., cypress-test-ldap-user10-cluster-admin)
   masked = masked.replace(/cypress-test-[a-zA-Z0-9-]+(-cluster-admin)?/g, 'cypress-test-***$1');
+  // Mask usernames in oc adm policy add-role-to-user commands
+  // Pattern: add-role-to-user edit ldap-user2 -n
+  masked = masked.replace(/(add-role-to-user\s+\w+\s+)[^\s]+(\s+-n)/g, '$1***$2');
   return masked;
 }
 
