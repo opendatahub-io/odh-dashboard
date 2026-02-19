@@ -55,7 +55,7 @@ describe('Verifies that Model Catalog is available for different users', () => {
 
   it(
     'Verifies that Model Catalog is available for a regular user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Login as LDAP user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

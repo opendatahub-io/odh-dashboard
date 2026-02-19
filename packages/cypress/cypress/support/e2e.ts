@@ -237,12 +237,12 @@ Cypress.on('command:end', function handleCommandEnd() {
 });
 
 /**
- * Masks sensitive information in command strings before logging
- * @param command - The command string to mask
- * @returns The masked command string
+ * Masks sensitive information in command strings and error messages
+ * @param text - The text string to mask
+ * @returns The masked text string
  */
-function maskSensitiveInfo(command: string): string {
-  let masked = command;
+function maskSensitiveInfo(text: string): string {
+  let masked = text;
   // Mask usernames in oc login commands
   // Pattern: -u "username" or -u 'username' or -u username
   masked = masked.replace(/-u\s+(['"]?)([^\s'"]+)\1/g, '-u $1***$1');
@@ -257,6 +257,9 @@ function maskSensitiveInfo(command: string): string {
   masked = masked.replace(/(oc get user\s+)[^\s]+(\s+-o)/g, '$1***$2');
   // Mask project names containing test identifiers
   masked = masked.replace(/cypress-[a-z-]+-(?:test-)?project-\d+/g, 'cypress-test-***');
+  // Mask usernames in OpenShift server error messages
+  // Pattern: User "username" or User 'username'
+  masked = masked.replace(/User\s+(['"])([^'"]+)\1/g, 'User $1***$1');
   return masked;
 }
 

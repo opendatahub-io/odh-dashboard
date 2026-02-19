@@ -36,10 +36,11 @@ export const verifyModelCatalogDeployment = (): Cypress.Chainable<CommandLineRes
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = result.stderr.replace(/User\s+(['"])([^'"]+)\1/g, 'User $1***$1');
       cy.log(`ERROR: model-catalog deployment not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
-      cy.log(`stderr: ${result.stderr}`);
-      throw new Error(`model-catalog deployment not found in ${namespace}: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
+      throw new Error(`model-catalog deployment not found in ${namespace}: ${maskedStderr}`);
     }
     cy.log(`✓ model-catalog deployment exists in ${namespace}`);
     return cy.wrap(result);
