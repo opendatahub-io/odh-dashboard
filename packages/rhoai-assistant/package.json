@@ -1,0 +1,29 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/rhoai-assistant",
+  "description": "RHOAI Assistant BFF - Backend for the AI-powered assistant widget.",
+  "version": "0.0.0",
+  "module-federation": {
+    "name": "rhoaiAssistant",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/rhoai-assistant/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 4001
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
+  "scripts": {
+    "start:bff": "cd bff && make run",
+    "build:bff": "cd bff && make build"
+  }
+}
