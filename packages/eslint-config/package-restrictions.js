@@ -1,5 +1,13 @@
 module.exports = {
   plugins: ['@odh-dashboard'],
+  overrides: [
+    {
+      files: ['**/ContentModal.tsx'],
+      rules: {
+        '@odh-dashboard/no-restricted-imports': 'off',
+      },
+    },
+  ],
   rules: {
     '@odh-dashboard/no-restricted-imports': [
       'warn',
@@ -11,7 +19,17 @@ module.exports = {
           },
           {
             group: ['@patternfly/react-core'],
-            importNames: ['Modal', 'ModalBody', 'ModalHeader', 'ModalFooter', 'ModalVariant'],
+            importNames: [
+              'Modal',
+              'ModalBody',
+              'ModalHeader',
+              'ModalFooter',
+              'ModalVariant',
+              'ModalProps',
+              'ModalHeaderProps',
+              'ModalFooterProps',
+              'ModalBodyProps',
+            ],
             message:
               "Avoid using the PatternFly Modal directly. Use the project's ContentModal wrapper instead.",
           },
