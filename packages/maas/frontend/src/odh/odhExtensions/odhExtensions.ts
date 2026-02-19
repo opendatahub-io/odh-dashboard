@@ -59,7 +59,17 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
-      path: '/maas/*',
+      path: '/maas/tiers/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MAAS_API_KEYS_ID],
+    },
+    properties: {
+      path: '/maas/tokens/*',
       component: () => import('./MaaSWrapper'),
     },
   },
