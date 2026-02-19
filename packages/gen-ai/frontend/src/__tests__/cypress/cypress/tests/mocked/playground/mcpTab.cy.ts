@@ -441,9 +441,6 @@ describe('Playground - MCP Servers', () => {
       const namespace = config.defaultNamespace;
       const { name: serverName, url: serverUrl } = config.servers.kubernetes;
 
-      // Mock user endpoint to prevent k8s client errors in test environment
-      cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
-
       initAutoConnectIntercepts({
         config,
         namespace,
