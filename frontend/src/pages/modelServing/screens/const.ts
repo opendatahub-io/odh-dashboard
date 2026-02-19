@@ -1,4 +1,3 @@
-// Model serving platform configuration
 export const platformKeyMap = {
   single: 'kServe',
 } as const;
