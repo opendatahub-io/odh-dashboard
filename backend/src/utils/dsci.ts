@@ -21,5 +21,9 @@ export const getClusterInitialization = async (
     throw createCustomError('DSCI Unavailable', 'Unable to get status', 404);
   }
 
-  return result.status;
+  return {
+    ...result.status,
+    // Include the monitoring namespace from the spec
+    monitoring: { namespace: result.spec.monitoring?.namespace },
+  };
 };
