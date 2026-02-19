@@ -249,6 +249,8 @@ function maskSensitiveInfo(command: string): string {
   // Mask passwords in oc login commands
   // Pattern: -p "password" or -p 'password' or -p password
   masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
+  // Mask ClusterRoleBinding names containing usernames (e.g., cypress-test-ldap-user10-cluster-admin)
+  masked = masked.replace(/cypress-test-[a-zA-Z0-9-]+(-cluster-admin)?/g, 'cypress-test-***$1');
   return masked;
 }
 
