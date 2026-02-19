@@ -12,6 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
+	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/rs/cors"
 )
 
@@ -92,6 +93,60 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		}
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
+// This middleware must be used after AttachNamespace middleware.
+//
+// TODO: Implement full service discovery to get the LlamaStack URL from the namespace-specific
+// LlamaStackDistribution resource's status.serviceURL field (similar to gen-ai BFF).
+// For now, uses a placeholder URL pattern.
+func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		// Use request-scoped logger to avoid nil-panic in tests/environments where app.logger is not set
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var llamaStackClient ls.LlamaStackClientInterface
+
+		// Check if running in mock mode
+		if app.config.MockLSClient {
+			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
+			// In mock mode, use empty URL since mock factory ignores it
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+		} else {
+			// TODO: Implement proper service discovery:
+			// 1. Query Kubernetes for LlamaStackDistribution in namespace
+			// 2. Extract status.serviceURL from the resource
+			// 3. Get auth token from secrets if needed
+			// For now, use placeholder URL pattern
+			baseURL := fmt.Sprintf("http://llamastack.%s.svc.cluster.local:8080", namespace)
+			authToken := "" // TODO: Retrieve from secrets
+			insecureSkipVerify := false
+			apiPath := "/v1"
+
+			logger.Debug("Creating LlamaStack client for namespace (placeholder URL)",
+				"namespace", namespace,
+				"baseURL", baseURL)
+
+			// Create LlamaStack client per-request using app factory
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, authToken, insecureSkipVerify, app.rootCAs, apiPath)
+		}
+
+		// Attach client to context for use by handler/repository
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)

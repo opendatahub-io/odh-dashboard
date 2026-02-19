@@ -75,6 +75,7 @@ func (d DeploymentMode) IsFederatedMode() bool {
 type EnvConfig struct {
 	Port               int
 	MockK8Client       bool
+	MockLSClient       bool
 	MockHTTPClient     bool
 	DevMode            bool
 	DeploymentMode     DeploymentMode

@@ -12,6 +12,8 @@ import (
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
+	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -30,12 +32,14 @@ const (
 	HealthCheckPath = "/healthcheck"
 	UserPath        = ApiPathPrefix + "/user"
 	NamespacePath   = ApiPathPrefix + "/namespaces"
+	LSDModelsPath   = ApiPathPrefix + "/lsd/models"
 )
 
 type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
+	llamaStackClientFactory ls.LlamaStackClientFactory
 	repositories            *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
@@ -109,10 +113,21 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Initialize LlamaStack client factory
+	var llamaStackClientFactory ls.LlamaStackClientFactory
+	if cfg.MockLSClient {
+		logger.Info("Using mock LlamaStack client factory")
+		llamaStackClientFactory = lsmocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real LlamaStack client factory")
+		llamaStackClientFactory = ls.NewRealClientFactory()
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
+		llamaStackClientFactory: llamaStackClientFactory,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
@@ -140,6 +155,11 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+
+	// LlamaStack API endpoints
+
+	//LSD Models
+	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackModelsHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

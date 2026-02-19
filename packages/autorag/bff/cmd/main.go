@@ -25,6 +25,7 @@ func main() {
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock LlamaStack client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")

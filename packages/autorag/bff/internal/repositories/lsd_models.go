@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/openai/openai-go/v2"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
@@ -21,7 +21,14 @@ func NewLSDModelsRepository() *LSDModelsRepository {
 // GetLSDModels retrieves all models from LlamaStack and categorizes them into LLM and embedding models
 // It transforms LlamaStack's native format (identifier, model_type, provider_id) into
 // OpenAI-compatible format (id, object, created, owned_by) for frontend consumption.
-func (r *LSDModelsRepository) GetLSDModels(client ls.LlamaStackClientInterface, ctx context.Context) (*models.LSDModelsData, error) {
+// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDModelsData, error) {
+	// Get ready-to-use LlamaStack client from context using helper
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	rawModels, err := client.ListModels(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching LSD models: %w", err)
