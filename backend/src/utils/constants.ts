@@ -85,7 +85,7 @@ export const blankDashboardCR: DashboardConfig = {
       modelAsService: false,
       maasApiKeys: false,
       disableFineTuning: true,
-      disableKueue: true,
+      kueue: true,
       disableLMEval: true,
       mlflow: false,
       trainingJobs: true,

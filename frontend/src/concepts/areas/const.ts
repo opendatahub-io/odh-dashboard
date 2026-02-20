@@ -14,7 +14,6 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
-  disableKueue: true,
   disableProjectScoped: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -64,6 +63,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   disableFineTuning: true,
   disableLMEval: true,
+  kueue: true,
   trainingJobs: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -156,7 +156,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.KUEUE],
   },
   [SupportedArea.KUEUE]: {
-    featureFlags: ['disableKueue'],
+    featureFlags: ['kueue'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
   },
   [SupportedArea.MODEL_CATALOG]: {
