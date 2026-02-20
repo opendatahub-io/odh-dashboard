@@ -42,6 +42,10 @@ const (
 	// AI Assets (AAA) endpoints
 	MCPServersListPath = ApiPathPrefix + "/aaa/mcps"
 	ModelsAAPath       = ApiPathPrefix + "/aaa/models"
+	VectorStoresAAPath = ApiPathPrefix + "/aaa/vectorstores"
+
+	// External vector stores endpoint
+	ExternalVectorStoresPath = ApiPathPrefix + "/vectorstores/external"
 
 	// Model as a Service (MaaS) endpoints
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"

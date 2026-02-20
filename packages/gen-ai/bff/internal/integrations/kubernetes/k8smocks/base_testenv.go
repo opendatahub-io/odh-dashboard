@@ -2,6 +2,8 @@ package k8smocks
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -29,6 +31,12 @@ import (
 // processes gracefully before force-killing. 500ms chosen based on empirical testing;
 // may need adjustment for slower systems or under heavy load.
 const orphanedProcessGracePeriod = 500 * time.Millisecond
+
+//go:embed testdata/mcp_servers.json
+var mcpServersFixture []byte
+
+//go:embed testdata/vector_stores.yaml
+var vectorStoresFixture string
 
 // TODO: Expand this to include more test users with right permissions.
 var DefaultTestUsers = []TestUser{
@@ -343,29 +351,151 @@ func getProjectRoot() (string, error) {
 	}
 }
 
-// SetupMock creates the default test namespaces used by tests.
+// SetupMock creates the default test namespaces and seed data used by tests.
 func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
-	err := createNamespace(mockK8sClient, ctx, "llama-stack")
-	if err != nil {
+	// Dashboard namespace — MCP ConfigMap lives here (cluster-wide)
+	if err := createNamespace(mockK8sClient, ctx, "opendatahub"); err != nil {
+		return fmt.Errorf("failed to create opendatahub namespace: %w", err)
+	}
+
+	if err := createMCPServersConfigMap(mockK8sClient, ctx, "opendatahub"); err != nil {
+		return fmt.Errorf("failed to create MCP servers ConfigMap: %w", err)
+	}
+
+	// llama-stack namespace with full seeding (vector stores, LlamaStack config, LSD)
+	if err := createNamespace(mockK8sClient, ctx, "llama-stack"); err != nil {
 		return fmt.Errorf("failed to create llama-stack namespace: %w", err)
 	}
-
-	err = createNamespace(mockK8sClient, ctx, "dora-namespace")
-	if err != nil {
-		return err
+	if err := createVectorStoresConfigMap(mockK8sClient, ctx, "llama-stack"); err != nil {
+		return fmt.Errorf("failed to create vector stores ConfigMap in llama-stack: %w", err)
+	}
+	if err := createLlamaStackConfigMap(mockK8sClient, ctx, "llama-stack"); err != nil {
+		return fmt.Errorf("failed to create LlamaStack ConfigMap in llama-stack: %w", err)
+	}
+	if err := createLlamaStackDistribution(mockK8sClient, ctx, "llama-stack"); err != nil {
+		return fmt.Errorf("failed to create LlamaStackDistribution in llama-stack: %w", err)
 	}
 
-	err = createNamespace(mockK8sClient, ctx, "bella-namespace")
-	if err != nil {
-		return err
-	}
-
-	err = createNamespace(mockK8sClient, ctx, "bento-namespace")
-	if err != nil {
-		return err
+	// mock-test namespaces matching GetNamespaces mock, with vector stores only
+	for _, ns := range []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4"} {
+		if err := createNamespace(mockK8sClient, ctx, ns); err != nil {
+			return fmt.Errorf("failed to create %s namespace: %w", ns, err)
+		}
+		if err := createVectorStoresConfigMap(mockK8sClient, ctx, ns); err != nil {
+			return fmt.Errorf("failed to create vector stores ConfigMap in %s: %w", ns, err)
+		}
 	}
 
 	return nil
+}
+
+func createMCPServersConfigMap(k8sClient client.Client, ctx context.Context, namespace string) error {
+	var servers map[string]json.RawMessage
+	if err := json.Unmarshal(mcpServersFixture, &servers); err != nil {
+		return fmt.Errorf("failed to parse MCP servers fixture: %w", err)
+	}
+
+	data := make(map[string]string, len(servers))
+	for name, raw := range servers {
+		data[name] = string(raw)
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gen-ai-aa-mcp-servers",
+			Namespace: namespace,
+		},
+		Data: data,
+	}
+	return k8sClient.Create(ctx, cm)
+}
+
+func createVectorStoresConfigMap(k8sClient client.Client, ctx context.Context, namespace string) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gen-ai-aa-vector-stores",
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"stores.yaml": vectorStoresFixture,
+		},
+	}
+	return k8sClient.Create(ctx, cm)
+}
+
+func createLlamaStackConfigMap(k8sClient client.Client, ctx context.Context, namespace string) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "llama-stack-config",
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"config.yaml": `version: "2"
+image_name: rh
+apis:
+- inference
+- vector_io
+providers:
+  inference:
+  - provider_id: sentence-transformers
+    provider_type: inline::sentence-transformers
+    config: {}
+  vector_io:
+  - provider_id: milvus
+    provider_type: inline::milvus
+    config:
+      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+registered_resources:
+  models:
+    - metadata:
+        embedding_dimension: 768
+      model_id: granite-embedding-125m
+      provider_id: sentence-transformers
+      provider_model_id: ibm-granite/granite-embedding-125m-english
+      model_type: embedding
+    - metadata: {}
+      model_id: mock-model
+      provider_id: vllm-inference-1
+      model_type: llm
+  shields: []
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+    - toolgroup_id: builtin::rag
+      provider_id: rag-runtime
+server:
+  port: 8321`,
+		},
+	}
+	return k8sClient.Create(ctx, cm)
+}
+
+func createLlamaStackDistribution(k8sClient client.Client, ctx context.Context, namespace string) error {
+	lsd := &lsdapi.LlamaStackDistribution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mock-lsd",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"opendatahub.io/dashboard": "true",
+			},
+		},
+		Spec: lsdapi.LlamaStackDistributionSpec{
+			Replicas: 1,
+			Server: lsdapi.ServerSpec{
+				ContainerSpec: lsdapi.ContainerSpec{
+					Name: "llama-stack",
+					Port: 8321,
+				},
+				Distribution: lsdapi.DistributionType{Name: "rh-dev"},
+				UserConfig: &lsdapi.UserConfigSpec{
+					ConfigMapName: "llama-stack-config",
+				},
+			},
+		},
+	}
+	return k8sClient.Create(ctx, lsd)
 }
 
 func createNamespace(k8sClient client.Client, ctx context.Context, namespace string) error {

@@ -13,6 +13,7 @@ type Repositories struct {
 	MaaSModels             *MaaSModelsRepository
 	AAModels               *AAModelsRepository
 	VectorStores           *VectorStoresRepository
+	ExternalVectorStores   *ExternalVectorStoresRepository
 	Files                  *FilesRepository
 	Responses              *ResponsesRepository
 	Template               *TemplateRepository
@@ -31,6 +32,7 @@ func NewRepositories() *Repositories {
 		MaaSModels:             NewMaaSModelsRepository(),
 		AAModels:               NewAAModelsRepository(),
 		VectorStores:           NewVectorStoresRepository(),
+		ExternalVectorStores:   NewExternalVectorStoresRepository(nil),
 		Files:                  NewFilesRepository(),
 		Responses:              NewResponsesRepository(),
 		Template:               NewTemplateRepository(),
@@ -46,5 +48,6 @@ func NewRepositories() *Repositories {
 func NewRepositoriesWithMCP(mcpClientFactory mcp.MCPClientFactory, logger *slog.Logger) *Repositories {
 	repos := NewRepositories()
 	repos.MCPClient = NewMCPClientRepository(mcpClientFactory, logger)
+	repos.ExternalVectorStores = NewExternalVectorStoresRepository(logger)
 	return repos
 }
