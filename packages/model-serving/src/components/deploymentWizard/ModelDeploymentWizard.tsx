@@ -8,7 +8,6 @@ import {
   isGeneratedSecretName,
 } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import { Deployment } from 'extension-points';
 import { deployModel } from './utils';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
@@ -25,6 +24,7 @@ import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
 import { DeploymentWizardYAMLView } from './DeploymentWizardYAMLView';
 import { StepContentToggle } from './ModelDeploymentStepContentToggle';
+import type { Deployment } from '../../../extension-points';
 import { WizardFooterWithDisablingNext } from '../generic/WizardFooterWithDisablingNext';
 
 type ModelDeploymentWizardProps = {
