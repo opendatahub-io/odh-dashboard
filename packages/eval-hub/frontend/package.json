@@ -120,7 +120,7 @@
     "@testing-library/cypress": "^10.0.3",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
-    "cypress": "^15.6.0",
+    "cypress": "^15.10.0",
     "cypress-axe": "^1.5.0",
     "cypress-high-resolution": "^1.0.0",
     "cypress-mochawesome-reporter": "^4.0.2",
