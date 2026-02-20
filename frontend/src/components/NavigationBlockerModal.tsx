@@ -80,6 +80,7 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
       onClose={handleCancel}
       variant="small"
       dataTestId="navigation-blocker-modal"
+      titleIconVariant="warning"
       contents="One or more of your changes on this page are not saved yet. Discard your changes and leave this page, or cancel to continue editing."
       buttonActions={[
         {
