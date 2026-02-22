@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-llamaindex-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a Workflow Agent with LlamaIndex'
+  description: >-
+    Build an event-driven agent using LlamaIndex Workflows with explicit
+    step transitions, memory buffer, and tool abstraction for web search
+    and other integrations.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/base/llamaindex_websearch_agent'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

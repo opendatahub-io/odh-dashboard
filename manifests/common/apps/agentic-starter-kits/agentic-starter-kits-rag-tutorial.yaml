@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-rag-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build an Agentic RAG System'
+  description: >-
+    Build a retrieval-augmented generation agent that autonomously decides
+    when to query a Milvus vector store. Uses a three-node LangGraph
+    workflow for intelligent document retrieval and context-aware generation.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/community/langgraph_agentic_rag'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

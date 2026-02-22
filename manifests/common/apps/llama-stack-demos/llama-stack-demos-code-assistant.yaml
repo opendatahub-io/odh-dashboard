@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: llama-stack-demos-code-assistant
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'RAG Evaluation with Llama Stack'
+  description: >-
+    Evaluate RAG pipeline quality using Llama Stack's built-in evaluation
+    tools. Measure retrieval accuracy, generation quality, and end-to-end
+    performance of your RAG applications.
+  url: 'https://github.com/opendatahub-io/llama-stack-demos/tree/main/demos/rag_eval'
+  provider: Open Data Hub
+  appName: llama-stack-demos

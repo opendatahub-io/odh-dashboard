@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: llama-stack-demos-multiagent-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Agent-to-Agent (A2A) with Llama Stack'
+  description: >-
+    Build agent-to-agent systems with Llama Stack, covering A2A protocol
+    communication, workflow coordination, and task decomposition across
+    specialized agents.
+  url: 'https://github.com/opendatahub-io/llama-stack-demos/tree/main/demos/a2a_llama_stack'
+  provider: Open Data Hub
+  appName: llama-stack-demos
