@@ -1,8 +1,8 @@
 # Local Deployment Guide
 
-## Local kubernetes deployment of Mod Arch
+## Local kubernetes deployment of AutoRAG
 
-To test the BFF locally without mocking the k8s calls the Mod Arch backend can be deployed locally using kind.
+To test the BFF locally without mocking the k8s calls the AutoRAG backend can be deployed locally using kind.
 
 ### Prerequisites
 
@@ -52,7 +52,7 @@ then, switch to that  kubeflow namespace
   kubectl config set-context --current --namespace=kubeflow
 ```
 
-#### 3. Deploy Mod Arch to cluster
+#### 3. Deploy AutoRAG to cluster
 
 You can now deploy the MR backend to your newly created cluster using the kustomize configs in the MR repository by
 running:
