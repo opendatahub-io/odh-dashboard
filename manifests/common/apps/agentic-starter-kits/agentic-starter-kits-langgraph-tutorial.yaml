@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langgraph-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a ReAct Agent with LangGraph'
+  description: >-
+    Learn to build a reasoning and acting agent using LangGraph's graph-based
+    state machine. Covers tool orchestration, state persistence, and the
+    agentic decision loop.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/base/langgraph_react_agent'
+  provider: Open Data Hub
+  appName: agentic-starter-kits
