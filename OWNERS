@@ -18,6 +18,7 @@ filters:
       - gen-ai-approvers
       - nim-serving-approvers
       - autorag-approvers
+      - automl-approvers
 
   # Catchall
   '.*':
@@ -167,3 +168,12 @@ filters:
       - autorag-reviewers
     labels:
       - 'area/autorag'
+
+  # AutoML
+  'packages/automl/.*':
+    approvers:
+      - automl-approvers
+    reviewers:
+      - automl-reviewers
+    labels:
+      - 'area/automl'

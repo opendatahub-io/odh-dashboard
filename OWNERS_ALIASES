@@ -198,3 +198,17 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+
+  # AutoML
+  automl-approvers:
+    - nickmazzi
+    - chrjones-rh
+  automl-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
+    - jkyaw
