@@ -1,0 +1,60 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhApplication
+metadata:
+  name: llama-stack-demos
+  annotations:
+    opendatahub.io/categories: 'AI agents,Model development,Getting started'
+spec:
+  img: >-
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36">
+      <rect x="2" y="2" width="32" height="32" rx="4" fill="#6753AC"/>
+      <path d="M18 6 L28 28 L8 28 Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="18" cy="13" r="2.5" fill="white"/>
+      <rect x="14" y="19" width="8" height="2" rx="1" fill="white" opacity="0.8"/>
+      <rect x="12" y="23" width="12" height="2" rx="1" fill="white" opacity="0.6"/>
+    </svg>
+  displayName: Llama Stack Demos
+  support: community
+  provider: Open Data Hub
+  docsLink: 'https://github.com/opendatahub-io/llama-stack-demos'
+  getStartedLink: 'https://github.com/opendatahub-io/llama-stack-demos#readme'
+  getStartedMarkDown: >-
+    # Llama Stack Demos
+
+    A progressive learning path for building AI applications with Llama
+    Stack on OpenShift AI. Seven phases take you from basic setup through
+    production-ready full applications.
+
+    ## Learning Path
+
+    1. **Foundations** -- Setup and configuration
+
+    2. **Responses API** -- Basic inference patterns
+
+    3. **RAG** -- Retrieval-augmented generation with Milvus and FAISS
+
+    4. **Advanced Tools** -- Tool calling and MCP integration
+
+    5. **Multi-Agent Systems** -- Agent orchestration and coordination
+
+    6. **Production Patterns** -- Logging, monitoring, caching, async
+
+    7. **Full Applications** -- Knowledge Assistant, Code Assistant,
+    Ops Automation, Data Analysis
+
+    ## Getting Started
+
+    1. Clone the repository from GitHub.
+
+    2. Install dependencies with `pip install -e .`
+
+    3. Start with Phase 1 and work through progressively, or jump
+    directly to Phase 7 for complete applications.
+
+    Each phase includes runnable notebooks and scripts with Streamlit
+    web interfaces for the full applications.
+  description: >-
+    Progressive learning path for building AI applications with Llama Stack,
+    from basic inference to production-ready agents with RAG, tool use, and
+    multi-agent orchestration.
+  category: AI agents

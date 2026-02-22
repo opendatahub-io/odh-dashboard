@@ -1,0 +1,60 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhApplication
+metadata:
+  name: agentic-starter-kits
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started,Model development'
+spec:
+  img: >-
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36">
+      <rect x="2" y="2" width="32" height="32" rx="4" fill="#0066CC"/>
+      <circle cx="12" cy="14" r="4" fill="white" opacity="0.9"/>
+      <circle cx="24" cy="14" r="4" fill="white" opacity="0.9"/>
+      <circle cx="18" cy="26" r="4" fill="white" opacity="0.9"/>
+      <line x1="12" y1="14" x2="24" y2="14" stroke="white" stroke-width="1.5" opacity="0.6"/>
+      <line x1="12" y1="14" x2="18" y2="26" stroke="white" stroke-width="1.5" opacity="0.6"/>
+      <line x1="24" y1="14" x2="18" y2="26" stroke="white" stroke-width="1.5" opacity="0.6"/>
+      <circle cx="12" cy="14" r="2" fill="#EE0000"/>
+      <circle cx="24" cy="14" r="2" fill="#EE0000"/>
+      <circle cx="18" cy="26" r="2" fill="#EE0000"/>
+    </svg>
+  displayName: Agentic Starter Kits
+  support: community
+  provider: Open Data Hub
+  docsLink: 'https://github.com/red-hat-data-services/agentic-starter-kits'
+  getStartedLink: 'https://github.com/red-hat-data-services/agentic-starter-kits#readme'
+  getStartedMarkDown: >-
+    # Agentic Starter Kits
+
+    Reference implementations for building AI agents on OpenShift AI using
+    Llama Stack. Includes four ready-to-deploy agent patterns covering
+    common agentic architectures.
+
+    ## Available Agents
+
+    - **LangGraph ReAct Agent** -- Graph-based reasoning and acting loop
+    for general-purpose tool use
+
+    - **LlamaIndex Workflow Agent** -- Event-driven multi-step workflow
+    for web-integrated agents
+
+    - **Pure LlamaStack Agent** -- Minimal agent using the Llama Stack
+    client directly
+
+    - **Agentic RAG** -- Retrieval-augmented generation with autonomous
+    retrieval decisions using Milvus
+
+    ## Getting Started
+
+    1. Clone the repository from GitHub.
+
+    2. Choose an agent pattern from the four available kits.
+
+    3. Follow the agent-specific README to configure environment variables
+    and deploy locally with Ollama or on OpenShift.
+
+    Each agent exposes a FastAPI server with `/chat` and `/health` endpoints.
+  description: >-
+    Reference implementations for building AI agents on OpenShift AI,
+    featuring LangGraph, LlamaIndex, LlamaStack, and Agentic RAG patterns.
+  category: AI agents
