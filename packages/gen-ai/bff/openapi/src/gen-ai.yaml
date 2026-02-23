@@ -564,10 +564,9 @@ paths:
   # =============================================================================
 
   /gen-ai/api/v1/mlflow/prompts:
-    summary: List MLflow prompts
+    summary: List and register MLflow prompts
     description: >-
-      Lists all registered prompts from the MLflow Prompt Registry.
-      Returns prompt metadata including name, description, latest version, tags, and creation timestamp.
+      Lists all registered prompts or registers a new prompt in the MLflow Prompt Registry.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
@@ -582,6 +581,26 @@ paths:
           schema:
             type: string
             example: 'default'
+        - name: page_token
+          in: query
+          description: Token for fetching the next page of results
+          required: false
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          description: Maximum number of prompts to return per page
+          required: false
+          schema:
+            type: integer
+            example: 10
+        - name: filter_name
+          in: query
+          description: Filter prompts by name prefix (e.g. "pet" matches "pet-health-bella", "pet-adoption-letter")
+          required: false
+          schema:
+            type: string
+            example: pet
       responses:
         '200':
           description: Successful response with MLflow prompts list
@@ -596,38 +615,7 @@ paths:
                       prompts:
                         type: array
                         items:
-                          type: object
-                          properties:
-                            name:
-                              type: string
-                              description: Unique name identifying the prompt
-                              example: 'vet-appointment-dora'
-                            description:
-                              type: string
-                              description: Human-readable description of the prompt
-                              example: 'Schedule a veterinary appointment for Dora'
-                            latest_version:
-                              type: integer
-                              description: Latest version number of the prompt
-                              example: 2
-                            tags:
-                              type: object
-                              additionalProperties:
-                                type: string
-                              description: User-defined metadata tags
-                              example:
-                                pet: 'dora'
-                                category: 'health'
-                            creation_timestamp:
-                              type: string
-                              format: date-time
-                              description: When the prompt was first created
-                              example: '2025-01-15T10:30:00Z'
-                          required:
-                            - name
-                            - description
-                            - latest_version
-                            - creation_timestamp
+                          $ref: '#/components/schemas/MLflowPrompt'
                       next_page_token:
                         type: string
                         description: Token for fetching the next page of results
@@ -646,7 +634,258 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: listMLflowPrompts
       summary: List All MLflow Prompts
-      description: Gets a list of all registered prompts from the MLflow Prompt Registry.
+      description: Gets a paginated list of all registered prompts from the MLflow Prompt Registry.
+    post:
+      tags:
+        - MLflow
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MLflow operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MLflowRegisterPromptRequest'
+      responses:
+        '201':
+          description: Prompt version created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MLflowPromptVersion'
+                  metadata:
+                    type: object
+                    nullable: true
+                required:
+                  - data
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: registerMLflowPrompt
+      summary: Register or Update MLflow Prompt
+      description: >-
+        Creates a new prompt or adds a new version to an existing prompt.
+        Either messages (for chat prompts) or template (for text prompts) must be provided, but not both.
+
+  /gen-ai/api/v1/mlflow/prompts/{name}:
+    summary: Load or delete an MLflow prompt
+    description: >-
+      Load the full content of a specific prompt version or delete an entire prompt.
+    get:
+      tags:
+        - MLflow
+      security:
+        - Bearer: []
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name
+          required: true
+          schema:
+            type: string
+            example: 'vet-appointment-dora'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MLflow operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+        - name: version
+          in: query
+          description: Specific version number to load (defaults to latest)
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Prompt version loaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MLflowPromptVersion'
+                  metadata:
+                    type: object
+                    nullable: true
+                required:
+                  - data
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: loadMLflowPrompt
+      summary: Load MLflow Prompt
+      description: Loads a specific prompt version with full template or message content.
+    delete:
+      tags:
+        - MLflow
+      security:
+        - Bearer: []
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name to delete
+          required: true
+          schema:
+            type: string
+            example: 'my-prompt'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MLflow operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '204':
+          description: Prompt deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteMLflowPrompt
+      summary: Delete MLflow Prompt
+      description: Deletes an entire prompt and all its versions.
+
+  /gen-ai/api/v1/mlflow/prompts/{name}/versions:
+    summary: List versions of an MLflow prompt
+    description: >-
+      Lists all versions of a specific prompt with metadata (no template content).
+    get:
+      tags:
+        - MLflow
+      security:
+        - Bearer: []
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name
+          required: true
+          schema:
+            type: string
+            example: 'vet-appointment-dora'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MLflow operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+        - name: page_token
+          in: query
+          description: Token for fetching the next page of results
+          required: false
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          description: Maximum number of versions to return per page
+          required: false
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: Successful response with prompt versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      versions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MLflowPromptVersionMeta'
+                      next_page_token:
+                        type: string
+                        description: Token for fetching the next page of results
+                    required:
+                      - versions
+                  metadata:
+                    type: object
+                    nullable: true
+                required:
+                  - data
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listMLflowPromptVersions
+      summary: List Prompt Versions
+      description: Gets a list of all versions for a specific prompt.
+
+  /gen-ai/api/v1/mlflow/prompts/{name}/versions/{version}:
+    summary: Delete a specific version of an MLflow prompt
+    delete:
+      tags:
+        - MLflow
+      security:
+        - Bearer: []
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name
+          required: true
+          schema:
+            type: string
+            example: 'my-prompt'
+        - name: version
+          in: path
+          description: Version number to delete
+          required: true
+          schema:
+            type: integer
+            example: 1
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for MLflow operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '204':
+          description: Prompt version deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteMLflowPromptVersion
+      summary: Delete Prompt Version
+      description: Deletes a specific version of a prompt.
 
   /gen-ai/api/v1/lsd/vectorstores:
     summary: Manage vector stores for RAG
@@ -1361,6 +1600,166 @@ components:
           type: string
           example: 'trustyai_output_llama_guard_3'
           description: Shield ID for output content moderation
+
+    # MLflow Schemas
+    MLflowPrompt:
+      type: object
+      required:
+        - name
+        - description
+        - latest_version
+        - creation_timestamp
+      properties:
+        name:
+          type: string
+          description: Unique name identifying the prompt
+          example: 'vet-appointment-dora'
+        description:
+          type: string
+          description: Human-readable description of the prompt
+          example: 'Schedule a veterinary appointment for Dora'
+        latest_version:
+          type: integer
+          description: Latest version number of the prompt
+          example: 2
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: User-defined metadata tags
+          example:
+            pet: 'dora'
+            category: 'health'
+        creation_timestamp:
+          type: string
+          format: date-time
+          description: When the prompt was first created
+          example: '2025-01-15T10:30:00Z'
+
+    MLflowMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          description: Message role (system, user, assistant)
+          example: 'user'
+        content:
+          type: string
+          description: Message content, may contain {{variable}} placeholders
+          example: 'Hello {{name}}'
+
+    MLflowRegisterPromptRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Prompt name (creates new or adds version to existing)
+          example: 'my-prompt'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MLflowMessage'
+          description: Chat messages (for chat prompts, mutually exclusive with template)
+        template:
+          type: string
+          description: Text template (for text prompts, mutually exclusive with messages)
+          example: 'Hello {{name}}, welcome to {{place}}!'
+        commit_message:
+          type: string
+          description: Version commit message
+          example: 'initial version'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata tags
+          example:
+            env: 'production'
+
+    MLflowPromptVersion:
+      type: object
+      required:
+        - name
+        - version
+        - created_at
+        - updated_at
+      properties:
+        name:
+          type: string
+          description: Prompt name
+          example: 'vet-appointment-dora'
+        version:
+          type: integer
+          description: Version number
+          example: 2
+        template:
+          type: string
+          description: Text template content (for text prompts)
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MLflowMessage'
+          description: Chat messages (for chat prompts)
+        commit_message:
+          type: string
+          description: Version commit message
+          example: 'Detailed appointment request with anxiety note'
+        aliases:
+          type: array
+          items:
+            type: string
+          description: Aliases pointing to this version
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata tags
+        created_at:
+          type: string
+          format: date-time
+          description: When this version was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When this version was last updated
+
+    MLflowPromptVersionMeta:
+      type: object
+      required:
+        - version
+        - created_at
+        - updated_at
+      properties:
+        version:
+          type: integer
+          description: Version number
+          example: 1
+        commit_message:
+          type: string
+          description: Version commit message
+        aliases:
+          type: array
+          items:
+            type: string
+          description: Aliases pointing to this version
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata tags
+        created_at:
+          type: string
+          format: date-time
+          description: When this version was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When this version was last updated
 
     Error:
       type: object

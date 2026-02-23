@@ -48,7 +48,10 @@ const (
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
 
 	// MLflow endpoints
-	MLflowPromptsPath = ApiPathPrefix + "/mlflow/prompts"
+	MLflowPromptsPath        = ApiPathPrefix + "/mlflow/prompts"
+	MLflowPromptPath         = ApiPathPrefix + "/mlflow/prompts/:name"
+	MLflowPromptVersionsPath = ApiPathPrefix + "/mlflow/prompts/:name/versions"
+	MLflowPromptVersionPath  = ApiPathPrefix + "/mlflow/prompts/:name/versions/:version"
 
 	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
 
