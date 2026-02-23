@@ -169,3 +169,5 @@ const GroupSettings: React.FC = () => {
 };
 
 export default GroupSettings;
+
+// Trigger Settings CI detection

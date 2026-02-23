@@ -32,5 +32,3 @@ export enum ServingRuntimeVersionStatusLabel {
   LATEST = 'Latest',
   OUTDATED = 'Outdated',
 }
-
-// Trigger Model Serving CI detection
