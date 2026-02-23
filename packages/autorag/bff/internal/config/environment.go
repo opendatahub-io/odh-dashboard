@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	// AuthMethodDisabled authentication is disabled, useful for testing.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.

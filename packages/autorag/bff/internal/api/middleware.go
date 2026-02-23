@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
@@ -35,6 +36,12 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
 		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+ApiPathPrefix) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// If authentication is disabled, skip identity extraction
+		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -103,6 +110,12 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 // This middleware enforces RBAC-based authorization for service access in the namespace.
 func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		// If authentication is disabled skip these steps.
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
 		ctx := r.Context()
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 
