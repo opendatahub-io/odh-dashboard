@@ -9,8 +9,10 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
+  Tooltip,
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
+import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 
 type DeploymentWizardYAMLViewProps = {
   code?: string;
@@ -21,14 +23,18 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
   code,
   setCode,
 }) => {
+  const { theme } = useThemeContext();
+
   return (
     <Stack hasGutter>
       <StackItem>
         <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
           <FlexItem>
-            <Button variant="primary" data-testid="manual-edit-mode-button">
-              Enter Manual Edit Mode
-            </Button>
+            <Tooltip content="Edit is not supported.">
+              <Button variant="primary" data-testid="manual-edit-mode-button" isAriaDisabled>
+                Enter Manual Edit Mode
+              </Button>
+            </Tooltip>
           </FlexItem>
         </Flex>
       </StackItem>
@@ -39,16 +45,23 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
               <EmptyState
                 icon={CodeIcon}
                 headingLevel="h4"
-                titleText="No YAML available"
+                titleText="Auto-generated YAML unavailable or Select the LLM-d runtime to generate YAML"
                 data-testid="yaml-editor-empty-state"
               >
-                <EmptyStateBody>Continue in the form, or select Manual Edit Mode.</EmptyStateBody>
+                <EmptyStateBody>
+                  YAML generation is currently supported only for the LLM-d serving runtime. Select
+                  the LLM-d runtime to generate a preview, or manually enter your YAML
+                  configuration. OR Auto-generated YAML is supported only when using the LLM-d
+                  serving runtime. To proceed, select the LLM-d runtime or provide your own custom
+                  YAML configuration.
+                </EmptyStateBody>
               </EmptyState>
             </Bullseye>
           }
           code={code}
           onCodeChange={setCode}
           language={Language.yaml}
+          isDarkTheme={theme === 'dark'}
           isLanguageLabelVisible
           isFullHeight
           isReadOnly

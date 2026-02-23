@@ -243,6 +243,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
           onSave={() => onSave()}
           footer={wizardFooter}
           startIndex={wizardState.initialData?.wizardStartIndex ?? 1}
+          onStepChange={(event, currentStep, prevStep, scope) =>
+            scope === 'nav' ? setViewMode('form') : undefined
+          }
         >
           <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
             <StepContentToggle
