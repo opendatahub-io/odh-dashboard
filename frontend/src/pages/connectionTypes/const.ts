@@ -19,3 +19,5 @@ export const initialFilterData: Record<ConnectionTypesOptions, string | undefine
 };
 
 export const categoryOptions = ['Object storage', 'Database', 'Model registry', 'URI'];
+
+// Trigger Connection Types CI detection
