@@ -14,7 +14,6 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
@@ -37,7 +36,6 @@ const HardwareProfiles: React.FC = () => {
     globalHardwareProfiles: [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles],
   } = React.useContext(HardwareProfilesContext);
 
-  const navigate = useNavigate();
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
     verbModelAccess('create', HardwareProfileModel),
   );
@@ -95,7 +93,8 @@ const HardwareProfiles: React.FC = () => {
               <Button
                 data-testid="display-hardware-modal-button"
                 variant={ButtonVariant.primary}
-                onClick={() => navigate('/settings/environment-setup/hardware-profiles/create')}
+                component="a"
+                href="/settings/environment-setup/hardware-profiles/create"
               >
                 Add new hardware profile
               </Button>

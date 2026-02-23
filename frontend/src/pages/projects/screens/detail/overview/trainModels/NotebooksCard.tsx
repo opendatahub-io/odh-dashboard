@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
@@ -26,7 +25,6 @@ import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
 
 const NotebooksCard: React.FC = () => {
-  const navigate = useNavigate();
   const {
     currentProject,
     notebooks: { data: notebooks, loaded, error },
@@ -66,6 +64,7 @@ const NotebooksCard: React.FC = () => {
     ],
     [notebooks],
   );
+  const createWorkbenchHref = `/projects/${currentProject.metadata.name}/spawner`;
 
   if (error) {
     return (
@@ -122,7 +121,8 @@ const NotebooksCard: React.FC = () => {
                     <Button
                       isAriaDisabled={isCreateDisabled}
                       variant={ButtonVariant.primary}
-                      onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
+                      component="a"
+                      href={createWorkbenchHref}
                     >
                       <Flex
                         gap={{ default: 'gapMd' }}
@@ -160,7 +160,7 @@ const NotebooksCard: React.FC = () => {
     >
       <MetricsContents
         title="Workbenches"
-        onCreate={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
+        createHref={createWorkbenchHref}
         createText="Create workbench"
         isKueueDisabled={isKueueDisabled}
         createDisabled={allowCreateLoaded && !allowCreate}

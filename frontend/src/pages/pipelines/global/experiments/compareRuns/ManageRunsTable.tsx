@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { Button, Flex, ToolbarGroup, ToolbarItem, Tooltip } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
@@ -31,7 +30,6 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   setPageSize,
   ...tableProps
 }) => {
-  const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const pageRunIds = runs.map(({ run_id: runId }) => runId);
   const { experiment } = React.useContext(ExperimentContext);
@@ -42,6 +40,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
     tableProps: checkboxTableProps,
     toggleSelection,
   } = useCheckboxTable(pageRunIds, selectedRunIds, true);
+  const updateHref = compareRunsRoute(namespace, selections, experiment?.experiment_id);
 
   const rowRenderer = React.useCallback(
     (run: PipelineRunKF) => {
@@ -100,9 +99,8 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
               <Tooltip content="Select up to 10 runs to compare.">
                 <Button
                   data-testid="manage-runs-update-button"
-                  onClick={() =>
-                    navigate(compareRunsRoute(namespace, selections, experiment?.experiment_id))
-                  }
+                  component="a"
+                  href={updateHref}
                   isAriaDisabled={selections.length < 1 || selections.length > 10}
                 >
                   Update

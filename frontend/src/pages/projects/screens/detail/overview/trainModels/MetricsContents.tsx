@@ -15,7 +15,7 @@ type MetricsCardProps = {
   statistics: { count: number; text: string; onClick?: () => void }[];
   createButton?: React.ReactNode | false;
   createText?: string;
-  onCreate?: () => void;
+  createHref?: string;
   listItems?: React.ReactNode;
   isKueueDisabled?: boolean;
   /** Whether the create button should be disabled (e.g., due to permissions) */
@@ -28,7 +28,7 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
   title,
   createButton,
   createText,
-  onCreate,
+  createHref,
   statistics,
   listItems,
   isKueueDisabled,
@@ -83,12 +83,23 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
         {createButton ||
           (isButtonDisabled ? (
             <Tooltip content={tooltipContent}>
-              <Button isAriaDisabled variant="link" isInline onClick={onCreate}>
+              <Button
+                isAriaDisabled
+                variant="link"
+                isInline
+                component={createHref ? 'a' : 'button'}
+                href={createHref}
+              >
                 {createText}
               </Button>
             </Tooltip>
           ) : (
-            <Button variant="link" isInline onClick={onCreate}>
+            <Button
+              variant="link"
+              isInline
+              component={createHref ? 'a' : 'button'}
+              href={createHref}
+            >
               {createText}
             </Button>
           ))}

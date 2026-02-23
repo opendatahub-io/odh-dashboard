@@ -5,7 +5,6 @@ import {
   t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
-import { useNavigate } from 'react-router-dom';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
@@ -73,10 +72,13 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   startNotebook,
   isVertical = true,
 }) => {
-  const navigate = useNavigate();
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
   const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
   const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
+  const editWorkbenchHref =
+    notebook.metadata.namespace && notebook.metadata.name
+      ? `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`
+      : '#';
   const [unstableNotebookStatus, events] = useNotebookStatus(
     isStarting,
     notebook,
@@ -158,13 +160,9 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
                 data-id="edit-workbench"
                 key="edit"
                 variant="link"
-                onClick={() => {
-                  if (notebook.metadata.namespace && notebook.metadata.name) {
-                    navigate(
-                      `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`,
-                    );
-                  }
-                }}
+                component="a"
+                href={editWorkbenchHref}
+                isAriaDisabled={!notebook.metadata.namespace || !notebook.metadata.name}
               >
                 Edit workbench
               </Button>

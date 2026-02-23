@@ -49,7 +49,8 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
                 <Button
                   isInline
                   variant="link"
-                  onClick={() => navigate(`/settings/environment-setup/hardware-profiles`)}
+                  component="a"
+                  href="/settings/environment-setup/hardware-profiles"
                 >
                   View profile details
                 </Button>
@@ -131,7 +132,8 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
               <Button
                 variant="link"
                 id="cancel-button"
-                onClick={() => navigate(redirectPath)}
+                component="a"
+                href={redirectPath}
                 isDisabled={isLoading}
               >
                 Cancel

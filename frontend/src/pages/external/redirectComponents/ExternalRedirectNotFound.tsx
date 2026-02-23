@@ -1,12 +1,9 @@
 import { Button } from '@patternfly/react-core';
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 
 const ExternalRedirectNotFound: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <ApplicationsPage
       loaded
@@ -18,7 +15,7 @@ const ExternalRedirectNotFound: React.FC = () => {
           errorMessage="There is no external redirect for this URL."
           actions={
             <>
-              <Button variant="link" onClick={() => navigate('/')}>
+              <Button variant="link" component="a" href="/">
                 Go to Home
               </Button>
             </>

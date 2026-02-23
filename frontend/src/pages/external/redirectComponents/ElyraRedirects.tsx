@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate, useParams, matchPath } from 'react-router-dom';
+import { useLocation, useParams, matchPath } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
@@ -16,7 +16,6 @@ import { pipelinesRootPath } from '#~/routes/pipelines/global';
 const ElyraRedirects: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const createRedirectPath = React.useCallback(() => {
     if (!namespace) {
@@ -44,7 +43,7 @@ const ElyraRedirects: React.FC = () => {
           title="Error redirecting to pipelines"
           errorMessage={error?.message}
           actions={
-            <Button variant="link" onClick={() => navigate(pipelinesRootPath)}>
+            <Button variant="link" component="a" href={pipelinesRootPath}>
               Go to Pipeline definitions
             </Button>
           }

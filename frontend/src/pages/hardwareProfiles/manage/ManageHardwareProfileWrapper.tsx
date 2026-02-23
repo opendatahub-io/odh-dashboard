@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import {
   Bullseye,
@@ -22,7 +22,6 @@ type ManageHardwareProfileWrapperProps = {
 const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> = ({
   children,
 }) => {
-  const navigate = useNavigate();
   const { hardwareProfileName } = useParams();
   const { dashboardNamespace } = useDashboardNamespace();
   const [data, , error] = useHardwareProfile(dashboardNamespace, hardwareProfileName);
@@ -42,7 +41,8 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
           <Button
             data-testid="view-all-hardware-profiles"
             variant="primary"
-            onClick={() => navigate('/settings/environment-setup/hardware-profiles')}
+            component="a"
+            href="/settings/environment-setup/hardware-profiles"
           >
             View all hardware profiles
           </Button>

@@ -72,6 +72,10 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
 
   const [isArchivedModelVersionKebabOpen, setIsArchivedModelVersionKebabOpen] =
     React.useState(false);
+  const registerNewVersionHref = registerVersionForModelRoute(
+    rm.id,
+    preferredModelRegistry?.metadata.name,
+  );
 
   const filteredModelVersions = filterModelVersions(unfilteredModelVersions, filterData);
   const date = rm.lastUpdateTimeSinceEpoch && new Date(parseInt(rm.lastUpdateTimeSinceEpoch));
@@ -104,15 +108,14 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         )}
         description={`${rm.name} has no active registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
-        primaryActionOnClick={() => {
-          navigate(registerVersionForModelRoute(rm.id, preferredModelRegistry?.metadata.name));
-        }}
+        primaryActionHref={registerVersionForModelRoute(
+          rm.id,
+          preferredModelRegistry?.metadata.name,
+        )}
         secondaryActionText={
           archiveModelVersions.length !== 0 ? 'View archived versions' : undefined
         }
-        secondaryActionOnClick={() => {
-          navigate(modelVersionArchiveRoute(rm.id, preferredModelRegistry?.metadata.name));
-        }}
+        secondaryActionHref={modelVersionArchiveRoute(rm.id, preferredModelRegistry?.metadata.name)}
       />
     );
   }
@@ -172,14 +175,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
             {!isArchiveModel && (
               <>
                 <ToolbarItem>
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      navigate(
-                        registerVersionForModelRoute(rm.id, preferredModelRegistry?.metadata.name),
-                      );
-                    }}
-                  >
+                  <Button variant="primary" component="a" href={registerNewVersionHref}>
                     Register new version
                   </Button>
                 </ToolbarItem>

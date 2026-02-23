@@ -164,11 +164,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   bodyContent="The selected image version does not support the latest pipeline version. To use Elyra for pipelines, update the image to the latest version by editing the workbench."
                   footerContent={
                     <Button
-                      onClick={() => {
-                        navigate(
-                          `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`,
-                        );
-                      }}
+                      component="a"
+                      href={`/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`}
                     >
                       Edit workbench
                     </Button>

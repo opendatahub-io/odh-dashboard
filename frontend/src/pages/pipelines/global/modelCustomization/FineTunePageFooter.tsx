@@ -82,6 +82,10 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
   const navigate = useNavigate();
   const { state }: { state?: ModelCustomizationRouterState } = useLocation();
   const contextPath = globalPipelineRunsRoute(namespace);
+  const cancelHref =
+    state && state.modelVersionId && state.registeredModelId && state.modelRegistryName
+      ? modelVersionRoute(state.modelVersionId, state.registeredModelId, state.modelRegistryName)
+      : modelCustomizationRootPath;
   const {
     isValid: isNewConnectionFieldValid,
     nameDescData,
@@ -331,24 +335,8 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             <Button
               variant="link"
               data-testid="model-customization-cancel-button"
-              onClick={() => {
-                if (
-                  state &&
-                  state.modelVersionId &&
-                  state.registeredModelId &&
-                  state.modelRegistryName
-                ) {
-                  navigate(
-                    modelVersionRoute(
-                      state.modelVersionId,
-                      state.registeredModelId,
-                      state.modelRegistryName,
-                    ),
-                  );
-                } else {
-                  navigate(modelCustomizationRootPath);
-                }
-              }}
+              component="a"
+              href={cancelHref}
             >
               Cancel
             </Button>

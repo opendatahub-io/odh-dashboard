@@ -2,6 +2,7 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useRedirect } from '#~/utilities/useRedirect';
 
 const mockNavigate = jest.fn();
+const mockAssign = jest.fn();
 jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
@@ -9,6 +10,10 @@ jest.mock('react-router-dom', () => ({
 describe('useRedirect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, assign: mockAssign, origin: 'http://localhost' },
+      writable: true,
+    });
   });
 
   it('should handle successful redirect', async () => {
@@ -59,6 +64,28 @@ describe('useRedirect', () => {
     state = renderResult.result.current;
 
     expect(mockNavigate).toHaveBeenCalledWith('/path', navigateOptions);
+  });
+
+  it('should handle URL object redirect for same-origin paths', async () => {
+    const createRedirectPath = jest
+      .fn()
+      .mockReturnValue(new URL('/same-origin?x=1#abc', 'http://localhost'));
+    const renderResult = testHook(useRedirect)(createRedirectPath);
+
+    await renderResult.waitForNextUpdate();
+
+    expect(mockNavigate).toHaveBeenCalledWith('/same-origin?x=1#abc', undefined);
+    expect(mockAssign).not.toHaveBeenCalled();
+  });
+
+  it('should use window.location.assign for external redirects', async () => {
+    const createRedirectPath = jest.fn().mockReturnValue('https://example.com/docs');
+    const renderResult = testHook(useRedirect)(createRedirectPath);
+
+    await renderResult.waitForNextUpdate();
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockAssign).toHaveBeenCalledWith('https://example.com/docs');
   });
 
   it('should handle error when path is undefined', async () => {

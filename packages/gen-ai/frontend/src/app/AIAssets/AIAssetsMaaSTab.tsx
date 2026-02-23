@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Bullseye, Content, Spinner } from '@patternfly/react-core';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
@@ -10,7 +9,6 @@ import MaaSModelsTable from '~/app/AIAssets/components/MaaSModelsTable';
 import { GenAiContext } from '~/app/context/GenAiContext';
 
 const AIAssetsMaaSTab: React.FC = () => {
-  const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const { data: models = [], loaded, error } = useFetchMaaSModels();
   const { data: playgroundModels = [] } = useFetchLlamaModels();
@@ -44,9 +42,7 @@ const AIAssetsMaaSTab: React.FC = () => {
           </Content>
         }
         actionButtonText="Go to model deployments"
-        handleActionButtonClick={() => {
-          navigate(`/ai-hub/deployments/${namespace?.name}`);
-        }}
+        actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
       />
     );
   }

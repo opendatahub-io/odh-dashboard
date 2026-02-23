@@ -76,4 +76,11 @@ describe('ProjectPermissions', () => {
     expect(screen.queryByTestId('mock-subject-roles-section-user')).not.toBeInTheDocument();
     expect(screen.getByTestId('mock-subject-roles-section-group')).toBeInTheDocument();
   });
+
+  it('should expose manage permissions as an href-capable button', () => {
+    render(<ProjectPermissions />);
+    const button = screen.getByTestId('permissions-assign-roles-button');
+    expect(button).toHaveAttribute('href');
+    expect(button.getAttribute('href')).toContain('/permissions/assign');
+  });
 });

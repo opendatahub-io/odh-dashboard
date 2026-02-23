@@ -1,6 +1,5 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { createRecurringRunRoute } from '#~/routes/pipelines/runs';
 import {
   ExperimentContext,
@@ -9,11 +8,11 @@ import {
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 const CreateScheduleButton: React.FC = () => {
-  const navigate = useNavigate();
   const { experiment } = React.useContext(ExperimentContext);
   const { namespace } = usePipelinesAPI();
   const { isExperimentArchived } = useContextExperimentArchivedOrDeleted();
   const tooltipRef = React.useRef(null);
+  const createScheduleHref = createRecurringRunRoute(namespace, experiment?.experiment_id);
 
   return (
     <>
@@ -26,7 +25,8 @@ const CreateScheduleButton: React.FC = () => {
       <Button
         data-testid="schedule-run-button"
         variant="primary"
-        onClick={() => navigate(createRecurringRunRoute(namespace, experiment?.experiment_id))}
+        component="a"
+        href={createScheduleHref}
         isAriaDisabled={isExperimentArchived}
         ref={tooltipRef}
       >

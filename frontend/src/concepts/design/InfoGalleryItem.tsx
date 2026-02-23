@@ -18,6 +18,7 @@ type InfoGalleryItemProps = {
   resourceType: ProjectObjectType;
   description: React.ReactNode;
   isOpen: boolean;
+  href?: string;
   onClick?: () => void;
   testId?: string;
 } & GalleryItemProps;
@@ -28,6 +29,7 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   sectionType,
   description,
   isOpen,
+  href,
   onClick,
   testId,
   ...rest
@@ -43,11 +45,13 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
           <FlexItem>
             <HeaderIcon type={resourceType} sectionType={sectionType} />
           </FlexItem>
-          {onClick ? (
+          {onClick || href ? (
             <Button
               data-testid={testId ? `${testId}-button` : undefined}
               variant={ButtonVariant.link}
               isInline
+              component={href ? 'a' : 'button'}
+              href={href}
               onClick={onClick}
               style={{
                 fontSize: 'var(--pf-t--global--font--size--body--default)',

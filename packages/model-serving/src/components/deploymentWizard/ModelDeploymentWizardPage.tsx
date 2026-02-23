@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import {
   Bullseye,
@@ -17,7 +17,6 @@ import { useAvailableClusterPlatforms } from '../../concepts/useAvailableCluster
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 
 const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
-  const navigate = useNavigate();
   return (
     <Bullseye>
       <EmptyState
@@ -28,7 +27,7 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
         <EmptyStateBody>{error.message}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button variant="primary" onClick={() => navigate(`/ai-hub/deployments/`)}>
+            <Button variant="primary" component="a" href="/ai-hub/deployments/">
               Return to deployments
             </Button>
           </EmptyStateActions>

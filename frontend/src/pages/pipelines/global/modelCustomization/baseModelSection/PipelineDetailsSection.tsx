@@ -108,7 +108,8 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
                             <Button
                               variant="link"
                               isInline
-                              onClick={() => navigate('/develop-train/pipelines/definitions')}
+                              component="a"
+                              href="/develop-train/pipelines/definitions"
                             >
                               Go to <b>Pipeline definitions</b>
                             </Button>

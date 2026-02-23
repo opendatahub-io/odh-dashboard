@@ -9,7 +9,6 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router-dom';
 import { manageCompareRunsRoute } from '#~/routes/pipelines/runs';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -20,9 +19,13 @@ type CompareRunsInvalidRunCountProps = {
 };
 
 export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProps> = ({ runs }) => {
-  const navigate = useNavigate();
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
+  const manageRunsHref = manageCompareRunsRoute(
+    namespace,
+    runs.map((r) => r.run_id),
+    experiment?.experiment_id,
+  );
 
   const title =
     runs.length > 10 ? 'Too many runs selected' : runs.length === 0 ? 'No runs selected' : null;
@@ -48,18 +51,7 @@ export const CompareRunsInvalidRunCount: React.FC<CompareRunsInvalidRunCountProp
         <EmptyStateBody>{description}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
-            <Button
-              variant="primary"
-              onClick={() =>
-                navigate(
-                  manageCompareRunsRoute(
-                    namespace,
-                    runs.map((r) => r.run_id),
-                    experiment?.experiment_id,
-                  ),
-                )
-              }
-            >
+            <Button variant="primary" component="a" href={manageRunsHref}>
               {runs.length === 0 ? 'Add runs' : 'Manage runs'}
             </Button>
           </EmptyStateActions>

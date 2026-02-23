@@ -6,6 +6,7 @@ type ModelsEmptyStateProps = {
   title: string;
   description: React.ReactNode;
   actionButtonText?: React.ReactNode;
+  actionButtonHref?: string;
   handleActionButtonClick?: () => void;
 };
 
@@ -13,6 +14,7 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   title,
   description,
   actionButtonText,
+  actionButtonHref,
   handleActionButtonClick,
 }) => (
   <EmptyState
@@ -24,10 +26,12 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   >
     <EmptyStateBody data-testid="empty-state-message">
       {description}
-      {actionButtonText && handleActionButtonClick && (
+      {actionButtonText && (handleActionButtonClick || actionButtonHref) && (
         <EmptyStateFooter>
           <Button
             variant="primary"
+            component={actionButtonHref ? 'a' : 'button'}
+            href={actionButtonHref}
             onClick={handleActionButtonClick}
             data-testid="empty-state-action-button"
           >

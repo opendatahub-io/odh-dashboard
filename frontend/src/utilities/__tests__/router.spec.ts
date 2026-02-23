@@ -1,4 +1,4 @@
-import { setQueryArgument, removeQueryArgument } from '#~/utilities/router';
+import { buildQueryArgumentUrl, setQueryArgument, removeQueryArgument } from '#~/utilities/router';
 
 // Mock the NavigateFunction
 const navigate = jest.fn();
@@ -43,6 +43,23 @@ describe('setQueryArgument', () => {
 
     // Check if navigate is not called
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('buildQueryArgumentUrl', () => {
+  it('should set and preserve hash in generated URL', () => {
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        location: {
+          ...window.location,
+          href: 'https://example.com/path?foo=bar#hash',
+          search: '?foo=bar',
+        },
+      },
+      writable: true,
+    });
+
+    expect(buildQueryArgumentUrl('project', 'demo')).toBe('/path?foo=bar&project=demo#hash');
   });
 });
 

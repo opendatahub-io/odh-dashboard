@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Alert, AlertProps, Button, Stack, StackItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router';
 import {
   useContinueState,
   ContinueCondition,
@@ -45,9 +44,9 @@ const MissingConditionAlert: React.FC<MissingConditionAlertProps> = ({
   setIsLoadingProject,
   setCanContinue,
 }) => {
-  const navigate = useNavigate();
   const [alertProps, setAlertProps] = React.useState<PickedAlertProps | null>(null);
   const continueState = useContinueState();
+  const pipelineDefinitionsHref = `/develop-train/pipelines/definitions/${selectedProject}`;
 
   React.useEffect(() => {
     setAlertProps(null);
@@ -79,7 +78,7 @@ const MissingConditionAlert: React.FC<MissingConditionAlertProps> = ({
               variant="link"
               isInline
               component="a"
-              onClick={() => navigate(`/develop-train/pipelines/definitions/${selectedProject}`)}
+              href={pipelineDefinitionsHref}
             >
               Go to <b>Pipeline definitions</b>
             </Button>

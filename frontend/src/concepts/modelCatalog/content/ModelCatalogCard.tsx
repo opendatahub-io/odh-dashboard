@@ -17,7 +17,6 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { CatalogModel } from '#~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsRouteFromModel } from '#~/routes/modelCatalog/catalogModelDetails';
 import { getTagFromModel } from '#~/pages/modelCatalog/utils';
@@ -30,7 +29,7 @@ export const ModelCatalogCard: React.FC<{
   source: string;
   truncate?: boolean;
 }> = ({ model, source, truncate = false }) => {
-  const navigate = useNavigate();
+  const modelDetailsHref = getCatalogModelDetailsRouteFromModel(model, source) || '#';
   return (
     <Card isFullHeight data-testid="model-catalog-card">
       <CardHeader>
@@ -60,9 +59,7 @@ export const ModelCatalogCard: React.FC<{
               variant="link"
               isInline
               component="a"
-              onClick={() => {
-                navigate(getCatalogModelDetailsRouteFromModel(model, source) || '#');
-              }}
+              href={modelDetailsHref}
               style={{
                 fontSize: 'var(--pf-t--global--font--size--body--default)',
                 fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
