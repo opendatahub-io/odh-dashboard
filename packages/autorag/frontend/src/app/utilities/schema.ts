@@ -5,7 +5,7 @@ import * as z from 'zod';
  * NOTE: Only reliable for flat, non-defaulted schemas. Nested required fields
  * and fields with defaults will not be detected.
  */
-export function getRequiredFields(schema: z.ZodTypeAny): string[] {
+export function getRequiredFields(schema: z.ZodType): string[] {
   const result = schema.safeParse({});
   const requiredFields: Set<string> = new Set();
 
