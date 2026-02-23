@@ -21,6 +21,10 @@ import {
   MCPConnectionStatus,
   MCPServersResponse,
   MCPToolsStatus,
+  MLflowPromptsResponse,
+  MLflowPromptVersion,
+  MLflowPromptVersionsResponse,
+  MLflowRegisterPromptRequest,
   OutputItem,
   ResponseMetrics,
   SafetyConfigResponse,
@@ -594,3 +598,113 @@ export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenR
 
 export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
 export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety');
+
+/** MLflow Prompt Registry Endpoints */
+export const listMLflowPrompts = modArchRestGET<MLflowPromptsResponse>('/mlflow/prompts');
+export const registerMLflowPrompt = modArchRestCREATE<
+  MLflowPromptVersion,
+  MLflowRegisterPromptRequest
+>('/mlflow/prompts');
+
+export const getMLflowPrompt =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestGET<MLflowPromptVersion> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { name, ...restParams } = queryParams;
+    if (!name || typeof name !== 'string') {
+      return Promise.reject(new Error('name parameter is required'));
+    }
+    const path = `/mlflow/prompts/${encodeURIComponent(name)}`;
+    return handleRestFailures(
+      restGET<MLflowPromptVersion>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<MLflowPromptVersion>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const listMLflowPromptVersions =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestGET<MLflowPromptVersionsResponse> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { name, ...restParams } = queryParams;
+    if (!name || typeof name !== 'string') {
+      return Promise.reject(new Error('name parameter is required'));
+    }
+    const path = `/mlflow/prompts/${encodeURIComponent(name)}/versions`;
+    return handleRestFailures(
+      restGET<MLflowPromptVersionsResponse>(
+        hostPath,
+        path,
+        { ...baseQueryParams, ...restParams },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const deleteMLflowPrompt =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, Record<string, never>> =>
+  (
+    _data: Record<string, never>,
+    queryParams: Record<string, unknown> = {},
+    opts: APIOptions = {},
+  ) => {
+    const { name, ...restParams } = queryParams;
+    if (!name || typeof name !== 'string') {
+      return Promise.reject(new Error('name parameter is required'));
+    }
+    const path = `/mlflow/prompts/${encodeURIComponent(name)}`;
+    return handleRestFailures(
+      restDELETE<void>(hostPath, path, {}, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<void>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const deleteMLflowPromptVersion =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, Record<string, never>> =>
+  (
+    _data: Record<string, never>,
+    queryParams: Record<string, unknown> = {},
+    opts: APIOptions = {},
+  ) => {
+    const { name, version, ...restParams } = queryParams;
+    if (!name || typeof name !== 'string') {
+      return Promise.reject(new Error('name parameter is required'));
+    }
+    if (version === undefined || version === null) {
+      return Promise.reject(new Error('version parameter is required'));
+    }
+    if (typeof version !== 'string' && typeof version !== 'number') {
+      return Promise.reject(new Error('version parameter must be a string or number'));
+    }
+    const path = `/mlflow/prompts/${encodeURIComponent(name)}/versions/${version}`;
+    return handleRestFailures(
+      restDELETE<void>(hostPath, path, {}, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<void>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };

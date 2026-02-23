@@ -46,6 +46,14 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   isRagEnabled: false,
 };
 
+export interface PlaygroundConfig {
+  promptManagementModalOpen: boolean;
+}
+
+export const DEFAULT_PLAYGROUND_CONFIG: PlaygroundConfig = {
+  promptManagementModalOpen: false,
+};
+
 /**
  * Store state interface.
  */
