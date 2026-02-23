@@ -58,8 +58,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
   const wizardState = useModelDeploymentWizard(existingData, project?.metadata.name, externalData);
-  const currentProjectName = wizardState.state.project.projectName ?? undefined;
   const validation = useModelDeploymentWizardValidation(wizardState.state, wizardState.fields);
+  const currentProjectName = wizardState.state.project.projectName ?? undefined;
 
   const { deployMethod, deployMethodLoaded } = useDeployMethod(wizardState.state);
   // TODO in same jira, replace deployMethod with applyFieldData for all other fields
@@ -289,9 +289,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 wizardState.loaded.advancedOptionsLoaded ? (
                   <AdvancedSettingsStepContent
                     wizardState={wizardState}
-                        externalData={externalData}
+                    externalData={externalData}
                     allowCreate={wizardState.state.canCreateRoleBindings}
-              />
+                  />
                 ) : (
                   <Spinner data-testid="spinner" />
                 )
