@@ -2,29 +2,35 @@ package lsmocks
 
 import (
 	"crypto/x509"
+	"sync"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
-// MockClientFactory creates mock LlamaStack clients following the model registry pattern
+// MockClientFactory creates LlamaStack clients pointing to a local Llama Stack instance.
+// Unlike the previous mock that returned fake in-memory data, this connects to a real
+// local Llama Stack server started via uv, matching the MLflow envtest philosophy.
 type MockClientFactory struct {
-	mockClient *MockLlamaStackClient
+	client llamastack.LlamaStackClientInterface
+	mu     sync.Mutex
 }
 
-// NewMockClientFactory creates a factory for mock LlamaStack clients
-func NewMockClientFactory() *MockClientFactory {
+// NewMockClientFactory creates a factory that connects to local Llama Stack.
+func NewMockClientFactory() llamastack.LlamaStackClientFactory {
 	return &MockClientFactory{}
 }
 
-// SetMockClient sets a specific mock client to be returned by CreateClient
-func (f *MockClientFactory) SetMockClient(client *MockLlamaStackClient) {
-	f.mockClient = client
-}
+// CreateClient returns a shared LlamaStack client connected to the local instance.
+// The baseURL, authToken, and other params are ignored — the local server URL is used instead.
+func (f *MockClientFactory) CreateClient(_ string, _ string, _ bool, _ *x509.CertPool, _ string) llamastack.LlamaStackClientInterface {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
-// CreateClient creates a new mock LlamaStack client (ignores all parameters since it's a mock)
-func (f *MockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) llamastack.LlamaStackClientInterface {
-	if f.mockClient != nil {
-		return f.mockClient
+	if f.client != nil {
+		return f.client
 	}
-	return NewMockLlamaStackClient()
+
+	f.client = NewTestLlamaStackClient(testutil.GetTestLlamaStackURL(), llamaStackTestID())
+	return f.client
 }

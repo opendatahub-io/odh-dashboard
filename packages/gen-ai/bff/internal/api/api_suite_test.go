@@ -93,12 +93,13 @@ func TestAPIHandlers(t *testing.T) {
 
 // SharedTestContext holds common test infrastructure for HTTP tests
 type SharedTestContext struct {
-	App         *App
-	Server      *httptest.Server
-	HTTPClient  *http.Client
-	BaseURL     string
-	Logger      *slog.Logger
-	mlflowState *mlflowmocks.MLflowState
+	App             *App
+	Server          *httptest.Server
+	HTTPClient      *http.Client
+	BaseURL         string
+	Logger          *slog.Logger
+	mlflowState     *mlflowmocks.MLflowState
+	llamaStackState *lsmocks.LlamaStackState
 }
 
 var testCtx *SharedTestContext
@@ -213,6 +214,21 @@ var _ = BeforeSuite(func() {
 		Timeout: 30 * time.Second,
 	}
 
+	// Start Llama Stack as a child process (SetupLlamaStack also seeds test data)
+	By("Starting LlamaStack")
+	lsState, lsErr := lsmocks.SetupLlamaStack(logger)
+	Expect(lsErr).NotTo(HaveOccurred())
+	DeferCleanup(func() {
+		if lsState != nil {
+			By("stopping LlamaStack server")
+			lsmocks.CleanupLlamaStackState(
+				lsState,
+				func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+				func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+			)
+		}
+	})
+
 	// Start MLflow as a child process (SetupMLflow also seeds sample prompts)
 	By("Starting MLflow")
 	mlflowState, mlflowErr := mlflowmocks.SetupMLflow(logger)
@@ -229,12 +245,13 @@ var _ = BeforeSuite(func() {
 	})
 
 	testCtx = &SharedTestContext{
-		App:         app,
-		Server:      server,
-		HTTPClient:  httpClient,
-		BaseURL:     server.URL,
-		Logger:      logger,
-		mlflowState: mlflowState,
+		App:             app,
+		Server:          server,
+		HTTPClient:      httpClient,
+		BaseURL:         server.URL,
+		Logger:          logger,
+		mlflowState:     mlflowState,
+		llamaStackState: lsState,
 	}
 
 	By("HTTP test environment setup complete")
