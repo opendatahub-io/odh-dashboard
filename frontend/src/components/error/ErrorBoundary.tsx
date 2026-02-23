@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Button, Split, SplitItem, Title } from '@patternfly/react-core';
-import { TimesIcon } from '@patternfly/react-icons';
 import ErrorDetails from './ErrorDetails';
+import ErrorFallbackLayout from './ErrorFallbackLayout';
 import UpdateState from './UpdateState';
 
 type ErrorBoundaryProps = {
@@ -51,42 +50,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
       return (
         <div className="pf-v6-u-p-lg" data-testid="error-boundary">
-          <Split>
-            <SplitItem isFilled>
-              <Title headingLevel="h1" className="pf-v6-u-mb-sm">
-                An error occurred
-              </Title>
-              <p className="pf-v6-u-mb-md">
-                Try{' '}
-                <Button
-                  data-testid="reload-link"
-                  variant="link"
-                  isInline
-                  onClick={() => window.location.reload()}
-                >
-                  reloading
-                </Button>{' '}
-                the page if there was a recent update.
-              </p>
-            </SplitItem>
-            <SplitItem>
-              <Button
-                icon={<TimesIcon />}
-                data-testid="close-error-button"
-                variant="plain"
-                aria-label="Close"
-                onClick={() => {
-                  this.setState({ hasError: false });
-                }}
-              />
-            </SplitItem>
-          </Split>
-          <ErrorDetails
-            title={error.name}
-            errorMessage={error.message}
-            componentStack={errorInfo.componentStack || ''}
-            stack={error.stack}
-          />
+          <ErrorFallbackLayout onClose={() => this.setState({ hasError: false })}>
+            <ErrorDetails
+              title={error.name}
+              errorMessage={error.message}
+              componentStack={errorInfo.componentStack || ''}
+              stack={error.stack}
+            />
+          </ErrorFallbackLayout>
         </div>
       );
     }
