@@ -6,6 +6,7 @@ import {
   DescriptionListTerm,
   Form,
   FormSection,
+  Spinner,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -388,6 +389,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     () => [...getStatusSections(projectName, extensionStatusSections)],
     [projectName, extensionStatusSections],
   );
+
+  if (!wizardState.loaded.summaryLoaded) {
+    return <Spinner data-testid="spinner" />;
+  }
 
   return (
     <Form>
