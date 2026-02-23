@@ -85,3 +85,5 @@ export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
   tolerationsPath: 'spec.predictor.tolerations',
   nodeSelectorPath: 'spec.predictor.nodeSelector',
 };
+
+// Trigger Hardware Profiles CI detection
