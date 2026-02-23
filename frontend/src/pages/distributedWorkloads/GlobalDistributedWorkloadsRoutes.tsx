@@ -40,3 +40,5 @@ const GlobalDistributedWorkloadsRoutes: React.FC = () => {
 };
 
 export default GlobalDistributedWorkloadsRoutes;
+
+// Trigger Distributed Workloads CI detection

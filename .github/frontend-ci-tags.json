@@ -5,7 +5,7 @@
   "notebookController": "@WorkbenchesCI",
   "hardwareProfiles": "@HardwareProfilesCI",
   "connectionTypes": "@ConnectionTypesCI",
-  "distributedWorkloads": "@DistributedWorkloadsCI",
+  "distributedWorkloads": "@WorkloadMetricsCI",
   "modelServingKServe": "@ModelServingCI",
   "clusterSettings": "@SettingsCI",
   "groupSettings": "@SettingsCI",
