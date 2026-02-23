@@ -1,5 +1,6 @@
 PORT ?= 4000
 MOCK_K8S_CLIENT ?= false
+MOCK_LS_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
@@ -61,7 +62,7 @@ endif
 run: fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
+	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
 
 ##@ Dependencies
 

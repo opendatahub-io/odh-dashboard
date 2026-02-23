@@ -20,6 +20,7 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -32,7 +33,6 @@ const (
 	HealthCheckPath = "/healthcheck"
 	UserPath        = ApiPathPrefix + "/user"
 	NamespacePath   = ApiPathPrefix + "/namespaces"
-	LSDModelsPath   = ApiPathPrefix + "/lsd/models"
 )
 
 type App struct {
@@ -159,7 +159,7 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API endpoints
 
 	//LSD Models
-	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
+	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

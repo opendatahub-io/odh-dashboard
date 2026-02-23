@@ -94,13 +94,13 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
+		namespace := r.URL.Query().Get(string(constants.NamespaceQueryParameterKey))
 		if namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceQueryParameterKey))
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
+		ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)
@@ -132,7 +132,7 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 		// Apply LlamaStack authorization check to all endpoints that require namespace access
 		// This ensures consistent security across all services
 		// Check if namespace is present in context (set by AttachNamespace middleware)
-		if namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && namespace != "" {
+		if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace != "" {
 			// Get Kubernetes client to perform SAR
 			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 			if err != nil {
@@ -173,7 +173,7 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 		ctx := r.Context()
 
 		// Get namespace from context (set by AttachNamespace middleware)
-		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 		if !ok || namespace == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 			return
@@ -190,6 +190,14 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			// In mock mode, use empty URL since mock factory ignores it
 			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
 		} else {
+			// Read identity once here — needed by both the env-var and service-discovery paths
+			// for passing the user token to the LlamaStack client.
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
 			var serviceURL string
 			// Use environment variable if explicitly set (developer override)
 			if app.config.LlamaStackURL != "" {
@@ -198,12 +206,6 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 					"namespace", namespace,
 					"serviceURL", serviceURL)
 			} else {
-				identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-				if !ok || identity == nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-					return
-				}
-
 				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 				if err != nil {
 					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
@@ -212,12 +214,12 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 
 				lsdList, err := k8sClient.GetLlamaStackDistributions(ctx, identity, namespace)
 				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to get LlamaStackDistributions: %w", err))
+					app.handleK8sClientError(w, r, err)
 					return
 				}
 
 				if len(lsdList.Items) == 0 {
-					app.serverErrorResponse(w, r, fmt.Errorf("no LlamaStackDistribution found in namespace %q", namespace))
+					app.notFoundResponse(w, r)
 					return
 				}
 				if len(lsdList.Items) > 1 {
@@ -241,13 +243,6 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			logger.Debug("Creating LlamaStack client for namespace",
 				"namespace", namespace,
 				"serviceURL", serviceURL)
-
-			// Create LlamaStack client per-request using app factory
-			identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-			if !ok || identity == nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-				return
-			}
 
 			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}

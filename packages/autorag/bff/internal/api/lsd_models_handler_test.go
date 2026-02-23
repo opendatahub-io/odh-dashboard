@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/openai/openai-go/v2"
@@ -19,38 +18,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLlamaStackModelsHandler_Success(t *testing.T) {
-	// Create test app with mock LlamaStack client factory
-	llamaStackClientFactory := lsmocks.NewMockClientFactory()
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		llamaStackClientFactory: llamaStackClientFactory,
+// newTestApp creates an App wired with a mock LlamaStack client factory and a discard logger.
+// A non-nil logger is required because error paths call app.logger.Error via serverErrorResponse.
+func newTestApp(t *testing.T) *App {
+	t.Helper()
+	return &App{
+		config:                  config.EnvConfig{Port: 4000},
+		logger:                  slog.New(slog.NewTextHandler(io.Discard, nil)),
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
 		repositories:            repositories.NewRepositories(),
 	}
+}
+
+// newHandlerTestRequest creates a GET request with the LlamaStack client already injected into
+// context, simulating what AttachLlamaStackClient middleware does in production.
+func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, *http.Request) {
+	t.Helper()
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
+	assert.NoError(t, err)
+
+	llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
+	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+	req = req.WithContext(ctx)
+
+	return rr, req
+}
+
+func TestLlamaStackModelsHandler_Success(t *testing.T) {
+	app := newTestApp(t)
 
 	t.Run("should return categorized models successfully", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
-		assert.NoError(t, err)
-
-		// Simulate AttachLlamaStackClient middleware: create client and add to context
-		llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
+		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 
+		var response map[string]interface{}
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 		defer rr.Result().Body.Close()
-
-		var response map[string]interface{}
-		err = json.Unmarshal(body, &response)
-		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &response))
 
 		// Verify envelope structure
 		assert.Contains(t, response, "data")
@@ -75,14 +84,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should have correct stable API model structure", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
-		assert.NoError(t, err)
-
-		llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
+		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -91,9 +93,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 		defer rr.Result().Body.Close()
-
-		err = json.Unmarshal(body, &response)
-		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &response))
 
 		dataField := response["data"].(map[string]interface{})
 		models := dataField["models"].([]interface{})
@@ -113,14 +113,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should correctly categorize LLM models", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
-		assert.NoError(t, err)
-
-		llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
+		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -129,9 +122,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 		defer rr.Result().Body.Close()
-
-		err = json.Unmarshal(body, &response)
-		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &response))
 
 		dataField := response["data"].(map[string]interface{})
 		llmModels := dataField["llm_models"].([]interface{})
@@ -139,20 +130,34 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		// Verify all models in llm_models have type == "llm"
 		for _, model := range llmModels {
 			m := model.(map[string]interface{})
-			modelType := m["type"].(string)
-			assert.Equal(t, "llm", modelType, "All models in llm_models should have type='llm'")
+			assert.Equal(t, "llm", m["type"].(string), "All models in llm_models should have type='llm'")
 		}
 	})
 
-	t.Run("should correctly categorize embedding models", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
+	t.Run("should return empty arrays when LlamaStack has no models", func(t *testing.T) {
+		emptyApp := newTestApp(t)
+		emptyApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
+
+		rr, req := newHandlerTestRequest(t, emptyApp)
+		emptyApp.LlamaStackModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+		assert.NoError(t, json.Unmarshal(body, &response))
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
+		dataField := response["data"].(map[string]interface{})
+		assert.Len(t, dataField["models"].([]interface{}), 0, "Should return empty models array")
+		assert.Len(t, dataField["llm_models"].([]interface{}), 0, "Should return empty llm_models array")
+		assert.Len(t, dataField["embedding_models"].([]interface{}), 0, "Should return empty embedding_models array")
+	})
 
+	t.Run("should correctly categorize embedding models", func(t *testing.T) {
+		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -161,9 +166,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 		defer rr.Result().Body.Close()
-
-		err = json.Unmarshal(body, &response)
-		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &response))
 
 		dataField := response["data"].(map[string]interface{})
 		embeddingModels := dataField["embedding_models"].([]interface{})
@@ -171,24 +174,13 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		// Verify all models in embedding_models have type == "embedding"
 		for _, model := range embeddingModels {
 			m := model.(map[string]interface{})
-			modelType := m["type"].(string)
-			assert.Equal(t, "embedding", modelType, "All models in embedding_models should have type='embedding'")
+			assert.Equal(t, "embedding", m["type"].(string), "All models in embedding_models should have type='embedding'")
 		}
 	})
 }
 
 func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
-	llamaStackClientFactory := lsmocks.NewMockClientFactory()
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  logger,
-		llamaStackClientFactory: llamaStackClientFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+	app := newTestApp(t)
 
 	t.Run("should return 500 when LlamaStack client is missing from context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -204,42 +196,16 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 		defer rr.Result().Body.Close()
-
-		err = json.Unmarshal(body, &response)
-		assert.NoError(t, err)
-
-		// Verify error response structure
+		assert.NoError(t, json.Unmarshal(body, &response))
 		assert.Contains(t, response, "error")
 	})
 
 	t.Run("should return 500 when LlamaStack client returns error", func(t *testing.T) {
-		// Create a custom mock client that returns an error
-		mockClientWithError := &mockErrorClient{}
-		mockFactory := lsmocks.NewMockClientFactory().(*lsmocks.MockClientFactory)
-		mockFactory.SetMockClient(mockClientWithError)
+		errApp := newTestApp(t)
+		errApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
 
-		// Create a logger for the test
-		logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
-
-		appWithError := App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			logger:                  logger,
-			llamaStackClientFactory: mockFactory,
-			repositories:            repositories.NewRepositories(),
-		}
-
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
-		assert.NoError(t, err)
-
-		// Simulate AttachLlamaStackClient middleware: create error client and add to context
-		llamaStackClient := mockFactory.CreateClient("http://test", "token", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
-		appWithError.LlamaStackModelsHandler(rr, req, nil)
+		rr, req := newHandlerTestRequest(t, errApp)
+		errApp.LlamaStackModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
@@ -247,38 +213,53 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 		defer rr.Result().Body.Close()
-
-		err = json.Unmarshal(body, &response)
-		assert.NoError(t, err)
-
-		// Verify error response structure
+		assert.NoError(t, json.Unmarshal(body, &response))
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should use repository pattern", func(t *testing.T) {
-		assert.NotNil(t, app.repositories)
-		assert.NotNil(t, app.repositories.LSDModels)
+	t.Run("should return 502 when LlamaStack client returns a connection error", func(t *testing.T) {
+		lsErrApp := newTestApp(t)
+		lsErrApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockLlamaStackErrClient{})
 
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
+		rr, req := newHandlerTestRequest(t, lsErrApp)
+		lsErrApp.LlamaStackModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadGateway, rr.Code)
+
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
-
-		llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
-		app.LlamaStackModelsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
+		defer rr.Result().Body.Close()
+		assert.NoError(t, json.Unmarshal(body, &response))
+		assert.Contains(t, response, "error")
+		errField := response["error"].(map[string]interface{})
+		assert.Equal(t, "bad_gateway", errField["code"])
 	})
 }
 
-// mockErrorClient is a mock client that always returns an error
+// mockErrorClient is a mock client that always returns a generic error
 type mockErrorClient struct{}
 
-// Ensure mockErrorClient implements LlamaStackClientInterface
 var _ ls.LlamaStackClientInterface = (*mockErrorClient)(nil)
 
 func (m *mockErrorClient) ListModels(ctx context.Context) ([]openai.Model, error) {
 	return nil, assert.AnError
+}
+
+// mockEmptyClient is a mock client that returns an empty models list
+type mockEmptyClient struct{}
+
+var _ ls.LlamaStackClientInterface = (*mockEmptyClient)(nil)
+
+func (m *mockEmptyClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+	return []openai.Model{}, nil
+}
+
+// mockLlamaStackErrClient is a mock client that returns a typed LlamaStackError (connection failure)
+type mockLlamaStackErrClient struct{}
+
+var _ ls.LlamaStackClientInterface = (*mockLlamaStackErrClient)(nil)
+
+func (m *mockLlamaStackErrClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
 }

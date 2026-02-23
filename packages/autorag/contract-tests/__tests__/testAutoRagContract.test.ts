@@ -24,5 +24,13 @@ describe('AutoRAG API Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/lsd/models');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/BadRequest/content/application/json/schema',
+        status: 400,
+      });
+    });
   });
 });

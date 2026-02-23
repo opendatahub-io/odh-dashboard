@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -21,7 +20,7 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 	// Repository retrieves the LlamaStack client from context (added by middleware)
 	modelsData, err := app.repositories.LSDModels.GetLSDModels(ctx)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get LSD models: %w", err))
+		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
