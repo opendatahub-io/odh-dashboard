@@ -25,6 +25,11 @@ type LlamaStackClient struct {
 	client *openai.Client
 }
 
+// SetClientForTest replaces the internal OpenAI client (test use only).
+func SetClientForTest(c *LlamaStackClient, client *openai.Client) {
+	c.client = client
+}
+
 // NewLlamaStackClient creates a new client configured for Llama Stack.
 // llama-stack v0.4.0+ removed the `/v1/openai/v1/` routes.
 // All OpenAI-compatible endpoints are now served directly under `/v1/`.

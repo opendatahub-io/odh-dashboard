@@ -1,5 +1,10 @@
 package constants
 
+import (
+	"os"
+	"strconv"
+)
+
 // LlamaStack Distribution related constants
 const (
 	// LlamaStackConfigMapName is the default name of the LlamaStack configuration ConfigMap
@@ -22,12 +27,25 @@ type EmbeddingModelConfig struct {
 }
 
 // DefaultEmbeddingModel returns the default embedding model configuration.
-// This function returns a copy of the configuration, ensuring immutability.
+// Supports overriding via environment variables for testing with different providers:
+//   - DEFAULT_EMBEDDING_MODEL: override model ID
+//   - DEFAULT_EMBEDDING_DIMENSION: override dimension (int)
 func DefaultEmbeddingModel() EmbeddingModelConfig {
-	return EmbeddingModelConfig{
+	cfg := EmbeddingModelConfig{
 		ModelID:            "sentence-transformers/ibm-granite/granite-embedding-125m-english",
 		ProviderID:         "sentence-transformers",
 		ProviderModelID:    "ibm-granite/granite-embedding-125m-english",
 		EmbeddingDimension: 768,
 	}
+
+	if model := os.Getenv("DEFAULT_EMBEDDING_MODEL"); model != "" {
+		cfg.ModelID = model
+	}
+	if dim := os.Getenv("DEFAULT_EMBEDDING_DIMENSION"); dim != "" {
+		if d, err := strconv.ParseInt(dim, 10, 64); err == nil {
+			cfg.EmbeddingDimension = d
+		}
+	}
+
+	return cfg
 }

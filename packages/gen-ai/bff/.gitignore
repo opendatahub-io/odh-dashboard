@@ -7,3 +7,7 @@ __debug*
 # Local MLflow data (created by mock mode)
 .mlflow/
 .mlflow-*/
+
+# Local Llama Stack data (created by mock mode)
+.llamastack/
+.llamastack-*/

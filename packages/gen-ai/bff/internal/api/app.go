@@ -52,6 +52,8 @@ type App struct {
 	testEnvState *k8smocks.TestEnvState
 	// Used only when MockMLflowClient is enabled and MLflow is started as a child process
 	mlflowState *mlflowmocks.MLflowState
+	// Used only when MockLSClient is enabled and Llama Stack is started as a child process
+	llamaStackState *lsmocks.LlamaStackState
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -102,8 +104,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize LlamaStack client factory - clients will be created per request
 	var llamaStackClientFactory llamastack.LlamaStackClientFactory
+	var llamaStackState *lsmocks.LlamaStackState
 	if cfg.MockLSClient {
-		logger.Info("Using mock LlamaStack client factory")
+		llamaStackState, err = lsmocks.SetupLlamaStack(logger)
+		if err != nil {
+			logger.Warn("Llama Stack mock server not available, LlamaStack endpoints will fail on request", "error", err)
+		}
 		llamaStackClientFactory = lsmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
@@ -227,6 +233,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		fileUploadJobTracker:    fileUploadJobTracker,
 		testEnvState:            testEnvState,
 		mlflowState:             mlflowState,
+		llamaStackState:         llamaStackState,
 	}
 	return app, nil
 }
@@ -251,6 +258,19 @@ func (app *App) Shutdown() error {
 		app.logger.Info("stopping MLflow server...")
 		mlflowmocks.CleanupMLflowState(
 			app.mlflowState,
+			func(format string, args ...any) {
+				app.logger.Error(fmt.Sprintf(format, args...))
+			},
+			func(format string, args ...any) {
+				app.logger.Info(fmt.Sprintf(format, args...))
+			},
+		)
+	}
+
+	if app.llamaStackState != nil {
+		app.logger.Info("stopping Llama Stack server...")
+		lsmocks.CleanupLlamaStackState(
+			app.llamaStackState,
 			func(format string, args ...any) {
 				app.logger.Error(fmt.Sprintf(format, args...))
 			},
