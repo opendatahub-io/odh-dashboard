@@ -68,8 +68,7 @@ const NotebookList: React.FC = () => {
         <Tooltip content={createDisabledTooltip}>
           <Button
             key={`action-${ProjectSectionID.WORKBENCHES}`}
-            component="a"
-            href={createWorkbenchHref}
+            component="button"
             data-testid="create-workbench-button"
             variant="primary"
             isAriaDisabled

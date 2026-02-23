@@ -1,8 +1,9 @@
 import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
-import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import { experimentRunsRoute, experimentsRootPath } from '#~/routes/pipelines/experiments';
 import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
+import { pipelinesRootPath } from '#~/routes/pipelines/global';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useRedirect } from '#~/utilities/useRedirect';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
@@ -53,10 +54,10 @@ const PipelinesSdkRedirects: React.FC = () => {
           errorMessage={error?.message}
           actions={
             <>
-              <Button variant="link" component="a" href="/develop-train/pipelines/definitions">
+              <Button variant="link" component="a" href={pipelinesRootPath}>
                 Go to Pipeline definitions
               </Button>
-              <Button variant="link" component="a" href="/develop-train/experiments">
+              <Button variant="link" component="a" href={experimentsRootPath}>
                 Go to Experiments
               </Button>
             </>

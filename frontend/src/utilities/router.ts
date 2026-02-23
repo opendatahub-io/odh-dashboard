@@ -8,7 +8,8 @@ export const buildQueryArgumentUrl = (k: string, v?: string): string => {
     params.set(k, v);
   }
   const url = new URL(window.location.href);
-  return `${url.pathname}?${params.toString()}${url.hash}`;
+  const query = params.toString();
+  return `${url.pathname}${query ? `?${query}` : ''}${url.hash}`;
 };
 
 export const setQueryArgument = (navigate: NavigateFunction, k: string, v: string): void => {

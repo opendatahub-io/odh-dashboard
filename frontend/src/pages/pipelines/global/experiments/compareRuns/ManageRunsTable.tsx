@@ -41,6 +41,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
     toggleSelection,
   } = useCheckboxTable(pageRunIds, selectedRunIds, true);
   const updateHref = compareRunsRoute(namespace, selections, experiment?.experiment_id);
+  const isUpdateDisabled = selections.length < 1 || selections.length > 10;
 
   const rowRenderer = React.useCallback(
     (run: PipelineRunKF) => {
@@ -100,8 +101,8 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
                 <Button
                   data-testid="manage-runs-update-button"
                   component="a"
-                  href={updateHref}
-                  isAriaDisabled={selections.length < 1 || selections.length > 10}
+                  href={!isUpdateDisabled ? updateHref : undefined}
+                  isAriaDisabled={isUpdateDisabled}
                 >
                   Update
                 </Button>

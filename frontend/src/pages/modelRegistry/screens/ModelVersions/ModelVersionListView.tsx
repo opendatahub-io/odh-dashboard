@@ -14,7 +14,6 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import {
@@ -53,7 +52,6 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
     : filterLiveVersions(modelVersions);
 
   const archiveModelVersions = filterArchiveVersions(modelVersions);
-  const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const [filterData, setFilterData] = React.useState<ModelRegistryVersionsFilterDataType>(
     initialModelRegistryVersionsFilterData,
@@ -108,10 +106,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         )}
         description={`${rm.name} has no active registered versions. Register a version to this model.`}
         primaryActionText="Register new version"
-        primaryActionHref={registerVersionForModelRoute(
-          rm.id,
-          preferredModelRegistry?.metadata.name,
-        )}
+        primaryActionHref={registerNewVersionHref}
         secondaryActionText={
           archiveModelVersions.length !== 0 ? 'View archived versions' : undefined
         }
@@ -203,11 +198,11 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                   >
                     <DropdownList>
                       <DropdownItem
-                        onClick={() =>
-                          navigate(
-                            modelVersionArchiveRoute(rm.id, preferredModelRegistry?.metadata.name),
-                          )
-                        }
+                        component="a"
+                        href={modelVersionArchiveRoute(
+                          rm.id,
+                          preferredModelRegistry?.metadata.name,
+                        )}
                       >
                         View archived versions
                       </DropdownItem>

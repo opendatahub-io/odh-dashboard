@@ -29,7 +29,7 @@ export const ModelCatalogCard: React.FC<{
   source: string;
   truncate?: boolean;
 }> = ({ model, source, truncate = false }) => {
-  const modelDetailsHref = getCatalogModelDetailsRouteFromModel(model, source) || '#';
+  const modelDetailsHref = getCatalogModelDetailsRouteFromModel(model, source);
   return (
     <Card isFullHeight data-testid="model-catalog-card">
       <CardHeader>
@@ -54,29 +54,41 @@ export const ModelCatalogCard: React.FC<{
       <CardBody>
         <Stack hasGutter>
           <StackItem isFilled>
-            <Button
-              data-testid="model-catalog-detail-link"
-              variant="link"
-              isInline
-              component="a"
-              href={modelDetailsHref}
-              style={{
-                fontSize: 'var(--pf-t--global--font--size--body--default)',
-                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-              }}
-            >
-              {truncate ? (
-                <Truncate
-                  data-testid="model-catalog-card-name"
-                  content={model.name}
-                  position="middle"
-                  tooltipPosition="top"
-                  style={{ textDecoration: 'underline' }}
-                />
-              ) : (
-                <span>{model.name}</span>
-              )}
-            </Button>
+            {modelDetailsHref ? (
+              <Button
+                data-testid="model-catalog-detail-link"
+                variant="link"
+                isInline
+                component="a"
+                href={modelDetailsHref}
+                style={{
+                  fontSize: 'var(--pf-t--global--font--size--body--default)',
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                }}
+              >
+                {truncate ? (
+                  <Truncate
+                    data-testid="model-catalog-card-name"
+                    content={model.name}
+                    position="middle"
+                    tooltipPosition="top"
+                    style={{ textDecoration: 'underline' }}
+                  />
+                ) : (
+                  <span>{model.name}</span>
+                )}
+              </Button>
+            ) : (
+              <span
+                data-testid="model-catalog-detail-link"
+                style={{
+                  fontSize: 'var(--pf-t--global--font--size--body--default)',
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                }}
+              >
+                {model.name}
+              </span>
+            )}
             <Split hasGutter>
               <SplitItem>
                 <Icon isInline>

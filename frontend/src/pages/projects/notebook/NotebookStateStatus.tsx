@@ -78,7 +78,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   const editWorkbenchHref =
     notebook.metadata.namespace && notebook.metadata.name
       ? `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`
-      : '#';
+      : undefined;
   const [unstableNotebookStatus, events] = useNotebookStatus(
     isStarting,
     notebook,
@@ -160,7 +160,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
                 data-id="edit-workbench"
                 key="edit"
                 variant="link"
-                component="a"
+                component={editWorkbenchHref ? 'a' : 'button'}
                 href={editWorkbenchHref}
                 isAriaDisabled={!notebook.metadata.namespace || !notebook.metadata.name}
               >

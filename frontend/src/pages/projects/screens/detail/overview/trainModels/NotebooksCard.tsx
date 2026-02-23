@@ -117,12 +117,13 @@ const NotebooksCard: React.FC = () => {
                   </Content>
                 </Content>
                 {(() => {
+                  const shouldRenderCreateLink = !isCreateDisabled;
                   const button = (
                     <Button
                       isAriaDisabled={isCreateDisabled}
                       variant={ButtonVariant.primary}
-                      component="a"
-                      href={createWorkbenchHref}
+                      component={shouldRenderCreateLink ? 'a' : 'button'}
+                      href={shouldRenderCreateLink ? createWorkbenchHref : undefined}
                     >
                       <Flex
                         gap={{ default: 'gapMd' }}

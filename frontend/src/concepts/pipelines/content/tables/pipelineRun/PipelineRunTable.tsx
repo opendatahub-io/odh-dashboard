@@ -117,6 +117,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     useContextExperimentArchivedOrDeleted();
   const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
   const compareRunsHref = compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+  const isCompareDisabled = selectedIds.length === 0 || selectedIds.length > 10;
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (
@@ -161,9 +162,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           key="compare-runs"
           data-testid="compare-runs-button"
           variant="secondary"
-          isAriaDisabled={selectedIds.length === 0 || selectedIds.length > 10}
+          isAriaDisabled={isCompareDisabled}
           component="a"
-          href={compareRunsHref}
+          href={!isCompareDisabled ? compareRunsHref : undefined}
         >
           Compare runs
         </Button>

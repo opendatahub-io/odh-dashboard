@@ -48,6 +48,7 @@ type NotebookImageDisplayNameProps = {
   loaded: boolean;
   loadError?: Error;
   isExpanded?: boolean;
+  updateImageHref?: string;
   onUpdateImageClick: () => void;
   isUpdating: boolean;
   setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
@@ -60,6 +61,7 @@ export const NotebookImageDisplayName = ({
   loaded,
   loadError,
   isExpanded,
+  updateImageHref,
   onUpdateImageClick,
   isUpdating,
   setIsUpdating,
@@ -90,7 +92,9 @@ export const NotebookImageDisplayName = ({
     return <Spinner size="md" />;
   }
 
-  const updateToLatestButton = (
+  const canUpdateViaModal =
+    notebookImage.imageStatus !== NotebookImageStatus.DELETED && !!notebookImage.latestImageVersion;
+  const updateToLatestButton = canUpdateViaModal ? (
     <Button
       data-testid="update-latest-version-button"
       variant="link"
@@ -98,6 +102,17 @@ export const NotebookImageDisplayName = ({
         setIsPopoverVisible(false);
         onUpdateImageClick();
       }}
+    >
+      Update to the latest version
+    </Button>
+  ) : (
+    <Button
+      data-testid="update-latest-version-button"
+      variant="link"
+      component={updateImageHref ? 'a' : 'button'}
+      href={updateImageHref}
+      onClick={() => setIsPopoverVisible(false)}
+      isAriaDisabled={!updateImageHref}
     >
       Update to the latest version
     </Button>

@@ -310,11 +310,12 @@ const CreateTierForm: React.FC<CreateTierFormProps> = ({
         </Button>
         <Button
           key="cancel"
-          component="a"
-          href="/maas/tiers"
+          component={isSubmitting ? 'button' : 'a'}
+          href={isSubmitting ? undefined : '/maas/tiers'}
           variant="link"
           data-testid="cancel-tier-button"
-          isDisabled={isSubmitting}
+          isAriaDisabled={isSubmitting}
+          tabIndex={isSubmitting ? -1 : undefined}
         >
           Cancel
         </Button>

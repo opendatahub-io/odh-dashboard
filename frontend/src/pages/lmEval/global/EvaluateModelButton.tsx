@@ -10,14 +10,14 @@ const EvaluateModelButton: React.FC = () => {
   const project = projects.find(byName(namespace));
   const evaluateHref = project
     ? `/develop-train/evaluations/${project.metadata.name}/evaluate`
-    : '#';
+    : undefined;
 
   const deployButton = (
     <Button
       data-testid="evaluate-model-button"
       variant="primary"
       isAriaDisabled={!project}
-      component="a"
+      component={project ? 'a' : 'button'}
       href={evaluateHref}
     >
       Start evaluation run

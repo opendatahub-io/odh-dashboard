@@ -3,6 +3,7 @@ import { useRedirect } from '#~/utilities/useRedirect';
 
 const mockNavigate = jest.fn();
 const mockAssign = jest.fn();
+const originalLocation = window.location;
 jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
@@ -12,6 +13,13 @@ describe('useRedirect', () => {
     jest.clearAllMocks();
     Object.defineProperty(window, 'location', {
       value: { ...window.location, assign: mockAssign, origin: 'http://localhost' },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
       writable: true,
     });
   });
