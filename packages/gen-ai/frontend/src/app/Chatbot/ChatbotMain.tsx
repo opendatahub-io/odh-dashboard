@@ -83,7 +83,9 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   // Check if there are any models in the project or if no model is selected
-  const hasNoModelsOrNoSelectedModel = models.length === 0 || !selectedModel;
+  const hasNoModels = models.length === 0;
+  const hasNoSelectedModel = models.length > 0 && !selectedModel;
+  const hasNoModelsOrNoSelectedModel = hasNoModels || hasNoSelectedModel;
 
   return (
     <>
