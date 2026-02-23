@@ -68,5 +68,3 @@ export enum NotebookControllerTabTypes {
   SERVER = 'server',
   ADMIN = 'admin',
 }
-
-// Trigger Workbenches CI detection

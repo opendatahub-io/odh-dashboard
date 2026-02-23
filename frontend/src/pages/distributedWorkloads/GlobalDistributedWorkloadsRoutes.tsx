@@ -40,5 +40,3 @@ const GlobalDistributedWorkloadsRoutes: React.FC = () => {
 };
 
 export default GlobalDistributedWorkloadsRoutes;
-
-// Trigger WorkloadMetrics CI detection
