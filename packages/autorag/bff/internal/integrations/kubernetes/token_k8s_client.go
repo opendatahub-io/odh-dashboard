@@ -208,3 +208,47 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 
 	return username, nil
 }
+
+// CanListLlamaStackDistributions performs a SubjectAccessReview to check if the user has permission to list LlamaStackDistribution resources.
+func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Check for nil identity
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	// Create a new config with the token from the request identity
+	config := rest.CopyConfig(kc.restConfig)
+	config.BearerToken = identity.Token
+	config.BearerTokenFile = ""
+
+	// Create a kubernetes clientset to use the authorization API
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kc.Logger.Error("failed to create kubernetes clientset for SAR", "error", err)
+		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	// Create SelfSubjectAccessReview to check if user can list LlamaStackDistribution resources
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Group:     "llamastack.io",
+				Resource:  "llamastackdistributions",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
+		return false, fmt.Errorf("failed to perform authorization check: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}

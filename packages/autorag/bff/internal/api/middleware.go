@@ -12,6 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/rs/cors"
 )
@@ -94,6 +95,57 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
 		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// This middleware enforces RBAC-based authorization for service access in the namespace.
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		// Apply LlamaStack authorization check to all endpoints that require namespace access
+		// This ensures consistent security across all services
+		// Check if namespace is present in context (set by AttachNamespace middleware)
+		if namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && namespace != "" {
+			// Get Kubernetes client to perform SAR
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
+			// This ensures users have proper permissions to access any service in the namespace
+			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
+			if err != nil {
+				app.handleK8sClientError(w, r, err)
+				return
+			}
+
+			if !allowed {
+				app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+				return
+			}
+
+			logger := helper.GetContextLoggerFromReq(r)
+			logger.Debug("User authorized to access services in namespace", "namespace", namespace)
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("Request authorized")
 
 		next(w, r, ps)
 	}

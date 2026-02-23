@@ -159,7 +159,7 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API endpoints
 
 	//LSD Models
-	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.AttachLlamaStackClient(app.LlamaStackModelsHandler)))
+	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

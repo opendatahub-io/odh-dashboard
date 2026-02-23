@@ -54,7 +54,7 @@ make run LOG_LEVEL=DEBUG
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `internal` (mock) or `user_token` |
+| `-auth-method` | `AUTH_METHOD` | `internal` or `user_token` (default `user_token`) |
 | `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
 | `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
 | `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
@@ -116,8 +116,8 @@ curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces 
 
 Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
-- internal (default): impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential.
-- user_token: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview.
+- internal: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential.
+- user_token (default): extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview.
 
 ### Overriding token header / prefix
 
