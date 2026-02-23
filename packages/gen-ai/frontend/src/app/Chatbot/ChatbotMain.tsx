@@ -83,8 +83,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   // Check if there are any models in the project or if no model is selected
-  const { models: projectModels } = React.useContext(ChatbotContext);
-  const hasNoProjectModelsOrNoSelectedModel = projectModels.length === 0 || !selectedModel;
+  const hasNoModelsOrNoSelectedModel = models.length === 0 || !selectedModel;
 
   return (
     <>
@@ -142,7 +141,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
         loadError={lsdStatusError || aiModelsError}
         headerAction={
-          hasNoProjectModelsOrNoSelectedModel ? undefined : (
+          hasNoModelsOrNoSelectedModel ? undefined : (
             <ChatbotHeaderActions
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
@@ -164,7 +163,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
       >
         {lsdStatus?.phase === 'Ready' ? (
-          hasNoProjectModelsOrNoSelectedModel ? (
+          hasNoModelsOrNoSelectedModel ? (
             <ChatbotEmptyState
               title="You need at least one model"
               description={
@@ -180,7 +179,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   </Content>
                   <Content component="ol">
                     <Content component="li">
-                      Go to your <b>Model Deployments </b> page and identify a LLM model
+                      Go to your <b>Model Deployments </b> page and identify an LLM model
                     </Content>
                     <Content component="li">
                       Select <b>&apos;Edit&apos;</b> to update your deployment
