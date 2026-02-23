@@ -22,6 +22,7 @@ import {
   deleteModelServingModal,
 } from '../../../../pages/modelServing';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import { getCustomResource } from '../../../../utils/oc_commands/customResources';
 import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
@@ -33,6 +34,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../
 
 describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () => {
   let testData: TiersTestData;
+  let skipTest = false;
   let projectName: string;
   let contributor: string;
   let name: string;
@@ -61,44 +63,69 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
   let groupsString: string;
   const uuid: string = generateTestUUID();
   retryableBefore(() => {
-    loadTiersFixture('e2e/settings/tiers/testTiersAdminCapabilities.yaml').then(
-      (fixtureData: TiersTestData) => {
-        testData = fixtureData;
-        name = `${testData.name}-${uuid}`;
-        description = testData.description;
-        groups = testData.groups;
-        tokenRateLimit = testData.tokenRateLimit;
-        requestRateLimit = testData.requestRateLimit;
-        groupsCount = testData.groupsCount;
-        limits = testData.limits;
-        groupsString = '';
-      },
-    );
-    loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
-      .then((fixtureData: DataScienceProjectData) => {
-        dspTestData = fixtureData;
-        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        projectName = `${dspTestData.projectResourceName}-${uuid}`;
-        modelName = dspTestData.singleModelName;
-        modelURI = dspTestData.modelLocationURI;
-        servingRuntime = dspTestData.servingRuntime;
-        hardwareProfileResourceName = `${dspTestData.hardwareProfileName}`;
-        hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
-        resourceType = dspTestData.resourceType;
-        Image = dspTestData.Image;
-      })
-      .then(() => {
-        cy.log(`Loaded project name: ${projectName}`);
-        createCleanProject(projectName);
-        addUserToProject(projectName, contributor, 'edit');
-        // Load Hardware Profile
-        cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
-        // Cleanup Hardware Profile if it already exists
-        createCleanHardwareProfile(hardwareProfileYamlPath);
-      });
+    // Check if the operator is RHOAI, if it's not (ODH), skip the test
+    // TODO: Review this skip once Models as a Service is ready for testing on ODH
+    cy.step('Check if the operator is RHOAI');
+    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
+      if (!result.stdout.includes('rhods-operator')) {
+        cy.log(
+          'RHOAI operator not found, skipping the test (Models as a Service is currently testing on RHOAI-specific).',
+        );
+        skipTest = true;
+      } else {
+        cy.log('RHOAI operator confirmed:', result.stdout);
+      }
+    });
+
+    // If not skipping, proceed with test setup
+    cy.then(() => {
+      if (skipTest) {
+        return;
+      }
+      loadTiersFixture('e2e/settings/tiers/testTiersAdminCapabilities.yaml').then(
+        (fixtureData: TiersTestData) => {
+          testData = fixtureData;
+          name = `${testData.name}-${uuid}`;
+          description = testData.description;
+          groups = testData.groups;
+          tokenRateLimit = testData.tokenRateLimit;
+          requestRateLimit = testData.requestRateLimit;
+          groupsCount = testData.groupsCount;
+          limits = testData.limits;
+          groupsString = '';
+        },
+      );
+      loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
+        .then((fixtureData: DataScienceProjectData) => {
+          dspTestData = fixtureData;
+          contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
+          projectName = `${dspTestData.projectResourceName}-${uuid}`;
+          modelName = dspTestData.singleModelName;
+          modelURI = dspTestData.modelLocationURI;
+          servingRuntime = dspTestData.servingRuntime;
+          hardwareProfileResourceName = `${dspTestData.hardwareProfileName}`;
+          hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
+          resourceType = dspTestData.resourceType;
+          Image = dspTestData.Image;
+        })
+        .then(() => {
+          cy.log(`Loaded project name: ${projectName}`);
+          createCleanProject(projectName);
+          addUserToProject(projectName, contributor, 'edit');
+          // Load Hardware Profile
+          cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
+          // Cleanup Hardware Profile if it already exists
+          createCleanHardwareProfile(hardwareProfileYamlPath);
+        });
+    });
   });
 
   after(() => {
+    // TODO: Review this skip once Models as a Service is ready for testing on ODH
+    if (skipTest) {
+      cy.log('Skipping cleanup: Tests were skipped');
+      return;
+    }
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${dspTestData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
@@ -110,9 +137,16 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
   it(
     'Verify Tiers Creation and Deploy Model with Tier and Delete Tier',
     {
-      tags: ['@Smoke', '@Dashboard', '@Tiers', '@devFeatureFlags'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Tiers', '@Featureflagged'],
     },
     () => {
+      // TODO: Review this skip once Models as a Service is ready for testing on ODH
+      if (skipTest) {
+        cy.log(
+          'Skipping test - Models as a Service is RHOAI-specific and not ready for testing on ODH.',
+        );
+        return;
+      }
       cy.step('Log into the application as cluster admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
