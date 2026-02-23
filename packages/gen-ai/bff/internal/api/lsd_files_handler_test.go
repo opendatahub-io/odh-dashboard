@@ -15,16 +15,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/openai/openai-go/v2"
-	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
-	"github.com/opendatahub-io/gen-ai/internal/services"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,26 +64,7 @@ var _ = Describe("LlamaStackUploadFileHandler", func() {
 		openAPIHandler, err := NewOpenAPIHandler(logger)
 		require.NoError(GinkgoT(), err)
 
-		memStore := cache.NewMemoryStore()
-
-		fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
-
-		app = &App{
-			config:                  cfg,
-			logger:                  logger,
-			repositories:            repositories.NewRepositories(),
-			openAPI:                 openAPIHandler,
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			maasClientFactory:       maasmocks.NewMockClientFactory(),
-			mcpClientFactory:        mcpmocks.NewMockedMCPClientFactory(cfg, logger),
-			dashboardNamespace:      "opendatahub",
-			memoryStore:             memStore,
-			rootCAs:                 nil,
-			clusterDomain:           "",
-			fileUploadJobTracker:    fileUploadJobTracker,
-			testEnvState:            nil, // Not using per-app envtest
-		}
+		app = NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
 
 		createMultipartFormData = func(filename, content, vectorStoreID, purpose, chunkingType string) ([]byte, string, error) {
 			var err error
@@ -503,26 +480,7 @@ var _ = Describe("LlamaStackFileUploadStatusHandler", func() {
 		openAPIHandler, err := NewOpenAPIHandler(logger)
 		require.NoError(GinkgoT(), err)
 
-		memStore := cache.NewMemoryStore()
-
-		fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
-
-		app = &App{
-			config:                  cfg,
-			logger:                  logger,
-			repositories:            repositories.NewRepositories(),
-			openAPI:                 openAPIHandler,
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			maasClientFactory:       maasmocks.NewMockClientFactory(),
-			mcpClientFactory:        mcpmocks.NewMockedMCPClientFactory(cfg, logger),
-			dashboardNamespace:      "opendatahub",
-			memoryStore:             memStore,
-			rootCAs:                 nil,
-			clusterDomain:           "",
-			fileUploadJobTracker:    fileUploadJobTracker,
-			testEnvState:            nil, // Not using per-app envtest
-		}
+		app = NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
 	})
 
 	It("should return pending status for newly created job", func() {
