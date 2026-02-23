@@ -9,5 +9,8 @@
   "modelServingKServe": "@ModelServingCI",
   "clusterSettings": "@SettingsCI",
   "groupSettings": "@SettingsCI",
-  "projects": "@ProjectsCI"
+  "projects": "@ProjectsCI",
+  "learningCenter": "@LearningResourcesCI",
+  "storageClasses": "@StorageClassesCI",
+  "BYONImages": "@WorkbenchesCI"
 }
