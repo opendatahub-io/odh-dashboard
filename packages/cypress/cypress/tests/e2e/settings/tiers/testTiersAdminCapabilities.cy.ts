@@ -2,6 +2,7 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
   ModelStateToggleLabel,
+  ModelStateLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import {
   tiersPage,
@@ -31,6 +32,7 @@ import {
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
+import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
 describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () => {
   let testData: TiersTestData;
@@ -263,6 +265,7 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
           requireLoadedState: false,
         });
       });
+      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
       kServeRow.find().findKebabAction('Delete').click();
       deleteModelServingModal.findInput().clear().type(modelName);
       deleteModelServingModal.findSubmitButton().should('be.enabled').click();
