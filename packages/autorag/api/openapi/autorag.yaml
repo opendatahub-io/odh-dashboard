@@ -82,7 +82,7 @@ paths:
     summary: List available LSD models
     description: >-
       Lists all available models from LlamaStack Distribution (LSD).
-      Returns models with their identifiers, creation timestamps, and ownership information.
+      Returns models with their identifiers, types, provider information, and resource paths.
       Requires namespace parameter for proper multi-tenant isolation.
     get:
       tags:
@@ -127,34 +127,32 @@ components:
     # LSD Model Schemas
     LSDModel:
       type: object
-      description: Standard OpenAI-compatible model object from LlamaStack Distribution
+      description: Model from LlamaStack Distribution
       required:
         - id
-        - object
-        - created
-        - owned_by
+        - type
+        - provider
       properties:
         id:
           type: string
-          description: Model identifier
-          example: "ollama/llama3.2:3b"
-        object:
+          description: Unique model identifier
+          example: "llama3.2:3b"
+        type:
           type: string
-          enum: ["model"]
-          description: Object type (always "model")
-          example: "model"
-        created:
-          type: integer
-          format: int64
-          description: Unix timestamp when model was created
-          example: 1755721063
-        owned_by:
+          enum: ["llm", "embedding"]
+          description: Model type (llm or embedding)
+          example: "llm"
+        provider:
           type: string
-          description: Model owner/provider
-          example: "llama_stack"
+          description: Provider identifier
+          example: "ollama"
+        resource_path:
+          type: string
+          description: Full provider resource path
+          example: "ollama://models/llama3.2:3b"
     LSDModelsData:
       type: object
-      description: List of models with server-side categorization of model type
+      description: List of models with server-side categorization based on type field
       required:
         - models
         - llm_models
@@ -167,12 +165,12 @@ components:
             $ref: '#/components/schemas/LSDModel'
         llm_models:
           type: array
-          description: Pre-filtered LLM models (categorized server-side by model ID pattern)
+          description: Pre-filtered LLM models (type == "llm")
           items:
             $ref: '#/components/schemas/LSDModel'
         embedding_models:
           type: array
-          description: Pre-filtered embedding models (categorized server-side by model ID pattern)
+          description: Pre-filtered embedding models (type == "embedding")
           items:
             $ref: '#/components/schemas/LSDModel'
 
@@ -307,40 +305,40 @@ components:
           example:
             data:
               models:
-                - id: "ollama/llama3.2:3b"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                - id: "llama3.2:3b"
+                  type: "llm"
+                  provider: "ollama"
+                  resource_path: "ollama://models/llama3.2:3b"
                 - id: "mistral-7b-instruct"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
-                - id: "ollama/all-minilm:l6-v2"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                  type: "llm"
+                  provider: "ollama"
+                  resource_path: "ollama://models/mistral-7b-instruct"
+                - id: "all-minilm:l6-v2"
+                  type: "embedding"
+                  provider: "ollama"
+                  resource_path: "ollama://models/all-minilm:l6-v2"
                 - id: "nomic-embed-text"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                  type: "embedding"
+                  provider: "ollama"
+                  resource_path: "ollama://models/nomic-embed-text"
               llm_models:
-                - id: "ollama/llama3.2:3b"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                - id: "llama3.2:3b"
+                  type: "llm"
+                  provider: "ollama"
+                  resource_path: "ollama://models/llama3.2:3b"
                 - id: "mistral-7b-instruct"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                  type: "llm"
+                  provider: "ollama"
+                  resource_path: "ollama://models/mistral-7b-instruct"
               embedding_models:
-                - id: "ollama/all-minilm:l6-v2"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                - id: "all-minilm:l6-v2"
+                  type: "embedding"
+                  provider: "ollama"
+                  resource_path: "ollama://models/all-minilm:l6-v2"
                 - id: "nomic-embed-text"
-                  object: "model"
-                  created: 1755721063
-                  owned_by: "llama_stack"
+                  type: "embedding"
+                  provider: "ollama"
+                  resource_path: "ollama://models/nomic-embed-text"
 
     ConflictResponse:
       content:

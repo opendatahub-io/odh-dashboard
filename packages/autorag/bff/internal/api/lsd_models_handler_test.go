@@ -74,7 +74,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		assert.Len(t, embeddingModels, 3, "Should return 3 embedding models")
 	})
 
-	t.Run("should have correct OpenAI model structure", func(t *testing.T) {
+	t.Run("should have correct stable API model structure", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
 		assert.NoError(t, err)
@@ -98,17 +98,18 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		dataField := response["data"].(map[string]interface{})
 		models := dataField["models"].([]interface{})
 
-		// Verify first model has OpenAI-compatible structure
+		// Verify first model has stable public API structure
 		firstModel := models[0].(map[string]interface{})
 		assert.Contains(t, firstModel, "id")
-		assert.Contains(t, firstModel, "object")
-		assert.Contains(t, firstModel, "created")
-		assert.Contains(t, firstModel, "owned_by")
+		assert.Contains(t, firstModel, "type")
+		assert.Contains(t, firstModel, "provider")
+		assert.Contains(t, firstModel, "resource_path")
 
 		// Verify mock model values
-		assert.Equal(t, "ollama/llama3.2:3b", firstModel["id"])
-		assert.Equal(t, "model", firstModel["object"])
-		assert.Equal(t, "llama_stack", firstModel["owned_by"])
+		assert.Equal(t, "llama3.2:3b", firstModel["id"])
+		assert.Equal(t, "llm", firstModel["type"])
+		assert.Equal(t, "ollama", firstModel["provider"])
+		assert.Equal(t, "ollama://models/llama3.2:3b", firstModel["resource_path"])
 	})
 
 	t.Run("should correctly categorize LLM models", func(t *testing.T) {
@@ -135,12 +136,11 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		dataField := response["data"].(map[string]interface{})
 		llmModels := dataField["llm_models"].([]interface{})
 
-		// Verify LLM models don't contain embedding keywords
+		// Verify all models in llm_models have type == "llm"
 		for _, model := range llmModels {
 			m := model.(map[string]interface{})
-			modelID := m["id"].(string)
-			assert.NotContains(t, modelID, "embed", "LLM model should not contain 'embed' keyword")
-			assert.NotContains(t, modelID, "all-mini", "LLM model should not contain 'all-mini' keyword")
+			modelType := m["type"].(string)
+			assert.Equal(t, "llm", modelType, "All models in llm_models should have type='llm'")
 		}
 	})
 
@@ -168,21 +168,11 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		dataField := response["data"].(map[string]interface{})
 		embeddingModels := dataField["embedding_models"].([]interface{})
 
-		// Verify embedding models contain expected keywords
-		embeddingKeywords := []string{"embed", "all-mini", "nomic"}
+		// Verify all models in embedding_models have type == "embedding"
 		for _, model := range embeddingModels {
 			m := model.(map[string]interface{})
-			modelID := m["id"].(string)
-
-			// Each embedding model should contain at least one embedding keyword
-			hasKeyword := false
-			for _, keyword := range embeddingKeywords {
-				if containsIgnoreCase(modelID, keyword) {
-					hasKeyword = true
-					break
-				}
-			}
-			assert.True(t, hasKeyword, "Embedding model %s should contain an embedding keyword", modelID)
+			modelType := m["type"].(string)
+			assert.Equal(t, "embedding", modelType, "All models in embedding_models should have type='embedding'")
 		}
 	})
 }
@@ -281,39 +271,6 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
-}
-
-// Helper functions
-
-// containsIgnoreCase checks if s contains substr (case-insensitive)
-func containsIgnoreCase(s, substr string) bool {
-	return contains(toLower(s), toLower(substr))
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || indexOfSubstring(s, substr) >= 0)
-}
-
-func indexOfSubstring(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
-}
-
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + ('a' - 'A')
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
 }
 
 // mockErrorClient is a mock client that always returns an error
