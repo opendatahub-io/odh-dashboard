@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { createSchema } from '../utilities/schema';
 
-const { schema: experimentSchema, isFieldRequired } = createSchema(
+const { schema: experimentSchema } = createSchema(
   // Make sure all fields (including optional ones) have a default to ensure RHF works as intended.
   z.object({
     name: z.string().min(1).default(''),
@@ -21,4 +21,4 @@ const { schema: experimentSchema, isFieldRequired } = createSchema(
 
 export type ExperimentSchema = z.infer<typeof experimentSchema>;
 
-export { experimentSchema, isFieldRequired };
+export { experimentSchema };

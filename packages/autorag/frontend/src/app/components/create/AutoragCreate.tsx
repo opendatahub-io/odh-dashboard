@@ -3,7 +3,7 @@ import { ActionGroup, Button, Form, FormGroup, TextArea, TextInput } from '@patt
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
-import { experimentSchema, isFieldRequired } from '~/app/schemas/experiment.schema';
+import { experimentSchema } from '~/app/schemas/experiment.schema';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
 
 function AutoragCreate(): React.JSX.Element {
@@ -22,27 +22,17 @@ function AutoragCreate(): React.JSX.Element {
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormGroup fieldId={field.name} label="Name" isRequired={isFieldRequired(field.name)}>
-              <TextInput
-                {...field}
-                id={field.name}
-                type="text"
-                isRequired={isFieldRequired(field.name)}
-              />
+            <FormGroup fieldId={field.name} label="Name" isRequired>
+              <TextInput {...field} id={field.name} type="text" />
             </FormGroup>
           )}
         />
-
         <Controller
           control={form.control}
           name="description"
           render={({ field }) => (
-            <FormGroup
-              fieldId={field.name}
-              label="Description"
-              isRequired={isFieldRequired(field.name)}
-            >
-              <TextArea {...field} id={field.name} isRequired={isFieldRequired(field.name)} />
+            <FormGroup fieldId={field.name} label="Description">
+              <TextArea {...field} id={field.name} />
             </FormGroup>
           )}
         />
