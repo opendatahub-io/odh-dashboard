@@ -45,15 +45,13 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
               <EmptyState
                 icon={CodeIcon}
                 headingLevel="h4"
-                titleText="Auto-generated YAML unavailable or Select the LLM-d runtime to generate YAML"
+                titleText="Auto-generated YAML unavailable"
                 data-testid="yaml-editor-empty-state"
               >
                 <EmptyStateBody>
                   YAML generation is currently supported only for the LLM-d serving runtime. Select
                   the LLM-d runtime to generate a preview, or manually enter your YAML
-                  configuration. OR Auto-generated YAML is supported only when using the LLM-d
-                  serving runtime. To proceed, select the LLM-d runtime or provide your own custom
-                  YAML configuration.
+                  configuration.
                 </EmptyStateBody>
               </EmptyState>
             </Bullseye>
