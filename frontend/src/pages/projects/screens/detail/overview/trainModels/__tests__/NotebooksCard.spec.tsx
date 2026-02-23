@@ -90,7 +90,7 @@ describe('NotebooksCard', () => {
 
       renderNotebooksCard([]);
 
-      const createButton = screen.getByRole('link', { name: /create a workbench/i });
+      const createButton = screen.getByRole('button', { name: /create a workbench/i });
       expect(createButton).toHaveAttribute('aria-disabled', 'true');
     });
 
@@ -109,7 +109,7 @@ describe('NotebooksCard', () => {
 
       renderNotebooksCard([]);
 
-      const createButton = screen.getByRole('link', { name: /create a workbench/i });
+      const createButton = screen.getByRole('button', { name: /create a workbench/i });
       expect(createButton).toHaveAttribute('aria-disabled', 'true');
     });
 
@@ -142,7 +142,7 @@ describe('NotebooksCard', () => {
 
       renderNotebooksCard(mockNotebooks);
 
-      const createButton = screen.getByRole('link', { name: /create workbench/i });
+      const createButton = screen.getByRole('button', { name: /create workbench/i });
       expect(createButton).toHaveAttribute('aria-disabled', 'true');
     });
 
