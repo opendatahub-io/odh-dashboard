@@ -128,9 +128,9 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
       // Patch the LLM Inference Service to set image to VLLM CPU
       // workaround for model to be deployed without GPUs.
-      patchOpenShiftResource(resourceType, modelName, Image, projectName);
-      cy.step('Verify that the Model is ready');
       cy.get<string>('@resourceName').then((resourceName) => {
+        patchOpenShiftResource(resourceType, resourceName, Image, projectName);
+        cy.step('Verify that the Model is ready');
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 

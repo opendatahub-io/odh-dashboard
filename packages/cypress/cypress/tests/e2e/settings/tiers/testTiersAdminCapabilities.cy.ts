@@ -1,6 +1,7 @@
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
+  ModelStateToggleLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import {
   tiersPage,
@@ -18,6 +19,7 @@ import {
   modelServingGlobal,
   modelServingWizard,
   modelServingSection,
+  deleteModelServingModal,
 } from '../../../../pages/modelServing';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
@@ -62,7 +64,6 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
     loadTiersFixture('e2e/settings/tiers/testTiersAdminCapabilities.yaml').then(
       (fixtureData: TiersTestData) => {
         testData = fixtureData;
-        projectName = `${testData.projectName}-${uuid}`;
         name = `${testData.name}-${uuid}`;
         description = testData.description;
         groups = testData.groups;
@@ -120,8 +121,8 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
 
       cy.step('Create a new tier');
       tiersPage.findCreateTierButton().click();
-      createTierPage.findNameInput().type(name);
-      createTierPage.findDescriptionInput().type(description);
+      createTierPage.findNameInput().clear().type(name);
+      createTierPage.findDescriptionInput().clear().type(description);
       // verify the level is populated by default
       createTierPage.findLevelInput().should('not.have.value', '');
       createTierPage.findLevelInput().should('be.visible').invoke('val').as('level');
@@ -159,7 +160,7 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       tierDetailsPage.findActionsButton().click();
       tierDetailsPage.findActionsEditButton().should('exist').click();
       // update the description and groups and limits
-      createTierPage.findDescriptionInput().type(`${description} - updated`);
+      createTierPage.findDescriptionInput().clear().type(`${description} - updated`);
       createTierPage.findLevelInput().should('not.have.value', '');
       createTierPage.selectGroupsOption('tier-free-users');
       createTierPage.findTokenRateLimitPlusButton(0).click();
@@ -196,6 +197,12 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('resourceName');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
@@ -208,17 +215,32 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       modelServingWizard.findNextButton().click();
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
-      patchOpenShiftResource(resourceType, modelName, Image, projectName);
-      cy.step('Verify that the Model is ready');
-      checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
+      const kServeRow = modelServingSection.getKServeRow(modelName);
+      cy.get<string>('@resourceName').then((resourceName) => {
+        patchOpenShiftResource(resourceType, resourceName, Image, projectName);
+
+        cy.step('Verify that the Model is ready');
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+        kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
+        kServeRow.findConfirmStopModalButton().click();
+        checkLLMInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        });
+      });
+      kServeRow.find().findKebabAction('Delete').click();
+      deleteModelServingModal.findInput().clear().type(modelName);
+      deleteModelServingModal.findSubmitButton().should('be.enabled').click();
 
       cy.step('Log into the application as cluster admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify Level Error');
       // create a new tier with the same name and level to verify the level and name error
+      tiersPage.visit();
       tiersPage.findCreateTierButton().click();
-      createTierPage.findNameInput().type(name);
+      createTierPage.findNameInput().clear().type(name);
       createTierPage.findNameTakenError().should('exist');
       cy.get<string>('@level').then((level) => {
         createTierPage.findLevelInput().clear().type(level);
@@ -241,17 +263,17 @@ describe('Verify Tiers Creation and Deploy Model with Tier and Delete Tier', () 
       tierRow = tiersPage.getRow(name);
       tierRow.findDeleteButton().click();
       // Enter invalid tier name to verify the delete button is disabled and cancel the delete
-      deleteTierModal.findInput().type(testData.name);
+      deleteTierModal.findInput().clear().type(testData.name);
       deleteTierModal.findSubmitButton().should('be.disabled');
       deleteTierModal.findCancelButton().click();
       // Delete the tier from View Details Page
       tierRow.findViewDetailsButton().click();
       tierDetailsPage.findActionsButton().click();
       tierDetailsPage.findActionsDeleteButton().should('exist').click();
-      deleteTierModal.findInput().type(name);
+      deleteTierModal.findInput().clear().type(name);
       deleteTierModal.findSubmitButton().should('be.enabled').click();
       // Verify the tier is deleted
-      tiersPage.findRows().contains(name).should('not.exist');
+      tiersPage.findRows().should('not.contain', name);
     },
   );
 });

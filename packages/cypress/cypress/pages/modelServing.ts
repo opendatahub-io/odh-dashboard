@@ -4,6 +4,7 @@ import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
+import { DeleteModal } from './components/DeleteModal';
 import { mixin } from '../utils/mixin';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -199,6 +200,12 @@ class ServingModal extends Modal {
 
   findServingRuntimeVersionLabel() {
     return cy.findByTestId('serving-runtime-version-label');
+  }
+}
+
+class DeleteModelServingModal extends DeleteModal {
+  constructor() {
+    super('Delete tier?');
   }
 }
 
@@ -1346,3 +1353,4 @@ export const kserveModal = new KServeModal();
 export const kserveModalEdit = new KServeModal(true);
 export const modelServingWizard = new ModelServingWizard(false);
 export const modelServingWizardEdit = new ModelServingWizard(true);
+export const deleteModelServingModal = new DeleteModelServingModal();
