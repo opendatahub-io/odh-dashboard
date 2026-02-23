@@ -23,5 +23,3 @@ export const DEFAULT_CONFIG: ClusterSettingsType = {
   isDistributedInferencingDefault: true,
   defaultDeploymentStrategy: 'rolling',
 };
-
-// Trigger Settings CI detection
