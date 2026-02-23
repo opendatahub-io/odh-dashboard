@@ -481,6 +481,103 @@ jobs:
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
     steps:
+      - name: Check Disk Space
+        run: |
+          echo "📊 Checking available disk space..."
+          DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+          DISK_AVAIL=$(df -h / | tail -1 | awk '{print $4}')
+          
+          echo "💾 Disk usage: ${DISK_USAGE}% (${DISK_AVAIL} available)"
+          echo "DISK_USAGE=$DISK_USAGE" >> $GITHUB_ENV
+          
+          if [ "$DISK_USAGE" -ge 95 ]; then
+            echo "❌ CRITICAL: Disk usage is ${DISK_USAGE}% - will attempt emergency cleanup"
+            echo "EMERGENCY_CLEANUP=true" >> $GITHUB_ENV
+          elif [ "$DISK_USAGE" -ge 90 ]; then
+            echo "⚠️  HIGH: Disk usage is ${DISK_USAGE}% - will attempt aggressive cleanup"
+            echo "EMERGENCY_CLEANUP=true" >> $GITHUB_ENV
+          elif [ "$DISK_USAGE" -ge 85 ]; then
+            echo "⚠️  WARNING: Disk usage is ${DISK_USAGE}% - cleanup recommended"
+            echo "   The cleanup job will run after this workflow completes"
+            echo "EMERGENCY_CLEANUP=false" >> $GITHUB_ENV
+          else
+            echo "✅ Disk space OK (${DISK_USAGE}% used)"
+            echo "EMERGENCY_CLEANUP=false" >> $GITHUB_ENV
+          fi
+
+      - name: Emergency Cleanup (if disk space critical)
+        if: env.EMERGENCY_CLEANUP == 'true'
+        run: |
+          echo "🚨 EMERGENCY CLEANUP - Disk usage: ${DISK_USAGE}%"
+          echo "⚠️  Using SAFE cleanup (won't affect parallel jobs)"
+          
+          RUNNER_USER=$(whoami)
+          HOME_DIR=$(eval echo "~$RUNNER_USER")
+          
+          # Helper function to check if directory is in use by active runner
+          is_directory_in_use() {
+            local dir="$1"
+            # Check if any node/npm/webpack processes are using this directory
+            if lsof +D "$dir" 2>/dev/null | grep -qE "node|npm|webpack"; then
+              return 0  # In use
+            fi
+            return 1  # Not in use
+          }
+          
+          echo ""
+          echo "🗑️  Step 1: Cleaning Go upstream builds (SAFE - only in old work dirs)..."
+          # Only clean upstream dirs in work directories older than 7 days
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              find "$work_dir" -type d -path "*/packages/*/upstream" -exec rm -rf {} + 2>/dev/null || true
+              echo "   ✅ Cleaned upstream builds in: $(basename $(dirname $work_dir))"
+            fi
+          done
+          
+          echo ""
+          echo "🗑️  Step 2: Cleaning old work directories (>7 days, no active processes)..."
+          CLEANED_COUNT=0
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ]; then
+              if is_directory_in_use "$work_dir"; then
+                echo "   ⏭️  Skipped (in use): $(basename $(dirname $work_dir))"
+              else
+                rm -rf "$work_dir" 2>/dev/null || true
+                echo "   ✅ Cleaned: $(basename $(dirname $work_dir))"
+                CLEANED_COUNT=$((CLEANED_COUNT + 1))
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "🗑️  Step 3: Cleaning old Cypress artifacts (>7 days only)..."
+          find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/screenshots/*" -mtime +7 -delete 2>/dev/null || true
+          find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/videos/*" -mtime +7 -delete 2>/dev/null || true
+          
+          echo ""
+          echo "🗑️  Step 4: Cleaning old runner logs (>7 days)..."
+          find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +7 -delete 2>/dev/null || true
+          
+          echo ""
+          echo "📊 Disk usage after emergency cleanup:"
+          DISK_USAGE_AFTER=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+          DISK_AVAIL_AFTER=$(df -h / | tail -1 | awk '{print $4}')
+          echo "💾 Disk usage: ${DISK_USAGE_AFTER}% (${DISK_AVAIL_AFTER} available)"
+          
+          FREED=$((DISK_USAGE - DISK_USAGE_AFTER))
+          echo "✅ Freed: ${FREED}% disk space"
+          
+          if [ "$DISK_USAGE_AFTER" -ge 95 ]; then
+            echo "❌ CRITICAL: Still at ${DISK_USAGE_AFTER}% after cleanup - failing job"
+            echo "   Manual intervention required on runner"
+            exit 1
+          elif [ "$DISK_USAGE_AFTER" -ge 90 ]; then
+            echo "⚠️  WARNING: Still at ${DISK_USAGE_AFTER}% after cleanup"
+            echo "   Job will proceed but may fail due to space"
+          else
+            echo "✅ Cleanup successful - proceeding with tests"
+          fi
+
       - name: Calculate unique port for this workflow run
         run: |
           # Dynamic port allocation for parallel execution
@@ -983,3 +1080,102 @@ jobs:
           else
             echo "✅ Cleaned up $KILLED_COUNT process(es) for run_id: $CURRENT_RUN_ID"
           fi
+
+      - name: Clean Work Directories and Build Artifacts
+        run: |
+          echo "🧹 Starting comprehensive cleanup (SAFE for parallel jobs)..."
+          
+          RUNNER_USER=$(whoami)
+          HOME_DIR=$(eval echo "~$RUNNER_USER")
+          CLEANED_SPACE=0
+          
+          echo "📊 Disk usage before cleanup:"
+          df -h / | grep -v Filesystem
+          
+          # Helper function to check if directory is in use
+          is_directory_in_use() {
+            local dir="$1"
+            # Check if any processes are using this directory
+            if lsof +D "$dir" 2>/dev/null | grep -qE "node|npm|webpack|chrome|cypress"; then
+              return 0  # In use
+            fi
+            return 1  # Not in use
+          }
+          
+          # 1. Clean Go upstream build artifacts (only in old work dirs)
+          echo ""
+          echo "🗑️  Cleaning Go upstream builds (in work dirs >7 days, not in use)..."
+          UPSTREAM_COUNT=0
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              UPSTREAM_DIRS=$(find "$work_dir" -type d -path "*/packages/*/upstream" 2>/dev/null || true)
+              for dir in $UPSTREAM_DIRS; do
+                if [ -d "$dir" ]; then
+                  SIZE=$(du -sm "$dir" 2>/dev/null | cut -f1)
+                  rm -rf "$dir" 2>/dev/null || true
+                  CLEANED_SPACE=$((CLEANED_SPACE + SIZE))
+                  UPSTREAM_COUNT=$((UPSTREAM_COUNT + 1))
+                fi
+              done
+            fi
+          done
+          echo "   ✅ Cleaned $UPSTREAM_COUNT upstream build directories"
+          
+          # 2. Clean old work directories (>7 days, not in use)
+          echo ""
+          echo "🗑️  Cleaning old work directories (>7 days, not in use)..."
+          OLD_WORK_COUNT=0
+          SKIPPED_COUNT=0
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ]; then
+              if is_directory_in_use "$work_dir"; then
+                echo "   ⏭️  Skipped (in use): $(basename $(dirname $work_dir))"
+                SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+              else
+                SIZE=$(du -sm "$work_dir" 2>/dev/null | cut -f1)
+                rm -rf "$work_dir" 2>/dev/null || true
+                CLEANED_SPACE=$((CLEANED_SPACE + SIZE))
+                OLD_WORK_COUNT=$((OLD_WORK_COUNT + 1))
+                echo "   ✅ Cleaned: $(basename $(dirname $work_dir)) (~${SIZE}MB)"
+              fi
+            fi
+          done
+          echo "   ✅ Cleaned $OLD_WORK_COUNT old work directories"
+          if [ "$SKIPPED_COUNT" -gt 0 ]; then
+            echo "   ⏭️  Skipped $SKIPPED_COUNT directories (in use by parallel jobs)"
+          fi
+          
+          # 3. Clean old runner diagnostic logs (>7 days)
+          echo ""
+          echo "🗑️  Cleaning old runner logs (>7 days)..."
+          LOG_COUNT=$(find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +7 -type f 2>/dev/null | wc -l)
+          find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +7 -delete 2>/dev/null || true
+          echo "   ✅ Cleaned $LOG_COUNT old log files"
+          
+          # 4. Clean old Cypress artifacts (>7 days only - safe even if parallel jobs running)
+          echo ""
+          echo "🗑️  Cleaning old Cypress artifacts (>7 days)..."
+          ARTIFACT_COUNT=0
+          for runner_dir in "$HOME_DIR"/actions-runner*; do
+            # Screenshots
+            if [ -d "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/screenshots" ]; then
+              SCREENSHOTS=$(find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/screenshots" -type f -mtime +7 2>/dev/null | wc -l)
+              find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/screenshots" -type f -mtime +7 -delete 2>/dev/null || true
+              ARTIFACT_COUNT=$((ARTIFACT_COUNT + SCREENSHOTS))
+            fi
+            # Videos
+            if [ -d "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/videos" ]; then
+              VIDEOS=$(find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/videos" -type f -mtime +7 2>/dev/null | wc -l)
+              find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/videos" -type f -mtime +7 -delete 2>/dev/null || true
+              ARTIFACT_COUNT=$((ARTIFACT_COUNT + VIDEOS))
+            fi
+          done
+          echo "   ✅ Cleaned $ARTIFACT_COUNT old Cypress artifacts"
+          
+          # 5. Check disk space after cleanup
+          echo ""
+          echo "📊 Disk usage after cleanup:"
+          df -h / | grep -v Filesystem
+          echo ""
+          echo "💾 Total space cleaned: ~${CLEANED_SPACE}MB"
+          echo "✅ Cleanup complete!"
