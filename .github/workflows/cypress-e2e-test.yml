@@ -507,54 +507,88 @@ jobs:
         if: env.EMERGENCY_CLEANUP == 'true'
         run: |
           echo "🚨 EMERGENCY CLEANUP - Disk usage: ${DISK_USAGE}%"
-          echo "⚠️  Using SAFE cleanup (won't affect parallel jobs)"
           
           RUNNER_USER=$(whoami)
           HOME_DIR=$(eval echo "~$RUNNER_USER")
+          CURRENT_WORK_DIR="${{ github.workspace }}"
+          
+          # Determine how aggressive to be based on disk usage
+          if [ "$DISK_USAGE" -ge 95 ]; then
+            AGE_THRESHOLD=1  # CRITICAL: Clean anything >1 day old
+            echo "⚠️  CRITICAL MODE: Cleaning files >1 day old"
+          else
+            AGE_THRESHOLD=7  # Normal: Clean anything >7 days old
+            echo "⚠️  AGGRESSIVE MODE: Cleaning files >7 days old"
+          fi
           
           # Helper function to check if directory is in use by active runner
           is_directory_in_use() {
             local dir="$1"
+            # Skip current workspace
+            if [[ "$dir" == "$CURRENT_WORK_DIR"* ]]; then
+              return 0  # In use (current job)
+            fi
             # Check if any node/npm/webpack processes are using this directory
-            if lsof +D "$dir" 2>/dev/null | grep -qE "node|npm|webpack"; then
+            if lsof +D "$dir" 2>/dev/null | grep -qE "node|npm|webpack" > /dev/null; then
               return 0  # In use
             fi
             return 1  # Not in use
           }
           
           echo ""
-          echo "🗑️  Step 1: Cleaning Go upstream builds (SAFE - only in old work dirs)..."
-          # Only clean upstream dirs in work directories older than 7 days
-          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
-            if [ -d "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
-              find "$work_dir" -type d -path "*/packages/*/upstream" -exec rm -rf {} + 2>/dev/null || true
-              echo "   ✅ Cleaned upstream builds in: $(basename $(dirname $work_dir))"
+          echo "🗑️  Step 1: Cleaning Go upstream builds (age: >$AGE_THRESHOLD days)..."
+          UPSTREAM_CLEANED=0
+          find "$HOME_DIR"/actions-runner*/_work -type d -path "*/packages/*/upstream" -mtime +$AGE_THRESHOLD 2>/dev/null | while read upstream_dir; do
+            work_dir=$(echo "$upstream_dir" | grep -oP "$HOME_DIR/actions-runner[^/]+/_work/[^/]+/[^/]+")
+            if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              rm -rf "$upstream_dir" 2>/dev/null && echo "   ✅ Cleaned: $upstream_dir" && UPSTREAM_CLEANED=$((UPSTREAM_CLEANED + 1)) || true
             fi
           done
           
           echo ""
-          echo "🗑️  Step 2: Cleaning old work directories (>7 days, no active processes)..."
+          echo "🗑️  Step 2: Cleaning old work directories (age: >$AGE_THRESHOLD days, no active processes)..."
           CLEANED_COUNT=0
-          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +$AGE_THRESHOLD 2>/dev/null | while read work_dir; do
             if [ -d "$work_dir" ]; then
               if is_directory_in_use "$work_dir"; then
-                echo "   ⏭️  Skipped (in use): $(basename $(dirname $work_dir))"
+                echo "   ⏭️  Skipped (in use): $work_dir"
               else
-                rm -rf "$work_dir" 2>/dev/null || true
-                echo "   ✅ Cleaned: $(basename $(dirname $work_dir))"
-                CLEANED_COUNT=$((CLEANED_COUNT + 1))
+                SIZE_BEFORE=$(du -sh "$work_dir" 2>/dev/null | awk '{print $1}')
+                rm -rf "$work_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE: $work_dir" && CLEANED_COUNT=$((CLEANED_COUNT + 1)) || true
               fi
             fi
           done
           
           echo ""
-          echo "🗑️  Step 3: Cleaning old Cypress artifacts (>7 days only)..."
-          find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/screenshots/*" -mtime +7 -delete 2>/dev/null || true
-          find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/videos/*" -mtime +7 -delete 2>/dev/null || true
+          echo "🗑️  Step 3: Cleaning Cypress artifacts (age: >$AGE_THRESHOLD days)..."
+          SCREENSHOTS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/screenshots/*" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
+          VIDEOS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/videos/*" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
+          echo "   ✅ Cleaned $SCREENSHOTS_CLEANED screenshots, $VIDEOS_CLEANED videos"
           
           echo ""
-          echo "🗑️  Step 4: Cleaning old runner logs (>7 days)..."
-          find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +7 -delete 2>/dev/null || true
+          echo "🗑️  Step 4: Cleaning runner logs (age: >$AGE_THRESHOLD days)..."
+          LOGS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
+          echo "   ✅ Cleaned $LOGS_CLEANED log files"
+          
+          echo ""
+          echo "🗑️  Step 5: Cleaning node_modules in old work dirs (age: >$AGE_THRESHOLD days)..."
+          find "$HOME_DIR"/actions-runner*/_work -type d -name "node_modules" -mtime +$AGE_THRESHOLD 2>/dev/null | while read nm_dir; do
+            work_dir=$(echo "$nm_dir" | grep -oP "$HOME_DIR/actions-runner[^/]+/_work/[^/]+/[^/]+")
+            if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              SIZE_BEFORE=$(du -sh "$nm_dir" 2>/dev/null | awk '{print $1}')
+              rm -rf "$nm_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE node_modules: $nm_dir" || true
+            fi
+          done
+          
+          echo ""
+          echo "🗑️  Step 6: Cleaning .turbo cache in old work dirs (age: >$AGE_THRESHOLD days)..."
+          find "$HOME_DIR"/actions-runner*/_work -type d -name ".turbo" -mtime +$AGE_THRESHOLD 2>/dev/null | while read turbo_dir; do
+            work_dir=$(echo "$turbo_dir" | grep -oP "$HOME_DIR/actions-runner[^/]+/_work/[^/]+/[^/]+")
+            if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              SIZE_BEFORE=$(du -sh "$turbo_dir" 2>/dev/null | awk '{print $1}')
+              rm -rf "$turbo_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE .turbo: $turbo_dir" || true
+            fi
+          done
           
           echo ""
           echo "📊 Disk usage after emergency cleanup:"
@@ -563,12 +597,39 @@ jobs:
           echo "💾 Disk usage: ${DISK_USAGE_AFTER}% (${DISK_AVAIL_AFTER} available)"
           
           FREED=$((DISK_USAGE - DISK_USAGE_AFTER))
-          echo "✅ Freed: ${FREED}% disk space"
+          if [ "$FREED" -gt 0 ]; then
+            echo "✅ Freed: ${FREED}% disk space"
+          else
+            echo "⚠️  Freed: 0% disk space (no files met age threshold)"
+          fi
           
+          # Show what's taking up space
+          echo ""
+          echo "📊 Top disk usage on runner:"
+          du -sh "$HOME_DIR"/actions-runner*/_work/* 2>/dev/null | sort -rh | head -5 || true
+          
+          # Decide whether to fail or continue
           if [ "$DISK_USAGE_AFTER" -ge 95 ]; then
-            echo "❌ CRITICAL: Still at ${DISK_USAGE_AFTER}% after cleanup - failing job"
-            echo "   Manual intervention required on runner"
-            exit 1
+            if [ "$FREED" -gt 0 ]; then
+              echo "⚠️  WARNING: Still at ${DISK_USAGE_AFTER}% after cleanup, but freed ${FREED}%"
+              echo "   Attempting to proceed - job may fail if more space is needed"
+            else
+              echo "❌ CRITICAL: Still at ${DISK_USAGE_AFTER}% after cleanup and freed 0%"
+              echo "   All work directories are either:"
+              echo "   - Currently in use by active jobs"
+              echo "   - Created within the last $AGE_THRESHOLD day(s)"
+              echo ""
+              echo "🔍 Diagnosis - Active work directories:"
+              find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d 2>/dev/null | while read work_dir; do
+                MTIME=$(stat -f %m "$work_dir" 2>/dev/null || stat -c %Y "$work_dir" 2>/dev/null || echo "0")
+                AGE_DAYS=$(( ($(date +%s) - MTIME) / 86400 ))
+                SIZE=$(du -sh "$work_dir" 2>/dev/null | awk '{print $1}')
+                echo "   - $work_dir: $SIZE, age: ${AGE_DAYS} days"
+              done
+              echo ""
+              echo "   Manual intervention required on runner $(hostname)"
+              exit 1
+            fi
           elif [ "$DISK_USAGE_AFTER" -ge 90 ]; then
             echo "⚠️  WARNING: Still at ${DISK_USAGE_AFTER}% after cleanup"
             echo "   Job will proceed but may fail due to space"
