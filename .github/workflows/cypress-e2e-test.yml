@@ -587,7 +587,8 @@ jobs:
           echo "🗑️  Step 1: Cleaning Go upstream builds (age: >$AGE_THRESHOLD days)..."
           UPSTREAM_CLEANED=0
           find "$HOME_DIR"/actions-runner*/_work -type d -path "*/packages/*/upstream" -mtime +$AGE_THRESHOLD 2>/dev/null | while read upstream_dir; do
-            work_dir=$(echo "$upstream_dir" | grep -oP "$HOME_DIR/actions-runner[^/]+/_work/[^/]+/[^/]+")
+            # Extract work_dir by going up to odh-dashboard parent
+            work_dir=$(echo "$upstream_dir" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
             if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
               rm -rf "$upstream_dir" 2>/dev/null && echo "   ✅ Cleaned: $upstream_dir" && UPSTREAM_CLEANED=$((UPSTREAM_CLEANED + 1)) || true
             fi
@@ -627,7 +628,8 @@ jobs:
           echo ""
           echo "🗑️  Step 5: Cleaning node_modules in old work dirs (age: >$AGE_THRESHOLD days)..."
           find "$HOME_DIR"/actions-runner*/_work -type d -name "node_modules" -mtime +$AGE_THRESHOLD 2>/dev/null | while read nm_dir; do
-            work_dir=$(echo "$nm_dir" | grep -oP "$HOME_DIR/actions-runner[^/]+/_work/[^/]+/[^/]+")
+            # Extract work_dir by going up to odh-dashboard parent
+            work_dir=$(echo "$nm_dir" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
             if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
               SIZE_BEFORE=$(du -sh "$nm_dir" 2>/dev/null | awk '{print $1}')
               rm -rf "$nm_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE node_modules: $nm_dir" || true
@@ -637,7 +639,8 @@ jobs:
           echo ""
           echo "🗑️  Step 6: Cleaning .turbo cache in old work dirs (age: >$AGE_THRESHOLD days)..."
           find "$HOME_DIR"/actions-runner*/_work -type d -name ".turbo" -mtime +$AGE_THRESHOLD 2>/dev/null | while read turbo_dir; do
-            work_dir=$(echo "$turbo_dir" | grep -oP "$HOME_DIR/actions-runner[^/]+/_work/[^/]+/[^/]+")
+            # Extract work_dir by going up to odh-dashboard parent
+            work_dir=$(echo "$turbo_dir" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
             if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
               SIZE_BEFORE=$(du -sh "$turbo_dir" 2>/dev/null | awk '{print $1}')
               rm -rf "$turbo_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE .turbo: $turbo_dir" || true
