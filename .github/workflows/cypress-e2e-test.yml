@@ -593,15 +593,69 @@ jobs:
           fi
 
           WEBPACK_PORT=$((BASE_PORT + MATRIX_OFFSET))
-
-          # Store port info with run_id for cleanup tracking
           PORT_INFO_DIR="/tmp/gha-ports"
           mkdir -p "$PORT_INFO_DIR"
+          
+          echo "📍 Calculated port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
+          
+          # SAFE port conflict resolution - only clean orphaned processes
+          if lsof -ti:${WEBPACK_PORT} > /dev/null 2>&1; then
+            echo "⚠️  Port ${WEBPACK_PORT} is currently in use - checking ownership..."
+            
+            PORT_OWNER_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+            if [ -f "$PORT_OWNER_FILE" ]; then
+              OWNER_RUN_ID=$(cat "$PORT_OWNER_FILE")
+              FILE_AGE=$(($(date +%s) - $(stat -f %m "$PORT_OWNER_FILE" 2>/dev/null || stat -c %Y "$PORT_OWNER_FILE" 2>/dev/null)))
+              
+              # Only kill if the owning run is OLD (>30 minutes = likely completed/stuck)
+              if [ "$FILE_AGE" -gt 1800 ]; then
+                echo "🧹 Port owned by old run_id $OWNER_RUN_ID (${FILE_AGE}s old) - cleaning up..."
+                PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
+                if [ -n "$PORT_PID" ]; then
+                  pkill -P "$PORT_PID" 2>/dev/null || true
+                  kill -9 "$PORT_PID" 2>/dev/null || true
+                  sleep 2
+                  if lsof -ti:${WEBPACK_PORT} > /dev/null 2>&1; then
+                    echo "❌ Failed to clean orphaned process - port still in use"
+                    echo "   This may require manual intervention on the runner"
+                    exit 1
+                  else
+                    echo "✅ Successfully cleaned orphaned process"
+                  fi
+                fi
+              else
+                echo "⚠️  Port owned by recent run_id $OWNER_RUN_ID (${FILE_AGE}s old)"
+                echo "   This is likely an active parallel PR test - DO NOT KILL"
+                echo "❌ Port conflict detected - please retry workflow in a few minutes"
+                exit 1
+              fi
+            else
+              echo "⚠️  Port in use but no owner info found - checking process age..."
+              PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
+              if [ -n "$PORT_PID" ]; then
+                # Check process start time (macOS: -o etime, Linux: -o etimes)
+                PROCESS_AGE=$(ps -o etimes= -p "$PORT_PID" 2>/dev/null || echo "unknown")
+                if [ "$PROCESS_AGE" != "unknown" ] && [ "$PROCESS_AGE" -gt 1800 ]; then
+                  echo "🧹 Orphaned process (${PROCESS_AGE}s old) - cleaning up..."
+                  pkill -P "$PORT_PID" 2>/dev/null || true
+                  kill -9 "$PORT_PID" 2>/dev/null || true
+                  sleep 2
+                else
+                  echo "❌ Port in use by recent process - may be parallel PR test"
+                  echo "   Please retry workflow in a few minutes"
+                  exit 1
+                fi
+              fi
+            fi
+          else
+            echo "✅ Port ${WEBPACK_PORT} is available"
+          fi
+
+          # Store port info with run_id for cleanup tracking
           echo "${{ github.run_id }}" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
 
           echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
           echo "PORT_INFO_FILE=$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id" >> $GITHUB_ENV
-          echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
 
       - name: Cleanup old test artifacts
         continue-on-error: true
