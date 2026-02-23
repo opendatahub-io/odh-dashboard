@@ -34,9 +34,6 @@ func (app *App) LogError(r *http.Request, err error) {
 	logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
-// TODO: remove nolint comment below when we use this method
-//
-//nolint:unused
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadRequest,

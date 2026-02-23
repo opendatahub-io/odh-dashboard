@@ -1341,6 +1341,18 @@ class ModelServingWizard extends Wizard {
   findReviewStepModelDetailsSection() {
     return cy.findByTestId('review-step-model-details');
   }
+
+  findYAMLViewerToggle(name: 'YAML' | 'Form') {
+    return cy.findByRole('button', { name });
+  }
+
+  findYAMLCodeEditor() {
+    return cy.findByTestId('yaml-editor');
+  }
+
+  findYAMLEditorEmptyState() {
+    return cy.findByTestId('yaml-editor-empty-state');
+  }
 }
 
 export const modelServingGlobal = new ModelServingGlobal();

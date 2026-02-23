@@ -1,132 +1,162 @@
-# Mod Arch UI
+# AutoRAG
 
-## Overview
+Automated Retrieval-Augmented Generation (RAG) optimization for Red Hat OpenShift AI.
 
-The Mod Arch UI is a standalone web app for Kubeflow Mod Arch. In this repository, you will find the frontend and backend for the Mod Arch UI.
+## What is AutoRAG?
+
+AutoRAG is an intelligent system that automatically discovers optimal configurations for Retrieval-Augmented Generation (RAG) applications. Instead of manually tuning RAG parameters through trial and error, AutoRAG:
+
+- **Automates parameter exploration** using the ai4rag optimization engine
+- **Orchestrates experiments** through Kubeflow Pipelines
+- **Evaluates configurations** against your test datasets using quality metrics
+- **Generates deployable artifacts** (RAG Patterns) ready for production use
+
+This systematic approach helps data scientists and ML engineers build higher-quality RAG applications faster.
+
+## About This Project
+
+This repository contains the **web interface and backend service** for AutoRAG within the ODH Dashboard ecosystem. It provides:
+
+- **React Frontend**: PatternFly v6-based UI for managing AutoRAG workflows (currently placeholder implementation)
+- **Go BFF (Backend-for-Frontend)**: API gateway that serves static assets, handles authentication, and facilitates cluster integration
+
+**Current Maturity**: This is an early-stage project with functional infrastructure but limited UI features. The architecture supports three deployment modes (standalone, kubeflow, federated), with the BFF currently providing essential authentication and cluster access capabilities.
 
 ## Contributing
 
-You can check the [contributing guidelines] for more information on how to contribute to the Mod Arch UI.
+See the [Contributing Guide](CONTRIBUTING.md) for development workflows, setup instructions, and contribution guidelines.
 
-## Quick Install
+For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md](/CONTRIBUTING.md).
 
-Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
+## Prerequisites
+
+- **[Node.js](https://nodejs.org/)**: v22.0.0 or later
+- **[Go](https://go.dev/)**: v1.24.3 or later
+- **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
+
+## Project Structure
+
+```text
+packages/autorag/
+├── api/openapi/
+│   └── autorag.yaml         # OpenAPI 3.0 specification
+├── bff/                     # Go Backend-for-Frontend
+│   ├── cmd/main.go          # Application entry point
+│   ├── internal/            # BFF implementation
+│   ├── go.mod               # Go dependencies
+│   └── Makefile             # BFF build commands
+├── frontend/                # React Frontend application
+│   ├── src/                 # Source code
+│   ├── config/              # Webpack & Module Federation
+│   └── package.json         # Frontend dependencies
+├── docs/                    # Documentation
+├── Dockerfile               # Multi-stage container build
+├── Makefile                 # Build and development commands
+└── package.json             # Module Federation config
+```
+
+## Quick Start
+
+### Environment Configuration
+
+For local development, make sure to create a `.env.local` file in `/packages/autorag` using the accompanying `.env.local.example` to customize environment variables:
 
 ```bash
-npx mod-arch-installer my-module --flavor kubeflow
+# Copy the example environment file to create your local configuration
+cp .env.local.example .env.local
 ```
 
-See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
+Environment variables can be updated in the `.env.local` file based on your local setup requirements.
+The `.env.local` file is gitignored and should never be committed.
 
-## OpenAPI Specification
+### Frontend Development
 
-You can find the OpenAPI specification for the Mod Arch UI in the [openapi](./api/openapi) directory.
-[Open the spec in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubeflow/mod-arch/main/clients/ui/api/openapi/mod-arch.yaml).
+```bash
+# Navigate to the frontend directory
+cd frontend
 
-## Targeted environments
+# Install dependencies
+npm install
 
-There's two main environments that the Mod Arch UI is targeted for:
-
-1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/namespace` endpoint that returns all the namespaces in the cluster and the UI sends a user header `kubeflow-user` to authenticate the calls.
-
-2. **Kubeflow**: This is the environment where the UI is served by the Kubeflow Ingress and the BFF is served by the Kubeflow API Gateway. The BFF is responsible for serving the API requests and namespace selection is leveraged from Kubeflow.
-
-## Environment Variables
-
-The following environment variables are used to configure the deployment and development environment for the Mod Arch UI. These variables should be defined in a `.env.local` file in the `clients/ui` directory of the project. **This values will affect the build and push commands**.
-
-### `CONTAINER_TOOL`
-
-- **Description**: Specifies the container tool to be used for building and running containers.
-- **Default Value**: `docker`
-- **Possible Values**: `docker`, `podman`, etc.
-- **Example**: `CONTAINER_TOOL=docker`
-
-### `IMG_UI`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF).
-- **Default Value**: `ghcr.io/kubeflow/mod-arch/ui:latest`
-- **Example**: `IMG_UI=ghcr.io/kubeflow/mod-arch/ui:latest`
-
-### `IMG_UI_STANDALONE`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **standalone mode**, used for local kind deployment.
-- **Default Value**: `ghcr.io/kubeflow/mod-arch/ui-standalone:latest`
-- **Example**: `IMG_UI_STANDALONE=ghcr.io/kubeflow/mod-arch/ui-standalone:latest`
-
-### `IMG_UI_FEDERATED`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used for federated mode outside kubeflow.
-- **Default Value**: `ghcr.io/kubeflow/mod-arch/ui-federated:latest`
-- **Example**: `IMG_UI_FEDERATED=ghcr.io/kubeflow/mod-arch/ui-federated:latest`
-
-### `PLATFORM`
-
-- **Description**: Specifies the platform for a **docker buildx** build.
-- **Default Value**: `linux/amd64`
-- **Example**: `PLATFORM=linux/amd64`
-
-### `DEPLOYMENT_MODE`
-
-- **Description**: Specifies the deployment mode for the UI.
-- **Default Value**: `standalone`
-- **Note**: This variable is used to determine how the UI is built and deployed.
-- **Possible Values**: `standalone`, `kubeflow`, `federated`
-- **Example**: `DEPLOYMENT_MODE=standalone`
-
-### `STYLE_THEME`
-
-- **Description**: Specifies the theme/styling framework to be used for the UI.
-- **Default Value**: `mui-theme`
-- **Possible Values**: `mui-theme`, `patternfly-theme`
-- **Example**: `STYLE_THEME=mui-theme`
-
-### Example `.env.local` File
-
-Here is an example of what your `.env.local` file might look like:
-
-```shell
-CONTAINER_TOOL=docker
-IMG_UI=quay.io/<personal-registry>/mod-arch-ui:latest
-IMG_UI_STANDALONE=quay.io/<personal-registry>/mod-arch-ui-standalone:latest
-PLATFORM=linux/amd64
+# Start development server
+npm run start:dev
 ```
 
-## Build and Push Commands
+The standalone frontend will be available at **http://localhost:9000**
 
-The following Makefile targets are used to build and push the Docker images the UI images. These targets utilize the environment variables defined in the `.env.local` file.
+### Backend (BFF) Development
 
-### Build Commands
+```bash
+# Navigate to the BFF directory
+cd bff
 
-- **`docker-build`**: Builds the Docker image for the UI platform.
-  - Command: `make docker-build`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+# Start BFF with mocked Kubernetes and HTTP clients
+make run
+```
 
-- **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
-  - Command: `make docker-buildx`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+**Without Mocks** (requires Kubernetes cluster access):
 
-- **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
-  - Command: `make docker-build-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+```bash
+cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=standalone
+```
 
-- **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
-  - Command: `make docker-buildx-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+### Running Both Together
 
-### Push Commands
+**Standalone Mode (Recommended for local development):**
 
-- **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
-  - Command: `make docker-push`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+```bash
+# From the autorag package root, start both frontend and BFF in mocked mode
+make dev-start
+```
 
-- **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
-  - Command: `make docker-push-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+Then access the app at **http://localhost:9000**
 
-## Deployments
+**Federated Mode (for testing ODH Dashboard integration):**
 
-For more information on how to deploy the Mod Arch UI, please refer to the [Mod arch UI] documentation.
+```bash
+# From the autorag package root, start AutoRAG as a micro-frontend
+make dev-start-federated
+```
 
-[Mod arch UI]: ./docs/README.md
-[contributing guidelines]: ./CONTRIBUTING.md
+**Important:** You must also run the main ODH Dashboard separately (from repo root: `npm run dev`). Then access AutoRAG through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoRAG option in the side navigation.
+
+### Deployment Modes
+
+AutoRAG supports three deployment configurations:
+
+1. **Standalone**: Local development with BFF serving UI and APIs (default)
+2. **Kubeflow**: Integration with Kubeflow Dashboard (Material UI theme)
+3. **Federated**: Micro-frontend loaded by ODH/RHOAI dashboard (PatternFly theme)
+
+```bash
+# Start in standalone mode
+make dev-start
+
+# Start in Kubeflow mode
+make dev-start-kubeflow
+
+# Start in federated mode
+make dev-start-federated
+```
+
+## Docker Deployment
+
+Docker deployment documentation is coming soon. For now, please use the local development setup described above in the Quick Start section.
+
+## Configuration
+
+Key environment variables for the BFF:
+
+| Variable            | Description                              | Default    |
+|---------------------|------------------------------------------|------------|
+| `PORT`              | HTTP server port                         | 4000       |
+| `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
+| `DEV_MODE`          | Enables development features             | false      |
+| `MOCK_K8S_CLIENT`   | Use in-memory mock for Kubernetes        | false      |
+| `MOCK_HTTP_CLIENT`  | Use in-memory mock for HTTP client       | false      |
+| `STATIC_ASSETS_DIR` | Directory for frontend assets            | ./static   |
+| `LOG_LEVEL`         | Logging level (ERROR, WARN, INFO, DEBUG) | INFO       |
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the LICENSE file in the repository root for details.

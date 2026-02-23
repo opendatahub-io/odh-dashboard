@@ -52,108 +52,6 @@ var (
 	testScheme    *runtime.Scheme
 )
 
-// TestMain sets up envtest for ALL tests (both regular Go tests and Ginkgo tests).
-// This is called once before any tests run and handles cleanup after all tests complete.
-func TestMain(m *testing.M) {
-	logf.SetLogger(zap.New(zap.UseDevMode(true)))
-
-	ctx, cancel = context.WithCancel(context.TODO())
-
-	testScheme = runtime.NewScheme()
-	err := clientgoscheme.AddToScheme(testScheme)
-	if err != nil {
-		logf.Log.Error(err, "failed to add Kubernetes types to scheme")
-		os.Exit(1)
-	}
-
-	err = lsdapi.AddToScheme(testScheme)
-	if err != nil {
-		logf.Log.Error(err, "failed to add LlamaStackDistribution types to scheme")
-		os.Exit(1)
-	}
-
-	err = kservev1alpha1.AddToScheme(testScheme)
-	if err != nil {
-		logf.Log.Error(err, "failed to add KServe v1alpha1 types to scheme")
-		os.Exit(1)
-	}
-
-	err = kservev1beta1.AddToScheme(testScheme)
-	if err != nil {
-		logf.Log.Error(err, "failed to add KServe v1beta1 types to scheme")
-		os.Exit(1)
-	}
-
-	err = gorchv1alpha1.AddToScheme(testScheme)
-	if err != nil {
-		logf.Log.Error(err, "failed to add GuardrailsOrchestrator (gorch) types to scheme")
-		os.Exit(1)
-	}
-
-	logf.Log.Info("bootstrapping test environment")
-	binaryDir, err := getFirstFoundEnvTestBinaryDir()
-	if err != nil {
-		logf.Log.Error(err, "failed to resolve envtest binary directory")
-		os.Exit(1)
-	}
-	testEnv = &envtest.Environment{
-		BinaryAssetsDirectory:    binaryDir,
-		ControlPlaneStartTimeout: 60 * time.Second,
-		ControlPlaneStopTimeout:  60 * time.Second,
-		CRDs: []*apiextensionsv1.CustomResourceDefinition{
-			k8smocks.CreateLlamaStackDistributionCRD(),
-			k8smocks.CreateGuardrailsOrchestratorCRD(),
-		},
-	}
-
-	testCfg, err = testEnv.Start()
-	if err != nil {
-		logf.Log.Error(err, "failed to start test environment")
-		os.Exit(1)
-	}
-	if testCfg == nil {
-		logf.Log.Error(nil, "testCfg is nil after starting test environment")
-		os.Exit(1)
-	}
-
-	testK8sClient, err = client.New(testCfg, client.Options{Scheme: testScheme})
-	if err != nil {
-		logf.Log.Error(err, "failed to create controller-runtime client")
-		os.Exit(1)
-	}
-	if testK8sClient == nil {
-		logf.Log.Error(nil, "testK8sClient is nil after creation")
-		os.Exit(1)
-	}
-
-	err = k8smocks.SetupMock(testK8sClient, ctx)
-	if err != nil {
-		logf.Log.Error(err, "failed to setup mock data")
-		os.Exit(1)
-	}
-
-	code := m.Run()
-
-	// Find PID before stopping (needs to happen while envtest is still running)
-	apiServerPID := k8smocks.FindAPIServerPID()
-	testEnvState := &k8smocks.TestEnvState{
-		Env:          testEnv,
-		APIServerPID: apiServerPID,
-		Ctx:          ctx,
-		Cancel:       cancel,
-	}
-
-	// Use proper cleanup instead of just testEnv.Stop()
-	// This handles the Linux issue where envtest.Stop() fails to reap child processes
-	k8smocks.CleanupTestEnvState(
-		testEnvState,
-		func(format string, args ...interface{}) { logf.Log.Error(nil, fmt.Sprintf(format, args...)) },
-		func(format string, args ...interface{}) { logf.Log.Info(fmt.Sprintf(format, args...)) },
-	)
-
-	os.Exit(code)
-}
-
 // getFirstFoundEnvTestBinaryDir returns the envtest binary assets directory.
 // ENVTEST_ASSETS is set by "make test"; when unset (e.g. IDE or ad-hoc go test),
 // it locates the module root via go.mod and uses <moduleRoot>/bin/k8s/<version-dir>.
@@ -194,7 +92,6 @@ func getFirstFoundEnvTestBinaryDir() (string, error) {
 	return "", fmt.Errorf("no envtest version directory under %s (run make envtest)", basePath)
 }
 
-// TestAPIHandlers is the main test suite entry point for Ginkgo-based HTTP tests
 func TestAPIHandlers(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "API Handlers Suite")
@@ -212,9 +109,73 @@ type SharedTestContext struct {
 
 var testCtx *SharedTestContext
 
-// BeforeSuite sets up HTTP test infrastructure for Ginkgo tests only.
-// It relies on TestMain() having already initialized envtest.
+// BeforeSuite sets up test infrastructure (envtest and HTTP server) for all Ginkgo tests.
 var _ = BeforeSuite(func() {
+	By("Setting up envtest environment")
+
+	logf.SetLogger(zap.New(zap.UseDevMode(true)))
+
+	ctx, cancel = context.WithCancel(context.TODO())
+
+	testScheme = runtime.NewScheme()
+	err := clientgoscheme.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add Kubernetes types to scheme")
+
+	err = lsdapi.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add LlamaStackDistribution types to scheme")
+
+	err = kservev1alpha1.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add KServe v1alpha1 types to scheme")
+
+	err = kservev1beta1.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add KServe v1beta1 types to scheme")
+
+	err = gorchv1alpha1.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add GuardrailsOrchestrator (gorch) types to scheme")
+
+	logf.Log.Info("bootstrapping test environment")
+	binaryDir, err := getFirstFoundEnvTestBinaryDir()
+	Expect(err).NotTo(HaveOccurred(), "failed to resolve envtest binary directory")
+
+	testEnv = &envtest.Environment{
+		BinaryAssetsDirectory:    binaryDir,
+		ControlPlaneStartTimeout: 60 * time.Second,
+		ControlPlaneStopTimeout:  60 * time.Second,
+		CRDs: []*apiextensionsv1.CustomResourceDefinition{
+			k8smocks.CreateLlamaStackDistributionCRD(),
+			k8smocks.CreateGuardrailsOrchestratorCRD(),
+		},
+	}
+
+	testCfg, err = testEnv.Start()
+	Expect(err).NotTo(HaveOccurred(), "failed to start test environment")
+	Expect(testCfg).NotTo(BeNil(), "testCfg is nil after starting test environment")
+
+	DeferCleanup(func() {
+		By("tearing down envtest environment")
+
+		apiServerPID := k8smocks.FindAPIServerPID()
+		testEnvState := &k8smocks.TestEnvState{
+			Env:          testEnv,
+			APIServerPID: apiServerPID,
+			Ctx:          ctx,
+			Cancel:       cancel,
+		}
+
+		k8smocks.CleanupTestEnvState(
+			testEnvState,
+			func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+			func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+		)
+	})
+
+	testK8sClient, err = client.New(testCfg, client.Options{Scheme: testScheme})
+	Expect(err).NotTo(HaveOccurred(), "failed to create controller-runtime client")
+	Expect(testK8sClient).NotTo(BeNil(), "testK8sClient is nil after creation")
+
+	err = k8smocks.SetupMock(testK8sClient, ctx)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup mock data")
+
 	By("Setting up HTTP test infrastructure")
 
 	Expect(testK8sClient).NotTo(BeNil())
@@ -270,6 +231,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	server := httptest.NewServer(app.Routes())
+	DeferCleanup(func() {
+		By("tearing down HTTP test server")
+		server.Close()
+	})
 
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
@@ -279,6 +244,16 @@ var _ = BeforeSuite(func() {
 	By("Starting MLflow")
 	mlflowState, mlflowErr := mlflowmocks.SetupMLflow(logger)
 	Expect(mlflowErr).NotTo(HaveOccurred())
+	DeferCleanup(func() {
+		if mlflowState != nil {
+			By("stopping MLflow server")
+			mlflowmocks.CleanupMLflowState(
+				mlflowState,
+				func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+				func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+			)
+		}
+	})
 
 	testCtx = &SharedTestContext{
 		App:         app,
@@ -290,21 +265,6 @@ var _ = BeforeSuite(func() {
 	}
 
 	By("HTTP test environment setup complete")
-})
-
-var _ = AfterSuite(func() {
-	By("tearing down HTTP test environment")
-	if testCtx != nil && testCtx.Server != nil {
-		testCtx.Server.Close()
-	}
-	if testCtx != nil && testCtx.mlflowState != nil {
-		By("stopping MLflow server")
-		mlflowmocks.CleanupMLflowState(
-			testCtx.mlflowState,
-			func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
-			func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
-		)
-	}
 })
 
 // MakeRequest is a helper to make HTTP requests in tests

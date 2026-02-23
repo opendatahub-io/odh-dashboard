@@ -18,7 +18,7 @@ PATH_PREFIX ?= ""
 DISTRIBUTION_NAME ?= "rh-dev"
 
 # MLflow configuration
-MLFLOW_VERSION ?= 3.8.1
+MLFLOW_VERSION ?= 3.9.0
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
@@ -52,6 +52,7 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 .PHONY: test
 test: fmt vet envtest uv ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	go test ./...
 
 .PHONY: build
@@ -61,6 +62,7 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 .PHONY: run
 run: fmt vet envtest uv ## Runs the project.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 .PHONY: debug
@@ -68,6 +70,7 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 	@echo "Starting BFF with Delve debugger on port 2345..."
 	@echo "In VSCode: Press F5 and select 'Attach to Delve (make dev-start-debug)'"
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	dlv debug ./cmd --headless --listen=:2345 --api-version=2 --accept-multiclient --continue -- \
 		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
