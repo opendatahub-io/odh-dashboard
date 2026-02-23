@@ -13,31 +13,45 @@ import {
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
+import { EnterYAMLEditModal } from './EnterYAMLEditModal';
 
 type DeploymentWizardYAMLViewProps = {
   code?: string;
   setCode: (code: string) => void;
+  viewMode: 'form' | 'yaml-preview' | 'yaml-edit';
+  setViewMode: (viewMode: 'form' | 'yaml-preview' | 'yaml-edit') => void;
 };
 
 export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> = ({
   code,
   setCode,
+  viewMode,
+  setViewMode,
 }) => {
   const { theme } = useThemeContext();
 
+  const [isEnterYAMLEditModalOpen, setIsEnterYAMLEditModalOpen] = React.useState(false);
+
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
-          <FlexItem>
-            <Tooltip content="Edit is not supported.">
-              <Button variant="primary" data-testid="manual-edit-mode-button" isAriaDisabled>
-                Enter Manual Edit Mode
-              </Button>
-            </Tooltip>
-          </FlexItem>
-        </Flex>
-      </StackItem>
+    <Stack hasGutter style={{ height: '100%' }}>
+      {viewMode === 'yaml-preview' && (
+        <StackItem>
+          <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
+            <FlexItem>
+              <Tooltip content="Edit is not supported.">
+                <Button
+                  variant="primary"
+                  data-testid="manual-edit-mode-button"
+                  // isAriaDisabled
+                  onClick={() => setIsEnterYAMLEditModalOpen(true)}
+                >
+                  Enter Manual Edit Mode
+                </Button>
+              </Tooltip>
+            </FlexItem>
+          </Flex>
+        </StackItem>
+      )}
       <StackItem isFilled data-testid="yaml-editor">
         <CodeEditor
           emptyState={
@@ -62,11 +76,20 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
           isDarkTheme={theme === 'dark'}
           isLanguageLabelVisible
           isFullHeight
-          isReadOnly
+          isReadOnly={viewMode === 'yaml-preview'}
           isCopyEnabled
           isDownloadEnabled
         />
       </StackItem>
+      {isEnterYAMLEditModalOpen && (
+        <EnterYAMLEditModal
+          onClose={() => setIsEnterYAMLEditModalOpen(false)}
+          onConfirm={() => {
+            setIsEnterYAMLEditModalOpen(false);
+            setViewMode('yaml-edit');
+          }}
+        />
+      )}
     </Stack>
   );
 };
