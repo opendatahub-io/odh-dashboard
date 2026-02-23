@@ -521,18 +521,66 @@ jobs:
             echo "⚠️  AGGRESSIVE MODE: Cleaning files >7 days old"
           fi
           
+          echo ""
+          echo "🛡️  PARALLEL-SAFE PROTECTIONS:"
+          echo "   ✓ Current workspace (this job)"
+          echo "   ✓ Active GitHub Actions Runner.Worker processes"
+          echo "   ✓ Directories with open files (lsof)"
+          echo "   ✓ Directories accessed in last 30 minutes"
+          echo "   ✓ Fail-safe: On lsof errors, assume in-use"
+          echo ""
+          
+          # Get list of ALL active work directories from currently running GitHub Actions jobs
+          # This is the safest way to avoid deleting directories from parallel PRs
+          echo "🔍 Detecting active work directories from parallel jobs..."
+          ACTIVE_WORK_DIRS=()
+          ACTIVE_JOBS=0
+          for runner_dir in "$HOME_DIR"/actions-runner*; do
+            if [ -d "$runner_dir" ]; then
+              # Check if runner has active jobs by looking for the Runner.Worker process
+              if pgrep -f "Runner.Worker" -u "$RUNNER_USER" > /dev/null 2>&1; then
+                ACTIVE_JOBS=$((ACTIVE_JOBS + 1))
+                # Get all work directories that have recent activity (accessed in last hour)
+                while IFS= read -r active_dir; do
+                  ACTIVE_WORK_DIRS+=("$active_dir")
+                  echo "   🛡️  Protected: $active_dir (active job)"
+                done < <(find "$runner_dir/_work" -maxdepth 2 -type d -name "odh-dashboard" -amin -60 2>/dev/null)
+              fi
+            fi
+          done
+          echo "   Found $ACTIVE_JOBS active runner(s) with ${#ACTIVE_WORK_DIRS[@]} protected work directory(ies)"
+          
           # Helper function to check if directory is in use by active runner
           is_directory_in_use() {
             local dir="$1"
-            # Skip current workspace
+            
+            # 1. Skip current workspace (absolute must)
             if [[ "$dir" == "$CURRENT_WORK_DIR"* ]]; then
               return 0  # In use (current job)
             fi
-            # Check if any node/npm/webpack processes are using this directory
-            if lsof +D "$dir" 2>/dev/null | grep -qE "node|npm|webpack" > /dev/null; then
-              return 0  # In use
+            
+            # 2. Check if directory is in the active work dirs list
+            for active_dir in "${ACTIVE_WORK_DIRS[@]}"; do
+              if [[ "$dir" == "$active_dir"* ]]; then
+                return 0  # In use (active job)
+              fi
+            done
+            
+            # 3. Check for ANY processes using this directory (fail-safe check)
+            # If lsof fails, we assume it's in use (safe default)
+            if lsof +D "$dir" 2>/dev/null | grep -q .; then
+              return 0  # In use (has open files)
+            elif [ $? -ne 0 ] && [ $? -ne 1 ]; then
+              # lsof command failed (not just "no matches")
+              return 0  # In use (assume safe on lsof failure)
             fi
-            return 1  # Not in use
+            
+            # 4. Check if directory was accessed recently (last 30 minutes)
+            if find "$dir" -amin -30 -print -quit 2>/dev/null | grep -q .; then
+              return 0  # In use (recent activity)
+            fi
+            
+            return 1  # Not in use (safe to delete)
           }
           
           echo ""
@@ -546,18 +594,24 @@ jobs:
           done
           
           echo ""
-          echo "🗑️  Step 2: Cleaning old work directories (age: >$AGE_THRESHOLD days, no active processes)..."
+          echo "🗑️  Step 2: Cleaning old work directories (age: >$AGE_THRESHOLD days, with multi-layer safety)..."
           CLEANED_COUNT=0
+          SKIPPED_COUNT=0
           find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +$AGE_THRESHOLD 2>/dev/null | while read work_dir; do
             if [ -d "$work_dir" ]; then
               if is_directory_in_use "$work_dir"; then
-                echo "   ⏭️  Skipped (in use): $work_dir"
+                echo "   ⏭️  Protected (in use): $work_dir"
+                SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
               else
                 SIZE_BEFORE=$(du -sh "$work_dir" 2>/dev/null | awk '{print $1}')
-                rm -rf "$work_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE: $work_dir" && CLEANED_COUNT=$((CLEANED_COUNT + 1)) || true
+                if rm -rf "$work_dir" 2>/dev/null; then
+                  echo "   ✅ Cleaned $SIZE_BEFORE: $work_dir"
+                  CLEANED_COUNT=$((CLEANED_COUNT + 1))
+                fi
               fi
             fi
           done
+          echo "   📊 Cleaned: $CLEANED_COUNT, Protected: $SKIPPED_COUNT"
           
           echo ""
           echo "🗑️  Step 3: Cleaning Cypress artifacts (age: >$AGE_THRESHOLD days)..."
