@@ -103,6 +103,11 @@ type EnvConfig struct {
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
 
+	// ─── SERVICE URLS ───────────────────────────────────────────
+	// LlamaStack service URL configuration
+	// If set, overrides the automatic service discovery from LlamaStackDistribution resource
+	LlamaStackURL string
+
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)

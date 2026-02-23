@@ -154,9 +154,7 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 // AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
 // This middleware must be used after AttachNamespace middleware.
 //
-// TODO: Implement full service discovery to get the LlamaStack URL from the namespace-specific
-// LlamaStackDistribution resource's status.serviceURL field (similar to gen-ai BFF).
-// For now, uses a placeholder URL pattern.
+// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceURL field.
 func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -179,25 +177,69 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			// In mock mode, use empty URL since mock factory ignores it
 			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
 		} else {
-			// TODO: Implement proper service discovery:
-			// 1. Query Kubernetes for LlamaStackDistribution in namespace
-			// 2. Extract status.serviceURL from the resource
-			// 3. Get auth token from secrets if needed
-			// For now, use placeholder URL pattern
-			baseURL := fmt.Sprintf("http://llamastack.%s.svc.cluster.local:8080", namespace)
-			authToken := "" // TODO: Retrieve from secrets
-			insecureSkipVerify := false
-			apiPath := "/v1"
+			var serviceURL string
+			// Use environment variable if explicitly set (developer override)
+			if app.config.LlamaStackURL != "" {
+				serviceURL = app.config.LlamaStackURL
+				logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
+					"namespace", namespace,
+					"serviceURL", serviceURL)
+			} else {
+				identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+				if !ok || identity == nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+					return
+				}
 
-			logger.Debug("Creating LlamaStack client for namespace (placeholder URL)",
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+					return
+				}
+
+				lsdList, err := k8sClient.GetLlamaStackDistributions(ctx, identity, namespace)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get LlamaStackDistributions: %w", err))
+					return
+				}
+
+				if len(lsdList.Items) == 0 {
+					app.serverErrorResponse(w, r, fmt.Errorf("no LlamaStackDistribution found in namespace %q", namespace))
+					return
+				}
+				if len(lsdList.Items) > 1 {
+					logger.Warn(fmt.Sprintf("warning: %d LlamaStackDistributions found in namespace %q, using the first", len(lsdList.Items), namespace))
+				}
+
+				lsd := lsdList.Items[0]
+				serviceURL = lsd.Status.ServiceURL
+
+				if serviceURL == "" {
+					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service url", lsd.Name))
+					return
+				}
+
+				logger.Debug("Using ServiceURL from LlamaStackDistribution",
+					"namespace", namespace,
+					"lsdName", lsd.Name,
+					"serviceURL", serviceURL)
+			}
+
+			logger.Debug("Creating LlamaStack client for namespace",
 				"namespace", namespace,
-				"baseURL", baseURL)
+				"serviceURL", serviceURL)
 
 			// Create LlamaStack client per-request using app factory
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, authToken, insecureSkipVerify, app.rootCAs, apiPath)
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}
 
-		// Attach client to context for use by handler/repository
+		// Attach ready-to-use client to context
 		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
 		r = r.WithContext(ctx)
 

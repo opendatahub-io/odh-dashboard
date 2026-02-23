@@ -7,13 +7,18 @@ import (
 	"strings"
 	"time"
 
+	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type TokenKubernetesClient struct {
@@ -80,10 +85,22 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Create controller-runtime client for CRD access
+	runtimeScheme := runtime.NewScheme()
+	_ = scheme.AddToScheme(runtimeScheme)
+	_ = lsdapi.AddToScheme(runtimeScheme)
+
+	runtimeClient, err := client.New(cfg, client.Options{Scheme: runtimeScheme})
+	if err != nil {
+		logger.Error("failed to create controller-runtime client", "error", err)
+		return nil, fmt.Errorf("failed to create runtime client: %w", err)
+	}
+
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
+			Client:        clientset,
+			RuntimeClient: runtimeClient,
+			Logger:        logger,
 			// Token is retained for follow-up calls; do not log it.
 			Token: NewBearerToken(token),
 		},
@@ -251,4 +268,27 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	}
 
 	return resp.Status.Allowed, nil
+}
+
+// GetLlamaStackDistributions retrieves LlamaStackDistribution resources from the specified namespace.
+func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	lsdList := &lsdapi.LlamaStackDistributionList{}
+
+	listOptions := &client.ListOptions{
+		Namespace: namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			OpenDataHubDashboardLabelKey: "true",
+		}),
+	}
+
+	err := kc.RuntimeClient.List(ctx, lsdList, listOptions)
+	if err != nil {
+		kc.Logger.Error("failed to list LlamaStackDistributions", "error", err, "namespace", namespace)
+		return nil, err
+	}
+
+	return lsdList, nil
 }

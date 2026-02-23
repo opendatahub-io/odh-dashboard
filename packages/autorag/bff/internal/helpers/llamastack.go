@@ -3,17 +3,10 @@ package helper
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 )
-
-// GetContextLlamaStackClientFromReq safely retrieves the LlamaStack client from the HTTP request context.
-// Returns an error if the client is not found or is nil.
-func GetContextLlamaStackClientFromReq(r *http.Request) (llamastack.LlamaStackClientInterface, error) {
-	return GetContextLlamaStackClient(r.Context())
-}
 
 // GetContextLlamaStackClient safely retrieves the LlamaStack client from the given context.
 // Returns an error if the client is not found or is nil.
