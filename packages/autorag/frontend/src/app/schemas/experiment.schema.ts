@@ -1,43 +1,24 @@
 import * as z from 'zod';
+import { createSchema } from '../utilities/schema';
 
-// Make sure every field has a default to ensure RHF works as intended.
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-function createExperimentSchema() {
-  return z
-    .object({
-      name: z.string().min(1).default(''),
-      description: z.string().default('').optional(),
-    })
-    .superRefine((data, { addIssue }) => {
-      for (const validate of VALIDATORS) {
-        for (const issue of validate(data)) {
-          addIssue(issue);
-        }
+const { schema: experimentSchema, isFieldRequired } = createSchema(
+  // Make sure all fields (including optional ones) have a default to ensure RHF works as intended.
+  z.object({
+    name: z.string().min(1).default(''),
+    description: z.string().default('').optional(),
+  }),
+  [],
+  /* eslint-disable no-param-reassign */
+  [
+    (data) => {
+      if (data.description === '') {
+        delete data.description;
       }
-    })
-    .transform((data) => {
-      for (const transform of TRANSFORMERS) {
-        transform(data);
-      }
-      return data;
-    });
-}
+    },
+  ],
+  /* eslint-enable no-param-reassign */
+);
 
-export type ExperimentSchema = z.infer<ReturnType<typeof createExperimentSchema>>;
+export type ExperimentSchema = z.infer<typeof experimentSchema>;
 
-type Validator = (data: ExperimentSchema) => z.core.$ZodRawIssue[];
-type Transformer = (data: ExperimentSchema) => void;
-
-const VALIDATORS: Array<Validator> = [];
-
-/* eslint-disable no-param-reassign */
-const TRANSFORMERS: Array<Transformer> = [
-  (data) => {
-    if (data.description === '') {
-      delete data.description;
-    }
-  },
-];
-/* eslint-enable no-param-reassign */
-
-export default createExperimentSchema;
+export { experimentSchema, isFieldRequired };

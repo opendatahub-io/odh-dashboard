@@ -2,26 +2,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ActionGroup, Button, Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Navigate, useNavigate, useParams } from 'react-router';
-import createExperimentSchema from '~/app/schemas/experiment.schema';
-import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
-import { getRequiredFields } from '~/app/utilities/schema';
+import { useNavigate } from 'react-router';
+import { experimentSchema, isFieldRequired } from '~/app/schemas/experiment.schema';
+import { autoragConfigurePathname } from '~/app/utilities/routes';
 
 function AutoragCreate(): React.JSX.Element {
   const navigate = useNavigate();
-  const { namespace } = useParams();
 
-  const experimentSchema = createExperimentSchema();
-  const requiredFields = getRequiredFields(experimentSchema);
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(experimentSchema),
     defaultValues: experimentSchema.parse({}), // Clever way to pull default values out of zod schema.
   });
-
-  if (!namespace) {
-    return <Navigate to={autoragExperimentsPathname} replace />;
-  }
 
   return (
     <div>
@@ -30,16 +22,12 @@ function AutoragCreate(): React.JSX.Element {
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormGroup
-              fieldId={field.name}
-              label="Name"
-              isRequired={requiredFields.includes(field.name)}
-            >
+            <FormGroup fieldId={field.name} label="Name" isRequired={isFieldRequired(field.name)}>
               <TextInput
                 {...field}
                 id={field.name}
                 type="text"
-                isRequired={requiredFields.includes(field.name)}
+                isRequired={isFieldRequired(field.name)}
               />
             </FormGroup>
           )}
@@ -52,13 +40,9 @@ function AutoragCreate(): React.JSX.Element {
             <FormGroup
               fieldId={field.name}
               label="Description"
-              isRequired={requiredFields.includes(field.name)}
+              isRequired={isFieldRequired(field.name)}
             >
-              <TextArea
-                {...field}
-                id={field.name}
-                isRequired={requiredFields.includes(field.name)}
-              />
+              <TextArea {...field} id={field.name} isRequired={isFieldRequired(field.name)} />
             </FormGroup>
           )}
         />
@@ -68,7 +52,7 @@ function AutoragCreate(): React.JSX.Element {
             isDisabled={!form.formState.isValid}
             onClick={async () => {
               form.handleSubmit(() => {
-                navigate(`${autoragConfigurePathname}/${namespace}/FAKE_EXPERIMENT_ID`);
+                navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
               })();
             }}
           >
