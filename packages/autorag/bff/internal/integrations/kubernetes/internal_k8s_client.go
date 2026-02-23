@@ -184,6 +184,51 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	return allowed, nil
 }
 
+// GetSecrets lists secrets in a namespace.
+func (kc *InternalKubernetesClient) GetSecrets(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Verify the namespace exists first
+	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("namespace %s does not exist or is not accessible: %w", namespace, err)
+	}
+
+	// Check if user has permission to list secrets in the namespace
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Resource:  "secrets",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check secret list permissions", "namespace", namespace, "user", identity.UserID, "error", err)
+		return nil, fmt.Errorf("failed to check permissions to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	if !response.Status.Allowed {
+		kc.Logger.Warn("user not allowed to list secrets", "namespace", namespace, "user", identity.UserID)
+		return nil, fmt.Errorf("user %s does not have permission to list secrets in namespace %s", identity.UserID, namespace)
+	}
+
+	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list secrets", "namespace", namespace, "error", err)
+		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	return secretList.Items, nil
+}
+
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

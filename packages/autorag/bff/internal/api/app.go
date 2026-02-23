@@ -30,6 +30,7 @@ const (
 	HealthCheckPath = "/healthcheck"
 	UserPath        = ApiPathPrefix + "/user"
 	NamespacePath   = ApiPathPrefix + "/namespaces"
+	SecretsPath     = ApiPathPrefix + "/secrets"
 )
 
 type App struct {
@@ -140,6 +141,7 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(SecretsPath, app.GetSecretsHandler)
 
 	// App Router
 	appMux := http.NewServeMux()
