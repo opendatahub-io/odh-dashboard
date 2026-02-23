@@ -105,6 +105,7 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 		"run",
 		"--with", "llama-stack=="+version,
 		"--with", "milvus-lite",
+		"--with", "pymilvus",
 		"--with", "chardet",
 		"--with", "ollama",
 		"llama", "stack", "run", configPath,
