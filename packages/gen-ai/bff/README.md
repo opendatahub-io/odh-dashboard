@@ -183,6 +183,65 @@ curl -i -H "Authorization: Bearer $TOKEN" \
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default"
 ```
 
+**Filter MLflow Prompts by Name Prefix:**
+
+```bash
+# Returns only prompts whose name starts with "pet" (e.g. "pet-health-bella", "pet-adoption-letter")
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=pet"
+```
+
+**List MLflow Prompts with Pagination:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default&max_results=2"
+```
+
+**Create a Chat Prompt:**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default" \
+  -d '{"name":"my-prompt","messages":[{"role":"system","content":"You are helpful"},{"role":"user","content":"Hello {{name}}"}],"commit_message":"initial version"}'
+```
+
+**Create a Text Prompt:**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default" \
+  -d '{"name":"my-text-prompt","template":"Hello {{name}}, welcome to {{place}}!","commit_message":"initial version"}'
+```
+
+**Load a Prompt (latest version):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt?namespace=default"
+```
+
+**Load a Specific Version:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt?namespace=default&version=1"
+```
+
+**List Prompt Versions:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt/versions?namespace=default"
+```
+
+**Delete a Specific Version:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt/versions/1?namespace=default"
+```
+
+**Delete an Entire Prompt:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt?namespace=default"
+```
+
 #### Test Authentication (Should Fail)
 
 **Request without token:**
@@ -1013,6 +1072,9 @@ HTTP/1.1 204 No Content
 
 ```bash
 curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace"
+
+# Filter by name prefix (returns "pet-health-bella" and "pet-adoption-letter")
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace&filter_name=pet"
 ```
 
 **Expected Response (200 OK):**
@@ -1067,6 +1129,101 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 ```
 
 > **Note:** Timestamps and exact values will vary. Sample prompts are automatically seeded when the BFF starts MLflow as a child process. If using an externally managed MLflow instance, run `make mlflow-seed` (from `bff/`) to seed data manually.
+
+#### Register Chat Prompt (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer FAKE_BEARER_TOKEN" -H "Content-Type: application/json" \
+  "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace" \
+  -d '{"name":"test-prompt","messages":[{"role":"system","content":"You are helpful"},{"role":"user","content":"Hello {{name}}"}],"commit_message":"initial version"}'
+```
+
+**Expected Response (201 Created):**
+
+```json
+{
+  "data": {
+    "name": "test-prompt",
+    "version": 1,
+    "messages": [
+      {"role": "system", "content": "You are helpful"},
+      {"role": "user", "content": "Hello {{name}}"}
+    ],
+    "commit_message": "initial version",
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+#### Load Prompt (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "name": "vet-appointment-dora",
+    "version": 2,
+    "messages": [
+      {"role": "system", "content": "You are a veterinary clinic assistant..."},
+      {"role": "user", "content": "Hi Dr. {{vet_name}}, I'd like to schedule..."}
+    ],
+    "commit_message": "Detailed appointment request with anxiety note",
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+#### List Prompt Versions (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora/versions?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "versions": [
+      {
+        "version": 1,
+        "commit_message": "Basic appointment scheduling for Dora",
+        "created_at": "2025-01-15T10:30:00Z",
+        "updated_at": "2025-01-15T10:30:00Z"
+      },
+      {
+        "version": 2,
+        "commit_message": "Detailed appointment request with anxiety note",
+        "created_at": "2025-01-15T10:30:01Z",
+        "updated_at": "2025-01-15T10:30:01Z"
+      }
+    ]
+  }
+}
+```
+
+#### Delete Prompt (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/test-prompt?namespace=test-namespace"
+```
+
+**Expected Response: 204 No Content**
 
 **Mock Data Source:** Local MLflow instance on port 5001 via `internal/integrations/mlflow/mlflowmocks/`
 

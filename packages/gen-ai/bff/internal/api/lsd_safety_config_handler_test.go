@@ -163,17 +163,17 @@ var _ = Describe("LSDSafetyConfigHandler", func() {
 		assert.True(t, exists, "Response should contain 'data' field")
 
 		dataMap, ok := data.(map[string]interface{})
-		assert.True(t, ok, "Data should be a map")
+		require.True(t, ok, "Data should be a map")
 
 		guardrailModels, exists := dataMap["guardrail_models"]
 		assert.True(t, exists, "Data should contain 'guardrail_models' field")
 
 		modelsArray, ok := guardrailModels.([]interface{})
-		assert.True(t, ok, "guardrail_models should be an array")
+		require.True(t, ok, "guardrail_models should be an array")
 		assert.Greater(t, len(modelsArray), 0, "guardrail_models should not be empty")
 
 		firstModel, ok := modelsArray[0].(map[string]interface{})
-		assert.True(t, ok, "Model should be a map")
+		require.True(t, ok, "Model should be a map")
 		assert.Contains(t, firstModel, "model_name")
 		assert.Contains(t, firstModel, "input_shield_id")
 		assert.Contains(t, firstModel, "output_shield_id")
@@ -290,10 +290,11 @@ var _ = Describe("SafetyConfigEnvelope", func() {
 		err = json.Unmarshal(jsonBytes, &decoded)
 		assert.NoError(t, err)
 
-		data := decoded["data"].(map[string]interface{})
+		data, ok := decoded["data"].(map[string]interface{})
+		require.True(t, ok, "decoded[\"data\"] should be a map")
 
 		guardrailModels, ok := data["guardrail_models"].([]interface{})
-		assert.True(t, ok)
+		require.True(t, ok, "data[\"guardrail_models\"] should be a slice")
 		assert.Len(t, guardrailModels, 0)
 	})
 
@@ -323,15 +324,18 @@ var _ = Describe("SafetyConfigEnvelope", func() {
 		err = json.Unmarshal(jsonBytes, &decoded)
 		assert.NoError(t, err)
 
-		data := decoded["data"].(map[string]interface{})
+		data, ok := decoded["data"].(map[string]interface{})
+		require.True(t, ok, "decoded[\"data\"] should be a map")
 		guardrailModels, ok := data["guardrail_models"].([]interface{})
-		assert.True(t, ok)
+		require.True(t, ok, "data[\"guardrail_models\"] should be a slice")
 		assert.Len(t, guardrailModels, 2)
 
-		model1 := guardrailModels[0].(map[string]interface{})
+		model1, ok := guardrailModels[0].(map[string]interface{})
+		require.True(t, ok, "guardrailModels[0] should be a map")
 		assert.Equal(t, "model-1", model1["model_name"])
 
-		model2 := guardrailModels[1].(map[string]interface{})
+		model2, ok := guardrailModels[1].(map[string]interface{})
+		require.True(t, ok, "guardrailModels[1] should be a map")
 		assert.Equal(t, "model-2", model2["model_name"])
 	})
 })

@@ -1,4 +1,5 @@
-import { isCommonStateError } from '#~/utilities/useFetchState';
+import { ProxyTransientError } from '#~/api/proxyUtils';
+import { isCommonStateError, NotReadyError } from '#~/utilities/useFetchState';
 
 type ErrorKF = {
   error: string;
@@ -46,6 +47,14 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it
         throw e;
+      }
+
+      // Transient errors (e.g., 502 Bad Gateway during pipeline server startup) happen when
+      // the OpenShift route is Admitted but HAProxy hasn't finished propagating the config.
+      // Treat as "not ready" so useFetch keeps the loading spinner and silently retries
+      // on the next poll — no error message is shown to the user.
+      if (e instanceof ProxyTransientError) {
+        throw new NotReadyError('Pipeline server route is not yet available');
       }
 
       // eslint-disable-next-line no-console

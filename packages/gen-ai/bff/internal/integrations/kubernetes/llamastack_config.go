@@ -14,7 +14,8 @@ import (
 // LlamaStackConfig represents the main configuration structure
 type LlamaStackConfig struct {
 	Version             string              `json:"version" yaml:"version"`
-	ImageName           string              `json:"image_name" yaml:"image_name"`
+	DistroName          string              `json:"distro_name" yaml:"distro_name"`
+	ImageName           string              `json:"image_name,omitempty" yaml:"image_name,omitempty"` // Deprecated: Use DistroName (backward compatibility)
 	APIs                []string            `json:"apis" yaml:"apis"`
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
@@ -90,7 +91,61 @@ type ToolGroup struct {
 }
 
 type Server struct {
-	Port int `json:"port" yaml:"port"`
+	Port int   `json:"port" yaml:"port"`
+	Auth *Auth `json:"auth,omitempty" yaml:"auth,omitempty"`
+}
+
+// Auth represents the authentication and authorization configuration for llama-stack server.
+// It supports Kubernetes-based authentication with RBAC access control.
+type Auth struct {
+	ProviderConfig *KubernetesAuthProvider `json:"provider_config,omitempty" yaml:"provider_config,omitempty"`
+	AccessPolicy   []AccessRule            `json:"access_policy,omitempty" yaml:"access_policy,omitempty"`
+	RoutePolicy    []RouteAccessRule       `json:"route_policy,omitempty" yaml:"route_policy,omitempty"`
+}
+
+// KubernetesAuthProvider configures authentication using Kubernetes SelfSubjectReview API.
+// This validates bearer tokens against the Kubernetes API server and extracts user identity.
+type KubernetesAuthProvider struct {
+	Type          string            `json:"type" yaml:"type"`                                         // Must be "kubernetes"
+	APIServerURL  string            `json:"api_server_url" yaml:"api_server_url"`                     // Kubernetes API server URL
+	VerifyTLS     bool              `json:"verify_tls" yaml:"verify_tls"`                             // Whether to verify TLS certificates
+	TLSCAFile     string            `json:"tls_cafile,omitempty" yaml:"tls_cafile,omitempty"`         // Path to CA certificate file
+	ClaimsMapping map[string]string `json:"claims_mapping,omitempty" yaml:"claims_mapping,omitempty"` // Maps Kubernetes claims to access attributes
+}
+
+// AccessRule defines resource-level access control based on Cedar policy language.
+// Rules are evaluated in order; first match determines access.
+type AccessRule struct {
+	Permit      *Scope `json:"permit,omitempty" yaml:"permit,omitempty"`           // Actions to permit
+	Forbid      *Scope `json:"forbid,omitempty" yaml:"forbid,omitempty"`           // Actions to forbid
+	When        string `json:"when,omitempty" yaml:"when,omitempty"`               // Condition for rule to apply
+	Unless      string `json:"unless,omitempty" yaml:"unless,omitempty"`           // Condition for rule to not apply
+	Description string `json:"description,omitempty" yaml:"description,omitempty"` // Human-readable description
+}
+
+// RouteAccessRule defines infrastructure-level access control for API routes.
+// Evaluated before resource-level access control.
+type RouteAccessRule struct {
+	Permit      *RouteScope `json:"permit,omitempty" yaml:"permit,omitempty"`           // Routes to permit
+	Forbid      *RouteScope `json:"forbid,omitempty" yaml:"forbid,omitempty"`           // Routes to forbid
+	When        string      `json:"when,omitempty" yaml:"when,omitempty"`               // Condition for rule to apply
+	Unless      string      `json:"unless,omitempty" yaml:"unless,omitempty"`           // Condition for rule to not apply
+	Description string      `json:"description,omitempty" yaml:"description,omitempty"` // Human-readable description
+}
+
+// Scope defines the scope of an access rule including principal, actions, and resource.
+type Scope struct {
+	Principal string   `json:"principal,omitempty" yaml:"principal,omitempty"` // Principal to match (optional)
+	Actions   []string `json:"actions" yaml:"actions"`                         // Actions: create, read, update, delete
+	Resource  string   `json:"resource,omitempty" yaml:"resource,omitempty"`   // Resource pattern to match (optional)
+}
+
+// RouteScope defines the scope of a route access rule.
+type RouteScope struct {
+	// Paths specifies API route patterns to match. Must be a string (single path)
+	// or []string (multiple paths). Supports exact paths, prefix wildcards (e.g. "/v1/files*"),
+	// and full wildcards ("*").
+	Paths interface{} `json:"paths" yaml:"paths"`
 }
 
 // EnsureStorageField ensures the storage field is populated with defaults if missing
@@ -102,11 +157,21 @@ func (c *LlamaStackConfig) EnsureStorageField() {
 	}
 }
 
+// EnsureDistroField normalizes the deprecated ImageName field into DistroName
+// to ensure backward compatibility when deserializing older configs.
+// When DistroName is empty and ImageName is non-empty, DistroName is set to ImageName.
+// TODO: This can be removed when Gen AI Studio GAs, as all configs will use DistroName.
+func (c *LlamaStackConfig) EnsureDistroField() {
+	if c.DistroName == "" && c.ImageName != "" {
+		c.DistroName = c.ImageName
+	}
+}
+
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
-		Version:   "2",
-		ImageName: "rh",
+		Version:    "2",
+		DistroName: "rh",
 		APIs: []string{
 			"agents", "datasetio", "files", "inference",
 			"safety", "scoring", "tool_runtime", "vector_io",
@@ -247,6 +312,7 @@ func (c *LlamaStackConfig) FromYAML(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML: failed to unmarshal YAML into config: %w", err)
 	}
+	c.EnsureDistroField()
 	return nil
 }
 
@@ -265,6 +331,7 @@ func (c *LlamaStackConfig) FromJSON(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON into config: %w", err)
 	}
+	c.EnsureDistroField()
 	return nil
 }
 
@@ -749,5 +816,115 @@ func (c *LlamaStackConfig) AddGuardrailsToConfig(guardrails []models.GuardrailIn
 	shields := CreateShieldsFromGuardrails(guardrails)
 	for _, shield := range shields {
 		c.RegisterShield(shield)
+	}
+}
+
+// EnableRBACAuth enables RBAC authentication using the Kubernetes auth provider.
+// This configures the server to validate tokens against the Kubernetes API server
+// and apply access control rules based on user groups.
+//
+// Default access policy:
+//   - admin group: full access (create, read, delete)
+//   - system:authenticated: read-only access
+//
+// Parameters:
+//   - apiServerURL: Kubernetes API server URL (use empty string for in-cluster default)
+//   - tlsCAFile: Path to CA certificate file (use empty string for default service account CA)
+func (c *LlamaStackConfig) EnableRBACAuth(apiServerURL, tlsCAFile string) {
+	c.EnableRBACAuthWithCustomPolicy(apiServerURL, tlsCAFile, NewDefaultAccessPolicy())
+}
+
+// EnableRBACAuthWithCustomPolicy enables RBAC authentication with custom access policies.
+// Use this when you need to define custom access rules beyond the defaults.
+func (c *LlamaStackConfig) EnableRBACAuthWithCustomPolicy(apiServerURL, tlsCAFile string, accessPolicy []AccessRule) {
+	// Use defaults if not provided
+	if apiServerURL == "" {
+		apiServerURL = "${env.OPENSHIFT_SERVER_API_URL:=https://kubernetes.default.svc}"
+	}
+	if tlsCAFile == "" {
+		tlsCAFile = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	}
+
+	c.Server.Auth = &Auth{
+		ProviderConfig: &KubernetesAuthProvider{
+			Type:         "kubernetes",
+			APIServerURL: apiServerURL,
+			VerifyTLS:    true,
+			TLSCAFile:    tlsCAFile,
+			ClaimsMapping: map[string]string{
+				"groups":   "roles",
+				"username": "roles",
+			},
+		},
+		AccessPolicy: accessPolicy,
+	}
+}
+
+// DisableRBACAuth disables RBAC authentication by removing the auth configuration.
+func (c *LlamaStackConfig) DisableRBACAuth() {
+	c.Server.Auth = nil
+}
+
+// SetRoutePolicy sets the route-level access policy for the server.
+// Route policy controls access to API endpoints before resource-level checks.
+func (c *LlamaStackConfig) SetRoutePolicy(routePolicy []RouteAccessRule) {
+	if c.Server.Auth == nil {
+		c.Server.Auth = &Auth{}
+	}
+	c.Server.Auth.RoutePolicy = routePolicy
+}
+
+// NewDefaultAccessPolicy returns the default RBAC access policy for OpenShift integration.
+// - admin group: full access (create, read, delete)
+// - system:authenticated: read-only access
+func NewDefaultAccessPolicy() []AccessRule {
+	return []AccessRule{
+		{
+			Permit: &Scope{
+				Actions: []string{"create", "read", "delete"},
+			},
+			When:        "user with admin in roles",
+			Description: "admin users have full access to all resources",
+		},
+		{
+			Permit: &Scope{
+				Actions: []string{"read"},
+			},
+			When:        "user with system:authenticated in roles",
+			Description: "authenticated users have read-only access",
+		},
+	}
+}
+
+// NewAccessRule creates a new access rule with the specified parameters.
+func NewAccessRule(actions []string, when, description string) AccessRule {
+	return AccessRule{
+		Permit: &Scope{
+			Actions: actions,
+		},
+		When:        when,
+		Description: description,
+	}
+}
+
+// NewForbidAccessRule creates a new forbid access rule with the specified parameters.
+func NewForbidAccessRule(actions []string, unless, description string) AccessRule {
+	return AccessRule{
+		Forbid: &Scope{
+			Actions: actions,
+		},
+		Unless:      unless,
+		Description: description,
+	}
+}
+
+// NewRouteAccessRule creates a new route access rule for the specified paths.
+func NewRouteAccessRule(paths interface{}, when, description string) RouteAccessRule {
+	return RouteAccessRule{
+		Permit: &RouteScope{
+			Paths: paths,
+		},
+		When:        when,
+		Description: description,
 	}
 }

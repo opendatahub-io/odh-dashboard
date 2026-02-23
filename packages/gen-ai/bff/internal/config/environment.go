@@ -74,4 +74,10 @@ type EnvConfig struct {
 
 	// Path prefix for the BFF endpoints.
 	PathPrefix string
+
+	// ─── RBAC ──────────────────────────────────────────────────
+	// EnableLlamaStackRBAC enables RBAC endpoint filtering on generated LlamaStack configurations.
+	// When true, the Kubernetes auth provider and access policies are added to the server config.
+	// Default is false to avoid breaking existing deployments.
+	EnableLlamaStackRBAC bool
 }
