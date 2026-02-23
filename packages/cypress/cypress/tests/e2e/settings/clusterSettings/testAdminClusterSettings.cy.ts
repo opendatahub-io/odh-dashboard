@@ -170,7 +170,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     },
     () => {
       // Authentication and navigation
-      cy.step('Log into the application as ***');
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Cluster Settings');
@@ -229,7 +229,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         'User Management page requires groups API not available on BYOIDC clusters',
       );
 
-      cy.step('Log into the application as ***');
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
 
       cy.step('Verify Cluster Settings is visible in navigation');

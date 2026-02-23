@@ -23,5 +23,3 @@ export const FindAdministratorOptions = [
   'Someone in your IT department or help desk',
   'A project manager or developer',
 ];
-
-// Trigger Projects CI detection

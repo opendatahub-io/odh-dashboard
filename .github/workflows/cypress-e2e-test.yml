@@ -241,9 +241,7 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install turbo
-        run: npm install -g turbo@^2.4.2
+          cache: 'npm'
 
       - name: Get PR labels
         id: labels
@@ -281,10 +279,10 @@ jobs:
           # =================================================================
           # Smart Test Selection: Detect changed areas and resolve CI tags
           #
-          # Layer 1: Turbo detects changed packages → reads e2eCiTags from
-          #          each package.json (self-service, teams opt in)
-          # Layer 2: For frontend changes, git diff identifies sub-areas →
-          #          inline mapping resolves CI tags
+          # Layer 1: Turbo detects changed packages (including frontend "//" workspace)
+          #          → reads e2eCiTags from each package.json (self-service, teams opt in)
+          # Layer 2: For frontend changes detected by Layer 1, git diff identifies
+          #          sub-areas → .github/frontend-ci-tags.json mapping resolves CI tags
           # =================================================================
 
           AUTO_TAGS=""
@@ -303,7 +301,7 @@ jobs:
           echo "  📌 Comparing $BASE_SHA...$HEAD_SHA"
 
           # Get changed packages from turbo (uses dependency graph)
-          CHANGED_PACKAGES=$(turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
+          CHANGED_PACKAGES=$(npx turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
             | jq -r '.packages[]' 2>/dev/null || echo "")
 
           if [[ -n "$CHANGED_PACKAGES" ]]; then

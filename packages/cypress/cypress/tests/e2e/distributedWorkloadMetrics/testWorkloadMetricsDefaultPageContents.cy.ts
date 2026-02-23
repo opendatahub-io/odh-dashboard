@@ -108,7 +108,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Project Metrics Default Page contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
@@ -154,7 +154,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Distributed Workload status Default Page contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
