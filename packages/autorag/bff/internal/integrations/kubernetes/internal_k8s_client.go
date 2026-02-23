@@ -259,7 +259,7 @@ func (kc *InternalKubernetesClient) CanListLlamaStackDistributions(ctx context.C
 	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
-		return false, fmt.Errorf("failed to perform authorization check: %w", err)
+		return false, wrapK8sSubjectAccessReviewError(err, namespace)
 	}
 
 	return resp.Status.Allowed, nil

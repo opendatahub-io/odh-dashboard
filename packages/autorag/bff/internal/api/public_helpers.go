@@ -8,6 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
@@ -27,9 +28,9 @@ func (app *App) ServerError(w http.ResponseWriter, r *http.Request, err error) {
 // NotImplemented sends a 501 Not Implemented response for features not yet available.
 // This is used to create placeholder handlers that downstream code can override.
 func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature string) { //nolint:unused
-	httpError := &HTTPError{
+	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotImplemented,
-		Error: ErrorPayload{
+		ErrorResponse: integrations.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusNotImplemented),
 			Message: fmt.Sprintf("the %s feature is not implemented in this build", feature),
 		},
