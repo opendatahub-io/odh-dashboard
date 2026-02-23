@@ -14,6 +14,12 @@ describe('isChunkLoadError', () => {
     expect(isChunkLoadError(error)).toBe(true);
   });
 
+  it('should return true when message contains a named chunk id', () => {
+    const error = new Error('Loading chunk src_images_icons_SettingsNavIcon_tsx failed.');
+
+    expect(isChunkLoadError(error)).toBe(true);
+  });
+
   it('should return false for non-chunk errors', () => {
     expect(isChunkLoadError(new Error('regular error'))).toBe(false);
     expect(isChunkLoadError('ChunkLoadError')).toBe(false);
@@ -21,6 +27,20 @@ describe('isChunkLoadError', () => {
 });
 
 describe('getRouteErrorDetails', () => {
+  it('should return route error response details', () => {
+    const routeErrorResponse = {
+      status: 404,
+      statusText: 'Not Found',
+      data: { message: 'Project does not exist' },
+      internal: false,
+    };
+
+    expect(getRouteErrorDetails(routeErrorResponse)).toEqual({
+      title: '404 Not Found',
+      errorMessage: 'Project does not exist',
+    });
+  });
+
   it('should return title, message, and stack for Error input', () => {
     const error = new Error('boom');
     error.name = 'TypeError';

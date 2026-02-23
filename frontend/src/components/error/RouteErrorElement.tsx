@@ -11,6 +11,10 @@ const RouteErrorElement: React.FC = () => {
   const [showErrorDetails, setShowErrorDetails] = React.useState(false);
   const { title, errorMessage, stack } = getRouteErrorDetails(error);
 
+  React.useEffect(() => {
+    setShowErrorDetails(false);
+  }, [error]);
+
   if (isChunkLoadError(error) && !showErrorDetails) {
     return <UpdateState onClose={() => setShowErrorDetails(true)} />;
   }

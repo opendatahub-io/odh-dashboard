@@ -40,6 +40,29 @@ describe('RouteErrorElement', () => {
     expect(screen.getByText('Loading chunk 145 failed')).toBeInTheDocument();
   });
 
+  it('should reset to update state when route error changes', () => {
+    let currentError: unknown = Object.assign(new Error('Loading chunk 145 failed'), {
+      name: 'ChunkLoadError',
+    });
+    useRouteErrorMock.mockImplementation(() => currentError);
+
+    const { rerender } = render(<RouteErrorElement />);
+    expect(screen.getByTestId('error-update-state')).toBeInTheDocument();
+
+    act(() => {
+      screen.getByTestId('show-error-button').click();
+    });
+    expect(screen.getByTestId('router-error-boundary')).toBeInTheDocument();
+
+    currentError = Object.assign(new Error('Loading chunk src_images_icons_Settings failed'), {
+      name: 'ChunkLoadError',
+    });
+    rerender(<RouteErrorElement />);
+
+    expect(screen.getByTestId('error-update-state')).toBeInTheDocument();
+    expect(screen.queryByTestId('router-error-boundary')).not.toBeInTheDocument();
+  });
+
   it('should render route error fallback for non-chunk errors', () => {
     useRouteErrorMock.mockReturnValue(new Error('regular route error'));
 
