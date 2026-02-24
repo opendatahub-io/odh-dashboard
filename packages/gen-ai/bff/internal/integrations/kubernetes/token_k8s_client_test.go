@@ -6,14 +6,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/client-go/rest"
+	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 )
 
 func TestCanListLlamaStackDistributions(t *testing.T) {
@@ -234,6 +240,75 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 	})
 }
 
+func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
+	t.Run("should NOT include RBAC auth when EnableLlamaStackRBAC is false", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create client with RBAC disabled (default)
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{EnableLlamaStackRBAC: false},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		require.NoError(t, err)
+		require.NotEmpty(t, result)
+
+		// Parse and verify auth is NOT set
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+		assert.Nil(t, cfg.Server.Auth, "Auth should be nil when RBAC flag is disabled")
+
+		// Also verify by string content
+		assert.NotContains(t, result, "provider_config:")
+		assert.NotContains(t, result, "access_policy:")
+	})
+
+	t.Run("should include RBAC auth when EnableLlamaStackRBAC is true", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create client with RBAC enabled
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{EnableLlamaStackRBAC: true},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		require.NoError(t, err)
+		require.NotEmpty(t, result)
+
+		// Parse and verify auth IS set
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+		require.NotNil(t, cfg.Server.Auth, "Auth should be set when RBAC flag is enabled")
+		require.NotNil(t, cfg.Server.Auth.ProviderConfig)
+		assert.Equal(t, "kubernetes", cfg.Server.Auth.ProviderConfig.Type)
+		assert.Len(t, cfg.Server.Auth.AccessPolicy, 2)
+
+		// Verify access policies
+		assert.Contains(t, result, "user with admin in roles")
+		assert.Contains(t, result, "user with system:authenticated in roles")
+	})
+
+	t.Run("default EnvConfig should have RBAC disabled", func(t *testing.T) {
+		// Verify the zero-value of EnvConfig has RBAC disabled
+		var cfg config.EnvConfig
+		assert.False(t, cfg.EnableLlamaStackRBAC, "EnableLlamaStackRBAC should default to false")
+	})
+}
+
 // TestLLMInferenceServiceURLConstruction tests that the URL format for LLMInferenceService
 // remains consistent and doesn't accidentally change
 func TestLLMInferenceServiceURLConstruction(t *testing.T) {
@@ -427,4 +502,155 @@ func TestHeadlessServicePortLogic(t *testing.T) {
 			assert.Equal(t, tt.expectedAdded, shouldAddPort, tt.description)
 		})
 	}
+}
+
+// mustParseURL is a test helper that parses a URL string and panics on failure.
+func mustParseURL(u string) *apis.URL {
+	parsed, err := apis.ParseURL(u)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
+func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
+	client := &TokenKubernetesClient{
+		Logger: slog.Default(),
+	}
+
+	t.Run("nil LLMInferenceService returns empty endpoints", func(t *testing.T) {
+		endpoints := client.extractEndpointsFromLLMInferenceService(nil)
+		assert.Empty(t, endpoints)
+	})
+
+	t.Run("empty status returns empty endpoints", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Empty(t, endpoints)
+	})
+
+	t.Run("status.url set with external URL returns external endpoint", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				URL: mustParseURL("https://my-model.apps.example.com/v1"),
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
+
+	t.Run("status.url with svc.cluster.local is not added as external", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1"),
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		// svc.cluster.local URL in Status.URL is ignored; no Addresses to fall back to.
+		assert.Empty(t, endpoints)
+	})
+
+	t.Run("only status.addresses with internal URL returns internal endpoint", func(t *testing.T) {
+		// This is the real-world scenario: KServe controller sets addresses but not url or address (singular)
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://openshift-ai-inference.openshift-ingress.svc.cluster.local/ns/my-model")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "internal: https://openshift-ai-inference.openshift-ingress.svc.cluster.local/ns/my-model", endpoints[0])
+	})
+
+	t.Run("only status.addresses with external URL returns external endpoint", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
+
+	t.Run("status.addresses with both internal and external URLs", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 2)
+		assert.Equal(t, "internal: https://my-model.namespace.svc.cluster.local:8080/v1", endpoints[0])
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[1])
+	})
+
+	t.Run("status.url and status.addresses both set does not duplicate", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				URL: mustParseURL("https://my-model.apps.example.com/v1"),
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		// Internal from Addresses fallback, external from Status.URL, no duplicate external
+		assert.Len(t, endpoints, 2)
+		assert.Equal(t, "internal: https://my-model.namespace.svc.cluster.local:8080/v1", endpoints[0])
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[1])
+	})
+
+	t.Run("status.address singular and status.addresses both set does not duplicate", func(t *testing.T) {
+		internalURL := mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Address: &duckv1.Addressable{URL: internalURL},
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8080/v1")},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		// Should have internal from Address (singular) + external from Addresses, no duplicate internal
+		assert.Len(t, endpoints, 2)
+		assert.Equal(t, "internal: https://my-model.namespace.svc.cluster.local:8080/v1", endpoints[0])
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[1])
+	})
+
+	t.Run("status.addresses with nil URL entries are skipped", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: nil},
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+					},
+				},
+			},
+		}
+		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.Len(t, endpoints, 1)
+		assert.Equal(t, "external: https://my-model.apps.example.com/v1", endpoints[0])
+	})
 }

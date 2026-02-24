@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -23,31 +23,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestGuardrailsStatusHandler(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var _ = Describe("GuardrailsStatusHandler", func() {
+	var app App
 
-	// Create mock factory
-	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
+	BeforeEach(func() {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Create test app with real mock infrastructure
-	llamaStackClientFactory := lsmocks.NewMockClientFactory()
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  logger,
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: llamaStackClientFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(GinkgoT(), err)
 
-	t.Run("should return 200 with guardrails status when status is found", func(t *testing.T) {
-		// Create request with proper context
+		llamaStackClientFactory := lsmocks.NewMockClientFactory()
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  logger,
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+	})
+
+	It("should return 200 with guardrails status when status is found", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status?namespace=mock-test-namespace-1", nil)
 		assert.NoError(t, err)
 
-		// Add namespace and identity to context
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
@@ -71,43 +72,37 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Verify the response structure
 		assert.Equal(t, "Ready", response.Data.Phase)
 		assert.NotNil(t, response.Data.Conditions)
 		assert.Len(t, response.Data.Conditions, 5, "Should have 5 conditions from mock")
 
-		// Verify first condition (Progressing)
 		assert.Equal(t, "Progressing", string(response.Data.Conditions[0].Type))
 		assert.Equal(t, "True", string(response.Data.Conditions[0].Status))
 		assert.Equal(t, "ReconcileInit", response.Data.Conditions[0].Reason)
 		assert.Equal(t, "Initializing GuardrailsOrchestrator resource", response.Data.Conditions[0].Message)
 
-		// Verify second condition (InferenceServiceReady)
 		assert.Equal(t, "InferenceServiceReady", string(response.Data.Conditions[1].Type))
 		assert.Equal(t, "False", string(response.Data.Conditions[1].Status))
 		assert.Equal(t, "InferenceServiceNotReady", response.Data.Conditions[1].Reason)
 
-		// Verify third condition (DeploymentReady)
 		assert.Equal(t, "DeploymentReady", string(response.Data.Conditions[2].Type))
 		assert.Equal(t, "True", string(response.Data.Conditions[2].Status))
 		assert.Equal(t, "DeploymentReady", response.Data.Conditions[2].Reason)
 
-		// Verify fourth condition (RouteReady)
 		assert.Equal(t, "RouteReady", string(response.Data.Conditions[3].Type))
 		assert.Equal(t, "False", string(response.Data.Conditions[3].Status))
 		assert.Equal(t, "RouteNotReady", response.Data.Conditions[3].Reason)
 
-		// Verify fifth condition (ReconcileComplete)
 		assert.Equal(t, "ReconcileComplete", string(response.Data.Conditions[4].Type))
 		assert.Equal(t, "False", string(response.Data.Conditions[4].Status))
 		assert.Equal(t, "ReconcileFailed", response.Data.Conditions[4].Reason)
 	})
 
-	t.Run("should return 400 when namespace is missing from context", func(t *testing.T) {
+	It("should return 400 when namespace is missing from context", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status", nil)
 		assert.NoError(t, err)
 
-		// Don't add namespace to context
 		rr := httptest.NewRecorder()
 
 		app.GuardrailsStatusHandler(rr, req, nil)
@@ -128,11 +123,11 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "missing namespace in the context")
 	})
 
-	t.Run("should return 401 when RequestIdentity is missing from context", func(t *testing.T) {
+	It("should return 401 when RequestIdentity is missing from context", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status?namespace=mock-test-namespace-1", nil)
 		assert.NoError(t, err)
 
-		// Add namespace to context but no RequestIdentity
 		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		req = req.WithContext(ctx)
 
@@ -156,7 +151,8 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		assert.Contains(t, errorMap["message"], "missing RequestIdentity in context")
 	})
 
-	t.Run("should return correct JSON structure for guardrails status", func(t *testing.T) {
+	It("should return correct JSON structure for guardrails status", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status?namespace=test-namespace", nil)
 		assert.NoError(t, err)
 
@@ -179,24 +175,20 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		// Verify JSON structure using raw map
 		var rawResponse map[string]interface{}
 		err = json.Unmarshal(body, &rawResponse)
 		assert.NoError(t, err)
 
-		// Verify 'data' field exists
 		data, exists := rawResponse["data"]
 		assert.True(t, exists, "Response should contain 'data' field")
 
 		dataMap, ok := data.(map[string]interface{})
 		assert.True(t, ok, "Data should be a map")
 
-		// Verify 'phase' field
 		phase, exists := dataMap["phase"]
 		assert.True(t, exists, "Data should contain 'phase' field")
 		assert.Equal(t, "Ready", phase)
 
-		// Verify 'conditions' field
 		conditions, exists := dataMap["conditions"]
 		assert.True(t, exists, "Data should contain 'conditions' field")
 
@@ -204,7 +196,6 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		assert.True(t, ok, "Conditions should be an array")
 		assert.Greater(t, len(conditionsArray), 0, "Conditions should not be empty")
 
-		// Verify first condition structure
 		firstCondition, ok := conditionsArray[0].(map[string]interface{})
 		assert.True(t, ok, "Condition should be a map")
 		assert.Contains(t, firstCondition, "type")
@@ -214,7 +205,8 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		assert.Contains(t, firstCondition, "lastTransitionTime")
 	})
 
-	t.Run("should work with different namespaces", func(t *testing.T) {
+	It("should work with different namespaces", func() {
+		t := GinkgoT()
 		testNamespaces := []string{
 			"mock-test-namespace-1",
 			"mock-test-namespace-2",
@@ -223,34 +215,33 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		}
 
 		for _, namespace := range testNamespaces {
-			t.Run("namespace_"+namespace, func(t *testing.T) {
-				req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status?namespace="+namespace, nil)
-				assert.NoError(t, err)
+			req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status?namespace="+namespace, nil)
+			assert.NoError(t, err)
 
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
-				ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-					Token: "FAKE_BEARER_TOKEN",
-				})
-				req = req.WithContext(ctx)
-
-				rr := httptest.NewRecorder()
-
-				app.GuardrailsStatusHandler(rr, req, nil)
-
-				assert.Equal(t, http.StatusOK, rr.Code, "Should return 200 for namespace: %s", namespace)
-
-				var response GuardrailsStatusEnvelope
-				err = json.Unmarshal(rr.Body.Bytes(), &response)
-				assert.NoError(t, err)
-
-				// Mock returns same status for all namespaces
-				assert.Equal(t, "Ready", response.Data.Phase)
+			ctx := context.Background()
+			ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+				Token: "FAKE_BEARER_TOKEN",
 			})
+			req = req.WithContext(ctx)
+
+			rr := httptest.NewRecorder()
+
+			app.GuardrailsStatusHandler(rr, req, nil)
+
+			assert.Equal(t, http.StatusOK, rr.Code, "Should return 200 for namespace: %s", namespace)
+
+			var response GuardrailsStatusEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			assert.NoError(t, err)
+
+			// Mock returns same status for all namespaces
+			assert.Equal(t, "Ready", response.Data.Phase)
 		}
 	})
 
-	t.Run("should return proper content type header", func(t *testing.T) {
+	It("should return proper content type header", func() {
+		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/guardrails/status?namespace=test", nil)
 		assert.NoError(t, err)
 
@@ -268,10 +259,11 @@ func TestGuardrailsStatusHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 	})
-}
+})
 
-func TestGuardrailsStatusEnvelope(t *testing.T) {
-	t.Run("should serialize correctly to JSON", func(t *testing.T) {
+var _ = Describe("GuardrailsStatusEnvelope", func() {
+	It("should serialize correctly to JSON", func() {
+		t := GinkgoT()
 		envelope := GuardrailsStatusEnvelope{
 			Data: models.GuardrailsStatus{
 				Phase: "Ready",
@@ -315,7 +307,8 @@ func TestGuardrailsStatusEnvelope(t *testing.T) {
 		assert.Contains(t, condition, "lastTransitionTime")
 	})
 
-	t.Run("should handle empty conditions", func(t *testing.T) {
+	It("should handle empty conditions", func() {
+		t := GinkgoT()
 		envelope := GuardrailsStatusEnvelope{
 			Data: models.GuardrailsStatus{
 				Phase:      "NotDeployed",
@@ -333,4 +326,4 @@ func TestGuardrailsStatusEnvelope(t *testing.T) {
 		data := decoded["data"].(map[string]interface{})
 		assert.Equal(t, "NotDeployed", data["phase"])
 	})
-}
+})

@@ -6,7 +6,7 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
-describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
+describe('[Automation Bug: RHOAIENG-49260] Verify RHODS Explore Section Contains Only Expected ISVs', () => {
   let expectedISVs: string[];
 
   retryableBefore(() => {
@@ -27,7 +27,7 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
 
   it(
     'Validate that configured ISVs display in the Explore Section',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1890', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1890', '@Dashboard', '@Bug'] },
     () => {
       // Authentication and navigation
       cy.step('Login to the application');

@@ -940,6 +940,14 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-description');
   }
 
+  findResourceNameButton() {
+    return cy.findByTestId('model-deployment-editResourceLink');
+  }
+
+  findResourceNameInput() {
+    return cy.findByTestId('model-deployment-resourceName');
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
@@ -1325,6 +1333,18 @@ class ModelServingWizard extends Wizard {
 
   findReviewStepModelDetailsSection() {
     return cy.findByTestId('review-step-model-details');
+  }
+
+  findYAMLViewerToggle(name: 'YAML' | 'Form') {
+    return cy.findByRole('button', { name });
+  }
+
+  findYAMLCodeEditor() {
+    return cy.findByTestId('yaml-editor');
+  }
+
+  findYAMLEditorEmptyState() {
+    return cy.findByTestId('yaml-editor-empty-state');
   }
 }
 

@@ -488,7 +488,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		Data: map[string]string{
 			constants.LlamaStackConfigYAMLKey: `# Llama Stack Configuration
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
 - datasetio
 - files
@@ -625,6 +625,11 @@ server:
 		},
 		Spec: lsdapi.LlamaStackDistributionSpec{
 			Replicas: 1,
+			Network: &lsdapi.NetworkSpec{
+				AllowedFrom: &lsdapi.AllowedFromSpec{
+					Namespaces: []string{namespace},
+				},
+			},
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
 					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},

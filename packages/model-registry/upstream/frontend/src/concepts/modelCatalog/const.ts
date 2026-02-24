@@ -44,6 +44,19 @@ export enum LatencyMetric {
   TPS = 'TPS', // Tokens Per Second
   ITL = 'ITL', // Inter Token Latency
 }
+export const LatencyMetricLabels: Partial<Record<LatencyMetric, string>> = {
+  [LatencyMetric.TTFT]: 'TTFT (time to first token)',
+  [LatencyMetric.E2E]: 'E2E (end-to-end)',
+  [LatencyMetric.ITL]: 'ITL (inter-token latency)',
+};
+
+export const latencyMetricDescriptions: Partial<Record<LatencyMetric, string>> = {
+  [LatencyMetric.TTFT]: 'Time until the model starts responding. Best for interactive experiences.',
+  [LatencyMetric.E2E]:
+    'Total time to generate the full response. Best for summarization, batch jobs, and code generation.',
+  [LatencyMetric.ITL]:
+    'Time between tokens during generation. Important for smooth streaming and audio.',
+};
 
 export enum LatencyPercentile {
   Mean = 'Mean',
@@ -598,6 +611,14 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
     string
   >),
 };
+
+export const MODEL_CATALOG_FILTER_CHIP_PREFIXES = {
+  WORKLOAD_TYPE: 'Workload type:',
+  MAX_RPS: 'Max RPS:',
+  LATENCY_METRIC: 'Metric:',
+  LATENCY_PERCENTILE: 'Percentile:',
+  LATENCY_THRESHOLD: 'Under',
+} as const;
 
 export enum ModelDetailsTab {
   OVERVIEW = 'overview',

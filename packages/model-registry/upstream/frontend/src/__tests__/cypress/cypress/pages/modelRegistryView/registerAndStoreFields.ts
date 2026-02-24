@@ -1,12 +1,14 @@
 import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import { FormFieldSelector } from './registerModelPage';
 
 class RegisterAndStoreFields {
-  visit(enableRegistryStorageFeature = true) {
+  visit(enableRegistryStorageFeature = true, registryNamespace?: string) {
     if (enableRegistryStorageFeature) {
       window.localStorage.setItem(TempDevFeature.RegistryStorage, 'true');
     }
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/model-registry/${preferredModelRegistry}/register/model`);
+    const query = registryNamespace ? `?namespace=${encodeURIComponent(registryNamespace)}` : '';
+    cy.visit(`/model-registry/${preferredModelRegistry}/register/model${query}`);
   }
 
   findNamespaceFormGroup() {
@@ -15,6 +17,14 @@ class RegisterAndStoreFields {
 
   findNamespaceSelector() {
     return cy.findByTestId('form-namespace-selector');
+  }
+
+  findNamespaceSelectTrigger() {
+    return cy.findByTestId('form-namespace-selector-trigger');
+  }
+
+  findNamespaceSelectCombobox() {
+    return this.findNamespaceSelector();
   }
 
   findOriginLocationSection() {
@@ -38,7 +48,7 @@ class RegisterAndStoreFields {
   }
 
   selectNamespace(name: string) {
-    this.findNamespaceSelector().click();
+    this.findNamespaceSelectCombobox().scrollIntoView().click({ force: true });
     cy.findByRole('option', { name }).click();
   }
 
@@ -56,11 +66,11 @@ class RegisterAndStoreFields {
   }
 
   shouldHaveNamespaceOptions(namespaces: string[]) {
-    this.findNamespaceSelector().click();
+    this.findNamespaceSelectCombobox().scrollIntoView().click({ force: true });
     namespaces.forEach((namespace) => {
       cy.findByRole('option', { name: namespace }).should('exist');
     });
-    this.findNamespaceSelector().click();
+    this.findNamespaceSelectCombobox().scrollIntoView().click({ force: true });
     return this;
   }
 
@@ -104,6 +114,173 @@ class RegisterAndStoreFields {
       .find('button')
       .should('have.attr', 'aria-pressed', 'true');
     return this;
+  }
+
+  findNamespaceRegistryAccessAlert() {
+    return cy.findByTestId('namespace-registry-access-alert');
+  }
+
+  shouldShowNamespaceLabel() {
+    this.findNamespaceFormGroup().find('label').should('contain.text', 'Namespace');
+    return this;
+  }
+
+  shouldBeNamespaceSelectorDisabled() {
+    this.findNamespaceSelectTrigger()
+      .find('button')
+      .should(
+        ($btn) =>
+          $btn.prop('disabled') === true ||
+          $btn.attr('aria-disabled') === 'true' ||
+          $btn.hasClass('pf-m-disabled'),
+      );
+    return this;
+  }
+
+  shouldShowNoAccessWarning() {
+    this.findNamespaceRegistryAccessAlert()
+      .should('be.visible')
+      .and('contain.text', 'The selected namespace does not have access to this model registry');
+    return this;
+  }
+
+  shouldShowNoNamespacesMessage() {
+    this.findNamespaceRegistryAccessAlert()
+      .should('be.visible')
+      .and('contain.text', 'You do not have access to any namespaces');
+    return this;
+  }
+
+  findWhoIsMyAdminTrigger() {
+    return cy.findByTestId('who-is-my-admin-trigger');
+  }
+
+  openWhoIsMyAdminPopover() {
+    this.findWhoIsMyAdminTrigger().click();
+    return this;
+  }
+
+  shouldShowWhoIsMyAdminPopoverWithNamespaceWording() {
+    cy.contains('Your administrator might be').should('be.visible');
+    cy.contains('namespaces that you have permission to access').should('be.visible');
+    return this;
+  }
+
+  findCreateButton() {
+    return cy.findByTestId('create-button');
+  }
+
+  shouldHaveCreateButtonDisabled() {
+    this.findCreateButton().should('be.disabled');
+    return this;
+  }
+
+  // Destination field finders (using id selectors since these inputs use id, not data-testid)
+  findDestinationOciRegistryInput() {
+    return cy.get('#destination-oci-registry');
+  }
+
+  findDestinationOciUriInput() {
+    return cy.get('#destination-oci-uri');
+  }
+
+  findDestinationOciUsernameInput() {
+    return cy.get('#destination-oci-username');
+  }
+
+  findDestinationOciPasswordInput() {
+    return cy.get('#destination-oci-password');
+  }
+
+  // Source credential field finders
+  findSourceS3AccessKeyIdInput() {
+    return cy.get('#location-s3-access-key-id');
+  }
+
+  findSourceS3SecretAccessKeyInput() {
+    return cy.get('#location-s3-secret-access-key');
+  }
+
+  // Submit button
+  findSubmitButton() {
+    return cy.findByTestId('create-button');
+  }
+
+  // Fill form helper methods
+  fillModelName(name: string) {
+    cy.get(FormFieldSelector.MODEL_NAME).clear();
+    cy.get(FormFieldSelector.MODEL_NAME).type(name);
+  }
+
+  fillVersionName(name: string) {
+    cy.get(FormFieldSelector.VERSION_NAME).clear();
+    cy.get(FormFieldSelector.VERSION_NAME).type(name);
+  }
+
+  fillJobName(name: string) {
+    cy.get(FormFieldSelector.JOB_NAME).clear();
+    cy.get(FormFieldSelector.JOB_NAME).type(name);
+  }
+
+  fillSourceEndpoint(endpoint: string) {
+    cy.get(FormFieldSelector.LOCATION_ENDPOINT).clear();
+    cy.get(FormFieldSelector.LOCATION_ENDPOINT).type(endpoint);
+  }
+
+  fillSourceBucket(bucket: string) {
+    cy.get(FormFieldSelector.LOCATION_BUCKET).clear();
+    cy.get(FormFieldSelector.LOCATION_BUCKET).type(bucket);
+  }
+
+  fillSourcePath(path: string) {
+    cy.get(FormFieldSelector.LOCATION_PATH).clear();
+    cy.get(FormFieldSelector.LOCATION_PATH).type(path);
+  }
+
+  fillDestinationOciRegistry(registry: string) {
+    this.findDestinationOciRegistryInput().clear();
+    this.findDestinationOciRegistryInput().type(registry);
+  }
+
+  fillDestinationOciUri(uri: string) {
+    this.findDestinationOciUriInput().clear();
+    this.findDestinationOciUriInput().type(uri);
+  }
+
+  fillDestinationOciUsername(username: string) {
+    this.findDestinationOciUsernameInput().clear();
+    this.findDestinationOciUsernameInput().type(username);
+  }
+
+  fillDestinationOciPassword(password: string) {
+    this.findDestinationOciPasswordInput().clear();
+    this.findDestinationOciPasswordInput().type(password);
+  }
+
+  fillSourceS3AccessKeyId(accessKeyId: string) {
+    this.findSourceS3AccessKeyIdInput().clear();
+    this.findSourceS3AccessKeyIdInput().type(accessKeyId);
+  }
+
+  fillSourceS3SecretAccessKey(secretAccessKey: string) {
+    this.findSourceS3SecretAccessKeyInput().clear();
+    this.findSourceS3SecretAccessKeyInput().type(secretAccessKey);
+  }
+
+  // Convenience method to fill all required fields for submission
+  fillAllRequiredFields() {
+    this.fillModelName('test-model');
+    this.fillVersionName('v1.0.0');
+    this.fillJobName('my-transfer-job');
+    this.fillSourceEndpoint('https://s3.amazonaws.com');
+    this.fillSourceBucket('test-bucket');
+    this.fillSourcePath('models/test');
+    this.fillSourceS3AccessKeyId('AKIAIOSFODNN7EXAMPLE');
+    this.fillSourceS3SecretAccessKey('wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY');
+    this.fillDestinationOciRegistry('quay.io');
+    this.fillDestinationOciUri('quay.io/my-org/my-model:v1');
+    this.fillDestinationOciUsername('testuser');
+    this.fillDestinationOciPassword('testpassword123');
   }
 }
 

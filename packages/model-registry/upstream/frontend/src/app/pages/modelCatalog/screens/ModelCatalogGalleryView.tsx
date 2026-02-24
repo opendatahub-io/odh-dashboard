@@ -5,7 +5,8 @@ import {
   EmptyState,
   EmptyStateVariant,
   Flex,
-  Gallery,
+  Grid,
+  GridItem,
   Spinner,
   Title,
 } from '@patternfly/react-core';
@@ -17,18 +18,21 @@ import { CatalogModel, CategoryName, SourceLabel } from '~/app/modelCatalogTypes
 import ModelCatalogCard from '~/app/pages/modelCatalog/components/ModelCatalogCard';
 import {
   getSourceFromSourceId,
-  hasFiltersApplied,
   getBasicFiltersOnly,
   getActiveLatencyFieldName,
   getSortParams,
   generateCategoryName,
+  hasFiltersApplied,
+  isValueDifferentFromDefault,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import {
-  BASIC_FILTER_KEYS,
   ModelCatalogNumberFilterKey,
+  ModelCatalogStringFilterKey,
   parseLatencyFilterKey,
+  BASIC_FILTER_KEYS,
+  PERFORMANCE_FILTER_KEYS,
 } from '~/concepts/modelCatalog/const';
 
 type ModelCatalogPageProps = {
@@ -47,12 +51,14 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     filterOptionsLoaded,
     filterOptionsLoadError,
     catalogSources,
+    catalogLabelsLoaded,
+    catalogLabelsLoadError,
     setPerformanceViewEnabled,
     updateSelectedSourceLabel,
     performanceViewEnabled,
     sortBy,
+    getPerformanceFilterDefaultValue,
   } = React.useContext(ModelCatalogContext);
-  const filtersApplied = hasFiltersApplied(filterData);
 
   // When performance view is disabled, exclude performance filters from API queries
   // Memoize to prevent infinite re-fetching
@@ -104,17 +110,57 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     performanceParams,
   );
 
-  const loaded = catalogModelsLoaded && filterOptionsLoaded;
-  const loadError = catalogModelsLoadError || filterOptionsLoadError;
+  const loaded = catalogModelsLoaded && filterOptionsLoaded && catalogLabelsLoaded;
+  const loadError = catalogModelsLoadError || filterOptionsLoadError || catalogLabelsLoadError;
 
   const isNoLabelsSection = selectedSourceLabel === SourceLabel.other;
 
-  const areOnlyDefaultFiltersApplied = React.useMemo(
-    () => !hasFiltersApplied(filterData, BASIC_FILTER_KEYS),
+  // Check if basic filters are applied
+  const hasBasicFiltersApplied = React.useMemo(
+    () => hasFiltersApplied(filterData, BASIC_FILTER_KEYS),
     [filterData],
   );
 
-  const noUserFiltersOrSearch = areOnlyDefaultFiltersApplied && !searchTerm;
+  // Check if Hardware Configuration filter is applied
+  const hasHardwareConfigurationApplied = React.useMemo(() => {
+    const hardwareConfig = filterData[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION];
+    return Array.isArray(hardwareConfig) && hardwareConfig.length > 0;
+  }, [filterData]);
+
+  // When performance view is enabled, performance filters have default values.
+  const hasPerformanceFiltersChanged = React.useMemo(() => {
+    if (!performanceViewEnabled) {
+      return false;
+    }
+    return PERFORMANCE_FILTER_KEYS.some((filterKey) => {
+      const filterValue = filterData[filterKey];
+      const defaultValue = getPerformanceFilterDefaultValue(filterKey);
+
+      if (filterValue === undefined) {
+        return false;
+      }
+
+      if (Array.isArray(filterValue) && filterValue.length === 0) {
+        return false;
+      }
+
+      return isValueDifferentFromDefault(filterValue, defaultValue);
+    });
+  }, [performanceViewEnabled, filterData, getPerformanceFilterDefaultValue]);
+
+  const noUserFiltersOrSearch = React.useMemo(
+    () =>
+      !hasBasicFiltersApplied &&
+      !hasHardwareConfigurationApplied &&
+      !hasPerformanceFiltersChanged &&
+      !searchTerm,
+    [
+      hasBasicFiltersApplied,
+      hasHardwareConfigurationApplied,
+      hasPerformanceFiltersChanged,
+      searchTerm,
+    ],
+  );
 
   const shouldShowPerformanceEmptyState = React.useMemo(() => {
     const isEmptyResult = catalogModels.items.length === 0;
@@ -195,7 +241,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     );
   }
 
-  if (catalogModels.items.length === 0 && !searchTerm && !filtersApplied) {
+  if (catalogModels.items.length === 0 && noUserFiltersOrSearch) {
     return (
       <EmptyModelCatalogState
         testid="empty-model-catalog-state"
@@ -206,7 +252,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     );
   }
 
-  if (catalogModels.items.length === 0 && (searchTerm || filtersApplied)) {
+  if (catalogModels.items.length === 0 && !noUserFiltersOrSearch) {
     return (
       <EmptyModelCatalogState
         testid="empty-model-catalog-state"
@@ -221,16 +267,17 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   return (
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
-      <Gallery hasGutter minWidths={{ default: '300px' }}>
+      <Grid hasGutter>
         {catalogModels.items.map((model: CatalogModel) => (
-          <ModelCatalogCard
-            key={`${model.name}/${model.source_id}`}
-            model={model}
-            source={getSourceFromSourceId(model.source_id || '', catalogSources)}
-            truncate
-          />
+          <GridItem key={`${model.name}/${model.source_id}`} sm={6} md={6} lg={6} xl={6} xl2={3}>
+            <ModelCatalogCard
+              model={model}
+              source={getSourceFromSourceId(model.source_id || '', catalogSources)}
+              truncate
+            />
+          </GridItem>
         ))}
-      </Gallery>
+      </Grid>
       {catalogModels.hasMore && (
         <Bullseye className="pf-v6-u-mt-lg">
           {catalogModels.isLoadingMore ? (

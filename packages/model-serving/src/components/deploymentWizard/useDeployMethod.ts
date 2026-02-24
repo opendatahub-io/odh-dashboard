@@ -13,7 +13,7 @@ export const useDeployMethod = (
 ): {
   deployMethod?: ResolvedExtension<ModelServingDeploy<Deployment>>;
   deployMethodLoaded: boolean;
-  deployMethodErrors: unknown[];
+  deployMethodErrors: Error[];
 } => {
   const [deployExtensions, deployExtensionsLoaded, deployExtensionsErrors] =
     useResolvedExtensions(isModelServingDeploy);
@@ -30,7 +30,9 @@ export const useDeployMethod = (
     return {
       deployMethod: sortedDeployExtensions.length > 0 ? sortedDeployExtensions[0] : undefined,
       deployMethodLoaded: deployExtensionsLoaded,
-      deployMethodErrors: deployExtensionsErrors,
+      deployMethodErrors: deployExtensionsErrors.filter(
+        (error): error is Error => error instanceof Error,
+      ),
     };
-  }, [deployExtensions, wizardData]);
+  }, [deployExtensions, deployExtensionsErrors, deployExtensionsLoaded, wizardData]);
 };

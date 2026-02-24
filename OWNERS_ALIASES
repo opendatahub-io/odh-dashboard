@@ -14,7 +14,6 @@ aliases:
     - Griffin-Sullivan
     - YuliaKrimerman
     - manaswinidas
-    - jrenee42
     - ederign
 
   # Backup alias for managers to help with unblocking during PTO
@@ -49,10 +48,8 @@ aliases:
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
-    - jrenee42
     - DaoDaoNoCode
     - nananosirova
-    - rsun19
     - DaltheCow
 
   # Model Registry & Model Catalog
@@ -77,6 +74,16 @@ aliases:
     - Griffin-Sullivan
     - katieperry4
 
+  # Models as a Service (MaaS)
+  maas-approvers:
+    - emilys314
+    - Griffin-Sullivan
+  maas-reviewers:
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
   # Pipelines team
   pipelines-approvers:
     - Gkrumbach07
@@ -84,8 +91,6 @@ aliases:
   pipelines-reviewers:
     - srtanish1992
     - Gkrumbach07
-    - jrenee42
-    - rsun19
     - DaltheCow
 
   # General Dashboard infrastructure
@@ -96,6 +101,7 @@ aliases:
     - christianvogt
     - jenny-s51
     - lucferbux
+    - rsun19
 
   # Quality / E2E testing
   quality-e2e-testing-approvers:
@@ -113,12 +119,9 @@ aliases:
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
     - Gkrumbach07
-    - jrenee42
   workbenches-reviewers:
     - srtanish1992
     - Gkrumbach07
-    - jrenee42
-    - rsun19
     - DaltheCow
 
   # Gen AI
@@ -195,3 +198,14 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+
+  # Eval Hub
+  eval-hub-approvers:
+    - ikeola13
+    - pnaik1
+    - ederign
+
+  eval-hub-reviewers:
+    - ikeola13
+    - pnaik1
+    - ederign

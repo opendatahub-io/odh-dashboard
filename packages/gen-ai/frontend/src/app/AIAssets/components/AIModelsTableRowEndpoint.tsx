@@ -42,6 +42,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
   return (
     <Popover
       position="right"
+      maxWidth="500px"
       aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
       bodyContent={
         <Flex>
@@ -52,7 +53,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   {isExternal ? 'External' : 'Internal'} endpoint URL
                 </Content>
               </FlexItem>
-              <FlexItem>
+              <FlexItem style={{ minWidth: '400px', maxWidth: '500px' }}>
                 <ClipboardCopy
                   data-testid="copy-endpoint-button"
                   hoverTip="Copy URL"
@@ -79,7 +80,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     API token
                   </Content>
                 </FlexItem>
-                <FlexItem>
+                <FlexItem style={{ minWidth: '400px', maxWidth: '500px' }}>
                   <ClipboardCopy
                     data-testid="copy-token-button"
                     hoverTip="Copy"

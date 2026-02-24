@@ -20,6 +20,8 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
+	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,6 +42,7 @@ type App struct {
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
+	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -47,6 +50,8 @@ type App struct {
 	fileUploadJobTracker    *services.FileUploadJobTracker
 	// Used only when MockK8sClient is enabled
 	testEnvState *k8smocks.TestEnvState
+	// Used only when MockMLflowClient is enabled and MLflow is started as a child process
+	mlflowState *mlflowmocks.MLflowState
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -169,6 +174,23 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// Initialize MLflow client factory
+	var mlflowFactory mlflowpkg.MLflowClientFactory
+	var mlflowState *mlflowmocks.MLflowState
+	if cfg.MockMLflowClient {
+		mlflowState, err = mlflowmocks.SetupMLflow(logger)
+		if err != nil {
+			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
+		}
+		mlflowFactory = mlflowmocks.NewMockClientFactory()
+	} else if cfg.MLflowURL != "" {
+		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
+		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL)
+	} else {
+		logger.Warn("MLflow URL not configured, MLflow endpoints will return 503")
+		mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
+	}
+
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
 	logger.Debug("Initialized shared memory store")
@@ -197,12 +219,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		llamaStackClientFactory: llamaStackClientFactory,
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
+		mlflowClientFactory:     mlflowFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
 		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
 		testEnvState:            testEnvState,
+		mlflowState:             mlflowState,
 	}
 	return app, nil
 }
@@ -218,6 +242,19 @@ func (app *App) Shutdown() error {
 				app.logger.Error(fmt.Sprintf(format, args...))
 			},
 			func(format string, args ...interface{}) {
+				app.logger.Info(fmt.Sprintf(format, args...))
+			},
+		)
+	}
+
+	if app.mlflowState != nil {
+		app.logger.Info("stopping MLflow server...")
+		mlflowmocks.CleanupMLflowState(
+			app.mlflowState,
+			func(format string, args ...any) {
+				app.logger.Error(fmt.Sprintf(format, args...))
+			},
+			func(format string, args ...any) {
 				app.logger.Info(fmt.Sprintf(format, args...))
 			},
 		)
@@ -314,6 +351,14 @@ func (app *App) Routes() http.Handler {
 	// Tokens (MaaS)
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// MLflow API routes
+	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))

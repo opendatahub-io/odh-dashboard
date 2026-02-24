@@ -43,7 +43,7 @@ const initIntercepts = ({ dashboards = [], isAdmin = false }: InitInterceptsOpti
 
 describe('Observability Dashboard', () => {
   it('should show empty state when no dashboards are found', () => {
-    initIntercepts({ dashboards: [], isAdmin: false });
+    initIntercepts({ dashboards: [], isAdmin: true });
 
     observabilityDashboardPage.visit();
 
@@ -64,7 +64,24 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHaveTabCount(2);
   });
 
-  it('should show only non-admin dashboard tabs when user is not admin', () => {
+  // it('should show only non-admin dashboard tabs when user is not admin', () => {
+  //   // Non-admin users should only see the non-admin dashboard
+  //   // The filtering happens on the frontend, so we still return all dashboards
+  //   // but the usePersesDashboards hook filters based on user admin status
+  //   initIntercepts({
+  //     dashboards: [mockAdminDashboard, mockNonAdminDashboard],
+  //     isAdmin: false,
+  //   });
+
+  //   observabilityDashboardPage.visit();
+
+  //   // Non-admin users should only see non-admin dashboards
+  //   observabilityDashboardPage.shouldHaveTab('Model');
+  //   observabilityDashboardPage.shouldHaveTabCount(1);
+  // });
+
+  // FIXME This is a temporary test to ensure that the dashboard tabs are only available for admins
+  it('should show only dashboard tabs for admins', () => {
     // Non-admin users should only see the non-admin dashboard
     // The filtering happens on the frontend, so we still return all dashboards
     // but the usePersesDashboards hook filters based on user admin status
@@ -73,10 +90,7 @@ describe('Observability Dashboard', () => {
       isAdmin: false,
     });
 
-    observabilityDashboardPage.visit();
-
-    // Non-admin users should only see non-admin dashboards
-    observabilityDashboardPage.shouldHaveTab('Model');
-    observabilityDashboardPage.shouldHaveTabCount(1);
+    cy.visitWithLogin('/observe-and-monitor/dashboard');
+    cy.findByTestId('not-found-page').should('exist');
   });
 });

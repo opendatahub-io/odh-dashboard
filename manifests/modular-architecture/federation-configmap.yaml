@@ -67,5 +67,32 @@ data:
             "namespace": "opendatahub",
             "port": 8243
         }
+      },
+      {
+        "name": "perses",
+        "proxyService": [
+          {
+            "authorize": true,
+            "path": "/perses/api",
+            "pathRewrite": "",
+            "tls": false,
+            "service": {
+              "name": "data-science-perses",
+              "namespace": "opendatahub",
+              "port": 8080
+            }
+          }
+        ]
+      },
+      {
+        "name": "mlflow",
+        "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
+        "authorize": true,
+        "tls": true,
+        "service": {
+            "name": "mlflow",
+            "namespace": "opendatahub",
+            "port": 8443
+        }
       }
     ]

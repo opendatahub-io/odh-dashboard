@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
-import { MLFLOW_DARK_MODE_KEY } from '#~/pages/pipelines/global/mlflowExperiments/utils';
+
+const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
 type ThemeContextProps = {
   theme: string;
@@ -23,6 +24,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     (theme: string) => {
       setMlflowTheme(theme === 'dark');
       setOdhTheme(theme);
+      // Notify federated modules running in the same document.
+      window.dispatchEvent(new CustomEvent('odh-theme-change', { detail: { theme } }));
     },
     [setMlflowTheme, setOdhTheme],
   );

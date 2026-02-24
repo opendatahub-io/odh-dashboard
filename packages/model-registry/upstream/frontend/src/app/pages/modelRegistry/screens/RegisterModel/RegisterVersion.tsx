@@ -19,28 +19,40 @@ import {
   modelVersionUrl,
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
+import { RegistrationMode } from '~/app/pages/modelRegistry/screens/const';
+import { ModelTransferJobUploadIntent } from '~/app/types';
+import { useCheckNamespaceRegistryAccess } from '~/app/hooks/useCheckNamespaceRegistryAccess';
+import { useModelRegistryNamespace } from '~/app/hooks/useModelRegistryNamespace';
 import useRegisteredModels from '~/app/hooks/useRegisteredModels';
 import { filterLiveModels } from '~/app/utils';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { AppContext } from '~/app/context/AppContext';
 import { useRegisterVersionData } from './useRegisterModelData';
-import { isRegisterVersionSubmitDisabled, registerVersion } from './utils';
+import { isRegisterVersionSubmitDisabled, registerVersion, registerViaTransferJob } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
 import PrefilledModelRegistryField from './PrefilledModelRegistryField';
 import RegistrationFormFooter from './RegistrationFormFooter';
 import RegisteredModelSelector from './RegisteredModelSelector';
 import { usePrefillRegisterVersionFields } from './usePrefillRegisterVersionFields';
-import { SubmitLabel } from './const';
+import { SubmitLabel, RegistrationErrorType } from './const';
 
 const RegisterVersion: React.FC = () => {
   const { modelRegistry: mrName, registeredModelId: prefilledRegisteredModelId } = useParams();
+  const registryNamespace = useModelRegistryNamespace();
   const navigate = useNavigate();
   const { apiState } = React.useContext(ModelRegistryContext);
   const { user } = React.useContext(AppContext);
   const author = user.userId || '';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formData, setData] = useRegisterVersionData(prefilledRegisteredModelId);
-  const isSubmitDisabled = isSubmitting || isRegisterVersionSubmitDisabled(formData);
+  const {
+    hasAccess: namespaceHasAccess,
+    isLoading: isNamespaceAccessLoading,
+    error: namespaceAccessError,
+  } = useCheckNamespaceRegistryAccess(mrName, registryNamespace, formData.namespace ?? '');
+  const isSubmitDisabled =
+    isSubmitting ||
+    isRegisterVersionSubmitDisabled(formData, namespaceHasAccess, isNamespaceAccessLoading);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
   const [submittedVersionName, setSubmittedVersionName] = React.useState<string>('');
   const [registrationErrorType, setRegistrationErrorType] = React.useState<string | undefined>(
@@ -67,19 +79,39 @@ const RegisterVersion: React.FC = () => {
     setIsSubmitting(true);
     setSubmitError(undefined);
 
-    const {
-      data: { modelVersion, modelArtifact },
-      errors,
-    } = await registerVersion(apiState, registeredModel, formData, author);
+    // Branch based on registration mode
+    if (formData.registrationMode === RegistrationMode.RegisterAndStore) {
+      // Register and Store: Only create transfer job (async registration)
+      const { transferJob, error } = await registerViaTransferJob(apiState, author, {
+        intent: ModelTransferJobUploadIntent.CREATE_VERSION,
+        formData,
+        registeredModel,
+      });
 
-    if (modelVersion && modelArtifact) {
-      navigate(modelVersionUrl(modelVersion.id, registeredModel.id, mrName));
-    } else if (Object.keys(errors).length > 0) {
-      const resourceName = Object.keys(errors)[0];
-      setSubmittedVersionName(formData.versionName);
-      setRegistrationErrorType(resourceName);
-      setSubmitError(errors[resourceName]);
-      setIsSubmitting(false);
+      if (transferJob) {
+        // Success - navigate back to registered model page
+        navigate(registeredModelUrl(registeredModel.id, mrName));
+      } else if (error) {
+        setIsSubmitting(false);
+        setRegistrationErrorType(RegistrationErrorType.TRANSFER_JOB);
+        setSubmitError(error);
+      }
+    } else {
+      // Register mode: Existing synchronous registration flow
+      const {
+        data: { modelVersion, modelArtifact },
+        errors,
+      } = await registerVersion(apiState, registeredModel, formData, author);
+
+      if (modelVersion && modelArtifact) {
+        navigate(modelVersionUrl(modelVersion.id, registeredModel.id, mrName));
+      } else if (Object.keys(errors).length > 0) {
+        const resourceName = Object.keys(errors)[0];
+        setSubmittedVersionName(formData.versionName);
+        setRegistrationErrorType(resourceName);
+        setSubmitError(errors[resourceName]);
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -146,6 +178,9 @@ const RegisterVersion: React.FC = () => {
                 setData={setData}
                 isFirstVersion={false}
                 latestVersion={latestVersion}
+                namespaceHasAccess={namespaceHasAccess}
+                isNamespaceAccessLoading={isNamespaceAccessLoading}
+                namespaceAccessError={namespaceAccessError}
               />
             </StackItem>
           </Stack>

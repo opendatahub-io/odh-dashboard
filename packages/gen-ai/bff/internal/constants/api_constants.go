@@ -47,6 +47,12 @@ const (
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
 
+	// MLflow endpoints
+	MLflowPromptsPath        = ApiPathPrefix + "/mlflow/prompts"
+	MLflowPromptPath         = ApiPathPrefix + "/mlflow/prompts/:name"
+	MLflowPromptVersionsPath = ApiPathPrefix + "/mlflow/prompts/:name/versions"
+	MLflowPromptVersionPath  = ApiPathPrefix + "/mlflow/prompts/:name/versions/:version"
+
 	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
 
 	// LSD Safety endpoint - returns configured guardrail models and shields
