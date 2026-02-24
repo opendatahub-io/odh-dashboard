@@ -1301,6 +1301,7 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  automl?: boolean;
   autoRag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;

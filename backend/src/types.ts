@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      automl: boolean;
       autoRag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
