@@ -3,15 +3,13 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  MenuToggle,
-  Select,
-  SelectList,
-  SelectOption,
   Skeleton,
-  Truncate,
+  SelectOptionProps,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
+import { TypeaheadSelect } from 'mod-arch-shared';
+import type { TypeaheadSelectProps } from 'mod-arch-shared/dist/components/TypeaheadSelect';
 import { getSecrets } from '~/app/api/k8s';
 import { SecretListItem } from '~/app/types';
 
@@ -20,15 +18,23 @@ export type SecretSelection = {
   name: string;
 };
 
-type SecretSelectorProps = {
+type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> & {
+  content: string | number;
+  value: string | number;
+  isSelected?: boolean;
+  description?: string;
+};
+
+type SecretSelectorProps = Omit<
+  TypeaheadSelectProps,
+  'selectOptions' | 'selected' | 'onSelect' | 'placeholder' | 'toggleWidth' | 'onChange'
+> & {
   namespace: string;
   type?: string;
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   label?: string;
-  isDisabled?: boolean;
   isFullWidth?: boolean;
-  dataTestId?: string;
 };
 
 const SecretSelector: React.FC<SecretSelectorProps> = ({
@@ -38,11 +44,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   onChange,
   label = 'Select a secret',
   isDisabled = false,
+  isRequired = false,
+  previewDescription = false,
   isFullWidth = false,
   dataTestId = 'secret-selector',
+  ...props
 }) => {
-  const [open, setOpen] = React.useState(false);
-
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
     (opts: APIOptions) => getSecrets('')(namespace, type)(opts),
     [namespace, type],
@@ -50,13 +57,21 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
   const [secrets, loaded, error] = useFetchState<SecretListItem[]>(callback, []);
 
-  const selectedSecret = secrets.find((secret) => secret.uuid === value);
-  const selectedLabel = selectedSecret?.name ?? label;
-
   const hasSecrets = secrets.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
+
+  const options: TypeaheadSelectOption[] = React.useMemo(
+    () =>
+      secrets.map((secret) => ({
+        content: secret.name,
+        value: secret.uuid,
+        isSelected: secret.uuid === value,
+        description: `Type: ${secret.type}`,
+      })),
+    [secrets, value],
+  );
 
   if (isLoading) {
     return <Skeleton style={{ minWidth: 100 }} />;
@@ -64,50 +79,35 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
   return (
     <>
-      <Select
-        isOpen={open}
+      <TypeaheadSelect
+        {...props}
+        placeholder={label}
+        selectOptions={options}
         selected={value}
-        onSelect={(e, selectValue) => {
-          const uuid = String(selectValue);
+        dataTestId={dataTestId}
+        isDisabled={isSelectDisabled}
+        isRequired={isRequired}
+        previewDescription={previewDescription}
+        toggleWidth={isFullWidth ? '100%' : undefined}
+        toggleProps={{
+          status: hasError ? 'danger' : undefined,
+        }}
+        onSelect={(
+          _:
+            | React.MouseEvent<Element, MouseEvent>
+            | React.KeyboardEvent<HTMLInputElement>
+            | undefined,
+          selection: string | number,
+        ) => {
+          const uuid = String(selection);
           const secret = secrets.find((s) => s.uuid === uuid);
           if (secret) {
             onChange({ uuid: secret.uuid, name: secret.name });
           } else {
             onChange(undefined);
           }
-          setOpen(false);
         }}
-        onOpenChange={setOpen}
-        toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            data-testid={dataTestId}
-            aria-label={label}
-            onClick={() => setOpen(!open)}
-            isExpanded={open}
-            isDisabled={isSelectDisabled}
-            isFullWidth={isFullWidth}
-            status={hasError ? 'danger' : undefined}
-          >
-            <Truncate content={selectedLabel} className="truncate-no-min-width" />
-          </MenuToggle>
-        )}
-        shouldFocusToggleOnSelect
-        popperProps={{ maxWidth: 'trigger' }}
-      >
-        <SelectList>
-          {secrets.map((secret) => (
-            <SelectOption
-              key={secret.uuid}
-              value={secret.uuid}
-              description={`Type: ${secret.type}`}
-              data-testid={`${dataTestId}-option-${secret.name}`}
-            >
-              {secret.name}
-            </SelectOption>
-          ))}
-        </SelectList>
-      </Select>
+      />
       {hasError && (
         <FormHelperText>
           <HelperText>
