@@ -1,6 +1,7 @@
 # editor
 .idea/
 .vscode/
+!packages/gen-ai/.vscode/
 
 # misc
 .DS_Store

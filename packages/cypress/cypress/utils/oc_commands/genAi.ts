@@ -2,6 +2,7 @@ import { pollUntilSuccess, waitForNamespace } from './baseCommands';
 import { waitForLlamaStackOperatorReady } from './llamaStackDistribution';
 import { appChrome } from '../../pages/appChrome';
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 // Resource identifiers
 const DSC_RESOURCE = 'datasciencecluster default-dsc';
@@ -43,7 +44,8 @@ const setLlamaStackState = (state: 'Managed' | 'Removed'): Cypress.Chainable<Com
   const patchSpec = { spec: { components: { llamastackoperator: { managementState: state } } } };
   return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec)).then((result) => {
     if (result.code !== 0) {
-      throw new Error(`Failed to set LlamaStack state to ${state}: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      throw new Error(`Failed to set LlamaStack state to ${state}: ${maskedStderr}`);
     }
     return result;
   });
@@ -59,7 +61,8 @@ const setGenAiStudioEnabled = (
   const patchSpec = { spec: { dashboardConfig: { genAiStudio: enabled } } };
   return cy.exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace)).then((result) => {
     if (result.code !== 0) {
-      throw new Error(`Failed to set Gen AI Studio enabled to ${enabled}: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      throw new Error(`Failed to set Gen AI Studio enabled to ${enabled}: ${maskedStderr}`);
     }
     return result;
   });

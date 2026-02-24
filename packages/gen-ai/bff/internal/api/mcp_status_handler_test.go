@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -20,103 +20,108 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMCPStatusHandler(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var _ = Describe("MCPStatusHandler", func() {
+	var app *App
 
-	mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
-		config.EnvConfig{MockK8sClient: true},
-		logger,
-	)
+	BeforeEach(func() {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-	require.NoError(t, err)
+		mockMCPFactory := mcpmocks.NewMockedMCPClientFactory(
+			config.EnvConfig{MockK8sClient: true},
+			logger,
+		)
 
-	app := &App{
-		config: config.EnvConfig{
-			Port:       4000,
-			AuthMethod: "user_token",
-		},
-		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
-		kubernetesClientFactory: mockK8sFactory,
-		mcpClientFactory:        mockMCPFactory,
-	}
+		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(GinkgoT(), err)
 
-	testCases := []struct {
-		name                   string
-		serverURL              string
-		expectedStatus         string
-		expectedServerName     string
-		expectedErrorCode      string
-		expectedStatusCode     int
-		shouldHaveErrorDetails bool
-		shouldHavePingTime     bool
-	}{
-		{
-			name:               "successful connection to brave search server",
-			serverURL:          "http://localhost:9090/sse",
-			expectedStatus:     "connected",
-			expectedServerName: "brave-search-mcp-server",
-			expectedStatusCode: 200,
-			shouldHavePingTime: true,
-		},
-		{
-			name:               "successful connection to kubernetes server",
-			serverURL:          "http://localhost:9091/mcp",
-			expectedStatus:     "connected",
-			expectedServerName: "kubernetes-mcp-server",
-			expectedStatusCode: 200,
-			shouldHavePingTime: true,
-		},
-		{
-			name:               "successful connection to default transport server",
-			serverURL:          "http://localhost:9092/default-transport",
-			expectedStatus:     "connected",
-			expectedServerName: "default-transport-server",
-			expectedStatusCode: 200,
-			shouldHavePingTime: true,
-		},
-		{
-			name:               "successful connection to invalid transport server",
-			serverURL:          "http://localhost:9093/invalid-transport",
-			expectedStatus:     "connected",
-			expectedServerName: "invalid-transport-server",
-			expectedStatusCode: 200,
-			shouldHavePingTime: true,
-		},
-		{
-			name:                   "connection error - server unavailable",
-			serverURL:              "https://mcp-unavailable:8080/sse",
-			expectedStatus:         "error",
-			expectedServerName:     "unavailable-server",
-			expectedErrorCode:      "connection_error",
-			expectedStatusCode:     200,
-			shouldHaveErrorDetails: true,
-			shouldHavePingTime:     false,
-		},
-		{
-			name:                   "authentication error",
-			serverURL:              "https://mcp-error:8080/mcp",
-			expectedStatus:         "error",
-			expectedServerName:     "error-server",
-			expectedErrorCode:      "unauthorized",
-			expectedStatusCode:     200,
-			shouldHaveErrorDetails: true,
-			shouldHavePingTime:     false,
-		},
-	}
+		app = &App{
+			config: config.EnvConfig{
+				Port:       4000,
+				AuthMethod: "user_token",
+			},
+			logger:                  logger,
+			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
+			kubernetesClientFactory: mockK8sFactory,
+			mcpClientFactory:        mockMCPFactory,
+			dashboardNamespace:      "opendatahub",
+		}
+	})
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	It("should handle all status check cases", func() {
+		t := GinkgoT()
+
+		testCases := []struct {
+			name                   string
+			serverURL              string
+			expectedStatus         string
+			expectedServerName     string
+			expectedErrorCode      string
+			expectedStatusCode     int
+			shouldHaveErrorDetails bool
+			shouldHavePingTime     bool
+		}{
+			{
+				name:               "successful connection to brave search server",
+				serverURL:          "http://localhost:9090/sse",
+				expectedStatus:     "connected",
+				expectedServerName: "brave-search-mcp-server",
+				expectedStatusCode: 200,
+				shouldHavePingTime: true,
+			},
+			{
+				name:               "successful connection to kubernetes server",
+				serverURL:          "http://localhost:9091/mcp",
+				expectedStatus:     "connected",
+				expectedServerName: "kubernetes-mcp-server",
+				expectedStatusCode: 200,
+				shouldHavePingTime: true,
+			},
+			{
+				name:               "successful connection to default transport server",
+				serverURL:          "http://localhost:9092/default-transport",
+				expectedStatus:     "connected",
+				expectedServerName: "default-transport-server",
+				expectedStatusCode: 200,
+				shouldHavePingTime: true,
+			},
+			{
+				name:               "successful connection to invalid transport server",
+				serverURL:          "http://localhost:9093/invalid-transport",
+				expectedStatus:     "connected",
+				expectedServerName: "invalid-transport-server",
+				expectedStatusCode: 200,
+				shouldHavePingTime: true,
+			},
+			{
+				name:                   "connection error - server unavailable",
+				serverURL:              "https://mcp-unavailable:8080/sse",
+				expectedStatus:         "error",
+				expectedServerName:     "unavailable-server",
+				expectedErrorCode:      "connection_error",
+				expectedStatusCode:     200,
+				shouldHaveErrorDetails: true,
+				shouldHavePingTime:     false,
+			},
+			{
+				name:                   "authentication error",
+				serverURL:              "https://mcp-error:8080/mcp",
+				expectedStatus:         "error",
+				expectedServerName:     "error-server",
+				expectedErrorCode:      "unauthorized",
+				expectedStatusCode:     200,
+				shouldHaveErrorDetails: true,
+				shouldHavePingTime:     false,
+			},
+		}
+
+		for _, tc := range testCases {
 			rr := httptest.NewRecorder()
 
-			// URL encode the server URL for the query parameter
 			encodedURL := url.QueryEscape(tc.serverURL)
 			requestURL := "/genai/v1/mcp/status?namespace=demo&server_url=" + encodedURL
 			req, err := http.NewRequest("GET", requestURL, nil)
 			require.NoError(t, err)
 
-			// Add request identity to context
 			ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 				Token: "FAKE_BEARER_TOKEN",
 			})
@@ -158,16 +163,16 @@ func TestMCPStatusHandler(t *testing.T) {
 				assert.Nil(t, response.Data.PingResponseTimeMs)
 			}
 
-			// Verify server info structure
 			assert.NotEmpty(t, response.Data.ServerInfo.Version)
 			if tc.expectedStatus == "connected" {
 				assert.NotEmpty(t, response.Data.ServerInfo.ProtocolVersion)
 			}
 			assert.Greater(t, response.Data.LastChecked, int64(0))
-		})
-	}
+		}
+	})
 
-	t.Run("should return 400 when namespace parameter is missing", func(t *testing.T) {
+	It("should return 400 when namespace parameter is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		encodedURL := url.QueryEscape("http://localhost:9090/sse")
@@ -175,7 +180,6 @@ func TestMCPStatusHandler(t *testing.T) {
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -186,14 +190,14 @@ func TestMCPStatusHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should return 400 when server_url parameter is missing", func(t *testing.T) {
+	It("should return 400 when server_url parameter is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		requestURL := "/genai/v1/mcp/status?namespace=demo"
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -204,7 +208,8 @@ func TestMCPStatusHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should return 400 when request identity is missing", func(t *testing.T) {
+	It("should return 400 when request identity is missing", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
 		encodedURL := url.QueryEscape("http://localhost:9090/sse")
@@ -212,23 +217,20 @@ func TestMCPStatusHandler(t *testing.T) {
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Don't add request identity to context
-
 		app.MCPStatusHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should return 404 when server config not found", func(t *testing.T) {
+	It("should return 404 when server config not found", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
-		// Use a server URL that won't be found in the mock ConfigMap
 		encodedURL := url.QueryEscape("https://nonexistent-server.com/mcp")
 		requestURL := "/genai/v1/mcp/status?namespace=demo&server_url=" + encodedURL
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -239,17 +241,16 @@ func TestMCPStatusHandler(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
-	t.Run("should handle URL decoding correctly", func(t *testing.T) {
+	It("should handle URL decoding correctly", func() {
+		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
-		// Test with a URL that needs proper decoding
 		serverURL := "http://localhost:9090/sse"
 		encodedURL := url.QueryEscape(serverURL)
 		requestURL := "/genai/v1/mcp/status?namespace=demo&server_url=" + encodedURL
 		req, err := http.NewRequest("GET", requestURL, nil)
 		require.NoError(t, err)
 
-		// Add request identity to context
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -270,12 +271,12 @@ func TestMCPStatusHandler(t *testing.T) {
 		assert.Equal(t, serverURL, response.Data.ServerURL)
 	})
 
-	t.Run("should verify server info consistency between status and tools endpoints", func(t *testing.T) {
-		// This test ensures both endpoints return consistent server information
+	It("should verify server info consistency between status and tools endpoints", func() {
+		t := GinkgoT()
+
 		testServerURL := "http://localhost:9091/mcp"
 		encodedURL := url.QueryEscape(testServerURL)
 
-		// Test status endpoint
 		statusRR := httptest.NewRecorder()
 		statusReq, err := http.NewRequest("GET", "/genai/v1/mcp/status?namespace=demo&server_url="+encodedURL, nil)
 		require.NoError(t, err)
@@ -295,7 +296,6 @@ func TestMCPStatusHandler(t *testing.T) {
 		err = json.Unmarshal(statusBody, &statusResponse)
 		require.NoError(t, err)
 
-		// Test tools endpoint
 		toolsRR := httptest.NewRecorder()
 		toolsReq, err := http.NewRequest("GET", "/genai/v1/mcp/tools?namespace=demo&server_url="+encodedURL, nil)
 		require.NoError(t, err)
@@ -315,10 +315,9 @@ func TestMCPStatusHandler(t *testing.T) {
 		err = json.Unmarshal(toolsBody, &toolsResponse)
 		require.NoError(t, err)
 
-		// Verify server info consistency
 		assert.Equal(t, statusResponse.Data.ServerInfo.Name, toolsResponse.Data.ServerInfo.Name)
 		assert.Equal(t, statusResponse.Data.ServerInfo.Version, toolsResponse.Data.ServerInfo.Version)
 		assert.Equal(t, statusResponse.Data.ServerInfo.ProtocolVersion, toolsResponse.Data.ServerInfo.ProtocolVersion)
 		assert.Equal(t, statusResponse.Data.ServerURL, toolsResponse.Data.ServerURL)
 	})
-}
+})

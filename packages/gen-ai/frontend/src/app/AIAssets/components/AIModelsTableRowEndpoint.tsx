@@ -10,8 +10,8 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel } from '~/app/types';
+import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type AIModelsTableRowEndpointProps = {
   model: AIModel;
@@ -42,6 +42,7 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
   return (
     <Popover
       position="right"
+      maxWidth="500px"
       aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
       bodyContent={
         <Flex>
@@ -52,19 +53,19 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                   {isExternal ? 'External' : 'Internal'} endpoint URL
                 </Content>
               </FlexItem>
-              <FlexItem>
+              <FlexItem style={{ minWidth: '400px', maxWidth: '500px' }}>
                 <ClipboardCopy
                   data-testid="copy-endpoint-button"
                   hoverTip="Copy URL"
                   clickTip="Copied"
                   aria-label={`${isExternal ? 'external' : 'internal'} endpoint URL for ${model.model_name}`}
-                  onCopy={() => {
-                    fireMiscTrackingEvent('Available Endpoints Endpoint Copied', {
+                  onCopy={() =>
+                    copyToClipboardWithTracking(endpoint, 'Available Endpoints Endpoint Copied', {
                       assetType: 'model',
                       endpointType: isExternal ? 'external' : 'internal',
                       copyTarget: 'endpoint',
-                    });
-                  }}
+                    })
+                  }
                 >
                   {endpoint}
                 </ClipboardCopy>
@@ -79,18 +80,22 @@ const AIModelsTableRowEndpoint: React.FC<AIModelsTableRowEndpointProps> = ({
                     API token
                   </Content>
                 </FlexItem>
-                <FlexItem>
+                <FlexItem style={{ minWidth: '400px', maxWidth: '500px' }}>
                   <ClipboardCopy
                     data-testid="copy-token-button"
                     hoverTip="Copy"
                     clickTip="Copied"
                     aria-label={`External endpoint API token for ${model.model_name}`}
-                    onCopy={() => {
-                      fireMiscTrackingEvent('Available Endpoints Service Token Copied', {
-                        assetType: 'model',
-                        copyTarget: 'service_token',
-                      });
-                    }}
+                    onCopy={() =>
+                      copyToClipboardWithTracking(
+                        model.sa_token.token,
+                        'Available Endpoints Service Token Copied',
+                        {
+                          assetType: 'model',
+                          copyTarget: 'service_token',
+                        },
+                      )
+                    }
                   >
                     {model.sa_token.token}
                   </ClipboardCopy>

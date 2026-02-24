@@ -47,9 +47,17 @@ dev-frontend: ## Run only the frontend in development mode
 dev-mlflow-up: ## Start local MLflow tracking server for development
 	cd bff && make mlflow-up
 
+.PHONY: dev-bff-mock-debug
+dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
+	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN
+
 .PHONY: dev-start-mock
 dev-start-mock: ## Run frontend and bff (all mocks) in development mode
 	make -j 2 dev-bff-mock dev-frontend
+
+.PHONY: dev-start-mock-debug
+dev-start-mock-debug: ## Run frontend and bff (all mocks) with Delve debugger (VSCode: F5 → "Attach to BFF")
+	make -j 2 dev-bff-mock-debug dev-frontend
 
 .PHONY: dev-portforward
 dev-portforward: ## Start port-forwarding in separate terminals

@@ -198,3 +198,28 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+
+  # AutoML
+  automl-approvers:
+    - nickmazzi
+    - chrjones-rh
+  automl-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
+    - jkyaw
+  
+  # Eval Hub
+  eval-hub-approvers:
+    - ikeola13
+    - pnaik1
+    - ederign
+
+  eval-hub-reviewers:
+    - ikeola13
+    - pnaik1
+    - ederign

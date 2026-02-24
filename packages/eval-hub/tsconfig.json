@@ -1,0 +1,3 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json"
+}
