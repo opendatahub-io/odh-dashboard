@@ -18,7 +18,7 @@ import {
   EllipsisVIcon,
 } from '@patternfly/react-icons';
 import { ProjectKind, RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
-import { relativeTime } from '#~/utilities/time';
+import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { projectDisplayNameToNamespace } from '#~/concepts/projects/utils';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
@@ -165,7 +165,10 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
               <Content component="p">
                 <Timestamp
                   date={createdDate}
-                  tooltip={{ variant: TimestampTooltipVariant.default }}
+                  tooltip={{
+                    variant: TimestampTooltipVariant.custom,
+                    content: formatDateForLocalTooltip(createdDate),
+                  }}
                 >
                   {relativeTime(Date.now(), createdDate.getTime())}
                 </Timestamp>
