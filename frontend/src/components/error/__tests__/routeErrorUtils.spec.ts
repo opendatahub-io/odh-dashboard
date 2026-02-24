@@ -27,6 +27,20 @@ describe('isChunkLoadError', () => {
 });
 
 describe('getRouteErrorDetails', () => {
+  it('should return route error response string data as message', () => {
+    const routeErrorResponse = {
+      status: 500,
+      statusText: 'Server Error',
+      data: 'Backend unavailable',
+      internal: false,
+    };
+
+    expect(getRouteErrorDetails(routeErrorResponse)).toEqual({
+      title: '500 Server Error',
+      errorMessage: 'Backend unavailable',
+    });
+  });
+
   it('should return route error response details', () => {
     const routeErrorResponse = {
       status: 404,
