@@ -1,7 +1,7 @@
 name: Cypress e2e Test
 
 # =============================================================================
-# E2E Test Workflow with Cluster Failover and Dynamic Tag Selection
+# E2E Test Workflow with Cluster Failover and Smart Test Selection
 # =============================================================================
 #
 # TRIGGERS:
@@ -13,25 +13,33 @@ name: Cypress e2e Test
 #   Secondary: dash-e2e     (used if primary is unhealthy)
 #   Health Check: Logs into cluster → checks DSC conditions (Available, Degraded, odh-dashboardReady)
 #
-# TEST SELECTION:
+# TEST SELECTION (priority order):
 #   Default (always run):
-#     - @ci-dashboard-set-1
-#     - @ci-dashboard-set-2
+#     - @ci-dashboard-regression-tags
 #
-#   Run additional tests via PR labels:
-#     Add labels with 'test:' prefix to your PR:
-#       test:Pipelines    → @Pipelines
-#       test:ModelServing → @ModelServing
-#       test:Workbenches  → @Workbenches
-#     Any 'test:<TagName>' label maps to '@<TagName>' Cypress grep tag
+#   1. Manual input (workflow_dispatch):
+#      Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
 #
-#   Run additional tests manually:
-#     1. Go to Actions tab → "Cypress e2e Test" workflow
-#     2. Click "Run workflow"
-#     3. Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
+#   2. PR labels (test:* pattern):
+#      Add labels with 'test:' prefix to your PR:
+#        test:Pipelines    → @Pipelines
+#        test:ModelServing → @ModelServing
+#        test:Workbenches  → @Workbenches
+#      Any 'test:<TagName>' label maps to '@<TagName>' Cypress grep tag
+#
+#   3. Auto-detected from PR changes (always additive):
+#      Turbo detects changed packages → reads "e2eCiTags" from package.json
+#      Git diff detects changed frontend sub-areas → inline mapping resolves tags
+#      All auto-detected tags are consolidated into ONE additional matrix job
+#
+#      To add auto-detection for a package:
+#        Add "e2eCiTags": ["@YourTagCI"] to the package's package.json
+#      To add auto-detection for a frontend area:
+#        Add an entry to .github/frontend-ci-tags.json
 #
 # LIMITS:
-#   - Max 5 additional tags beyond defaults (prevents runner exhaustion)
+#   - Max 5 additional tags for labels/manual (prevents runner exhaustion)
+#   - Auto-detected tags are consolidated into 1 job (no limit needed)
 #   - 10 runners shared across 30+ devs
 #
 # REQUIRED SECRETS:
@@ -214,7 +222,7 @@ jobs:
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
-  # Tag Resolution - Build test matrix from defaults + PR labels/input
+  # Tag Resolution - Build test matrix from defaults + PR labels/input + auto-detection
   # ---------------------------------------------------------------------------
   get-test-tags:
     needs: [select-cluster]
@@ -223,6 +231,18 @@ jobs:
       matrix: ${{ steps.build.outputs.matrix }}
       source: ${{ steps.build.outputs.source }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
       - name: Get PR labels
         id: labels
         if: github.event_name == 'workflow_run'
@@ -253,16 +273,120 @@ jobs:
             echo "⚠️ Could not find PR number for SHA ${{ github.event.workflow_run.head_sha }}"
           fi
 
+      - name: Detect changed areas
+        id: detect
+        run: |
+          # =================================================================
+          # Smart Test Selection: Detect changed areas and resolve CI tags
+          #
+          # Layer 1: Turbo detects changed packages (including frontend "//" workspace)
+          #          → reads e2eCiTags from each package.json (self-service, teams opt in)
+          # Layer 2: For frontend changes detected by Layer 1, git diff identifies
+          #          sub-areas → .github/frontend-ci-tags.json mapping resolves CI tags
+          # =================================================================
+
+          AUTO_TAGS=""
+
+          # --- Layer 1: Turbo-based package detection ---
+          echo "🔍 Running Turbo change detection..."
+
+          # Determine base ref for comparison
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha || 'origin/main' }}"
+          else
+            BASE_SHA="origin/main"
+          fi
+          HEAD_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+
+          echo "  📌 Comparing $BASE_SHA...$HEAD_SHA"
+
+          # Get changed packages from turbo (uses dependency graph)
+          CHANGED_PACKAGES=$(npx turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
+            | jq -r '.packages[]' 2>/dev/null || echo "")
+
+          if [[ -n "$CHANGED_PACKAGES" ]]; then
+            echo "  📦 Changed workspaces detected by Turbo:"
+            echo "$CHANGED_PACKAGES" | while read -r pkg; do echo "     - $pkg"; done
+
+            # For each changed package, check for e2eCiTags in its package.json
+            for pkg_dir in packages/*/; do
+              pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
+              if echo "$CHANGED_PACKAGES" | grep -qx "$pkg_name"; then
+                ci_tags=$(jq -r '.e2eCiTags[]? // empty' "$pkg_dir/package.json" 2>/dev/null)
+                if [[ -n "$ci_tags" ]]; then
+                  for tag in $ci_tags; do
+                    echo "  ✅ $pkg_name → $tag"
+                    AUTO_TAGS="$AUTO_TAGS $tag"
+                  done
+                else
+                  echo "  ⏭️  $pkg_name (no e2eCiTags — defaults only)"
+                fi
+              fi
+            done
+          else
+            echo "  ℹ️  No package changes detected by Turbo"
+          fi
+
+          # --- Layer 2: Frontend sub-area detection ---
+          # Turbo sees the entire frontend as one workspace. When it changes,
+          # use git diff to identify which sub-areas were modified.
+          # Note: Turbo reports the root/frontend workspace as "//"
+          if echo "$CHANGED_PACKAGES" | grep -qx "//"; then
+            echo ""
+            echo "🔍 Frontend changed — detecting sub-areas via git diff..."
+
+            # Load frontend directory → CI tag mapping from external JSON file
+            # To add a new area: edit .github/frontend-ci-tags.json
+            MAPPING_FILE=".github/frontend-ci-tags.json"
+            if [[ ! -f "$MAPPING_FILE" ]]; then
+              echo "  ⚠️  $MAPPING_FILE not found — skipping frontend sub-area detection"
+            else
+              echo "  📄 Loaded mappings from $MAPPING_FILE"
+
+              # Get changed frontend files
+              CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" -- frontend/src/ 2>/dev/null || echo "")
+
+              if [[ -n "$CHANGED_FILES" ]]; then
+                # Scan pages/, concepts/, api/, routes/ using the same mapping
+                for src_dir in pages concepts api routes; do
+                  DIRS=$(echo "$CHANGED_FILES" | grep "^frontend/src/$src_dir/" | \
+                    sed "s|^frontend/src/$src_dir/||" | cut -d'/' -f1 | sort -u)
+
+                  for dir in $DIRS; do
+                    tag=$(jq -r --arg d "$dir" '.[$d] // empty' "$MAPPING_FILE")
+                    if [[ -n "$tag" ]]; then
+                      echo "  ✅ $src_dir/$dir → $tag"
+                      AUTO_TAGS="$AUTO_TAGS $tag"
+                    fi
+                  done
+                done
+              fi
+            fi
+          fi
+
+          # Deduplicate auto-detected tags
+          if [[ -n "$AUTO_TAGS" ]]; then
+            AUTO_TAGS=$(echo "$AUTO_TAGS" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+            echo ""
+            echo "🏷️  Auto-detected CI tags: $AUTO_TAGS"
+          else
+            echo ""
+            echo "ℹ️  No area-specific CI tags detected — defaults only"
+          fi
+
+          echo "auto_tags=$AUTO_TAGS" >> $GITHUB_OUTPUT
+
       - name: Build test matrix
         id: build
         run: |
           # Configuration
-          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion
+          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
           
           # Defaults - these ALWAYS run
-          TAGS="@ci-dashboard-set-1,@ci-dashboard-set-2"
+          TAGS="@ci-dashboard-regression-tags"
           SOURCE="default"
           EXTRA_COUNT=0
+          AUTO_DETECTED_ENTRY=""
 
           # Priority 1: Manual input (workflow_dispatch)
           if [[ -n "${{ inputs.additional_tags }}" ]]; then
@@ -294,9 +418,48 @@ jobs:
             echo "⚠️ Tag limit reached ($MAX_EXTRA_TAGS max). Some tags were not added."
           fi
 
+          # Priority 3: Auto-detected from PR changes (always additive, consolidated into ONE job)
+          AUTO_TAGS="${{ steps.detect.outputs.auto_tags }}"
+          if [[ -n "$AUTO_TAGS" ]]; then
+            # Remove any auto-detected tags that already appear in manual/label TAGS
+            # to prevent the same tests running in two separate matrix jobs
+            EXISTING_TAGS=$(echo "$TAGS" | tr ',' '\n' | sort -u)
+            FILTERED_AUTO=""
+            for auto_tag in $AUTO_TAGS; do
+              if echo "$EXISTING_TAGS" | grep -qx "$auto_tag"; then
+                echo "⏭️  Skipping $auto_tag from auto-detected (already in manual/label tags)"
+              else
+                FILTERED_AUTO="$FILTERED_AUTO $auto_tag"
+              fi
+            done
+            FILTERED_AUTO=$(echo "$FILTERED_AUTO" | xargs)
+
+            if [[ -n "$FILTERED_AUTO" ]]; then
+              # Consolidate remaining auto-detected tags into a single matrix entry
+              # Cypress grep treats space-separated tags as OR, so one job covers all areas
+              AUTO_DETECTED_ENTRY="$FILTERED_AUTO"
+              if [[ "$SOURCE" == "default" ]]; then
+                SOURCE="auto-detected"
+              else
+                SOURCE="$SOURCE+auto-detected"
+              fi
+              echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY"
+            else
+              echo "ℹ️  All auto-detected tags already covered by manual/label tags"
+            fi
+          fi
+
           # Convert to JSON matrix (deduplicated)
           MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
             sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
+
+          # Append the consolidated auto-detected entry as a single matrix item
+          if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
+            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
+          fi
+          
+          # Ensure compact JSON for GitHub Actions output
+          MATRIX=$(echo "$MATRIX" | jq -c '.')
           
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT
@@ -316,6 +479,236 @@ jobs:
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
     steps:
+      - name: Check Disk Space
+        run: |
+          echo "📊 Checking available disk space..."
+          DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+          DISK_AVAIL=$(df -h / | tail -1 | awk '{print $4}')
+          
+          echo "💾 Disk usage: ${DISK_USAGE}% (${DISK_AVAIL} available)"
+          echo "DISK_USAGE=$DISK_USAGE" >> $GITHUB_ENV
+          
+          if [ "$DISK_USAGE" -ge 95 ]; then
+            echo "❌ CRITICAL: Disk usage is ${DISK_USAGE}% - will attempt emergency cleanup"
+            echo "EMERGENCY_CLEANUP=true" >> $GITHUB_ENV
+          elif [ "$DISK_USAGE" -ge 90 ]; then
+            echo "⚠️  HIGH: Disk usage is ${DISK_USAGE}% - will attempt aggressive cleanup"
+            echo "EMERGENCY_CLEANUP=true" >> $GITHUB_ENV
+          elif [ "$DISK_USAGE" -ge 85 ]; then
+            echo "⚠️  WARNING: Disk usage is ${DISK_USAGE}% - cleanup recommended"
+            echo "   The cleanup job will run after this workflow completes"
+            echo "EMERGENCY_CLEANUP=false" >> $GITHUB_ENV
+          else
+            echo "✅ Disk space OK (${DISK_USAGE}% used)"
+            echo "EMERGENCY_CLEANUP=false" >> $GITHUB_ENV
+          fi
+
+      - name: Emergency Cleanup (if disk space critical)
+        if: env.EMERGENCY_CLEANUP == 'true'
+        run: |
+          echo "🚨 EMERGENCY CLEANUP - Disk usage: ${DISK_USAGE}%"
+          
+          RUNNER_USER=$(whoami)
+          HOME_DIR=$(eval echo "~$RUNNER_USER")
+          CURRENT_WORK_DIR="${{ github.workspace }}"
+          
+          # Determine how aggressive to be based on disk usage
+          if [ "$DISK_USAGE" -ge 95 ]; then
+            AGE_THRESHOLD=1  # CRITICAL: Clean anything >1 day old
+            echo "⚠️  CRITICAL MODE: Cleaning files >1 day old"
+          else
+            AGE_THRESHOLD=7  # Normal: Clean anything >7 days old
+            echo "⚠️  AGGRESSIVE MODE: Cleaning files >7 days old"
+          fi
+          
+          echo ""
+          if [ "$DISK_USAGE" -ge 95 ]; then
+            echo "🛡️  PARALLEL-SAFE PROTECTIONS (FAST MODE - disk critically full):"
+            echo "   ✓ Current workspace (this job)"
+            echo "   ✓ Active GitHub Actions Runner.Worker process directories"
+            echo "   ⚡ Skipping slow checks (lsof, find) for speed"
+          else
+            echo "🛡️  PARALLEL-SAFE PROTECTIONS (THOROUGH MODE):"
+            echo "   ✓ Current workspace (this job)"
+            echo "   ✓ Active GitHub Actions Runner.Worker processes"
+            echo "   ✓ Directories with open files (lsof with 5s timeout)"
+            echo "   ✓ Directories accessed in last 10 minutes"
+          fi
+          echo ""
+          
+          # Get list of ALL active work directories from currently running GitHub Actions jobs
+          # This is the safest way to avoid deleting directories from parallel PRs
+          echo "🔍 Detecting active work directories from parallel jobs (with timeout)..."
+          ACTIVE_WORK_DIRS=()
+          ACTIVE_JOBS=0
+          
+          # Use faster method: check for active processes, then only protect their workspace
+          ACTIVE_PIDS=$(pgrep -f "Runner.Worker" -u "$RUNNER_USER" 2>/dev/null || true)
+          if [ -n "$ACTIVE_PIDS" ]; then
+            echo "   Found active Runner.Worker processes: $ACTIVE_PIDS"
+            # Get working directories of active processes using lsof (much faster than find)
+            for pid in $ACTIVE_PIDS; do
+              ACTIVE_JOBS=$((ACTIVE_JOBS + 1))
+              # Get the CWD of this process
+              if [ -L "/proc/$pid/cwd" ]; then
+                WORK_CWD=$(readlink "/proc/$pid/cwd" 2>/dev/null || true)
+                if [[ "$WORK_CWD" == *"odh-dashboard"* ]]; then
+                  # Extract the odh-dashboard directory path
+                  WORK_DIR=$(echo "$WORK_CWD" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
+                  ACTIVE_WORK_DIRS+=("$WORK_DIR")
+                  echo "   🛡️  Protected: $WORK_DIR (PID $pid)"
+                fi
+              fi
+            done
+          fi
+          echo "   Found $ACTIVE_JOBS active runner(s) with ${#ACTIVE_WORK_DIRS[@]} protected work directory(ies)"
+          
+          # Helper function to check if directory is in use by active runner
+          is_directory_in_use() {
+            local dir="$1"
+            
+            # 1. Skip current workspace (absolute must)
+            if [[ "$dir" == "$CURRENT_WORK_DIR"* ]]; then
+              return 0  # In use (current job)
+            fi
+            
+            # 2. Check if directory is in the active work dirs list (FAST)
+            for active_dir in "${ACTIVE_WORK_DIRS[@]}"; do
+              if [[ "$dir" == "$active_dir"* ]]; then
+                return 0  # In use (active job)
+              fi
+            done
+            
+            # 3. In CRITICAL mode (disk ≥95%), skip slow checks - rely on active work dirs only
+            if [ "$DISK_USAGE" -ge 95 ]; then
+              return 1  # Not in active list, safe to delete (fast path)
+            fi
+            
+            # 4. Normal mode: Do thorough checks
+            # Check for ANY processes using this directory (can be slow)
+            if timeout 5 lsof +D "$dir" 2>/dev/null | grep -q .; then
+              return 0  # In use (has open files)
+            fi
+            
+            # 5. Check if directory was accessed very recently (last 10 minutes only)
+            if find "$dir" -maxdepth 0 -amin -10 2>/dev/null | grep -q .; then
+              return 0  # In use (very recent activity)
+            fi
+            
+            return 1  # Not in use (safe to delete)
+          }
+          
+          echo ""
+          echo "🗑️  Step 1: Cleaning Go upstream builds (age: >$AGE_THRESHOLD days)..."
+          UPSTREAM_CLEANED=0
+          find "$HOME_DIR"/actions-runner*/_work -type d -path "*/packages/*/upstream" -mtime +$AGE_THRESHOLD 2>/dev/null | while read upstream_dir; do
+            # Extract work_dir by going up to odh-dashboard parent
+            work_dir=$(echo "$upstream_dir" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
+            if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              rm -rf "$upstream_dir" 2>/dev/null && echo "   ✅ Cleaned: $upstream_dir" && UPSTREAM_CLEANED=$((UPSTREAM_CLEANED + 1)) || true
+            fi
+          done
+          
+          echo ""
+          echo "🗑️  Step 2: Cleaning old work directories (age: >$AGE_THRESHOLD days, with multi-layer safety)..."
+          CLEANED_COUNT=0
+          SKIPPED_COUNT=0
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +$AGE_THRESHOLD 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ]; then
+              if is_directory_in_use "$work_dir"; then
+                echo "   ⏭️  Protected (in use): $work_dir"
+                SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+              else
+                SIZE_BEFORE=$(du -sh "$work_dir" 2>/dev/null | awk '{print $1}')
+                if rm -rf "$work_dir" 2>/dev/null; then
+                  echo "   ✅ Cleaned $SIZE_BEFORE: $work_dir"
+                  CLEANED_COUNT=$((CLEANED_COUNT + 1))
+                fi
+              fi
+            fi
+          done
+          echo "   📊 Cleaned: $CLEANED_COUNT, Protected: $SKIPPED_COUNT"
+          
+          echo ""
+          echo "🗑️  Step 3: Cleaning Cypress artifacts (age: >$AGE_THRESHOLD days)..."
+          SCREENSHOTS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/screenshots/*" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
+          VIDEOS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/videos/*" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
+          echo "   ✅ Cleaned $SCREENSHOTS_CLEANED screenshots, $VIDEOS_CLEANED videos"
+          
+          echo ""
+          echo "🗑️  Step 4: Cleaning runner logs (age: >$AGE_THRESHOLD days)..."
+          LOGS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
+          echo "   ✅ Cleaned $LOGS_CLEANED log files"
+          
+          echo ""
+          echo "🗑️  Step 5: Cleaning node_modules in old work dirs (age: >$AGE_THRESHOLD days)..."
+          find "$HOME_DIR"/actions-runner*/_work -type d -name "node_modules" -mtime +$AGE_THRESHOLD 2>/dev/null | while read nm_dir; do
+            # Extract work_dir by going up to odh-dashboard parent
+            work_dir=$(echo "$nm_dir" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
+            if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              SIZE_BEFORE=$(du -sh "$nm_dir" 2>/dev/null | awk '{print $1}')
+              rm -rf "$nm_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE node_modules: $nm_dir" || true
+            fi
+          done
+          
+          echo ""
+          echo "🗑️  Step 6: Cleaning .turbo cache in old work dirs (age: >$AGE_THRESHOLD days)..."
+          find "$HOME_DIR"/actions-runner*/_work -type d -name ".turbo" -mtime +$AGE_THRESHOLD 2>/dev/null | while read turbo_dir; do
+            # Extract work_dir by going up to odh-dashboard parent
+            work_dir=$(echo "$turbo_dir" | sed 's|/odh-dashboard/.*|/odh-dashboard|')
+            if [ -n "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              SIZE_BEFORE=$(du -sh "$turbo_dir" 2>/dev/null | awk '{print $1}')
+              rm -rf "$turbo_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE .turbo: $turbo_dir" || true
+            fi
+          done
+          
+          echo ""
+          echo "📊 Disk usage after emergency cleanup:"
+          DISK_USAGE_AFTER=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+          DISK_AVAIL_AFTER=$(df -h / | tail -1 | awk '{print $4}')
+          echo "💾 Disk usage: ${DISK_USAGE_AFTER}% (${DISK_AVAIL_AFTER} available)"
+          
+          FREED=$((DISK_USAGE - DISK_USAGE_AFTER))
+          if [ "$FREED" -gt 0 ]; then
+            echo "✅ Freed: ${FREED}% disk space"
+          else
+            echo "⚠️  Freed: 0% disk space (no files met age threshold)"
+          fi
+          
+          # Show what's taking up space
+          echo ""
+          echo "📊 Top disk usage on runner:"
+          du -sh "$HOME_DIR"/actions-runner*/_work/* 2>/dev/null | sort -rh | head -5 || true
+          
+          # Decide whether to fail or continue
+          if [ "$DISK_USAGE_AFTER" -ge 95 ]; then
+            if [ "$FREED" -gt 0 ]; then
+              echo "⚠️  WARNING: Still at ${DISK_USAGE_AFTER}% after cleanup, but freed ${FREED}%"
+              echo "   Attempting to proceed - job may fail if more space is needed"
+            else
+              echo "❌ CRITICAL: Still at ${DISK_USAGE_AFTER}% after cleanup and freed 0%"
+              echo "   All work directories are either:"
+              echo "   - Currently in use by active jobs"
+              echo "   - Created within the last $AGE_THRESHOLD day(s)"
+              echo ""
+              echo "🔍 Diagnosis - Active work directories:"
+              find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d 2>/dev/null | while read work_dir; do
+                MTIME=$(stat -f %m "$work_dir" 2>/dev/null || stat -c %Y "$work_dir" 2>/dev/null || echo "0")
+                AGE_DAYS=$(( ($(date +%s) - MTIME) / 86400 ))
+                SIZE=$(du -sh "$work_dir" 2>/dev/null | awk '{print $1}')
+                echo "   - $work_dir: $SIZE, age: ${AGE_DAYS} days"
+              done
+              echo ""
+              echo "   Manual intervention required on runner $(hostname)"
+              exit 1
+            fi
+          elif [ "$DISK_USAGE_AFTER" -ge 90 ]; then
+            echo "⚠️  WARNING: Still at ${DISK_USAGE_AFTER}% after cleanup"
+            echo "   Job will proceed but may fail due to space"
+          else
+            echo "✅ Cleanup successful - proceeding with tests"
+          fi
+
       - name: Calculate unique port for this workflow run
         run: |
           # Dynamic port allocation for parallel execution
@@ -331,15 +724,69 @@ jobs:
           fi
 
           WEBPACK_PORT=$((BASE_PORT + MATRIX_OFFSET))
-
-          # Store port info with run_id for cleanup tracking
           PORT_INFO_DIR="/tmp/gha-ports"
           mkdir -p "$PORT_INFO_DIR"
+          
+          echo "📍 Calculated port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
+          
+          # SAFE port conflict resolution - only clean orphaned processes
+          if lsof -ti:${WEBPACK_PORT} > /dev/null 2>&1; then
+            echo "⚠️  Port ${WEBPACK_PORT} is currently in use - checking ownership..."
+            
+            PORT_OWNER_FILE="$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
+            if [ -f "$PORT_OWNER_FILE" ]; then
+              OWNER_RUN_ID=$(cat "$PORT_OWNER_FILE")
+              FILE_AGE=$(($(date +%s) - $(stat -f %m "$PORT_OWNER_FILE" 2>/dev/null || stat -c %Y "$PORT_OWNER_FILE" 2>/dev/null)))
+              
+              # Only kill if the owning run is OLD (>30 minutes = likely completed/stuck)
+              if [ "$FILE_AGE" -gt 1800 ]; then
+                echo "🧹 Port owned by old run_id $OWNER_RUN_ID (${FILE_AGE}s old) - cleaning up..."
+                PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
+                if [ -n "$PORT_PID" ]; then
+                  pkill -P "$PORT_PID" 2>/dev/null || true
+                  kill -9 "$PORT_PID" 2>/dev/null || true
+                  sleep 2
+                  if lsof -ti:${WEBPACK_PORT} > /dev/null 2>&1; then
+                    echo "❌ Failed to clean orphaned process - port still in use"
+                    echo "   This may require manual intervention on the runner"
+                    exit 1
+                  else
+                    echo "✅ Successfully cleaned orphaned process"
+                  fi
+                fi
+              else
+                echo "⚠️  Port owned by recent run_id $OWNER_RUN_ID (${FILE_AGE}s old)"
+                echo "   This is likely an active parallel PR test - DO NOT KILL"
+                echo "❌ Port conflict detected - please retry workflow in a few minutes"
+                exit 1
+              fi
+            else
+              echo "⚠️  Port in use but no owner info found - checking process age..."
+              PORT_PID=$(lsof -ti:${WEBPACK_PORT} 2>/dev/null | head -1)
+              if [ -n "$PORT_PID" ]; then
+                # Check process start time (macOS: -o etime, Linux: -o etimes)
+                PROCESS_AGE=$(ps -o etimes= -p "$PORT_PID" 2>/dev/null || echo "unknown")
+                if [ "$PROCESS_AGE" != "unknown" ] && [ "$PROCESS_AGE" -gt 1800 ]; then
+                  echo "🧹 Orphaned process (${PROCESS_AGE}s old) - cleaning up..."
+                  pkill -P "$PORT_PID" 2>/dev/null || true
+                  kill -9 "$PORT_PID" 2>/dev/null || true
+                  sleep 2
+                else
+                  echo "❌ Port in use by recent process - may be parallel PR test"
+                  echo "   Please retry workflow in a few minutes"
+                  exit 1
+                fi
+              fi
+            fi
+          else
+            echo "✅ Port ${WEBPACK_PORT} is available"
+          fi
+
+          # Store port info with run_id for cleanup tracking
           echo "${{ github.run_id }}" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id"
 
           echo "WEBPACK_PORT=$WEBPACK_PORT" >> $GITHUB_ENV
           echo "PORT_INFO_FILE=$PORT_INFO_DIR/port-${WEBPACK_PORT}.run_id" >> $GITHUB_ENV
-          echo "📍 Using port ${WEBPACK_PORT} for ${{ matrix.tag }} (run_id: ${{ github.run_id }})"
 
       - name: Cleanup old test artifacts
         continue-on-error: true
@@ -818,3 +1265,102 @@ jobs:
           else
             echo "✅ Cleaned up $KILLED_COUNT process(es) for run_id: $CURRENT_RUN_ID"
           fi
+
+      - name: Clean Work Directories and Build Artifacts
+        run: |
+          echo "🧹 Starting comprehensive cleanup (SAFE for parallel jobs)..."
+          
+          RUNNER_USER=$(whoami)
+          HOME_DIR=$(eval echo "~$RUNNER_USER")
+          CLEANED_SPACE=0
+          
+          echo "📊 Disk usage before cleanup:"
+          df -h / | grep -v Filesystem
+          
+          # Helper function to check if directory is in use
+          is_directory_in_use() {
+            local dir="$1"
+            # Check if any processes are using this directory
+            if lsof +D "$dir" 2>/dev/null | grep -qE "node|npm|webpack|chrome|cypress"; then
+              return 0  # In use
+            fi
+            return 1  # Not in use
+          }
+          
+          # 1. Clean Go upstream build artifacts (only in old work dirs)
+          echo ""
+          echo "🗑️  Cleaning Go upstream builds (in work dirs >7 days, not in use)..."
+          UPSTREAM_COUNT=0
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ] && ! is_directory_in_use "$work_dir"; then
+              UPSTREAM_DIRS=$(find "$work_dir" -type d -path "*/packages/*/upstream" 2>/dev/null || true)
+              for dir in $UPSTREAM_DIRS; do
+                if [ -d "$dir" ]; then
+                  SIZE=$(du -sm "$dir" 2>/dev/null | cut -f1)
+                  rm -rf "$dir" 2>/dev/null || true
+                  CLEANED_SPACE=$((CLEANED_SPACE + SIZE))
+                  UPSTREAM_COUNT=$((UPSTREAM_COUNT + 1))
+                fi
+              done
+            fi
+          done
+          echo "   ✅ Cleaned $UPSTREAM_COUNT upstream build directories"
+          
+          # 2. Clean old work directories (>7 days, not in use)
+          echo ""
+          echo "🗑️  Cleaning old work directories (>7 days, not in use)..."
+          OLD_WORK_COUNT=0
+          SKIPPED_COUNT=0
+          find "$HOME_DIR"/actions-runner*/_work -maxdepth 1 -name "odh-dashboard" -type d -mtime +7 2>/dev/null | while read work_dir; do
+            if [ -d "$work_dir" ]; then
+              if is_directory_in_use "$work_dir"; then
+                echo "   ⏭️  Skipped (in use): $(basename $(dirname $work_dir))"
+                SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+              else
+                SIZE=$(du -sm "$work_dir" 2>/dev/null | cut -f1)
+                rm -rf "$work_dir" 2>/dev/null || true
+                CLEANED_SPACE=$((CLEANED_SPACE + SIZE))
+                OLD_WORK_COUNT=$((OLD_WORK_COUNT + 1))
+                echo "   ✅ Cleaned: $(basename $(dirname $work_dir)) (~${SIZE}MB)"
+              fi
+            fi
+          done
+          echo "   ✅ Cleaned $OLD_WORK_COUNT old work directories"
+          if [ "$SKIPPED_COUNT" -gt 0 ]; then
+            echo "   ⏭️  Skipped $SKIPPED_COUNT directories (in use by parallel jobs)"
+          fi
+          
+          # 3. Clean old runner diagnostic logs (>7 days)
+          echo ""
+          echo "🗑️  Cleaning old runner logs (>7 days)..."
+          LOG_COUNT=$(find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +7 -type f 2>/dev/null | wc -l)
+          find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +7 -delete 2>/dev/null || true
+          echo "   ✅ Cleaned $LOG_COUNT old log files"
+          
+          # 4. Clean old Cypress artifacts (>7 days only - safe even if parallel jobs running)
+          echo ""
+          echo "🗑️  Cleaning old Cypress artifacts (>7 days)..."
+          ARTIFACT_COUNT=0
+          for runner_dir in "$HOME_DIR"/actions-runner*; do
+            # Screenshots
+            if [ -d "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/screenshots" ]; then
+              SCREENSHOTS=$(find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/screenshots" -type f -mtime +7 2>/dev/null | wc -l)
+              find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/screenshots" -type f -mtime +7 -delete 2>/dev/null || true
+              ARTIFACT_COUNT=$((ARTIFACT_COUNT + SCREENSHOTS))
+            fi
+            # Videos
+            if [ -d "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/videos" ]; then
+              VIDEOS=$(find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/videos" -type f -mtime +7 2>/dev/null | wc -l)
+              find "$runner_dir/_work/odh-dashboard/odh-dashboard/packages/cypress/results/videos" -type f -mtime +7 -delete 2>/dev/null || true
+              ARTIFACT_COUNT=$((ARTIFACT_COUNT + VIDEOS))
+            fi
+          done
+          echo "   ✅ Cleaned $ARTIFACT_COUNT old Cypress artifacts"
+          
+          # 5. Check disk space after cleanup
+          echo ""
+          echo "📊 Disk usage after cleanup:"
+          df -h / | grep -v Filesystem
+          echo ""
+          echo "💾 Total space cleaned: ~${CLEANED_SPACE}MB"
+          echo "✅ Cleanup complete!"

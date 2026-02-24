@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Creates Kueue resources for training jobs by applying a YAML template.
@@ -63,7 +64,8 @@ export const createTrainingKueueResources = (
         // Always cleanup temp file first, then check result
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
           if (result.code !== 0) {
-            throw new Error(`Failed to create Kueue resources: ${result.stderr}`);
+            const maskedStderr = maskSensitiveInfo(result.stderr);
+            throw new Error(`Failed to create Kueue resources: ${maskedStderr}`);
           }
           cy.log(`Kueue resources created: ${result.stdout}`);
         });
@@ -94,7 +96,8 @@ export const createTrainingRuntime = (namespace: string, trainingRuntimeName: st
         // Always cleanup temp file first, then check result
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
           if (result.code !== 0) {
-            throw new Error(`Failed to create TrainingRuntime: ${result.stderr}`);
+            const maskedStderr = maskSensitiveInfo(result.stderr);
+            throw new Error(`Failed to create TrainingRuntime: ${maskedStderr}`);
           }
           cy.log(`TrainingRuntime created: ${result.stdout}`);
         });
@@ -133,7 +136,8 @@ export const createTrainJob = (
         // Always cleanup temp file first, then check result
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
           if (result.code !== 0) {
-            throw new Error(`Failed to create TrainJob: ${result.stderr}`);
+            const maskedStderr = maskSensitiveInfo(result.stderr);
+            throw new Error(`Failed to create TrainJob: ${maskedStderr}`);
           }
           cy.log(`TrainJob created: ${result.stdout}`);
         });
@@ -164,7 +168,8 @@ export const deleteTrainingRuntime = (
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
     if (result.code !== 0 && !ignoreNotFound) {
-      cy.log(`ERROR deleting TrainingRuntime: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`ERROR deleting TrainingRuntime: ${maskedStderr}`);
     }
     return result;
   });
@@ -193,7 +198,8 @@ export const getTrainJobNumNodes = (
     )
     .then((result) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get TrainJob numNodes: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get TrainJob numNodes: ${maskedStderr}`);
       }
       const numNodes = parseInt(result.stdout.replace(/'/g, ''), 10);
       Cypress.log({
@@ -280,8 +286,9 @@ export const setupTrainingResources = (config: TrainingResourcesConfig): void =>
     timeout: 30000,
   }).then((result) => {
     if (result.code !== 0) {
-      cy.log(`TrainJob verification failed: ${result.stderr}`);
-      throw new Error(`TrainJob ${trainJobName} was not created: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`TrainJob verification failed: ${maskedStderr}`);
+      throw new Error(`TrainJob ${trainJobName} was not created: ${maskedStderr}`);
     }
     cy.log(`TrainJob ${trainJobName} exists - setup complete`);
   });

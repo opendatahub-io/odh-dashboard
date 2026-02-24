@@ -62,7 +62,7 @@ describe('Verify NIM enable flow', () => {
   it(
     'Enable and validate NIM flow',
     {
-      tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'],
+      tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent', '@NIMCI'],
     },
     function enableAndValidateNIMFlow() {
       // Skip test if running on ODH

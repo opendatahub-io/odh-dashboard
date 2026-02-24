@@ -57,3 +57,20 @@ type MCPServerConfig struct {
 	Description string `json:"description,omitempty"` // Optional description of the MCP server functionality
 	Logo        string `json:"logo,omitempty"`        // Optional logo URL for the MCP server
 }
+
+// MCPServerSummary represents a single MCP server for frontend table display
+type MCPServerSummary struct {
+	Name        string  `json:"name"`
+	URL         string  `json:"url"`
+	Transport   string  `json:"transport"`
+	Description string  `json:"description"`
+	Logo        *string `json:"logo"`   // nullable
+	Status      string  `json:"status"` // "healthy", "error", "unknown" - from ConfigMap only
+}
+
+// MCPListData represents the response data for the MCP servers list endpoint
+type MCPListData struct {
+	Servers       []MCPServerSummary `json:"servers"`
+	TotalCount    int                `json:"total_count"`
+	ConfigMapInfo ConfigMapInfo      `json:"config_map_info"`
+}
