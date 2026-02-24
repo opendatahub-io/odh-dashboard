@@ -81,6 +81,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
       genAiStudio: false,
+      automl: false,
       autoRag: false,
       modelAsService: false,
       maasApiKeys: false,
