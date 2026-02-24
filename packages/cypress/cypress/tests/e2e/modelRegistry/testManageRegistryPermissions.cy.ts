@@ -112,7 +112,7 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user can access model registry');
@@ -155,7 +155,7 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user sees request access message');
@@ -206,7 +206,7 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user can access model registry through group membership');
@@ -249,7 +249,7 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user sees request access message after group removal');

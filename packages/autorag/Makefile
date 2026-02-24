@@ -61,7 +61,7 @@ dev-frontend-kubeflow:
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
 
 ########### Dev Federated ###########
 # Note: BFF runs on port 4001 to avoid conflict with ODH backend (port 4000)
@@ -73,7 +73,7 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9103 PROXY_PORT=4001 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9107 PROXY_PORT=4001 npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -129,7 +129,7 @@ kind-deployment:
 kubeflow-deployment:
 	./scripts/deploy_kubeflow_cluster.sh
 
-############ Build ############	
+############ Build ############
 .PHONY: frontend-build
 frontend-build:
 	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
@@ -151,4 +151,3 @@ run-local-mocked: frontend-build-standalone bff-build
 	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
 
 
-	

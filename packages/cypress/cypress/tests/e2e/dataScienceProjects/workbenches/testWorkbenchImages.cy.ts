@@ -41,7 +41,9 @@ describe('Workbenches - image/version tests', () => {
 
   it(
     'Verifies that workbench images have an additional dropdown which supports N/N-1 image versions.',
-    { tags: ['@Sanity', '@SanitySet3', '@ODS-2131', '@Dashboard', '@Workbenches'] },
+    {
+      tags: ['@Sanity', '@SanitySet3', '@ODS-2131', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
+    },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
