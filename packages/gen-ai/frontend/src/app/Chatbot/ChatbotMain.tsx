@@ -10,6 +10,8 @@ import {
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { isLlamaModelEnabled } from '~/app/utilities';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import CompareChatModal from '~/app/Chatbot/components/CompareChatModal';
@@ -37,6 +39,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
+  const { data: bffConfig } = useFetchBFFConfig();
 
   const navigate = useNavigate();
 
@@ -85,7 +88,11 @@ const ChatbotMain: React.FunctionComponent = () => {
   // Check if there are any models in the project or if no model is selected
   const hasNoModels = models.length === 0;
   const hasNoSelectedModel = models.length > 0 && !selectedModel;
-  const hasNoModelsOrNoSelectedModel = hasNoModels || hasNoSelectedModel;
+  const isSelectedModelDisabled = selectedModel
+    ? !isLlamaModelEnabled(selectedModel, aiModels, maasModels, bffConfig?.isCustomLSD ?? false)
+    : false;
+
+  const hasNoModelsOrNoSelectedModel = hasNoModels || hasNoSelectedModel || isSelectedModelDisabled;
 
   return (
     <>
@@ -168,6 +175,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           hasNoModelsOrNoSelectedModel ? (
             <ChatbotEmptyState
               title="You need at least one model"
+              data-testid="no-models-empty-state"
               description={
                 <Content
                   style={{
