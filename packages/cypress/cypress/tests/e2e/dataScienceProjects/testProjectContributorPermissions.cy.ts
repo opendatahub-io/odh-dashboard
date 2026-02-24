@@ -7,6 +7,7 @@ import { loadDSPFixture } from '../../../utils/dataLoader';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
@@ -53,22 +54,10 @@ describe('Verify that users can provide contributor project permissions to non-a
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
-      projectRbacPermissions.waitForAssignRolesButton();
-      projectRbacPermissions.findAssignRolesButton().click();
-      projectRbacPermissions.findAssignRolesPage().should('exist');
-      projectRbacPermissions
-        .findAssignRolesSubjectTypeahead()
-        .click()
-        .type(LDAP_CONTRIBUTOR_USER.USERNAME);
-      projectRbacPermissions
-        .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
-        .click();
-      projectRbacPermissions.getManageRolesTable().toggleRole('Contributor');
-      projectRbacPermissions.findAssignRolesSaveButton().click();
-      cy.get('body').then(($bodyEl) => {
-        if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
-          projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
-        }
+      assignRoleViaProjectRbac(projectRbacPermissions, {
+        subjectName: LDAP_CONTRIBUTOR_USER.USERNAME,
+        subjectKind: 'user',
+        roleName: 'Contributor',
       });
 
       cy.step(

@@ -12,6 +12,7 @@ import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { skipIfBYOIDC } from '../../../utils/skipUtils';
+import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
 
 describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
@@ -58,22 +59,10 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin user Project Permissions');
-      projectRbacPermissions.waitForAssignRolesButton();
-      projectRbacPermissions.findAssignRolesButton().click();
-      projectRbacPermissions.findAssignRolesPage().should('exist');
-      projectRbacPermissions
-        .findAssignRolesSubjectTypeahead()
-        .click()
-        .type(LDAP_CONTRIBUTOR_USER.USERNAME);
-      projectRbacPermissions
-        .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
-        .click();
-      projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
-      projectRbacPermissions.findAssignRolesSaveButton().click();
-      cy.get('body').then(($bodyEl) => {
-        if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
-          projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
-        }
+      assignRoleViaProjectRbac(projectRbacPermissions, {
+        subjectName: LDAP_CONTRIBUTOR_USER.USERNAME,
+        subjectKind: 'user',
+        roleName: 'Admin',
       });
 
       cy.step(
@@ -108,23 +97,10 @@ describe('Verify that users can provide admin project permissions to non-admin u
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin group Project Permissions');
-      projectRbacPermissions.waitForAssignRolesButton();
-      projectRbacPermissions.findAssignRolesButton().click();
-      projectRbacPermissions.findAssignRolesPage().should('exist');
-      projectRbacPermissions.findAssignRolesSubjectKindRadio('group').click();
-      projectRbacPermissions
-        .findAssignRolesSubjectTypeahead()
-        .click()
-        .type(LDAP_CONTRIBUTOR_GROUP.USERNAME);
-      projectRbacPermissions
-        .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_GROUP.USERNAME))
-        .click();
-      projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
-      projectRbacPermissions.findAssignRolesSaveButton().click();
-      cy.get('body').then(($bodyEl) => {
-        if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
-          projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
-        }
+      assignRoleViaProjectRbac(projectRbacPermissions, {
+        subjectName: LDAP_CONTRIBUTOR_GROUP.USERNAME,
+        subjectKind: 'group',
+        roleName: 'Admin',
       });
 
       cy.step(
