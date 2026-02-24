@@ -29,3 +29,9 @@ export type NamespaceKind = {
 };
 
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
+
+export type SecretListItem = {
+  uuid: string;
+  name: string;
+  type: string;
+};
