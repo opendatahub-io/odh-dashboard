@@ -349,15 +349,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
         ];
 
         if (!editInfo) {
-          // Detect air-gapped mode: if custom registry or imagePullSecret is configured
-          const isAirGapped = !!(accountConfig.registry || accountConfig.imagePullSecret);
-
-          // Create NGC secrets (with dummy values in air-gapped mode)
           if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'apiKeySecret', false, false, isAirGapped));
+            promises.push(
+              createNIMSecret(namespace, 'apiKeySecret', false, false, accountConfig.isAirGapped),
+            );
           }
           if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
-            promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false, isAirGapped));
+            promises.push(
+              createNIMSecret(namespace, 'nimPullSecret', true, false, accountConfig.isAirGapped),
+            );
           }
           if (pvcMode === 'create-new') {
             promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));

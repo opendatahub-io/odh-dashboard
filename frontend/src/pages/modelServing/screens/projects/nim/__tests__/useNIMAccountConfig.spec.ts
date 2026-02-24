@@ -3,6 +3,8 @@ import { getConfigMap } from '#~/api';
 import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
 import { useNIMAccountConfig } from '#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import useDefaultDsc from '#~/pages/clusterSettings/useDefaultDsc';
+import { mockDsc } from '#~/__mocks__/mockDsc';
 
 jest.mock('#~/api', () => ({
   getConfigMap: jest.fn(),
@@ -12,12 +14,30 @@ jest.mock('#~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
+jest.mock('#~/pages/clusterSettings/useDefaultDsc', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 const getConfigMapMock = jest.mocked(getConfigMap);
 const useDashboardNamespaceMock = jest.mocked(useDashboardNamespace);
+const useDefaultDscMock = jest.mocked(useDefaultDsc);
+
+const mockDscLoaded = (airGapped?: boolean) => {
+  const dsc = mockDsc({});
+  if (airGapped !== undefined && dsc.spec.components?.kserve) {
+    (dsc.spec.components.kserve as Record<string, unknown>).nim = {
+      managementState: 'Managed',
+      airGapped,
+    };
+  }
+  useDefaultDscMock.mockReturnValue([dsc, true, undefined, jest.fn()]);
+};
 
 describe('useNIMAccountConfig', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDscLoaded();
   });
 
   it('should return loading state initially', () => {
@@ -34,7 +54,35 @@ describe('useNIMAccountConfig', () => {
     const renderResult = testHook(useNIMAccountConfig)();
 
     expect(renderResult).hookToStrictEqual({
+      registry: undefined,
+      imagePullSecret: undefined,
+      isAirGapped: false,
       loading: true,
+      error: undefined,
+    });
+  });
+
+  it('should return loading when DSC has not loaded yet', () => {
+    useDashboardNamespaceMock.mockReturnValue({
+      dashboardNamespace: 'redhat-ods-applications',
+    });
+    useDefaultDscMock.mockReturnValue([null, false, undefined, jest.fn()]);
+    getConfigMapMock.mockResolvedValue(
+      mockConfigMap({
+        name: 'odh-nim-account-cm',
+        namespace: 'redhat-ods-applications',
+        data: {},
+      }),
+    );
+
+    const renderResult = testHook(useNIMAccountConfig)();
+
+    expect(renderResult).hookToStrictEqual({
+      registry: undefined,
+      imagePullSecret: undefined,
+      isAirGapped: false,
+      loading: true,
+      error: undefined,
     });
   });
 
@@ -51,7 +99,11 @@ describe('useNIMAccountConfig', () => {
     });
 
     expect(renderResult).hookToStrictEqual({
+      registry: undefined,
+      imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
+      error: undefined,
     });
     expect(getConfigMapMock).not.toHaveBeenCalled();
   });
@@ -80,7 +132,9 @@ describe('useNIMAccountConfig', () => {
     expect(renderResult).hookToStrictEqual({
       registry: 'internal-registry.company.com',
       imagePullSecret: 'custom-pull-secret',
+      isAirGapped: false,
       loading: false,
+      error: undefined,
     });
   });
 
@@ -105,7 +159,9 @@ describe('useNIMAccountConfig', () => {
     expect(renderResult).hookToStrictEqual({
       registry: 'my-registry.io',
       imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
+      error: undefined,
     });
   });
 
@@ -130,7 +186,9 @@ describe('useNIMAccountConfig', () => {
     expect(renderResult).hookToStrictEqual({
       registry: undefined,
       imagePullSecret: 'my-pull-secret',
+      isAirGapped: false,
       loading: false,
+      error: undefined,
     });
   });
 
@@ -146,6 +204,9 @@ describe('useNIMAccountConfig', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult).hookToStrictEqual({
+      registry: undefined,
+      imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
       error: 'ConfigMap not found',
     });
@@ -162,6 +223,9 @@ describe('useNIMAccountConfig', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult).hookToStrictEqual({
+      registry: undefined,
+      imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
       error: 'Failed to fetch NIM account configuration',
     });
@@ -179,6 +243,9 @@ describe('useNIMAccountConfig', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult).hookToStrictEqual({
+      registry: undefined,
+      imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
       error: 'Forbidden: User cannot get ConfigMap',
     });
@@ -203,7 +270,9 @@ describe('useNIMAccountConfig', () => {
     expect(renderResult).hookToStrictEqual({
       registry: undefined,
       imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
+      error: undefined,
     });
   });
 
@@ -230,7 +299,9 @@ describe('useNIMAccountConfig', () => {
     expect(renderResult).hookToStrictEqual({
       registry: 'initial-registry.io',
       imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
+      error: undefined,
     });
 
     // Change namespace
@@ -255,7 +326,119 @@ describe('useNIMAccountConfig', () => {
     expect(renderResult).hookToStrictEqual({
       registry: 'new-registry.io',
       imagePullSecret: undefined,
+      isAirGapped: false,
       loading: false,
+      error: undefined,
+    });
+  });
+
+  describe('DSC-based air-gapped detection', () => {
+    it('should return isAirGapped true when DSC spec has airGapped: true', async () => {
+      useDashboardNamespaceMock.mockReturnValue({
+        dashboardNamespace: 'redhat-ods-applications',
+      });
+      mockDscLoaded(true);
+
+      const configMap = mockConfigMap({
+        name: 'odh-nim-account-cm',
+        namespace: 'redhat-ods-applications',
+        data: {
+          registry: 'internal-registry.company.com',
+          imagePullSecret: 'custom-pull-secret',
+        },
+      });
+      getConfigMapMock.mockResolvedValue(configMap);
+
+      const renderResult = testHook(useNIMAccountConfig)();
+      await renderResult.waitForNextUpdate();
+
+      expect(renderResult).hookToStrictEqual({
+        registry: 'internal-registry.company.com',
+        imagePullSecret: 'custom-pull-secret',
+        isAirGapped: true,
+        loading: false,
+        error: undefined,
+      });
+    });
+
+    it('should return isAirGapped false when DSC spec has airGapped: false', async () => {
+      useDashboardNamespaceMock.mockReturnValue({
+        dashboardNamespace: 'redhat-ods-applications',
+      });
+      mockDscLoaded(false);
+
+      const configMap = mockConfigMap({
+        name: 'odh-nim-account-cm',
+        namespace: 'redhat-ods-applications',
+        data: {
+          registry: 'internal-registry.company.com',
+          imagePullSecret: 'custom-pull-secret',
+        },
+      });
+      getConfigMapMock.mockResolvedValue(configMap);
+
+      const renderResult = testHook(useNIMAccountConfig)();
+      await renderResult.waitForNextUpdate();
+
+      expect(renderResult).hookToStrictEqual({
+        registry: 'internal-registry.company.com',
+        imagePullSecret: 'custom-pull-secret',
+        isAirGapped: false,
+        loading: false,
+        error: undefined,
+      });
+    });
+
+    it('should return isAirGapped false when DSC has no airGapped field', async () => {
+      useDashboardNamespaceMock.mockReturnValue({
+        dashboardNamespace: 'redhat-ods-applications',
+      });
+      // Default mockDscLoaded() has no airGapped field
+
+      getConfigMapMock.mockResolvedValue(
+        mockConfigMap({
+          name: 'odh-nim-account-cm',
+          namespace: 'redhat-ods-applications',
+          data: { registry: 'my-registry.io' },
+        }),
+      );
+
+      const renderResult = testHook(useNIMAccountConfig)();
+      await renderResult.waitForNextUpdate();
+
+      expect(renderResult).hookToStrictEqual({
+        registry: 'my-registry.io',
+        imagePullSecret: undefined,
+        isAirGapped: false,
+        loading: false,
+        error: undefined,
+      });
+    });
+
+    it('should return isAirGapped false when DSC is null', async () => {
+      useDashboardNamespaceMock.mockReturnValue({
+        dashboardNamespace: 'redhat-ods-applications',
+      });
+      useDefaultDscMock.mockReturnValue([null, true, undefined, jest.fn()]);
+
+      getConfigMapMock.mockResolvedValue(
+        mockConfigMap({
+          name: 'odh-nim-account-cm',
+          namespace: 'redhat-ods-applications',
+          data: {},
+        }),
+      );
+
+      const renderResult = testHook(useNIMAccountConfig)();
+      await renderResult.waitForNextUpdate();
+
+      expect(renderResult).hookToStrictEqual({
+        registry: undefined,
+        imagePullSecret: undefined,
+        isAirGapped: false,
+        loading: false,
+        error: undefined,
+      });
     });
   });
 });

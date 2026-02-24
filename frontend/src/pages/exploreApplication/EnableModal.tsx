@@ -34,13 +34,9 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
   const debounceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Detect air-gapped mode for NIM
   const isNIMApp = selectedApp.spec.internalRoute === '/api/integrations/nim';
   const accountConfig = useNIMAccountConfig();
-  const isAirGapped =
-    isNIMApp &&
-    !accountConfig.loading &&
-    !!(accountConfig.registry || accountConfig.imagePullSecret);
+  const isAirGapped = isNIMApp && !accountConfig.loading && accountConfig.isAirGapped;
 
   const isEnableValuesHasEmptyValue = React.useMemo(
     () => isEmpty(enableValues) || values(enableValues).some((val) => isEmpty(val)),
