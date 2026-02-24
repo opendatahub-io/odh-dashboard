@@ -123,7 +123,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       ],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
+      // Authentication and navigation
+      cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify that the user has access to the created project and can access Permissions');
