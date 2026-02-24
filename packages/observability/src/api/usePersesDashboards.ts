@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DashboardResource } from '@perses-dev/core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import useFetchDsciStatus from '@odh-dashboard/internal/concepts/areas/useFetchDsciStatus';
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import useFetch, { type FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { fetchProjectDashboards } from '../perses/perses-client/perses-client';
@@ -12,23 +12,28 @@ type UsePersesDashboardsResult = Omit<FetchStateObject<DashboardResource[]>, 'da
 
 /**
  * Hook to fetch observability dashboards from Perses API
- * Fetches dashboards from /api/v1/projects/{dashboardNamespace}/dashboards
  */
 export const usePersesDashboards = (): UsePersesDashboardsResult => {
-  const { dashboardNamespace } = useDashboardNamespace();
+  const [dsciStatus, dsciLoaded] = useFetchDsciStatus();
+  const monitoringNamespace = dsciStatus?.monitoring?.namespace;
   const { isAdmin } = useUser();
 
   const fetchDashboards = React.useCallback(
-    () => fetchProjectDashboards(dashboardNamespace),
-    [dashboardNamespace],
+    () => (monitoringNamespace ? fetchProjectDashboards(monitoringNamespace) : Promise.resolve([])),
+    [monitoringNamespace],
   );
 
-  const { data: allDashboards, loaded, error, refresh } = useFetch(fetchDashboards, []);
+  const {
+    data: allDashboards,
+    loaded,
+    error,
+    refresh,
+  } = useFetch(fetchDashboards, [], { initialPromisePurity: true });
 
   const dashboards = React.useMemo(
     () => filterDashboards(allDashboards, isAdmin),
     [allDashboards, isAdmin],
   );
 
-  return { dashboards, loaded, error, refresh };
+  return { dashboards, loaded: loaded && dsciLoaded, error, refresh };
 };

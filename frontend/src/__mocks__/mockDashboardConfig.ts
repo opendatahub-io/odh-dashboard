@@ -40,6 +40,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  automl?: boolean;
   autoRag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;
@@ -63,6 +64,7 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
+  automl = false,
   autoRag = false,
   modelAsService = true,
   maasApiKeys = false,
@@ -240,6 +242,7 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      automl,
       autoRag,
       modelAsService,
       maasApiKeys,

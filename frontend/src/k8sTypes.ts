@@ -1301,6 +1301,7 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  automl?: boolean;
   autoRag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;
@@ -1531,6 +1532,10 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
+  // Added by the backend to identify the monitoring namespace
+  monitoring?: {
+    namespace?: string;
+  };
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {
