@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel } from '~/app/types';
+import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type AIModelsTableRowInfoProps = {
   model: AIModel;
@@ -41,9 +41,13 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
                 hoverTip="Copy model ID"
                 clickTip="Model ID copied"
                 aria-label="Copy model ID"
-                onCopy={() => {
-                  fireMiscTrackingEvent('Available Endpoints Model Id Copied', {});
-                }}
+                onCopy={() =>
+                  copyToClipboardWithTracking(
+                    model.model_id,
+                    'Available Endpoints Model Id Copied',
+                    {},
+                  )
+                }
               >
                 {model.model_id}
               </ClipboardCopy>
