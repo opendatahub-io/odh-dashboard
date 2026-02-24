@@ -13,7 +13,7 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { skipIfBYOIDC } from '../../../utils/skipUtils';
 
-describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin project permissions to non-admin users/groups', () => {
+describe('Verify that users can provide admin project permissions to non-admin users/groups', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -45,7 +45,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
   it(
     'Verify that user can be added as an Admin for a Project',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard', '@Bug'],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard'],
     },
     () => {
       cy.step('Log into the application');
@@ -93,7 +93,6 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
         '@ODS-2208',
         '@Dashboard',
         '@NonConcurrent',
-        '@Bug',
       ],
     },
     function testGroupPermissions() {
@@ -145,7 +144,6 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
         '@ODS-2208',
         '@Dashboard',
         '@NonConcurrent',
-        '@Bug',
       ],
     },
     () => {
