@@ -62,6 +62,13 @@ func main() {
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
 
+	// BFF inter-communication configuration
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")
+	flag.IntVar(&cfg.BFFMaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "Port for MaaS BFF service")
+	flag.BoolVar(&cfg.BFFMaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", false), "Enable TLS for MaaS BFF communication")
+	flag.StringVar(&cfg.BFFMaaSDevURL, "bff-maas-dev-url", getEnvAsString("BFF_MAAS_DEV_URL", ""), "Developer override URL for MaaS BFF (e.g., http://localhost:4000/api/v1)")
+
 	// Initialize klog flags before parsing
 	klog.InitFlags(nil)
 
