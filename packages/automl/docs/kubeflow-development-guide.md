@@ -5,13 +5,13 @@
 ## Prerequisites
 
 - [Kubeflow repo](https://github.com/kubeflow/kubeflow/tree/master/components/centraldashboard#development)
-- [AutoRAG repo](../README.md)
+- [AutoML repo](../README.md)
 
 ## Setup
 
 ### Kubeflow repo (under centraldashboard)
 
-1. Change the [webpack config](https://github.com/kubeflow/kubeflow/blob/master/components/centraldashboard/webpack.config.js#L186) proxies to allow AutoRAG:
+1. Change the [webpack config](https://github.com/kubeflow/kubeflow/blob/master/components/centraldashboard/webpack.config.js#L186) proxies to allow AutoML:
 
 ```js
 // Add this to your webpack.config.js devServer options
