@@ -1,4 +1,4 @@
-import { HelperText, HelperTextItem } from '@patternfly/react-core';
+import { FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import React from 'react';
 
 interface CharLimitHelperTextProps {
@@ -14,10 +14,12 @@ export const CharLimitHelperText: React.FC<CharLimitHelperTextProps> = ({
     return null;
   }
   return (
-    <HelperText>
-      <HelperTextItem variant={currentLength >= limit ? 'error' : 'warning'}>
-        {`Cannot exceed ${limit} characters (${Math.max(0, limit - currentLength)} remaining)`}
-      </HelperTextItem>
-    </HelperText>
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem variant={currentLength >= limit ? 'error' : 'warning'}>
+          {`Cannot exceed ${limit} characters (${Math.max(0, limit - currentLength)} remaining)`}
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
   );
 };
