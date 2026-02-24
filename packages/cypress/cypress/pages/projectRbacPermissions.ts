@@ -1,7 +1,6 @@
 import { Contextual } from './components/Contextual';
 import { TableRow } from './components/table';
 import { projectDetails } from './projects';
-import { permissions } from './permissions';
 
 class SubjectRolesTable extends Contextual<HTMLElement> {
   findNameCell(name: string) {
@@ -101,20 +100,8 @@ class ProjectRbacPermissionsTab {
     return '[data-testid="assign-roles-confirm-modal"]';
   }
 
-  waitForPermissionsContentForUser() {
-    return cy
-      .get(`${this.getAssignRolesButtonSelector()}, ${permissions.getAddUserButtonSelector()}`, {
-        timeout: 15000,
-      })
-      .should('exist');
-  }
-
-  waitForPermissionsContentForGroup() {
-    return cy
-      .get(`${this.getAssignRolesButtonSelector()}, ${permissions.getAddGroupButtonSelector()}`, {
-        timeout: 15000,
-      })
-      .should('exist');
+  waitForAssignRolesButton() {
+    return this.findAssignRolesButton().should('be.visible', { timeout: 15000 });
   }
 
   findAssignRolesButton() {

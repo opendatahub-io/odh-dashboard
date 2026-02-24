@@ -1,7 +1,6 @@
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import type { DataScienceProjectData } from '../../../types';
-import { permissions } from '../../../pages/permissions';
 import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { loadDSPFixture } from '../../../utils/dataLoader';
@@ -54,35 +53,21 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide contrib
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
-      projectRbacPermissions.waitForPermissionsContentForUser();
-      cy.get('body').then(($body) => {
-        if ($body.find(projectRbacPermissions.getAssignRolesButtonSelector()).length > 0) {
-          projectRbacPermissions.findAssignRolesButton().click();
-          projectRbacPermissions.findAssignRolesPage().should('exist');
-          projectRbacPermissions
-            .findAssignRolesSubjectTypeahead()
-            .click()
-            .type(LDAP_CONTRIBUTOR_USER.USERNAME);
-          projectRbacPermissions
-            .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
-            .click();
-          projectRbacPermissions.getManageRolesTable().toggleRole('Contributor');
-          projectRbacPermissions.findAssignRolesSaveButton().click();
-          cy.get('body').then(($bodyEl) => {
-            if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
-              projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
-            }
-          });
-        } else {
-          permissions.findAddUserButton().click();
-          permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
-          permissions
-            .getUserTable()
-            .selectPermission(
-              LDAP_CONTRIBUTOR_USER.USERNAME,
-              'Contributor View and edit the project components',
-            );
-          permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
+      projectRbacPermissions.waitForAssignRolesButton();
+      projectRbacPermissions.findAssignRolesButton().click();
+      projectRbacPermissions.findAssignRolesPage().should('exist');
+      projectRbacPermissions
+        .findAssignRolesSubjectTypeahead()
+        .click()
+        .type(LDAP_CONTRIBUTOR_USER.USERNAME);
+      projectRbacPermissions
+        .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
+        .click();
+      projectRbacPermissions.getManageRolesTable().toggleRole('Contributor');
+      projectRbacPermissions.findAssignRolesSaveButton().click();
+      cy.get('body').then(($bodyEl) => {
+        if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
+          projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
         }
       });
 

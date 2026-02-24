@@ -1,6 +1,5 @@
 import type { DataScienceProjectData } from '../../../types';
 import { projectDetails, projectListPage } from '../../../pages/projects';
-import { permissions } from '../../../pages/permissions';
 import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
@@ -59,35 +58,21 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin user Project Permissions');
-      projectRbacPermissions.waitForPermissionsContentForUser();
-      cy.get('body').then(($body) => {
-        if ($body.find(projectRbacPermissions.getAssignRolesButtonSelector()).length > 0) {
-          projectRbacPermissions.findAssignRolesButton().click();
-          projectRbacPermissions.findAssignRolesPage().should('exist');
-          projectRbacPermissions
-            .findAssignRolesSubjectTypeahead()
-            .click()
-            .type(LDAP_CONTRIBUTOR_USER.USERNAME);
-          projectRbacPermissions
-            .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
-            .click();
-          projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
-          projectRbacPermissions.findAssignRolesSaveButton().click();
-          cy.get('body').then(($bodyEl) => {
-            if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
-              projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
-            }
-          });
-        } else {
-          permissions.findAddUserButton().click();
-          permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
-          permissions
-            .getUserTable()
-            .selectPermission(
-              LDAP_CONTRIBUTOR_USER.USERNAME,
-              'Admin Edit the project and manage user access',
-            );
-          permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
+      projectRbacPermissions.waitForAssignRolesButton();
+      projectRbacPermissions.findAssignRolesButton().click();
+      projectRbacPermissions.findAssignRolesPage().should('exist');
+      projectRbacPermissions
+        .findAssignRolesSubjectTypeahead()
+        .click()
+        .type(LDAP_CONTRIBUTOR_USER.USERNAME);
+      projectRbacPermissions
+        .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
+        .click();
+      projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
+      projectRbacPermissions.findAssignRolesSaveButton().click();
+      cy.get('body').then(($bodyEl) => {
+        if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
+          projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
         }
       });
 
@@ -124,31 +109,22 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin group Project Permissions');
-      projectRbacPermissions.waitForPermissionsContentForGroup();
-      cy.get('body').then(($body) => {
-        if ($body.find(projectRbacPermissions.getAssignRolesButtonSelector()).length > 0) {
-          projectRbacPermissions.findAssignRolesButton().click();
-          projectRbacPermissions.findAssignRolesPage().should('exist');
-          projectRbacPermissions.findAssignRolesSubjectKindRadio('group').click();
-          projectRbacPermissions
-            .findAssignRolesSubjectTypeahead()
-            .click()
-            .type(LDAP_CONTRIBUTOR_GROUP.USERNAME);
-          projectRbacPermissions
-            .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_GROUP.USERNAME))
-            .click();
-          projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
-          projectRbacPermissions.findAssignRolesSaveButton().click();
-          cy.get('body').then(($bodyEl) => {
-            if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
-              projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
-            }
-          });
-        } else {
-          permissions.findAddGroupButton().click();
-          permissions.getGroupTable().addGroupName(LDAP_CONTRIBUTOR_GROUP.USERNAME);
-          permissions.getGroupTable().selectAdminOption();
-          permissions.getGroupTable().findSaveNewButton().should('exist').and('be.visible').click();
+      projectRbacPermissions.waitForAssignRolesButton();
+      projectRbacPermissions.findAssignRolesButton().click();
+      projectRbacPermissions.findAssignRolesPage().should('exist');
+      projectRbacPermissions.findAssignRolesSubjectKindRadio('group').click();
+      projectRbacPermissions
+        .findAssignRolesSubjectTypeahead()
+        .click()
+        .type(LDAP_CONTRIBUTOR_GROUP.USERNAME);
+      projectRbacPermissions
+        .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_GROUP.USERNAME))
+        .click();
+      projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
+      projectRbacPermissions.findAssignRolesSaveButton().click();
+      cy.get('body').then(($bodyEl) => {
+        if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
+          projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
         }
       });
 
