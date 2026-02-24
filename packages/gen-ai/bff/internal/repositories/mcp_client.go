@@ -37,12 +37,8 @@ type MCPServerInfo struct {
 
 // MCPServersFromConfigResult represents the result of getting servers from ConfigMap with metadata
 type MCPServersFromConfigResult struct {
-	Servers       []MCPServerInfo `json:"servers"`
-	ConfigMapInfo struct {
-		Name        string `json:"name"`
-		Namespace   string `json:"namespace"`
-		LastUpdated string `json:"last_updated"` // ISO 8601 format
-	} `json:"config_map_info"`
+	Servers       []MCPServerInfo      `json:"servers"`
+	ConfigMapInfo models.ConfigMapInfo `json:"config_map_info"`
 }
 
 // MCPServerStatus represents the status of an MCP server
