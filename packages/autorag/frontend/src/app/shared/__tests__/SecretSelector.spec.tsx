@@ -15,6 +15,7 @@ const mockUseFetchState = jest.mocked(useFetchState);
 
 describe('SecretSelector', () => {
   const mockOnChange = jest.fn();
+  const mockRefresh = jest.fn();
   const defaultNamespace = 'test-namespace';
 
   beforeEach(() => {
@@ -23,7 +24,7 @@ describe('SecretSelector', () => {
 
   describe('loading state', () => {
     it('should show skeleton when loading', () => {
-      mockUseFetchState.mockReturnValue([[], false, undefined]);
+      mockUseFetchState.mockReturnValue([[], false, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -48,7 +49,7 @@ describe('SecretSelector', () => {
     ];
 
     it('should render dropdown with secrets when loaded', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -66,7 +67,7 @@ describe('SecretSelector', () => {
     });
 
     it('should display custom label', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -82,7 +83,7 @@ describe('SecretSelector', () => {
     });
 
     it('should show selected secret name', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -97,7 +98,7 @@ describe('SecretSelector', () => {
     });
 
     it('should open dropdown on click', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -118,7 +119,7 @@ describe('SecretSelector', () => {
     });
 
     it('should display secret type as description', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -137,7 +138,7 @@ describe('SecretSelector', () => {
     });
 
     it('should call onChange with uuid and name when secret is selected', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -158,7 +159,7 @@ describe('SecretSelector', () => {
     });
 
     it('should close dropdown after selection', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -181,7 +182,7 @@ describe('SecretSelector', () => {
     it('should filter by storage type when type prop is provided', () => {
       // This tests that the API is called with the correct parameters
       // The actual filtering happens in the BFF
-      mockUseFetchState.mockReturnValue([[mockStorageSecret()], true, undefined]);
+      mockUseFetchState.mockReturnValue([[mockStorageSecret()], true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -198,7 +199,7 @@ describe('SecretSelector', () => {
     });
 
     it('should apply isFullWidth prop', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -217,7 +218,7 @@ describe('SecretSelector', () => {
 
   describe('empty state', () => {
     it('should disable dropdown when no secrets available', () => {
-      mockUseFetchState.mockReturnValue([[], true, undefined]);
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -234,7 +235,7 @@ describe('SecretSelector', () => {
     });
 
     it('should not open dropdown when clicked and no secrets available', () => {
-      mockUseFetchState.mockReturnValue([[], true, undefined]);
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -257,7 +258,7 @@ describe('SecretSelector', () => {
     const mockError = new Error('Failed to fetch secrets');
 
     it('should disable dropdown when error occurs', () => {
-      mockUseFetchState.mockReturnValue([[], true, mockError]);
+      mockUseFetchState.mockReturnValue([[], true, mockError, mockRefresh]);
 
       render(
         <SecretSelector
@@ -273,7 +274,7 @@ describe('SecretSelector', () => {
     });
 
     it('should show error message below dropdown', () => {
-      mockUseFetchState.mockReturnValue([[], true, mockError]);
+      mockUseFetchState.mockReturnValue([[], true, mockError, mockRefresh]);
 
       render(
         <SecretSelector
@@ -288,7 +289,7 @@ describe('SecretSelector', () => {
     });
 
     it('should show danger status on toggle when error occurs', () => {
-      mockUseFetchState.mockReturnValue([[], true, mockError]);
+      mockUseFetchState.mockReturnValue([[], true, mockError, mockRefresh]);
 
       render(
         <SecretSelector
@@ -305,7 +306,7 @@ describe('SecretSelector', () => {
     });
 
     it('should not call onChange when error state', () => {
-      mockUseFetchState.mockReturnValue([[], true, mockError]);
+      mockUseFetchState.mockReturnValue([[], true, mockError, mockRefresh]);
 
       render(
         <SecretSelector
@@ -327,7 +328,7 @@ describe('SecretSelector', () => {
     const mockSecrets: SecretListItem[] = [mockStorageSecret()];
 
     it('should be disabled when isDisabled prop is true', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -344,7 +345,7 @@ describe('SecretSelector', () => {
     });
 
     it('should not open dropdown when disabled', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -420,7 +421,7 @@ describe('SecretSelector', () => {
   describe('edge cases', () => {
     it('should handle undefined value gracefully', () => {
       const mockSecrets: SecretListItem[] = [mockStorageSecret()];
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -436,7 +437,7 @@ describe('SecretSelector', () => {
 
     it('should handle selecting non-existent secret uuid', () => {
       const mockSecrets: SecretListItem[] = [mockStorageSecret({ uuid: '1', name: 'secret-1' })];
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -453,7 +454,7 @@ describe('SecretSelector', () => {
 
     it('should call onChange with undefined when selecting invalid secret', () => {
       const mockSecrets: SecretListItem[] = [mockStorageSecret({ uuid: '1', name: 'secret-1' })];
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined]);
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
@@ -476,7 +477,7 @@ describe('SecretSelector', () => {
     });
 
     it('should handle empty type parameter', () => {
-      mockUseFetchState.mockReturnValue([[mockStorageSecret()], true, undefined]);
+      mockUseFetchState.mockReturnValue([[mockStorageSecret()], true, undefined, mockRefresh]);
 
       render(
         <SecretSelector
