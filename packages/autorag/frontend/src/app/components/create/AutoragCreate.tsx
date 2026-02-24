@@ -4,7 +4,7 @@ import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { experimentSchema } from '~/app/schemas/experiment.schema';
-import { autoragConfigurePathname } from '~/app/utilities/routes';
+import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
 
 function AutoragCreate(): React.JSX.Element {
   const navigate = useNavigate();
@@ -16,41 +16,47 @@ function AutoragCreate(): React.JSX.Element {
   });
 
   return (
-    <div>
-      <Form>
-        <Controller
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormGroup fieldId={field.name} label="Name" isRequired>
-              <TextInput {...field} id={field.name} type="text" />
-            </FormGroup>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormGroup fieldId={field.name} label="Description">
-              <TextArea {...field} id={field.name} />
-            </FormGroup>
-          )}
-        />
-        <ActionGroup>
-          <Button
-            variant="primary"
-            isDisabled={!form.formState.isValid}
-            onClick={async () => {
-              form.handleSubmit(() => {
-                navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
-              })();
-            }}
-          >
-            Create
-          </Button>
-        </ActionGroup>
-      </Form>
-    </div>
+    <Form>
+      <Controller
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormGroup fieldId={field.name} label="Name" isRequired>
+            <TextInput {...field} id={field.name} type="text" />
+          </FormGroup>
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormGroup fieldId={field.name} label="Description">
+            <TextArea {...field} id={field.name} />
+          </FormGroup>
+        )}
+      />
+      <ActionGroup>
+        <Button
+          variant="primary"
+          isDisabled={!form.formState.isValid}
+          onClick={() => {
+            form.handleSubmit(() => {
+              navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
+            })();
+          }}
+        >
+          Create
+        </Button>
+        <Button
+          variant="link"
+          onClick={() => {
+            navigate(autoragExperimentsPathname);
+          }}
+        >
+          Cancel
+        </Button>
+      </ActionGroup>
+    </Form>
   );
 }
 

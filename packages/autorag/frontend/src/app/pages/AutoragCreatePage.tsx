@@ -27,7 +27,6 @@ function AutoragCreatePage(): React.JSX.Element {
       loadError={namespacesLoadError}
       loaded={namespacesLoaded}
       provideChildrenPadding
-      removeChildrenTopPadding
     >
       <AutoragCreate />
     </ApplicationsPage>
