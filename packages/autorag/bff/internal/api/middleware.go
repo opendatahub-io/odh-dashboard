@@ -131,33 +131,35 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 
 		// Apply LlamaStack authorization check to all endpoints that require namespace access
 		// This ensures consistent security across all services
-		// Check if namespace is present in context (set by AttachNamespace middleware)
-		if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace != "" {
-			// Get Kubernetes client to perform SAR
-			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-			if err != nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-				return
-			}
+		// Namespace must be present in context (set by AttachNamespace middleware).
+		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
 
-			// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
-			// This ensures users have proper permissions to access any service in the namespace
-			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
-			if err != nil {
-				app.handleK8sClientError(w, r, err)
-				return
-			}
+		// Get Kubernetes client to perform SAR
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
 
-			if !allowed {
-				app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
-				return
-			}
+		// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
+		// This ensures users have proper permissions to access any service in the namespace
+		allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
+		if err != nil {
+			app.handleK8sClientError(w, r, err)
+			return
+		}
 
-			logger := helper.GetContextLoggerFromReq(r)
-			logger.Debug("User authorized to access services in namespace", "namespace", namespace)
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+			return
 		}
 
 		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("User authorized to access services in namespace", "namespace", namespace)
 		logger.Debug("Request authorized")
 
 		next(w, r, ps)
