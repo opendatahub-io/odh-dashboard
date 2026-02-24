@@ -42,7 +42,7 @@ class TierTableRow extends TableRow {
 
 class TiersPage {
   visit(): void {
-    cy.visitWithLogin('/maas/tiers');
+    cy.visitWithLogin('/maas/tiers/?devFeatureFlags=modelAsService=true');
     this.wait();
   }
 
