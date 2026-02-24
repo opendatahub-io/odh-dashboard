@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -25,14 +26,14 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 
 	rawModels, err := client.ListModels(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching LSD models: %w", err)
+		return nil, err
 	}
 
 	allModels := make([]models.LSDModel, 0, len(rawModels))
 	for _, rawModel := range rawModels {
 		lsdModel, err := parseLlamaStackModel(rawModel.RawJSON())
 		if err != nil {
-			// Skip models that can't be parsed
+			slog.Warn("skipping unparseable LlamaStack model", "error", err, "raw_json", rawModel.RawJSON())
 			continue
 		}
 		allModels = append(allModels, lsdModel)
@@ -69,6 +70,10 @@ func parseLlamaStackModel(rawJSON string) (models.LSDModel, error) {
 	var native models.LlamaStackNativeModel
 	if err := json.Unmarshal([]byte(rawJSON), &native); err != nil {
 		return models.LSDModel{}, fmt.Errorf("failed to parse LlamaStack model: %w", err)
+	}
+
+	if native.Identifier == "" {
+		return models.LSDModel{}, fmt.Errorf("LlamaStack model missing required 'identifier' field")
 	}
 
 	return models.LSDModel{

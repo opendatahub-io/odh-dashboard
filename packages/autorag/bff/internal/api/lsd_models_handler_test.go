@@ -182,6 +182,25 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 	app := newTestApp(t)
 
+	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models", nil) // no ?namespace=
+		assert.NoError(t, err)
+
+		// Run through the full middleware chain — AttachNamespace rejects the request before
+		// the handler is reached, verifying the end-to-end 400 behaviour.
+		app.AttachNamespace(app.LlamaStackModelsHandler)(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response map[string]interface{}
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+		assert.NoError(t, json.Unmarshal(body, &response))
+		assert.Contains(t, response, "error")
+	})
+
 	t.Run("should return 500 when LlamaStack client is missing from context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models", nil)

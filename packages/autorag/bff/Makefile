@@ -50,6 +50,11 @@ test: fmt vet envtest ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	go test ./...
 
+.PHONY: test-v
+test-v: fmt vet envtest ## Runs the full test suite with verbose output (for local development).
+	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	go test -v ./...
+
 .PHONY: build
 build: fmt vet test ## Builds the project to produce a binary executable.
 ifeq ($(DEBUG), true) ## If DEBUG is true, build with debugging symbols
