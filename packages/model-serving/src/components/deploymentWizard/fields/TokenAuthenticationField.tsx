@@ -53,6 +53,7 @@ export const useTokenAuthenticationField = (
   existingData?: TokenAuthenticationFieldData,
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
+  canCreateRoleBindings?: boolean,
 ): TokenAuthenticationFieldHook => {
   const tokenAuthExtension = useWizardFieldFromExtension(isTokenAuthField, {
     modelType: { data: modelType?.data },
@@ -63,8 +64,7 @@ export const useTokenAuthenticationField = (
   }, [tokenAuthExtension]);
 
   const initialData = React.useMemo(() => {
-    // only auto check on create
-    if (shouldAutoCheck && !existingData) {
+    if (shouldAutoCheck && !existingData && canCreateRoleBindings === true) {
       return [
         {
           uuid: getUniqueId('ml'),
@@ -74,7 +74,7 @@ export const useTokenAuthenticationField = (
       ];
     }
     return existingData || [];
-  }, [shouldAutoCheck, existingData]);
+  }, [shouldAutoCheck, existingData, canCreateRoleBindings]);
 
   const [tokenAuthData, setTokenAuthData] = React.useState<
     TokenAuthenticationFieldData | undefined

@@ -113,6 +113,7 @@ export const useModelDeploymentWizard = (
     initialData?.tokenAuthentication ?? undefined,
     modelType,
     modelServer,
+    canCreateRoleBindings,
   );
 
   const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
