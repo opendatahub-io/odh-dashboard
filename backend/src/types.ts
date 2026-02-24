@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      automl: boolean;
       autoRag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
@@ -1000,10 +1001,17 @@ export type DataScienceClusterList = {
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;
+  monitoring?: {
+    namespace?: string;
+  };
 };
 
 export type DataScienceClusterInitializationKind = K8sResourceCommon & {
-  spec: unknown; // we should never need to look into this
+  spec: {
+    monitoring?: {
+      namespace?: string;
+    };
+  };
   status: DataScienceClusterInitializationKindStatus;
 };
 
