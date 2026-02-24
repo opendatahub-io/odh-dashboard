@@ -1,30 +1,43 @@
 import React from 'react';
 import { getConfigMap } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import useDefaultDsc from '#~/pages/clusterSettings/useDefaultDsc';
 
 export type NIMAccountConfig = {
   registry?: string;
   imagePullSecret?: string;
+  isAirGapped: boolean;
   loading: boolean;
   error?: string;
 };
 
+type NIMConfigMapState = {
+  registry?: string;
+  imagePullSecret?: string;
+  configLoading: boolean;
+  error?: string;
+};
+
 /**
- * Hook to read NIM account configuration from odh-nim-account-cm ConfigMap.
- * This ConfigMap contains registry and imagePullSecret information for air-gapped deployments.
- * When airGapped mode is enabled in DSC, the odh-model-controller populates this ConfigMap
- * with custom registry settings.
+ * Hook to read NIM account configuration from the DSC spec and odh-nim-account-cm ConfigMap.
+ *
+ * Air-gapped mode is determined by spec.components.kserve.nim.airGapped in the
+ * DataScienceCluster resource. The ConfigMap provides registry and imagePullSecret
+ * values populated by the odh-model-controller when air-gapped mode is enabled.
  */
 export const useNIMAccountConfig = (): NIMAccountConfig => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [config, setConfig] = React.useState<NIMAccountConfig>({
-    loading: true,
+  const [dsc, dscLoaded] = useDefaultDsc();
+  const [config, setConfig] = React.useState<NIMConfigMapState>({
+    configLoading: true,
   });
+
+  const nimConfig = dsc?.spec.components?.kserve?.nim;
 
   React.useEffect(() => {
     const fetchConfig = async () => {
       if (!dashboardNamespace) {
-        setConfig({ loading: false });
+        setConfig({ configLoading: false });
         return;
       }
 
@@ -33,13 +46,11 @@ export const useNIMAccountConfig = (): NIMAccountConfig => {
         setConfig({
           registry: configMap.data?.registry,
           imagePullSecret: configMap.data?.imagePullSecret,
-          loading: false,
+          configLoading: false,
         });
       } catch (error) {
-        // ConfigMap might not exist (non-air-gapped mode or NIM not enabled)
-        // This is not an error condition - we'll default to nvcr.io
         setConfig({
-          loading: false,
+          configLoading: false,
           error:
             error instanceof Error ? error.message : 'Failed to fetch NIM account configuration',
         });
@@ -49,5 +60,11 @@ export const useNIMAccountConfig = (): NIMAccountConfig => {
     fetchConfig();
   }, [dashboardNamespace]);
 
-  return config;
+  return {
+    registry: config.registry,
+    imagePullSecret: config.imagePullSecret,
+    isAirGapped: nimConfig != null && 'airGapped' in nimConfig && nimConfig.airGapped === true,
+    loading: config.configLoading || !dscLoaded,
+    error: config.error,
+  };
 };

@@ -71,6 +71,7 @@ describe('NIMModelListSection', () => {
   describe('Registry fallback in getNIMImageName', () => {
     it('should use default nvcr.io registry when no air-gapped config exists', async () => {
       useNIMAccountConfigMock.mockReturnValue({
+        isAirGapped: false,
         loading: false,
       });
 
@@ -107,6 +108,7 @@ describe('NIMModelListSection', () => {
       useNIMAccountConfigMock.mockReturnValue({
         registry: 'internal-registry.company.com',
         imagePullSecret: 'custom-pull-secret',
+        isAirGapped: true,
         loading: false,
       });
 
@@ -142,6 +144,7 @@ describe('NIMModelListSection', () => {
     it('should use model-specific registry when available (highest precedence)', async () => {
       useNIMAccountConfigMock.mockReturnValue({
         registry: 'internal-registry.company.com',
+        isAirGapped: true,
         loading: false,
       });
 
@@ -190,6 +193,7 @@ describe('NIMModelListSection', () => {
     it('should use global registry when model-specific registry is not defined', async () => {
       useNIMAccountConfigMock.mockReturnValue({
         registry: 'global-registry.io',
+        isAirGapped: true,
         loading: false,
       });
 
@@ -239,6 +243,7 @@ describe('NIMModelListSection', () => {
   describe('Loading states', () => {
     it('should disable select when account config is loading', async () => {
       useNIMAccountConfigMock.mockReturnValue({
+        isAirGapped: false,
         loading: true,
       });
 
@@ -260,6 +265,7 @@ describe('NIMModelListSection', () => {
 
     it('should enable select after account config finishes loading', async () => {
       useNIMAccountConfigMock.mockReturnValue({
+        isAirGapped: false,
         loading: false,
       });
 
@@ -283,6 +289,7 @@ describe('NIMModelListSection', () => {
   describe('Error handling', () => {
     it('should show error when fetchNIMModelNames fails', async () => {
       useNIMAccountConfigMock.mockReturnValue({
+        isAirGapped: false,
         loading: false,
       });
 
@@ -305,6 +312,7 @@ describe('NIMModelListSection', () => {
 
     it('should show error when no models are found', async () => {
       useNIMAccountConfigMock.mockReturnValue({
+        isAirGapped: false,
         loading: false,
       });
 
@@ -329,6 +337,7 @@ describe('NIMModelListSection', () => {
   describe('Editing mode', () => {
     it('should disable select when isEditing is true', async () => {
       useNIMAccountConfigMock.mockReturnValue({
+        isAirGapped: false,
         loading: false,
       });
 
