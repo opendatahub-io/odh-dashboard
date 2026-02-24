@@ -1,6 +1,7 @@
 import type { DataScienceProjectData } from '../../../types';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import { permissions } from '../../../pages/permissions';
+import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_GROUP,
@@ -48,11 +49,9 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
       tags: ['@Smoke', '@SmokeSet1', '@ODS-2194', '@ODS-2201', '@ODS-2208', '@Dashboard', '@Bug'],
     },
     () => {
-      // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Project navigation, add user and provide admin permissions
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
@@ -60,19 +59,41 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin user Project Permissions');
-      permissions.findAddUserButton().click();
-      permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
-      permissions
-        .getUserTable()
-        .selectPermission(
-          LDAP_CONTRIBUTOR_USER.USERNAME,
-          'Admin Edit the project and manage user access',
-        );
+      projectRbacPermissions.waitForPermissionsContentForUser();
+      cy.get('body').then(($body) => {
+        if ($body.find(projectRbacPermissions.getAssignRolesButtonSelector()).length > 0) {
+          projectRbacPermissions.findAssignRolesButton().click();
+          projectRbacPermissions.findAssignRolesPage().should('exist');
+          projectRbacPermissions
+            .findAssignRolesSubjectTypeahead()
+            .click()
+            .type(LDAP_CONTRIBUTOR_USER.USERNAME);
+          projectRbacPermissions
+            .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_USER.USERNAME))
+            .click();
+          projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
+          projectRbacPermissions.findAssignRolesSaveButton().click();
+          cy.get('body').then(($bodyEl) => {
+            if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
+              projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
+            }
+          });
+        } else {
+          permissions.findAddUserButton().click();
+          permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
+          permissions
+            .getUserTable()
+            .selectPermission(
+              LDAP_CONTRIBUTOR_USER.USERNAME,
+              'Admin Edit the project and manage user access',
+            );
+          permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
+        }
+      });
 
       cy.step(
         `Save the user and validate that ${LDAP_CONTRIBUTOR_USER.USERNAME} has been saved with admin permissions`,
       );
-      permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
       cy.contains(LDAP_CONTRIBUTOR_USER.USERNAME).should('exist');
     },
   );
@@ -93,11 +114,9 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
     function testGroupPermissions() {
       skipIfBYOIDC(this, 'Groups API not available on BYOIDC clusters');
 
-      // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Project navigation, add group and provide admin permissions
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
       projectListPage.filterProjectByName(projectName);
@@ -105,13 +124,37 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign admin group Project Permissions');
-      permissions.findAddGroupButton().click();
-      permissions.getGroupTable().addGroupName(LDAP_CONTRIBUTOR_GROUP.USERNAME);
-      permissions.getGroupTable().selectAdminOption();
+      projectRbacPermissions.waitForPermissionsContentForGroup();
+      cy.get('body').then(($body) => {
+        if ($body.find(projectRbacPermissions.getAssignRolesButtonSelector()).length > 0) {
+          projectRbacPermissions.findAssignRolesButton().click();
+          projectRbacPermissions.findAssignRolesPage().should('exist');
+          projectRbacPermissions.findAssignRolesSubjectKindRadio('group').click();
+          projectRbacPermissions
+            .findAssignRolesSubjectTypeahead()
+            .click()
+            .type(LDAP_CONTRIBUTOR_GROUP.USERNAME);
+          projectRbacPermissions
+            .findTypeaheadOption(new RegExp(LDAP_CONTRIBUTOR_GROUP.USERNAME))
+            .click();
+          projectRbacPermissions.getManageRolesTable().toggleRole('Admin');
+          projectRbacPermissions.findAssignRolesSaveButton().click();
+          cy.get('body').then(($bodyEl) => {
+            if ($bodyEl.find(projectRbacPermissions.getConfirmModalSelector()).length > 0) {
+              projectRbacPermissions.getRoleAssignmentChangesModal().findSaveButton().click();
+            }
+          });
+        } else {
+          permissions.findAddGroupButton().click();
+          permissions.getGroupTable().addGroupName(LDAP_CONTRIBUTOR_GROUP.USERNAME);
+          permissions.getGroupTable().selectAdminOption();
+          permissions.getGroupTable().findSaveNewButton().should('exist').and('be.visible').click();
+        }
+      });
+
       cy.step(
         `Save the group and validate that ${LDAP_CONTRIBUTOR_GROUP.USERNAME} has been saved with admin permissions`,
       );
-      permissions.getGroupTable().findSaveNewButton().should('exist').and('be.visible').click();
       cy.contains(LDAP_CONTRIBUTOR_GROUP.USERNAME).should('exist');
     },
   );
@@ -130,13 +173,12 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide admin p
       ],
     },
     () => {
-      // Authentication and navigation
       cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-      // Project navigation and validate permissions tab is accessible
       cy.step('Verify that the user has access to the created project and can access Permissions');
       projectListPage.navigate();
+      projectListPage.waitForPageAndToolbar();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('permissions').click();
