@@ -80,4 +80,25 @@ type EnvConfig struct {
 	// When true, the Kubernetes auth provider and access policies are added to the server config.
 	// Default is false to avoid breaking existing deployments.
 	EnableLlamaStackRBAC bool
+
+	// ─── BFF INTER-COMMUNICATION ─────────────────────────────────
+	// MockBFFClients enables mock mode for BFF inter-communication clients.
+	// When true, BFF clients return mock responses instead of making real HTTP calls.
+	MockBFFClients bool
+
+	// BFFMaaSServiceName is the Kubernetes service name for the MaaS BFF.
+	// Default: "odh-dashboard" (shared service in single-pod deployment)
+	BFFMaaSServiceName string
+
+	// BFFMaaSServicePort is the port for the MaaS BFF service.
+	// Default: 8243
+	BFFMaaSServicePort int
+
+	// BFFMaaSTLSEnabled enables HTTPS for MaaS BFF communication.
+	// Default: false (same pod, TLS not required)
+	BFFMaaSTLSEnabled bool
+
+	// BFFMaaSDevURL is a developer override URL for MaaS BFF (local development).
+	// When set, overrides service discovery. Example: "http://localhost:4000/api/v1"
+	BFFMaaSDevURL string
 }

@@ -417,3 +417,55 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 		next(w, r, ps)
 	}
 }
+
+// AttachBFFMaaSClient middleware creates a BFF client for inter-BFF communication with MaaS BFF
+// and attaches it to the request context. This is used for endpoints that need to call MaaS BFF
+// rather than the MaaS controller directly.
+func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Check if BFF client factory is available
+		if app.bffClientFactory == nil {
+			logger.Warn("BFF client factory not initialized")
+			app.errorResponse(w, r, &integrations.HTTPError{
+				StatusCode: http.StatusServiceUnavailable,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "service_unavailable",
+					Message: "BFF inter-communication is not configured",
+				},
+			})
+			return
+		}
+
+		// Check if MaaS BFF target is configured
+		if !app.bffClientFactory.IsTargetConfigured("maas") {
+			logger.Debug("MaaS BFF target not configured, attaching nil client")
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			next(w, r.WithContext(ctx), ps)
+			return
+		}
+
+		// Get auth token from RequestIdentity
+		var authToken string
+		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil {
+			authToken = identity.Token
+		}
+
+		// Create BFF client for MaaS target
+		client := app.bffClientFactory.CreateClient("maas", authToken)
+		if client == nil {
+			logger.Warn("Failed to create MaaS BFF client")
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			next(w, r.WithContext(ctx), ps)
+			return
+		}
+
+		logger.Debug("Created MaaS BFF client", "baseURL", client.GetBaseURL())
+
+		// Attach to context
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
+		next(w, r.WithContext(ctx), ps)
+	}
+}
