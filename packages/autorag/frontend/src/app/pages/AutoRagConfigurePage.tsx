@@ -1,9 +1,9 @@
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoRagConfigure from '../components/configure/AutoRagConfigure';
-import { useExperimentQuery } from '../hooks/queries';
-import InvalidExperiment from '../components/empty-states/InvalidExperiment';
+import AutoRagConfigure from '~/app/components/configure/AutoRagConfigure';
+import { useExperimentQuery } from '~/app/hooks/queries';
+import InvalidExperiment from '~/app/components/empty-states/InvalidExperiment';
 
 function AutoRagConfigurePage(): React.JSX.Element {
   const { experimentId } = useParams();

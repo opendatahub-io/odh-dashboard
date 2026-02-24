@@ -4,10 +4,10 @@ import React from 'react';
 import { useParams } from 'react-router';
 import AutoRagExperiments from '~/app/components/experiments/AutoRagExperiments';
 import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
-import ProjectSelectorNavigator from '../components/common/ProjectSelectorNavigator';
-import InvalidProject from '../components/empty-states/InvalidProject';
-import NoProjects from '../components/empty-states/NoProjects';
-import { autoRagExperimentsPathname } from '../utilities/routes';
+import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
+import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import NoProjects from '~/app/components/empty-states/NoProjects';
+import { autoRagExperimentsPathname } from '~/app/utilities/routes';
 
 function AutoRagExperimentsPage(): React.JSX.Element {
   usePreferredNamespaceRedirect();
