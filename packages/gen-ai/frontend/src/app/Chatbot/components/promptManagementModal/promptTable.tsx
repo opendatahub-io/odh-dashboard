@@ -11,15 +11,18 @@ import {
   MenuToggleElement,
   Flex,
   Select,
+  Label,
   SearchInput,
   Timestamp,
   PaginationVariant,
   TimestampFormat,
   Spinner,
+  LabelGroup,
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
+import PromptDrawer from './promptDrawer';
 
 type PromptTableProps = {
   rows: MLflowPrompt[];
@@ -37,10 +40,19 @@ export default function PromptTable({
   const [page] = useState(1);
   const [perPage] = useState(10);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
-  const [selectedPromptDetails, setSelectedPromptDetails] = useState<MLflowPromptVersion | null>(
-    null,
-  );
+  const [selectedPromptVersions, setSelectedPromptVersions] = useState<MLflowPromptVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  function handleClearSelectedRow() {
+    setSelectedRow(null);
+    setSelectedPromptVersions([]);
+    setSelectedVersion(null);
+  }
+
+  function handleVersionChange(version: number) {
+    setSelectedVersion(version);
+  }
   // const handleSetPage = (
   //   _evt: React.MouseEvent | React.KeyboardEvent | MouseEvent,
   //   newPage: number,
@@ -71,8 +83,13 @@ export default function PromptTable({
         <Flex rowGap={{ default: 'rowGapXs' }}>
           <Button
             variant="primary"
-            disabled={!selectedPromptDetails || isLoadingDetails}
-            onClick={() => selectedPromptDetails && onClickLoad(selectedPromptDetails)}
+            disabled={selectedVersion === null || isLoadingDetails}
+            onClick={() => {
+              const prompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
+              if (prompt) {
+                onClickLoad(prompt);
+              }
+            }}
           >
             {isLoadingDetails ? (
               <>
@@ -86,7 +103,7 @@ export default function PromptTable({
             Cancel
           </Button>
         </Flex>
-        {renderPagination('bottom', false)}
+        {selectedVersion === null && renderPagination('bottom', false)}
       </Flex>
     );
   }
@@ -108,7 +125,9 @@ export default function PromptTable({
     />
   );
 
-  const columns = ['Name', 'Version', 'Last Modified', 'Tags'];
+  const columns = selectedVersion
+    ? ['Name', 'Version']
+    : ['Name', 'Version', 'Last Modified', 'Tags'];
 
   const handleRowClick = (row: MLflowPrompt) => {
     setSelectedRow(row);
@@ -116,7 +135,8 @@ export default function PromptTable({
 
   useEffect(() => {
     if (!selectedRow || !apiAvailable) {
-      setSelectedPromptDetails(null);
+      setSelectedPromptVersions([]);
+      setSelectedVersion(null);
       return;
     }
 
@@ -124,17 +144,30 @@ export default function PromptTable({
     setIsLoadingDetails(true);
 
     api
-      .getMLflowPrompt({ name: selectedRow.name })
-      .then((data) => {
-        if (!cancelled) {
-          setSelectedPromptDetails(data);
+      .listMLflowPromptVersions({ name: selectedRow.name })
+      .then((versionsResponse) => {
+        if (cancelled) {
+          return [];
+        }
+        return Promise.all(
+          versionsResponse.versions.map((v) =>
+            api.getMLflowPrompt({ name: selectedRow.name, version: v.version }),
+          ),
+        );
+      })
+      .then((versions) => {
+        if (!cancelled && versions.length > 0) {
+          const sorted = versions.toSorted((a, b) => b.version - a.version);
+          setSelectedPromptVersions(sorted);
+          setSelectedVersion(sorted[0].version);
         }
       })
       .catch((error) => {
         if (!cancelled) {
           // eslint-disable-next-line no-console
-          console.error('Failed to fetch prompt details:', error);
-          setSelectedPromptDetails(null);
+          console.error('Failed to fetch prompt versions:', error);
+          setSelectedPromptVersions([]);
+          setSelectedVersion(null);
         }
       })
       .finally(() => {
@@ -142,6 +175,7 @@ export default function PromptTable({
           setIsLoadingDetails(false);
         }
       });
+
     return () => {
       cancelled = true;
     };
@@ -183,41 +217,56 @@ export default function PromptTable({
 
   return (
     <>
-      <PageSection isFilled aria-label="Paginated table data">
-        {tableToolbar}
-        <Table variant="compact" aria-label="Paginated Table">
-          <Thead>
-            <Tr>
-              {columns.map((column, columnIndex) => (
-                <Th key={columnIndex}>{column}</Th>
-              ))}
-            </Tr>
-          </Thead>
-          <Tbody>
-            {rows.map((row, rowIndex) => (
-              <Tr
-                key={rowIndex}
-                isClickable
-                isRowSelected={selectedRow?.name === row.name}
-                onClick={() => handleRowClick(row)}
-              >
-                <Td dataLabel={columns[0]}>{row.name}</Td>
-                <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                <Td dataLabel={columns[2]}>
-                  <Timestamp
-                    date={new Date(row.creation_timestamp)}
-                    dateFormat={TimestampFormat.full}
-                  />
-                </Td>
-                <Td dataLabel={columns[3]}>
-                  {row.tags ? <pre>{JSON.stringify(row.tags)}</pre> : '-'}
-                </Td>
+      <PromptDrawer
+        selectedPromptVersions={selectedPromptVersions}
+        selectedVersion={selectedVersion}
+        onVersionChange={handleVersionChange}
+        onClose={handleClearSelectedRow}
+      >
+        <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
+          {tableToolbar}
+          <Table variant="compact" aria-label="Paginated Table">
+            <Thead>
+              <Tr>
+                {columns.map((column, columnIndex) => (
+                  <Th key={columnIndex}>{column}</Th>
+                ))}
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
-        {buildFooter()}
-      </PageSection>
+            </Thead>
+            <Tbody>
+              {rows.map((row, rowIndex) => (
+                <Tr
+                  key={rowIndex}
+                  isClickable
+                  isRowSelected={selectedRow?.name === row.name}
+                  onClick={() => handleRowClick(row)}
+                >
+                  <Td dataLabel={columns[0]}>{row.name}</Td>
+                  <Td dataLabel={columns[1]}>{row.latest_version}</Td>
+                  {!selectedVersion && (
+                    <>
+                      <Td dataLabel={columns[2]}>
+                        <Timestamp
+                          date={new Date(row.creation_timestamp)}
+                          dateFormat={TimestampFormat.full}
+                        />
+                      </Td>
+                      <Td dataLabel={columns[3]}>
+                        <LabelGroup>
+                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                          ))}
+                        </LabelGroup>
+                      </Td>
+                    </>
+                  )}
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </PageSection>
+      </PromptDrawer>
+      {buildFooter()}
     </>
   );
 }
