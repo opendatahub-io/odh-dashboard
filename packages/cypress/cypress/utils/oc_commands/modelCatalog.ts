@@ -1,6 +1,62 @@
 import { execWithOutput } from './baseCommands';
 import { getModelRegistryNamespace } from './modelRegistry';
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
+
+/**
+ * Helper to parse YAML using either yq or jq (with Python fallback).
+ * Returns a command that reads YAML from stdin and extracts the enabled field for a given catalog ID.
+ *
+ * This uses a fallback mechanism to work in environments where yq may not be available:
+ * 1. First tries `yq` (YAML processor) - if available
+ * 2. Falls back to `python3 + jq` - converts YAML to JSON, then uses jq to parse
+ *
+ * Note: The Python fallback requires PyYAML module to be installed in the environment.
+ * This is typically available in CI environments (e.g., Fedora containers with python3-pyyaml).
+ *
+ * @param sourceId The catalog source ID to query
+ * @returns A command string that can be piped to
+ */
+const getYamlParseCommand = (sourceId: string): string => {
+  // First try yq (YAML processor), then fall back to Python + jq
+  return `
+    if command -v yq >/dev/null 2>&1; then
+      yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'
+    else
+      python3 -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' 2>/dev/null | jq -r '.catalogs[] | select(.id == "${sourceId}") | .enabled // empty'
+    fi
+  `.trim();
+};
+
+/**
+ * Helper to update YAML using either yq or Python.
+ * Returns a command that reads YAML from stdin, updates a field, and outputs modified YAML.
+ *
+ * This uses a fallback mechanism to work in environments where yq may not be available:
+ * 1. First tries `yq` (YAML processor) - if available
+ * 2. Falls back to `python3` - parses YAML, modifies it, and outputs YAML
+ *
+ * Note: The Python fallback requires PyYAML module to be installed in the environment.
+ *
+ * @param sourceId The catalog source ID to update
+ * @returns A command string that can be used in a pipeline
+ */
+const getYamlUpdateCommand = (sourceId: string): string => {
+  return `
+    if command -v yq >/dev/null 2>&1; then
+      yq '(.catalogs[] | select(.id == "${sourceId}")).enabled = true'
+    else
+      python3 -c "
+import sys, yaml, json
+data = yaml.safe_load(sys.stdin)
+for catalog in data.get('catalogs', []):
+    if catalog.get('id') == '${sourceId}':
+        catalog['enabled'] = True
+print(yaml.dump(data, default_flow_style=False), end='')
+"
+    fi
+  `.trim();
+};
 
 /**
  * Verify that the model-catalog-default-sources ConfigMap exists in the model registry namespace.
@@ -13,11 +69,12 @@ export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandL
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog-default-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
-      cy.log(`stderr: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
       throw new Error(
-        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${result.stderr}`,
+        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${maskedStderr}`,
       );
     }
     cy.log(`✓ model-catalog-default-sources ConfigMap exists in ${namespace}`);
@@ -36,10 +93,11 @@ export const verifyModelCatalogDeployment = (): Cypress.Chainable<CommandLineRes
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog deployment not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
-      cy.log(`stderr: ${result.stderr}`);
-      throw new Error(`model-catalog deployment not found in ${namespace}: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
+      throw new Error(`model-catalog deployment not found in ${namespace}: ${maskedStderr}`);
     }
     cy.log(`✓ model-catalog deployment exists in ${namespace}`);
     return cy.wrap(result);
@@ -57,10 +115,11 @@ export const verifyModelCatalogService = (): Cypress.Chainable<CommandLineResult
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog service not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
-      cy.log(`stderr: ${result.stderr}`);
-      throw new Error(`model-catalog service not found in ${namespace}: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
+      throw new Error(`model-catalog service not found in ${namespace}: ${maskedStderr}`);
     }
     cy.log(`✓ model-catalog service exists in ${namespace}`);
     return cy.wrap(result);
@@ -105,10 +164,11 @@ export const verifyModelCatalogSourceEnabled = (
   pollIntervalMs = 2000,
 ): Cypress.Chainable<undefined> => {
   const namespace = getModelRegistryNamespace();
+  const parseCmd = getYamlParseCommand(sourceId);
   // User changes are stored in model-catalog-sources, defaults in model-catalog-default-sources
   // Try user configmap first, fall back to default if source not found there
-  const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'`;
-  const defaultCommand = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'`;
+  const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | ${parseCmd}`;
+  const defaultCommand = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   cy.log(`Polling for source ${sourceId} enabled status to be ${expectedEnabled}`);
 
@@ -144,9 +204,10 @@ export const verifyModelCatalogSourceEnabled = (
       // Fall back to default configmap
       execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
         if (defaultResult.code !== 0) {
+          const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
           cy.log(`ERROR: Failed to get source enabled status from both configmaps`);
-          cy.log(`stderr: ${defaultResult.stderr}`);
-          throw new Error(`Failed to verify source enabled status: ${defaultResult.stderr}`);
+          cy.log(`stderr: ${maskedStderr}`);
+          throw new Error(`Failed to verify source enabled status: ${maskedStderr}`);
         }
 
         const defaultValue = defaultResult.stdout.trim();
@@ -185,12 +246,14 @@ export const verifyModelCatalogSourceEnabled = (
  */
 export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable<boolean> => {
   const namespace = getModelRegistryNamespace();
-  const command = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'`;
+  const parseCmd = getYamlParseCommand(sourceId);
+  const command = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: Failed to check source enabled status`);
-      cy.log(`stderr: ${result.stderr}`);
+      cy.log(`stderr: ${maskedStderr}`);
       return cy.wrap(false);
     }
     const isEnabled = result.stdout.trim() === 'true';
@@ -216,21 +279,24 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
   return cy.then(() => {
     execWithOutput(getCommand, 30).then((result: CommandLineResult) => {
       if (result.code !== 0) {
-        throw new Error(`Failed to get model-catalog-sources ConfigMap: ${result.stderr}`);
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get model-catalog-sources ConfigMap: ${maskedStderr}`);
       }
 
-      // Use yq to update the enabled field and apply via oc patch
+      const updateCmd = getYamlUpdateCommand(sourceId);
+      // Use yq/Python to update the enabled field and apply via oc patch
       const updateCommand = `
         YAML_CONTENT=$(oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}')
-        UPDATED_YAML=$(echo "$YAML_CONTENT" | yq '(.catalogs[] | select(.id == "${sourceId}")).enabled = true')
+        UPDATED_YAML=$(echo "$YAML_CONTENT" | ${updateCmd})
         oc patch configmap model-catalog-sources -n ${namespace} --type=merge -p "{\\"data\\":{\\"sources.yaml\\": $(echo "$UPDATED_YAML" | jq -Rs .)}}"
       `;
 
       execWithOutput(updateCommand, 60).then((patchResult: CommandLineResult) => {
         if (patchResult.code !== 0) {
+          const maskedStderr = maskSensitiveInfo(patchResult.stderr);
           cy.log(`stdout: ${patchResult.stdout}`);
-          cy.log(`stderr: ${patchResult.stderr}`);
-          throw new Error(`Failed to enable source ${sourceId}: ${patchResult.stderr}`);
+          cy.log(`stderr: ${maskedStderr}`);
+          throw new Error(`Failed to enable source ${sourceId}: ${maskedStderr}`);
         }
         cy.log(`✓ Successfully enabled source ${sourceId}`);
       });

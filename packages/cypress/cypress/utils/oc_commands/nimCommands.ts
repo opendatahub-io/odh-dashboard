@@ -1,5 +1,6 @@
 import type { PollOptions } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Checks if the NIM OdhApplication exists on the cluster.
@@ -39,7 +40,9 @@ export const applyNIMApplication = (
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     cy.log(`Command exit code: ${result.code}`);
     if (result.code !== 0) {
-      throw new Error(`Failed to apply NIM manifest: ${result.stderr || result.stdout}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      const maskedStdout = maskSensitiveInfo(result.stdout);
+      throw new Error(`Failed to apply NIM manifest: ${maskedStderr || maskedStdout}`);
     }
     return cy.wrap(result);
   });
@@ -65,7 +68,8 @@ export const deleteNIMAccount = (
       cy.log('✅ NIM account does not exist - no cleanup needed');
     } else {
       // Some other error occurred
-      cy.log(`⚠️  Warning: Failed to delete NIM account: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`⚠️  Warning: Failed to delete NIM account: ${maskedStderr}`);
       cy.log('Continuing with test execution...');
     }
   });

@@ -65,7 +65,7 @@ describe('Verify RHODS About Dialog', () => {
         aboutDialog.findChannel().should('contain.text', channel);
       });
 
-      cy.step(`Verify ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME} access level`);
+      cy.step('Verify admin access level');
       aboutDialog.isAdminAccessLevel();
 
       aboutDialog.findTable().then(() => {

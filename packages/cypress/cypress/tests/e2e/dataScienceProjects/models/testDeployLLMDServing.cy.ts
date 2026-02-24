@@ -76,7 +76,7 @@ describe('A user can deploy an LLMD model', () => {
       tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
