@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import classNames from 'classnames';
 import {
   BrowserStorageContextProvider,
   DeploymentMode,
@@ -30,7 +31,15 @@ function AppWrapper(): React.JSX.Element {
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
           <QueryClientProvider client={queryClient}>
-            <AppRoutes />
+            <div
+              className={classNames(
+                'pf-v6-u-h-100',
+                'pf-v6-u-display-flex',
+                'pf-v6-u-flex-direction-column',
+              )}
+            >
+              <AppRoutes />
+            </div>
           </QueryClientProvider>
         </NotificationContextProvider>
       </BrowserStorageContextProvider>
