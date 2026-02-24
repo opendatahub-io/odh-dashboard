@@ -26,9 +26,9 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/open-data-hub-tenant/poc-odh-mod-arch-autorag:{{revision}}
   - name: dockerfile
-    value: Dockerfile.workspace
+    value: packages/autorag/Dockerfile.workspace
   - name: path-context
-    value: packages/autorag
+    value: .
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
