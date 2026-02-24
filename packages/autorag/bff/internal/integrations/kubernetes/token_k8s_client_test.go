@@ -113,7 +113,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.False(t, canList)
-		assert.Contains(t, err.Error(), "context canceled")
+		assert.Contains(t, err.Error(), "failed to verify user permissions")
 	})
 }
 

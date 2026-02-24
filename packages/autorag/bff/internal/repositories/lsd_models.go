@@ -44,10 +44,11 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 
 	// Categorize models based on the type field
 	for _, model := range allModels {
-		if model.Type == "embedding" {
-			embeddingModels = append(embeddingModels, model)
-		} else {
+		switch model.Type {
+		case "llm":
 			llmModels = append(llmModels, model)
+		case "embedding":
+			embeddingModels = append(embeddingModels, model)
 		}
 	}
 
@@ -74,6 +75,14 @@ func parseLlamaStackModel(rawJSON string) (models.LSDModel, error) {
 
 	if native.Identifier == "" {
 		return models.LSDModel{}, fmt.Errorf("LlamaStack model missing required 'identifier' field")
+	}
+
+	if native.ModelType != "llm" && native.ModelType != "embedding" {
+		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q has unsupported model_type %q: must be 'llm' or 'embedding'", native.Identifier, native.ModelType)
+	}
+
+	if native.ProviderID == "" {
+		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q missing required 'provider_id' field", native.Identifier)
 	}
 
 	return models.LSDModel{

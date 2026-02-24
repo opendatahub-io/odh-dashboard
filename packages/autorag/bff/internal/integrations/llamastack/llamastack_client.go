@@ -21,7 +21,10 @@ type LlamaStackClient struct {
 // All OpenAI-compatible endpoints are now served directly under `/v1/`.
 // See: https://github.com/llamastack/llama-stack/releases/tag/v0.4.0
 func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) *LlamaStackClient {
-	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: insecureSkipVerify,
+		MinVersion:         tls.VersionTLS13,
+	}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}

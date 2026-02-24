@@ -105,5 +105,5 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 	}
 
 	// For other unknown errors, wrap as internal error
-	return NewLlamaStackError(ErrCodeInternalError, fmt.Sprintf("unexpected error on operation %s: %s", operation, err.Error()), 0)
+	return NewLlamaStackError(ErrCodeInternalError, fmt.Sprintf("unexpected error on operation %s: %s", operation, err.Error()), http.StatusInternalServerError)
 }

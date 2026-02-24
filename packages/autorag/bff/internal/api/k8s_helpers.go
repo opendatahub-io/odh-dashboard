@@ -18,6 +18,10 @@ func (app *App) handleK8sClientError(w http.ResponseWriter, r *http.Request, err
 			statusCode = app.getDefaultStatusCodeForK8sError(k8sErr.Code)
 		}
 
+		if statusCode >= 500 {
+			app.LogError(r, err)
+		}
+
 		httpError := app.mapK8sErrorToHTTPError(k8sErr, statusCode)
 		app.errorResponse(w, r, httpError)
 		return
@@ -58,10 +62,15 @@ func (app *App) mapK8sErrorToHTTPError(k8sErr *k8s.K8sError, statusCode int) *in
 		message = k8sErr.Message
 	case http.StatusInternalServerError:
 		code = "internal_server_error"
-		message = k8sErr.Message
+		message = "The server encountered a problem and could not process your request"
 	default:
-		code = "k8s_error"
-		message = fmt.Sprintf("Kubernetes error (HTTP %d): %s", statusCode, k8sErr.Message)
+		if statusCode >= 500 {
+			code = "server_error"
+			message = "The server encountered a problem and could not process your request"
+		} else {
+			code = "k8s_error"
+			message = fmt.Sprintf("Kubernetes error (HTTP %d): %s", statusCode, k8sErr.Message)
+		}
 	}
 
 	return &integrations.HTTPError{

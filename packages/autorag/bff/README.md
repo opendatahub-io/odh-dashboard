@@ -100,9 +100,42 @@ GET /api/v1/user
 GET /api/v1/namespaces   (dev / mock mode only)
 ```
 
+### Authentication modes
+
+Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
+
+- **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
+- **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
+
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+#### With `user_token` auth (default)
+
+The server expects an `Authorization: Bearer <token>` header. You can obtain a token from your cluster:
+
+```shell
+# OpenShift
+TOKEN=$(oc whoami -t)
+
+# Kubernetes
+TOKEN=$(kubectl create token default)
+```
+
+Then call the endpoints:
+
+```shell
+curl -i localhost:4000/healthcheck
+curl -i -H "Authorization: Bearer $TOKEN" "localhost:4000/api/v1/user"
+curl -i -H "Authorization: Bearer $TOKEN" "localhost:4000/api/v1/namespaces"   # (dev / mock only)
+```
+
+#### With `internal` auth (simpler for local dev)
+
+If you do not have a bearer token and want to use header-based identity impersonation, opt in to `internal` mode explicitly. When running with the mocked Kubernetes client (`MOCK_K8S_CLIENT=true`), the user `user@example.com` has RBAC allowing all three endpoints.
+
+```shell
+make run MOCK_K8S_CLIENT=true AUTH_METHOD=internal
+```
 
 ```shell
 curl -i localhost:4000/healthcheck
@@ -111,13 +144,6 @@ curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces 
 ```
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
-
-### Authentication modes
-
-Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
-
-- internal: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential.
-- user_token (default): extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview.
 
 ### Overriding token header / prefix
 

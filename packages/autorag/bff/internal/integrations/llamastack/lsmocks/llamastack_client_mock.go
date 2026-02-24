@@ -48,12 +48,17 @@ func createMockModel(identifier, modelType, providerID, providerResourceID strin
 	}
 
 	// Marshal to JSON bytes
-	rawJSONBytes, _ := json.Marshal(nativeModel)
+	rawJSONBytes, err := json.Marshal(nativeModel)
+	if err != nil {
+		panic("lsmocks: failed to marshal mock model: " + err.Error())
+	}
 
 	// Unmarshal into openai.Model to preserve the raw JSON
 	// The SDK will store the original JSON even though the fields don't match the struct
 	var model openai.Model
-	json.Unmarshal(rawJSONBytes, &model)
+	if err := json.Unmarshal(rawJSONBytes, &model); err != nil {
+		panic("lsmocks: failed to unmarshal mock model: " + err.Error())
+	}
 
 	return model
 }

@@ -88,9 +88,9 @@ func wrapK8sSubjectAccessReviewError(err error, namespace string) *K8sError {
 		return NewPermissionDeniedError(namespace, "insufficient permissions to access services in this namespace")
 	}
 
-	// For other errors, wrap as internal error
+	// For other errors, wrap as generic internal error.
 	return NewK8sErrorWithNamespace(ErrCodeInternalError,
-		fmt.Sprintf("failed to verify user permissions: %v", err),
+		"failed to verify user permissions",
 		namespace,
 		500)
 }

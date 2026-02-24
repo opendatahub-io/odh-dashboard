@@ -32,6 +32,7 @@ dev-install-dependencies:
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s and LlamaStack)
+	trap 'exit 0' INT; \
 	cd bff && make run LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true
 
 .PHONY: dev-bff

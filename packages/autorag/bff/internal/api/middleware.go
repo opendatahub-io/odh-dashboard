@@ -189,6 +189,19 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 			logger.Debug("MOCK MODE: creating mock LlamaStack client for namespace", "namespace", namespace)
 			// In mock mode, use empty URL since mock factory ignores it
 			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+		} else if app.config.AuthMethod == config.AuthMethodDisabled {
+			// When auth is disabled, no RequestIdentity is injected into the context.
+			// Service discovery (GetLlamaStackDistributions) requires a k8s client which in turn
+			// requires identity, so it is not available in this mode.
+			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
+			if app.config.LlamaStackURL == "" {
+				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
+				return
+			}
+			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
+				"namespace", namespace,
+				"serviceURL", app.config.LlamaStackURL)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		} else {
 			// Read identity once here — needed by both the env-var and service-discovery paths
 			// for passing the user token to the LlamaStack client.

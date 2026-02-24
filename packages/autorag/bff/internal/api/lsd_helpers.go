@@ -19,6 +19,10 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 			statusCode = app.getDefaultStatusCodeForLlamaStackClientError(llamastackErr.Code)
 		}
 
+		if statusCode >= 500 {
+			app.LogError(r, err)
+		}
+
 		httpError := app.mapLlamaStackClientErrorToHTTPError(llamastackErr, statusCode)
 		app.errorResponse(w, r, httpError)
 		return
@@ -63,16 +67,21 @@ func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStack
 		message = lsErr.Message
 	case http.StatusServiceUnavailable:
 		code = "service_unavailable"
-		message = lsErr.Message
+		message = "The server encountered a problem and could not process your request"
 	case http.StatusBadGateway:
 		code = "bad_gateway"
-		message = lsErr.Message
+		message = "The server encountered a problem and could not process your request"
 	case http.StatusInternalServerError:
 		code = "internal_server_error"
-		message = lsErr.Message
+		message = "The server encountered a problem and could not process your request"
 	default:
-		code = "llamastack_error"
-		message = fmt.Sprintf("LlamaStack client error (HTTP %d): %s", statusCode, lsErr.Message)
+		if statusCode >= 500 {
+			code = "server_error"
+			message = "The server encountered a problem and could not process your request"
+		} else {
+			code = "llamastack_error"
+			message = fmt.Sprintf("LlamaStack client error (HTTP %d): %s", statusCode, lsErr.Message)
+		}
 	}
 
 	return &integrations.HTTPError{
