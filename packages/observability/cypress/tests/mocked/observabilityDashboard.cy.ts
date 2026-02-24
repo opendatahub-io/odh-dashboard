@@ -1,5 +1,6 @@
 import type { DashboardResource } from '@perses-dev/core';
 import { mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
 
 // Minimal test fixtures following the naming pattern from packages/observability/setup
@@ -25,13 +26,22 @@ const mockNonAdminDashboard = createMockPersesDashboard('dashboard-1-model', 'Mo
 type InitInterceptsOptions = {
   dashboards?: DashboardResource[];
   isAdmin?: boolean;
+  monitoringNamespace?: string;
 };
 
-const initIntercepts = ({ dashboards = [], isAdmin = false }: InitInterceptsOptions = {}) => {
+const initIntercepts = ({
+  dashboards = [],
+  isAdmin = false,
+  monitoringNamespace,
+}: InitInterceptsOptions = {}) => {
   // Mock dashboard config with observability feature enabled
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ observabilityDashboard: true }));
 
   cy.interceptOdh('GET /api/status', mockStatus({ isAllowed: true, isAdmin }));
+
+  if (monitoringNamespace) {
+    cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({ monitoringNamespace }));
+  }
 
   // Mock the Perses dashboards API endpoint
   // The actual endpoint is: /perses/api/api/v1/projects/{namespace}/dashboards
@@ -42,10 +52,18 @@ const initIntercepts = ({ dashboards = [], isAdmin = false }: InitInterceptsOpti
 };
 
 describe('Observability Dashboard', () => {
-  it('should show empty state when no dashboards are found', () => {
-    initIntercepts({ dashboards: [], isAdmin: true });
+  it('should show empty state and use the monitoringNamespace from DSCI', () => {
+    const customNamespace = 'custom-monitoring-ns';
+
+    initIntercepts({ dashboards: [], isAdmin: true, monitoringNamespace: customNamespace });
 
     observabilityDashboardPage.visit();
+
+    cy.wait('@getPersesDashboards').then((interception) => {
+      expect(interception.request.url).to.include(
+        `/perses/api/api/v1/projects/${customNamespace}/dashboards`,
+      );
+    });
 
     observabilityDashboardPage.shouldHaveEmptyState();
   });

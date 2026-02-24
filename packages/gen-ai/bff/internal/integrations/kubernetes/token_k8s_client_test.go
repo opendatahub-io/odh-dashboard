@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
@@ -235,6 +237,75 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		assert.Error(t, err)
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
+	t.Run("should NOT include RBAC auth when EnableLlamaStackRBAC is false", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create client with RBAC disabled (default)
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{EnableLlamaStackRBAC: false},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		require.NoError(t, err)
+		require.NotEmpty(t, result)
+
+		// Parse and verify auth is NOT set
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+		assert.Nil(t, cfg.Server.Auth, "Auth should be nil when RBAC flag is disabled")
+
+		// Also verify by string content
+		assert.NotContains(t, result, "provider_config:")
+		assert.NotContains(t, result, "access_policy:")
+	})
+
+	t.Run("should include RBAC auth when EnableLlamaStackRBAC is true", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		// Create client with RBAC enabled
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{EnableLlamaStackRBAC: true},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", IsMaaSModel: true},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		require.NoError(t, err)
+		require.NotEmpty(t, result)
+
+		// Parse and verify auth IS set
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+		require.NotNil(t, cfg.Server.Auth, "Auth should be set when RBAC flag is enabled")
+		require.NotNil(t, cfg.Server.Auth.ProviderConfig)
+		assert.Equal(t, "kubernetes", cfg.Server.Auth.ProviderConfig.Type)
+		assert.Len(t, cfg.Server.Auth.AccessPolicy, 2)
+
+		// Verify access policies
+		assert.Contains(t, result, "user with admin in roles")
+		assert.Contains(t, result, "user with system:authenticated in roles")
+	})
+
+	t.Run("default EnvConfig should have RBAC disabled", func(t *testing.T) {
+		// Verify the zero-value of EnvConfig has RBAC disabled
+		var cfg config.EnvConfig
+		assert.False(t, cfg.EnableLlamaStackRBAC, "EnableLlamaStackRBAC should default to false")
 	})
 }
 
