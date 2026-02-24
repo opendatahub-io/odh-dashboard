@@ -4,8 +4,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type { AIModel } from '~/app/types';
-import AIModelsTableRowInfo from '~/app/AIAssets/components/AIModelsTableRowInfo';
+import type { MaaSModel } from '~/odh/extension-points/maas';
+import MaaSModelsTableRowInfo from '~/app/AIAssets/components/MaaSModelsTableRowInfo';
 
 // Mock tracking
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -68,88 +68,96 @@ jest.mock('@patternfly/react-core', () => {
   };
 });
 
-const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
-  model_name: 'test-model',
-  model_id: 'test-model-id-123',
-  serving_runtime: 'kserve',
-  api_protocol: 'v2',
-  version: 'v1',
-  usecase: 'llm',
-  description: 'Test model description',
-  endpoints: [],
-  status: 'Running',
-  display_name: 'Test Model Display Name',
-  sa_token: {
-    name: 'token-name',
-    token_name: 'token',
-    token: 'test-token',
-  },
+const createMockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
+  id: 'test-maas-model-id',
+  object: 'model',
+  created: Date.now(),
+  owned_by: 'test-org',
+  ready: true,
+  url: 'https://maas.example.com/model',
+  display_name: 'Test MaaS Model Display Name',
+  description: 'A test MaaS model for unit testing',
+  usecase: 'Code generation, Text completion',
   ...overrides,
 });
 
-describe('AIModelsTableRowInfo', () => {
+describe('MaaSModelsTableRowInfo', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should render model display name', () => {
-    const model = createMockAIModel({ display_name: 'My Custom Model' });
-    render(<AIModelsTableRowInfo model={model} />);
+    const model = createMockMaaSModel({ display_name: 'My Custom MaaS Model' });
+    render(<MaaSModelsTableRowInfo model={model} />);
 
-    expect(screen.getByText('My Custom Model')).toBeInTheDocument();
+    expect(screen.getByText('My Custom MaaS Model')).toBeInTheDocument();
+  });
+
+  it('should render model ID as fallback when display name is not available', () => {
+    const model = createMockMaaSModel({ display_name: undefined, id: 'fallback-model-id' });
+    render(<MaaSModelsTableRowInfo model={model} />);
+
+    expect(screen.getByText('fallback-model-id')).toBeInTheDocument();
   });
 
   it('should render info icon button', () => {
-    const model = createMockAIModel();
-    render(<AIModelsTableRowInfo model={model} />);
+    const model = createMockMaaSModel();
+    render(<MaaSModelsTableRowInfo model={model} />);
 
-    const infoButton = screen.getByTestId('model-id-icon-button');
+    const infoButton = screen.getByTestId('maas-model-id-icon-button');
     expect(infoButton).toBeInTheDocument();
+  });
+
+  it('should render MaaS label', () => {
+    const model = createMockMaaSModel();
+    render(<MaaSModelsTableRowInfo model={model} />);
+
+    expect(screen.getByText('MaaS')).toBeInTheDocument();
   });
 
   it('should show popover with model ID when info button is clicked', async () => {
     const user = userEvent.setup();
-    const model = createMockAIModel({ model_id: 'unique-model-id' });
-    render(<AIModelsTableRowInfo model={model} />);
+    const model = createMockMaaSModel({ id: 'unique-maas-model-id' });
+    render(<MaaSModelsTableRowInfo model={model} />);
 
-    const infoButton = screen.getByTestId('model-id-icon-button');
+    const infoButton = screen.getByTestId('maas-model-id-icon-button');
     await user.click(infoButton);
 
     expect(screen.getByText(/The model ID is a unique identifier required/i)).toBeInTheDocument();
     expect(screen.getByText('Model ID')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('unique-model-id')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('unique-maas-model-id')).toBeInTheDocument();
   });
 
   it('should render ClipboardCopy component with model ID', async () => {
     const user = userEvent.setup();
-    const model = createMockAIModel({ model_id: 'test-model-id-456' });
-    render(<AIModelsTableRowInfo model={model} />);
+    const model = createMockMaaSModel({ id: 'test-maas-model-id-456' });
+    render(<MaaSModelsTableRowInfo model={model} />);
 
-    const infoButton = screen.getByTestId('model-id-icon-button');
+    const infoButton = screen.getByTestId('maas-model-id-icon-button');
     await user.click(infoButton);
 
-    const clipboardInput = screen.getByDisplayValue('test-model-id-456');
+    const clipboardInput = screen.getByDisplayValue('test-maas-model-id-456');
     expect(clipboardInput).toBeInTheDocument();
   });
 
   it('should render model info with correct structure', () => {
-    const model = createMockAIModel({
-      display_name: 'Test Display',
-      model_id: 'test-id',
+    const model = createMockMaaSModel({
+      display_name: 'Test MaaS Display',
+      id: 'test-maas-id',
     });
-    render(<AIModelsTableRowInfo model={model} />);
+    render(<MaaSModelsTableRowInfo model={model} />);
 
-    // Check that display name and button are in the same container
-    expect(screen.getByText('Test Display')).toBeInTheDocument();
-    expect(screen.getByTestId('model-id-icon-button')).toBeInTheDocument();
+    expect(screen.getByText('Test MaaS Display')).toBeInTheDocument();
+    expect(screen.getByTestId('maas-model-id-icon-button')).toBeInTheDocument();
+    expect(screen.getByText('MaaS')).toBeInTheDocument();
   });
 
   it('should show explanation text in popover', async () => {
     const user = userEvent.setup();
-    const model = createMockAIModel();
-    render(<AIModelsTableRowInfo model={model} />);
+    const model = createMockMaaSModel();
+    render(<MaaSModelsTableRowInfo model={model} />);
 
-    const infoButton = screen.getByTestId('model-id-icon-button');
+    const infoButton = screen.getByTestId('maas-model-id-icon-button');
     await user.click(infoButton);
 
     expect(
@@ -160,21 +168,21 @@ describe('AIModelsTableRowInfo', () => {
   describe('Event Tracking', () => {
     it('should fire Model_ID_Copied event when model ID is copied', async () => {
       const user = userEvent.setup();
-      const model = createMockAIModel({ model_id: 'test-copy-id' });
-      render(<AIModelsTableRowInfo model={model} />);
+      const model = createMockMaaSModel({ id: 'test-maas-copy-id' });
+      render(<MaaSModelsTableRowInfo model={model} />);
 
-      // Open the popover first
-      const infoButton = screen.getByTestId('model-id-icon-button');
+      const infoButton = screen.getByTestId('maas-model-id-icon-button');
       await user.click(infoButton);
 
-      // Clear the initial tracking event
       jest.clearAllMocks();
 
-      // Find and click the copy button
       const copyButton = screen.getByRole('button', { name: /copy model id/i });
       await user.click(copyButton);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Model Id Copied', {});
+      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Model Id Copied', {
+        assetType: 'maas_model',
+        assetId: 'test-maas-copy-id',
+      });
     });
   });
 
@@ -191,16 +199,16 @@ describe('AIModelsTableRowInfo', () => {
 
     it('should copy model ID to clipboard when copy button is clicked', async () => {
       const user = userEvent.setup();
-      const model = createMockAIModel({ model_id: 'unique-model-id-789' });
-      render(<AIModelsTableRowInfo model={model} />);
+      const model = createMockMaaSModel({ id: 'unique-maas-model-id-789' });
+      render(<MaaSModelsTableRowInfo model={model} />);
 
-      const infoButton = screen.getByTestId('model-id-icon-button');
+      const infoButton = screen.getByTestId('maas-model-id-icon-button');
       await user.click(infoButton);
 
-      const copyButton = screen.getByTestId('clipboard-copy-model-id-copy-button');
+      const copyButton = screen.getByTestId('clipboard-copy-maas-model-id-copy-button');
       await user.click(copyButton);
 
-      expect(writeTextSpy).toHaveBeenCalledWith('unique-model-id-789');
+      expect(writeTextSpy).toHaveBeenCalledWith('unique-maas-model-id-789');
     });
   });
 });
