@@ -3,6 +3,16 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromptTabContent from '~/app/Chatbot/components/settingsPanelTabs/PromptTabContent';
 
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  useFeatureFlag: jest.fn(() => [false]),
+}));
+
+jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
+  usePlaygroundStore: jest.fn(() => ({
+    setIsPromptManagementModalOpen: jest.fn(),
+  })),
+}));
+
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
   default: jest.fn(() => false),
@@ -38,10 +48,10 @@ describe('PromptTabContent', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the System instructions title', () => {
+  it('renders the Prompt title', () => {
     render(<PromptTabContent {...defaultProps} />);
 
-    expect(screen.getByRole('heading', { name: 'System instructions' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Prompt' })).toBeInTheDocument();
   });
 
   it('renders SystemInstructionFormGroup with correct props', () => {
