@@ -1,7 +1,7 @@
 import React from 'react';
 
-function AutoRagResults(): React.JSX.Element {
+function AutoragResults(): React.JSX.Element {
   return <div>results</div>;
 }
 
-export default AutoRagResults;
+export default AutoragResults;
