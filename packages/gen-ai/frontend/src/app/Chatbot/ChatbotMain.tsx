@@ -87,12 +87,11 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   // Check if there are any models in the project or if no model is selected
   const hasNoModels = models.length === 0;
-  const hasNoSelectedModel = models.length > 0 && !selectedModel;
   const isSelectedModelDisabled = selectedModel
     ? !isLlamaModelEnabled(selectedModel, aiModels, maasModels, bffConfig?.isCustomLSD ?? false)
     : false;
 
-  const hasNoModelsOrNoSelectedModel = hasNoModels || hasNoSelectedModel || isSelectedModelDisabled;
+  const hasNoModelsOrNoSelectedModel = hasNoModels || isSelectedModelDisabled;
 
   return (
     <>
