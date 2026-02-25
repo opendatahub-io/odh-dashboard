@@ -85,7 +85,7 @@ data:
         ]
       },
       {
-        "name": "mlflow",
+        "name": "mlflowEmbedded",
         "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
         "authorize": true,
         "tls": true,
@@ -93,6 +93,27 @@ data:
             "name": "mlflow",
             "namespace": "opendatahub",
             "port": 8443
+        }
+      },
+      {
+        "name": "mlflow",
+        "remoteEntry": "/remoteEntry.js",
+        "authorize": true,
+        "tls": false,
+        "proxy": [
+          {
+            "path": "/mlflow/api",
+            "pathRewrite": "/api"
+          }
+        ],
+        "local": {
+          "host": "localhost",
+          "port": 8080
+        },
+        "service": {
+          "name": "odh-dashboard",
+          "namespace": "opendatahub",
+          "port": 8343
         }
       }
     ]
