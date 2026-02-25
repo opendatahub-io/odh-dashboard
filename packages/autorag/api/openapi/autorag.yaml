@@ -73,6 +73,67 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/secrets:
+    summary: Path used to retrieve and filter secrets from a namespace.
+    description: >-
+      The REST endpoint/path used to list and filter Kubernetes secrets based on type and namespace.
+      Supports pagination via limit and offset parameters.
+    get:
+      tags:
+        - K8SOperation
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          description: The namespace name to query secrets from
+          schema:
+            type: string
+          example: default
+        - name: type
+          in: query
+          required: false
+          description: >-
+            Secret type filter: 'storage' for storage secrets (e.g., S3),
+            'lls' for LLS secrets, or omit for all secrets
+          schema:
+            type: string
+            enum:
+              - storage
+              - lls
+          example: storage
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of secrets to return (default all)
+          schema:
+            type: integer
+            minimum: 0
+          example: 10
+        - name: offset
+          in: query
+          required: false
+          description: Number of secrets to skip for pagination (default 0)
+          schema:
+            type: integer
+            minimum: 0
+          example: 0
+      responses:
+        "200":
+          $ref: "#/components/responses/SecretsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSecrets
+      summary: Get filtered secrets
+      description: >-
+        Retrieves secrets from a specified namespace with optional filtering by type.
+        Supports pagination via limit and offset parameters. Type filtering includes:
+        - 'storage': Filters for storage secrets (e.g., S3 secrets with required keys)
+        - 'lls': Returns LLS secrets (placeholder for future implementation)
+        - No type: Returns all secrets in the namespace
 components:
   schemas:
     Config:
@@ -87,6 +148,28 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+    SecretListItem:
+      description: A Kubernetes secret with its UUID, name, and type classification
+      required:
+        - uuid
+        - name
+        - type
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: The Kubernetes UID of the secret
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        name:
+          type: string
+          description: The name of the secret
+          example: aws-secret-1
+        type:
+          type: string
+          description: >-
+            The storage type that the secret matches (e.g., 's3' for S3 storage secrets).
+            Empty string if the secret doesn't match any recognized storage type.
+          example: s3
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -202,6 +285,46 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+    SecretsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                description: List of filtered secrets
+                items:
+                  $ref: "#/components/schemas/SecretListItem"
+          examples:
+            storageSecrets:
+              summary: Example response with storage (S3) secrets
+              value:
+                data:
+                  - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: aws-secret-1
+                    type: s3
+                  - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
+                    name: aws-secret-2
+                    type: s3
+            allSecrets:
+              summary: Example response with all secrets (no type filter)
+              value:
+                data:
+                  - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: s3-secret
+                    type: s3
+                  - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
+                    name: other-secret
+                    type: ""
+            emptyList:
+              summary: Example response with no matching secrets
+              value:
+                data: []
+      description: A response containing a list of filtered secret items
     ConflictResponse:
       content:
         application/json:
