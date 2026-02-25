@@ -66,7 +66,7 @@ describe('SecretSelector', () => {
       expect(toggle).toHaveTextContent('Select a secret');
     });
 
-    it('should display custom label', () => {
+    it('should render label above the field when label prop is provided', () => {
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
       render(
@@ -79,7 +79,76 @@ describe('SecretSelector', () => {
         />,
       );
 
-      expect(screen.getByTestId('test-selector')).toHaveTextContent('Choose AWS Secret');
+      // Label should be rendered above the field
+      const label = screen.getByText('Choose AWS Secret');
+      expect(label).toBeInTheDocument();
+
+      // The selector toggle itself should show the placeholder, not the label
+      const toggle = screen.getByTestId('test-selector');
+      expect(toggle).toHaveTextContent('Select a secret');
+      expect(toggle).not.toHaveTextContent('Choose AWS Secret');
+    });
+
+    it('should render without Form wrapper when label is not provided', () => {
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Should render TypeaheadSelect without FormGroup wrapper
+      const toggle = screen.getByTestId('test-selector');
+      expect(toggle).toBeInTheDocument();
+      expect(toggle).toHaveTextContent('Select a secret');
+
+      // No label element should be present
+      expect(screen.queryByRole('label')).not.toBeInTheDocument();
+    });
+
+    it('should render custom placeholder in the field', () => {
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          placeholder="Pick your secret"
+          dataTestId="test-selector"
+        />,
+      );
+
+      const toggle = screen.getByTestId('test-selector');
+      expect(toggle).toHaveTextContent('Pick your secret');
+    });
+
+    it('should render both label and custom placeholder correctly', () => {
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          label="Secret Configuration"
+          placeholder="Choose a secret from the list"
+          dataTestId="test-selector"
+        />,
+      );
+
+      // Label should be above the field
+      const label = screen.getByText('Secret Configuration');
+      expect(label).toBeInTheDocument();
+
+      // Placeholder should be in the toggle
+      const toggle = screen.getByTestId('test-selector');
+      expect(toggle).toHaveTextContent('Choose a secret from the list');
+      expect(toggle).not.toHaveTextContent('Secret Configuration');
     });
 
     it('should show selected secret name', () => {
@@ -196,23 +265,6 @@ describe('SecretSelector', () => {
 
       // Verify useFetchState was called (callback will include type parameter)
       expect(mockUseFetchState).toHaveBeenCalled();
-    });
-
-    it('should apply isFullWidth prop', () => {
-      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
-
-      render(
-        <SecretSelector
-          namespace={defaultNamespace}
-          value={undefined}
-          onChange={mockOnChange}
-          isFullWidth
-          dataTestId="test-selector"
-        />,
-      );
-
-      const toggle = screen.getByTestId('test-selector');
-      expect(toggle).toHaveClass('pf-m-full-width');
     });
   });
 

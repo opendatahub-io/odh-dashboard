@@ -5,6 +5,8 @@ import {
   HelperTextItem,
   Skeleton,
   SelectOptionProps,
+  Form,
+  FormGroup,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
@@ -27,14 +29,13 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
 
 type SecretSelectorProps = Omit<
   TypeaheadSelectProps,
-  'selectOptions' | 'selected' | 'onSelect' | 'placeholder' | 'toggleWidth' | 'onChange'
+  'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
   type?: string;
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   label?: string;
-  isFullWidth?: boolean;
 };
 
 const SecretSelector: React.FC<SecretSelectorProps> = ({
@@ -42,11 +43,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   type,
   value,
   onChange,
-  label = 'Select a secret',
+  label = '',
+  placeholder = 'Select a secret',
   isDisabled = false,
   isRequired = false,
   previewDescription = false,
-  isFullWidth = false,
+  toggleWidth = '100%',
   dataTestId = 'secret-selector',
   ...props
 }) => {
@@ -74,21 +76,21 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return <Skeleton style={{ minWidth: 100 }} />;
+    return <Skeleton width={toggleWidth} />;
   }
 
-  return (
+  const typeahead = (
     <>
       <TypeaheadSelect
         {...props}
-        placeholder={label}
+        placeholder={placeholder}
         selectOptions={options}
         selected={value}
         dataTestId={dataTestId}
         isDisabled={isSelectDisabled}
         isRequired={isRequired}
         previewDescription={previewDescription}
-        toggleWidth={isFullWidth ? '100%' : undefined}
+        toggleWidth={toggleWidth}
         toggleProps={{
           status: hasError ? 'danger' : undefined,
         }}
@@ -118,6 +120,16 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         </FormHelperText>
       )}
     </>
+  );
+
+  return label ? (
+    <Form>
+      <FormGroup label={label} isRequired={isRequired} fieldId="secret-selector-form">
+        {typeahead}
+      </FormGroup>
+    </Form>
+  ) : (
+    typeahead
   );
 };
 
