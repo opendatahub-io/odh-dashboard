@@ -10,6 +10,9 @@ const (
 	// The following keys are used to store the user access token in the context
 	RequestIdentityKey contextKey = "requestIdentityKey"
 
+	// EvalHubClientKey stores the eval-hub HTTP client in the request context
+	EvalHubClientKey contextKey = "evalHubClientKey"
+
 	// For config.AuthMethodInternal
 	// Kubeflow authorization operates using custom authentication headers:
 	// Note: The functionality for `kubeflow-groups` is not fully operational at Kubeflow platform at this time

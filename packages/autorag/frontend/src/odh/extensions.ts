@@ -1,32 +1,30 @@
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
+  AreaExtension,
   NavExtension,
   RouteExtension,
-  AreaExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const AUTORAG = 'autorag';
-// AutoRAG requires both genAiStudio AND autoRag feature flags.
-// This ensures AutoRAG only appears when nested under Gen AI Studio section.
-const GEN_AI_STUDIO = 'plugin-gen-ai';
+const PLUGIN_AUTORAG = 'plugin-autorag';
+const PLUGIN_GEN_AI = 'plugin-gen-ai';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: AUTORAG,
+      id: PLUGIN_AUTORAG,
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
-      featureFlags: ['autoRag'],
-      reliantAreas: [GEN_AI_STUDIO], // Requires Gen AI Studio to be enabled
+      reliantAreas: [PLUGIN_GEN_AI], // Requires Gen AI Studio to be enabled
+      featureFlags: ['autorag'],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [AUTORAG], // AUTORAG area depends on GEN_AI_STUDIO via reliantAreas
+      required: [PLUGIN_AUTORAG], // PLUGIN_AUTORAG area depends on PLUGIN_GEN_AI via reliantAreas
     },
     properties: {
-      id: 'autorag-view',
+      id: 'autorag',
       title: 'AutoRAG',
       href: '/gen-ai-studio/autorag',
       section: 'gen-ai-studio',
@@ -37,11 +35,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [AUTORAG], // Route only available when AutoRAG feature flag is enabled
+      required: [PLUGIN_AUTORAG],
     },
     properties: {
       path: '/gen-ai-studio/autorag/*',
-      component: () => import('./AutoRagWrapper'),
+      component: () => import('./AppWrapper'),
     },
   },
 ];

@@ -12,6 +12,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	helper "github.com/opendatahub-io/eval-hub/bff/internal/helpers"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -81,6 +83,44 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// AttachEvalHubClient middleware creates an EvalHub client and attaches it to context.
+// In mock mode, creates a mock client. In real mode, uses EvalHubURL env var.
+func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var client evalhub.EvalHubClientInterface
+
+		if app.config.MockEvalHubClient {
+			logger.Debug("MOCK MODE: creating mock EvalHub client")
+			client = app.evalHubClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs, "/api/v1")
+		} else {
+			if app.config.EvalHubURL == "" {
+				app.serverErrorResponse(w, r, fmt.Errorf("eval-hub URL is not configured"))
+				return
+			}
+
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			client = app.evalHubClientFactory.CreateClient(
+				app.config.EvalHubURL,
+				identity.Token,
+				app.config.InsecureSkipVerify,
+				app.rootCAs,
+				"/api/v1",
+			)
+		}
+
+		ctx = context.WithValue(ctx, constants.EvalHubClientKey, client)
+		next(w, r.WithContext(ctx), ps)
+	}
 }
 
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {

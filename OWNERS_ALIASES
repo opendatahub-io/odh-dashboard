@@ -223,3 +223,15 @@ aliases:
     - ikeola13
     - pnaik1
     - ederign
+
+  # MLflow
+  mlflow-approvers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova
+  mlflow-reviewers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova

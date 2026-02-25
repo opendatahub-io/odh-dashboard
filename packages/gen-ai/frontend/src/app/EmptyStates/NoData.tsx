@@ -7,6 +7,7 @@ type ModelsEmptyStateProps = {
   description: React.ReactNode;
   actionButtonText?: React.ReactNode;
   handleActionButtonClick?: () => void;
+  'data-testid'?: string;
 };
 
 const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
@@ -14,13 +15,14 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   description,
   actionButtonText,
   handleActionButtonClick,
+  'data-testid': dataTestId = 'empty-state',
 }) => (
   <EmptyState
     titleText={title}
     icon={() => <img src={emptyStateImage} alt="Chat Playground Infrastructure" />}
     variant="lg"
     isFullHeight
-    data-testid="empty-state"
+    data-testid={dataTestId}
   >
     <EmptyStateBody data-testid="empty-state-message">
       {description}

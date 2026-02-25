@@ -20,6 +20,7 @@ filters:
       - autorag-approvers
       - automl-approvers
       - eval-hub-approvers
+      - mlflow-approvers
 
   # Catchall
   '.*':
@@ -187,3 +188,12 @@ filters:
       - eval-hub-reviewers
     labels:
       - 'area/eval-hub'
+
+  # MLflow
+  'packages/mlflow.*/.*':
+    approvers:
+      - mlflow-approvers
+    reviewers:
+      - mlflow-reviewers
+    labels:
+      - 'area/mlflow'

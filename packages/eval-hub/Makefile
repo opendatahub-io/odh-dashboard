@@ -33,7 +33,7 @@ dev-install-dependencies:
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
 
 .PHONY: dev-frontend
 dev-frontend:
@@ -56,11 +56,22 @@ dev-frontend-kubeflow:
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false EVAL_HUB_URL=$${EVAL_HUB_URL} DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 
 
 ########### Dev Federated ###########
+.PHONY: dev-portforward
+dev-portforward: ## Start port-forwarding for EvalHub service
+	@echo "Starting port-forward for EvalHub service..."
+	@oc port-forward -n ${EVAL_HUB_NAMESPACE} svc/${EVAL_HUB_SVC_NAME} ${EVAL_HUB_LOCAL_PORT}:${EVAL_HUB_SVC_PORT} &
+	@echo "Port-forwarding started in background!"
+
 .PHONY: dev-start-federated
-dev-start-federated:
+dev-start-federated: dev-portforward ## Start frontend, bff, and port-forwarding
+	@sleep 2
+	make -j 2 dev-bff-federated dev-frontend-federated
+
+.PHONY: dev-start-federated-no-portforward
+dev-start-federated-no-portforward: ## Start frontend and bff without port-forwarding
 	@trap 'exit 0' INT; \
 	make -j 2 dev-bff-federated dev-frontend-federated
 
@@ -70,7 +81,7 @@ dev-frontend-federated:
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false EVAL_HUB_URL=$${EVAL_HUB_URL} DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 
