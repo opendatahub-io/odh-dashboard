@@ -66,6 +66,14 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
+      it('should handle lls type filter with pagination', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default&type=lls&limit=5');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
       it('should validate SecretListItem schema structure', async () => {
         const result = await apiClient.get('/api/v1/secrets?resource=default');
         expect(result).toMatchContract(apiSchema, {

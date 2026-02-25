@@ -58,21 +58,23 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   const [secrets, loaded, error] = useFetchState<SecretListItem[]>(callback, []);
-
-  const hasSecrets = secrets.length > 0;
+  // Memoize to prevent new array reference on every render
+  const secretsList = React.useMemo(() => secrets, [secrets]);
+  const hasSecrets = secretsList.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;
+  const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
-      secrets.map((secret) => ({
+      secretsList.map((secret) => ({
         content: secret.name,
         value: secret.uuid,
         isSelected: secret.uuid === value,
-        description: `Type: ${secret.type}`,
+        description: secret.type ? `Type: ${secret.type}` : '',
       })),
-    [secrets, value],
+    [secretsList, value],
   );
 
   if (isLoading) {
@@ -102,7 +104,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           selection: string | number,
         ) => {
           const uuid = String(selection);
-          const secret = secrets.find((s) => s.uuid === uuid);
+          const secret = secretsList.find((s) => s.uuid === uuid);
           if (secret) {
             onChange({ uuid: secret.uuid, name: secret.name });
           } else {
@@ -110,11 +112,16 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           }
         }}
       />
-      {hasError && (
+      {(hasError || hasNoSecrets) && (
         <FormHelperText>
           <HelperText>
-            <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-              Secrets could not be fetched
+            <HelperTextItem
+              variant={hasError ? 'error' : 'indeterminate'}
+              icon={hasError ? <ExclamationCircleIcon /> : undefined}
+            >
+              {hasError
+                ? 'Secrets could not be fetched'
+                : 'There are no secrets in the selected namespace'}
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
