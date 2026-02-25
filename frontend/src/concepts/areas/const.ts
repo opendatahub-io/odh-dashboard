@@ -5,7 +5,7 @@ export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
   automl: false,
-  autoRag: false,
+  autorag: false,
   modelAsService: false,
   maasApiKeys: false,
   mlflow: false,

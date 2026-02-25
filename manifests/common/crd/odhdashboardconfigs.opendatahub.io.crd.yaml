@@ -105,6 +105,8 @@ spec:
                       type: boolean
                     genAiStudio:
                       type: boolean
+                    autorag:
+                      type: boolean
                     modelAsService:
                       type: boolean
                     mlflow:
