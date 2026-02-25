@@ -22,7 +22,7 @@ const extensions: (NavExtension | RouteExtension)[] = [
     },
     properties: {
       path: '/develop-train/eval-hub/*',
-      component: () => import('./ModArchWrapper'),
+      component: () => import('./EvalHubWrapper'),
     },
   },
 ];
