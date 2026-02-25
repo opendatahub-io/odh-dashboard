@@ -387,7 +387,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Settings panel header label
   const settingsHeaderLabel = isCompareMode
-    ? `Configure ${getConfigDisplayLabel(configIds.indexOf(activePaneConfigId))}`
+    ? `Configure - ${configIds.indexOf(activePaneConfigId) + 1}`
     : 'Configure';
 
   // Render chatbot content for a config
