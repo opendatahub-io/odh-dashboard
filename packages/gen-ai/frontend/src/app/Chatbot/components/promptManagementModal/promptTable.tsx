@@ -18,35 +18,50 @@ import {
   TimestampFormat,
   Spinner,
   LabelGroup,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
 } from '@patternfly/react-core';
+import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
+import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
 
 type PromptTableProps = {
-  rows: MLflowPrompt[];
   onClickLoad: (prompt: MLflowPromptVersion) => void;
   onClose: () => void;
 };
 
-export default function PromptTable({
-  rows,
-  onClickLoad,
-  onClose,
-}: PromptTableProps): React.ReactNode {
-  const { api, apiAvailable } = useGenAiAPI();
+export default function PromptTable({ onClickLoad, onClose }: PromptTableProps): React.ReactNode {
+  const { prompts: rows, isLoading: isLoadingList, error: listError } = usePromptsList();
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [page] = useState(1);
   const [perPage] = useState(10);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
-  const [selectedPromptVersions, setSelectedPromptVersions] = useState<MLflowPromptVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  const {
+    versions: selectedPromptVersions,
+    isLoading: isLoadingDetails,
+    error,
+  } = usePromptVersions(selectedRow?.name ?? null);
+
+  useEffect(() => {
+    if (selectedPromptVersions.length > 0 && selectedVersion === null) {
+      setSelectedVersion(selectedPromptVersions[0].version);
+    }
+  }, [selectedPromptVersions, selectedVersion]);
+
+  useEffect(() => {
+    if (error || listError) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch prompts:', error ?? listError);
+    }
+  }, [error, listError]);
 
   function handleClearSelectedRow() {
     setSelectedRow(null);
-    setSelectedPromptVersions([]);
     setSelectedVersion(null);
   }
 
@@ -108,78 +123,36 @@ export default function PromptTable({
     );
   }
 
-  const renderPagination = (variant: PaginationVariant | 'bottom' | 'top', isCompact: boolean) => (
-    <Pagination
-      isStatic
-      isCompact={isCompact}
-      itemCount={rows.length}
-      page={page}
-      perPage={perPage}
-      // onSetPage={handleSetPage}
-      // onPerPageSelect={handlePerPageSelect}
-      variant={variant}
-      titles={{
-        paginationAriaLabel: `${variant} pagination`,
-      }}
-      style={{ backgroundColor: 'inherit' }}
-    />
-  );
+  function renderPagination(variant: PaginationVariant | 'bottom' | 'top', isCompact: boolean) {
+    return (
+      <Pagination
+        isStatic
+        isCompact={isCompact}
+        itemCount={rows.length}
+        page={page}
+        perPage={perPage}
+        // onSetPage={handleSetPage}
+        // onPerPageSelect={handlePerPageSelect}
+        variant={variant}
+        titles={{
+          paginationAriaLabel: `${variant} pagination`,
+        }}
+        style={{ backgroundColor: 'inherit' }}
+      />
+    );
+  }
 
   const columns = selectedVersion
     ? ['Name', 'Version']
     : ['Name', 'Version', 'Last Modified', 'Tags'];
 
-  const handleRowClick = (row: MLflowPrompt) => {
-    setSelectedRow(row);
-  };
-
-  useEffect(() => {
-    if (!selectedRow || !apiAvailable) {
-      setSelectedPromptVersions([]);
+  function handleRowClick(row: MLflowPrompt) {
+    if (selectedRow?.name !== row.name) {
       setSelectedVersion(null);
-      return;
     }
+    setSelectedRow(row);
+  }
 
-    let cancelled = false;
-    setIsLoadingDetails(true);
-
-    api
-      .listMLflowPromptVersions({ name: selectedRow.name })
-      .then((versionsResponse) => {
-        if (cancelled) {
-          return [];
-        }
-        return Promise.all(
-          versionsResponse.versions.map((v) =>
-            api.getMLflowPrompt({ name: selectedRow.name, version: v.version }),
-          ),
-        );
-      })
-      .then((versions) => {
-        if (!cancelled && versions.length > 0) {
-          const sorted = versions.toSorted((a, b) => b.version - a.version);
-          setSelectedPromptVersions(sorted);
-          setSelectedVersion(sorted[0].version);
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          // eslint-disable-next-line no-console
-          console.error('Failed to fetch prompt versions:', error);
-          setSelectedPromptVersions([]);
-          setSelectedVersion(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoadingDetails(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedRow, api, apiAvailable]);
   const tableToolbar = (
     <Toolbar id="pagination-toolbar">
       <ToolbarContent>
@@ -214,6 +187,40 @@ export default function PromptTable({
       </ToolbarContent>
     </Toolbar>
   );
+
+  if (isLoadingList) {
+    return (
+      <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ minHeight: '400px' }}>
+        <Spinner aria-label="Loading prompts" />
+      </Flex>
+    );
+  }
+
+  if (listError) {
+    return (
+      <EmptyState
+        titleText="Unable to load prompts"
+        icon={ExclamationCircleIcon}
+        headingLevel="h4"
+        variant={EmptyStateVariant.sm}
+      >
+        <EmptyStateBody>{listError.message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        titleText="No prompts found"
+        icon={SearchIcon}
+        headingLevel="h4"
+        variant={EmptyStateVariant.sm}
+      >
+        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+      </EmptyState>
+    );
+  }
 
   return (
     <>
