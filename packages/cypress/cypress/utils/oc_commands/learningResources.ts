@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
@@ -26,7 +27,8 @@ export const getOdhDocuments = (
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      cy.log(`Failed to get ODH documents: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`Failed to get ODH documents: ${maskedStderr}`);
       return [];
     }
     const jsonResponse = JSON.parse(result.stdout);
@@ -47,7 +49,8 @@ export const getOdhQuickstarts = (
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      cy.log(`Failed to get ODH quickstarts: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`Failed to get ODH quickstarts: ${maskedStderr}`);
       return [];
     }
     const jsonResponse = JSON.parse(result.stdout);
@@ -70,7 +73,8 @@ export const getOdhApplications = (
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.code !== 0) {
-      cy.log(`Failed to get ODH applications: ${result.stderr}`);
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`Failed to get ODH applications: ${maskedStderr}`);
       return [];
     }
     const jsonResponse = JSON.parse(result.stdout);

@@ -11,8 +11,8 @@ import {
 } from '@patternfly/react-core';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { MaaSModel } from '~/odh/extension-points/maas';
+import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type MaaSModelsTableRowInfoProps = {
   model: MaaSModel;
@@ -45,12 +45,12 @@ const MaaSModelsTableRowInfo: React.FC<MaaSModelsTableRowInfoProps> = ({ model }
                 hoverTip="Copy model ID"
                 clickTip="Model ID copied"
                 aria-label="Copy model ID"
-                onCopy={() => {
-                  fireMiscTrackingEvent('Available Endpoints Model Id Copied', {
+                onCopy={() =>
+                  copyToClipboardWithTracking(model.id, 'Available Endpoints Model Id Copied', {
                     assetType: 'maas_model',
                     assetId: model.id,
-                  });
-                }}
+                  })
+                }
               >
                 {model.id}
               </ClipboardCopy>

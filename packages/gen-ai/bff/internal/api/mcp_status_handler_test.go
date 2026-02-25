@@ -43,6 +43,7 @@ var _ = Describe("MCPStatusHandler", func() {
 			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 			kubernetesClientFactory: mockK8sFactory,
 			mcpClientFactory:        mockMCPFactory,
+			dashboardNamespace:      "opendatahub",
 		}
 	})
 

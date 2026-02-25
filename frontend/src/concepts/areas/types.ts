@@ -89,7 +89,7 @@ export enum SupportedArea {
   MODEL_TRAINING = 'model-training',
 
   /* MLflow */
-  MLFLOW = 'mlflow-application',
+  MLFLOW = 'mlflow',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',

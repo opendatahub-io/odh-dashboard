@@ -31,6 +31,43 @@ jest.mock('mod-arch-shared', () => ({
   ),
 }));
 
+// Mock ClipboardCopy to trigger onCopy callback
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    ClipboardCopy: ({
+      children,
+      onCopy,
+      'data-testid': dataTestId,
+      ...props
+    }: {
+      children: string;
+      onCopy?: (event: React.ClipboardEvent<HTMLDivElement>, text?: React.ReactNode) => void;
+      'data-testid'?: string;
+      [key: string]: unknown;
+    }) => {
+      const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (onCopy) {
+          onCopy(e as unknown as React.ClipboardEvent<HTMLDivElement>, children);
+        }
+      };
+      return (
+        <div data-testid={dataTestId}>
+          <input readOnly value={children} />
+          <button
+            aria-label={(props['aria-label'] as string) || 'Copy to clipboard'}
+            onClick={handleClick}
+            data-testid={dataTestId ? `${dataTestId}-copy-button` : undefined}
+          >
+            Copy
+          </button>
+        </div>
+      );
+    },
+  };
+});
+
 const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   model_name: 'test-model',
   model_id: 'test-model-id-123',
@@ -138,6 +175,32 @@ describe('AIModelsTableRowInfo', () => {
       await user.click(copyButton);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Model Id Copied', {});
+    });
+  });
+
+  describe('Clipboard functionality', () => {
+    let writeTextSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      writeTextSpy = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      writeTextSpy.mockRestore();
+    });
+
+    it('should copy model ID to clipboard when copy button is clicked', async () => {
+      const user = userEvent.setup();
+      const model = createMockAIModel({ model_id: 'unique-model-id-789' });
+      render(<AIModelsTableRowInfo model={model} />);
+
+      const infoButton = screen.getByTestId('model-id-icon-button');
+      await user.click(infoButton);
+
+      const copyButton = screen.getByTestId('clipboard-copy-model-id-copy-button');
+      await user.click(copyButton);
+
+      expect(writeTextSpy).toHaveBeenCalledWith('unique-model-id-789');
     });
   });
 });

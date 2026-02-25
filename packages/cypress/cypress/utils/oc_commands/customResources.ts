@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Create a custom resource in a specified namespace using a YAML file.
@@ -22,8 +23,9 @@ export const createCustomResource = (
 
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       if (result.code !== 0) {
+        const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Error executing command: ${ocCommand}`);
-        cy.log(`Error output: ${result.stderr}`);
+        cy.log(`Error output: ${maskedStderr}`);
       } else {
         cy.log(`Command executed successfully: ${result.stdout}`);
       }

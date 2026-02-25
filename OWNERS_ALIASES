@@ -199,6 +199,20 @@ aliases:
     - MatthewAThompson
     - jkyaw
 
+  # AutoML
+  automl-approvers:
+    - nickmazzi
+    - chrjones-rh
+  automl-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
+    - jkyaw
+  
   # Eval Hub
   eval-hub-approvers:
     - ikeola13
@@ -209,3 +223,15 @@ aliases:
     - ikeola13
     - pnaik1
     - ederign
+
+  # MLflow
+  mlflow-approvers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova
+  mlflow-reviewers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova

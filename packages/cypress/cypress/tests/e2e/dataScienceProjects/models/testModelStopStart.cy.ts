@@ -1,4 +1,3 @@
-import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -22,6 +21,9 @@ import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
+
+// Local copy of the key used by the stop modal preference (avoid restricted import from internal)
+const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.preference';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -71,7 +73,7 @@ describe('A model can be stopped and started', () => {
     },
     () => {
       cy.log('Model Name:', modelName);
-      cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
+      cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation

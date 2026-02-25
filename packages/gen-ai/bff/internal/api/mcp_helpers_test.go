@@ -321,7 +321,7 @@ var _ = Describe("FindMCPServerConfig", func() {
 		}
 
 		for _, tc := range testCases {
-			config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, tc.decodedURL, "test-dashboard-namespace")
+			config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, tc.decodedURL, "opendatahub")
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -588,6 +588,7 @@ var _ = Describe("MCPHelpersIntegration", func() {
 			kubernetesClientFactory: mockK8sFactory,
 			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 			mcpClientFactory:        mockMCPFactory,
+			dashboardNamespace:      "opendatahub",
 		}
 		DeferCleanup(func() {
 			if err := app.Shutdown(); err != nil {
@@ -621,7 +622,7 @@ var _ = Describe("MCPHelpersIntegration", func() {
 		assert.NotNil(t, k8sClient)
 		assert.Equal(t, "FAKE_BEARER_TOKEN", identity.Token)
 
-		config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, decodedURL, "test-dashboard-namespace")
+		config, err := app.findMCPServerConfig(testCtx, k8sClient, identity, decodedURL, "opendatahub")
 		require.NoError(t, err)
 		assert.Equal(t, serverURL, config.URL)
 	})
