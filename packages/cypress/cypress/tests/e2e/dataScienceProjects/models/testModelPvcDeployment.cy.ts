@@ -41,7 +41,7 @@ const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
-describe('Verify a model can be deployed from a PVC', () => {
+describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
 
   retryableBefore(() => {
