@@ -93,7 +93,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     return (
       <Flex
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        style={{ width: '100%', paddingTop: '16px' }}
+        style={{ width: '100%', paddingTop: 'var(--pf-t--global--spacer--md)' }}
       >
         <Flex rowGap={{ default: 'rowGapXs' }}>
           <Button

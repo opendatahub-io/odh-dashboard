@@ -32,7 +32,7 @@ function PromptTabContent({
 
   return (
     <TabContentWrapper title="Prompt" headerActions={buildHeaderActions()}>
-      <Form>
+      <Form style={{ paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
         <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">
           <SystemPromptFormGroup
             systemInstruction={systemInstruction}

@@ -75,7 +75,10 @@ export default function PromptDrawer({
         </DrawerHead>
         <Flex
           direction={{ default: 'column' }}
-          style={{ paddingLeft: '16px', paddingRight: '16px' }}
+          style={{
+            paddingLeft: 'var(--pf-t--global--spacer--md)',
+            paddingRight: 'var(--pf-t--global--spacer--md)',
+          }}
         >
           <SimpleSelect initialOptions={initialOptions} onSelect={onVersionSelect} />
           <div>
