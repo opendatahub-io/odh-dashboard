@@ -41,7 +41,7 @@ export type MockDashboardConfigType = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   automl?: boolean;
-  autoRag?: boolean;
+  autorag?: boolean;
   modelAsService?: boolean;
   maasApiKeys?: boolean;
   trainingJobs?: boolean;
@@ -65,7 +65,7 @@ export const mockDashboardConfig = ({
   disableISVBadges = false,
   genAiStudio = false,
   automl = false,
-  autoRag = false,
+  autorag = false,
   modelAsService = true,
   maasApiKeys = false,
   disableAppLauncher = false,
@@ -243,7 +243,7 @@ export const mockDashboardConfig = ({
       disableKServe,
       genAiStudio,
       automl,
-      autoRag,
+      autorag,
       modelAsService,
       maasApiKeys,
       disableKServeAuth,

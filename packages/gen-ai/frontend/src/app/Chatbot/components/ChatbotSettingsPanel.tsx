@@ -41,7 +41,7 @@ import {
 
 interface ChatbotSettingsPanelProps {
   configId?: string;
-  /** Header label for the drawer (e.g., "Configure model 1" in compare mode) */
+  /** Header label for the drawer (e.g., "Configure - 1" in compare mode) */
   headerLabel?: string;
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;

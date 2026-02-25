@@ -1,0 +1,15 @@
+name: cypress-e2e-test-tier
+description: Cypress E2E Test Tier Description
+groups:
+  - all-users
+  - system:authenticated
+tokenRateLimit:
+  count: 500
+  time: 5
+  unit: hour
+requestRateLimit:
+  count: 5
+  time: 1
+  unit: second
+groupsCount: 3
+limits: 501 tokens/5 minutes4 requests/1 millisecond

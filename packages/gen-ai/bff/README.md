@@ -175,6 +175,20 @@ curl -i -H "Authorization: Bearer $TOKEN" \
      "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
 ```
 
+#### Test External Vector Stores Endpoints
+
+**List External Vector Stores (AI Assets):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/aaa/vectorstores?namespace=default"
+```
+
+**List External Vector Stores (with ConfigMap metadata):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores/external?namespace=default"
+```
+
 #### Test MLflow Endpoints
 
 **List MLflow Prompts:**
@@ -704,7 +718,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 }
 ```
 
-**Mock Data Source:** Hardcoded in `internal/integrations/kubernetes/k8smocks/token_k8s_client_mock.go`
+**Mock Data Source:** Queries envtest via `internal/integrations/kubernetes/k8smocks/token_k8s_client_mock.go`
 
 #### Get LlamaStack Distribution Status (Mock K8s)
 
@@ -811,6 +825,76 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
       "usage_bytes": 0
     }
   ]
+}
+```
+
+#### List External Vector Stores - AI Assets (Mock K8s)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/aaa/vectorstores?namespace=llama-stack"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "name": "pgvector-store",
+      "displayName": "Product Embeddings (PGVector)",
+      "provider_type": "remote::pgvector",
+      "collection": "product_embeddings",
+      "description": "Product catalog embeddings for semantic search",
+      "owner": "platform-team",
+      "domain": "e-commerce",
+      "embedding": {
+        "model_id": "ibm-granite/granite-embedding-125m-english",
+        "dimension": 768
+      },
+      "embedding_model_available": true
+    }
+  ]
+}
+```
+
+#### List External Vector Stores - Full Detail (Mock K8s)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores/external?namespace=llama-stack"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "vector_stores": [
+      {
+        "name": "pgvector-store",
+        "displayName": "Product Embeddings (PGVector)",
+        "provider_type": "remote::pgvector",
+        "collection": "product_embeddings",
+        "description": "Product catalog embeddings for semantic search",
+        "owner": "platform-team",
+        "domain": "e-commerce",
+        "embedding": {
+          "model_id": "ibm-granite/granite-embedding-125m-english",
+          "dimension": 768
+        },
+        "embedding_model_available": true
+      }
+    ],
+    "total_count": 1,
+    "config_map_info": {
+      "name": "gen-ai-aa-vector-stores",
+      "namespace": "llama-stack",
+      "last_updated": "2026-02-19T07:32:38Z"
+    }
+  }
 }
 ```
 

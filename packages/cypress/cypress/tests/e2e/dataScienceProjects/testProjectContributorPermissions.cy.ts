@@ -1,14 +1,15 @@
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import type { DataScienceProjectData } from '../../../types';
-import { permissions } from '../../../pages/permissions';
+import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { loadDSPFixture } from '../../../utils/dataLoader';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
 
-describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide contributor project permissions to non-admin users', () => {
+describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -39,9 +40,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide contrib
 
   it(
     'Verify that user can be added as a Contributor for a Project',
-    {
-      tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Bug', '@ProjectsCI'],
-    },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@ProjectsCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -55,27 +54,21 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide contrib
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
-      permissions.findAddUserButton().click();
-      permissions.getUserTable().findAddInput().type(LDAP_CONTRIBUTOR_USER.USERNAME);
-      permissions
-        .getUserTable()
-        .selectPermission(
-          LDAP_CONTRIBUTOR_USER.USERNAME,
-          'Contributor View and edit the project components',
-        );
+      assignRoleViaProjectRbac(projectRbacPermissions, {
+        subjectName: LDAP_CONTRIBUTOR_USER.USERNAME,
+        subjectKind: 'user',
+        roleName: 'Contributor',
+      });
 
       cy.step(
         `Save the user and validate that ${LDAP_CONTRIBUTOR_USER.USERNAME} has been saved with Contributor permissions`,
       );
-      permissions.getUserTable().findSaveNewButton().should('exist').and('be.visible').click();
       cy.contains(LDAP_CONTRIBUTOR_USER.USERNAME).should('exist');
     },
   );
   it(
     'Verify that user can access the created project as a Contributor',
-    {
-      tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@Bug', '@ProjectsCI'],
-    },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@ProjectsCI'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application as non-admin');
@@ -86,6 +79,7 @@ describe('[Automation Bug: RHOAIENG-49258] Verify that users can provide contrib
         'Verify that the user has access to the created project but cannot access Permissions',
       );
       projectListPage.navigate();
+      projectListPage.waitForPageAndToolbar();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
       cy.log('Attempting to find permissions tab which should not be visible');

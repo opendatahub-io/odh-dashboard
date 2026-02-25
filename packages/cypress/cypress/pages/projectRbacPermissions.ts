@@ -92,6 +92,18 @@ class ProjectRbacPermissionsTab {
     projectDetails.visitSection(projectName, 'permissions');
   }
 
+  getAssignRolesButtonSelector() {
+    return '[data-testid="permissions-assign-roles-button"]';
+  }
+
+  getConfirmModalSelector() {
+    return '[data-testid="assign-roles-confirm-modal"]';
+  }
+
+  waitForAssignRolesButton() {
+    return this.findAssignRolesButton().should('be.visible', { timeout: 15000 });
+  }
+
   findAssignRolesButton() {
     return cy.findByTestId('permissions-assign-roles-button');
   }
