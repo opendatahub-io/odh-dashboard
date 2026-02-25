@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack-recordings/test.py::record",
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
@@ -8,27 +8,14 @@
       "model": "models/gemini-2.5-flash",
       "messages": [
         {
-          "role": "system",
-          "content": "You are a helpful AI assistant."
-        },
-        {
           "role": "user",
-          "content": "What is machine learning?"
-        },
-        {
-          "role": "assistant",
-          "content": "Machine learning is a subset of AI."
-        },
-        {
-          "role": "user",
-          "content": "Tell me about AI"
+          "content": "First message in conversation"
         }
       ],
       "stream": true,
       "stream_options": {
         "include_usage": true
-      },
-      "temperature": 0.7
+      }
     },
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash"
@@ -38,11 +25,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": "Artificial Intelligence (AI)",
+                "content": "To",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -59,9 +46,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 5,
-            "prompt_tokens": 28,
-            "total_tokens": 833,
+            "completion_tokens": 1,
+            "prompt_tokens": 5,
+            "total_tokens": 1152,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -70,11 +57,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " is a broad and transformative field of computer science dedicated to creating machines that can **perform tasks that typically require human intelligence.**\n\nThe ultimate goal of AI is to enable computers to **think, learn, reason, perceive, understand language, and make decisions**",
+                "content": " give you the best \"first message,\" I need a little more context!\n\nHowever, here's a general guide and some examples based on common scenarios.\n\n**The Golden Rules of a Good First Message:**\n\n1.  **Be",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -91,9 +78,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 56,
-            "prompt_tokens": 28,
-            "total_tokens": 884,
+            "completion_tokens": 50,
+            "prompt_tokens": 5,
+            "total_tokens": 1201,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -102,11 +89,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " in a way that mimics or even surpasses human cognitive abilities.\n\nHere's a breakdown of what AI entails:\n\n1.  **The Core Idea:**\n    *   **Simulating Human Intelligence:** At its heart, AI aims to build",
+                "content": " Clear:** State your purpose or reason for messaging.\n2.  **Be Concise:** Don't write a novel. Get to the point.\n3.  **Personalize (if possible):** Reference something specific about them or your",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -123,9 +110,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 106,
-            "prompt_tokens": 28,
-            "total_tokens": 934,
+            "completion_tokens": 99,
+            "prompt_tokens": 5,
+            "total_tokens": 1250,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -134,11 +121,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " systems that can process information, learn from data, make predictions, solve problems, and adapt to new situations, much like humans do.\n    *   **Automating Cognitive Tasks:** It's about automating tasks that traditionally required human intellect",
+                "content": " shared connection.\n4.  **Ask a Question (or create an opening for a response):** Give them an easy way to reply.\n5.  **Be Positive & Respectful:** Set a good tone.\n\n---\n\n**Common",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -155,9 +142,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 154,
-            "prompt_tokens": 28,
-            "total_tokens": 982,
+            "completion_tokens": 149,
+            "prompt_tokens": 5,
+            "total_tokens": 1300,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -166,11 +153,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": ", such as understanding speech, recognizing patterns, making strategic decisions, or even creating art.\n\n2.  **Key Capabilities and Areas of AI:**\n    *   **Learning:** This is where **Machine Learning (ML)** comes in. AI",
+                "content": " Scenarios & Examples:**\n\n**1. Dating App:**\n*   **Goal:** Spark interest, find common ground, encourage a response.\n*   **Good:** \"Hey! Your profile mentioned you love [hobby/interest]",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -187,9 +174,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 204,
-            "prompt_tokens": 28,
-            "total_tokens": 1032,
+            "completion_tokens": 197,
+            "prompt_tokens": 5,
+            "total_tokens": 1348,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -198,11 +185,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " systems learn from data rather than being explicitly programmed for every possible scenario. They identify patterns, make predictions, and improve their performance over time.\n    *   **Reasoning:** AI can use logic and rules to draw conclusions and make inferences",
+                "content": " \u2013 any favorite spots for that around here?\"\n*   **Good:** \"Hi [Name], loved your photo with the [pet/interesting background]. What's the story there?\"\n*   **Good:** \"Your bio said",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -219,9 +206,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 252,
-            "prompt_tokens": 28,
-            "total_tokens": 1080,
+            "completion_tokens": 245,
+            "prompt_tokens": 5,
+            "total_tokens": 1396,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -230,11 +217,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": ".\n    *   **Problem-Solving:** Developing strategies to achieve goals, like in games (e.g., chess AI) or complex planning tasks.\n    *   **Perception:**\n        *   **Computer Vision (CV",
+                "content": " you're into [niche interest] \u2013 any recent recommendations or thoughts on [related topic]?\"\n*   **Avoid:** \"Hey,\" \"Hi,\" \"What's up?\" (too generic), overly sexual or aggressive comments.\n\n**",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -251,9 +238,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 301,
-            "prompt_tokens": 28,
-            "total_tokens": 1129,
+            "completion_tokens": 296,
+            "prompt_tokens": 5,
+            "total_tokens": 1447,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -262,11 +249,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": "):** Enabling machines to \"see\" and interpret images and videos (e.g., facial recognition, object detection).\n        *   **Speech Recognition:** Understanding spoken language (e.g., voice assistants like Siri or Alexa).\n    ",
+                "content": "2. Professional Networking (LinkedIn, after an event):**\n*   **Goal:** Establish connection, follow up, learn, offer value.\n*   **Good:** \"Hi [Name], it was great meeting you at [Event Name",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -283,9 +270,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 348,
-            "prompt_tokens": 28,
-            "total_tokens": 1176,
+            "completion_tokens": 345,
+            "prompt_tokens": 5,
+            "total_tokens": 1496,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -294,11 +281,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": "*   **Natural Language Processing (NLP):** Allowing computers to understand, interpret, and generate human language (e.g., chatbots, translation services, sentiment analysis).\n    *   **Knowledge Representation:** Storing and organizing information in",
+                "content": "] today/yesterday. I really enjoyed our discussion about [specific topic]. I'd love to connect further.\"\n*   **Good:** \"Hello [Name], I've been following your work on [Specific Project/Topic] for",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -315,9 +302,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 396,
-            "prompt_tokens": 28,
-            "total_tokens": 1224,
+            "completion_tokens": 395,
+            "prompt_tokens": 5,
+            "total_tokens": 1546,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -326,11 +313,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " a way that AI systems can use.\n    *   **Robotics:** Integrating AI with physical machines to perform tasks in the real world.\n\n3.  **Types of AI (Broad Categories):**\n    *   **Narrow AI",
+                "content": " a while and find your insights on [specific point] really valuable. I'm [Your Title/Interest] and was hoping to learn more about [related area].\"\n*   **Good:** \"Hi [Name], I saw your post",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -347,9 +334,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 445,
-            "prompt_tokens": 28,
-            "total_tokens": 1273,
+            "completion_tokens": 444,
+            "prompt_tokens": 5,
+            "total_tokens": 1595,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -358,11 +345,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " (Weak AI):** This is the AI we have today. It's designed and trained for specific tasks (e.g., recommending movies, playing chess, driving a car). It excels at its designated task but doesn't possess",
+                "content": " about [topic] and found it really thought-provoking. I had a quick question about [specific aspect of the post] if you have a moment.\"\n*   **Avoid:** Asking for a job immediately, vague requests, overly informal",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -379,9 +366,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 493,
-            "prompt_tokens": 28,
-            "total_tokens": 1321,
+            "completion_tokens": 492,
+            "prompt_tokens": 5,
+            "total_tokens": 1643,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -390,11 +377,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " general intelligence.\n    *   **General AI (Strong AI):** This is hypothetical AI that would possess human-like cognitive abilities across a wide range of tasks, capable of learning and applying intelligence to any intellectual task.\n    *",
+                "content": " language.\n\n**3. Texting a Friend/Acquaintance:**\n*   **Goal:** Check-in, share something, make a plan.\n*   **Good:** \"Hey! How's your week going?\"",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -412,8 +399,8 @@
           "system_fingerprint": null,
           "usage": {
             "completion_tokens": 541,
-            "prompt_tokens": 28,
-            "total_tokens": 1369,
+            "prompt_tokens": 5,
+            "total_tokens": 1692,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -422,11 +409,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": "   **Superintelligence:** A hypothetical AI that would surpass human intelligence across virtually all fields.\n\n4.  **How AI is Achieved (Methods):**\n    *   **Machine Learning (ML):** The most prevalent method today",
+                "content": "\n*   **Good:** \"Just saw [movie/article/meme] and it totally reminded me of you! \ud83d\ude02\"\n*   **Good:** \"Hope you had a good weekend! I was thinking of [doing X] on [Day",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -443,9 +430,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 588,
-            "prompt_tokens": 28,
-            "total_tokens": 1416,
+            "completion_tokens": 591,
+            "prompt_tokens": 5,
+            "total_tokens": 1742,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -454,11 +441,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": ". Algorithms are trained on vast amounts of data to learn patterns and make predictions without explicit programming.\n        *   **Deep Learning (DL):** A subfield of ML that uses artificial neural networks with multiple layers to learn complex patterns,",
+                "content": "] \u2013 interested?\"\n*   **Avoid:** Double-texting immediately if they don't respond, overly dramatic messages.\n\n**4. Customer Service/Support (Email/Chat):**\n*   **Goal:** Clearly state the problem",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -475,9 +462,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 636,
-            "prompt_tokens": 28,
-            "total_tokens": 1464,
+            "completion_tokens": 641,
+            "prompt_tokens": 5,
+            "total_tokens": 1792,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -486,11 +473,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " especially effective for images, speech, and text.\n    *   **Rule-Based Systems/Expert Systems:** Older AI approaches where human experts' knowledge is encoded into a set of \"if-then\" rules.\n    *   **Search",
+                "content": ", get help.\n*   **Good:** \"Hello, I'm experiencing an issue with [Product/Service Name]. My order number is [if applicable]. The problem is that [brief, clear description of the issue]. Could",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -507,9 +494,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 686,
-            "prompt_tokens": 28,
-            "total_tokens": 1514,
+            "completion_tokens": 689,
+            "prompt_tokens": 5,
+            "total_tokens": 1840,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -518,11 +505,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " Algorithms:** Used for problem-solving and decision-making in defined spaces (e.g., finding the shortest path, game-playing).\n\n5.  **Real-World Applications:**\n    *   **Healthcare:** Disease diagnosis, drug discovery",
+                "content": " you please assist me with this?\"\n*   **Good:** \"Hi, I have a question about [specific feature/policy]. Could you explain [what you need to know]?\"\n*   **Avoid:** Emotionally charged language",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -539,9 +526,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 736,
-            "prompt_tokens": 28,
-            "total_tokens": 1564,
+            "completion_tokens": 737,
+            "prompt_tokens": 5,
+            "total_tokens": 1888,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -550,11 +537,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": ", personalized treatment plans.\n    *   **Finance:** Fraud detection, algorithmic trading, credit scoring.\n    *   **Transportation:** Self-driving cars, traffic optimization.\n    *   **Customer Service:** Chatbots, virtual",
+                "content": ", blaming, assuming intent.\n\n**5. Cold Outreach / General Interest (Social Media DM):**\n*   **Goal:** Introduce yourself, state purpose, respect their time.\n*   **Good:** \"Hi [Name], I",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -571,9 +558,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 784,
-            "prompt_tokens": 28,
-            "total_tokens": 1612,
+            "completion_tokens": 786,
+            "prompt_tokens": 5,
+            "total_tokens": 1937,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -582,11 +569,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": " assistants.\n    *   **Entertainment:** Recommendation engines (Netflix, Spotify), content generation.\n    *   **Manufacturing:** Predictive maintenance, quality control.\n    *   **Science:** Data analysis, simulation, complex problem-solving.\n\n**",
+                "content": "'m [Your Name] and I really enjoy your [content/art/work]. I'm reaching out because I had a quick question about [something specific you admire or need to know], if you have a moment.\"\n*   **Good",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -603,9 +590,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 836,
-            "prompt_tokens": 28,
-            "total_tokens": 1664,
+            "completion_tokens": 837,
+            "prompt_tokens": 5,
+            "total_tokens": 1988,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -614,11 +601,139 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-ce11f5eff88c",
+          "id": "rec-7f5ebfb8ef6a",
           "choices": [
             {
               "delta": {
-                "content": "In essence, AI is about empowering machines with capabilities that were once exclusive to the human mind, opening up new possibilities for automation, innovation, and understanding the world around us.**",
+                "content": ":** \"Hello [Name], I'm [Your Name] from [Your Company/Context]. I'm reaching out because I noticed [specific commonality/reason for interest]. I believe [brief value proposition]. Would you be open to a",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 887,
+            "prompt_tokens": 5,
+            "total_tokens": 2038,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " brief chat sometime next week?\"\n*   **Avoid:** Long unsolicited pitches, demanding their time, being vague about your intentions.\n\n---\n\n**To give you a perfect first message, tell me:**\n\n*   **Who are you messaging?**",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 938,
+            "prompt_tokens": 5,
+            "total_tokens": 2089,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " (e.g., a potential date, a work colleague, a new friend, customer support, a celebrity/influencer)\n*   **What is the platform?** (e.g., dating app, LinkedIn, text, email,",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 988,
+            "prompt_tokens": 5,
+            "total_tokens": 2139,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " Instagram DM)\n*   **What is your goal for the conversation?** (e.g., get a date, network, ask a question, complain, compliment, make plans)\n*   **Is there any specific context or shared",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1037,
+            "prompt_tokens": 5,
+            "total_tokens": 2188,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-7f5ebfb8ef6a",
+          "choices": [
+            {
+              "delta": {
+                "content": " history?** (e.g., you met them at an event, you saw their post, you have a mutual friend)",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -635,9 +750,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 871,
-            "prompt_tokens": 28,
-            "total_tokens": 1699,
+            "completion_tokens": 1063,
+            "prompt_tokens": 5,
+            "total_tokens": 2214,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

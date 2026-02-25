@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack-recordings/test.py::record",
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",

@@ -117,6 +117,10 @@ func (c *TestLlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorS
 	return c.inner.ListVectorStoreFiles(ctx, vectorStoreID, params)
 }
 
+func (c *TestLlamaStackClient) GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error) {
+	return c.inner.GetVectorStoreFile(ctx, vectorStoreID, fileID)
+}
+
 func (c *TestLlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
 	return c.inner.DeleteVectorStoreFile(ctx, vectorStoreID, fileID)
 }

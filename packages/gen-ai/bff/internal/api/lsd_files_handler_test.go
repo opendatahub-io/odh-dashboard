@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -394,7 +393,7 @@ var _ = Describe("LlamaStackListFilesHandler", func() {
 
 		assert.Contains(t, response, "data")
 		data := response["data"].([]interface{})
-		assert.GreaterOrEqual(t, len(data), 0, "should return a list of files")
+		assert.NotNil(t, data, "should return a list of files")
 
 		if len(data) > 0 {
 			firstFile := data[0].(map[string]interface{})
@@ -427,7 +426,7 @@ var _ = Describe("LlamaStackListFilesHandler", func() {
 
 		assert.Contains(t, response, "data")
 		data := response["data"].([]interface{})
-		assert.GreaterOrEqual(t, len(data), 0, "should return a list of files")
+		assert.NotNil(t, data, "should return a list of files")
 	})
 
 	It("invalid limit parameter", func() {
@@ -718,7 +717,7 @@ var _ = Describe("LlamaStackDeleteFileHandler", func() {
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token-mock", false, nil, "/v1")
 
 		// Upload a file to get a valid file ID
-		fileID, err := uploadTestFileForDelete(testutil.GetTestLlamaStackURL())
+		fileID, err := uploadTestFile(testutil.GetTestLlamaStackURL())
 		require.NoError(t, err, "setup: file upload should succeed")
 		require.NotEmpty(t, fileID)
 
@@ -774,43 +773,3 @@ var _ = Describe("LlamaStackDeleteFileHandler", func() {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 })
-
-// uploadTestFileForDelete uploads a small file directly to the Llama Stack server and returns the file ID.
-func uploadTestFileForDelete(baseURL string) (string, error) {
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-	part, err := writer.CreateFormFile("file", "test_delete.txt")
-	if err != nil {
-		return "", err
-	}
-	_, _ = part.Write([]byte("test file content for deletion"))
-	_ = writer.WriteField("purpose", "assistants")
-	_ = writer.Close()
-
-	req, err := http.NewRequest("POST", baseURL+"/v1/files", &buf)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	if testID := os.Getenv("LLAMA_STACK_TEST_ID"); testID != "" {
-		req.Header.Set("X-LlamaStack-Provider-Data", fmt.Sprintf(`{"__test_id": "%s"}`, testID))
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("upload failed: %s", string(body))
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return "", err
-	}
-	id, _ := result["id"].(string)
-	return id, nil
-}

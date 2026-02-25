@@ -8,6 +8,5 @@ __debug*
 .mlflow/
 .mlflow-*/
 
-# Local Llama Stack data (created by mock mode)
-.llamastack/
-.llamastack-*/
+# Local Llama Stack runtime data (created by mock/test mode)
+testdata/llamastack/.data/

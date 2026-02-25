@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack-recordings/test.py::record",
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
@@ -16,7 +16,7 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-159496565923025062",
+              "id": "function-call-16604492716583369655",
               "type": "function",
               "function": {
                 "name": "knowledge_search",
@@ -27,11 +27,15 @@
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-159496565923025062",
+          "tool_call_id": "function-call-16604492716583369655",
           "content": [
             {
               "type": "text",
-              "text": "knowledge_search tool found 0 chunks:\nBEGIN of knowledge_search tool results.\n"
+              "text": "knowledge_search tool found 1 chunks:\nBEGIN of knowledge_search tool results.\n"
+            },
+            {
+              "type": "text",
+              "text": "[1] document_id: file-868412568126, score: 0.6319884657859802, attributes: {'filename': 'test_document.txt', 'chunk_id': '7d924391-e376-cafe-cc34-bb21ff509074', 'document_id': 'file-868412568126', 'token_count': 60.0, 'metadata_token_count': 8.0} cite as <|file-868412568126|>\nArtificial intelligence (AI) is the simulation of human intelligence processes by computer systems. These processes include learning, reasoning, and self-correction. Machine learning is a subset of AI that enables systems to learn from data without explicit programming. Deep learning is a further subset using neural networks with many layers.\n"
             },
             {
               "type": "text",
@@ -39,7 +43,7 @@
             },
             {
               "type": "text",
-              "text": "The above results were retrieved to help answer the user's query: \"machine learning\". Use them as supporting information only in answering this query. \n"
+              "text": "The above results were retrieved to help answer the user's query: \"machine learning\". Use them as supporting information only in answering this query. Cite sources immediately at the end of sentences before punctuation, using `<|file-id|>` format like 'This is a fact <|file-Cn3MSNn72ENTiiq11Qda4A|>.'. Do not add extra punctuation. Use only the file IDs provided, do not invent new ones.\n"
             }
           ]
         }
@@ -79,11 +83,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-8421b37d3354",
+          "id": "rec-67d1e8fe59a2",
           "choices": [
             {
               "delta": {
-                "content": "Machine learning is a subset of artificial intelligence (",
+                "content": "Machine learning is a",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -100,9 +104,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 9,
-            "prompt_tokens": 153,
-            "total_tokens": 217,
+            "completion_tokens": 4,
+            "prompt_tokens": 448,
+            "total_tokens": 452,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -111,11 +115,43 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-8421b37d3354",
+          "id": "rec-67d1e8fe59a2",
           "choices": [
             {
               "delta": {
-                "content": "AI) that enables systems to learn from data, identify patterns, and make decisions with minimal human intervention. It involves the use of algorithms and statistical models that allow computer systems to improve their performance on a specific task over time through experience.",
+                "content": " part of artificial intelligence (AI) that allows systems to learn from data without being",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 20,
+            "prompt_tokens": 448,
+            "total_tokens": 468,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-67d1e8fe59a2",
+          "choices": [
+            {
+              "delta": {
+                "content": " directly programmed. It is a subset of AI, and deep learning is a further subset of machine learning that utilizes neural networks with multiple layers <|file-868412568126|>.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -132,9 +168,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 56,
-            "prompt_tokens": 153,
-            "total_tokens": 264,
+            "completion_tokens": 65,
+            "prompt_tokens": 448,
+            "total_tokens": 513,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

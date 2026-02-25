@@ -439,7 +439,10 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NoError(t, err)
 		err = json.Unmarshal(body, &firstResponse)
 		assert.NoError(t, err)
-		prevResponseID := firstResponse["data"].(map[string]interface{})["id"].(string)
+		firstData, ok := firstResponse["data"].(map[string]interface{})
+		require.True(t, ok, "expected data to be a map")
+		prevResponseID, ok := firstData["id"].(string)
+		require.True(t, ok, "expected id to be a string")
 
 		payload := CreateResponseRequest{
 			Input:              "Continue our conversation",
@@ -566,24 +569,8 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should create response with vector store IDs for RAG file_search", func() {
 		t := GinkgoT()
 
-		// Fetch the seeded vector store ID from the local Llama Stack server
-		lsURL := testutil.GetTestLlamaStackURL()
-		listResp, err := http.Get(lsURL + "/v1/vector_stores")
-		require.NoError(t, err)
-		defer listResp.Body.Close()
-
-		listBody, err := io.ReadAll(listResp.Body)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, listResp.StatusCode, "list vector stores failed: %s", string(listBody))
-
-		var vsListData map[string]interface{}
-		err = json.Unmarshal(listBody, &vsListData)
-		require.NoError(t, err)
-
-		vsDataList := vsListData["data"].([]interface{})
-		require.NotEmpty(t, vsDataList, "expected at least one seeded vector store")
-		firstVS := vsDataList[0].(map[string]interface{})
-		vsID := firstVS["id"].(string)
+		vsID := testCtx.llamaStackState.Seed.VectorStoreID
+		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
 
 		payload := CreateResponseRequest{
 			Input:          "What is machine learning?",
@@ -611,7 +598,8 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		responseData := response["data"].(map[string]interface{})
+		responseData, ok := response["data"].(map[string]interface{})
+		require.True(t, ok, "expected data to be a map")
 		assert.NotEmpty(t, responseData["id"])
 		assert.Equal(t, "completed", responseData["status"])
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
@@ -968,24 +956,8 @@ var _ = Describe("StreamingResponseMetrics", func() {
 	It("should stream response with vector store IDs for RAG file_search", func() {
 		t := GinkgoT()
 
-		// Fetch the seeded vector store ID from the local Llama Stack server
-		lsURL := testutil.GetTestLlamaStackURL()
-		listResp, err := http.Get(lsURL + "/v1/vector_stores")
-		require.NoError(t, err)
-		defer listResp.Body.Close()
-
-		listBody, err := io.ReadAll(listResp.Body)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, listResp.StatusCode, "list vector stores failed: %s", string(listBody))
-
-		var vsListData map[string]interface{}
-		err = json.Unmarshal(listBody, &vsListData)
-		require.NoError(t, err)
-
-		vsDataList := vsListData["data"].([]interface{})
-		require.NotEmpty(t, vsDataList, "expected at least one seeded vector store")
-		firstVS := vsDataList[0].(map[string]interface{})
-		vsID := firstVS["id"].(string)
+		vsID := testCtx.llamaStackState.Seed.VectorStoreID
+		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
 
 		payload := CreateResponseRequest{
 			Input:          "What is machine learning?",

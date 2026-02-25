@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack-recordings/test.py::record",
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
@@ -25,7 +25,7 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-6f3aa68a1322",
+          "id": "rec-72e3386ff620",
           "choices": [
             {
               "delta": {
@@ -48,7 +48,7 @@
           "usage": {
             "completion_tokens": 9,
             "prompt_tokens": 2,
-            "total_tokens": 230,
+            "total_tokens": 232,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

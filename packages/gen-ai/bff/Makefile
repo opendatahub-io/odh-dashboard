@@ -25,11 +25,23 @@ MLFLOW_DATA ?= $(shell pwd)/.mlflow
 # Llama Stack test server configuration (used by mock/test mode only)
 TEST_LLAMA_STACK_VERSION ?= 0.5.1
 TEST_LLAMA_STACK_PORT ?= 18321
-TEST_LLAMA_STACK_DATA ?= $(shell pwd)/.llamastack
-TEST_LLAMA_STACK_RECORDINGS ?= $(shell pwd)/testdata/llamastack-recordings
-TEST_LLAMA_STACK_CONFIG ?= llama-stack-run-config.yaml
-TEST_LLAMA_STACK_MODEL ?= gemini/models/gemini-2.5-flash
-TEST_LLAMA_STACK_EMBEDDING_MODEL ?= gemini/models/gemini-embedding-001
+TEST_LLAMA_STACK_DIR ?= testdata/llamastack
+TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
+TEST_LLAMA_STACK_RECORDINGS ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)
+TEST_LLAMA_STACK_CONFIG ?= $(TEST_LLAMA_STACK_DIR)/config.yaml
+TEST_LLAMA_STACK_TEST_ID ?= bff/$(TEST_LLAMA_STACK_DIR)/test.py::record
+
+# Provider and bare model IDs (source of truth, used by config yaml)
+TEST_LLAMA_STACK_PROVIDER ?= gemini
+TEST_LLAMA_STACK_MODEL_ID ?= models/gemini-2.5-flash
+TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
+TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 3072
+TEST_LLAMA_STACK_SHIELD_MODEL_ID ?= models/gemini-2.5-flash
+
+# Prefixed model refs (derived from above, used by Go tests and shield)
+TEST_LLAMA_STACK_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_MODEL_ID)
+TEST_LLAMA_STACK_EMBEDDING_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
+TEST_LLAMA_STACK_SHIELD_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_SHIELD_MODEL_ID)
 
 .PHONY: all
 all: build
@@ -62,9 +74,14 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 test: fmt vet envtest uv ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
+  LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
 	TEST_LLAMA_STACK_PORT=$(TEST_LLAMA_STACK_PORT) TEST_LLAMA_STACK_VERSION=$(TEST_LLAMA_STACK_VERSION) \
 	TEST_LLAMA_STACK_MODEL=$(TEST_LLAMA_STACK_MODEL) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
+	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
+	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	go test ./...
 
 .PHONY: build
@@ -113,6 +130,7 @@ mlflow-clean: mlflow-down ## Remove local MLflow data.
 
 .PHONY: llamastack-up
 llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to stop).
+	@rm -rf $(TEST_LLAMA_STACK_DATA)
 	@mkdir -p $(TEST_LLAMA_STACK_DATA)
 	@echo "Starting Llama Stack in REPLAY mode on port $(TEST_LLAMA_STACK_PORT)..."
 	SQLITE_STORE_DIR=$(TEST_LLAMA_STACK_DATA) \
@@ -120,15 +138,21 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	LLAMA_STACK_TEST_INFERENCE_MODE=replay \
 	LLAMA_STACK_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
 	LLAMA_STACK_TEST_STACK_CONFIG_TYPE=server \
-	$(UV) run --with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with milvus-lite --with chardet --with ollama \
+	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
+	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
+	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
+	$(UV) run --with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with milvus-lite --with pymilvus --with chardet --with ollama \
 		llama stack run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
 
 .PHONY: llamastack-down
-llamastack-down: ## Stop local Llama Stack server.
+llamastack-down: ## Stop local Llama Stack server and remove ephemeral data.
 	@-lsof -t -i :$(TEST_LLAMA_STACK_PORT) | xargs kill 2>/dev/null || true
 	@sleep 2
 	@-lsof -t -i :$(TEST_LLAMA_STACK_PORT) | xargs kill -9 2>/dev/null || true
-	@echo "Llama Stack server stopped"
+	@rm -rf $(TEST_LLAMA_STACK_DATA)
+	@echo "Llama Stack server stopped (runtime data cleaned)"
 
 .PHONY: llamastack-record
 llamastack-record: ## Record Llama Stack fixtures by running Go tests against real Gemini (needs GEMINI_API_KEY).
@@ -142,11 +166,6 @@ llamastack-record: ## Record Llama Stack fixtures by running Go tests against re
 	LLAMA_STACK_TEST_INFERENCE_MODE=record $(MAKE) test
 	@COUNT=$$(find $(TEST_LLAMA_STACK_RECORDINGS)/recordings -name "*.json" 2>/dev/null | wc -l | tr -d ' '); \
 	echo "  Recording complete! $${COUNT} JSON files";
-
-.PHONY: llamastack-clean
-llamastack-clean: llamastack-down ## Remove all local Llama Stack data and recordings.
-	rm -rf $(TEST_LLAMA_STACK_DATA) .llamastack-* $(TEST_LLAMA_STACK_RECORDINGS)
-	@echo "Llama Stack data and recordings cleaned"
 
 ##@ Dependencies
 

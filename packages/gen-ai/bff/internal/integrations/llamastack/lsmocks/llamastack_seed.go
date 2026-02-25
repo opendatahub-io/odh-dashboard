@@ -2,205 +2,120 @@ package lsmocks
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"log/slog"
-	"mime/multipart"
-	"net/http"
 	"time"
+
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
-const seedHTTPTimeout = 30 * time.Second
+const (
+	fileReadyPollInterval = 500 * time.Millisecond
+	fileReadyTimeout      = 60 * time.Second
+)
+
+// SeedResult holds the IDs of resources created during seeding.
+type SeedResult struct {
+	VectorStoreID string
+	FileID        string
+}
 
 // SeedData populates the local Llama Stack server with test data:
 // vector stores, files, and verifies model availability.
-// The testID is injected via X-LlamaStack-Provider-Data header for record-replay isolation.
-func SeedData(baseURL string, testID string, logger *slog.Logger) error {
-	client := &http.Client{Timeout: seedHTTPTimeout}
-
-	providerHeader := fmt.Sprintf(`{"__test_id": "%s"}`, testID)
+// Uses the typed TestLlamaStackClient which handles test ID header injection automatically.
+func SeedData(baseURL string, testID string, logger *slog.Logger) (*SeedResult, error) {
+	client := NewTestLlamaStackClient(baseURL, testID)
+	ctx := context.Background()
 
 	// 1. Verify models are available
 	logger.Debug("Verifying models are available...")
-	modelsResp, err := doJSONGet(client, baseURL+"/v1/models", providerHeader)
+	models, err := client.ListModels(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list models: %w", err)
+		return nil, fmt.Errorf("failed to list models: %w", err)
 	}
-	data, ok := modelsResp["data"].([]interface{})
-	if !ok || len(data) == 0 {
-		return fmt.Errorf("no models available from Llama Stack server")
+	if len(models) == 0 {
+		return nil, fmt.Errorf("no models available from Llama Stack server")
 	}
-	logger.Info("Models available", slog.Int("count", len(data)))
+	logger.Info("Models available", slog.Int("count", len(models)))
 
 	// 2. Create a sample vector store
 	logger.Debug("Creating sample vector store...")
-	vsBody := map[string]interface{}{
-		"name": "Test Vector Store",
-	}
-	vsResp, err := doJSONPost(client, baseURL+"/v1/vector_stores", vsBody, providerHeader)
+	vs, err := client.CreateVectorStore(ctx, llamastack.CreateVectorStoreParams{
+		Name: "Test Vector Store",
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create vector store: %w", err)
+		return nil, fmt.Errorf("failed to create vector store: %w", err)
 	}
-	vectorStoreID, _ := vsResp["id"].(string)
-	if vectorStoreID == "" {
-		return fmt.Errorf("vector store creation returned empty ID")
-	}
-	logger.Info("Created vector store", slog.String("id", vectorStoreID))
+	logger.Info("Created vector store", slog.String("id", vs.ID))
 
-	// 3. Upload a sample file
+	// 3. Upload a sample file and add it to the vector store in one call
 	logger.Debug("Uploading sample file...")
 	fileContent := []byte("Artificial intelligence (AI) is the simulation of human intelligence " +
 		"processes by computer systems. These processes include learning, reasoning, and self-correction. " +
 		"Machine learning is a subset of AI that enables systems to learn from data without explicit programming. " +
 		"Deep learning is a further subset using neural networks with many layers.")
-	fileID, err := uploadFile(client, baseURL+"/v1/files", "test_document.txt", fileContent, providerHeader)
+	uploadResult, err := client.UploadFile(ctx, llamastack.UploadFileParams{
+		Reader:        bytes.NewReader(fileContent),
+		Filename:      "test_document.txt",
+		Purpose:       "assistants",
+		VectorStoreID: vs.ID,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to upload file: %w", err)
+		return nil, fmt.Errorf("failed to upload file: %w", err)
 	}
-	logger.Info("Uploaded file", slog.String("id", fileID))
+	logger.Info("Uploaded file and added to vector store", slog.String("id", uploadResult.FileID))
 
-	// 4. Add file to vector store
-	logger.Debug("Adding file to vector store...")
-	vsFileBody := map[string]interface{}{
-		"file_id": fileID,
-	}
-	_, err = doJSONPost(client, fmt.Sprintf("%s/v1/vector_stores/%s/files", baseURL, vectorStoreID), vsFileBody, providerHeader)
-	if err != nil {
-		return fmt.Errorf("failed to add file to vector store: %w", err)
+	// 4. Wait for embedding to complete
+	if err := waitForFileReady(ctx, client, vs.ID, uploadResult.FileID, logger); err != nil {
+		return nil, fmt.Errorf("file embedding did not complete: %w", err)
 	}
 
-	// Wait for background embedding to complete
-	logger.Debug("Waiting for file embedding to complete...")
-	time.Sleep(5 * time.Second)
+	result := &SeedResult{
+		VectorStoreID: vs.ID,
+		FileID:        uploadResult.FileID,
+	}
+
 	logger.Info("Seeded Llama Stack with test data",
+		slog.String("vector_store_id", result.VectorStoreID),
+		slog.String("file_id", result.FileID),
+	)
+
+	return result, nil
+}
+
+// waitForFileReady polls the vector store file status until embedding is complete.
+// Llama Stack processes file embeddings asynchronously; this avoids a race where
+// knowledge_search returns 0 chunks because the index isn't ready yet.
+func waitForFileReady(ctx context.Context, client *TestLlamaStackClient, vectorStoreID, fileID string, logger *slog.Logger) error {
+	deadline := time.Now().Add(fileReadyTimeout)
+
+	logger.Debug("Polling vector store file status until embedding completes...",
 		slog.String("vector_store_id", vectorStoreID),
 		slog.String("file_id", fileID),
 	)
 
-	return nil
-}
+	for time.Now().Before(deadline) {
+		vsFile, err := client.GetVectorStoreFile(ctx, vectorStoreID, fileID)
+		if err != nil {
+			logger.Debug("File status check failed, retrying...", slog.String("error", err.Error()))
+			time.Sleep(fileReadyPollInterval)
+			continue
+		}
 
-func doJSONGet(client *http.Client, url string, providerHeader string) (map[string]interface{}, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	if providerHeader != "" {
-		req.Header.Set("X-LlamaStack-Provider-Data", providerHeader)
-	}
+		status := string(vsFile.Status)
+		logger.Debug("File status", slog.String("status", status))
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+		switch status {
+		case "completed":
+			logger.Info("File embedding completed", slog.String("file_id", fileID))
+			return nil
+		case "failed", "cancelled":
+			return fmt.Errorf("file processing ended with status %q", status)
+		default:
+			time.Sleep(fileReadyPollInterval)
+		}
 	}
 
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
-	}
-	return result, nil
-}
-
-func doJSONPost(client *http.Client, url string, body interface{}, providerHeader string) (map[string]interface{}, error) {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if providerHeader != "" {
-		req.Header.Set("X-LlamaStack-Provider-Data", providerHeader)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
-	}
-	return result, nil
-}
-
-func uploadFile(client *http.Client, url string, filename string, content []byte, providerHeader string) (string, error) {
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	part, err := writer.CreateFormFile("file", filename)
-	if err != nil {
-		return "", err
-	}
-	if _, err := part.Write(content); err != nil {
-		return "", err
-	}
-
-	if err := writer.WriteField("purpose", "assistants"); err != nil {
-		return "", err
-	}
-
-	if err := writer.Close(); err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", url, &buf)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	if providerHeader != "" {
-		req.Header.Set("X-LlamaStack-Provider-Data", providerHeader)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return "", fmt.Errorf("failed to parse response: %w", err)
-	}
-
-	id, _ := result["id"].(string)
-	if id == "" {
-		return "", fmt.Errorf("file upload returned empty ID")
-	}
-	return id, nil
+	return fmt.Errorf("timed out after %v waiting for file %s to reach 'completed' status", fileReadyTimeout, fileID)
 }
