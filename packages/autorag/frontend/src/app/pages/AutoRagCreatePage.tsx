@@ -4,7 +4,7 @@ import React from 'react';
 import { useParams } from 'react-router';
 import AutoRagCreate from '../components/create/AutoRagCreate';
 import InvalidProject from '../components/empty-states/InvalidProject';
-import { autoRagExperimentsPathname } from '../utilities/routes';
+import { autoragExperimentsPathname } from '../utilities/routes';
 
 function AutoRagCreatePage(): React.JSX.Element {
   const { namespace } = useParams();
@@ -14,7 +14,7 @@ function AutoRagCreatePage(): React.JSX.Element {
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
-  const getRedirectPath = (ns: string) => `${autoRagExperimentsPathname}/${ns}`;
+  const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
   return (
     <ApplicationsPage

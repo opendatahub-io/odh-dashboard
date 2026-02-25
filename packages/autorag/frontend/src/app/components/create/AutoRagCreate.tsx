@@ -4,7 +4,7 @@ import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import createExperimentSchema from '~/app/schemas/experiment.schema';
-import { autoRagConfigurePathname } from '~/app/utilities/routes';
+import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
 
 function AutoRagCreate(): React.JSX.Element {
@@ -63,7 +63,7 @@ function AutoRagCreate(): React.JSX.Element {
             isDisabled={!form.formState.isValid}
             onClick={async () => {
               form.handleSubmit(() => {
-                navigate(`${autoRagConfigurePathname}/FAKE_EXPERIMENT_ID`);
+                navigate(`${autoragConfigurePathname}/FAKE_EXPERIMENT_ID`);
               })();
             }}
           >

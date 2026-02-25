@@ -1,7 +1,7 @@
 import { Button } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { autoRagResultsPathname } from '~/app/utilities/routes';
+import { autoragResultsPathname } from '~/app/utilities/routes';
 
 function AutoRagConfigure(): React.JSX.Element {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ function AutoRagConfigure(): React.JSX.Element {
       <Button
         variant="primary"
         onClick={() => {
-          navigate(`${autoRagResultsPathname}/FAKE_RUN_ID`);
+          navigate(`${autoragResultsPathname}/FAKE_RUN_ID`);
         }}
       >
         Run experiment

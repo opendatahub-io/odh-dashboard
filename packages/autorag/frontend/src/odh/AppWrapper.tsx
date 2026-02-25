@@ -8,7 +8,14 @@ import {
 } from 'mod-arch-core';
 import React from 'react';
 import AppRoutes from '~/app/AppRoutes';
+import { useAutoragMockPipelines } from '~/app/hooks/useAutoragMockPipelines';
 import { URL_PREFIX } from '~/app/utilities/const';
+
+/** Ensures window.setAutoragMockPipelines is available when Autorag is loaded */
+function AutoragMockPipelinesBridge(): null {
+  useAutoragMockPipelines();
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +37,7 @@ function AppWrapper(): React.JSX.Element {
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
           <QueryClientProvider client={queryClient}>
+            <AutoragMockPipelinesBridge />
             <AppRoutes />
           </QueryClientProvider>
         </NotificationContextProvider>
