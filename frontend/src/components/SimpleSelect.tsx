@@ -139,9 +139,14 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           >
             {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
                 caused Safari flex layout bugs (labels clipped when space was available). */}
-            <span title={typeof selectedLabel === 'string' ? selectedLabel : undefined}>
-              {toggleLabel ?? selectedLabel}
-            </span>
+            {(() => {
+              const displayedLabel = toggleLabel ?? selectedLabel;
+              return (
+                <span title={typeof displayedLabel === 'string' ? displayedLabel : undefined}>
+                  {displayedLabel}
+                </span>
+              );
+            })()}
           </MenuToggle>
         )}
         shouldFocusToggleOnSelect
