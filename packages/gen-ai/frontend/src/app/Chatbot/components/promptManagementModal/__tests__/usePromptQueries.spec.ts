@@ -17,12 +17,16 @@ jest.mock('@tanstack/react-query', () => ({
   useQuery: jest.fn(),
 }));
 
+const mockListMLflowPrompts = jest.fn();
+const mockListMLflowPromptVersions = jest.fn();
+const mockGetMLflowPrompt = jest.fn();
+
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(() => ({
     api: {
-      listMLflowPrompts: jest.fn(),
-      listMLflowPromptVersions: jest.fn(),
-      getMLflowPrompt: jest.fn(),
+      listMLflowPrompts: mockListMLflowPrompts,
+      listMLflowPromptVersions: mockListMLflowPromptVersions,
+      getMLflowPrompt: mockGetMLflowPrompt,
     },
     apiAvailable: true,
   })),
@@ -130,7 +134,8 @@ describe('usePromptsList', () => {
     expect(result.current.error).toEqual(mockError);
   });
 
-  it('should pass filter options to query', () => {
+  it('should pass filter options to query', async () => {
+    mockListMLflowPrompts.mockResolvedValue({ prompts: [] });
     mockUseQuery.mockReturnValue({
       data: [],
       isLoading: false,
@@ -144,6 +149,17 @@ describe('usePromptsList', () => {
         queryKey: ['prompts', 'list', { maxResults: 10, filterName: 'test' }],
       }),
     );
+
+    // Extract and invoke queryFn to verify API call parameters
+    const queryOptions = mockUseQuery.mock.calls[0][0] as unknown as {
+      queryFn: () => Promise<unknown>;
+    };
+    await queryOptions.queryFn();
+
+    expect(mockListMLflowPrompts).toHaveBeenCalledWith({
+      max_results: 10,
+      filter_name: 'test',
+    });
   });
 });
 
