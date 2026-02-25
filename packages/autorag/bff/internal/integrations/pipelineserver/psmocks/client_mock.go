@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -374,6 +375,28 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		},
 	}
 	return mockRun, nil
+}
+
+// CreateRun returns a mock pipeline run response echoing request fields
+func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	now := time.Now().UTC()
+	return &models.KFPipelineRun{
+		RunID:        "mock-run-" + now.Format("20060102-150405"),
+		DisplayName:  request.DisplayName,
+		Description:  request.Description,
+		StorageState: "AVAILABLE",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID: request.PipelineVersionReference.PipelineID,
+		},
+		State:          "PENDING",
+		ServiceAccount: "pipeline-runner-dspa",
+		CreatedAt:      now.Format(time.RFC3339),
+		ScheduledAt:    now.Format(time.RFC3339),
+		RuntimeConfig:  &request.RuntimeConfig,
+		StateHistory: []models.RuntimeStatus{
+			{UpdateTime: now.Format(time.RFC3339), State: "PENDING"},
+		},
+	}, nil
 }
 
 // MockClientFactory creates mock pipeline server clients
