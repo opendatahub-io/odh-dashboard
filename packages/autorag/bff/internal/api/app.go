@@ -12,6 +12,8 @@ import (
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
+	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
+	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -24,19 +26,22 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/autorag"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	Version             = "1.0.0"
+	PathPrefix          = "/autorag"
+	ApiPathPrefix       = "/api/v1"
+	HealthCheckPath     = "/healthcheck"
+	UserPath            = ApiPathPrefix + "/user"
+	NamespacePath       = ApiPathPrefix + "/namespaces"
+	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
+	PipelineServersPath = ApiPathPrefix + "/pipeline-servers"
 )
 
 type App struct {
-	config                  config.EnvConfig
-	logger                  *slog.Logger
-	kubernetesClientFactory k8s.KubernetesClientFactory
-	repositories            *repositories.Repositories
+	config                      config.EnvConfig
+	logger                      *slog.Logger
+	kubernetesClientFactory     k8s.KubernetesClientFactory
+	pipelineServerClientFactory ps.PipelineServerClientFactory
+	repositories                *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -109,13 +114,24 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Initialize Pipeline Server client factory
+	var pipelineServerClientFactory ps.PipelineServerClientFactory
+	if cfg.MockPipelineServerClient {
+		logger.Info("Using mock Pipeline Server client factory")
+		pipelineServerClientFactory = psmocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real Pipeline Server client factory")
+		pipelineServerClientFactory = ps.NewRealClientFactory()
+	}
+
 	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
-		testEnv:                 testEnv,
-		rootCAs:                 rootCAs,
+		config:                      cfg,
+		logger:                      logger,
+		kubernetesClientFactory:     k8sFactory,
+		pipelineServerClientFactory: pipelineServerClientFactory,
+		repositories:                repositories.NewRepositories(),
+		testEnv:                     testEnv,
+		rootCAs:                     rootCAs,
 	}
 	return app, nil
 }
@@ -140,6 +156,10 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+
+	// Pipeline Server API endpoints
+	apiRouter.GET(PipelineServersPath, app.AttachNamespace(app.PipelineServersHandler))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.AttachPipelineServerClient(app.PipelineRunsHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

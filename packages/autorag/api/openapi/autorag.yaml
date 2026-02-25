@@ -73,6 +73,78 @@ paths:
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+
+  # =============================================================================
+  # PIPELINE RUNS ENDPOINTS
+  # =============================================================================
+
+  /api/v1/pipeline-runs:
+    summary: Query pipeline runs with specific annotations
+    description: >-
+      Lists pipeline runs from a specified Pipeline Server filtered by annotations.
+      Requires namespace and pipelineServerId parameters for proper isolation.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineServerId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID/name of the Pipeline Server (DSPipelineApplication name)
+          example: "dspa"
+        - name: annotations
+          in: query
+          required: false
+          schema:
+            type: string
+          description: JSON string of annotation key-value pairs to filter runs
+          example: '{"autorag.opendatahub.io/experiment-id":"exp-123"}'
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineRunsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getPipelineRuns
+      summary: Get Pipeline Runs
+      description: Returns pipeline runs filtered by annotations
+
+  /api/v1/pipeline-servers:
+    summary: List available Pipeline Servers in a namespace
+    description: >-
+      Returns all Pipeline Servers (DSPipelineApplications) in the specified namespace.
+      This allows users to discover which Pipeline Servers are available.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineServersResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getPipelineServers
+      summary: Get Pipeline Servers
+      description: Returns all available Pipeline Servers in a namespace
 components:
   schemas:
     Config:
@@ -87,6 +159,120 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+
+    # Pipeline Run Schemas
+    PipelineRun:
+      type: object
+      description: Kubeflow Pipeline Run information
+      required:
+        - run_id
+        - display_name
+        - state
+        - created_at
+      properties:
+        run_id:
+          type: string
+          description: Unique pipeline run identifier
+          example: "abc123-def456-ghi789"
+        display_name:
+          type: string
+          description: Human-readable run name
+          example: "AutoRAG Optimization Run 1"
+        description:
+          type: string
+          description: Run description
+          example: "Optimizing RAG parameters for dataset X"
+        pipeline_version_id:
+          type: string
+          description: ID of the pipeline version
+          example: "pipeline-v1"
+        state:
+          type: string
+          enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+          description: Current run state
+          example: "SUCCEEDED"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2026-02-24T10:30:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          description: Completion timestamp (ISO 8601)
+          example: "2026-02-24T11:15:00Z"
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          description: Run annotations
+          example:
+            autorag.opendatahub.io/experiment-id: "exp-123"
+            autorag.opendatahub.io/dataset: "test-set-v1"
+
+    PipelineRunsData:
+      type: object
+      description: List of pipeline runs with pagination support
+      required:
+        - runs
+      properties:
+        runs:
+          type: array
+          description: Array of pipeline runs
+          items:
+            $ref: '#/components/schemas/PipelineRun'
+        total_size:
+          type: integer
+          format: int32
+          description: Total number of runs matching the filter
+          example: 42
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page
+          example: "eyJwYWdlIjoyfQ=="
+
+    # Pipeline Server Schemas
+    PipelineServer:
+      type: object
+      description: Pipeline Server information
+      required:
+        - name
+        - namespace
+        - ready
+      properties:
+        name:
+          type: string
+          description: Pipeline Server name (DSPipelineApplication CR name)
+          example: "dspa"
+        namespace:
+          type: string
+          description: Kubernetes namespace
+          example: "my-namespace"
+        ready:
+          type: boolean
+          description: Whether the Pipeline Server is ready
+          example: true
+        api_url:
+          type: string
+          description: Pipeline Server API URL
+          example: "https://ds-pipeline-dspa.my-namespace.svc.cluster.local:8443"
+        ui_url:
+          type: string
+          description: Pipeline Server UI URL (if exposed)
+          example: "https://ds-pipeline-ui-dspa-my-namespace.apps.cluster.local"
+
+    PipelineServersData:
+      type: object
+      description: List of available Pipeline Servers
+      required:
+        - servers
+      properties:
+        servers:
+          type: array
+          description: Array of Pipeline Servers
+          items:
+            $ref: '#/components/schemas/PipelineServer'
+
     BaseResource:
       allOf:
         - $ref: "#/components/schemas/BaseResourceCreate"
@@ -202,6 +388,54 @@ components:
               data:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
+
+    PipelineRunsResponse:
+      description: Successful response containing pipeline runs
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRunsData'
+          example:
+            metadata: {}
+            data:
+              runs:
+                - run_id: "abc123-def456"
+                  display_name: "AutoRAG Optimization Run 1"
+                  state: "SUCCEEDED"
+                  created_at: "2026-02-24T10:30:00Z"
+                  finished_at: "2026-02-24T11:15:00Z"
+                  annotations:
+                    autorag.opendatahub.io/experiment-id: "exp-123"
+              total_size: 1
+              next_page_token: ""
+
+    PipelineServersResponse:
+      description: Successful response containing available Pipeline Servers
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineServersData'
+          example:
+            metadata: {}
+            data:
+              servers:
+                - name: "dspa"
+                  namespace: "my-namespace"
+                  ready: true
+                  api_url: "https://ds-pipeline-dspa.my-namespace.svc.cluster.local:8443"
+
     ConflictResponse:
       content:
         application/json:
@@ -300,7 +534,7 @@ components:
       schema:
         type: string
       in: query
-      required: false
+      required: true
 
   securitySchemes:
     Bearer:
@@ -313,3 +547,5 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: PipelineOperation
+    description: Operations for querying Kubeflow Pipeline runs

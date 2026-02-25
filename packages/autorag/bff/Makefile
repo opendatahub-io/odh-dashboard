@@ -11,7 +11,7 @@ INSECURE_SKIP_VERIFY ?= false
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.0
+ENVTEST_K8S_VERSION = 1.29.3
 LOG_LEVEL ?= info
 ALLOWED_ORIGINS ?= ""
 DEBUG ?= false
