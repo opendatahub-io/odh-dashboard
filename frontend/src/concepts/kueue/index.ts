@@ -114,6 +114,7 @@ export const getKueueWorkloadStatusWithMessage = (
   return {
     status: filteredWorkload.status,
     message: getMessageFromCondition(filteredWorkload.condition),
+    timestamp: filteredWorkload.condition?.lastTransitionTime,
   };
 };
 

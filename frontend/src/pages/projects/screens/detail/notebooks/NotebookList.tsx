@@ -18,6 +18,7 @@ import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { NotebookModel } from '#~/api/models/kubeflow';
+import useKueueNotebookAlerts from '#~/pages/projects/notebook/useKueueNotebookAlerts';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {
@@ -29,6 +30,7 @@ const NotebookList: React.FC = () => {
       error: notebooksError,
       refresh: refreshNotebooks,
     },
+    kueueStatusByNotebookName,
   } = React.useContext(ProjectDetailsContext);
   const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
@@ -45,6 +47,8 @@ const NotebookList: React.FC = () => {
       .filter((notebookState) => !notebookState.isStarting && !notebookState.isStopping)
       .forEach((notebookState) => notebookState.refresh()),
   );
+
+  useKueueNotebookAlerts(notebooks, kueueStatusByNotebookName);
 
   const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
