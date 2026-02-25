@@ -61,3 +61,34 @@ type ErrorInfo struct {
 	Code    int32  `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 }
+
+// CreateAutoRAGRunRequest is the BFF-level input for creating an AutoRAG pipeline run.
+// The BFF maps these fields to KFP runtime config parameters.
+type CreateAutoRAGRunRequest struct {
+	DisplayName          string   `json:"display_name"`
+	Description          string   `json:"description,omitempty"`
+	TestDataSecretName   string   `json:"test_data_secret_name"`
+	TestDataBucketName   string   `json:"test_data_bucket_name"`
+	TestDataKey          string   `json:"test_data_key"`
+	InputDataSecretName  string   `json:"input_data_secret_name"`
+	InputDataBucketName  string   `json:"input_data_bucket_name"`
+	InputDataKey         string   `json:"input_data_key"`
+	LlamaStackSecretName string   `json:"llama_stack_secret_name"`
+	EmbeddingsModels     []string `json:"embeddings_models,omitempty"`
+	GenerationModels     []string `json:"generation_models,omitempty"`
+	OptimizationMetric   string   `json:"optimization_metric,omitempty"`
+	VectorDatabaseID     string   `json:"vector_database_id,omitempty"`
+}
+
+// PipelineVersionReference identifies the pipeline to run.
+type PipelineVersionReference struct {
+	PipelineID string `json:"pipeline_id"`
+}
+
+// CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.
+type CreatePipelineRunKFRequest struct {
+	DisplayName              string                   `json:"display_name"`
+	Description              string                   `json:"description,omitempty"`
+	PipelineVersionReference PipelineVersionReference `json:"pipeline_version_reference"`
+	RuntimeConfig            RuntimeConfig            `json:"runtime_config"`
+}

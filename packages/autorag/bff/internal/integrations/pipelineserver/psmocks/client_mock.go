@@ -3,6 +3,7 @@ package psmocks
 import (
 	"context"
 	"crypto/x509"
+	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -66,6 +67,19 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 		},
 		TotalSize:     3,
 		NextPageToken: "",
+	}, nil
+}
+
+// CreateRun returns a mock pipeline run response echoing request fields
+func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	return &models.KFPipelineRun{
+		RunID:             "mock-run-" + time.Now().Format("20060102-150405"),
+		DisplayName:       request.DisplayName,
+		Description:       request.Description,
+		PipelineVersionID: request.PipelineVersionReference.PipelineID,
+		State:             "PENDING",
+		CreatedAt:         time.Now().UTC().Format(time.RFC3339),
+		RuntimeConfig:     &request.RuntimeConfig,
 	}, nil
 }
 

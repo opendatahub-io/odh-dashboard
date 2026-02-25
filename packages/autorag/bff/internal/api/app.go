@@ -160,6 +160,7 @@ func (app *App) Routes() http.Handler {
 	// Pipeline Server API endpoints
 	apiRouter.GET(PipelineServersPath, app.AttachNamespace(app.PipelineServersHandler))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.AttachPipelineServerClient(app.PipelineRunsHandler)))
+	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.AttachPipelineServerClient(app.CreatePipelineRunHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

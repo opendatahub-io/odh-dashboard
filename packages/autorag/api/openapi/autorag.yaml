@@ -79,9 +79,9 @@ paths:
   # =============================================================================
 
   /api/v1/pipeline-runs:
-    summary: Query pipeline runs with specific annotations
+    summary: Pipeline run operations
     description: >-
-      Lists pipeline runs from a specified Pipeline Server filtered by annotations.
+      Endpoints for listing and creating pipeline runs.
       Requires namespace and pipelineServerId parameters for proper isolation.
     get:
       tags:
@@ -120,6 +120,41 @@ paths:
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: Returns pipeline runs filtered by annotations
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: pipelineServerId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID/name of the Pipeline Server (DSPipelineApplication name)
+          example: "dspa"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutoRAGRunRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/CreatePipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: createPipelineRun
+      summary: Create Pipeline Run
+      description: >-
+        Creates a new AutoRAG pipeline run. The BFF maps the AutoRAG-specific
+        parameters to KFP v2beta1 runtime config and submits the run against a
+        hardcoded pipeline definition.
 
   /api/v1/pipeline-servers:
     summary: List available Pipeline Servers in a namespace
@@ -209,6 +244,69 @@ components:
           example:
             autorag.opendatahub.io/experiment-id: "exp-123"
             autorag.opendatahub.io/dataset: "test-set-v1"
+
+    CreateAutoRAGRunRequest:
+      type: object
+      description: Request body for creating an AutoRAG pipeline run
+      required:
+        - display_name
+        - test_data_secret_name
+        - test_data_bucket_name
+        - test_data_key
+        - input_data_secret_name
+        - input_data_bucket_name
+        - input_data_key
+        - llama_stack_secret_name
+      properties:
+        display_name:
+          type: string
+          description: Human-readable name for the run
+          example: "my-optimization-run"
+        description:
+          type: string
+          description: Optional description of the run
+        test_data_secret_name:
+          type: string
+          description: Name of the K8s secret containing test data credentials
+        test_data_bucket_name:
+          type: string
+          description: S3 bucket name for test data
+        test_data_key:
+          type: string
+          description: Object key within the test data bucket
+        input_data_secret_name:
+          type: string
+          description: Name of the K8s secret containing input data credentials
+        input_data_bucket_name:
+          type: string
+          description: S3 bucket name for input data
+        input_data_key:
+          type: string
+          description: Object key within the input data bucket
+        llama_stack_secret_name:
+          type: string
+          description: Name of the K8s secret for LlamaStack access
+        embeddings_models:
+          type: array
+          items:
+            type: string
+          description: Optional list of embedding model identifiers
+        generation_models:
+          type: array
+          items:
+            type: string
+          description: Optional list of generation model identifiers
+        optimization_metric:
+          type: string
+          enum:
+            - faithfulness
+            - answer_correctness
+            - context_correctness
+          description: Metric to optimize (defaults to faithfulness)
+        vector_database_id:
+          type: string
+          description: Optional vector database identifier
+      additionalProperties: false
 
     PipelineRunsData:
       type: object
@@ -414,6 +512,27 @@ components:
                     autorag.opendatahub.io/experiment-id: "exp-123"
               total_size: 1
               next_page_token: ""
+
+    CreatePipelineRunResponse:
+      description: Successful response containing the created pipeline run
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineRun'
+          example:
+            metadata: {}
+            data:
+              run_id: "abc123-def456"
+              display_name: "my-optimization-run"
+              state: "PENDING"
+              created_at: "2026-02-25T10:30:00Z"
+              pipeline_version_id: "autorag-documents-rag-optimization-pipeline"
 
     PipelineServersResponse:
       description: Successful response containing available Pipeline Servers

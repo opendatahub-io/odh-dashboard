@@ -74,6 +74,18 @@ dev-frontend-federated:
 dev-bff-federated:
 	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
+########### Dev Federated Mock ###########
+# Same as dev-start-federated but with mock pipeline server client enabled.
+# Use this when developing without a real KFP cluster.
+.PHONY: dev-start-federated-mock
+dev-start-federated-mock:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-federated-mock dev-frontend-federated
+
+.PHONY: dev-bff-federated-mock
+dev-bff-federated-mock:
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
 ############ Build ############
 
 .PHONY: docker-build
