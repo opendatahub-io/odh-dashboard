@@ -66,7 +66,7 @@ describe('[Product Bug: RHOAIENG-50666] Verify Model Creation and Validation usi
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing'],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@ModelServing', '@Bug'],
     },
     () => {
       cy.log('Model Name:', modelName);

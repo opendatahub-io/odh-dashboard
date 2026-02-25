@@ -69,7 +69,7 @@ describe('[Product Bug: RHOAIENG-50666] A model can be stopped and started', () 
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Bug'],
     },
     () => {
       cy.log('Model Name:', modelName);

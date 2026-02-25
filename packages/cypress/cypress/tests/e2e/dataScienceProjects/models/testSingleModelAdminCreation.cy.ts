@@ -64,7 +64,15 @@ describe('[Product Bug: RHOAIENG-50666] Verify Admin Single Model Creation and V
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@ModelServing', '@ModelServingCI'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2626',
+        '@Dashboard',
+        '@ModelServing',
+        '@ModelServingCI',
+        '@Bug',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);

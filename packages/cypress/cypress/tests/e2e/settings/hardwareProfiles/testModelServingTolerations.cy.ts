@@ -112,6 +112,7 @@ describe('[Product Bug: RHOAIENG-50666] ModelServing - tolerations tests', () =>
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
+        '@Bug',
       ],
     },
     () => {

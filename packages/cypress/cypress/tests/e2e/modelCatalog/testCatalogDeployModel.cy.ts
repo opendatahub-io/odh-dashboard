@@ -59,7 +59,7 @@ describe('[Product Bug: RHOAIENG-50666] Verify a model can be deployed from mode
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@Bug'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
