@@ -60,7 +60,7 @@ const MlflowExperimentsPage: React.FC = () => {
 
   const loadWrapper = useMemo(
     () => () =>
-      loadRemote<{ default: React.ComponentType }>('mlflow/MlflowExperimentWrapper')
+      loadRemote<{ default: React.ComponentType }>('mlflowEmbedded/MlflowExperimentWrapper')
         .then((mod) => mod ?? { default: MLflowUnavailable })
         .catch(() => ({ default: MLflowUnavailable })),
     [],

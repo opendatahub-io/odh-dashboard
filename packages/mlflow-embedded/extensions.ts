@@ -13,14 +13,14 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: 'mlflow-application',
+      id: 'mlflow-embedded',
       featureFlags: ['mlflow'],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: ['ds-pipelines', 'mlflow-application'],
+      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
     },
     properties: {
       id: 'experiments-mlflow',

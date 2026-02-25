@@ -1,0 +1,53 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/mlflow-embedded",
+  "description": "Embeds selected pages from the external MLflow frontend into the dashboard.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "module-federation": {
+    "name": "mlflowEmbedded",
+    "backend": {
+      "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
+      "authorize": true,
+      "tls": true,
+      "service": {
+        "name": "mlflow",
+        "port": 8443
+      },
+      "localService": {
+        "host": "localhost",
+        "port": 9300
+      }
+    },
+    "proxyService": [
+      {
+        "path": "/mlflow",
+        "pathRewrite": "/mlflow",
+        "authorize": true,
+        "tls": true,
+        "service": {
+          "name": "mlflow",
+          "port": 8443
+        },
+        "localService": {
+          "host": "localhost",
+          "port": 5001
+        }
+      }
+    ]
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}
