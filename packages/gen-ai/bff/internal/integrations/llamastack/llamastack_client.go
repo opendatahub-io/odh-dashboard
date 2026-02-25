@@ -722,6 +722,23 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 	return filesPage.Data, nil
 }
 
+// GetVectorStoreFile retrieves a single file from a vector store by ID.
+func (c *LlamaStackClient) GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error) {
+	if vectorStoreID == "" {
+		return nil, NewInvalidRequestError("vectorStoreID is required")
+	}
+	if fileID == "" {
+		return nil, NewInvalidRequestError("fileID is required")
+	}
+
+	file, err := c.client.VectorStores.Files.Get(ctx, vectorStoreID, fileID)
+	if err != nil {
+		return nil, wrapClientError(err, "GetVectorStoreFile")
+	}
+
+	return file, nil
+}
+
 // DeleteVectorStoreFile removes a file from a vector store.
 func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
 	if vectorStoreID == "" {

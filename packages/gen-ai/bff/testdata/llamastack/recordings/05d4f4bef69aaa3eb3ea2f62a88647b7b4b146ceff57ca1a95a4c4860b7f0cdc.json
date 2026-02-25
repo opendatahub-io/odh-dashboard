@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack-recordings/test.py::record",
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
@@ -9,7 +9,7 @@
       "messages": [
         {
           "role": "user",
-          "content": "First message in conversation"
+          "content": "Test unified repository"
         }
       ],
       "stream": true,
@@ -25,11 +25,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "The best first message depends entirely on the **context**, your **relationship with the person**, and your **goal**.\n\nHere are various",
+                "content": "\"Test unified repository\" implies a request for information about what a unified repository is, its purpose, benefits, challenges, and perhaps how it's tested or used in practice.\n\nLet's break down the concept of a",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,9 +46,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 27,
-            "prompt_tokens": 5,
-            "total_tokens": 1504,
+            "completion_tokens": 46,
+            "prompt_tokens": 4,
+            "total_tokens": 1349,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -57,11 +57,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " examples based on common scenarios, along with tips:\n\n---\n\n### **General Tips for Any First Message:**\n\n1.  **Be Clear & Concise:** Get to the point.\n2.  **State Your Purpose:** Why are you messaging",
+                "content": " **Unified Repository**, often synonymous with a **Monorepo**.\n\n---\n\n### What is a Unified Repository (Monorepo)?\n\nA **unified repository**, or **monorepo**, is a single, centralized version control repository that houses the source",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,9 +78,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 77,
-            "prompt_tokens": 5,
-            "total_tokens": 1554,
+            "completion_tokens": 97,
+            "prompt_tokens": 4,
+            "total_tokens": 1400,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -89,11 +89,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " them?\n3.  **Personalize It:** Show you've put some thought into it (especially for new contacts).\n4.  **Ask a Question:** This encourages a reply.\n5.  **Proofread:**",
+                "content": " code for **multiple projects, libraries, services, and sometimes even documentation, assets, and configurations**, all related to a larger system or organization.\n\nInstead of having separate repositories for each microservice, application, or library (a \"multi-repo",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -110,9 +110,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 125,
-            "prompt_tokens": 5,
-            "total_tokens": 1602,
+            "completion_tokens": 147,
+            "prompt_tokens": 4,
+            "total_tokens": 1450,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -121,11 +121,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " Avoid typos.\n6.  **Consider the Platform:** Text, email, app DM will have different levels of formality.\n\n---\n\n### **Examples by Scenario:**\n\n**1. To a Friend (Casual Check-in):**",
+                "content": "\" strategy), a monorepo combines them all into one.\n\n**Key Characteristics:**\n\n*   **Single VCS:** All projects share the same version control system (e.g., Git, SVN).\n*   **Multiple",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -142,9 +142,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 173,
-            "prompt_tokens": 5,
-            "total_tokens": 1650,
+            "completion_tokens": 195,
+            "prompt_tokens": 4,
+            "total_tokens": 1498,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -153,11 +153,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "\n*   **Goal:** Connect, see how they are, maybe make plans.\n*   **Tone:** Informal, friendly.\n    *   \"Hey! How's your week going?\"\n    *   \"What's",
+                "content": " Independent Projects:** While housed together, the projects within a monorepo are often still designed to be independently deployable and runnable.\n*   **Shared Tooling/Infrastructure:** It typically leverages common build tools, CI/CD pipelines, lint",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -174,9 +174,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 221,
-            "prompt_tokens": 5,
-            "total_tokens": 1698,
+            "completion_tokens": 244,
+            "prompt_tokens": 4,
+            "total_tokens": 1547,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -185,11 +185,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " up? Been thinking about [shared activity/memory] and wanted to say hi.\"\n    *   \"Yo! You busy this weekend?\"\n\n**2. To a New Acquaintance (Met in person/event):**\n*",
+                "content": "ing rules, and dependencies across many projects.\n*   **Coordinated Versioning:** Changes impacting multiple projects can often be committed and deployed atomically.\n\n---\n\n### Why Use a Unified Repository? (Advantages/Benefits)\n\n1.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -206,9 +206,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 270,
-            "prompt_tokens": 5,
-            "total_tokens": 1747,
+            "completion_tokens": 292,
+            "prompt_tokens": 4,
+            "total_tokens": 1595,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -217,11 +217,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "   **Goal:** Continue the connection, solidify the contact.\n*   **Tone:** Friendly, polite.\n    *   \"Hi [Name], it was great meeting you at [event/place] today! Hope you had a good rest",
+                "content": "  **Code Sharing and Reusability:**\n    *   Easier to share code (e.g., UI components, utility libraries, type definitions) across projects within the same organization.\n    *   No need for complex package management or external",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -238,9 +238,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 319,
-            "prompt_tokens": 5,
-            "total_tokens": 1796,
+            "completion_tokens": 342,
+            "prompt_tokens": 4,
+            "total_tokens": 1645,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -249,11 +249,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " of your day.\"\n    *   \"Hey [Name], enjoyed chatting with you at [event]. Let me know if you want to grab that coffee we talked about sometime.\"\n\n**3. On a Dating App:**\n*   **",
+                "content": " dependency linking for internal libraries.\n\n2.  **Atomic Commits and Refactoring:**\n    *   You can make changes to a shared library and simultaneously update all its consumers in a *single commit*. This ensures consistency and prevents breakage across",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -270,9 +270,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 368,
-            "prompt_tokens": 5,
-            "total_tokens": 1845,
+            "completion_tokens": 391,
+            "prompt_tokens": 4,
+            "total_tokens": 1694,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -281,11 +281,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "Goal:** Spark interest, get a reply, stand out from generic messages.\n*   **Tone:** Playful, curious, personal (reference their profile). Avoid generic \"Hey.\"\n    *   (Referencing their profile photo/",
+                "content": " multiple dependent projects.\n    *   Refactoring a core service that affects multiple clients becomes much simpler and safer.\n\n3.  **Simplified Dependency Management:**\n    *   All internal dependencies are resolved directly from the repository, often using local sym",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -302,8 +302,104 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 416,
-            "prompt_tokens": 5,
+            "completion_tokens": 441,
+            "prompt_tokens": 4,
+            "total_tokens": 1744,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "links or workspace features (like Yarn Workspaces, npm Workspaces, Lerna). This avoids publishing internal packages to private registries.\n\n4.  **Consistent Tooling and Standards:**\n    *   Easier to enforce consistent build processes, testing",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 491,
+            "prompt_tokens": 4,
+            "total_tokens": 1794,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " frameworks, linting rules, and coding standards across all projects.\n\n5.  **Onboarding and Discovery:**\n    *   New developers only need to clone one repository to get access to all relevant code.\n    *   Easier",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 541,
+            "prompt_tokens": 4,
+            "total_tokens": 1844,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " to discover existing services, libraries, and their implementations.\n\n6.  **Cross-Project Visibility:**\n    *   Developers have a broader view of the entire system, fostering better understanding and collaboration between teams.\n\n7.  **Eas",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 590,
+            "prompt_tokens": 4,
             "total_tokens": 1893,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
@@ -313,11 +409,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "bio) \"Hey [Name]! Love that photo of you hiking \u2013 what's been your favorite trail so far?\"\n    *   \"Your bio mentioned you're really into [hobby] \u2013 any recommendations for a beginner?\"",
+                "content": "ier Integration Testing:**\n    *   Testing interactions between multiple services or components can be simplified since all code is present and locally accessible.\n\n---\n\n### Challenges and Disadvantages\n\n1.  **Repository Size and Performance:**\n    *   Can",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -334,9 +430,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 464,
-            "prompt_tokens": 5,
-            "total_tokens": 1941,
+            "completion_tokens": 640,
+            "prompt_tokens": 4,
+            "total_tokens": 1943,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -345,11 +441,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "\n    *   \"That's a cool [pet/tattoo/interest]! What's the story behind it?\"\n\n**4. Professional Networking (LinkedIn, cold email):**\n*   **Goal:** Connect, potentially ask",
+                "content": " grow extremely large over time, leading to slow `git clone`, `git fetch`, and `git checkout` operations.\n    *   Can consume significant disk space.\n\n2.  **Build and CI/CD Performance:**\n    *",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -366,9 +462,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 511,
-            "prompt_tokens": 5,
-            "total_tokens": 1988,
+            "completion_tokens": 689,
+            "prompt_tokens": 4,
+            "total_tokens": 1992,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -377,11 +473,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " for advice or a meeting.\n*   **Tone:** Respectful, professional, concise.\n    *   \"Dear [Name], I'm [Your Name], a [Your Role] at [Your Company]. I've",
+                "content": "   Building the entire monorepo or running all tests on every commit can be very time-consuming.\n    *   Requires sophisticated build tools (e.g., Bazel, Nx, Turborepo) to intelligently detect changes and only build",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -398,9 +494,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 559,
-            "prompt_tokens": 5,
-            "total_tokens": 2036,
+            "completion_tokens": 738,
+            "prompt_tokens": 4,
+            "total_tokens": 2041,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -409,11 +505,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " been following your work on [specific project/article] and found it very insightful. I was wondering if you might be open to a brief virtual coffee chat sometime next month to discuss [specific topic]?\"\n    *   \"Hello [Name], My",
+                "content": "/test affected projects.\n\n3.  **Complexity of Tooling:**\n    *   Managing multiple projects within a single repository often requires specialized monorepo management tools (Lerna, Nx, Bazel, Rush, Pants). There",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -430,9 +526,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 610,
-            "prompt_tokens": 5,
-            "total_tokens": 2087,
+            "completion_tokens": 786,
+            "prompt_tokens": 4,
+            "total_tokens": 2089,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -441,11 +537,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " name is [Your Name], and I'm a big admirer of your work in [their field]. I'm currently [your current situation/goal] and was hoping you might spare a few minutes for a quick chat if you have availability",
+                "content": "'s a learning curve for these.\n\n4.  **Access Control:**\n    *   Granting access to a monorepo typically means granting access to *all* projects within it, which can be an issue for strict security",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -462,9 +558,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 659,
-            "prompt_tokens": 5,
-            "total_tokens": 2136,
+            "completion_tokens": 834,
+            "prompt_tokens": 4,
+            "total_tokens": 2137,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -473,11 +569,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": ".\"\n\n**5. Work-Related (Colleague, Manager):**\n*   **Goal:** Information, scheduling, quick update.\n*   **Tone:** Direct, polite, professional.\n    *   \"Hi [Name],",
+                "content": " or compliance requirements (e.g., if a contractor should only see one specific project).\n\n5.  **\"Blast Radius\" of Changes:**\n    *   A faulty commit or a breaking change can potentially impact a very large number of projects",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -494,9 +590,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 708,
-            "prompt_tokens": 5,
-            "total_tokens": 2185,
+            "completion_tokens": 884,
+            "prompt_tokens": 4,
+            "total_tokens": 2187,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -505,11 +601,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " hope you're having a good day. Do you have a moment to discuss the [project] requirements?\"\n    *   \"Good morning [Name], just following up on [topic]. When would be a good time to connect about",
+                "content": ", making rollbacks or fixes more critical.\n\n6.  **Versioning Complexity:**\n    *   Deciding on a versioning strategy for individual packages within the monorepo can be tricky (e.g., independent versioning vs.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -526,9 +622,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 756,
-            "prompt_tokens": 5,
-            "total_tokens": 2233,
+            "completion_tokens": 933,
+            "prompt_tokens": 4,
+            "total_tokens": 2236,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -537,11 +633,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " it today?\"\n\n**6. Asking for a Favor/Information:**\n*   **Goal:** Clearly state what you need.\n*   **Tone:** Polite, appreciative.\n    *   \"Hey [Name], I hope you're",
+                "content": " fixed versioning).\n\n7.  **Developer Experience:**\n    *   Can be overwhelming for developers who only need to work on a small subset of projects.\n\n---\n\n### Common Use Cases\n\n*   **Microservices Architectures:** Especially",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -558,9 +654,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 806,
-            "prompt_tokens": 5,
-            "total_tokens": 2283,
+            "completion_tokens": 983,
+            "prompt_tokens": 4,
+            "total_tokens": 2286,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -569,11 +665,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " doing well. I was wondering if you might be able to help me with something regarding [topic]?\"\n    *   \"Hi [Name], quick question \u2013 do you happen to know [piece of information]?\"\n\n**7. Customer Support/",
+                "content": " when microservices are tightly coupled or share many common components.\n*   **Component Libraries/Design Systems:** Housing all UI components, styles, and documentation in one place.\n*   **Frontend/Backend Applications:** When a frontend application and its corresponding",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -590,9 +686,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 857,
-            "prompt_tokens": 5,
-            "total_tokens": 2334,
+            "completion_tokens": 1034,
+            "prompt_tokens": 4,
+            "total_tokens": 2337,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -601,11 +697,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "Reporting an Issue:**\n*   **Goal:** Clearly state the problem and relevant details.\n*   **Tone:** Clear, concise, factual.\n    *   \"Hi, I'm having trouble logging into my account. My username",
+                "content": " backend API are closely linked.\n*   **Mobile Apps with Shared Logic:** iOS and Android apps that share business logic (e.g., using Kotlin Multiplatform or Swift packages).\n*   **Libraries and Frameworks:** Often developed",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -622,9 +718,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 906,
-            "prompt_tokens": 5,
-            "total_tokens": 2383,
+            "completion_tokens": 1082,
+            "prompt_tokens": 4,
+            "total_tokens": 2385,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -633,11 +729,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " is [username/email].\"\n    *   \"Hello, my order #[order number] arrived damaged. Could you please advise on how to proceed with a return/exchange?\"\n\n**8. Reconnecting with an Old Friend:**\n",
+                "content": " in a monorepo to manage core and plugins together.\n*   **Startups:** Can be simpler to manage initially before scaling out to many distinct teams and services.\n\n---\n\n### Tools and Technologies for Monorepos\n\n*   **Version",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -654,9 +750,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 953,
-            "prompt_tokens": 5,
-            "total_tokens": 2430,
+            "completion_tokens": 1133,
+            "prompt_tokens": 4,
+            "total_tokens": 2436,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -665,11 +761,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": "*   **Goal:** Rekindle the connection, show you remember them.\n*   **Tone:** Warm, nostalgic.\n    *   \"Hey [Name]! It's [Your Name] from [shared context, e.g.,",
+                "content": " Control:** Git (most common), SVN.\n*   **Monorepo Management/Build Systems:**\n    *   **JavaScript/TypeScript:** Lerna, Nx, Turborepo, Rush, Yarn Workspaces, npm Work",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -686,9 +782,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 1004,
-            "prompt_tokens": 5,
-            "total_tokens": 2481,
+            "completion_tokens": 1181,
+            "prompt_tokens": 4,
+            "total_tokens": 2484,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -697,11 +793,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " 'high school']! Been a while! How have you been?\"\n    *   \"Long time no talk! Was just thinking about that time we [shared memory] and wanted to see how you're doing.\"\n\n---\n\nChoose",
+                "content": "spaces.\n    *   **General Purpose/Polyglot:** Bazel (Google), Pants (Twitter).\n*   **CI/CD Platforms:** GitHub Actions, GitLab CI, Jenkins, CircleCI (configured with intelligent caching and affected",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -718,9 +814,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 1053,
-            "prompt_tokens": 5,
-            "total_tokens": 2530,
+            "completion_tokens": 1230,
+            "prompt_tokens": 4,
+            "total_tokens": 2533,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -729,11 +825,75 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-688394a7ffe7",
+          "id": "rec-05d4f4bef69a",
           "choices": [
             {
               "delta": {
-                "content": " the example that best fits your situation, and feel free to adapt it!",
+                "content": "-project detection).\n*   **Git Features:** Sparse Checkout, Partial Clone (to mitigate repository size issues).\n\n---\n\n### Conclusion\n\nA unified repository (monorepo) is a powerful strategy for managing multiple related projects, offering",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1278,
+            "prompt_tokens": 4,
+            "total_tokens": 2581,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " significant advantages in code sharing, consistency, and atomic changes. However, it's not a silver bullet and introduces its own set of challenges, particularly around performance and tooling complexity at scale. The decision to adopt a monorepo should be based on a",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1329,
+            "prompt_tokens": 4,
+            "total_tokens": 2632,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " careful evaluation of an organization's specific needs, team structure, and project interdependencies.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -750,9 +910,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 1068,
-            "prompt_tokens": 5,
-            "total_tokens": 2545,
+            "completion_tokens": 1348,
+            "prompt_tokens": 4,
+            "total_tokens": 2651,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

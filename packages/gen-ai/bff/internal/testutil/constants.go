@@ -8,41 +8,46 @@ import (
 
 // Shared test constants used across the gen-ai BFF test suite
 const (
-	TestNamespace         = "test-namespace"
-	TestToken             = "FAKE_BEARER_TOKEN"
-	DefaultLlamaStackPort = 8321
-
-	defaultGeminiModel          = "gemini/models/gemini-2.5-flash"
-	defaultGeminiEmbeddingModel = "gemini/models/gemini-embedding-001"
+	TestNamespace = "test-namespace"
+	TestToken     = "FAKE_BEARER_TOKEN"
 )
 
-// GetTestLlamaStackModel returns the test model from TEST_LLAMA_STACK_MODEL (or default).
+// RequiredEnv reads an environment variable and panics if it is not set.
+// Used by test infrastructure to enforce that tests run via 'make test'.
+func RequiredEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		panic(fmt.Sprintf("required env var %s not set -- run tests via 'make test'", key))
+	}
+	return v
+}
+
+// GetTestLlamaStackModel returns the test model from TEST_LLAMA_STACK_MODEL.
+// Panics if the env var is not set; the Makefile is the single source of truth.
 func GetTestLlamaStackModel() string {
-	if v := os.Getenv("TEST_LLAMA_STACK_MODEL"); v != "" {
-		return v
-	}
-	return defaultGeminiModel
+	return RequiredEnv("TEST_LLAMA_STACK_MODEL")
 }
 
-// GetTestLlamaStackEmbeddingModel returns the test embedding model from TEST_LLAMA_STACK_EMBEDDING_MODEL (or default).
-func GetTestLlamaStackEmbeddingModel() string {
-	if v := os.Getenv("TEST_LLAMA_STACK_EMBEDDING_MODEL"); v != "" {
-		return v
-	}
-	return defaultGeminiEmbeddingModel
-}
-
-// GetTestLlamaStackPort returns the test Llama Stack port from TEST_LLAMA_STACK_PORT (or default).
+// GetTestLlamaStackPort returns the test Llama Stack port from TEST_LLAMA_STACK_PORT.
+// Panics if the env var is not set or not a valid integer; the Makefile is the single source of truth.
 func GetTestLlamaStackPort() int {
-	if v := os.Getenv("TEST_LLAMA_STACK_PORT"); v != "" {
-		if p, err := strconv.Atoi(v); err == nil {
-			return p
-		}
+	v := RequiredEnv("TEST_LLAMA_STACK_PORT")
+	p, err := strconv.Atoi(v)
+	if err != nil {
+		panic(fmt.Sprintf("TEST_LLAMA_STACK_PORT is not a valid integer: %q", v))
 	}
-	return DefaultLlamaStackPort
+	return p
 }
 
 // GetTestLlamaStackURL returns the test Llama Stack URL based on GetTestLlamaStackPort().
 func GetTestLlamaStackURL() string {
 	return fmt.Sprintf("http://localhost:%d", GetTestLlamaStackPort())
+}
+
+// ConfigureProductionEnvFromTest bridges test env vars to production env vars.
+// The Makefile passes TEST_* variables; production code reads DEFAULT_* variables.
+// This function connects them so the Makefile doesn't need to know production internals.
+func ConfigureProductionEnvFromTest() {
+	os.Setenv("DEFAULT_EMBEDDING_MODEL", RequiredEnv("TEST_LLAMA_STACK_EMBEDDING_MODEL"))
+	os.Setenv("DEFAULT_EMBEDDING_DIMENSION", RequiredEnv("TEST_LLAMA_STACK_EMBEDDING_DIMENSION"))
 }

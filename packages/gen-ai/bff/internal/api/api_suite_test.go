@@ -31,7 +31,9 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
 // Package-level test infrastructure - initialized once, shared by all tests.
@@ -106,6 +108,8 @@ var testCtx *SharedTestContext
 
 // BeforeSuite sets up test infrastructure (envtest and HTTP server) for all Ginkgo tests.
 var _ = BeforeSuite(func() {
+	testutil.ConfigureProductionEnvFromTest()
+
 	By("Setting up envtest environment")
 
 	logf.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -218,15 +222,15 @@ var _ = BeforeSuite(func() {
 	By("Starting LlamaStack")
 	lsState, lsErr := lsmocks.SetupLlamaStack(logger)
 	Expect(lsErr).NotTo(HaveOccurred())
+	Expect(lsState).NotTo(BeNil())
+	Expect(lsState.Seed).NotTo(BeNil(), "SeedData must return a SeedResult")
 	DeferCleanup(func() {
-		if lsState != nil {
-			By("stopping LlamaStack server")
-			lsmocks.CleanupLlamaStackState(
-				lsState,
-				func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
-				func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
-			)
-		}
+		By("stopping LlamaStack server")
+		lsmocks.CleanupLlamaStackState(
+			lsState,
+			func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+			func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+		)
 	})
 
 	// Start MLflow as a child process (SetupMLflow also seeds sample prompts)

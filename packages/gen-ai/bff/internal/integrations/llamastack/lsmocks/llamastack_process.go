@@ -15,29 +15,22 @@ import (
 )
 
 const (
-	defaultLlamaStackVersion = "0.5.1"
-	lsHealthTimeout          = 90 * time.Second
-	lsHealthPoll             = 2 * time.Second
-	lsShutdownWait           = 5 * time.Second
-	defaultTestID            = "bff/testdata/llamastack-recordings/test.py::record"
+	lsHealthTimeout = 90 * time.Second
+	lsHealthPoll    = 2 * time.Second
+	lsShutdownWait  = 5 * time.Second
 )
 
 func llamaStackVersion() string {
-	if v := os.Getenv("TEST_LLAMA_STACK_VERSION"); v != "" {
-		return v
-	}
-	return defaultLlamaStackVersion
+	return testutil.RequiredEnv("TEST_LLAMA_STACK_VERSION")
 }
 
 func llamaStackTestID() string {
-	if v := os.Getenv("LLAMA_STACK_TEST_ID"); v != "" {
-		return v
-	}
-	return defaultTestID
+	return testutil.RequiredEnv("LLAMA_STACK_TEST_ID")
 }
 
 // LlamaStackState tracks the Llama Stack child process, enabling targeted cleanup
 // when the BFF shuts down — preventing orphaned servers.
+// When reusing an existing server (Cmd is nil), only Seed is populated.
 type LlamaStackState struct {
 	Cmd          *exec.Cmd
 	Port         int
@@ -45,6 +38,7 @@ type LlamaStackState struct {
 	RecordingDir string
 	Ctx          context.Context
 	Cancel       context.CancelFunc
+	Seed         *SeedResult
 }
 
 // SetupLlamaStack starts a local Llama Stack server as a child process in replay mode.
@@ -52,7 +46,6 @@ type LlamaStackState struct {
 // The caller is responsible for calling CleanupLlamaStackState on shutdown.
 func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 	port := testutil.GetTestLlamaStackPort()
-	version := llamaStackVersion()
 
 	if isLlamaStackHealthy(port) {
 		logger.Warn("Llama Stack already running on port — reusing existing instance. "+
@@ -60,13 +53,16 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 			fmt.Sprintf("Stop the external process (lsof -t -i :%d | xargs kill) and re-run for a clean state.", port),
 			slog.Int("port", port))
 		llamaStackURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-		if err := SeedData(llamaStackURL, llamaStackTestID(), logger); err != nil {
+		seed, err := SeedData(llamaStackURL, llamaStackTestID(), logger)
+		if err != nil {
 			return nil, fmt.Errorf("failed to seed already-running Llama Stack: %w", err)
 		}
-		return nil, nil
+		return &LlamaStackState{Seed: seed}, nil
 	}
 
-	uvBin, err := resolveUVBinary()
+	version := llamaStackVersion()
+
+	uvBin, err := testutil.ResolveUVBinary()
 	if err != nil {
 		return nil, fmt.Errorf("uv binary not found: %w", err)
 	}
@@ -77,16 +73,15 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	// Find the project root (where go.mod is) to locate config and recordings
-	projectRoot := findProjectRoot(cwd)
+	projectRoot := testutil.FindProjectRoot(cwd)
 
-	dataDir := filepath.Join(projectRoot, ".llamastack-test")
+	dataDir := filepath.Join(projectRoot, "testdata", "llamastack", ".data")
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create Llama Stack data directory: %w", err)
 	}
 
-	recordingDir := filepath.Join(projectRoot, "testdata", "llamastack-recordings")
-	configPath := filepath.Join(projectRoot, "llama-stack-run-config.yaml")
+	recordingDir := filepath.Join(projectRoot, "testdata", "llamastack")
+	configPath := filepath.Join(projectRoot, "testdata", "llamastack", "config.yaml")
 
 	// Determine inference mode and API key
 	inferenceMode := os.Getenv("LLAMA_STACK_TEST_INFERENCE_MODE")
@@ -124,8 +119,16 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if err := cmd.Start(); err != nil {
+	cleanup := func() {
+		if cmd.Process != nil {
+			_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		}
 		cancel()
+		os.RemoveAll(dataDir)
+	}
+
+	if err := cmd.Start(); err != nil {
+		cleanup()
 		return nil, fmt.Errorf("failed to start Llama Stack: %w", err)
 	}
 
@@ -136,22 +139,11 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 	)
 
 	if err := waitForLlamaStackHealth(port, logger); err != nil {
-		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		cancel()
+		cleanup()
 		return nil, fmt.Errorf("llama stack failed to become healthy: %w", err)
 	}
 
 	llamaStackURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	os.Setenv("LLAMA_STACK_TEST_ID", llamaStackTestID())
-
-	// Override the BFF's default embedding model to use the Gemini model available on the test server.
-	// Gemini provider prefixes model IDs with "gemini/" in the routing table.
-	if os.Getenv("DEFAULT_EMBEDDING_MODEL") == "" {
-		os.Setenv("DEFAULT_EMBEDDING_MODEL", testutil.GetTestLlamaStackEmbeddingModel())
-	}
-	if os.Getenv("DEFAULT_EMBEDDING_DIMENSION") == "" {
-		os.Setenv("DEFAULT_EMBEDDING_DIMENSION", "3072")
-	}
 
 	logger.Info("Llama Stack server started",
 		slog.Int("port", port),
@@ -159,9 +151,9 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 		slog.String("recording_dir", recordingDir),
 	)
 
-	if err := SeedData(llamaStackURL, llamaStackTestID(), logger); err != nil {
-		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		cancel()
+	seed, err := SeedData(llamaStackURL, llamaStackTestID(), logger)
+	if err != nil {
+		cleanup()
 		return nil, fmt.Errorf("failed to seed Llama Stack: %w", err)
 	}
 
@@ -172,16 +164,23 @@ func SetupLlamaStack(logger *slog.Logger) (*LlamaStackState, error) {
 		RecordingDir: recordingDir,
 		Ctx:          ctx,
 		Cancel:       cancel,
+		Seed:         seed,
 	}, nil
 }
 
 // CleanupLlamaStackState performs graceful shutdown of the Llama Stack child process.
+// When reusing an existing server (Cmd is nil), only seed result was stored — no process cleanup needed.
 func CleanupLlamaStackState(
 	state *LlamaStackState,
 	errorLogger func(string, ...any),
 	infoLogger func(string, ...any),
 ) {
 	if state == nil {
+		return
+	}
+
+	if state.Cmd == nil {
+		infoLogger("Llama Stack was reused (no child process to clean up)")
 		return
 	}
 
@@ -206,7 +205,11 @@ func CleanupLlamaStackState(
 		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
 			errorLogger("Failed to send SIGKILL to Llama Stack process group (PID %d): %v", pid, err)
 		}
-		<-done
+		select {
+		case <-done:
+		case <-time.After(10 * time.Second):
+			errorLogger("Llama Stack process did not exit after SIGKILL within 10s, abandoning")
+		}
 	}
 
 	state.Cancel()
@@ -217,46 +220,6 @@ func CleanupLlamaStackState(
 		} else {
 			infoLogger("Removed Llama Stack data directory %s", state.DataDir)
 		}
-	}
-}
-
-// resolveUVBinary finds the uv binary by walking up to the project root (go.mod),
-// then checking <projectRoot>/bin/uv. Falls back to PATH lookup.
-func resolveUVBinary() (string, error) {
-	cwd, err := os.Getwd()
-	if err == nil {
-		projectRoot := cwd
-		for {
-			if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-				localUV := filepath.Join(projectRoot, "bin", "uv")
-				if _, err := os.Stat(localUV); err == nil {
-					return localUV, nil
-				}
-				break
-			}
-			parent := filepath.Dir(projectRoot)
-			if parent == projectRoot {
-				break
-			}
-			projectRoot = parent
-		}
-	}
-
-	return exec.LookPath("uv")
-}
-
-// findProjectRoot walks up from cwd to find the directory containing go.mod
-func findProjectRoot(cwd string) string {
-	dir := cwd
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return cwd
-		}
-		dir = parent
 	}
 }
 

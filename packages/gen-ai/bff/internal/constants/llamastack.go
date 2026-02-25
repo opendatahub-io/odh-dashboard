@@ -1,6 +1,7 @@
 package constants
 
 import (
+	"log/slog"
 	"os"
 	"strconv"
 )
@@ -44,6 +45,8 @@ func DefaultEmbeddingModel() EmbeddingModelConfig {
 	if dim := os.Getenv("DEFAULT_EMBEDDING_DIMENSION"); dim != "" {
 		if d, err := strconv.ParseInt(dim, 10, 64); err == nil {
 			cfg.EmbeddingDimension = d
+		} else {
+			slog.Warn("invalid DEFAULT_EMBEDDING_DIMENSION, using default", "value", dim, "error", err)
 		}
 	}
 

@@ -1,5 +1,5 @@
 {
-  "test_id": "bff/testdata/llamastack-recordings/test.py::record",
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
@@ -47,7 +47,7 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-3d68345c0230",
+          "id": "rec-65c6b6684b45",
           "choices": [
             {
               "delta": {
@@ -58,7 +58,7 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-159496565923025062",
+                    "id": "function-call-14076038562768736728",
                     "function": {
                       "arguments": "{\"query\":\"machine learning\"}",
                       "name": "knowledge_search"
@@ -80,7 +80,7 @@
           "usage": {
             "completion_tokens": 16,
             "prompt_tokens": 59,
-            "total_tokens": 127,
+            "total_tokens": 120,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

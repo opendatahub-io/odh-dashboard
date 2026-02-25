@@ -20,6 +20,7 @@ type LlamaStackClientInterface interface {
 	GetFile(ctx context.Context, fileID string) (*openai.FileObject, error)
 	DeleteFile(ctx context.Context, fileID string) error
 	ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error)
+	GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error)
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
 	CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error)

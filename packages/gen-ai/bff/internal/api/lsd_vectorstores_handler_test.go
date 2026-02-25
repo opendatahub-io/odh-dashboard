@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
@@ -25,7 +26,7 @@ import (
 )
 
 // uploadTestFile uploads a small test file to the Llama Stack server and returns the file ID.
-func uploadTestFile(_ interface{}, baseURL string) (string, error) {
+func uploadTestFile(baseURL string) (string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	part, err := writer.CreateFormFile("file", "test_delete.txt")
@@ -42,10 +43,12 @@ func uploadTestFile(_ interface{}, baseURL string) (string, error) {
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if testID := os.Getenv("LLAMA_STACK_TEST_ID"); testID != "" {
-		req.Header.Set("X-LlamaStack-Provider-Data", fmt.Sprintf(`{"__test_id": "%s"}`, testID))
+		headerBytes, _ := json.Marshal(map[string]string{"__test_id": testID})
+		req.Header.Set("X-LlamaStack-Provider-Data", string(headerBytes))
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -686,7 +689,7 @@ var _ = Describe("LlamaStackListVectorStoreFilesHandler", func() {
 
 		assert.Contains(t, response, "data")
 		data := response["data"].([]interface{})
-		assert.GreaterOrEqual(t, len(data), 0, "should return a list (may be empty)")
+		assert.NotNil(t, data, "should return a list (may be empty)")
 	})
 
 	It("list vector store files with query parameters", func() {
@@ -783,7 +786,7 @@ var _ = Describe("LlamaStackDeleteVectorStoreFileHandler", func() {
 		}
 	})
 
-	It("successful delete vector store file", func() {
+	It("delete vector store file for non-member file", func() {
 		t := GinkgoT()
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
 		identity := &integrations.RequestIdentity{Token: "test-token"}
@@ -808,12 +811,11 @@ var _ = Describe("LlamaStackDeleteVectorStoreFileHandler", func() {
 		assert.NoError(t, err)
 		vsID := createResp.Data.(map[string]interface{})["id"].(string)
 
-		// Upload a file
-		fileResp, err := uploadTestFile(llamaStackClient, testutil.GetTestLlamaStackURL())
+		// Upload a file (not added to the vector store)
+		fileResp, err := uploadTestFile(testutil.GetTestLlamaStackURL())
 		require.NoError(t, err, "setup: file upload should succeed")
 		fileID := fileResp
 
-		// Delete the vector store file (the file was not added to VS, but the handler should handle gracefully)
 		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoreFilesDeletePath+"?namespace=default&vector_store_id="+vsID+"&file_id="+fileID, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "default")
@@ -823,9 +825,8 @@ var _ = Describe("LlamaStackDeleteVectorStoreFileHandler", func() {
 		rr := httptest.NewRecorder()
 		app.LlamaStackDeleteVectorStoreFileHandler(rr, req, nil)
 
-		// Accept either success or error (file was not added to the vector store)
-		assert.True(t, rr.Code == http.StatusOK || rr.Code == http.StatusBadRequest || rr.Code == http.StatusNotFound,
-			"Expected 200, 400, or 404 for vector store file delete, got %d", rr.Code)
+		assert.True(t, rr.Code == http.StatusBadRequest || rr.Code == http.StatusNotFound,
+			"Expected 400 or 404 for non-member file delete, got %d", rr.Code)
 	})
 
 	It("missing vector_store_id parameter", func() {
