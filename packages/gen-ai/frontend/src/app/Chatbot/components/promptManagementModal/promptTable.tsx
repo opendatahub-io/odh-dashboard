@@ -40,7 +40,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
   const [perPage] = useState(10);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
-
+  const [filterName, setFilterName] = useState('');
   const {
     versions: selectedPromptVersions,
     isLoading: isLoadingDetails,
@@ -177,9 +177,9 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
             <SearchInput
               aria-label="Search prompts"
               placeholder="Find by name"
-              value="Search value that needs doing"
-              // onChange={(_event, value) => onChange(value)}
-              // onClear={() => onChange('')}
+              value={filterName}
+              onChange={(_event, value) => setFilterName(value)}
+              onClear={() => setFilterName('')}
             />
           </ToolbarItem>
         </ToolbarGroup>
