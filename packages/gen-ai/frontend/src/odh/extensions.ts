@@ -15,6 +15,7 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 const GUARDRAILS = 'guardrails';
+const PROMPT_MANAGEMENT = 'promptManagement';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
   {
@@ -31,6 +32,14 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: GUARDRAILS,
       reliantAreas: [PLUGIN_GEN_AI],
       devFlags: [GUARDRAILS],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PROMPT_MANAGEMENT,
+      reliantAreas: [PLUGIN_GEN_AI],
+      devFlags: [PROMPT_MANAGEMENT],
     },
   },
   {

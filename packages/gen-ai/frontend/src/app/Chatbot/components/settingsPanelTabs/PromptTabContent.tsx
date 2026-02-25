@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, Form, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -15,8 +16,12 @@ function PromptTabContent({
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
   const { setIsPromptManagementModalOpen } = usePlaygroundStore();
+  const [promptManagementEnabled] = useFeatureFlag('promptManagement');
 
   function buildHeaderActions() {
+    if (!promptManagementEnabled) {
+      return null;
+    }
     return (
       <Button
         variant="link"
