@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MLflowPromptVersion } from '~/app/types';
-import PromptDrawer from '../promptDrawer';
+import PromptDrawer from '~/app/Chatbot/components/promptManagementModal/promptDrawer';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',

@@ -2,7 +2,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
-import { usePromptsList, usePromptVersions } from '../usePromptQueries';
+import {
+  usePromptsList,
+  usePromptVersions,
+} from '~/app/Chatbot/components/promptManagementModal/usePromptQueries';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',

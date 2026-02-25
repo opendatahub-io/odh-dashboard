@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
-import PromptTable from '../promptTable';
+import PromptTable from '~/app/Chatbot/components/promptManagementModal/promptTable';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -42,7 +42,7 @@ const mockVersions: MLflowPromptVersion[] = [
 const mockUsePromptsList = jest.fn();
 const mockUsePromptVersions = jest.fn();
 
-jest.mock('../usePromptQueries', () => ({
+jest.mock('~/app/Chatbot/components/promptManagementModal/usePromptQueries', () => ({
   usePromptsList: () => mockUsePromptsList(),
   usePromptVersions: () => mockUsePromptVersions(),
 }));
