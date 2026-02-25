@@ -490,8 +490,6 @@ export type GenAiAPIs = {
   registerMLflowPrompt: RegisterMLflowPrompt;
   getMLflowPrompt: GetMLflowPrompt;
   listMLflowPromptVersions: ListMLflowPromptVersions;
-  deleteMLflowPrompt: DeleteMLflowPrompt;
-  deleteMLflowPromptVersion: DeleteMLflowPromptVersion;
 };
 
 export type ModArchRestGET<T> = (
@@ -538,5 +536,3 @@ type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
 type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
 type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
-type DeleteMLflowPrompt = ModArchRestDELETE<void, Record<string, never>>;
-type DeleteMLflowPromptVersion = ModArchRestDELETE<void, Record<string, never>>;

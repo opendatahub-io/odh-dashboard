@@ -27,8 +27,6 @@ import {
   registerMLflowPrompt,
   getMLflowPrompt,
   listMLflowPromptVersions,
-  deleteMLflowPrompt,
-  deleteMLflowPromptVersion,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -64,8 +62,6 @@ const useGenAiAPIState = (
       registerMLflowPrompt: registerMLflowPrompt(path, queryParameters),
       getMLflowPrompt: getMLflowPrompt(path, queryParameters),
       listMLflowPromptVersions: listMLflowPromptVersions(path, queryParameters),
-      deleteMLflowPrompt: deleteMLflowPrompt(path, queryParameters),
-      deleteMLflowPromptVersion: deleteMLflowPromptVersion(path, queryParameters),
     }),
     [queryParameters],
   );
