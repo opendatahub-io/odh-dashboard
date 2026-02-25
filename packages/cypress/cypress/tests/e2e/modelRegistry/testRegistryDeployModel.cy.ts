@@ -30,7 +30,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
-describe('Verify models can be deployed from model registry', () => {
+describe('[Automation Bug: RHOAIENG-50666] Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
   skipSuiteIfBYOIDC('Multiple permissions management tests are not supported on BYOIDC clusters');
 
@@ -97,7 +97,7 @@ describe('Verify models can be deployed from model registry', () => {
   it(
     'Registers a model and deploys it via model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4', '@Bug'],
     },
     () => {
       cy.step('Log into the application');
