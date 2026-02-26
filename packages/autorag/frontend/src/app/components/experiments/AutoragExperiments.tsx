@@ -1,4 +1,11 @@
-import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  Button,
+  Spinner,
+  ToolbarGroup,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
@@ -17,8 +24,19 @@ function AutoragExperiments(): React.JSX.Element {
   // Use 'default' as fallback when no namespace selected (e.g. mock mode, before redirect)
   const effectiveNamespace = namespace ?? (useMock ? 'default' : '');
 
-  const { pipelineDefinitions } = usePipelineDefinitions(effectiveNamespace);
-  const { runs } = usePipelineRuns(effectiveNamespace, pipelineDefinitions);
+  const {
+    pipelineDefinitions,
+    loaded: defsLoaded,
+    error: defsError,
+  } = usePipelineDefinitions(effectiveNamespace);
+  const {
+    runs,
+    loaded: runsLoaded,
+    error: runsError,
+  } = usePipelineRuns(effectiveNamespace, pipelineDefinitions);
+
+  const loaded = defsLoaded && runsLoaded;
+  const loadError = defsError ?? runsError;
 
   const handleCreateClick = React.useCallback(() => {
     navigate(`${autoragCreatePathname}/${namespace ?? effectiveNamespace}`);
@@ -31,6 +49,22 @@ function AutoragExperiments(): React.JSX.Element {
   );
 
   const hasExperiments = runs.length > 0;
+
+  if (loadError) {
+    return (
+      <Alert variant="danger" isInline title="Failed to load experiments">
+        <p>{loadError.message}</p>
+      </Alert>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
 
   if (!hasExperiments) {
     return <NoProjects />;
