@@ -12,7 +12,7 @@ import {
 type ErrorDetailsProps = {
   title: string;
   errorMessage?: string;
-  componentStack: string;
+  componentStack?: string;
   stack?: string;
 };
 
@@ -34,20 +34,22 @@ const ErrorDetails: React.FC<ErrorDetailsProps> = ({
         </DescriptionListGroup>
       ) : null}
 
-      <DescriptionListGroup>
-        <DescriptionListTerm>Component trace:</DescriptionListTerm>
-        <DescriptionListDescription>
-          <ClipboardCopy
-            isExpanded
-            isCode
-            hoverTip="Copy"
-            clickTip="Copied"
-            variant={ClipboardCopyVariant.expansion}
-          >
-            {componentStack.trim()}
-          </ClipboardCopy>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      {componentStack ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Component trace:</DescriptionListTerm>
+          <DescriptionListDescription>
+            <ClipboardCopy
+              isExpanded
+              isCode
+              hoverTip="Copy"
+              clickTip="Copied"
+              variant={ClipboardCopyVariant.expansion}
+            >
+              {componentStack.trim()}
+            </ClipboardCopy>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
 
       {stack ? (
         <DescriptionListGroup>

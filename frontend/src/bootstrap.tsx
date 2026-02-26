@@ -8,6 +8,7 @@ import { ThemeProvider } from './app/ThemeContext';
 import SDKInitialize from './SDKInitialize';
 import { BrowserStorageContextProvider } from './components/browserStorage/BrowserStorageContext';
 import ErrorBoundary from './components/error/ErrorBoundary';
+import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
 
 // Creates a data router using createBrowserRouter
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
         </BrowserStorageContextProvider>
       </SDKInitialize>
     ),
+    errorElement: <RouteErrorElement />,
   },
 ]);
 
