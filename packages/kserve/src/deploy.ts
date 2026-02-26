@@ -1,4 +1,3 @@
-import { ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import type {
   InitialWizardFormData,
   WizardFormData,
@@ -13,7 +12,8 @@ export const deployKServeDeployment = async (
   wizardData: WizardFormData['state'],
   projectName: string,
   existingDeployment?: KServeDeployment,
-  serverResource?: ServingRuntimeKind,
+  modelResource?: KServeDeployment['model'],
+  serverResource?: KServeDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
   secretName?: string,

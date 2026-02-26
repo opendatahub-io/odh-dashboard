@@ -1,15 +1,19 @@
 import React from 'react';
 import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { WizardFormData } from './types';
+import type { WizardFormData } from '../types';
 import {
   isModelServingDeploy,
   type Deployment,
   type ModelServingDeploy,
-} from '../../../extension-points';
+} from '../../../../extension-points';
+import { DeploymentWizardResources } from '../yaml/useFormToResourcesTransformer';
+
+export type DeployExtension = ResolvedExtension<ModelServingDeploy<Deployment>>['properties'];
 
 export const useDeployMethod = (
   wizardData: WizardFormData['state'],
+  resources?: DeploymentWizardResources,
 ): {
   deployMethod?: ResolvedExtension<ModelServingDeploy<Deployment>>;
   deployMethodLoaded: boolean;
@@ -22,7 +26,7 @@ export const useDeployMethod = (
     const sortedDeployExtensions = deployExtensions
       .filter((e) =>
         typeof e.properties.isActive === 'function'
-          ? e.properties.isActive(wizardData)
+          ? e.properties.isActive(wizardData, resources)
           : e.properties.isActive,
       )
       .toSorted((a, b) => (b.properties.priority ?? 0) - (a.properties.priority ?? 0));
@@ -34,5 +38,5 @@ export const useDeployMethod = (
         (error): error is Error => error instanceof Error,
       ),
     };
-  }, [deployExtensions, deployExtensionsErrors, deployExtensionsLoaded, wizardData]);
+  }, [deployExtensions, deployExtensionsErrors, deployExtensionsLoaded, wizardData, resources]);
 };
