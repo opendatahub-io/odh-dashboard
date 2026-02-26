@@ -8,6 +8,7 @@ import {
   mockProjectK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockDsc } from '@odh-dashboard/internal/__mocks__/mockDsc';
 import {
   mockNimImages,
   mockNimInferenceService,
@@ -25,6 +26,7 @@ import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApp
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import {
   ConfigMapModel,
+  DataScienceClusterModel,
   HardwareProfileModel,
   InferenceServiceModel,
   NIMAccountModel,
@@ -49,6 +51,8 @@ export const initInterceptsToEnableNim = (): void => {
       },
     }),
   );
+
+  cy.interceptK8sList({ model: DataScienceClusterModel }, mockK8sResourceList([mockDsc({})]));
 
   cy.interceptOdh(
     'GET /api/config',
@@ -158,6 +162,8 @@ export const initInterceptorsValidatingNimEnablement = (
       },
     }),
   );
+
+  cy.interceptK8sList({ model: DataScienceClusterModel }, mockK8sResourceList([mockDsc({})]));
 
   cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
 

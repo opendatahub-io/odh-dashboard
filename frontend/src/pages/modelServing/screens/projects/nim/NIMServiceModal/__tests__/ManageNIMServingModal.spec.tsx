@@ -59,6 +59,13 @@ jest.mock('#~/pages/modelServing/screens/projects/nim/useNIMTemplateName', () =>
   useNIMTemplateName: jest.fn(() => 'test-template'),
 }));
 
+jest.mock('#~/pages/modelServing/screens/projects/nim/useNIMAccountConfig', () => ({
+  useNIMAccountConfig: jest.fn(() => ({
+    isAirGapped: false,
+    loading: false,
+  })),
+}));
+
 jest.mock('#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC', () => ({
   useNIMPVC: jest.fn(),
 }));
