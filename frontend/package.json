@@ -90,7 +90,7 @@
     "dompurify": "^3.2.4",
     "google-protobuf": "^3.11.2",
     "grpc-web": "^1.2.1",
-    "lodash-es": "^4.17.15",
+    "lodash-es": "^4.17.23",
     "long": "^5.2.3",
     "monaco-editor": "^0.50.0",
     "react": "^18.2.0",
