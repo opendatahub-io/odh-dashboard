@@ -431,7 +431,8 @@ Cypress.Commands.add(
       .then(($el) => {
         if ($el.attr('aria-expanded') === 'false') {
           // Re-query the kebab button before clicking to avoid detached element issues
-          cy.wrap(subject).findKebab(isDropdownToggle).should('exist').click();
+          // Use force: true to handle React re-renders that can cause element detachment
+          cy.wrap(subject).findKebab(isDropdownToggle).should('exist').click({ force: true });
         }
       })
       .then(() => cy.findByRole('menuitem', { name }));
@@ -442,7 +443,7 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
   Cypress.log({ displayName: 'findDropdownItem', message: name });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+      cy.wrap($el).click({ force: true });
     }
     return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
   });
@@ -452,7 +453,7 @@ Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name)
   Cypress.log({ displayName: 'findMenuItem', message: name });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+      cy.wrap($el).click({ force: true });
     }
     return cy.get('[data-ouia-component-type="PF6/Menu"]').findByRole('menuitem', { name });
   });
@@ -462,7 +463,7 @@ Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (su
   Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+      cy.wrap($el).click({ force: true });
     }
     return cy.wrap($el).parent().findByTestId(testId);
   });
@@ -472,7 +473,7 @@ Cypress.Commands.add('findSelectOption', { prevSubject: 'element' }, (subject, n
   Cypress.log({ displayName: 'findSelectOption', message: name });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+      cy.wrap($el).click({ force: true });
     }
     //cy.get('[role=listbox]') TODO fix cases where there are multiple listboxes
     return cy.findByRole('option', { name });
@@ -504,7 +505,7 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
   Cypress.log({ displayName: 'findSelectOptionByTestId', message: testId });
   return cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
+      cy.wrap($el).click({ force: true });
     }
     return cy.wrap($el).parent().findByTestId(testId);
   });
