@@ -838,7 +838,7 @@ func TestGetSecretsHandler_NamespaceNotFound(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
 func TestGetSecretsHandler_ForbiddenError(t *testing.T) {
