@@ -23,17 +23,12 @@ import RoleDetailsModalAssigneesTab from './RoleDetailsModalAssigneesTab';
 type RoleDetailsModalProps = {
   roleRef: RoleRef;
   onClose: () => void;
-  showAssigneesTab?: boolean;
 };
 
 type TabKey = 'details' | 'assignees';
 const isTabKey = (key: unknown): key is TabKey => key === 'details' || key === 'assignees';
 
-const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({
-  roleRef,
-  onClose,
-  showAssigneesTab = true,
-}) => {
+const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({ roleRef, onClose }) => {
   const { roles, clusterRoles } = usePermissionsContext();
 
   const role = React.useMemo(
@@ -70,26 +65,22 @@ const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({
         description={getRoleDescription(roleRef, role)}
       />
       <ModalBody>
-        {showAssigneesTab ? (
-          <Tabs
-            activeKey={activeTabKey}
-            onSelect={(_e, key) => {
-              if (isTabKey(key)) {
-                setActiveTabKey(key);
-              }
-            }}
-            aria-label="Role details tabs"
-          >
-            <Tab eventKey="details" title={<TabTitleText>Role details</TabTitleText>}>
-              <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
-            </Tab>
-            <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
-              <RoleDetailsModalAssigneesTab roleRef={roleRef} />
-            </Tab>
-          </Tabs>
-        ) : (
-          <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
-        )}
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={(_e, key) => {
+            if (isTabKey(key)) {
+              setActiveTabKey(key);
+            }
+          }}
+          aria-label="Role details tabs"
+        >
+          <Tab eventKey="details" title={<TabTitleText>Role details</TabTitleText>}>
+            <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
+          </Tab>
+          <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
+            <RoleDetailsModalAssigneesTab roleRef={roleRef} />
+          </Tab>
+        </Tabs>
       </ModalBody>
     </Modal>
   );
