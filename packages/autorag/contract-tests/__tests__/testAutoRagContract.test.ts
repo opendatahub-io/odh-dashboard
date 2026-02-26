@@ -114,6 +114,12 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
         });
+        // Verify the default limit is actually applied
+        if (result.success) {
+          const responseData = result.response.data as { data: unknown[] };
+          expect(Array.isArray(responseData.data)).toBe(true);
+          expect(responseData.data.length).toBeLessThanOrEqual(10);
+        }
       });
 
       it('should handle limit=100 (maximum allowed)', async () => {
