@@ -177,6 +177,9 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 	for key := range secret.Data {
 		secretKeys[strings.ToLower(key)] = true
 	}
+	for key := range secret.StringData {
+		secretKeys[strings.ToLower(key)] = true
+	}
 
 	// Check if all required keys exist (case-insensitive)
 	for _, requiredKey := range keys {
