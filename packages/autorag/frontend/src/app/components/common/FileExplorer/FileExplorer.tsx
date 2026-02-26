@@ -19,7 +19,7 @@ export interface File {
   size: string;
   path: string;
 }
-export type Files = [File];
+export type Files = File[];
 
 // Globals -------------------------------------------------------------------->
 
@@ -27,7 +27,9 @@ export type Files = [File];
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface SourceSelectorProps {}
-const SourceSelector: React.FC<SourceSelectorProps> = () => <div>Source Selector</div>;
+const SourceSelector: React.FC<SourceSelectorProps> = () => (
+  <div data-temp-placeholder>Source Selector</div>
+);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface FilesTableProps {}
@@ -69,12 +71,14 @@ const FilesTable: React.FC<FilesTableProps> = () => {
 };
 
 interface FileExplorerProps {
+  id?: string;
   isOpen: boolean;
   onClose: (_event: KeyboardEvent | React.MouseEvent) => void;
   onSelect: (files: Files) => void;
 }
-const FileExplorer: React.FC<FileExplorerProps> = ({ isOpen, onClose, onSelect }) => (
+const FileExplorer: React.FC<FileExplorerProps> = ({ id, isOpen, onClose, onSelect }) => (
   <Modal
+    id={id}
     isOpen={isOpen}
     onClose={onClose}
     variant="large"
