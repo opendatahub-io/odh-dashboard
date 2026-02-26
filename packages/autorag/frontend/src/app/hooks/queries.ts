@@ -1,4 +1,5 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { LlamaStackModelsResponse } from '~/app/types';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -21,6 +22,50 @@ export function useExperimentQuery(
       return experiment;
     },
     enabled: !!experimentId,
+  });
+}
+
+export function useLlamaStackModelsQuery(): UseQueryResult<LlamaStackModelsResponse, Error> {
+  return useQuery({
+    queryKey: ['llamaStack', 'models'],
+    // TODO: Replace with BFF call to "api/vi/lsd/models" once the endpoint is implemented.
+    // Expected BFF response shape: { data: { models: [...], llm: [...], embedding: [...] } }
+    // eslint-disable-next-line camelcase
+    queryFn: async (): Promise<LlamaStackModelsResponse> => ({
+      models: [],
+      llm: [
+        {
+          id: 'meta-llama/Llama-3.1-8B-Instruct',
+          type: 'llm',
+          provider: 'ollama',
+          // eslint-disable-next-line camelcase
+          resource_path: 'ollama://models/meta-llama/Llama-3.1-8B-Instruct',
+        },
+        {
+          id: 'meta-llama/Llama-3.1-70B-Instruct',
+          type: 'llm',
+          provider: 'ollama',
+          // eslint-disable-next-line camelcase
+          resource_path: 'ollama://models/meta-llama/Llama-3.1-70B-Instruct',
+        },
+      ],
+      embedding: [
+        {
+          id: 'all-minilm:l6-v2',
+          type: 'embedding',
+          provider: 'ollama',
+          // eslint-disable-next-line camelcase
+          resource_path: 'ollama://models/all-minilm:l6-v2',
+        },
+        {
+          id: 'nomic-embed-text',
+          type: 'embedding',
+          provider: 'ollama',
+          // eslint-disable-next-line camelcase
+          resource_path: 'ollama://models/nomic-embed-text',
+        },
+      ],
+    }),
   });
 }
 
