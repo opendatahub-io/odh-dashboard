@@ -17,10 +17,10 @@ describe('useAutoragMockPipelines', () => {
   it('should call useBrowserStorage with correct key and default', () => {
     renderHook(() => useAutoragMockPipelines());
 
-    expect(useBrowserStorageMock).toHaveBeenCalledWith('odh.autorag.mockPipelines', true);
+    expect(useBrowserStorageMock).toHaveBeenCalledWith('odh.autorag.mockPipelines', false);
   });
 
-  it('should return useMock true by default', () => {
+  it('should return useMock from storage (mock returns true)', () => {
     const { result } = renderHook(() => useAutoragMockPipelines());
 
     expect(result.current[0]).toBe(true);
