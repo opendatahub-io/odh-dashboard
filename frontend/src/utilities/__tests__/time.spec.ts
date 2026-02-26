@@ -6,6 +6,7 @@ import {
   convertDateToSimpleDateString,
   convertDateToTimeString,
   ensureTimeFormat,
+  formatDateForLocalTooltip,
   printSeconds,
   relativeTime,
   convertToTwentyFourHourTime,
@@ -19,6 +20,34 @@ describe('relativeDuration', () => {
 
   it('should calculate values if minutes is less than 0', () => {
     expect(relativeDuration(-123456)).toBe('-124 seconds');
+  });
+});
+
+describe('formatDateForLocalTooltip', () => {
+  it('should return formatted date and time in local timezone for valid date', () => {
+    const date = new Date('2024-06-15T14:30:45.000Z');
+    const result = formatDateForLocalTooltip(date);
+    expect(result).not.toBe('-');
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+    expect(result).toMatch(/[\d/:,\s]/);
+  });
+
+  it('should not include UTC in output (shows local time, not UTC)', () => {
+    const date = new Date('2024-06-15T14:30:45.000Z');
+    const result = formatDateForLocalTooltip(date);
+    expect(result.toUpperCase()).not.toContain('UTC');
+  });
+
+  it('should use 24-hour format without AM/PM', () => {
+    const date = new Date('2024-06-15T14:30:45.000Z');
+    const result = formatDateForLocalTooltip(date);
+    expect(result).not.toMatch(/\s*(AM|PM)\s*/i);
+  });
+
+  it('should return dash for invalid date with NaN timestamp', () => {
+    expect(formatDateForLocalTooltip(new Date(''))).toBe('-');
+    expect(formatDateForLocalTooltip(new Date('invalid-date-string'))).toBe('-');
   });
 });
 
