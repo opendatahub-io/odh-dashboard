@@ -52,6 +52,7 @@ make run LOG_LEVEL=DEBUG
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution and Pipeline Servers |
 | `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Pipeline Server API calls |
+| `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Pipeline Server URL for local testing (e.g., `http://localhost:8888`) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
@@ -141,6 +142,36 @@ If you're integrating with a proxy or tool that uses a custom header (e.g., X-Fo
 ```shell
 make run AUTH_METHOD=user_token AUTH_TOKEN_HEADER=X-Forwarded-Access-Token AUTH_TOKEN_PREFIX=""
 ```
+
+### Local testing with port-forward
+
+When testing the BFF locally against a Pipeline Server running in a cluster, you can use port-forwarding to access the Pipeline Server:
+
+**Terminal 1: Set up port-forward**
+```shell
+kubectl port-forward -n <namespace> svc/ds-pipeline-<pipeline-server-id> 8888:8443
+```
+
+**Terminal 2: Run BFF with override URL and skip TLS verification**
+```shell
+cd packages/autorag/bff
+make run PIPELINE_SERVER_URL=https://localhost:8888 INSECURE_SKIP_VERIFY=true
+```
+
+**Terminal 3: Test the endpoints**
+```shell
+# List pipeline servers
+curl -H "kubeflow-userid: user@example.com" \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  "http://localhost:4000/api/v1/pipeline-servers?namespace=<namespace>" | jq
+
+# List pipeline runs
+curl -H "kubeflow-userid: user@example.com" \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  "http://localhost:4000/api/v1/pipeline-runs?namespace=<namespace>&pipelineServerId=<pipeline-server-id>" | jq
+```
+
+**Note:** The `INSECURE_SKIP_VERIFY=true` flag is required when using port-forward because the Pipeline Server uses a self-signed certificate. This should only be used for local development and testing, never in production.
 
 This will configure the BFF to extract the raw token from the following header:
 

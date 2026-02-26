@@ -27,6 +27,7 @@ func main() {
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
+	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 

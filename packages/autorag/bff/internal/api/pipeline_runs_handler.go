@@ -14,7 +14,7 @@ import (
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
-// Returns pipeline runs from a specific Pipeline Server filtered by pipeline ID
+// Returns pipeline runs from a specific Pipeline Server filtered by pipeline version ID
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -28,8 +28,8 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Parse query parameters
 	query := r.URL.Query()
 
-	// Get pipeline ID from query params (optional)
-	pipelineID := query.Get("pipelineId")
+	// Get pipeline version ID from query params (optional)
+	pipelineVersionID := query.Get("pipelineVersionId")
 
 	// Parse pagination parameters
 	pageSize := int32(20) // default
@@ -45,7 +45,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
 		client,
 		ctx,
-		pipelineID,
+		pipelineVersionID,
 		pageSize,
 		pageToken,
 	)

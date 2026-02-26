@@ -132,16 +132,34 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 		} else {
 			// Construct the Pipeline Server API URL
-			// Service discovery and validation is available via the /api/v1/pipeline-servers endpoint
-			// Here we construct the URL based on Kubernetes service DNS naming convention
-			baseURL := fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", pipelineServerId, namespace)
+			// Check for override URL (for local development/testing)
+			var baseURL string
+			if app.config.PipelineServerURL != "" {
+				baseURL = app.config.PipelineServerURL
+				logger.Debug("Using override Pipeline Server URL from config", "baseURL", baseURL)
+			} else {
+				// Service discovery and validation is available via the /api/v1/pipeline-servers endpoint
+				// Here we construct the URL based on Kubernetes service DNS naming convention
+				baseURL = fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", pipelineServerId, namespace)
+			}
+
+			// Extract auth token from request to forward to Pipeline Server
 			authToken := ""
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+				authToken = strings.TrimPrefix(authHeader, "Bearer ")
+				logger.Debug("Extracted auth token from Authorization header", "tokenLength", len(authToken))
+			} else {
+				logger.Debug("No Authorization header found or invalid format", "authHeader", authHeader)
+			}
+
 			insecureSkipVerify := app.config.InsecureSkipVerify
 
 			logger.Debug("Creating Pipeline Server client",
 				"namespace", namespace,
 				"pipelineServerId", pipelineServerId,
-				"baseURL", baseURL)
+				"baseURL", baseURL,
+				"hasToken", authToken != "")
 
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
 				baseURL,

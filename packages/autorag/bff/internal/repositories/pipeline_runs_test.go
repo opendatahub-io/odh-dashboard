@@ -22,10 +22,10 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 		assert.Equal(t, int32(3), runsData.TotalSize)
 	})
 
-	t.Run("should handle pipeline ID filtering", func(t *testing.T) {
-		pipelineID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	t.Run("should handle pipeline version ID filtering", func(t *testing.T) {
+		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineID, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -53,30 +53,49 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 			assert.NotEmpty(t, run.DisplayName)
 			assert.NotEmpty(t, run.State)
 			assert.NotEmpty(t, run.CreatedAt)
+
+			// Verify enhanced fields are transformed
+			assert.NotEmpty(t, run.ExperimentID)
+			assert.NotNil(t, run.PipelineVersionReference)
+			if run.PipelineVersionReference != nil {
+				assert.NotEmpty(t, run.PipelineVersionReference.PipelineID)
+				assert.NotEmpty(t, run.PipelineVersionReference.PipelineVersionID)
+			}
+			assert.NotEmpty(t, run.StorageState)
+			assert.NotEmpty(t, run.ServiceAccount)
+
+			// Verify state history is present
+			assert.NotNil(t, run.StateHistory)
+			if len(run.StateHistory) > 0 {
+				assert.NotEmpty(t, run.StateHistory[0].UpdateTime)
+				assert.NotEmpty(t, run.StateHistory[0].State)
+			}
 		}
 	})
 }
 
-func TestBuildPipelineIDFilter(t *testing.T) {
-	t.Run("should build filter with pipeline ID", func(t *testing.T) {
-		pipelineID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+func TestBuildPipelineVersionFilter(t *testing.T) {
+	t.Run("should build filter with pipeline version ID", func(t *testing.T) {
+		pipelineVersionID := "v1-version-id-12345"
 
-		filter := buildPipelineIDFilter(pipelineID)
+		filter := buildPipelineVersionFilter(pipelineVersionID)
 		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, pipelineID)
-		assert.Contains(t, filter, "pipeline_spec.pipeline_id")
+		assert.Contains(t, filter, pipelineVersionID)
+		assert.Contains(t, filter, "pipeline_version_id")
 		assert.Contains(t, filter, "predicates")
+		assert.Contains(t, filter, "storage_state")
+		assert.Contains(t, filter, "AVAILABLE")
 	})
 
-	t.Run("should return empty filter for no pipeline ID", func(t *testing.T) {
-		filter := buildPipelineIDFilter("")
+	t.Run("should return empty filter when no version ID provided", func(t *testing.T) {
+		filter := buildPipelineVersionFilter("")
 		assert.Empty(t, filter)
 	})
 
-	t.Run("should format filter as JSON", func(t *testing.T) {
-		pipelineID := "test-pipeline-id"
+	t.Run("should format filter as valid JSON", func(t *testing.T) {
+		pipelineVersionID := "test-version-id"
 
-		filter := buildPipelineIDFilter(pipelineID)
+		filter := buildPipelineVersionFilter(pipelineVersionID)
 		// Should be valid JSON
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")

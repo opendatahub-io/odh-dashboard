@@ -18,31 +18,81 @@ func NewMockPipelineServerClient() *MockPipelineServerClient {
 
 // ListRuns returns mock pipeline run data
 func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelineserver.ListRunsParams) (*models.KFPipelineRunResponse, error) {
-	// Return mock data
+	// Return mock data with enhanced fields
 	return &models.KFPipelineRunResponse{
 		Runs: []models.KFPipelineRun{
 			{
-				RunID:       "run-abc123-def456",
-				DisplayName: "AutoRAG Optimization Run 1",
-				Description: "Test optimization run",
-				State:       "SUCCEEDED",
-				CreatedAt:   "2026-02-24T10:30:00Z",
-				FinishedAt:  "2026-02-24T11:15:00Z",
+				RunID:        "run-abc123-def456",
+				DisplayName:  "AutoRAG Optimization Run 1",
+				Description:  "Test optimization run",
+				ExperimentID: "exp-123",
+				PipelineVersionReference: &models.PipelineVersionReference{
+					PipelineID:        "pipeline-xyz",
+					PipelineVersionID: "version-v1",
+				},
+				State:          "SUCCEEDED",
+				StorageState:   "AVAILABLE",
+				ServiceAccount: "pipeline-runner-dspa",
+				CreatedAt:      "2026-02-24T10:30:00Z",
+				ScheduledAt:    "2026-02-24T10:30:00Z",
+				FinishedAt:     "2026-02-24T11:15:00Z",
+				StateHistory: []models.RuntimeStatus{
+					{
+						UpdateTime: "2026-02-24T10:30:00Z",
+						State:      "RUNNING",
+					},
+					{
+						UpdateTime: "2026-02-24T11:15:00Z",
+						State:      "SUCCEEDED",
+					},
+				},
 			},
 			{
-				RunID:       "run-ghi789-jkl012",
-				DisplayName: "AutoRAG Optimization Run 2",
-				Description: "Another test run",
-				State:       "RUNNING",
-				CreatedAt:   "2026-02-24T12:00:00Z",
+				RunID:        "run-ghi789-jkl012",
+				DisplayName:  "AutoRAG Optimization Run 2",
+				Description:  "Another test run",
+				ExperimentID: "exp-456",
+				PipelineVersionReference: &models.PipelineVersionReference{
+					PipelineID:        "pipeline-xyz",
+					PipelineVersionID: "version-v2",
+				},
+				State:          "RUNNING",
+				StorageState:   "AVAILABLE",
+				ServiceAccount: "pipeline-runner-dspa",
+				CreatedAt:      "2026-02-24T12:00:00Z",
+				ScheduledAt:    "2026-02-24T12:00:00Z",
+				StateHistory: []models.RuntimeStatus{
+					{
+						UpdateTime: "2026-02-24T12:00:00Z",
+						State:      "RUNNING",
+					},
+				},
 			},
 			{
-				RunID:       "run-mno345-pqr678",
-				DisplayName: "AutoRAG Baseline Run",
-				Description: "Baseline comparison run",
-				State:       "FAILED",
-				CreatedAt:   "2026-02-23T14:00:00Z",
-				FinishedAt:  "2026-02-23T14:30:00Z",
+				RunID:        "run-mno345-pqr678",
+				DisplayName:  "AutoRAG Baseline Run",
+				Description:  "Baseline comparison run",
+				ExperimentID: "exp-123",
+				PipelineVersionReference: &models.PipelineVersionReference{
+					PipelineID:        "pipeline-xyz",
+					PipelineVersionID: "version-v1",
+				},
+				State:          "FAILED",
+				StorageState:   "AVAILABLE",
+				ServiceAccount: "pipeline-runner-dspa",
+				CreatedAt:      "2026-02-23T14:00:00Z",
+				ScheduledAt:    "2026-02-23T14:00:00Z",
+				FinishedAt:     "2026-02-23T14:30:00Z",
+				StateHistory: []models.RuntimeStatus{
+					{
+						UpdateTime: "2026-02-23T14:00:00Z",
+						State:      "RUNNING",
+					},
+					{
+						UpdateTime: "2026-02-23T14:30:00Z",
+						State:      "FAILED",
+					},
+				},
 			},
 		},
 		TotalSize:     3,

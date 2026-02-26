@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pipeline Server, with support for filtering by pipeline ID. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pipeline Server, with support for filtering by pipeline version ID. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
 
 ## Endpoint
 
@@ -20,7 +20,7 @@ This endpoint requires authentication via the standard authentication method con
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
 | `pipelineServerId` | query string | Yes | ID/name of the Pipeline Server (DSPipelineApplication CR name) |
-| `pipelineId` | query string | No | ID of the pipeline to filter runs by |
+| `pipelineVersionId` | query string | No | ID of the pipeline version to filter runs by |
 | `pageSize` | query integer | No | Number of results per page (default: 20) |
 | `nextPageToken` | query string | No | Token for retrieving the next page of results |
 
@@ -35,12 +35,12 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&p
   -H "kubeflow-userid: user@example.com"
 ```
 
-### Filter by Pipeline ID
+### Filter by Pipeline Version ID
 
-Get pipeline runs for a specific pipeline:
+Get pipeline runs for a specific pipeline version:
 
 ```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=dspa&pipelineId=a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
+curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=dspa&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
   -H "kubeflow-userid: user@example.com"
 ```
 
@@ -66,10 +66,27 @@ The endpoint returns a JSON response with the following structure:
         "run_id": "abc123-def456-ghi789",
         "display_name": "AutoRAG Optimization Run 1",
         "description": "Optimizing RAG parameters for dataset X",
-        "pipeline_version_id": "pipeline-v1",
+        "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
+        "pipeline_version_reference": {
+          "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
+          "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+        },
         "state": "SUCCEEDED",
+        "storage_state": "AVAILABLE",
+        "service_account": "pipeline-runner-dspa",
         "created_at": "2026-02-24T10:30:00Z",
-        "finished_at": "2026-02-24T11:15:00Z"
+        "scheduled_at": "2026-02-24T10:30:00Z",
+        "finished_at": "2026-02-24T11:15:00Z",
+        "state_history": [
+          {
+            "update_time": "2026-02-24T10:30:00Z",
+            "state": "RUNNING"
+          },
+          {
+            "update_time": "2026-02-24T11:15:00Z",
+            "state": "SUCCEEDED"
+          }
+        ]
       }
     ],
     "total_size": 1,
@@ -87,10 +104,30 @@ The endpoint returns a JSON response with the following structure:
 | `run_id` | string | Unique pipeline run identifier |
 | `display_name` | string | Human-readable run name |
 | `description` | string | Optional run description |
-| `pipeline_version_id` | string | ID of the pipeline version used |
+| `experiment_id` | string | ID of the experiment this run belongs to |
+| `pipeline_version_reference` | object | Reference to pipeline and version (see below) |
 | `state` | string | Current run state (UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED) |
+| `storage_state` | string | Storage state of the run (e.g., AVAILABLE) |
+| `service_account` | string | Service account used to run the pipeline |
 | `created_at` | string | Creation timestamp in ISO 8601 format |
+| `scheduled_at` | string | Scheduled timestamp in ISO 8601 format |
 | `finished_at` | string | Completion timestamp in ISO 8601 format (if finished) |
+| `state_history` | array | History of state changes (see below) |
+
+#### PipelineVersionReference Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pipeline_id` | string | ID of the pipeline |
+| `pipeline_version_id` | string | ID of the pipeline version |
+
+#### StateHistory Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `update_time` | string | Timestamp when the state changed (ISO 8601 format) |
+| `state` | string | The state at this time |
+| `error` | object | Optional error information (if the state change was due to an error) |
 
 #### PipelineRunsData Object
 
@@ -102,11 +139,13 @@ The endpoint returns a JSON response with the following structure:
 
 ## Pipeline Filtering
 
-The API allows filtering pipeline runs by pipeline ID, which enables you to retrieve runs for a specific pipeline definition.
+The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
 
-### Filtering by Pipeline ID
+### Filtering by Pipeline Version ID
 
-When you provide a `pipelineId` parameter, the API filters runs to only include those associated with that specific pipeline. If no pipeline ID is provided, all runs from the Pipeline Server are returned.
+When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no version ID is provided, all runs from the Pipeline Server are returned.
+
+**Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
 
 ## Error Responses
 
@@ -182,24 +221,24 @@ The BFF constructs the Pipeline Server URL using:
 
 The AutoRAG frontend can use this endpoint to:
 
-1. List all runs for a specific pipeline
+1. List all runs for a specific pipeline version
 2. Display run status and results
 3. Implement pagination for large result sets
-4. Access run annotations for additional metadata
+4. Access run state history and metadata
 
 ### Example Frontend Integration
 
 ```javascript
-async function fetchPipelineRuns(pipelineId) {
+async function fetchPipelineRuns(pipelineVersionId) {
   const params = new URLSearchParams({
     namespace: currentNamespace,
     pipelineServerId: "dspa",
     pageSize: "20"
   });
 
-  // Add pipeline ID filter if provided
-  if (pipelineId) {
-    params.append("pipelineId", pipelineId);
+  // Add pipeline version ID filter if provided
+  if (pipelineVersionId) {
+    params.append("pipelineVersionId", pipelineVersionId);
   }
 
   const response = await fetch(`/api/v1/pipeline-runs?${params}`);
@@ -215,9 +254,9 @@ async function fetchPipelineRuns(pipelineId) {
 
 If the endpoint returns an empty array:
 1. Verify the Pipeline Server ID is correct
-2. Check that runs exist for the specified pipeline ID (if filtering)
-3. Verify the pipeline exists in the Pipeline Server
-3. Ensure the namespace parameter matches where the Pipeline Server is deployed
+2. Check that runs exist for the specified pipeline version ID (if filtering)
+3. Verify the pipeline version exists in the Pipeline Server
+4. Ensure the namespace parameter matches where the Pipeline Server is deployed
 
 ### Connection Errors
 

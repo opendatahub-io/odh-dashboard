@@ -9,12 +9,12 @@ type Repositories struct {
 	PipelineServers *PipelineServersRepository
 }
 
-func NewRepositories() *Repositories {
+func NewRepositories(pipelineServerURL string) *Repositories {
 	return &Repositories{
 		HealthCheck:     NewHealthCheckRepository(),
 		User:            NewUserRepository(),
 		Namespace:       NewNamespaceRepository(),
 		PipelineRuns:    NewPipelineRunsRepository(),
-		PipelineServers: NewPipelineServersRepository(),
+		PipelineServers: NewPipelineServersRepository(pipelineServerURL),
 	}
 }

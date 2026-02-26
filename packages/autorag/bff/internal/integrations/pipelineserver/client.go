@@ -27,13 +27,15 @@ type ListRunsParams struct {
 // RealPipelineServerClient implements PipelineServerClientInterface using HTTP
 type RealPipelineServerClient struct {
 	baseURL    string
+	authToken  string
 	httpClient *http.Client
 }
 
 // NewRealPipelineServerClient creates a new pipeline server client
-func NewRealPipelineServerClient(baseURL string, httpClient *http.Client) *RealPipelineServerClient {
+func NewRealPipelineServerClient(baseURL string, authToken string, httpClient *http.Client) *RealPipelineServerClient {
 	return &RealPipelineServerClient{
 		baseURL:    baseURL,
+		authToken:  authToken,
 		httpClient: httpClient,
 	}
 }
@@ -59,6 +61,11 @@ func (c *RealPipelineServerClient) ListRuns(ctx context.Context, params *ListRun
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add auth token if provided
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
 
 	resp, err := c.httpClient.Do(req)

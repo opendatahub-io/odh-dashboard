@@ -32,8 +32,5 @@ func (f *RealClientFactory) CreateClient(baseURL string, authToken string, insec
 		},
 	}
 
-	// TODO: Add auth token support if needed
-	// Could add token to request headers in the client
-
-	return NewRealPipelineServerClient(baseURL, httpClient)
+	return NewRealPipelineServerClient(baseURL, authToken, httpClient)
 }

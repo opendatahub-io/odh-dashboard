@@ -33,11 +33,15 @@ const (
 )
 
 // PipelineServersRepository handles business logic for Pipeline Servers
-type PipelineServersRepository struct{}
+type PipelineServersRepository struct {
+	pipelineServerURL string // Override URL for local testing
+}
 
 // NewPipelineServersRepository creates a new repository instance
-func NewPipelineServersRepository() *PipelineServersRepository {
-	return &PipelineServersRepository{}
+func NewPipelineServersRepository(pipelineServerURL string) *PipelineServersRepository {
+	return &PipelineServersRepository{
+		pipelineServerURL: pipelineServerURL,
+	}
 }
 
 // ListPipelineServers retrieves all Pipeline Servers (DSPipelineApplications) in a namespace
@@ -55,7 +59,7 @@ func (r *PipelineServersRepository) ListPipelineServers(ctx context.Context, cli
 			Name:      dspa.Metadata.Name,
 			Namespace: dspa.Metadata.Namespace,
 			Ready:     dspa.Status.Ready,
-			APIUrl:    getPipelineServerAPIUrl(dspa.Metadata.Namespace, dspa.Metadata.Name),
+			APIUrl:    r.getPipelineServerAPIUrl(dspa.Metadata.Namespace, dspa.Metadata.Name),
 		}
 		servers = append(servers, server)
 	}
@@ -123,7 +127,12 @@ func (r *PipelineServersRepository) listDSPipelineApplications(ctx context.Conte
 }
 
 // getPipelineServerAPIUrl constructs the Pipeline Server API URL
-func getPipelineServerAPIUrl(namespace, name string) string {
+func (r *PipelineServersRepository) getPipelineServerAPIUrl(namespace, name string) string {
+	// Check for local development override (for port-forward testing)
+	if r.pipelineServerURL != "" {
+		return r.pipelineServerURL
+	}
+
 	// The Pipeline Server API is typically exposed as a Kubernetes service
 	// Format: https://ds-pipeline-{name}.{namespace}.svc.cluster.local:8443
 	return fmt.Sprintf("https://ds-pipeline-%s.%s.svc.cluster.local:8443", name, namespace)

@@ -8,7 +8,7 @@ import (
 
 func TestPipelineServersRepository_Creation(t *testing.T) {
 	t.Run("should create new repository", func(t *testing.T) {
-		repo := NewPipelineServersRepository()
+		repo := NewPipelineServersRepository("")
 		assert.NotNil(t, repo)
 	})
 }

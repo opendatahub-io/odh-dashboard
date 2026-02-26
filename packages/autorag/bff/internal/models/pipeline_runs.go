@@ -3,13 +3,24 @@ package models
 // PipelineRun represents a Kubeflow Pipeline Run from the v2beta1 API
 // This is the stable public API format exposed to the frontend
 type PipelineRun struct {
-	RunID             string `json:"run_id"`
-	DisplayName       string `json:"display_name"`
-	Description       string `json:"description,omitempty"`
+	RunID                    string                    `json:"run_id"`
+	DisplayName              string                    `json:"display_name"`
+	Description              string                    `json:"description,omitempty"`
+	ExperimentID             string                    `json:"experiment_id,omitempty"`
+	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	State                    string                    `json:"state"`
+	StorageState             string                    `json:"storage_state,omitempty"`
+	ServiceAccount           string                    `json:"service_account,omitempty"`
+	CreatedAt                string                    `json:"created_at"`
+	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
+	FinishedAt               string                    `json:"finished_at,omitempty"`
+	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
+}
+
+// PipelineVersionReference contains pipeline and version IDs
+type PipelineVersionReference struct {
+	PipelineID        string `json:"pipeline_id,omitempty"`
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
-	State             string `json:"state"`
-	CreatedAt         string `json:"created_at"`
-	FinishedAt        string `json:"finished_at,omitempty"`
 }
 
 // PipelineRunsData contains a list of pipeline runs with pagination
@@ -29,17 +40,19 @@ type KFPipelineRunResponse struct {
 
 // KFPipelineRun represents a single run from Kubeflow Pipelines API v2beta1
 type KFPipelineRun struct {
-	RunID             string          `json:"run_id"`
-	DisplayName       string          `json:"display_name"`
-	Description       string          `json:"description,omitempty"`
-	PipelineVersionID string          `json:"pipeline_version_id,omitempty"`
-	RuntimeConfig     *RuntimeConfig  `json:"runtime_config,omitempty"`
-	ServiceAccount    string          `json:"service_account,omitempty"`
-	State             string          `json:"state,omitempty"`
-	CreatedAt         string          `json:"created_at,omitempty"`
-	ScheduledAt       string          `json:"scheduled_at,omitempty"`
-	FinishedAt        string          `json:"finished_at,omitempty"`
-	StateHistory      []RuntimeStatus `json:"state_history,omitempty"`
+	RunID                    string                    `json:"run_id"`
+	DisplayName              string                    `json:"display_name"`
+	Description              string                    `json:"description,omitempty"`
+	ExperimentID             string                    `json:"experiment_id,omitempty"`
+	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
+	ServiceAccount           string                    `json:"service_account,omitempty"`
+	State                    string                    `json:"state,omitempty"`
+	StorageState             string                    `json:"storage_state,omitempty"`
+	CreatedAt                string                    `json:"created_at,omitempty"`
+	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
+	FinishedAt               string                    `json:"finished_at,omitempty"`
+	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 }
 
 // RuntimeConfig represents the runtime configuration

@@ -129,7 +129,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		repositories:                repositories.NewRepositories(),
+		repositories:                repositories.NewRepositories(cfg.PipelineServerURL),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
 	}

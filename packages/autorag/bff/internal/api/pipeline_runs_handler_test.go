@@ -44,12 +44,12 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.Equal(t, int32(3), response.Data.TotalSize)
 	})
 
-	t.Run("should filter by pipeline ID", func(t *testing.T) {
+	t.Run("should filter by pipeline version ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		pipelineID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineId="+pipelineID,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineVersionId="+pipelineVersionID,
 			nil,
 		)
 		assert.NoError(t, err)
@@ -174,10 +174,29 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 
 		if len(response.Data.Runs) > 0 {
 			run := response.Data.Runs[0]
+			// Verify required fields
 			assert.NotEmpty(t, run.RunID, "RunID should not be empty")
 			assert.NotEmpty(t, run.DisplayName, "DisplayName should not be empty")
 			assert.NotEmpty(t, run.State, "State should not be empty")
 			assert.NotEmpty(t, run.CreatedAt, "CreatedAt should not be empty")
+
+			// Verify enhanced fields are present
+			assert.NotEmpty(t, run.ExperimentID, "ExperimentID should not be empty")
+			assert.NotNil(t, run.PipelineVersionReference, "PipelineVersionReference should not be nil")
+			if run.PipelineVersionReference != nil {
+				assert.NotEmpty(t, run.PipelineVersionReference.PipelineID, "PipelineID should not be empty")
+				assert.NotEmpty(t, run.PipelineVersionReference.PipelineVersionID, "PipelineVersionID should not be empty")
+			}
+			assert.NotEmpty(t, run.StorageState, "StorageState should not be empty")
+			assert.NotEmpty(t, run.ServiceAccount, "ServiceAccount should not be empty")
+
+			// Verify state history is present
+			assert.NotNil(t, run.StateHistory, "StateHistory should not be nil")
+			assert.Greater(t, len(run.StateHistory), 0, "StateHistory should have at least one entry")
+			if len(run.StateHistory) > 0 {
+				assert.NotEmpty(t, run.StateHistory[0].UpdateTime, "StateHistory UpdateTime should not be empty")
+				assert.NotEmpty(t, run.StateHistory[0].State, "StateHistory State should not be empty")
+			}
 		}
 	})
 }
