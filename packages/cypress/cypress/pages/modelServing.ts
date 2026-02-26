@@ -5,6 +5,7 @@ import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescr
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
+import { YamlEditor } from './components/YamlEditor';
 import { mixin } from '../utils/mixin';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -1347,7 +1348,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findYAMLCodeEditor() {
-    return cy.findByTestId('yaml-editor');
+    return new YamlEditor();
   }
 
   findYAMLEditorEmptyState() {
@@ -1360,10 +1361,6 @@ class ModelServingWizard extends Wizard {
 
   findSwitchToYAMLEditorConfirmButton() {
     return cy.findByTestId('switch-to-manual-yaml-editor');
-  }
-
-  findYAMLModeSubmitButton() {
-    return cy.findByTestId('wizard-submit-button');
   }
 }
 

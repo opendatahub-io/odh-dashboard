@@ -1,7 +1,6 @@
 import React from 'react';
 import { parse, stringify } from 'yaml';
 import { DeploymentWizardResources } from './useFormToResourcesTransformer';
-import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 
 type UseFormYamlResourcesResult = {
   yaml?: string;
@@ -11,12 +10,14 @@ type UseFormYamlResourcesResult = {
 
 /**
  * Constructs a list of K8s resources either from the form data or the YAML text.
+ *
+ * In form/yaml-preview modes, the YAML string is derived from formResources.
+ * In yaml-edit mode, the user's edits are tracked as independent state.
  */
 export const useFormYamlResources = (
   formResources: DeploymentWizardResources,
-  viewMode: ModelDeploymentWizardViewMode,
 ): UseFormYamlResourcesResult => {
-  const formYaml = React.useMemo(() => {
+  const formAsYaml = React.useMemo(() => {
     try {
       return stringify(formResources.model);
     } catch (error) {
@@ -24,33 +25,31 @@ export const useFormYamlResources = (
     }
   }, [formResources]);
 
-  const [yaml, setYaml] = React.useState<string | undefined>(formYaml);
+  const [editorYaml, setEditorYaml] = React.useState<string | undefined>(formAsYaml);
 
-  // One way sync from the form yaml to the yaml state
-  React.useEffect(() => {
-    if (viewMode !== 'yaml-edit') {
-      try {
-        setYaml(formYaml);
-      } catch (error) {
-        /* empty */
-      }
-    }
-  }, [formYaml, viewMode]);
-
-  const yamlResources = React.useMemo(() => {
+  const lastUpdatedSource = React.useRef<'form' | 'editor'>('form');
+  const yamlResources = React.useMemo<DeploymentWizardResources>(() => {
     try {
-      return yaml ? { model: parse(yaml) } : {};
+      return editorYaml ? { model: parse(editorYaml) } : {};
     } catch (error) {
       return {};
     }
-  }, [yaml]);
+  }, [editorYaml]);
+
+  const setYaml = React.useCallback(
+    (yaml: string) => {
+      setEditorYaml(yaml);
+      lastUpdatedSource.current = 'editor';
+    },
+    [setEditorYaml],
+  );
 
   return React.useMemo(
     () => ({
-      yaml,
+      yaml: lastUpdatedSource.current === 'editor' ? editorYaml : formAsYaml,
       setYaml,
-      resources: viewMode === 'yaml-edit' ? yamlResources : formResources,
+      resources: lastUpdatedSource.current === 'editor' ? yamlResources : formResources,
     }),
-    [yaml, yamlResources, formResources, viewMode],
+    [editorYaml, formAsYaml, setYaml, yamlResources, formResources],
   );
 };

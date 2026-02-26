@@ -17,10 +17,10 @@ import { K8sStatusError } from '@odh-dashboard/internal/api/errorUtils';
 type DeploymentFooterProps = {
   submitButtonText?: string;
   isSubmitDisabled?: boolean;
-  onSave?: () => void;
+  onSave: (overwrite?: boolean) => void;
   onOverwrite?: () => void;
   onRefresh?: () => void;
-  onCancel?: () => void;
+  onCancel: () => void;
   isLoading?: boolean;
   error?: Error | null;
   clearError?: () => void;
@@ -108,40 +108,43 @@ export const ModelDeploymentFooter: React.FC<DeploymentFooterProps> = ({
   clearError,
 }) => {
   return (
-    <Stack hasGutter>
-      {error && (
-        <DeployErrorAlert
-          error={error}
-          clearError={clearError}
-          onOverwrite={onOverwrite}
-          onRefresh={onRefresh}
-        />
-      )}
-      <StackItem>
-        <ActionList>
-          <ActionListGroup>
-            <ActionListItem>
-              <Button
-                data-testid="wizard-submit-button"
-                variant="primary"
-                onClick={onSave}
-                isLoading={isLoading}
-                isDisabled={isLoading || isSubmitDisabled}
-              >
-                {submitButtonText}
-              </Button>
-            </ActionListItem>
-          </ActionListGroup>
-          <ActionListGroup>
-            <ActionListItem>
-              <Button variant="link" onClick={onCancel}>
-                Cancel
-              </Button>
-            </ActionListItem>
-          </ActionListGroup>
-        </ActionList>
-      </StackItem>
-    </Stack>
+    // The WizardFooterWrapper basically just adds a <footer> tag to the DOM.
+    <WizardFooterWrapper>
+      <Stack hasGutter>
+        {error && (
+          <DeployErrorAlert
+            error={error}
+            clearError={clearError}
+            onOverwrite={onOverwrite}
+            onRefresh={onRefresh}
+          />
+        )}
+        <StackItem>
+          <ActionList>
+            <ActionListGroup>
+              <ActionListItem>
+                <Button
+                  data-testid="wizard-submit-button"
+                  variant="primary"
+                  onClick={() => onSave()}
+                  isLoading={isLoading}
+                  isDisabled={isLoading || isSubmitDisabled}
+                >
+                  {submitButtonText}
+                </Button>
+              </ActionListItem>
+            </ActionListGroup>
+            <ActionListGroup>
+              <ActionListItem>
+                <Button variant="link" onClick={onCancel}>
+                  Cancel
+                </Button>
+              </ActionListItem>
+            </ActionListGroup>
+          </ActionList>
+        </StackItem>
+      </Stack>
+    </WizardFooterWrapper>
   );
 };
 

@@ -29,7 +29,7 @@ export const useDeployMethod = (
           ? e.properties.isActive(wizardData, resources)
           : e.properties.isActive,
       )
-      .toSorted((a, b) => (b.properties.priority ?? 0) - (a.properties.priority ?? 0));
+      .toSorted((a, b) => b.properties.priority - a.properties.priority);
 
     return {
       deployMethod: sortedDeployExtensions.length > 0 ? sortedDeployExtensions[0] : undefined,

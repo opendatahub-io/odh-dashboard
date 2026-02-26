@@ -1,8 +1,12 @@
 import {
+  mock404Error,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
   mockProjectK8sResource,
+  mockRoleBindingK8sResource,
+  mockRoleK8sResource,
+  mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
 import {
   mockConnectionTypeConfigMap,
@@ -20,7 +24,17 @@ import {
 import { ConnectionTypeFieldType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import { HardwareProfileModel, NIMAccountModel, ProjectModel, TemplateModel } from './models';
+import { mockServiceAccountK8sResource } from '@odh-dashboard/internal/__mocks__/mockServiceAccountK8sResource';
+import {
+  HardwareProfileModel,
+  NIMAccountModel,
+  ProjectModel,
+  RoleBindingModel,
+  RoleModel,
+  SecretModel,
+  ServiceAccountModel,
+  TemplateModel,
+} from './models';
 
 export const initDeployPrefilledModelIntercepts = ({
   disableKServe = false,
@@ -201,4 +215,218 @@ export const initDeployPrefilledModelIntercepts = ({
   ]);
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+};
+
+/**
+ *
+ * Sets up:
+ * `@createServiceAccount`
+ * `@createRole`
+ * `@createRoleBinding`
+ * `@createServiceAccountSecret`
+ * `@getServiceAccount`
+ * `@getRole`
+ * `@getRoleBinding`
+ * `@getServiceAccountSecret`
+ */
+export const initMockModelAuthIntercepts = ({
+  modelName = 'test-model',
+  namespace = 'test-project',
+  postResponse = 200,
+  getResponse = 200,
+  serviceAccountSecretName = 'default-name-${modelName}-sa', // {secret name}-{service account name}
+}: {
+  modelName?: string;
+  namespace?: string;
+  postResponse?: number;
+  getResponse?: number;
+  serviceAccountSecretName?: string;
+}): void => {
+  cy.interceptK8s(
+    'POST',
+    {
+      model: ServiceAccountModel,
+      ns: namespace,
+    },
+    {
+      statusCode: postResponse,
+      body: mockServiceAccountK8sResource({ name: `${modelName}-sa`, namespace }),
+    },
+  ).as('createServiceAccount');
+  cy.interceptK8s(
+    'POST',
+    {
+      model: RoleModel,
+      ns: namespace,
+    },
+    {
+      statusCode: postResponse,
+      body: mockRoleK8sResource({ name: `${modelName}-view-role`, namespace }),
+    },
+  ).as('createRole');
+  cy.interceptK8s(
+    'POST',
+    {
+      model: RoleBindingModel,
+      ns: namespace,
+    },
+    {
+      statusCode: postResponse,
+      body: mockRoleBindingK8sResource({ name: `${modelName}-view`, namespace }),
+    },
+  ).as('createRoleBinding');
+  cy.interceptK8s(
+    'POST',
+    {
+      model: SecretModel,
+      ns: namespace,
+      name: serviceAccountSecretName,
+    },
+    (req) => {
+      if (req.body.type === 'kubernetes.io/service-account-token') {
+        req.reply({
+          statusCode: postResponse,
+          body: mockSecretK8sResource({
+            name: serviceAccountSecretName,
+            namespace,
+            type: 'kubernetes.io/service-account-token',
+          }),
+        });
+      }
+    },
+  ).as('createServiceAccountSecret');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: ServiceAccountModel,
+      ns: namespace,
+      name: `${modelName}-sa`,
+    },
+    getResponse === 404
+      ? {
+          statusCode: 404,
+          body: mock404Error({}),
+        }
+      : {
+          statusCode: getResponse,
+          body: mockSecretK8sResource({ name: `${modelName}-sa`, namespace }),
+        },
+  ).as('getServiceAccount');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: RoleModel,
+      ns: namespace,
+      name: `${modelName}-view-role`,
+    },
+    getResponse === 404
+      ? {
+          statusCode: 404,
+          body: mock404Error({}),
+        }
+      : {
+          statusCode: getResponse,
+          body: mockRoleK8sResource({ name: `${modelName}-view-role`, namespace }),
+        },
+  ).as('getRole');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: RoleBindingModel,
+      ns: namespace,
+      name: `${modelName}-view`,
+    },
+    getResponse === 404
+      ? {
+          statusCode: 404,
+          body: mock404Error({}),
+        }
+      : {
+          statusCode: getResponse,
+          body: mockRoleBindingK8sResource({ name: `${modelName}-view`, namespace }),
+        },
+  ).as('getRoleBinding');
+
+  cy.interceptK8s(
+    'GET',
+    {
+      model: SecretModel,
+      ns: namespace,
+      name: serviceAccountSecretName,
+    },
+    (req) => {
+      if (req.body.type === 'kubernetes.io/service-account-token') {
+        req.reply(
+          getResponse === 404
+            ? {
+                statusCode: 404,
+                body: mock404Error({}),
+              }
+            : {
+                statusCode: getResponse,
+                body: mockSecretK8sResource({
+                  name: serviceAccountSecretName,
+                  namespace,
+                  type: 'kubernetes.io/service-account-token',
+                }),
+              },
+        );
+      }
+    },
+  ).as('getServiceAccountSecret');
+};
+
+export const initMockConnectionSecretIntercepts = ({
+  connectionSecretName = 'test-uri-connection-secret',
+  namespace = 'test-project',
+}: {
+  connectionSecretName?: string;
+  namespace?: string;
+}): void => {
+  cy.interceptK8s(
+    'POST',
+    { model: SecretModel, ns: namespace, name: connectionSecretName },
+    (req) => {
+      if (req.body.metadata?.annotations?.['opendatahub.io/connection-type-protocol']) {
+        req.reply({
+          statusCode: 200,
+          body: mockSecretK8sResource({
+            name: connectionSecretName,
+            namespace,
+          }),
+        });
+      }
+    },
+  ).as('createConnectionSecret');
+
+  cy.interceptK8s(
+    'GET',
+    { model: SecretModel, ns: namespace, name: connectionSecretName },
+    {
+      statusCode: 200,
+      body: mockSecretK8sResource({
+        name: connectionSecretName,
+        namespace,
+      }),
+    },
+  ).as('getConnectionSecret');
+
+  cy.interceptK8s(
+    'PATCH',
+    { model: SecretModel, ns: namespace, name: connectionSecretName },
+    (req) => {
+      if (req.body.metadata?.annotations?.['opendatahub.io/connection-type-protocol']) {
+        req.reply({
+          statusCode: 200,
+          body: mockSecretK8sResource({
+            name: connectionSecretName,
+            namespace,
+          }),
+        });
+      }
+    },
+  ).as('patchConnectionSecret');
 };
