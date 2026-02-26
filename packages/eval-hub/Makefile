@@ -33,11 +33,11 @@ dev-install-dependencies:
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
+	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone 
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone PORT=9105 PROXY_PORT=4002 STYLE_THEME=mui-theme npm run start:dev
 
 .PHONY: dev-start
 dev-start:

@@ -34,6 +34,7 @@ const (
 	UserPath           = ApiPathPrefix + "/user"
 	NamespacePath      = ApiPathPrefix + "/namespaces"
 	EvaluationJobsPath = ApiPathPrefix + "/evaluations/jobs"
+	CollectionsPath    = ApiPathPrefix + "/evaluations/collections"
 )
 
 type App struct {
@@ -163,6 +164,7 @@ func (app *App) Routes() http.Handler {
 
 	// EvalHub endpoints
 	apiRouter.GET(EvaluationJobsPath, app.AttachEvalHubClient(app.EvaluationJobsHandler))
+	apiRouter.GET(CollectionsPath, app.AttachEvalHubClient(app.CollectionsHandler))
 
 	// App Router
 	appMux := http.NewServeMux()

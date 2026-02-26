@@ -27,3 +27,40 @@ export type NamespaceKind = {
   name: string;
   displayName?: string;
 };
+
+export type CollectionResource = {
+  id: string;
+  tenant?: string;
+  created_at?: string;
+  updated_at?: string;
+  read_only?: boolean;
+  owner?: string;
+};
+
+export type CollectionPrimaryScore = {
+  metric: string;
+  lower_is_better: boolean;
+};
+
+export type CollectionPassCriteria = {
+  threshold: number;
+};
+
+export type CollectionBenchmark = {
+  id: string;
+  provider_id?: string;
+  weight?: number;
+  primary_score?: CollectionPrimaryScore;
+  pass_criteria?: CollectionPassCriteria;
+  parameters?: Record<string, unknown>;
+};
+
+export type Collection = {
+  resource: CollectionResource;
+  name: string;
+  description?: string;
+  tags?: string[];
+  custom?: Record<string, unknown>;
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks?: CollectionBenchmark[];
+};

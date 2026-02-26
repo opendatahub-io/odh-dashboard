@@ -6,7 +6,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { NamespaceKind } from '~/app/types';
+import { Collection, NamespaceKind } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -28,6 +28,20 @@ export const getNamespaces =
     ).then((response) => {
       if (isModArchResponse<NamespaceKind[]>(response)) {
         return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getCollections =
+  (hostPath: string) =>
+  (opts: APIOptions): Promise<Collection[]> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<{ items: Collection[] } | Collection[]>(response)) {
+        const { data } = response;
+        // Guard: handle both raw array and envelope shapes.
+        return Array.isArray(data) ? data : data.items;
       }
       throw new Error('Invalid response format');
     });

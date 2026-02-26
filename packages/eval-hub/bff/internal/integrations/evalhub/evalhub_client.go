@@ -8,14 +8,14 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/openai/openai-go/v2"
 )
 
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context) ([]EvaluationJob, error)
+	// ListCollections retrieves all benchmark collections.
+	ListCollections(ctx context.Context) (CollectionsResponse, error)
 }
 
 // HealthResponse represents the eval-hub health check response.
@@ -95,6 +95,53 @@ type JobBenchmark struct {
 	Parameters map[string]any `json:"parameters,omitempty"`
 }
 
+// CollectionsResponse is the response from the EvalHub API.
+type CollectionsResponse struct {
+	Items []Collection `json:"items"`
+}
+
+// Collection represents a benchmark collection from eval-hub.
+type Collection struct {
+	Resource     CollectionResource      `json:"resource"`
+	Name         string                  `json:"name"`
+	Description  string                  `json:"description,omitempty"`
+	Tags         []string                `json:"tags,omitempty"`
+	Custom       map[string]any          `json:"custom,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
+// CollectionResource holds the resource metadata for a collection.
+type CollectionResource struct {
+	ID        string `json:"id"`
+	Tenant    string `json:"tenant,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ReadOnly  bool   `json:"read_only,omitempty"`
+	Owner     string `json:"owner,omitempty"`
+}
+
+// CollectionBenchmark represents a BenchmarkConfig entry within a collection.
+type CollectionBenchmark struct {
+	ID           string                  `json:"id"`
+	ProviderID   string                  `json:"provider_id,omitempty"`
+	Weight       float64                 `json:"weight,omitempty"`
+	PrimaryScore *CollectionPrimaryScore `json:"primary_score,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Parameters   map[string]any          `json:"parameters,omitempty"`
+}
+
+// CollectionPrimaryScore defines the primary scoring metric for a benchmark.
+type CollectionPrimaryScore struct {
+	Metric        string `json:"metric"`
+	LowerIsBetter bool   `json:"lower_is_better"`
+}
+
+// CollectionPassCriteria defines the passing threshold for a benchmark.
+type CollectionPassCriteria struct {
+	Threshold float64 `json:"threshold"`
+}
+
 type EvalHubClient struct {
 	httpClient *http.Client
 	baseURL    string
@@ -140,6 +187,15 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context) ([]EvaluationJob
 	return resp.Items, nil
 }
 
+// ListCollections retrieves all benchmark collections from EvalHub.
+func (c *EvalHubClient) ListCollections(ctx context.Context) (CollectionsResponse, error) {
+	resp, err := get[CollectionsResponse](c, ctx, "/evaluations/collections")
+	if err != nil {
+		return CollectionsResponse{}, wrapClientError(err, "ListCollections")
+	}
+	return *resp, nil
+}
+
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
 func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) {
@@ -164,9 +220,9 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string) (*T, error) 
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &openai.Error{
+		return nil, &httpError{
 			StatusCode: resp.StatusCode,
-			Message:    string(body),
+			Body:       string(body),
 		}
 	}
 

@@ -14,9 +14,8 @@ import { evaluationRootSegment } from '~/app/routes';
  *   - If an invalid namespace is in the URL → redirect to the preferred namespace.
  *   - If a valid namespace is in the URL → render the nested route via <Outlet>.
  *
- * The redirect target is built from `useLocation().pathname` so the path is
- * correct in both standalone mode (app at /) and federated mode
- * (app mounted at /develop-train/eval-hub).
+ * The redirect target is built from `useLocation().pathname` so the /evaluation
+ * prefix is always preserved (e.g. '/evaluation/my-ns/new' → evalBase '/evaluation').
  */
 const EvalCoreLoader: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();

@@ -4,19 +4,18 @@ import {
   BreadcrumbItem,
   Card,
   CardBody,
-  CardHeader,
   CardTitle,
   Content,
   Gallery,
   PageSection,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-
-type EvaluationType = 'collections' | 'benchmarks';
+import { evaluationCollectionsRoute, evaluationsBaseRoute } from '~/app/routes';
 
 const NewEvaluationRunPage: React.FC = () => {
-  const [selected, setSelected] = React.useState<EvaluationType | undefined>(undefined);
+  const { namespace } = useParams<{ namespace: string }>();
+  const navigate = useNavigate();
 
   return (
     <ApplicationsPage
@@ -25,11 +24,7 @@ const NewEvaluationRunPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
-            render={() => (
-              <Link to=".." relative="path">
-                Evaluations
-              </Link>
-            )}
+            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
           />
           <BreadcrumbItem isActive>Create evaluation run</BreadcrumbItem>
         </Breadcrumb>
@@ -41,25 +36,14 @@ const NewEvaluationRunPage: React.FC = () => {
         <Gallery
           hasGutter
           aria-label="Selectable card container"
-          minWidths={{ default: '100%', lg: 'calc(50% - 1rem / 2)' }}
-          maxWidths={{ default: '100%', lg: 'calc(50% - 1rem / 2)' }}
+          minWidths={{ default: '100%', lg: 'calc(40% - 1rem / 2)' }}
+          maxWidths={{ default: '100%', lg: 'calc(40% - 1rem / 2)' }}
         >
           <Card
-            isSelectable
-            isSelected={selected === 'collections'}
             data-testid="evaluation-collections-card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate(evaluationCollectionsRoute(namespace))}
           >
-            <CardHeader
-              selectableActions={{
-                selectableActionId: 'evaluation-collections-card-action',
-                selectableActionAriaLabelledby: 'evaluation-collections-title',
-                name: 'evaluation-type',
-                variant: 'single',
-                isChecked: selected === 'collections',
-                onChange: () => setSelected('collections'),
-                isHidden: true,
-              }}
-            />
             <CardTitle id="evaluation-collections-title">Evaluation collections</CardTitle>
             <CardBody>
               <Content component="small">
@@ -69,22 +53,7 @@ const NewEvaluationRunPage: React.FC = () => {
             </CardBody>
           </Card>
 
-          <Card
-            isSelectable
-            isSelected={selected === 'benchmarks'}
-            data-testid="standardised-benchmarks-card"
-          >
-            <CardHeader
-              selectableActions={{
-                selectableActionId: 'standardised-benchmarks-card-action',
-                selectableActionAriaLabelledby: 'standardised-benchmarks-title',
-                name: 'evaluation-type',
-                variant: 'single',
-                isChecked: selected === 'benchmarks',
-                onChange: () => setSelected('benchmarks'),
-                isHidden: true,
-              }}
-            />
+          <Card data-testid="standardised-benchmarks-card" style={{ cursor: 'pointer' }}>
             <CardTitle id="standardised-benchmarks-title">Standardised benchmarks</CardTitle>
             <CardBody>
               <Content component="small">

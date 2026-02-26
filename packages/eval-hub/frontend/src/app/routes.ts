@@ -10,3 +10,6 @@ export const evaluationsBaseRoute = (namespace?: string): string =>
 
 export const evaluationNewRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/new`;
+
+export const evaluationCollectionsRoute = (namespace?: string): string =>
+  `${evaluationNewRoute(namespace)}/collections`;

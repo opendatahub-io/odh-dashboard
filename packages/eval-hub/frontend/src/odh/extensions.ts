@@ -10,9 +10,9 @@ const extensions: (NavExtension | RouteExtension)[] = [
     properties: {
       id: 'eval-hub',
       title: 'Evaluations (Federated Mode)',
-      href: '/develop-train/eval-hub',
+      href: '/evaluation',
       section: 'develop-and-train',
-      path: '/develop-train/eval-hub/*',
+      path: '/evaluation/*',
     },
   },
   {
@@ -21,7 +21,7 @@ const extensions: (NavExtension | RouteExtension)[] = [
       required: [SupportedArea.LM_EVAL],
     },
     properties: {
-      path: '/develop-train/eval-hub/*',
+      path: '/evaluation/*',
       component: () => import('./EvalHubWrapper'),
     },
   },
