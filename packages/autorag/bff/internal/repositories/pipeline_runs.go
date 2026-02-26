@@ -42,6 +42,14 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 		return nil, fmt.Errorf("error fetching pipeline runs: %w", err)
 	}
 
+	if kfResponse == nil {
+		return &models.PipelineRunsData{
+			Runs:          []models.PipelineRun{},
+			TotalSize:     0,
+			NextPageToken: "",
+		}, nil
+	}
+
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {

@@ -241,6 +241,18 @@ components:
                 type: string
                 description: The state at this time
                 example: "RUNNING"
+              error:
+                type: object
+                description: Optional error information if the state change was due to an error
+                nullable: true
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    description: Error code
+                  message:
+                    type: string
+                    description: Error message
 
     PipelineRunsData:
       type: object
@@ -533,11 +545,12 @@ components:
     pageSize:
       examples:
         pageSize:
-          value: "100"
+          value: 100
       name: pageSize
       description: Number of entities in each page.
       schema:
-        type: string
+        type: integer
+        format: int32
       in: query
       required: false
     nextPageToken:

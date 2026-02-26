@@ -6,7 +6,7 @@ The Pipeline Servers API allows discovering available Data Science Pipeline serv
 
 ## Endpoint
 
-```
+```http
 GET /api/v1/pipeline-servers
 ```
 
@@ -177,7 +177,7 @@ The AutoRAG frontend can use this endpoint to:
 ```javascript
 async function fetchAvailablePipelineServers(namespace) {
   const params = new URLSearchParams({
-    namespace: namespace
+    namespace
   });
 
   const response = await fetch(`/api/v1/pipeline-servers?${params}`);
@@ -186,12 +186,14 @@ async function fetchAvailablePipelineServers(namespace) {
   return data.data.servers;
 }
 
-// Usage
-const servers = await fetchAvailablePipelineServers('my-namespace');
-const readyServers = servers.filter(s => s.ready);
+async function displayAvailableServers() {
+  // Usage
+  const servers = await fetchAvailablePipelineServers('my-namespace');
+  const readyServers = servers.filter(s => s.ready);
 
-// Display dropdown with available servers
-console.log('Available Pipeline Servers:', readyServers.map(s => s.name));
+  // Display dropdown with available servers
+  console.log('Available Pipeline Servers:', readyServers.map(s => s.name));
+}
 ```
 
 ## Relationship with Pipeline Runs API
@@ -204,19 +206,23 @@ This endpoint complements the [Pipeline Runs API](./pipeline-runs-api.md):
 ### Example Workflow
 
 ```javascript
-// Step 1: Get available Pipeline Servers
-const servers = await fetch('/api/v1/pipeline-servers?namespace=my-namespace')
-  .then(r => r.json())
-  .then(d => d.data.servers);
+async function queryPipelineRunsWorkflow() {
+  // Step 1: Get available Pipeline Servers
+  const servers = await fetch('/api/v1/pipeline-servers?namespace=my-namespace')
+    .then(r => r.json())
+    .then(d => d.data.servers);
 
-// Step 2: Select first ready server
-const server = servers.find(s => s.ready);
+  // Step 2: Select first ready server
+  const server = servers.find(s => s.ready);
 
-// Step 3: Query pipeline runs from that server
-const runs = await fetch(
-  `/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=${server.name}`
-).then(r => r.json())
-  .then(d => d.data.runs);
+  // Step 3: Query pipeline runs from that server
+  const runs = await fetch(
+    `/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=${server.name}`
+  ).then(r => r.json())
+    .then(d => d.data.runs);
+
+  return runs;
+}
 ```
 
 ## Troubleshooting

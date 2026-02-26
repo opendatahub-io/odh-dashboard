@@ -34,9 +34,16 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Parse pagination parameters
 	pageSize := int32(20) // default
 	if ps := query.Get("pageSize"); ps != "" {
-		if parsed, err := strconv.ParseInt(ps, 10, 32); err == nil {
-			pageSize = int32(parsed)
+		parsed, err := strconv.ParseInt(ps, 10, 32)
+		if err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must be a valid integer"))
+			return
 		}
+		if parsed <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must be greater than 0"))
+			return
+		}
+		pageSize = int32(parsed)
 	}
 
 	pageToken := query.Get("nextPageToken")

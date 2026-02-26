@@ -6,7 +6,7 @@ The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pip
 
 ## Endpoint
 
-```
+```http
 GET /api/v1/pipeline-runs
 ```
 
@@ -195,7 +195,7 @@ go run cmd/main.go --mock-pipeline-server-client
 
 ### Mock Data
 
-Mock mode returns 3 sample pipeline runs with various states and annotations:
+Mock mode returns 3 sample pipeline runs with various states:
 
 1. **Succeeded Run** - Completed optimization run with `exp-123` experiment ID
 2. **Running Run** - Currently executing run with `exp-456` experiment ID

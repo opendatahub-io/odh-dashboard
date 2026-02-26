@@ -117,7 +117,9 @@ func (r *PipelineServersRepository) listDSPipelineApplications(ctx context.Conte
 	for _, item := range unstructuredList.Items {
 		dspa, err := unstructuredToDSPipelineApplication(&item)
 		if err != nil {
-			// Log warning but continue with other items
+			// Log warning with context and continue with other items
+			fmt.Fprintf(os.Stderr, "WARNING: Failed to convert DSPipelineApplication %s/%s (UID: %s): %v\n",
+				item.GetNamespace(), item.GetName(), item.GetUID(), err)
 			continue
 		}
 		dspas = append(dspas, *dspa)
@@ -217,10 +219,16 @@ func discoverDSPipelineApplicationGVR(config *rest.Config) (schema.GroupVersionR
 		// Test if we can access the resource with this version
 		// We do a simple list with limit=1 to check availability
 		_, err = dynamicClient.Resource(gvr).List(context.Background(), metav1.ListOptions{Limit: 1})
-		if err == nil || !k8serrors.IsNotFound(err) {
-			// Version exists (either succeeded or got a different error like forbidden, which means the resource exists)
+		if err == nil {
+			// Successfully accessed the resource
 			return gvr, nil
 		}
+		// Continue trying other versions if NotFound or Forbidden
+		if k8serrors.IsNotFound(err) || k8serrors.IsForbidden(err) {
+			continue
+		}
+		// Return unexpected errors
+		return schema.GroupVersionResource{}, fmt.Errorf("unexpected error discovering DSPipelineApplication GVR: %w", err)
 	}
 
 	// If none of the known versions work, default to v1

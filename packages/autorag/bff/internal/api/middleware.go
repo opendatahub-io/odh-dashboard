@@ -150,7 +150,7 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 				authToken = strings.TrimPrefix(authHeader, "Bearer ")
 				logger.Debug("Extracted auth token from Authorization header", "tokenLength", len(authToken))
 			} else {
-				logger.Debug("No Authorization header found or invalid format", "authHeader", authHeader)
+				logger.Debug("No Authorization header found or invalid format", "hasAuthHeader", authHeader != "")
 			}
 
 			insecureSkipVerify := app.config.InsecureSkipVerify

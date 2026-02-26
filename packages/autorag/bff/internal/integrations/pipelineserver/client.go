@@ -33,6 +33,9 @@ type RealPipelineServerClient struct {
 
 // NewRealPipelineServerClient creates a new pipeline server client
 func NewRealPipelineServerClient(baseURL string, authToken string, httpClient *http.Client) *RealPipelineServerClient {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
 	return &RealPipelineServerClient{
 		baseURL:    baseURL,
 		authToken:  authToken,
@@ -42,6 +45,9 @@ func NewRealPipelineServerClient(baseURL string, authToken string, httpClient *h
 
 // ListRuns queries the Kubeflow Pipelines API for runs
 func (c *RealPipelineServerClient) ListRuns(ctx context.Context, params *ListRunsParams) (*models.KFPipelineRunResponse, error) {
+	if params == nil {
+		params = &ListRunsParams{}
+	}
 	queryParams := url.Values{}
 	if params.PageSize > 0 {
 		queryParams.Set("page_size", fmt.Sprintf("%d", params.PageSize))
