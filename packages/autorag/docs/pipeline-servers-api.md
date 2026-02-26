@@ -111,20 +111,36 @@ Returned when:
 
 ## Development Mode
 
-For local development and testing, you can use mock mode. In mock mode, the endpoint will return Pipeline Servers based on the mock Kubernetes environment setup.
+For local development and testing, you can use mock mode to return sample data without connecting to a real Kubernetes cluster.
 
 ### Running with Mock Data
 
 ```bash
 cd packages/autorag/bff
-make run MOCK_K8_CLIENT=true
+make run MOCK_K8S_CLIENT=true
 ```
 
 Or using the flag directly:
 
 ```bash
-go run cmd/main.go --mock-k8-client
+go run cmd/main.go --mock-k8s-client
 ```
+
+### Mock Data
+
+Mock mode returns 2 sample Pipeline Servers:
+
+1. **dspa** - A ready Pipeline Server with full deployment
+   - Name: `dspa`
+   - Ready: `true`
+   - Status: All conditions ready
+
+2. **dspa-test** - A non-ready Pipeline Server (simulating deployment in progress)
+   - Name: `dspa-test`
+   - Ready: `false`
+   - Status: Waiting for pods to become ready
+
+Both mock servers will use the namespace provided in the request and will have properly constructed API URLs.
 
 ## Production Deployment
 

@@ -8,13 +8,13 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Scope
 
-This trimmed service exposes ONLY:
+This service exposes the following endpoints:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
-
-All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
+- GET `/api/v1/pipeline-servers` – list available Pipeline Servers (DSPipelineApplications) in a namespace
+- GET `/api/v1/pipeline-runs` – query pipeline runs from a specific Pipeline Server
 
 ## Development
 
@@ -50,7 +50,8 @@ make run LOG_LEVEL=DEBUG
 | `-port` | `PORT` | Listen port (default 4000) |
 | `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
+| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution and Pipeline Servers |
+| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Pipeline Server API calls |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
@@ -92,23 +93,31 @@ make docker-build
 
 ## Endpoints
 
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
+The following JSON endpoints are available plus static asset serving (index.html fallback):
 
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces        (dev / mock mode only)
+GET /api/v1/pipeline-servers  (requires namespace parameter)
+GET /api/v1/pipeline-runs     (requires namespace and pipelineServerId parameters)
 ```
 
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all endpoints.
 
 ```shell
 curl -i localhost:4000/healthcheck
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-servers?namespace=test-namespace"
+curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa"
 ```
+
+For detailed API documentation, see:
+- [Pipeline Servers API](../docs/pipeline-servers-api.md)
+- [Pipeline Runs API](../docs/pipeline-runs-api.md)
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
@@ -56,10 +58,10 @@ func (r *PipelineServersRepository) ListPipelineServers(ctx context.Context, cli
 
 // listDSPipelineApplications lists all DSPipelineApplication CRs in a namespace
 func (r *PipelineServersRepository) listDSPipelineApplications(ctx context.Context, client kubernetes.KubernetesClientInterface, namespace string) ([]models.DSPipelineApplication, error) {
-	// Validate we have a real Kubernetes client
-	_, ok := client.GetClientset().(k8sinterface.Interface)
-	if !ok {
-		return nil, fmt.Errorf("failed to get kubernetes clientset")
+	// Check if we're running in mock K8s mode
+	if isMockK8sMode() {
+		// Running with mock K8s client - return mock data
+		return getMockDSPipelineApplications(namespace), nil
 	}
 
 	// Get dynamic client
@@ -152,4 +154,64 @@ func unstructuredToDSPipelineApplication(obj *unstructured.Unstructured) (*model
 	}
 
 	return &dspa, nil
+}
+
+// isMockK8sMode checks if we're running with mocked Kubernetes client
+func isMockK8sMode() bool {
+	mockK8s := os.Getenv("MOCK_K8S_CLIENT")
+	return strings.ToLower(mockK8s) == "true"
+}
+
+// getMockDSPipelineApplications returns mock DSPipelineApplication data for development
+func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplication {
+	return []models.DSPipelineApplication{
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1alpha1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa",
+				Namespace: namespace,
+			},
+			Spec: models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+			},
+			Status: models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "Deployment has minimum availability",
+					},
+				},
+			},
+		},
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1alpha1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-test",
+				Namespace: namespace,
+			},
+			Spec: models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+			},
+			Status: models.DSPipelineApplicationStatus{
+				Ready: false,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "False",
+						Reason:  "PodNotReady",
+						Message: "Waiting for pods to become ready",
+					},
+				},
+			},
+		},
+	}
 }
