@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Label, type LabelProps } from '@patternfly/react-core';
+import { Flex, FlexItem, Label, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import type { PipelineRun } from '~/app/types';
 import { autoragRunsColumns } from './columns';
 
 type AutoragRunsTableRowProps = {
   run: PipelineRun;
-  onNameClick: (run: PipelineRun) => void;
 };
 
 const getStatusLabelProps = (
@@ -28,24 +27,17 @@ const getStatusLabelProps = (
   return { color: 'grey' };
 };
 
-const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run, onNameClick }) => (
+const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run }) => (
   <Tr>
     <Td dataLabel={autoragRunsColumns[0].label}>
-      <Button
-        variant="link"
-        isInline
-        onClick={() => onNameClick(run)}
-        data-testid={`run-name-${run.id}`}
-      >
-        {run.name}
-      </Button>
+      <span data-testid={`run-name-${run.id}`}>{run.name}</span>
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
       {run.tags?.length ? (
         <Flex gap={{ default: 'gapSm' }} wrap="wrap">
-          {run.tags.map((tag) => (
-            <FlexItem key={tag}>
+          {run.tags.map((tag, index) => (
+            <FlexItem key={`${tag}-${index}`}>
               <Label color="grey" isCompact>
                 {tag}
               </Label>

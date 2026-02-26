@@ -1,7 +1,6 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { PipelineRun } from '~/app/types';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable/index';
 
@@ -67,20 +66,10 @@ describe('AutoragRunsTable', () => {
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
   });
 
-  it('should render run names as clickable buttons', () => {
+  it('should render run names', () => {
     render(<AutoragRunsTable runs={mockRuns} />);
 
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
     expect(screen.getByTestId('run-name-r2')).toHaveTextContent('Run Two');
-  });
-
-  it('should open detail placeholder modal when run name is clicked', async () => {
-    const user = userEvent.setup();
-    render(<AutoragRunsTable runs={mockRuns} />);
-
-    await user.click(screen.getByTestId('run-name-r1'));
-
-    expect(screen.getByRole('dialog', { name: 'Run detail placeholder' })).toBeInTheDocument();
-    expect(screen.getByText(/Detail page for run "Run One"/)).toBeInTheDocument();
   });
 });

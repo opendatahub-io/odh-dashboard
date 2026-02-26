@@ -262,17 +262,3 @@ export function getMockPipelineRuns(
   }
   return Promise.resolve(runsByNamespace.get(namespace)!);
 }
-
-export function deleteMockPipeline(namespace: string, pipelineId: string): Promise<void> {
-  const runs = runsByNamespace.get(namespace) ?? [...MOCK_RUNS];
-  const filtered = runs.filter((r) => r.pipeline_id !== pipelineId);
-  runsByNamespace.set(namespace, filtered);
-  return Promise.resolve();
-}
-
-export function deleteMockPipelineRun(namespace: string, runId: string): Promise<void> {
-  const runs = runsByNamespace.get(namespace) ?? [...MOCK_RUNS];
-  const filtered = runs.filter((r) => r.id !== runId);
-  runsByNamespace.set(namespace, filtered);
-  return Promise.resolve();
-}
