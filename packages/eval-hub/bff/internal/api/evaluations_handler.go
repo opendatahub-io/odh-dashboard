@@ -20,10 +20,24 @@ func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	jobs, err := client.ListEvaluationJobs(ctx)
+	q := r.URL.Query()
+	params := evalhub.ListEvaluationJobsParams{
+		Namespace: q.Get("namespace"),
+		Limit:     q.Get("limit"),
+		Offset:    q.Get("offset"),
+		Status:    q.Get("status"),
+		Name:      q.Get("name"),
+		Tags:      q.Get("tags"),
+	}
+
+	jobs, err := client.ListEvaluationJobs(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list evaluation jobs: %w", err))
 		return
+	}
+
+	if jobs == nil {
+		jobs = []evalhub.EvaluationJob{}
 	}
 
 	envelope := EvaluationJobsEnvelope{Data: jobs}
