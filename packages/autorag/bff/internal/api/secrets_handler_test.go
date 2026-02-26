@@ -867,8 +867,38 @@ func TestGetSecretsHandler_ForbiddenError(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	// Forbidden errors should be treated as server errors (not NotFound)
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	// Forbidden errors should return 403 status code
+	assert.Equal(t, http.StatusForbidden, res.StatusCode)
+}
+
+func TestGetSecretsHandler_UnauthorizedError(t *testing.T) {
+	// Create a Kubernetes Unauthorized error using StatusError
+	unauthorizedErr := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Message: "unauthorized: User authentication failed",
+			Reason:  metav1.StatusReasonUnauthorized,
+			Code:    http.StatusUnauthorized,
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{
+		err: unauthorizedErr,
+	}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[HTTPError](
+		"GET",
+		"/api/v1/secrets?resource=restricted",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	// Unauthorized errors should return 401 status code
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
 func TestGetSecretsHandler_LimitExceedsMaximum(t *testing.T) {
