@@ -64,3 +64,78 @@ export type Collection = {
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
 };
+
+// ---------------------------------------------------------------------------
+// Provider / Standardised Benchmarks
+// ---------------------------------------------------------------------------
+
+export type ProviderResource = {
+  id: string;
+  tenant?: string;
+  created_at?: string;
+  updated_at?: string;
+  read_only?: boolean;
+  owner?: string;
+};
+
+export type ProviderBenchmarkScore = {
+  metric: string;
+  lower_is_better: boolean;
+};
+
+export type ProviderBenchmarkPassCriteria = {
+  threshold: number;
+};
+
+export type ProviderBenchmark = {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  metrics?: string[];
+  tags?: string[];
+  num_few_shot?: number;
+  dataset_size?: number;
+  primary_score?: ProviderBenchmarkScore;
+  pass_criteria?: ProviderBenchmarkPassCriteria;
+};
+
+export type ProviderEnvVar = {
+  name: string;
+  value: string;
+};
+
+export type ProviderK8sRuntime = {
+  image?: string;
+  entrypoint?: string[];
+  cpu_request?: string;
+  memory_request?: string;
+  cpu_limit?: string;
+  memory_limit?: string;
+  env?: ProviderEnvVar[];
+};
+
+export type ProviderLocalRuntime = {
+  command?: string;
+  env?: ProviderEnvVar[];
+};
+
+export type ProviderRuntime = {
+  k8s?: ProviderK8sRuntime;
+  local?: ProviderLocalRuntime;
+};
+
+export type Provider = {
+  resource: ProviderResource;
+  name: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+  runtime?: ProviderRuntime;
+  benchmarks?: ProviderBenchmark[];
+};
+
+export type ProvidersResponse = {
+  items: Provider[];
+  total_count?: number;
+};

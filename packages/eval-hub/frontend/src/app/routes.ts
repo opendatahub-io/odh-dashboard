@@ -8,8 +8,11 @@ export const evaluationRootSegment = 'evaluation';
 export const evaluationsBaseRoute = (namespace?: string): string =>
   namespace ? `/${evaluationRootSegment}/${namespace}` : `/${evaluationRootSegment}`;
 
-export const evaluationNewRoute = (namespace?: string): string =>
-  `${evaluationsBaseRoute(namespace)}/new`;
+export const evaluationCreateRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/create`;
 
 export const evaluationCollectionsRoute = (namespace?: string): string =>
-  `${evaluationNewRoute(namespace)}/collections`;
+  `${evaluationCreateRoute(namespace)}/collections`;
+
+export const evaluationBenchmarksRoute = (namespace?: string): string =>
+  `${evaluationCreateRoute(namespace)}/benchmarks`;

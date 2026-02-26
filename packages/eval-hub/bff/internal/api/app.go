@@ -35,6 +35,7 @@ const (
 	NamespacePath      = ApiPathPrefix + "/namespaces"
 	EvaluationJobsPath = ApiPathPrefix + "/evaluations/jobs"
 	CollectionsPath    = ApiPathPrefix + "/evaluations/collections"
+	ProvidersPath      = ApiPathPrefix + "/evaluations/providers"
 )
 
 type App struct {
@@ -163,8 +164,13 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// EvalHub endpoints
-	apiRouter.GET(EvaluationJobsPath, app.AttachEvalHubClient(app.EvaluationJobsHandler))
-	apiRouter.GET(CollectionsPath, app.AttachEvalHubClient(app.CollectionsHandler))
+	// Middleware chain: AttachNamespace → RequireAccessToService → AttachEvalHubClient → handler
+	// AttachNamespace reads ?namespace= from the query and injects it into context.
+	// RequireAccessToService performs a SubjectAccessReview to verify the user can list EvalHub CRs.
+	// AttachEvalHubClient resolves the EvalHub service URL (env override or CR auto-discovery).
+	apiRouter.GET(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.EvaluationJobsHandler))))
+	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

@@ -34,11 +34,8 @@ import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useCollections } from '~/app/hooks/useCollections';
 import { Collection } from '~/app/types';
-import { evaluationNewRoute, evaluationsBaseRoute } from '~/app/routes';
+import { evaluationCreateRoute, evaluationsBaseRoute } from '~/app/routes';
 
-// ---------------------------------------------------------------------------
-// Drawer panel
-// ---------------------------------------------------------------------------
 const CollectionDrawerPanel: React.FC<{
   collection: Collection | undefined;
   onClose: () => void;
@@ -62,7 +59,6 @@ const CollectionDrawerPanel: React.FC<{
 
       <DrawerPanelBody>
         <Stack hasGutter>
-          {/* Description */}
           {collection.description && (
             <StackItem>
               <Stack>
@@ -76,7 +72,6 @@ const CollectionDrawerPanel: React.FC<{
             </StackItem>
           )}
 
-          {/* Tags */}
           {collection.tags && collection.tags.length > 0 && (
             <StackItem>
               <LabelGroup>
@@ -89,7 +84,6 @@ const CollectionDrawerPanel: React.FC<{
             </StackItem>
           )}
 
-          {/* Benchmarks */}
           {collection.benchmarks && collection.benchmarks.length > 0 && (
             <StackItem>
               <Stack hasGutter>
@@ -125,7 +119,6 @@ const CollectionDrawerPanel: React.FC<{
             </StackItem>
           )}
 
-          {/* Run collection button */}
           <StackItem>
             <Button variant="primary">Run collection</Button>
           </StackItem>
@@ -135,16 +128,13 @@ const CollectionDrawerPanel: React.FC<{
   );
 };
 
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
 
-  const { collections, loaded, loadError } = useCollections();
+  const { collections, loaded, loadError } = useCollections(namespace ?? '');
 
   return (
     <Drawer isExpanded={!!selectedCollection} isInline>
@@ -158,8 +148,8 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       >
         <DrawerContentBody>
           <ApplicationsPage
-            title="Evaluation collections"
-            description="Browse evaluation collections tailored to your industry and use case."
+            title="Select benchmark suite"
+            description="Select a benchmark suite to run on your model, agent or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -167,7 +157,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationNewRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
                   )}
                 />
                 <BreadcrumbItem isActive>Choose benchmark collection</BreadcrumbItem>

@@ -11,7 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { evaluationCollectionsRoute, evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationBenchmarksRoute,
+  evaluationCollectionsRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 
 const NewEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -40,24 +44,28 @@ const NewEvaluationRunPage: React.FC = () => {
           maxWidths={{ default: '100%', lg: 'calc(40% - 1rem / 2)' }}
         >
           <Card
-            data-testid="evaluation-collections-card"
+            data-testid="standardised-benchmarks-card"
             style={{ cursor: 'pointer' }}
-            onClick={() => navigate(evaluationCollectionsRoute(namespace))}
+            onClick={() => navigate(evaluationBenchmarksRoute(namespace))}
           >
-            <CardTitle id="evaluation-collections-title">Evaluation collections</CardTitle>
+            <CardTitle id="standardised-benchmarks-title">Single benchmark</CardTitle>
             <CardBody>
-              <Content component="small">
-                Evaluate models, agents, and datasets using evaluation collections tailored to your
-                industry and use case.
+              <Content component="p">
+                Use industry-standard benchmarks for comprehensive model evaluation.
               </Content>
             </CardBody>
           </Card>
 
-          <Card data-testid="standardised-benchmarks-card" style={{ cursor: 'pointer' }}>
-            <CardTitle id="standardised-benchmarks-title">Standardised benchmarks</CardTitle>
+          <Card
+            data-testid="evaluation-collections-card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate(evaluationCollectionsRoute(namespace))}
+          >
+            <CardTitle id="evaluation-collections-title">Benchmark suite</CardTitle>
             <CardBody>
-              <Content component="small">
-                Use industry-standard benchmarks for comprehensive model evaluation.
+              <Content component="p">
+                Evaluate models and agents using evaluation collections tailored to your industry
+                and use case.
               </Content>
             </CardBody>
           </Card>

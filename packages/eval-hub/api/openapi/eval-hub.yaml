@@ -132,6 +132,50 @@ paths:
       summary: List Collections
       description: Gets a list of all benchmark collections from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/providers:
+    summary: List evaluation providers
+    description: >-
+      Lists all evaluation providers from the EvalHub control plane.
+      Each provider exposes a catalogue of benchmarks available for evaluation.
+    get:
+      tags:
+        - Providers
+      security:
+        - Bearer: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Maximum number of providers to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Offset for pagination
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Filter benchmarks by name (case-insensitive substring match)
+      responses:
+        '200':
+          $ref: '#/components/responses/ProvidersResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listProviders
+      summary: List Providers
+      description: Gets a list of all evaluation providers with their benchmark catalogues.
+
   /eval-hub/api/v1/evaluations/jobs:
     summary: List evaluation jobs
     description: >-
@@ -387,6 +431,194 @@ components:
         $ref: '#/components/schemas/Collection'
       description: Array of benchmark collections
 
+    ProviderResource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'lm_evaluation_harness'
+        tenant:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        read_only:
+          type: boolean
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+
+    ProviderBenchmarkPrimaryScore:
+      type: object
+      required:
+        - metric
+        - lower_is_better
+      properties:
+        metric:
+          type: string
+        lower_is_better:
+          type: boolean
+
+    ProviderBenchmarkPassCriteria:
+      type: object
+      required:
+        - threshold
+      properties:
+        threshold:
+          type: number
+
+    ProviderBenchmark:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: 'truthfulqa_mc1'
+        name:
+          type: string
+          example: 'Truthfulness Testing'
+        description:
+          type: string
+          nullable: true
+          example: 'Tests whether models give truthful answers to questions where humans often answer incorrectly.'
+        category:
+          type: string
+          nullable: true
+          example: 'Safety'
+        metrics:
+          type: array
+          items:
+            type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        num_few_shot:
+          type: integer
+          nullable: true
+        dataset_size:
+          type: integer
+          nullable: true
+        primary_score:
+          $ref: '#/components/schemas/ProviderBenchmarkPrimaryScore'
+        pass_criteria:
+          $ref: '#/components/schemas/ProviderBenchmarkPassCriteria'
+
+    ProviderEnvVar:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+    ProviderK8sRuntime:
+      type: object
+      description: Kubernetes-specific runtime configuration for a provider.
+      properties:
+        image:
+          type: string
+          nullable: true
+        entrypoint:
+          type: array
+          items:
+            type: string
+          nullable: true
+        cpu_request:
+          type: string
+          nullable: true
+        memory_request:
+          type: string
+          nullable: true
+        cpu_limit:
+          type: string
+          nullable: true
+        memory_limit:
+          type: string
+          nullable: true
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnvVar'
+          nullable: true
+
+    ProviderLocalRuntime:
+      type: object
+      description: Local execution runtime configuration for a provider.
+      properties:
+        command:
+          type: string
+          nullable: true
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnvVar'
+          nullable: true
+
+    ProviderRuntime:
+      type: object
+      description: Describes how a provider executes benchmarks (Kubernetes or local).
+      properties:
+        k8s:
+          $ref: '#/components/schemas/ProviderK8sRuntime'
+        local:
+          $ref: '#/components/schemas/ProviderLocalRuntime'
+
+    Provider:
+      type: object
+      properties:
+        resource:
+          $ref: '#/components/schemas/ProviderResource'
+        name:
+          type: string
+          example: 'lm_evaluation_harness'
+        title:
+          type: string
+          nullable: true
+          example: 'LM Evaluation Harness'
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        runtime:
+          $ref: '#/components/schemas/ProviderRuntime'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderBenchmark'
+          nullable: true
+
+    ProvidersData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+        total_count:
+          type: integer
+          nullable: true
+
     Error:
       type: object
       required:
@@ -526,6 +758,36 @@ components:
                     provider_id: 'lm_evaluation_harness'
                     weight: 1
 
+    ProvidersResponse:
+      description: List of evaluation providers with their benchmark catalogues
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/ProvidersData'
+          example:
+            data:
+              items:
+                - resource:
+                    id: 'lm_evaluation_harness'
+                  name: 'lm_evaluation_harness'
+                  title: 'LM Evaluation Harness'
+                  runtime:
+                    k8s:
+                      image: 'quay.io/opendatahub/lm-eval:latest'
+                  benchmarks:
+                    - id: 'truthfulqa_mc1'
+                      name: 'Truthfulness Testing'
+                      category: 'Safety'
+                      metrics:
+                        - 'Instruction adherence'
+                        - 'Format compliance'
+              total_count: 20
+
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
       content:
@@ -598,3 +860,5 @@ tags:
     description: LLM evaluation job management via EvalHub
   - name: Collections
     description: Benchmark collection management via EvalHub
+  - name: Providers
+    description: Evaluation provider and benchmark catalogue management via EvalHub

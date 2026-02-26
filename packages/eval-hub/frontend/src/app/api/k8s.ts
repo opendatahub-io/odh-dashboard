@@ -6,7 +6,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { Collection, NamespaceKind } from '~/app/types';
+import { Collection, NamespaceKind, Provider, ProvidersResponse } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -33,12 +33,36 @@ export const getNamespaces =
     });
 
 export const getCollections =
-  (hostPath: string) =>
+  (hostPath: string, namespace: string) =>
   (opts: APIOptions): Promise<Collection[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`, {}, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`,
+        { namespace },
+        opts,
+      ),
     ).then((response) => {
       if (isModArchResponse<{ items: Collection[] } | Collection[]>(response)) {
+        const { data } = response;
+        // Guard: handle both raw array and envelope shapes.
+        return Array.isArray(data) ? data : data.items;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getProviders =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<Provider[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/providers`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ProvidersResponse | Provider[]>(response)) {
         const { data } = response;
         // Guard: handle both raw array and envelope shapes.
         return Array.isArray(data) ? data : data.items;

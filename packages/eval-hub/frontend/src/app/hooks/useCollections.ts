@@ -9,10 +9,10 @@ type UseCollectionsResult = {
   loadError: Error | undefined;
 };
 
-export const useCollections = (): UseCollectionsResult => {
+export const useCollections = (namespace: string): UseCollectionsResult => {
   const fetchCollections = React.useCallback<FetchStateCallbackPromise<Collection[]>>(
-    (opts) => getCollections('')(opts),
-    [],
+    (opts) => getCollections('', namespace)(opts),
+    [namespace],
   );
 
   const [collections, loaded, loadError] = useFetchState<Collection[]>(fetchCollections, [], {
