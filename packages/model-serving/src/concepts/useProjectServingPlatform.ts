@@ -37,7 +37,7 @@ export const getProjectServingPlatform = (
     (p) => isPlatformEnabled(p, project) || (defaultIfNoMatch && p.properties.manage.default),
   );
   const sortedEnabledPlatforms = enabledPlatforms.toSorted(
-    (a, b) => (b.properties.manage.priority ?? 0) - (a.properties.manage.priority ?? 0),
+    (a, b) => b.properties.manage.priority - a.properties.manage.priority,
   );
   return sortedEnabledPlatforms[0] ?? null;
 };

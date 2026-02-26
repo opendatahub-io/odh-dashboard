@@ -86,7 +86,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     yaml,
     setYaml,
     resources: finalResources, // will be from yaml or wizard depending view mode
-  } = useFormYamlResources(formResources, viewMode);
+  } = useFormYamlResources(formResources);
 
   const secretName =
     wizardFormData.state.modelLocationData.data?.connection ??
@@ -208,6 +208,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 onCancel={openExitModal}
                 onOverwrite={onOverwrite}
                 onRefresh={onRefresh}
+                isLoading={isLoading}
                 error={submitError}
                 clearError={clearSubmitError}
               />

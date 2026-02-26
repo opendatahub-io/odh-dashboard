@@ -229,7 +229,7 @@ export const deployLLMdDeployment = async (
     tokenAuthentication: wizardData.tokenAuthentication.data,
   };
 
-  // The form should always pass in modelResource so assemble... shouldn't ever be called here
+  // The form should always pass in modelResource so assembleLLMInferenceService shouldn't ever be called here
   const llmInferenceService =
     modelResource ||
     assembleLLMInferenceService(params, existingDeployment?.model, connectionSecretName, dryRun);
@@ -247,8 +247,8 @@ export const deployLLMdDeployment = async (
   if (wizardData.canCreateRoleBindings) {
     await setUpTokenAuth(
       wizardData.tokenAuthentication.data,
-      wizardData.k8sNameDesc.data.k8sName.value,
-      projectName,
+      llmInferenceService.metadata.name,
+      llmInferenceService.metadata.namespace,
       createTokenAuth,
       llmdInferenceService,
       initialWizardData?.existingAuthTokens,

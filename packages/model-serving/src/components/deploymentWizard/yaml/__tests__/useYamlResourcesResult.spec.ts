@@ -1,27 +1,22 @@
+import { act } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { stringify } from 'yaml';
-import type { WizardFormData } from '../types';
-import type { Deployment } from '../../../../extension-points';
+import type { WizardFormData } from '../../types';
+import type { Deployment, ModelResourceType } from '../../../../../extension-points';
 import {
   type DeploymentWizardResources,
   useFormToResourcesTransformer,
-} from '../yaml/useFormToResourcesTransformer';
-import { useFormYamlResources } from '../yaml/useYamlResourcesResult';
+} from '../useFormToResourcesTransformer';
+import { useFormYamlResources } from '../useYamlResourcesResult';
+import { useWizardFieldApply } from '../../useWizardFieldApply';
+import { mockExtensions, mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 
-jest.mock('../useDeployMethod');
-jest.mock('../useWizardFieldApply');
+jest.mock('@odh-dashboard/plugin-core');
+jest.mock('../../useWizardFieldApply');
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { useDeployMethod } = require('../useDeployMethod') as {
-  useDeployMethod: jest.Mock;
-};
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { useWizardFieldApply } = require('../useWizardFieldApply') as {
-  useWizardFieldApply: jest.Mock;
-};
+const mockUseWizardFieldApply = jest.mocked(useWizardFieldApply);
 
-const mockModel: K8sResourceCommon = {
+const mockModel: ModelResourceType = {
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
   metadata: {
@@ -42,47 +37,90 @@ const mockDeployment: Deployment = {
   },
 };
 
-const mockFormData: WizardFormData = {
-  state: {} as WizardFormData['state'],
-};
+const mockFormData: WizardFormData = mockDeploymentWizardState();
 
 describe('useFormYamlResources', () => {
-  it('should return undefined yaml when formResources is undefined', () => {
-    const renderResult = testHook(useFormYamlResources)(undefined);
-    expect(renderResult).hookToStrictEqual({ yaml: undefined });
-  });
-
-  it('should return undefined yaml when formResources is an empty object', () => {
-    const renderResult = testHook(useFormYamlResources)({});
-    expect(renderResult).hookToStrictEqual({ yaml: undefined });
-  });
-
-  it('should return yaml string when formResources has a model', () => {
+  it('should return form-derived yaml string by default', () => {
     const resources: DeploymentWizardResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
-    expect(renderResult).hookToStrictEqual({ yaml: stringify(mockModel) });
+    expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
+  });
+
+  it('should return formResources as resources by default', () => {
+    const resources: DeploymentWizardResources = { model: mockModel };
+    const renderResult = testHook(useFormYamlResources)(resources);
+    expect(renderResult.result.current.resources).toBe(resources);
+  });
+
+  it('should return yaml-parsed resources after setYaml is called', () => {
+    const resources: DeploymentWizardResources = { model: mockModel };
+    const renderResult = testHook(useFormYamlResources)(resources);
+
+    const editedModel = { ...mockModel, metadata: { ...mockModel.metadata, name: 'edited' } };
+    act(() => {
+      renderResult.result.current.setYaml(stringify(editedModel));
+    });
+
+    expect(renderResult.result.current.resources).toStrictEqual({ model: editedModel });
+    expect(renderResult.result.current.resources).not.toBe(resources);
+  });
+
+  it('should return editor yaml after setYaml is called', () => {
+    const resources: DeploymentWizardResources = { model: mockModel };
+    const renderResult = testHook(useFormYamlResources)(resources);
+
+    const customYaml = 'kind: LLMInferenceService\nmetadata:\n  name: custom\n';
+    act(() => {
+      renderResult.result.current.setYaml(customYaml);
+    });
+
+    expect(renderResult.result.current.yaml).toBe(customYaml);
+  });
+
+  it('should provide setYaml function', () => {
+    const resources: DeploymentWizardResources = { model: mockModel };
+    const renderResult = testHook(useFormYamlResources)(resources);
+    expect(renderResult.result.current.setYaml).toEqual(expect.any(Function));
   });
 
   it('should return stable value on rerender with same input', () => {
     const resources: DeploymentWizardResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
-
     renderResult.rerender(resources);
     expect(renderResult).hookToBeStable();
   });
 
-  it('should update yaml when resources change', () => {
+  it('should update yaml when formResources change and editor has not been used', () => {
     const resources: DeploymentWizardResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
 
-    const updatedModel: K8sResourceCommon = {
+    const updatedModel: ModelResourceType = {
       ...mockModel,
       metadata: { ...mockModel.metadata, name: 'updated-model' },
     };
     const updatedResources: DeploymentWizardResources = { model: updatedModel };
     renderResult.rerender(updatedResources);
 
-    expect(renderResult).hookToStrictEqual({ yaml: stringify(updatedModel) });
+    expect(renderResult.result.current.yaml).toBe(stringify(updatedModel));
+    expect(renderResult.result.current.resources).toBe(updatedResources);
+  });
+
+  it('should not revert to form yaml after setYaml has been called', () => {
+    const resources: DeploymentWizardResources = { model: mockModel };
+    const renderResult = testHook(useFormYamlResources)(resources);
+
+    const customYaml = 'kind: LLMInferenceService\nmetadata:\n  name: custom\n';
+    act(() => {
+      renderResult.result.current.setYaml(customYaml);
+    });
+
+    const updatedModel: ModelResourceType = {
+      ...mockModel,
+      metadata: { ...mockModel.metadata, name: 'updated-model' },
+    };
+    renderResult.rerender({ model: updatedModel });
+
+    expect(renderResult.result.current.yaml).toBe(customYaml);
   });
 });
 
@@ -91,13 +129,9 @@ describe('useFormToResourcesTransformer', () => {
     jest.clearAllMocks();
   });
 
-  it('should return undefined resources when assembleDeployment is not available', () => {
-    useDeployMethod.mockReturnValue({
-      deployMethod: undefined,
-      deployMethodLoaded: true,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+  it('should return empty resources when no assemble extension is available', () => {
+    mockExtensions([]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
@@ -106,19 +140,16 @@ describe('useFormToResourcesTransformer', () => {
     const renderResult = testHook(useFormToResourcesTransformer)(mockFormData);
 
     expect(renderResult).hookToStrictEqual({
-      resources: undefined,
+      resources: {},
       loaded: true,
       errors: [],
     });
   });
 
-  it('should return loaded false when deploy method is not loaded', () => {
-    useDeployMethod.mockReturnValue({
-      deployMethod: undefined,
-      deployMethodLoaded: false,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+  it('should return loaded false when assemble extensions are not loaded', () => {
+    const { mockUseResolvedExtensions } = mockExtensions([]);
+    mockUseResolvedExtensions.mockReturnValue([[], false, []]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
@@ -130,12 +161,8 @@ describe('useFormToResourcesTransformer', () => {
   });
 
   it('should return loaded false when apply extensions are not loaded', () => {
-    useDeployMethod.mockReturnValue({
-      deployMethod: undefined,
-      deployMethodLoaded: true,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+    mockExtensions([]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: (d: Deployment) => d,
       applyExtensionsLoaded: false,
       applyExtensionErrors: [],
@@ -146,16 +173,13 @@ describe('useFormToResourcesTransformer', () => {
     expect(renderResult.result.current.loaded).toBe(false);
   });
 
-  it('should combine errors from deploy method and apply extensions', () => {
-    const deployError = new Error('deploy error');
+  it('should combine errors from assemble extensions and apply extensions', () => {
+    const assembleError = new Error('assemble error');
     const applyError = new Error('apply error');
 
-    useDeployMethod.mockReturnValue({
-      deployMethod: undefined,
-      deployMethodLoaded: true,
-      deployMethodErrors: [deployError],
-    });
-    useWizardFieldApply.mockReturnValue({
+    const { mockUseResolvedExtensions } = mockExtensions([]);
+    mockUseResolvedExtensions.mockReturnValue([[], true, [assembleError]]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [applyError],
@@ -163,23 +187,26 @@ describe('useFormToResourcesTransformer', () => {
 
     const renderResult = testHook(useFormToResourcesTransformer)(mockFormData);
 
-    expect(renderResult.result.current.errors).toEqual([deployError, applyError]);
+    expect(renderResult.result.current.errors).toEqual([assembleError, applyError]);
   });
 
-  it('should assemble and apply field data when assembleDeployment is available', () => {
+  it('should assemble and apply field data when assemble extension is available', () => {
     const mockAssembleDeployment = jest.fn().mockReturnValue(mockDeployment);
     const mockApplyFieldData = jest.fn((d: Deployment) => d);
 
-    useDeployMethod.mockReturnValue({
-      deployMethod: {
+    mockExtensions([
+      {
+        type: 'model-serving.deployment/assemble-model-resource',
+        pluginName: 'test',
+        uid: 'test-uid',
         properties: {
-          assembleDeployment: mockAssembleDeployment,
+          platform: 'test-platform',
+          isActive: true,
+          assemble: mockAssembleDeployment,
         },
       },
-      deployMethodLoaded: true,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+    ]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: mockApplyFieldData,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
@@ -211,8 +238,8 @@ describe('useFormToResourcesTransformer', () => {
     };
 
     const formDataWithMetadata: WizardFormData = {
+      ...mockDeploymentWizardState(),
       initialData: { navSourceMetadata },
-      state: {} as WizardFormData['state'],
     };
 
     const deploymentWithMetadata: Deployment = {
@@ -230,14 +257,19 @@ describe('useFormToResourcesTransformer', () => {
     const mockAssembleDeployment = jest.fn().mockReturnValue(mockDeployment);
     const mockApplyFieldData = jest.fn().mockReturnValue(deploymentWithMetadata);
 
-    useDeployMethod.mockReturnValue({
-      deployMethod: {
-        properties: { assembleDeployment: mockAssembleDeployment },
+    mockExtensions([
+      {
+        type: 'model-serving.deployment/assemble-model-resource',
+        pluginName: 'test',
+        uid: 'test-uid',
+        properties: {
+          platform: 'test-platform',
+          isActive: true,
+          assemble: mockAssembleDeployment,
+        },
       },
-      deployMethodLoaded: true,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+    ]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: mockApplyFieldData,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
@@ -245,7 +277,10 @@ describe('useFormToResourcesTransformer', () => {
 
     const renderResult = testHook(useFormToResourcesTransformer)(formDataWithMetadata);
 
-    expect(useWizardFieldApply).toHaveBeenCalledWith(formDataWithMetadata.state, navSourceMetadata);
+    expect(mockUseWizardFieldApply).toHaveBeenCalledWith(
+      formDataWithMetadata.state,
+      navSourceMetadata,
+    );
     expect(renderResult).hookToStrictEqual({
       resources: { model: deploymentWithMetadata.model },
       loaded: true,
@@ -255,16 +290,12 @@ describe('useFormToResourcesTransformer', () => {
 
   it('should pass undefined navSourceMetadata when initialData has no metadata', () => {
     const formDataNoMetadata: WizardFormData = {
+      ...mockDeploymentWizardState(),
       initialData: {},
-      state: {} as WizardFormData['state'],
     };
 
-    useDeployMethod.mockReturnValue({
-      deployMethod: undefined,
-      deployMethodLoaded: true,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+    mockExtensions([]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
@@ -272,7 +303,7 @@ describe('useFormToResourcesTransformer', () => {
 
     testHook(useFormToResourcesTransformer)(formDataNoMetadata);
 
-    expect(useWizardFieldApply).toHaveBeenCalledWith(formDataNoMetadata.state, undefined);
+    expect(mockUseWizardFieldApply).toHaveBeenCalledWith(formDataNoMetadata.state, undefined);
   });
 
   it('should pass existingDeployment to assembleDeployment', () => {
@@ -288,16 +319,19 @@ describe('useFormToResourcesTransformer', () => {
     };
     const mockAssembleDeployment = jest.fn().mockReturnValue(mockDeployment);
 
-    useDeployMethod.mockReturnValue({
-      deployMethod: {
+    mockExtensions([
+      {
+        type: 'model-serving.deployment/assemble-model-resource',
+        pluginName: 'test',
+        uid: 'test-uid',
         properties: {
-          assembleDeployment: mockAssembleDeployment,
+          platform: 'test-platform',
+          isActive: true,
+          assemble: mockAssembleDeployment,
         },
       },
-      deployMethodLoaded: true,
-      deployMethodErrors: [],
-    });
-    useWizardFieldApply.mockReturnValue({
+    ]);
+    mockUseWizardFieldApply.mockReturnValue({
       applyFieldData: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],

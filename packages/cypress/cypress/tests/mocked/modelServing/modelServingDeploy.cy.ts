@@ -23,6 +23,7 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import {
   ModelLocationSelectOption,
@@ -30,8 +31,13 @@ import {
 } from '@odh-dashboard/model-serving/types/form-data';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
 import {
+  initMockConnectionSecretIntercepts,
+  initMockModelAuthIntercepts,
+} from '../../../utils/modelServingUtils';
+import {
   HardwareProfileModel,
   InferenceServiceModel,
+  LLMInferenceServiceModel,
   ProjectModel,
   PVCModel,
   RoleBindingModel,
@@ -1692,47 +1698,247 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
   });
 
-  it('Should show YAML preview mode when toggled', () => {
-    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
-    cy.interceptK8sList(
-      { model: InferenceServiceModel, ns: 'test-project' },
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
-    );
-    cy.interceptK8sList(
-      { model: ServingRuntimeModel, ns: 'test-project' },
-      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
-    );
+  describe('YAML', () => {
+    it('Should show YAML preview mode when toggled', () => {
+      initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+      );
 
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().click();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
 
-    // YAML Viewer
-    modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-    modelServingWizard.findYAMLEditorEmptyState().should('exist');
-    modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
+      // YAML Viewer
+      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.findYAMLEditorEmptyState().should('exist');
+      modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
 
-    // Fill form to llmd and check yaml preview
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
-    modelServingWizard
-      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
-      .should('exist')
-      .click();
-    modelServingWizard.findUrilocationInput().type('https://test');
-    modelServingWizard.findSaveConnectionCheckbox().click();
-    modelServingWizard.findNextButton().should('be.enabled').click();
-    modelServingWizard.findModelDeploymentNameInput().type('test-model');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard
-      .findGlobalScopedTemplateOption('Distributed inference with llm-d')
-      .should('exist')
-      .click();
+      // Fill form to llmd and check yaml preview
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .should('exist')
+        .click();
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+        .should('exist')
+        .click();
+      modelServingWizard.findUrilocationInput().type('https://test');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist')
+        .click();
 
-    // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
-    // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
-    modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-    modelServingWizard.findYAMLCodeEditor().contains('apiVersion: serving.kserve.io/v1alpha1');
-    modelServingWizard.findYAMLCodeEditor().contains('kind: LLMInferenceService');
-    modelServingWizard.findYAMLCodeEditor().contains('name: test-model');
+      // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
+      // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
+      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard
+        .findYAMLCodeEditor()
+        .containsText('apiVersion: serving.kserve.io/v1alpha1');
+      modelServingWizard.findYAMLCodeEditor().containsText('kind: LLMInferenceService');
+      modelServingWizard.findYAMLCodeEditor().containsText('name: test-model');
+    });
+
+    it('Switch to YAML edit mode on the last step and deploy', () => {
+      initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+
+      initMockConnectionSecretIntercepts({ connectionSecretName: 'test-uri-connection-secret' });
+      initMockModelAuthIntercepts({ modelName: 'yaml-edited-model', getResponse: 404 });
+
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        {
+          statusCode: 200,
+          body: mockLLMInferenceServiceK8sResource({ name: 'yaml-edited-model' }),
+        },
+      ).as('createLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Model source - create a new URI connection (saved as 'test-uri-connection-secret').
+      // The POST and subsequent GET for the connection secret are intercepted above.
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .should('exist')
+        .click();
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+        .should('exist')
+        .click();
+      modelServingWizard.findExistingConnectionSelect().should('exist').click();
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+        .should('exist')
+        .click();
+      modelServingWizard.findUrilocationInput().type('https://testinguri');
+      modelServingWizard.findSaveConnectionInput().type('test-uri-connection-secret');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment - set name and choose the LLMd runtime
+      modelServingWizard.findModelDeploymentNameInput().type('test-model');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist')
+        .click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced options
+      modelServingWizard.findTokenAuthenticationCheckbox();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 4: Review - switch to YAML preview, verify the auto-generated YAML
+      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      yamlEditor.containsText('kind: LLMInferenceService');
+      yamlEditor.containsText('name: test-model');
+
+      // Enter manual edit mode via the confirmation modal
+      modelServingWizard.findManualEditModeButton().click();
+      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+
+      // Once in yaml-edit mode, the Form toggle is disabled (cannot go back to wizard)
+      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+
+      // Edit metadata.name in the YAML editor and verify the change propagates to the request
+      yamlEditor.replaceInYAMLEditor('name: test-model', 'name: yaml-edited-model');
+      yamlEditor.containsText('name: yaml-edited-model');
+
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      // Verify LLMInferenceService was created with the edited name (dry run + actual)
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.kind).to.equal('LLMInferenceService');
+        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha1');
+        expect(interception.request.body.metadata.name).to.equal('yaml-edited-model');
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.wait('@createServiceAccountSecret').then((interception) => {
+        expect(interception.request.body.metadata.name).to.equal('test-uri-connection-secret');
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+
+      cy.wait('@createServiceAccount').then((interception) => {
+        expect(interception.request.body.metadata.name).to.equal('yaml-edited-model-sa');
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+      cy.wait('@createRole').then((interception) => {
+        expect(interception.request.body.metadata.name).to.equal('yaml-edited-model-view-role');
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+      cy.wait('@createRoleBinding').then((interception) => {
+        expect(interception.request.body.metadata.name).to.equal('yaml-edited-model-view');
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+      cy.wait('@createServiceAccountSecret').then((interception) => {
+        expect(interception.request.body.metadata.name).to.equal(
+          'default-name-yaml-edited-model-sa',
+        );
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+      });
+    });
+
+    it('Switch to YAML edit mode immediately and deploy from YAML only', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        {
+          statusCode: 200,
+          body: mockLLMInferenceServiceK8sResource({ name: 'yaml-only-model' }),
+        },
+      ).as('createLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Immediately switch to YAML mode without touching the wizard form
+      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.findYAMLEditorEmptyState().should('exist');
+
+      // Enter manual edit mode via the confirmation modal
+      modelServingWizard.findManualEditModeButton().click();
+      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+
+      // Form toggle is disabled; submit is disabled until YAML is provided
+      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.findSubmitButton().should('be.disabled');
+
+      // Type a valid LLMInferenceService YAML directly into the Monaco editor.
+      // The {enter}{home}{shift+end}{del} sequence between lines ensures each new line
+      // starts at column 0 regardless of Monaco's YAML auto-indent behaviour,
+      // then explicit leading spaces set the correct indentation.
+      const yamlLines = [
+        'apiVersion: serving.kserve.io/v1alpha1',
+        'kind: LLMInferenceService',
+        'metadata:',
+        '  name: yaml-only-model',
+        '  namespace: test-project',
+        'spec:',
+        '  model:',
+        '    uri: hf://test/model',
+        '    name: yaml-only-model',
+      ];
+      modelServingWizard
+        .findYAMLCodeEditor()
+        .find()
+        .type(yamlLines.join('{enter}{home}{shift+end}{del}'));
+
+      // Submit button becomes enabled once Monaco fires onChange with the YAML content
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      // Verify only LLMInferenceService was created (dry run + actual) – no other resources
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.kind).to.equal('LLMInferenceService');
+        expect(interception.request.body.apiVersion).to.equal('serving.kserve.io/v1alpha1');
+        expect(interception.request.body.metadata.name).to.equal('yaml-only-model');
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+        expect(interception.request.body.spec.model.uri).to.equal('hf://test/model');
+      });
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@createConnectionSecret.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createServiceAccountSecret.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createServiceAccount.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createRole.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+      cy.get('@createRoleBinding.all').then((interceptions) => {
+        expect(interceptions).to.have.length(0);
+      });
+    });
   });
 
   describe('redirect from v2 to v3 route', () => {

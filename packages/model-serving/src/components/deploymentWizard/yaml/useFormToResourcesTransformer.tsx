@@ -25,7 +25,7 @@ const useAssembleDeploymentFn = (
       : e.properties.isActive,
   );
   const priorotizedExtensions = activeExtensions.toSorted(
-    (a, b) => (b.properties.priority ?? 0) - (a.properties.priority ?? 0),
+    (a, b) => b.properties.priority - a.properties.priority,
   );
   return [
     priorotizedExtensions.length > 0 ? priorotizedExtensions[0].properties.assemble : undefined,
