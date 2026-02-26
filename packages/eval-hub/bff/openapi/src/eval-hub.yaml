@@ -40,7 +40,6 @@ paths:
     summary: EvalHub API health status
     description: >-
       Returns the health and version status of the BFF API layer.
-      Does not require namespace context.
     get:
       tags:
         - HealthCheck
@@ -114,11 +113,19 @@ paths:
     description: >-
       Lists all evaluation jobs from the EvalHub control plane.
       Returns jobs with their status, framework, model, and metadata.
+      Supports server-side pagination, filtering by status/name/tags.
     get:
       tags:
         - Evaluations
       security:
         - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/nameFilter'
+        - $ref: '#/components/parameters/tagsFilter'
       responses:
         '200':
           $ref: '#/components/responses/EvaluationJobsResponse'
@@ -207,22 +214,50 @@ components:
           type: boolean
           example: true
 
-    EvaluationJob:
+    PaginationLink:
+      type: object
+      properties:
+        href:
+          type: string
+          description: URL for the pagination link
+
+    JobMessage:
+      type: object
+      properties:
+        message:
+          type: string
+        message_code:
+          type: string
+
+    JobResource:
       type: object
       required:
         - id
-        - name
-        - status
       properties:
         id:
           type: string
           example: 'eval-job-001'
           description: Unique identifier for the evaluation job
-        name:
+        tenant:
           type: string
-          example: 'mmlu-benchmark'
-          description: Human-readable name for the evaluation job
-        status:
+          description: Display name / tenant label for the job
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-02-20T10:00:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-02-20T11:30:00Z'
+        message:
+          $ref: '#/components/schemas/JobMessage'
+
+    JobStatus:
+      type: object
+      required:
+        - state
+      properties:
+        state:
           type: string
           enum:
             - pending
@@ -230,39 +265,146 @@ components:
             - completed
             - failed
             - cancelled
+            - stopping
+            - stopped
           example: 'completed'
-          description: Current status of the evaluation job
-        framework:
+          description: Current state of the evaluation job
+        message:
+          $ref: '#/components/schemas/JobMessage'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BenchmarkState'
+
+    BenchmarkState:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
           type: string
-          example: 'lm-eval'
-          description: Evaluation framework used (e.g. lm-eval, deepeval)
-        model:
+        provider_id:
+          type: string
+        status:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+        error_message:
+          $ref: '#/components/schemas/JobMessage'
+
+    BenchmarkResult:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        provider_id:
+          type: string
+        metrics:
+          type: object
+          additionalProperties:
+            type: number
+          description: Key-value metric scores
+        artifacts:
+          $ref: '#/components/schemas/BenchmarkArtifact'
+
+    BenchmarkArtifact:
+      type: object
+      properties:
+        oci_digest:
+          type: string
+        oci_reference:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+
+    JobResults:
+      type: object
+      properties:
+        total_evaluations:
+          type: integer
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BenchmarkResult'
+
+    JobModel:
+      type: object
+      required:
+        - name
+      properties:
+        url:
+          type: string
+        name:
           type: string
           example: 'meta-llama/Llama-3.1-8B-Instruct'
           description: Model being evaluated
-        created_at:
+
+    JobBenchmark:
+      type: object
+      required:
+        - id
+      properties:
+        id:
           type: string
-          format: date-time
-          example: '2026-02-20T10:00:00Z'
-          description: Timestamp when the job was created
-        updated_at:
+          example: 'arc_easy'
+          description: Benchmark identifier
+        provider_id:
           type: string
-          format: date-time
-          example: '2026-02-20T11:30:00Z'
-          description: Timestamp when the job was last updated
-        labels:
+          example: 'lm_evaluation_harness'
+        parameters:
           type: object
-          additionalProperties:
-            type: string
-          example:
-            category: 'benchmark'
-          description: Key-value labels for the evaluation job
+          additionalProperties: true
+
+    EvaluationJob:
+      type: object
+      required:
+        - resource
+        - status
+        - model
+        - benchmarks
+      properties:
+        resource:
+          $ref: '#/components/schemas/JobResource'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        results:
+          $ref: '#/components/schemas/JobResults'
+        model:
+          $ref: '#/components/schemas/JobModel'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobBenchmark'
 
     EvaluationJobsData:
-      type: array
-      items:
-        $ref: '#/components/schemas/EvaluationJob'
-      description: Array of evaluation jobs
+      type: object
+      properties:
+        first:
+          $ref: '#/components/schemas/PaginationLink'
+        next:
+          $ref: '#/components/schemas/PaginationLink'
+        limit:
+          type: integer
+          example: 50
+          description: Maximum number of items returned
+        total_count:
+          type: integer
+          example: 2
+          description: Total number of evaluation jobs
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluationJob'
+        errors:
+          type: array
+          items:
+            type: string
+      description: Paginated list of evaluation jobs
 
     Error:
       type: object
@@ -348,7 +490,7 @@ components:
               clusterAdmin: true
 
     EvaluationJobsResponse:
-      description: List of evaluation jobs from EvalHub
+      description: Paginated list of evaluation jobs from EvalHub
       content:
         application/json:
           schema:
@@ -360,23 +502,44 @@ components:
                 $ref: '#/components/schemas/EvaluationJobsData'
           example:
             data:
-              - id: 'eval-job-001'
-                name: 'mmlu-benchmark'
-                status: 'completed'
-                framework: 'lm-eval'
-                model: 'meta-llama/Llama-3.1-8B-Instruct'
-                created_at: '2026-02-20T10:00:00Z'
-                updated_at: '2026-02-20T11:30:00Z'
-                labels:
-                  category: 'benchmark'
-              - id: 'eval-job-002'
-                name: 'hellaswag-eval'
-                status: 'running'
-                framework: 'lm-eval'
-                model: 'mistralai/Mistral-7B-v0.1'
-                created_at: '2026-02-24T08:00:00Z'
-                labels:
-                  category: 'benchmark'
+              first:
+                href: '/api/v1/evaluations/jobs?offset=0&limit=50'
+              next:
+                href: '/api/v1/evaluations/jobs?offset=50&limit=50'
+              limit: 50
+              total_count: 2
+              items:
+                - resource:
+                    id: 'eval-job-001'
+                    tenant: 'MMLU Benchmark'
+                    created_at: '2026-02-20T10:00:00Z'
+                    updated_at: '2026-02-20T11:30:00Z'
+                  status:
+                    state: 'completed'
+                  results:
+                    total_evaluations: 1
+                    benchmarks:
+                      - id: 'arc_easy'
+                        provider_id: 'lm_evaluation_harness'
+                        metrics:
+                          score: 0.85
+                  model:
+                    name: 'meta-llama/Llama-3.1-8B-Instruct'
+                  benchmarks:
+                    - id: 'arc_easy'
+                      provider_id: 'lm_evaluation_harness'
+                - resource:
+                    id: 'eval-job-002'
+                    tenant: 'HellaSwag Eval'
+                    created_at: '2026-02-24T08:00:00Z'
+                  status:
+                    state: 'running'
+                  model:
+                    name: 'mistralai/Mistral-7B-v0.1'
+                  benchmarks:
+                    - id: 'hellaswag'
+                      provider_id: 'lm_evaluation_harness'
+              errors: []
 
     BadRequest:
       description: Bad Request - Invalid parameters or missing required fields
@@ -387,7 +550,7 @@ components:
           example:
             error:
               code: '400'
-              message: 'missing required query parameter: namespace'
+              message: 'invalid request parameters'
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
@@ -422,12 +585,52 @@ components:
       required: true
       description: User email address from Kubeflow authentication
     namespace:
+      in: query
       name: namespace
-      description: Kubernetes namespace to scope the request
       schema:
         type: string
+      required: false
+      description: Kubernetes namespace to scope the request (optional)
+    limit:
       in: query
-      required: true
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      required: false
+      description: Maximum number of evaluations to return
+    offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      required: false
+      description: Offset for pagination
+    statusFilter:
+      in: query
+      name: status
+      schema:
+        type: string
+      required: false
+      description: Filter by evaluation job status
+    nameFilter:
+      in: query
+      name: name
+      schema:
+        type: string
+      required: false
+      description: Name to search for
+    tagsFilter:
+      in: query
+      name: tags
+      schema:
+        type: string
+      required: false
+      description: Tags to search for
 
   # =============================================================================
   # SECURITY

@@ -5,13 +5,15 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
+import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
+import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const evaluationRuns: unknown[] = [];
+  const [evaluations, loaded, error] = useEvaluationJobs();
 
   return (
     <ApplicationsPage
@@ -31,8 +33,9 @@ const EvaluationsPage: React.FC = () => {
           </FlexItem>
         </Flex>
       }
-      loaded
-      empty={evaluationRuns.length === 0}
+      loaded={loaded}
+      loadError={error}
+      empty={evaluations.length === 0}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
           <EvalHubEmptyState />
@@ -40,7 +43,7 @@ const EvaluationsPage: React.FC = () => {
       }
       provideChildrenPadding
     >
-      <div data-testid="eval-hub-evaluations-content" />
+      <EvaluationsTable evaluations={evaluations} loaded={loaded} />
     </ApplicationsPage>
   );
 };

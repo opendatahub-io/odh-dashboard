@@ -5,17 +5,29 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/openai/openai-go/v2"
 )
 
+// ListEvaluationJobsParams holds optional query parameters for the list evaluations endpoint.
+type ListEvaluationJobsParams struct {
+	Namespace string
+	Limit     string
+	Offset    string
+	Status    string
+	Name      string
+	Tags      string
+}
+
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context) (*HealthResponse, error)
-	ListEvaluationJobs(ctx context.Context) ([]EvaluationJob, error)
+	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
 }
 
 // HealthResponse represents the eval-hub health check response.
@@ -131,9 +143,34 @@ func (c *EvalHubClient) HealthCheck(ctx context.Context) (*HealthResponse, error
 	return resp, nil
 }
 
-// ListEvaluationJobs retrieves all evaluation jobs from EvalHub.
-func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context) ([]EvaluationJob, error) {
-	resp, err := get[EvaluationJobsResponse](c, ctx, "/evaluations/jobs")
+// ListEvaluationJobs retrieves evaluation jobs from EvalHub, forwarding any query filters.
+func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error) {
+	qp := url.Values{}
+	if params.Namespace != "" {
+		qp.Set("namespace", params.Namespace)
+	}
+	if params.Limit != "" {
+		qp.Set("limit", params.Limit)
+	}
+	if params.Offset != "" {
+		qp.Set("offset", params.Offset)
+	}
+	if params.Status != "" {
+		qp.Set("status", params.Status)
+	}
+	if params.Name != "" {
+		qp.Set("name", params.Name)
+	}
+	if params.Tags != "" {
+		qp.Set("tags", params.Tags)
+	}
+
+	path := "/evaluations/jobs"
+	if encoded := qp.Encode(); encoded != "" {
+		path = fmt.Sprintf("%s?%s", path, encoded)
+	}
+
+	resp, err := get[EvaluationJobsResponse](c, ctx, path)
 	if err != nil {
 		return nil, wrapClientError(err, "ListEvaluationJobs")
 	}
