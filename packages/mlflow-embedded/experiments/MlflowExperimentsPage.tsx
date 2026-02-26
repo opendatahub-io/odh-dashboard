@@ -6,19 +6,7 @@
  * Adapted from the old MLFlowExperimentsPage.tsx (iframe version).
  */
 import React, { useMemo } from 'react';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-  Spinner,
-} from '@patternfly/react-core';
-import { ExclamationTriangleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Bullseye, Flex, FlexItem, Spinner } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
@@ -28,30 +16,15 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   mlflowExperimentsBaseRoute,
   mlflowExperimentsPath,
   WORKSPACE_QUERY_PARAM,
-  MLFLOW_PROXY_BASE_PATH,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-
-const experimentsPageTitle = 'Experiments';
-
-const MLflowUnavailable: React.FC = () => (
-  <EmptyState
-    headingLevel="h2"
-    icon={ExclamationTriangleIcon}
-    titleText="MLflow is currently unavailable"
-    variant={EmptyStateVariant.lg}
-    data-testid="mlflow-unavailable-empty-state"
-  >
-    <EmptyStateBody>
-      The MLflow service could not be reached. Please check that MLflow is deployed and running,
-      then try again.
-    </EmptyStateBody>
-  </EmptyState>
-);
+import { EXPERIMENTS_PAGE_TITLE } from '../shared/constants';
+import MLflowUnavailable from '../shared/MLflowUnavailable';
+import MlflowBreadcrumbs from '../shared/MlflowBreadcrumbs';
+import LaunchMlflowButton from '../shared/LaunchMlflowButton';
 
 const MlflowExperimentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -76,47 +49,18 @@ const MlflowExperimentsPage: React.FC = () => {
       title={
         isTopLevel ? (
           <TitleWithIcon
-            title={experimentsPageTitle}
+            title={EXPERIMENTS_PAGE_TITLE}
             objectType={ProjectObjectType.pipelineExperiment}
           />
         ) : undefined
       }
       breadcrumb={
         !isTopLevel ? (
-          <Breadcrumb>
-            {breadcrumbs.map((b, idx) => {
-              const isLast = idx === breadcrumbs.length - 1;
-              // Prepend the host's base route and workspace param to MLflow's relative path
-              const separator = b.path.includes('?') ? '&' : '?';
-              const fullPath = `${mlflowExperimentsPath}${
-                b.path
-              }${separator}workspace=${encodeURIComponent(workspace)}`;
-              return (
-                <BreadcrumbItem
-                  key={b.path}
-                  isActive={isLast}
-                  render={() =>
-                    isLast ? (
-                      b.label
-                    ) : (
-                      <Button
-                        variant="link"
-                        isInline
-                        href={fullPath}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.history.pushState({}, '', fullPath);
-                          window.dispatchEvent(new PopStateEvent('popstate'));
-                        }}
-                      >
-                        {b.label}
-                      </Button>
-                    )
-                  }
-                />
-              );
-            })}
-          </Breadcrumb>
+          <MlflowBreadcrumbs
+            basePath={mlflowExperimentsPath}
+            workspace={workspace}
+            breadcrumbs={breadcrumbs}
+          />
         ) : undefined
       }
       headerContent={
@@ -131,27 +75,7 @@ const MlflowExperimentsPage: React.FC = () => {
             />
           </FlexItem>
           <FlexItem>
-            <Button
-              component="a"
-              isInline
-              data-testid="mlflow-embedded-jump-link"
-              href={MLFLOW_PROXY_BASE_PATH}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="link"
-              icon={<ExternalLinkAltIcon />}
-              iconPosition="end"
-              aria-label="Launch MLflow"
-              onClick={() =>
-                fireLinkTrackingEvent('Launch MLflow clicked', {
-                  from: window.location.pathname,
-                  href: MLFLOW_PROXY_BASE_PATH,
-                  section: 'experiments-page',
-                })
-              }
-            >
-              Launch MLflow
-            </Button>
+            <LaunchMlflowButton testId="mlflow-embedded-jump-link" section="experiments-page" />
           </FlexItem>
         </Flex>
       }
