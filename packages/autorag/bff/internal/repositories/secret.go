@@ -189,9 +189,9 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 
 // paginateSecrets applies limit and offset to a slice of secrets
 func paginateSecrets(secrets []corev1.Secret, limit int, offset int) []corev1.Secret {
-	// If limit is 0 or negative, return all items after offset
-	if limit <= 0 {
-		limit = len(secrets)
+	// Defensively clamp offset to 0 if negative
+	if offset < 0 {
+		offset = 0
 	}
 
 	// If offset is beyond the slice, return empty
@@ -199,7 +199,12 @@ func paginateSecrets(secrets []corev1.Secret, limit int, offset int) []corev1.Se
 		return []corev1.Secret{}
 	}
 
-	// Calculate end index
+	// Treat limit <= 0 as "no limit" - return all items from offset to end
+	if limit <= 0 {
+		limit = len(secrets) - offset
+	}
+
+	// Calculate end index and clamp to slice length
 	end := offset + limit
 	if end > len(secrets) {
 		end = len(secrets)
