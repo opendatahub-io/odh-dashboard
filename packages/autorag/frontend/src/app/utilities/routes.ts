@@ -1,5 +1,5 @@
 export const rootPathname = '/gen-ai-studio/autorag';
-export const autoRagExperimentsPathname = `${rootPathname}/experiments`;
-export const autoRagCreatePathname = `${rootPathname}/create`;
-export const autoRagConfigurePathname = `${rootPathname}/configure`;
-export const autoRagResultsPathname = `${rootPathname}/results`;
+export const autoragExperimentsPathname = `${rootPathname}/experiments`;
+export const autoragCreatePathname = `${rootPathname}/create`;
+export const autoragConfigurePathname = `${rootPathname}/configure`;
+export const autoragResultsPathname = `${rootPathname}/results`;
