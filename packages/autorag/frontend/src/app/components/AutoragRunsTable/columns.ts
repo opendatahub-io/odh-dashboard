@@ -15,12 +15,6 @@ export const autoragRunsColumns: SortableData<PipelineRun>[] = [
     width: 25,
   },
   {
-    label: 'Tags',
-    field: 'tags',
-    sortable: (a, b) => (a.tags?.join(',') ?? '').localeCompare(b.tags?.join(',') ?? ''),
-    width: 15,
-  },
-  {
     label: 'Status',
     field: 'status',
     sortable: (a, b) => (a.status || '').localeCompare(b.status || ''),

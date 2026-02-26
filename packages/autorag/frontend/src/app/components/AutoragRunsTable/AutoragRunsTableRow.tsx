@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Flex, FlexItem, Label, type LabelProps } from '@patternfly/react-core';
+import { Label, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import type { PipelineRun } from '~/app/types';
 import { autoragRunsColumns } from './columns';
@@ -34,21 +34,6 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run }) => (
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
-      {run.tags?.length ? (
-        <Flex gap={{ default: 'gapSm' }} wrap="wrap">
-          {run.tags.map((tag, index) => (
-            <FlexItem key={`${tag}-${index}`}>
-              <Label color="grey" isCompact>
-                {tag}
-              </Label>
-            </FlexItem>
-          ))}
-        </Flex>
-      ) : (
-        '—'
-      )}
-    </Td>
-    <Td dataLabel={autoragRunsColumns[3].label}>
       {run.status ? (
         <Label isCompact {...getStatusLabelProps(run.status)}>
           {run.status}
