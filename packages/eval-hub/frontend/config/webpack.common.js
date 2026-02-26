@@ -13,7 +13,6 @@ const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
-const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../../frontend/src');
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const {
   _OUTPUT_ONLY: OUTPUT_ONLY,
@@ -40,9 +39,8 @@ module.exports = (env) => ({
   module: {
     rules: [
       {
-        test: /\.(tsx|ts|jsx|js)?$/,
-        exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR, INTERNAL_DIR],
+        test: /\.(tsx|ts|jsx)?$/,
+        exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
@@ -252,7 +250,6 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
-      '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
     },
     symlinks: false,
     cacheWithContext: false,

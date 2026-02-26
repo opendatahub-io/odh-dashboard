@@ -1,12 +1,18 @@
 import * as React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
-import MainPage from './pages/MainPage';
+import EvalHubCoreLoader from './components/EvalHubCoreLoader';
+import EvaluationsPage from './pages/EvaluationsPage';
+import { evalHubEvaluationsRoute } from './utilities/routes';
 
 const AppRoutes: React.FC = () => (
   <Routes>
-    <Route path="/" element={<Navigate to="/main-view" replace />} />
-    <Route path="/main-view/*" element={<MainPage />} />
+    <Route
+      path="/"
+      element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
+    >
+      <Route path=":namespace" element={<EvaluationsPage />} />
+    </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
