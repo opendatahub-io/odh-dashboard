@@ -98,11 +98,11 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 				return
 			}
 			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err)
+				app.forbiddenResponse(w, r, err.Error())
 				return
 			}
 			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err)
+				app.unauthorizedResponse(w, r, err.Error())
 				return
 			}
 		}

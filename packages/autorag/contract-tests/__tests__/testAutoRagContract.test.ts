@@ -14,7 +14,9 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   // Load the AutoRAG OpenAPI schema
-  const apiSchema = loadOpenAPISchema('../api/openapi/autorag.yaml');
+  // Note: Path is relative to package root (process.cwd() during test execution),
+  // not relative to this test file's directory
+  const apiSchema = loadOpenAPISchema('api/openapi/autorag.yaml');
 
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
