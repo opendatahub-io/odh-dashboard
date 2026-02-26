@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -442,7 +444,6 @@ func TestGetSecretsHandler_TypeLls_EmptyList(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.NotNil(t, envelope.Data, "Data should not be nil, it should be an empty array")
 	assert.Empty(t, envelope.Data) // No secrets have all required LLS keys
-	assert.Len(t, envelope.Data, 0)
 }
 
 func TestGetSecretsHandler_TypeLls_WithPagination(t *testing.T) {
@@ -738,7 +739,6 @@ func TestGetSecretsHandler_TypeStorage_EmptyList(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.NotNil(t, envelope.Data, "Data should not be nil, it should be an empty array")
 	assert.Empty(t, envelope.Data) // No secrets have all required S3 keys
-	assert.Len(t, envelope.Data, 0)
 }
 
 func TestGetSecretsHandler_MissingResourceParameter(t *testing.T) {
@@ -790,4 +790,83 @@ func TestGetSecretsHandler_InvalidOffsetParameter(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetSecretsHandler_KubernetesClientError(t *testing.T) {
+	// Create a mock client that returns an error when GetSecrets is called
+	mockClient := &mockKubernetesClientForSecrets{
+		err: fmt.Errorf("kubernetes client error: unable to retrieve secrets"),
+	}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[HTTPError](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+}
+
+func TestGetSecretsHandler_NamespaceNotFound(t *testing.T) {
+	// Create a Kubernetes NotFound error using StatusError
+	notFoundErr := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Message: "namespaces \"non-existent\" not found",
+			Reason:  metav1.StatusReasonNotFound,
+			Code:    http.StatusNotFound,
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{
+		err: notFoundErr,
+	}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[HTTPError](
+		"GET",
+		"/api/v1/secrets?resource=non-existent",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetSecretsHandler_ForbiddenError(t *testing.T) {
+	// Create a Kubernetes Forbidden error using StatusError
+	forbiddenErr := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Message: "forbidden: User cannot list secrets in namespace \"restricted\"",
+			Reason:  metav1.StatusReasonForbidden,
+			Code:    http.StatusForbidden,
+		},
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{
+		err: forbiddenErr,
+	}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[HTTPError](
+		"GET",
+		"/api/v1/secrets?resource=restricted",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	// Forbidden errors should be treated as server errors (not NotFound)
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }

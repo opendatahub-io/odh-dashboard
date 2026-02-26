@@ -13,7 +13,7 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `resource` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage` for AWS secrets, `lls` for LLS secrets, or omit for all secrets |
+| `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `lls` for LLS (Llama Stack) secrets, or omit for all secrets |
 | `limit` | integer | No | Maximum number of secrets to return (default: all) |
 | `offset` | integer | No | Number of secrets to skip for pagination (default: 0) |
 
@@ -24,18 +24,18 @@ The endpoint:
 2. Filters secrets based on the `type` parameter:
    - **No type** (or empty): Returns all secrets in the namespace
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-   - **`type=lls`**: Returns empty list (placeholder for future LLS implementation)
-3. Returns the Kubernetes UID, name, and storage type of each matching secret
-   - The `type` field indicates which storage type the secret matches (e.g., "s3")
-   - If a secret doesn't match any storage type, the `type` field is an empty string
-   - If a secret matches multiple storage types, the first matching type is returned
+   - **`type=lls`**: Filters for LLS (Llama Stack) secrets containing required LLS keys
+3. Returns the Kubernetes UID, name, and type of each matching secret
+   - The `type` field indicates which secret type matches (e.g., "s3", "lls")
+   - If a secret doesn't match any known type, the `type` field is an empty string
+   - If a secret matches multiple types, the first matching type is returned
 4. Supports pagination using `limit` and `offset` parameters for all filter types
 5. Requires authentication via the InjectRequestIdentity middleware
 6. Validates the `type` parameter and returns 400 Bad Request for invalid values
 
-### Storage Type Filtering
+### Secret Type Filtering
 
-Storage secrets are filtered using a configurable dictionary of storage types and their required keys. A secret must contain **ALL** required keys for at least one storage type to be included in the results.
+Secrets are filtered using configurable dictionaries of secret types and their required keys. A secret must contain **ALL** required keys for a type to be included in the results. Key matching is **case-insensitive**.
 
 **Currently Supported Storage Types:**
 
@@ -44,6 +44,12 @@ Storage secrets are filtered using a configurable dictionary of storage types an
 | **S3** | `aws_access_key_id`, `aws_region_name`, `aws_secret_access_key`, `endpoint_url` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
+
+**Currently Supported LLS Types:**
+
+| LLS Type | Required Keys |
+|----------|---------------|
+| **Llama Stack** | `llama_stack_client_api_key`, `llama_stack_client_base_url` |
 
 ## Response Format
 
@@ -98,10 +104,28 @@ GET /api/v1/secrets?resource=my-namespace
 GET /api/v1/secrets?resource=my-namespace&type=storage
 ```
 
-### List LLS secrets (currently returns empty)
+### List LLS (Llama Stack) secrets only
 
 ```bash
 GET /api/v1/secrets?resource=my-namespace&type=lls
+```
+
+Response:
+```json
+{
+  "data": [
+    {
+      "uuid": "c3d4e5f6-a7b8-9012-cdef-012345678901",
+      "name": "llama-stack-secret-1",
+      "type": "lls"
+    },
+    {
+      "uuid": "d4e5f6a7-b8c9-0123-def0-123456789012",
+      "name": "llama-stack-secret-2",
+      "type": "lls"
+    }
+  ]
+}
 ```
 
 ### List secrets with pagination
@@ -168,7 +192,11 @@ The endpoint supports three filtering modes based on the `type` parameter:
      - **S3**: Requires `aws_access_key_id`, `aws_region_name`, `aws_secret_access_key`, `endpoint_url`
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
 
-3. **`type=lls`**: Currently returns an empty list. This is a placeholder for future LLS (Large Language Service) secret filtering implementation.
+3. **`type=lls`**: Filters for LLS (Llama Stack) secrets
+   - A secret matches if it contains ALL required LLS keys
+   - Currently configured LLS type:
+     - **Llama Stack**: Requires `llama_stack_client_api_key`, `llama_stack_client_base_url`
+   - Key matching is case-insensitive
 
 Invalid type values result in a 400 Bad Request error.
 
@@ -184,6 +212,16 @@ Invalid type values result in a 400 Bad Request error.
 
 A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results.
 
+**Example**: A secret with the following data would match LLS (Llama Stack) type:
+```json
+{
+  "llama_stack_client_api_key": "sk-test-api-key-123",
+  "llama_stack_client_base_url": "https://llama-stack.example.com"
+}
+```
+
+A secret missing any of these required keys would NOT match and would be excluded from `type=lls` results. Key matching is case-insensitive, so `LLAMA_STACK_CLIENT_API_KEY` and `llama_stack_client_api_key` are treated as equivalent.
+
 ### Pagination
 
 Pagination is implemented at the repository level:
@@ -196,11 +234,11 @@ Pagination is implemented at the repository level:
 
 The implementation includes comprehensive tests covering:
 - **Type filtering**:
-  - `type=storage`: Successful retrieval with AWS secret filtering
+  - `type=storage`: Successful retrieval with S3 secret filtering, case-insensitive key matching
+  - `type=lls`: Successful retrieval with LLS (Llama Stack) secret filtering, case-insensitive key matching
   - No type: Returns all secrets in namespace
-  - `type=lls`: Returns empty list
   - Invalid type: Returns 400 Bad Request
-- **Pagination**: Various combinations of limit and offset for all filter types
+- **Pagination**: Various combinations of limit and offset for all filter types (storage, LLS, and no type)
 - **Empty result sets**: No matching secrets for different filter types
 - **Error cases**: Missing parameters, invalid parameters
 - **Edge cases**: Offset beyond available data

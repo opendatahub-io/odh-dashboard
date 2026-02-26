@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
@@ -77,8 +79,9 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	// Fetch filtered secrets from repository
 	secrets, err := app.repositories.Secret.GetFilteredSecrets(client, ctx, namespace, identity, secretType, limit, offset)
 	if err != nil {
-		// Check if it's a namespace not found error
-		if isNamespaceNotFoundError(err) {
+		// Check if it's a namespace not found error using typed error checking
+		var statusErr *apierrors.StatusError
+		if errors.As(err, &statusErr) && apierrors.IsNotFound(statusErr) {
 			app.badRequestResponse(w, r, fmt.Errorf("namespace '%s' does not exist or is not accessible", namespace))
 			return
 		}
@@ -95,31 +98,4 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-}
-
-// isNamespaceNotFoundError checks if the error indicates a namespace was not found
-func isNamespaceNotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errMsg := err.Error()
-	return containsAny(errMsg, []string{
-		"does not exist",
-		"not found",
-		"not accessible",
-	})
-}
-
-// containsAny checks if a string contains any of the given substrings
-func containsAny(s string, substrs []string) bool {
-	for _, substr := range substrs {
-		if len(s) >= len(substr) {
-			for i := 0; i <= len(s)-len(substr); i++ {
-				if s[i:i+len(substr)] == substr {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }

@@ -34,7 +34,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: string) =>
+  (namespace: string, type?: 'storage' | 'lls') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { resource: namespace };
     if (type) {
