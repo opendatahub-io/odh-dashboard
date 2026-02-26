@@ -161,11 +161,11 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                 <Tooltip content="Delete file">
                   <Button
                     variant="plain"
+                    style={{ padding: 0 }}
                     icon={<TimesIcon />}
                     onClick={() => handleDeleteClick(file)}
                     isDisabled={isDeleting}
                     aria-label={`Delete ${file.filename}`}
-                    style={{ paddingTop: 0 }}
                     isDanger
                   />
                 </Tooltip>

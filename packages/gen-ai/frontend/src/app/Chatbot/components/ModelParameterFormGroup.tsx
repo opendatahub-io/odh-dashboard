@@ -41,8 +41,10 @@ const ModelParameterFormGroup: React.FunctionComponent<ModelParameterFormGroupPr
         <Popover bodyContent={<div>{helpText}</div>} showClose={showPopoverCloseButton}>
           <Button
             variant="plain"
+            isInline
             aria-label={`More info for ${label.toLowerCase()} field`}
             onClick={(e) => e.preventDefault()}
+            style={{ marginLeft: 'var(--pf-t--global--spacer--xs)' }}
           >
             <HelpIcon />
           </Button>
