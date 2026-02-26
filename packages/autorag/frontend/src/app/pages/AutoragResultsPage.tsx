@@ -1,11 +1,11 @@
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoRagResults from '../components/results/AutoRagResults';
+import AutoragResults from '../components/results/AutoragResults';
 import { useExperimentQuery, usePipelineRunQuery } from '../hooks/queries';
 import InvalidPipelineRun from '../components/empty-states/InvalidPipelineRun';
 
-function AutoRagResultsPage(): React.JSX.Element {
+function AutoragResultsPage(): React.JSX.Element {
   const { runId } = useParams();
 
   const { data: pipelineRun, ...pipelineRunQuery } = usePipelineRunQuery(runId);
@@ -23,9 +23,9 @@ function AutoRagResultsPage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoRagResults />
+      <AutoragResults />
     </ApplicationsPage>
   );
 }
 
-export default AutoRagResultsPage;
+export default AutoragResultsPage;
