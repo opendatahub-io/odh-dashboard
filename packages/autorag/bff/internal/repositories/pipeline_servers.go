@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -10,18 +11,26 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	k8sinterface "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
-var dspipelineGVR = schema.GroupVersionResource{
-	Group:    "datasciencepipelinesapplications.opendatahub.io",
-	Version:  "v1alpha1",
-	Resource: "datasciencepipelinesapplications",
-}
+// Custom errors for proper HTTP status code mapping
+var (
+	ErrNamespaceNotFound = errors.New("namespace not found")
+	ErrForbidden         = errors.New("forbidden")
+	ErrNotFound          = errors.New("resource not found")
+)
+
+const (
+	dsPipelineGroup    = "datasciencepipelinesapplications.opendatahub.io"
+	dsPipelineResource = "datasciencepipelinesapplications"
+)
 
 // PipelineServersRepository handles business logic for Pipeline Servers
 type PipelineServersRepository struct{}
@@ -75,11 +84,27 @@ func (r *PipelineServersRepository) listDSPipelineApplications(ctx context.Conte
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
+	// Discover the preferred API version for DSPipelineApplication
+	gvr, err := discoverDSPipelineApplicationGVR(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
+	}
+
 	// List DSPipelineApplication CRs
-	unstructuredList, err := dynamicClient.Resource(dspipelineGVR).
+	unstructuredList, err := dynamicClient.Resource(gvr).
 		Namespace(namespace).
 		List(ctx, metav1.ListOptions{})
 	if err != nil {
+		// Check for specific Kubernetes error types
+		if k8serrors.IsNotFound(err) {
+			// Namespace doesn't exist or resource type not found
+			return nil, fmt.Errorf("%w: %s", ErrNamespaceNotFound, namespace)
+		}
+		if k8serrors.IsForbidden(err) {
+			// No permission to list resources in this namespace
+			return nil, fmt.Errorf("%w: cannot list DSPipelineApplications in namespace %s", ErrForbidden, namespace)
+		}
+		// Other unexpected errors
 		return nil, fmt.Errorf("failed to list DSPipelineApplications in namespace %s: %w", namespace, err)
 	}
 
@@ -123,8 +148,14 @@ func getDSPipelineApplication(ctx context.Context, client kubernetes.KubernetesC
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
+	// Discover the preferred API version for DSPipelineApplication
+	gvr, err := discoverDSPipelineApplicationGVR(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
+	}
+
 	// Get the DSPipelineApplication CR
-	unstructuredObj, err := dynamicClient.Resource(dspipelineGVR).
+	unstructuredObj, err := dynamicClient.Resource(gvr).
 		Namespace(namespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -156,6 +187,41 @@ func unstructuredToDSPipelineApplication(obj *unstructured.Unstructured) (*model
 	return &dspa, nil
 }
 
+// discoverDSPipelineApplicationGVR discovers the preferred API version for DSPipelineApplication
+func discoverDSPipelineApplicationGVR(config *rest.Config) (schema.GroupVersionResource, error) {
+	// Try known versions in order of preference (newer to older)
+	knownVersions := []string{"v1", "v1beta1", "v1alpha1"}
+
+	for _, version := range knownVersions {
+		gvr := schema.GroupVersionResource{
+			Group:    dsPipelineGroup,
+			Version:  version,
+			Resource: dsPipelineResource,
+		}
+
+		// Try to create a dynamic client and test if this version exists
+		dynamicClient, err := dynamic.NewForConfig(config)
+		if err != nil {
+			continue
+		}
+
+		// Test if we can access the resource with this version
+		// We do a simple list with limit=1 to check availability
+		_, err = dynamicClient.Resource(gvr).List(context.Background(), metav1.ListOptions{Limit: 1})
+		if err == nil || !k8serrors.IsNotFound(err) {
+			// Version exists (either succeeded or got a different error like forbidden, which means the resource exists)
+			return gvr, nil
+		}
+	}
+
+	// If none of the known versions work, default to v1
+	return schema.GroupVersionResource{
+		Group:    dsPipelineGroup,
+		Version:  "v1",
+		Resource: dsPipelineResource,
+	}, nil
+}
+
 // isMockK8sMode checks if we're running with mocked Kubernetes client
 func isMockK8sMode() bool {
 	mockK8s := os.Getenv("MOCK_K8S_CLIENT")
@@ -166,7 +232,7 @@ func isMockK8sMode() bool {
 func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplication {
 	return []models.DSPipelineApplication{
 		{
-			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1alpha1",
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
 			Kind:       "DSPipelineApplication",
 			Metadata: models.DSPipelineApplicationMetadata{
 				Name:      "dspa",
@@ -190,7 +256,7 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 			},
 		},
 		{
-			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1alpha1",
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
 			Kind:       "DSPipelineApplication",
 			Metadata: models.DSPipelineApplicationMetadata{
 				Name:      "dspa-test",

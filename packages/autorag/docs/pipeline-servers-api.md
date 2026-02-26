@@ -75,8 +75,10 @@ The endpoint returns a JSON response with the following structure:
 The BFF queries Kubernetes for all `DSPipelineApplication` custom resources in the specified namespace using the Data Science Pipelines Operator API:
 
 - **Group**: `datasciencepipelinesapplications.opendatahub.io`
-- **Version**: `v1alpha1`
+- **Version**: Auto-discovered (tries `v1`, `v1beta1`, `v1alpha1` in order)
 - **Resource**: `datasciencepipelinesapplications`
+
+The API version is automatically discovered at runtime, ensuring compatibility across different OpenShift AI versions without code changes.
 
 The response includes:
 1. Server name and namespace from the CR metadata
