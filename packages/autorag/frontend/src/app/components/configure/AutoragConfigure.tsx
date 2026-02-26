@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 
-function AutoRagConfigure(): React.JSX.Element {
+function AutoragConfigure(): React.JSX.Element {
   const navigate = useNavigate();
 
   return (
@@ -20,4 +20,4 @@ function AutoRagConfigure(): React.JSX.Element {
   );
 }
 
-export default AutoRagConfigure;
+export default AutoragConfigure;

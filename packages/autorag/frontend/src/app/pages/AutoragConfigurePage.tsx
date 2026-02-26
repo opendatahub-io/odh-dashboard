@@ -1,11 +1,11 @@
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoRagConfigure from '~/app/components/configure/AutoRagConfigure';
+import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useExperimentQuery } from '~/app/hooks/queries';
 import InvalidExperiment from '~/app/components/empty-states/InvalidExperiment';
 
-function AutoRagConfigurePage(): React.JSX.Element {
+function AutoragConfigurePage(): React.JSX.Element {
   const { experimentId } = useParams();
 
   const { data: experiment, ...experimentQuery } = useExperimentQuery(experimentId);
@@ -22,9 +22,9 @@ function AutoRagConfigurePage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoRagConfigure />
+      <AutoragConfigure />
     </ApplicationsPage>
   );
 }
 
-export default AutoRagConfigurePage;
+export default AutoragConfigurePage;

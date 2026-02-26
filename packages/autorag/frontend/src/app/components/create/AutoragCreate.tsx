@@ -7,7 +7,7 @@ import createExperimentSchema from '~/app/schemas/experiment.schema';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { getRequiredFields } from '~/app/utilities/schema';
 
-function AutoRagCreate(): React.JSX.Element {
+function AutoragCreate(): React.JSX.Element {
   const navigate = useNavigate();
 
   const experimentSchema = createExperimentSchema();
@@ -75,4 +75,4 @@ function AutoRagCreate(): React.JSX.Element {
   );
 }
 
-export default AutoRagCreate;
+export default AutoragCreate;

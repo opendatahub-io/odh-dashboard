@@ -2,11 +2,11 @@ import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoRagCreate from '~/app/components/create/AutoRagCreate';
+import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 
-function AutoRagCreatePage(): React.JSX.Element {
+function AutoragCreatePage(): React.JSX.Element {
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
 
@@ -29,9 +29,9 @@ function AutoRagCreatePage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoRagCreate />
+      <AutoragCreate />
     </ApplicationsPage>
   );
 }
 
-export default AutoRagCreatePage;
+export default AutoragCreatePage;
