@@ -178,13 +178,6 @@ func (kc *TokenKubernetesClient) GetSecrets(ctx context.Context, namespace strin
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Verify the namespace exists first
-	_, err := kc.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-	if err != nil {
-		kc.Logger.Error("failed to get namespace", "namespace", namespace, "error", err)
-		return nil, fmt.Errorf("namespace %s does not exist or is not accessible: %w", namespace, err)
-	}
-
 	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to list secrets", "namespace", namespace, "error", err)
