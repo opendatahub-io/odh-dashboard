@@ -57,6 +57,8 @@ export enum SupportedArea {
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
+  /** NIM Operator integration - when enabled, Dashboard creates NIMService instead of InferenceService */
+  NIM_SERVICES = 'nim-services',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   LLMD_SERVING = 'llmd-serving',

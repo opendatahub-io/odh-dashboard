@@ -51,6 +51,7 @@ export const modelServingFlags = {
   disableKServeMetrics: false,
   disableKServeRaw: false,
   disableNIMModelServing: false,
+  disableNIMServices: true,
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
   disableLLMd: false,
@@ -179,6 +180,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.NIM_MODEL]: {
     featureFlags: ['disableNIMModelServing'],
     reliantAreas: [SupportedArea.K_SERVE],
+  },
+  /**
+   * NIM Services area - when enabled (disableNIMServices: false), the Dashboard
+   * creates NIMService resources instead of InferenceService.
+   * Requires NIM Operator to be installed.
+   * Note: This flag is inverted - when disableNIMServices is FALSE, NIM Services are ENABLED.
+   */
+  [SupportedArea.NIM_SERVICES]: {
+    featureFlags: ['disableNIMServices'],
+    reliantAreas: [SupportedArea.NIM_MODEL],
   },
   [SupportedArea.ADMIN_CONNECTION_TYPES]: {
     featureFlags: ['disableAdminConnectionTypes'],

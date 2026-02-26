@@ -1294,6 +1294,7 @@ export type DashboardCommonConfig = {
   disableServingRuntimeParams: boolean;
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
+  disableNIMServices: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
   disableLMEval: boolean;
@@ -1632,6 +1633,385 @@ export type NIMAccountKind = K8sResourceCommon & {
     conditions?: K8sCondition[];
   };
 };
+
+/**
+ * NIMServiceKind represents the NVIDIA NIM Operator's NIMService custom resource.
+ * When created, the NIM Operator automatically generates an InferenceService.
+ * API Group: apps.nvidia.com/v1alpha1
+ *
+ * Based on CRD: nimservices.apps.nvidia.com (NIM Operator v3.0.2)
+ */
+export type NIMServiceKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Record<string, string>;
+    labels?: Record<string, string>;
+  };
+  spec: {
+    // ===== REQUIRED FIELDS =====
+
+    /** Container image configuration (REQUIRED) */
+    image: {
+      repository: string;
+      tag: string;
+      pullPolicy?: 'Always' | 'IfNotPresent' | 'Never';
+      pullSecrets?: string[];
+    };
+
+    /** Name of the secret containing NGC_API_KEY or HF_TOKEN (REQUIRED) */
+    authSecret: string;
+
+    // ===== INFERENCE PLATFORM =====
+
+    /** Inference platform: 'standalone' (default) or 'kserve' for KServe integration */
+    inferencePlatform?: 'kserve' | 'standalone';
+
+    // ===== STORAGE CONFIGURATION =====
+
+    /** Storage configuration - one of nimCache, pvc, emptyDir, or hostPath */
+    storage?: {
+      /** Use NIMCache for optimized model caching */
+      nimCache?: {
+        name?: string;
+        profile?: string;
+      };
+      /** Use PVC for model storage */
+      pvc?: {
+        name?: string;
+        create?: boolean;
+        size?: string;
+        storageClass?: string;
+        volumeAccessMode?: string;
+        subPath?: string;
+        annotations?: Record<string, string>;
+      };
+      /** Use emptyDir volume */
+      emptyDir?: {
+        sizeLimit?: string;
+      };
+      /** Use hostPath volume */
+      hostPath?: string;
+      /** Mount storage as read-only */
+      readOnly?: boolean;
+      /** Shared memory size limit for fast model runtime I/O */
+      sharedMemorySizeLimit?: string;
+    };
+
+    // ===== SCALING & REPLICAS =====
+
+    /** Number of replicas (omit if using autoscaling) */
+    replicas?: number;
+
+    /** Autoscaling configuration */
+    scale?: {
+      enabled?: boolean;
+      annotations?: Record<string, string>;
+      hpa?: {
+        minReplicas?: number;
+        maxReplicas: number;
+        metrics?: unknown[];
+        behavior?: unknown;
+      };
+    };
+
+    // ===== RESOURCES =====
+
+    /** Resource requirements for the container (cpu, memory, GPU) */
+    resources?: ContainerResources;
+
+    /** DRA resource claims for GPU allocation (immutable after creation) */
+    draResources?: {
+      resourceClaimName?: string;
+      resourceClaimTemplateName?: string;
+      claimCreationSpec?: {
+        devices: {
+          name: string;
+          deviceClassName: string;
+          count: number;
+          driverName?: string;
+          attributeSelectors?: unknown[];
+          capacitySelectors?: unknown[];
+          celExpressions?: string[];
+        }[];
+        generateName?: string;
+      };
+      requests?: string[];
+    }[];
+
+    // ===== SCHEDULING =====
+
+    /** Node selector for pod scheduling */
+    nodeSelector?: NodeSelector;
+
+    /** Tolerations for pod scheduling */
+    tolerations?: Toleration[];
+
+    /** Full affinity configuration */
+    affinity?: PodAffinity;
+
+    /** Pod affinity (deprecated - use affinity instead) */
+    podAffinity?: unknown;
+
+    /** Custom scheduler name */
+    schedulerName?: string;
+
+    /** Runtime class name for GPU scheduling */
+    runtimeClassName?: string;
+
+    // ===== CONTAINER CONFIGURATION =====
+
+    /** Environment variables */
+    env?: {
+      name: string;
+      value?: string;
+      valueFrom?: {
+        secretKeyRef?: {
+          name: string;
+          key: string;
+        };
+        configMapKeyRef?: {
+          name: string;
+          key: string;
+        };
+        fieldRef?: {
+          apiVersion?: string;
+          fieldPath: string;
+        };
+        resourceFieldRef?: {
+          containerName?: string;
+          resource: string;
+          divisor?: string;
+        };
+      };
+    }[];
+
+    /** Container command override */
+    command?: string[];
+
+    /** Container args override */
+    args?: string[];
+
+    /** User ID for security context */
+    userID?: number;
+
+    /** Group ID for security context */
+    groupID?: number;
+
+    // ===== METADATA =====
+
+    /** Labels to apply to the deployment */
+    labels?: Record<string, string>;
+
+    /** Annotations to apply to the deployment */
+    annotations?: Record<string, string>;
+
+    // ===== SERVICE EXPOSURE =====
+
+    /** Service exposure configuration */
+    expose?: {
+      /** Service configuration */
+      service?: {
+        /** Override the default service name */
+        name?: string;
+        /** Service type */
+        type?: 'ClusterIP' | 'NodePort' | 'LoadBalancer';
+        /** Main API serving port (default: 8000) */
+        port?: number;
+        /** GRPC serving port (for Triton NIMs) */
+        grpcPort?: number;
+        /** Metrics port (for Triton NIMs with separate metrics endpoint) */
+        metricsPort?: number;
+        /** Service annotations */
+        annotations?: Record<string, string>;
+      };
+      /** Ingress configuration */
+      ingress?: {
+        enabled?: boolean;
+        annotations?: Record<string, string>;
+        spec?: unknown; // Full IngressSpec is complex
+      };
+    };
+
+    // ===== HEALTH PROBES =====
+
+    /** Liveness probe configuration */
+    livenessProbe?: {
+      enabled?: boolean;
+      probe?: {
+        httpGet?: {
+          path?: string;
+          port: number | string;
+          host?: string;
+          scheme?: string;
+          httpHeaders?: { name: string; value: string }[];
+        };
+        exec?: {
+          command?: string[];
+        };
+        tcpSocket?: {
+          port: number | string;
+          host?: string;
+        };
+        grpc?: {
+          port: number;
+          service?: string;
+        };
+        initialDelaySeconds?: number;
+        periodSeconds?: number;
+        timeoutSeconds?: number;
+        failureThreshold?: number;
+        successThreshold?: number;
+        terminationGracePeriodSeconds?: number;
+      };
+    };
+
+    /** Readiness probe configuration */
+    readinessProbe?: {
+      enabled?: boolean;
+      probe?: {
+        httpGet?: {
+          path?: string;
+          port: number | string;
+          host?: string;
+          scheme?: string;
+          httpHeaders?: { name: string; value: string }[];
+        };
+        exec?: {
+          command?: string[];
+        };
+        tcpSocket?: {
+          port: number | string;
+          host?: string;
+        };
+        grpc?: {
+          port: number;
+          service?: string;
+        };
+        initialDelaySeconds?: number;
+        periodSeconds?: number;
+        timeoutSeconds?: number;
+        failureThreshold?: number;
+        successThreshold?: number;
+        terminationGracePeriodSeconds?: number;
+      };
+    };
+
+    /** Startup probe configuration */
+    startupProbe?: {
+      enabled?: boolean;
+      probe?: {
+        httpGet?: {
+          path?: string;
+          port: number | string;
+          host?: string;
+          scheme?: string;
+          httpHeaders?: { name: string; value: string }[];
+        };
+        exec?: {
+          command?: string[];
+        };
+        tcpSocket?: {
+          port: number | string;
+          host?: string;
+        };
+        grpc?: {
+          port: number;
+          service?: string;
+        };
+        initialDelaySeconds?: number;
+        periodSeconds?: number;
+        timeoutSeconds?: number;
+        failureThreshold?: number;
+        successThreshold?: number;
+        terminationGracePeriodSeconds?: number;
+      };
+    };
+
+    // ===== METRICS =====
+
+    /** Metrics configuration */
+    metrics?: {
+      enabled?: boolean;
+      serviceMonitor?: {
+        additionalLabels?: Record<string, string>;
+        annotations?: Record<string, string>;
+        interval?: string;
+        scrapeTimeout?: string;
+      };
+    };
+
+    // ===== MULTI-NODE =====
+
+    /** Multi-node configuration (for distributed inference) */
+    multiNode?: {
+      backendType?: 'lws';
+      parallelism: {
+        pipeline?: number;
+        tensor?: number;
+      };
+      mpi?: {
+        mpiStartTimeout?: number;
+      };
+    };
+
+    // ===== PROXY =====
+
+    /** Proxy configuration */
+    proxy?: {
+      httpProxy?: string;
+      httpsProxy?: string;
+      noProxy?: string;
+      certConfigMap?: string;
+    };
+  };
+
+  status?: {
+    /** Current state: Pending, NotReady, Ready, Failed */
+    state?: string;
+
+    /** Number of available replicas */
+    availableReplicas?: number;
+
+    /** Status conditions */
+    conditions?: K8sCondition[];
+
+    /** Model information when ready */
+    model?: {
+      name: string;
+      clusterEndpoint: string;
+      externalEndpoint: string;
+    };
+
+    /** DRA resource statuses */
+    draResourceStatuses?: {
+      name: string;
+      resourceClaimStatus?: {
+        name: string;
+        state: string;
+      };
+      resourceClaimTemplateStatus?: {
+        name: string;
+        resourceClaimStatuses?: {
+          name: string;
+          state: string;
+        }[];
+      };
+    }[];
+  };
+};
+
+/** Type guard for NIMServiceKind */
+export const isNIMServiceKind = (obj: K8sResourceCommon): obj is NIMServiceKind =>
+  obj.kind === 'NIMService';
+
+/** Common NIMService state values */
+export const NIMServiceState = {
+  Pending: 'Pending',
+  NotReady: 'NotReady',
+  Ready: 'Ready',
+  Failed: 'Failed',
+} as const;
 
 export type ConfigSecretItem = {
   name: string;
