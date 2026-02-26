@@ -58,8 +58,16 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
     }
   };
 
+  // Test helper to trigger onSelect with arbitrary values
+  const handleTestInvalidSelection = (): void => {
+    if (onSelect) {
+      const testInvalidValue = 'test-invalid-selection-value';
+      onSelect(undefined, testInvalidValue);
+    }
+  };
+
   return (
-    <div className="pf-v6-c-select" data-testid={`${dataTestId}-wrapper`}>
+    <div className="pf-v6-c-select" data-testid={dataTestId ? `${dataTestId}-wrapper` : undefined}>
       <button
         type="button"
         className={`pf-v6-c-menu-toggle ${toggleWidth === '100%' ? 'pf-m-full-width' : ''} ${
@@ -73,6 +81,14 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
       >
         {displayText}
       </button>
+      {/* Hidden button for testing invalid value selections */}
+      <button
+        type="button"
+        data-testid={dataTestId ? `${dataTestId}-trigger-invalid` : undefined}
+        onClick={handleTestInvalidSelection}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
       {isOpen && !isDisabled && (
         <ul role="listbox">
           {selectOptions.map((option) => (
@@ -80,7 +96,7 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
               key={option.value}
               role="option"
               aria-selected={option.value === selected}
-              data-testid={`${dataTestId}-option-${option.content}`}
+              data-testid={dataTestId ? `${dataTestId}-option-${option.content}` : undefined}
               onClick={() => handleOptionClick(option)}
               onKeyPress={(e) => handleOptionKeyPress(e, option)}
               tabIndex={0}

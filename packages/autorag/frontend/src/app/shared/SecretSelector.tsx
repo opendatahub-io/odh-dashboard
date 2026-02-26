@@ -52,6 +52,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   dataTestId = 'secret-selector',
   ...props
 }) => {
+  const uniqueId = React.useId();
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
     (opts: APIOptions) => getSecrets('')(namespace, type)(opts),
     [namespace, type],
@@ -131,7 +132,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
   return label ? (
     <Form>
-      <FormGroup label={label} isRequired={isRequired} fieldId="secret-selector-form">
+      <FormGroup label={label} isRequired={isRequired} fieldId={uniqueId}>
         {typeahead}
       </FormGroup>
     </Form>

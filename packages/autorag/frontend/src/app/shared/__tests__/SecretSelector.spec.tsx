@@ -11,6 +11,8 @@ jest.mock('mod-arch-core', () => ({
   useFetchState: jest.fn(),
 }));
 
+jest.mock('mod-arch-shared', () => jest.requireActual('~/__mocks__/mod-arch-shared'));
+
 const mockUseFetchState = jest.mocked(useFetchState);
 
 describe('SecretSelector', () => {
@@ -202,7 +204,7 @@ describe('SecretSelector', () => {
       fireEvent.click(screen.getByTestId('test-selector'));
 
       // Type descriptions should be visible
-      expect(screen.getAllByText('Type: storage')).toHaveLength(2);
+      expect(screen.getAllByText('Type: s3')).toHaveLength(2);
       expect(screen.getByText('Type: lls')).toBeInTheDocument();
     });
 
@@ -517,15 +519,13 @@ describe('SecretSelector', () => {
         />,
       );
 
-      fireEvent.click(screen.getByTestId('test-selector'));
+      // Simulate selecting an invalid UUID that doesn't exist in the secrets list
+      // This tests the defensive code that handles edge cases
+      const triggerInvalidButton = screen.getByTestId('test-selector-trigger-invalid');
+      fireEvent.click(triggerInvalidButton);
 
-      // Manually trigger select with invalid value (edge case simulation)
-      const selectComponent = screen.getByTestId('test-selector').closest('.pf-v6-c-select');
-      if (selectComponent) {
-        // This simulates an edge case where an invalid value might be selected
-        // In normal usage, this shouldn't happen, but we test defensive code
-        expect(mockOnChange).not.toHaveBeenCalled();
-      }
+      // Should call onChange with undefined when secret is not found
+      expect(mockOnChange).toHaveBeenCalledWith(undefined);
     });
 
     it('should handle empty type parameter', () => {

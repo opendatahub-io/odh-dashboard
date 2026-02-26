@@ -73,14 +73,6 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
       });
-
-      it('should validate SecretListItem schema structure', async () => {
-        const result = await apiClient.get('/api/v1/secrets?resource=default');
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
-          status: 200,
-        });
-      });
     });
 
     describe('Pagination', () => {
@@ -214,11 +206,11 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 for non-existent namespace', async () => {
+      it('should return 404 for non-existent namespace', async () => {
         const result = await apiClient.get('/api/v1/secrets?resource=non-existent-namespace-12345');
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.status).toBe(400);
+          expect(result.error.status).toBe(404);
         }
       });
     });

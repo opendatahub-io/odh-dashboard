@@ -86,7 +86,14 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		// Check if it's a namespace not found error using typed error checking
 		var statusErr *apierrors.StatusError
 		if errors.As(err, &statusErr) && apierrors.IsNotFound(statusErr) {
-			app.badRequestResponse(w, r, fmt.Errorf("namespace '%s' does not exist or is not accessible", namespace))
+			httpError := &HTTPError{
+				StatusCode: http.StatusNotFound,
+				Error: ErrorPayload{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace),
+				},
+			}
+			app.errorResponse(w, r, httpError)
 			return
 		}
 		app.serverErrorResponse(w, r, err)
