@@ -1,11 +1,3 @@
-import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
-import type { APIOptions } from 'mod-arch-core';
-
-// Define these types here to avoid circular imports with ~/app/types
-// (types.ts imports MaaSModel from this file)
-type ModArchRestGET<T> = (queryParams?: Record<string, unknown>, opts?: APIOptions) => Promise<T>;
-type ModArchRestCREATE<T, D> = (data: D, opts?: APIOptions) => Promise<T>;
-
 export interface MaaSModel {
   id: string;
   object: string;
@@ -29,22 +21,3 @@ export interface MaaSTokenResponse {
   token: string;
   expiresAt: number;
 }
-
-export const isMaaSModelsExtension = (extension: Extension): extension is MaaSModelsExtension =>
-  extension.type === 'gen-ai.maas/models';
-export type MaaSModelsExtension = Extension<
-  'gen-ai.maas/models',
-  {
-    getMaaSModels: CodeRef<ModArchRestGET<MaaSModel[]>>;
-  }
->;
-
-export const isGenerateMaaSTokenExtension = (
-  extension: Extension,
-): extension is GenerateMaaSTokenExtension => extension.type === 'gen-ai.maas/generate-token';
-export type GenerateMaaSTokenExtension = Extension<
-  'gen-ai.maas/generate-token',
-  {
-    generateMaaSToken: CodeRef<ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>>;
-  }
->;

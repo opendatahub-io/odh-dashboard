@@ -18,8 +18,6 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
   const [tokenData, setTokenData] = React.useState<MaaSTokenResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
-  // TODO: Uncomment when extension is ready to be used
-  // const generateMaaSTokenExtension = useExtensions(isGenerateMaaSTokenExtension);
 
   const generateToken = React.useCallback(
     async (expiration?: string) => {
@@ -30,13 +28,8 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         setIsGenerating(false);
         throw new NotReadyError('API not yet available');
       }
-      // if (generateMaaSTokenExtension.length === 0) {
-      //   throw new Error('Generate MaaS token extension not found');
-      // }
 
       try {
-        // const extensionFn = generateMaaSTokenExtension[0].properties.generateMaaSToken;
-        // const response = await extensionFn().then((fn) => fn(expiration ? { expiration } : {}));
         const response = await api.generateMaaSToken(expiration ? { expiration } : {});
         setTokenData(response);
         try {
