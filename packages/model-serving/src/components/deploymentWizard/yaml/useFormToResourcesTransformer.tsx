@@ -1,34 +1,73 @@
 import React from 'react';
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { Deployment } from '../../../../extension-points';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import {
+  AssembleModelResourceFn,
+  isAssembleModelResourceExtension,
+  type Deployment,
+  type ModelResourceType,
+} from '../../../../extension-points';
 import type { WizardFormData } from '../types';
-import { useDeployMethod } from '../useDeployMethod';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 
-export type ResourceKey = 'model' | 'server';
-export type DeploymentWizardResources = Partial<Record<ResourceKey, K8sResourceCommon>>;
+/**
+ * Based on the formData, return the assemble function that will be used to assemble the deployment.
+ * @param formData The form in any state
+ * @returns The function to assemble and create a Deployment object
+ */
+const useAssembleDeploymentFn = (
+  formData: WizardFormData,
+): [AssembleModelResourceFn | undefined, boolean, Error[]] => {
+  const [assembleExtensions, assembleExtensionsLoaded, assembleExtensionsErrors] =
+    useResolvedExtensions(isAssembleModelResourceExtension);
+  const activeExtensions = assembleExtensions.filter((e) =>
+    typeof e.properties.isActive === 'function'
+      ? e.properties.isActive(formData.state)
+      : e.properties.isActive,
+  );
+  const priorotizedExtensions = activeExtensions.toSorted(
+    (a, b) => (b.properties.priority ?? 0) - (a.properties.priority ?? 0),
+  );
+  return [
+    priorotizedExtensions.length > 0 ? priorotizedExtensions[0].properties.assemble : undefined,
+    assembleExtensionsLoaded,
+    assembleExtensionsErrors.filter((error): error is Error => error instanceof Error),
+  ];
+};
 
+export type DeploymentWizardResources = {
+  model?: ModelResourceType;
+  // server?: ServerResourceType;
+};
+
+/**
+ * Based on the formData, return the resources (only LLMInferenceService for now).
+ * @param formData The form in any state
+ * @param existingDeployment When editing an existing deployment
+ * @returns The resources (only LLMInferenceService for now) that will be used to create the deployment
+ */
 export const useFormToResourcesTransformer = (
   formData: WizardFormData,
   existingDeployment?: Deployment,
-): { resources?: DeploymentWizardResources; loaded: boolean; errors?: Error[] } => {
-  const { deployMethod, deployMethodLoaded, deployMethodErrors } = useDeployMethod(formData.state);
-  const assembleDeployment = deployMethod?.properties.assembleDeployment;
+): { resources: DeploymentWizardResources; loaded: boolean; errors?: Error[] } => {
+  // As of now, the assembleFn is what creates the Deployment / model resource with most form data applied.
+  // applyFieldData is then used to apply the field data to the deployment.
+  const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =
+    useAssembleDeploymentFn(formData);
   const { applyFieldData, applyExtensionsLoaded, applyExtensionErrors } = useWizardFieldApply(
     formData.state,
     formData.initialData?.navSourceMetadata,
   );
 
-  const loaded = deployMethodLoaded && applyExtensionsLoaded;
+  const loaded = assembleDeploymentFnLoaded && applyExtensionsLoaded;
   const errors = React.useMemo(() => {
-    return [...deployMethodErrors, ...applyExtensionErrors];
-  }, [deployMethodErrors, applyExtensionErrors]);
+    return [...assembleDeploymentFnErrors, ...applyExtensionErrors];
+  }, [assembleDeploymentFnErrors, applyExtensionErrors]);
 
   return React.useMemo(() => {
-    if (!assembleDeployment || typeof assembleDeployment !== 'function') {
-      return { resources: undefined, loaded, errors };
+    if (!assembleDeploymentFn) {
+      return { resources: {}, loaded, errors };
     }
-    let deployment = assembleDeployment(formData, existingDeployment);
+    let deployment = assembleDeploymentFn(formData, existingDeployment);
     deployment = applyFieldData(deployment);
 
     return {
@@ -38,5 +77,5 @@ export const useFormToResourcesTransformer = (
       loaded,
       errors,
     };
-  }, [assembleDeployment, formData, existingDeployment, applyFieldData, loaded, errors]);
+  }, [assembleDeploymentFn, formData, existingDeployment, applyFieldData, loaded, errors]);
 };

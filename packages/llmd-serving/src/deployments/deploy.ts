@@ -179,35 +179,19 @@ export const assembleLLMdDeployment = (
  * - Update: When updating with overwrite=false (merge patch with removal handling)
  */
 const deployLLMInferenceService = async (
-  params: CreateLLMInferenceServiceParams,
-  existingDeployment: LLMInferenceServiceKind | undefined,
-  connectionSecretName: string | undefined,
+  llmInferenceService: LLMInferenceServiceKind,
+  existingLLMInferenceService?: LLMInferenceServiceKind,
   opts?: { dryRun?: boolean; overwrite?: boolean },
-  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMInferenceServiceKind> => {
-  let newResource = assembleLLMInferenceService(
-    params,
-    existingDeployment,
-    connectionSecretName,
-    opts?.dryRun,
-  );
-
-  // Apply field data from wizard field extensions during assembly
-  if (applyFieldData) {
-    const assembledDeployment = applyFieldData({
-      modelServingPlatformId: LLMD_SERVING_ID,
-      model: newResource,
-    });
-    newResource = assembledDeployment.model;
-  }
-
-  if (!existingDeployment) {
-    return createLLMInferenceService(newResource, { dryRun: opts?.dryRun });
+  if (!existingLLMInferenceService) {
+    return createLLMInferenceService(llmInferenceService, { dryRun: opts?.dryRun });
   }
   if (opts?.overwrite) {
-    return patchLLMInferenceService(existingDeployment, newResource, { dryRun: opts.dryRun });
+    return patchLLMInferenceService(existingLLMInferenceService, llmInferenceService, {
+      dryRun: opts.dryRun,
+    });
   }
-  return updateLLMInferenceService(newResource, { dryRun: opts?.dryRun });
+  return updateLLMInferenceService(llmInferenceService, { dryRun: opts?.dryRun });
 };
 
 /**
@@ -217,13 +201,14 @@ export const deployLLMdDeployment = async (
   wizardData: WizardFormData['state'],
   projectName: string,
   existingDeployment?: LLMdDeployment,
+  modelResource?: LLMdDeployment['model'],
   serverResource?: LLMdDeployment['server'],
   serverResourceTemplateName?: string,
   dryRun?: boolean,
   connectionSecretName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
-  applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
+  // applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMdDeployment> => {
   const params: CreateLLMInferenceServiceParams = {
     projectName,
@@ -244,12 +229,15 @@ export const deployLLMdDeployment = async (
     tokenAuthentication: wizardData.tokenAuthentication.data,
   };
 
+  // The form should always pass in modelResource so assemble... shouldn't ever be called here
+  const llmInferenceService =
+    modelResource ||
+    assembleLLMInferenceService(params, existingDeployment?.model, connectionSecretName, dryRun);
+
   const llmdInferenceService = await deployLLMInferenceService(
-    params,
+    llmInferenceService,
     existingDeployment?.model,
-    connectionSecretName,
     { dryRun, overwrite },
-    applyFieldData,
   );
 
   const createTokenAuth =

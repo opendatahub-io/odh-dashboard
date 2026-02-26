@@ -24,6 +24,7 @@ import type {
   WizardField,
 } from '../src/components/deploymentWizard/types';
 import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+import type { DeploymentWizardResources } from '../src/components/deploymentWizard/yaml/useFormToResourcesTransformer';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -286,15 +287,19 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
     platform: D['modelServingPlatformId'];
-    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
+    isActive:
+      | CodeRef<
+          (wizardData: WizardFormData['state'], resources?: DeploymentWizardResources) => boolean
+        >
+      | true;
     priority?: number;
     supportsOverwrite?: boolean;
-    assembleDeployment?: CodeRef<(wizardData: WizardFormData, existingDeployment?: D) => D>;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
         projectName: string,
         existingDeployment?: D,
+        modelResource?: D['model'],
         serverResource?: D['server'],
         serverResourceTemplateName?: string,
         dryRun?: boolean,
@@ -306,10 +311,28 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     >;
   }
 >;
-
 export const isModelServingDeploy = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeploy<D> => extension.type === 'model-serving.deployment/deploy';
+
+export type AssembleModelResourceFn<D extends Deployment = Deployment> = (
+  wizardData: WizardFormData,
+  existingDeployment?: D,
+) => D;
+
+export type AssembleModelResourceExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/assemble-model-resource',
+  {
+    platform: D['modelServingPlatformId'];
+    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
+    priority?: number;
+    assemble: CodeRef<AssembleModelResourceFn<D>>;
+  }
+>;
+export const isAssembleModelResourceExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is AssembleModelResourceExtension<D> =>
+  extension.type === 'model-serving.deployment/assemble-model-resource';
 
 // Deployment Wizard Fields
 export type DeploymentWizardFieldExtension<D extends Deployment = Deployment> = Extension<

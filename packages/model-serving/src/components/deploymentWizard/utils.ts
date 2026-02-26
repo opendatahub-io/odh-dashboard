@@ -22,6 +22,7 @@ import {
   type InitialWizardFormData,
   WizardStepTitle,
 } from './types';
+import { DeployExtension } from './deploying/useDeployMethod';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
@@ -79,48 +80,38 @@ export const getTokenAuthenticationFromDeployment = (
 };
 
 export const deployModel = async (
-  wizardState: WizardFormData,
-  secretName: string,
-  exitWizard: () => void,
-  deployMethod?: (
-    wizardState: WizardFormData['state'],
-    projectName: string,
-    existingDeployment?: Deployment,
-    serverResource?: ServingRuntimeKind,
-    serverResourceTemplateName?: string,
-    dryRun?: boolean,
-    secretName?: string,
-    overwrite?: boolean,
-    initialWizardData?: InitialWizardFormData,
-    applyFieldData?: DeploymentAssemblyFn,
-  ) => Promise<Deployment>,
+  wizardState: WizardFormData['state'],
+  secretName?: string,
+  deployMethod?: DeployExtension,
   existingDeployment?: Deployment,
+  modelResource?: Deployment['model'],
   serverResource?: ServingRuntimeKind,
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn,
 ): Promise<void> => {
-  const { projectName } = wizardState.state.project;
+  const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
     throw new Error('Project is required');
   }
   // Dry runs
   const [dryRunSecret] = await Promise.all([
     handleConnectionCreation(
-      wizardState.state.createConnectionData.data,
+      wizardState.createConnectionData.data,
       projectName,
-      wizardState.state.modelLocationData.data,
+      wizardState.modelLocationData.data,
       secretName,
       true,
-      wizardState.state.modelLocationData.selectedConnection,
+      wizardState.modelLocationData.selectedConnection,
     ),
     ...(!overwrite
       ? [
-          deployMethod?.(
-            wizardState.state,
+          deployMethod?.deploy(
+            wizardState,
             projectName,
             existingDeployment,
+            modelResource,
             serverResource,
             serverResourceTemplateName,
             true,
@@ -139,22 +130,23 @@ export const deployModel = async (
 
   // Create secret
   const newSecret = await handleConnectionCreation(
-    wizardState.state.createConnectionData.data,
+    wizardState.createConnectionData.data,
     projectName,
-    wizardState.state.modelLocationData.data,
+    wizardState.modelLocationData.data,
     realSecretName,
     false,
-    wizardState.state.modelLocationData.selectedConnection,
+    wizardState.modelLocationData.selectedConnection,
   );
   // newSecret.metadata.name is the name of the secret created during secret creation,
   // use realSecretName as a fallback (should be the same)
   const actualSecretName = newSecret?.metadata.name ?? realSecretName;
 
   // Create deployment
-  const deploymentResult = await deployMethod?.(
-    wizardState.state,
+  const deploymentResult = await deployMethod?.deploy(
+    wizardState,
     projectName,
     existingDeployment,
+    modelResource,
     serverResource,
     serverResourceTemplateName,
     false,
@@ -164,20 +156,17 @@ export const deployModel = async (
     applyFieldData,
   );
 
-  if (!wizardState.state.modelLocationData.data || !deploymentResult) {
-    throw new Error('Model location data or deployment result is missing');
+  // Potentially skip this if YAML is used and model location is set directly in the YAML
+  if (newSecret && actualSecretName && deploymentResult && wizardState.modelLocationData.data) {
+    await handleSecretOwnerReferencePatch(
+      wizardState.createConnectionData.data,
+      deploymentResult.model,
+      wizardState.modelLocationData.data,
+      actualSecretName,
+      deploymentResult.model.metadata.uid ?? '',
+      false,
+    );
   }
-
-  await handleSecretOwnerReferencePatch(
-    wizardState.state.createConnectionData.data,
-    deploymentResult.model,
-    wizardState.state.modelLocationData.data,
-    actualSecretName,
-    deploymentResult.model.metadata.uid ?? '',
-    false,
-  );
-
-  exitWizard();
 };
 
 export const resolveConnectionType = (

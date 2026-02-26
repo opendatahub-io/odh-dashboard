@@ -16,6 +16,7 @@ import { K8sStatusError } from '@odh-dashboard/internal/api/errorUtils';
 
 type DeploymentFooterProps = {
   submitButtonText?: string;
+  isSubmitDisabled?: boolean;
   onSave?: () => void;
   onOverwrite?: () => void;
   onRefresh?: () => void;
@@ -30,7 +31,7 @@ type DeploymentFooterProps = {
  * `onSave` and `onCancel` are not provided because they are handled by the useWizardContext inside.
  */
 export const ModelDeploymentWizardFooter: React.FC<
-  Omit<DeploymentFooterProps, 'onSave' | 'onCancel'>
+  Omit<DeploymentFooterProps, 'onSave' | 'onCancel' | 'isSubmitDisabled'>
 > = ({
   submitButtonText = 'Deploy model',
   onOverwrite,
@@ -97,6 +98,7 @@ export const ModelDeploymentWizardFooter: React.FC<
  */
 export const ModelDeploymentFooter: React.FC<DeploymentFooterProps> = ({
   submitButtonText = 'Deploy model',
+  isSubmitDisabled,
   onSave,
   onOverwrite,
   onRefresh,
@@ -124,7 +126,7 @@ export const ModelDeploymentFooter: React.FC<DeploymentFooterProps> = ({
                 variant="primary"
                 onClick={onSave}
                 isLoading={isLoading}
-                isDisabled={isLoading}
+                isDisabled={isLoading || isSubmitDisabled}
               >
                 {submitButtonText}
               </Button>
