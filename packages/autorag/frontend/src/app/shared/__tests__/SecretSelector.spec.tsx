@@ -94,7 +94,7 @@ describe('SecretSelector', () => {
     it('should render without Form wrapper when label is not provided', () => {
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 
-      render(
+      const { container } = render(
         <SecretSelector
           namespace={defaultNamespace}
           value={undefined}
@@ -109,7 +109,7 @@ describe('SecretSelector', () => {
       expect(toggle).toHaveTextContent('Select a secret');
 
       // No label element should be present
-      expect(screen.queryByRole('label')).not.toBeInTheDocument();
+      expect(container.querySelector('label')).toBeNull();
     });
 
     it('should render custom placeholder in the field', () => {

@@ -59,8 +59,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   const [secrets, loaded, error] = useFetchState<SecretListItem[]>(callback, []);
-  // Memoize to prevent new array reference on every render
-  const secretsList = React.useMemo(() => secrets, [secrets]);
+  // Memoize to prevent new array reference on every render and to ensure secrets is always an array
+  const secretsList = React.useMemo(() => (Array.isArray(secrets) ? secrets : []), [secrets]);
   const hasSecrets = secretsList.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;
