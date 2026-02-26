@@ -22,8 +22,23 @@ func TestEvaluationJobsHandler(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
-	assert.Len(t, result.Data, 3)
+	assert.Len(t, result.Data, 5)
 	assert.Equal(t, "eval-job-001", result.Data[0].Resource.ID)
-	assert.Equal(t, "completed", result.Data[0].Status.State)
-	assert.Equal(t, "meta-llama/Llama-3.1-8B-Instruct", result.Data[0].Model.Name)
+	assert.Equal(t, "running", result.Data[0].Status.State)
+	assert.Equal(t, "gpt-4-turbo", result.Data[0].Model.Name)
+}
+
+func TestEvaluationJobsHandlerWithQueryParams(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	result, response, err := setupApiTestWithEvalHub[EvaluationJobsEnvelope](
+		http.MethodGet,
+		EvaluationJobsPath+"?limit=10&offset=0&status=running&name=test&tags=safety",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Len(t, result.Data, 5)
 }

@@ -17,40 +17,77 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context) (*evalhub.HealthRespo
 	return &evalhub.HealthResponse{Status: "healthy"}, nil
 }
 
-func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context) ([]evalhub.EvaluationJob, error) {
+func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
 	return []evalhub.EvaluationJob{
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-001",
-				CreatedAt: "2026-02-20T10:00:00Z",
-				UpdatedAt: "2026-02-20T11:30:00Z",
+				Tenant:    "GPT-4 Safety Assessment",
+				CreatedAt: "2020-01-07T23:33:00Z",
+				UpdatedAt: "2020-01-07T23:33:00Z",
 			},
-			Status: evalhub.JobStatus{State: "completed"},
-			Model:  evalhub.JobModel{Name: "meta-llama/Llama-3.1-8B-Instruct"},
+			Status: evalhub.JobStatus{State: "running"},
+			Model:  evalhub.JobModel{Name: "gpt-4-turbo"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "arc_easy", ProviderID: "lm_evaluation_harness"},
+				{ID: "Open LLM Leaderboard v2", ProviderID: "lm_evaluation_harness"},
 			},
 		},
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-002",
-				CreatedAt: "2026-02-24T08:00:00Z",
+				Tenant:    "Healthcare Compliance Suite",
+				CreatedAt: "2020-01-07T23:33:00Z",
+				UpdatedAt: "2020-01-07T23:33:00Z",
 			},
-			Status: evalhub.JobStatus{State: "running"},
-			Model:  evalhub.JobModel{Name: "mistralai/Mistral-7B-v0.1"},
+			Status: evalhub.JobStatus{State: "stopping"},
+			Model:  evalhub.JobModel{Name: "llama-3-70b"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "hellaswag", ProviderID: "lm_evaluation_harness"},
+				{ID: "Safety and Fairness", ProviderID: "lm_evaluation_harness"},
 			},
 		},
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-003",
-				CreatedAt: "2026-02-24T09:15:00Z",
+				Tenant:    "MMLU Comprehensive",
+				CreatedAt: "2020-01-07T23:33:00Z",
+				UpdatedAt: "2020-01-07T23:33:00Z",
 			},
-			Status: evalhub.JobStatus{State: "pending"},
-			Model:  evalhub.JobModel{Name: "meta-llama/Llama-3.1-70B-Instruct"},
+			Status: evalhub.JobStatus{State: "failed"},
+			Model:  evalhub.JobModel{Name: "claude-3-opus"},
 			Benchmarks: []evalhub.JobBenchmark{
-				{ID: "mmlu", ProviderID: "lm_evaluation_harness"},
+				{ID: "MMLU Finance Subtasks", ProviderID: "lm_evaluation_harness"},
+			},
+		},
+		{
+			Resource: evalhub.JobResource{
+				ID:        "eval-job-004",
+				Tenant:    "Toxicity detection",
+				CreatedAt: "2020-01-07T23:33:00Z",
+				UpdatedAt: "2020-01-07T23:33:00Z",
+			},
+			Status: evalhub.JobStatus{State: "completed"},
+			Results: evalhub.JobResults{
+				TotalEvaluations: 1,
+				Benchmarks: []evalhub.BenchmarkResult{
+					{ID: "toxicity", Metrics: map[string]float64{"score": 0.46}},
+				},
+			},
+			Model: evalhub.JobModel{Name: "Dataset [TBD]"},
+			Benchmarks: []evalhub.JobBenchmark{
+				{ID: "Toxicity detection", ProviderID: "lm_evaluation_harness"},
+			},
+		},
+		{
+			Resource: evalhub.JobResource{
+				ID:        "eval-job-005",
+				Tenant:    "Telco Compliance Assessment",
+				CreatedAt: "2020-01-07T23:33:00Z",
+				UpdatedAt: "2020-01-07T23:33:00Z",
+			},
+			Status: evalhub.JobStatus{State: "stopped"},
+			Model:  evalhub.JobModel{Name: "claude-3-opus"},
+			Benchmarks: []evalhub.JobBenchmark{
+				{ID: "Free Open-Telco LLM Benc...", ProviderID: "lm_evaluation_harness"},
 			},
 		},
 	}, nil
