@@ -290,7 +290,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.NotEmpty(t, response.Data.CreatedAt)
 	})
 
-	t.Run("should include pipeline_version_id from hardcoded pipeline ID", func(t *testing.T) {
+	t.Run("should include pipeline_version_reference from hardcoded pipeline ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
 
@@ -299,7 +299,8 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		var response CreatePipelineRunEnvelope
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, constants.AutoRAGPipelineID, response.Data.PipelineVersionID)
+		assert.NotNil(t, response.Data.PipelineVersionReference)
+		assert.Equal(t, constants.AutoRAGPipelineID, response.Data.PipelineVersionReference.PipelineID)
 	})
 }
 

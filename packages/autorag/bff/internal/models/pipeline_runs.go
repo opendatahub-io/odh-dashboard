@@ -30,17 +30,45 @@ type KFPipelineRunResponse struct {
 
 // KFPipelineRun represents a single run from Kubeflow Pipelines API v2beta1
 type KFPipelineRun struct {
-	RunID             string          `json:"run_id"`
-	DisplayName       string          `json:"display_name"`
-	Description       string          `json:"description,omitempty"`
-	PipelineVersionID string          `json:"pipeline_version_id,omitempty"`
-	RuntimeConfig     *RuntimeConfig  `json:"runtime_config,omitempty"`
-	ServiceAccount    string          `json:"service_account,omitempty"`
-	State             string          `json:"state,omitempty"`
-	CreatedAt         string          `json:"created_at,omitempty"`
-	ScheduledAt       string          `json:"scheduled_at,omitempty"`
-	FinishedAt        string          `json:"finished_at,omitempty"`
-	StateHistory      []RuntimeStatus `json:"state_history,omitempty"`
+	RunID                    string                    `json:"run_id"`
+	ExperimentID             string                    `json:"experiment_id,omitempty"`
+	DisplayName              string                    `json:"display_name"`
+	Description              string                    `json:"description,omitempty"`
+	PipelineVersionID        string                    `json:"pipeline_version_id,omitempty"`
+	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	StorageState             string                    `json:"storage_state,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
+	ServiceAccount           string                    `json:"service_account,omitempty"`
+	State                    string                    `json:"state,omitempty"`
+	CreatedAt                string                    `json:"created_at,omitempty"`
+	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
+	FinishedAt               string                    `json:"finished_at,omitempty"`
+	RunDetails               *RunDetails               `json:"run_details,omitempty"`
+	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
+}
+
+// RunDetails contains detailed task execution info for a pipeline run
+type RunDetails struct {
+	TaskDetails []TaskDetail `json:"task_details,omitempty"`
+}
+
+// TaskDetail represents a single task within a pipeline run
+type TaskDetail struct {
+	RunID        string          `json:"run_id,omitempty"`
+	TaskID       string          `json:"task_id,omitempty"`
+	DisplayName  string          `json:"display_name,omitempty"`
+	CreateTime   string          `json:"create_time,omitempty"`
+	StartTime    string          `json:"start_time,omitempty"`
+	EndTime      string          `json:"end_time,omitempty"`
+	State        string          `json:"state,omitempty"`
+	ExecutionID  string          `json:"execution_id,omitempty"`
+	StateHistory []RuntimeStatus `json:"state_history,omitempty"`
+	ChildTasks   []ChildTask     `json:"child_tasks,omitempty"`
+}
+
+// ChildTask represents a child task reference (typically a pod)
+type ChildTask struct {
+	PodName string `json:"pod_name,omitempty"`
 }
 
 // RuntimeConfig represents the runtime configuration
@@ -82,7 +110,8 @@ type CreateAutoRAGRunRequest struct {
 
 // PipelineVersionReference identifies the pipeline to run.
 type PipelineVersionReference struct {
-	PipelineID string `json:"pipeline_id"`
+	PipelineID        string `json:"pipeline_id"`
+	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 }
 
 // CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.

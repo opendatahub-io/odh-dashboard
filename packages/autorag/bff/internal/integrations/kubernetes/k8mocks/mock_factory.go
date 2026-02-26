@@ -123,7 +123,15 @@ func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Conf
 }
 
 func (f *MockedTokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
-	return f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	id, err := f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	if err != nil {
+		token := "FAKE_CLUSTER_ADMIN_TOKEN"
+		if len(DefaultTestUsers) > 0 {
+			token = DefaultTestUsers[0].Token
+		}
+		return &k8s.RequestIdentity{Token: token}, nil
+	}
+	return id, nil
 }
 
 func (f *MockedTokenClientFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
@@ -150,18 +158,16 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return client, nil
 	}
 
-	// Map token to test user identity
-	user := findTestUserByToken(identity.Token)
-	if user == nil {
-		return nil, fmt.Errorf("unknown test token: %s", identity.Token)
-	}
-
-	// Create a new rest.Config that impersonates the user.
-	// This bypasses the lack of real authentication in envtest and allows RBAC to work properly.
+	// In mock mode, map known test tokens to specific user impersonation for RBAC testing.
+	// Unknown tokens (e.g., real OC tokens in federated mode) get a non-impersonated client.
 	impersonatedCfg := rest.CopyConfig(f.restConfig)
-	impersonatedCfg.Impersonate = rest.ImpersonationConfig{
-		UserName: user.UserName,
-		Groups:   user.Groups,
+	if user := findTestUserByToken(identity.Token); user != nil {
+		impersonatedCfg.Impersonate = rest.ImpersonationConfig{
+			UserName: user.UserName,
+			Groups:   user.Groups,
+		}
+	} else {
+		impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
 	}
 
 	clientset, err := kubernetes.NewForConfig(impersonatedCfg)
