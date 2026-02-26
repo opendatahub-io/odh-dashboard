@@ -4,6 +4,11 @@ import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mock
 import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
 import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureViews';
 import { mockDataSource } from '@odh-dashboard/feature-store/mocks/mockDataSources';
+import {
+  mockResourceCounts,
+  mockPopularTags,
+  mockRecentlyVisited,
+} from '@odh-dashboard/feature-store/mocks/mockMetrics';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -215,6 +220,24 @@ const mockDataSourceDetailsIntercept = () => {
   ).as('getDataSourceDetails');
 };
 
+const mockOverviewMetricsIntercept = () => {
+  cy.intercept(
+    'GET',
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/resource_counts*`,
+    mockResourceCounts(),
+  );
+  cy.intercept(
+    'GET',
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/popular_tags*`,
+    mockPopularTags(),
+  );
+  cy.intercept(
+    'GET',
+    `/api/featurestores/${k8sNamespace}/${fsName}/api/v1/metrics/recently_visited*`,
+    mockRecentlyVisited(),
+  );
+};
+
 const mockDataSourceFeatureViewsIntercept = () => {
   cy.intercept(
     'GET',
@@ -271,6 +294,16 @@ describe('Feature Data Sources for all projects', () => {
     asClusterAdminUser();
     initCommonIntercepts();
     mockAllDataSourcesIntercept();
+  });
+
+  it('should load Data sources page when navigating via sidebar', () => {
+    mockOverviewMetricsIntercept();
+    featureStoreGlobal.visitOverview();
+    featureStoreGlobal.navigateToDataSources();
+
+    cy.url().should('include', '/feature-store/data-sources');
+    featureStoreGlobal.findHeading().should('have.text', 'Data sources');
+    featureDataSourcesTable.findTable().should('be.visible');
   });
 
   it('should display all data sources when no project is selected', () => {
