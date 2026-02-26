@@ -35,20 +35,6 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   emptyStateMessage = 'Select a feature store to view its lineage.',
   height = '100%',
 }) => {
-  if (!project) {
-    return (
-      <EmptyState
-        headingLevel="h6"
-        icon={PlusCircleIcon}
-        titleText={emptyStateTitle}
-        variant={EmptyStateVariant.lg}
-        data-testid="empty-state-title"
-      >
-        <EmptyStateBody data-testid="empty-state-body">{emptyStateMessage}</EmptyStateBody>
-      </EmptyState>
-    );
-  }
-
   const [hideNodesWithoutRelationships, setHideNodesWithoutRelationships] = useState(false);
   const [searchFilters, setSearchFilters] = useState<FeatureStoreLineageSearchFilters>({});
   const [currentFilterType, setCurrentFilterType] =
@@ -64,13 +50,13 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     }
   }, [forceCenter]);
 
+  const featureViewLineageState = useFeatureViewLineage(project, featureViewName);
+  const featureStoreLineageState = useFeatureStoreLineage(project);
   const {
     data: lineageData,
     loaded: lineageDataLoaded,
     error,
-  } = featureViewName
-    ? useFeatureViewLineage(project, featureViewName)
-    : useFeatureStoreLineage(project);
+  } = featureViewName ? featureViewLineageState : featureStoreLineageState;
 
   const componentFactory = useMemo(
     () => createLineageComponentFactory(FeatureStoreLineageNode),
@@ -174,6 +160,20 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => (
     <FeatureStoreLineageNodePopover {...props} featureViewName={featureViewName} />
   );
+
+  if (!project) {
+    return (
+      <EmptyState
+        headingLevel="h6"
+        icon={PlusCircleIcon}
+        titleText={emptyStateTitle}
+        variant={EmptyStateVariant.lg}
+        data-testid="empty-state-title"
+      >
+        <EmptyStateBody data-testid="empty-state-body">{emptyStateMessage}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
 
   return (
     <PageSection

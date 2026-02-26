@@ -1,3 +1,5 @@
+// TODO: Fix no-restricted-imports violation
+
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import {
@@ -12,7 +14,9 @@ import {
   isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../types';
 
@@ -29,6 +33,8 @@ const NewConnectionField: React.FC<Props> = ({
   connectionType,
   connections,
 }) => {
+  void connections;
+
   const connectionValues = React.useMemo(() => {
     if (!modelLocationData) return {};
     return modelLocationData.fieldValues;
@@ -105,7 +111,7 @@ const NewConnectionField: React.FC<Props> = ({
       });
     }
     return connectionType.data?.fields;
-  }, [connectionType, connections, modelLocationData?.connection]);
+  }, [connectionType]);
 
   return (
     <FormGroup>

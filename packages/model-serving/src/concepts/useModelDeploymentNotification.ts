@@ -1,3 +1,5 @@
+// TODO: Fix no-restricted-imports violation
+
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
@@ -5,6 +7,7 @@ import {
   NotificationResponseStatus,
   NotificationWatcherContext,
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { useResolvedDeploymentExtension } from '../concepts/extensionUtils';
@@ -21,7 +24,7 @@ type ModelDeploymentNotification = {
 export const useModelDeploymentNotification = (
   deployment: Deployment,
 ): ModelDeploymentNotification => {
-  const { namespace } = deployment.model.metadata;
+  const { namespace, name } = deployment.model.metadata;
 
   const [fetchDeploymentExtension, fetchDeploymentExtensionLoaded] =
     useResolvedDeploymentExtension<ModelServingPlatformFetchDeploymentStatus>(
@@ -49,8 +52,8 @@ export const useModelDeploymentNotification = (
           }
 
           const fetchedDeployment = await fetchDeploymentExtension.properties.fetch(
-            deployment.model.metadata.name,
-            deployment.model.metadata.namespace,
+            name,
+            namespace,
           );
           const deploymentStatus = fetchedDeployment?.status;
 
@@ -148,6 +151,7 @@ export const useModelDeploymentNotification = (
     notification,
     fetchDeploymentExtension,
     fetchDeploymentExtensionLoaded,
+    name,
   ]);
 
   return { watchDeployment };

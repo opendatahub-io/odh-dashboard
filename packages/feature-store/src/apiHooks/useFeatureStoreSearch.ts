@@ -39,6 +39,7 @@ export const useFeatureStoreSearch = (): {
   const [currentAbortController, setCurrentAbortController] = useState<AbortController | null>(
     null,
   );
+  const currentAbortSignal = currentAbortController?.signal;
 
   const convertedSearchData = useMemo(() => {
     if (allResults.length === 0) {
@@ -130,6 +131,7 @@ export const useFeatureStoreSearch = (): {
       search,
       apiAvailable,
       hasAvailableProjects,
+      featureStoreProjects.projects,
       currentSearchQuery,
       isSearching,
       currentAbortController,
@@ -156,7 +158,7 @@ export const useFeatureStoreSearch = (): {
         query: currentSearchQuery,
         page: nextPage,
         limit: 50,
-        signal: currentAbortController?.signal,
+        signal: currentAbortSignal,
       });
 
       setAllResults((prevResults) => [...prevResults, ...results.results]);
@@ -176,8 +178,10 @@ export const useFeatureStoreSearch = (): {
     currentSearchQuery,
     apiAvailable,
     hasAvailableProjects,
+    featureStoreProjects.projects,
     currentPage,
     search,
+    currentAbortSignal,
   ]);
 
   const clearSearch = useCallback(() => {
