@@ -14,7 +14,7 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   // Load the AutoRAG OpenAPI schema
-  const apiSchema = loadOpenAPISchema('api/openapi/autorag.yaml');
+  const apiSchema = loadOpenAPISchema('../api/openapi/autorag.yaml');
 
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
