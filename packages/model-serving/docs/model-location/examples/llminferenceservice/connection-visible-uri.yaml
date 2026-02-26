@@ -1,0 +1,20 @@
+# LLMInferenceService with visible URI Connection (via Connections API)
+# Requires: connections/visible-uri-connection.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-visible-uri-conn
+  annotations:
+    opendatahub.io/connections: my-uri-connection
+spec:
+  model:
+    name: my-model
+    uri: "" # Webhook will populate based on connection
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

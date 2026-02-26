@@ -1,0 +1,11 @@
+# InferenceService with public OCI storageUri - no pull secret needed
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-direct-uri-public-oci
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storageUri: oci://quay.io/public-repo/model-image:v1

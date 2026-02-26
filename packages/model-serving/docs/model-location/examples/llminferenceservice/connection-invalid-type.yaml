@@ -1,0 +1,22 @@
+# LLMInferenceService with a Connection that has an invalid/missing type
+# Requires: connections/invalid-type-connection.yaml
+# Used for testing error handling when the connection type doesn't exist
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: llm-invalid-type-conn
+  annotations:
+    opendatahub.io/connections: invalid-type-connection
+    opendatahub.io/connection-path: models/my-model
+spec:
+  model:
+    name: my-model
+    uri: ""
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main

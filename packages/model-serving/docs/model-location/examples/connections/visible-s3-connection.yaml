@@ -1,0 +1,20 @@
+# Visible S3 Connection - shows in project's Connections list
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-s3-connection
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/connection-type: "true"
+    opendatahub.io/managed: "true" # Won't work if missing
+  annotations:
+    opendatahub.io/connection-type: s3
+    opendatahub.io/connection-type-protocol: s3
+    opendatahub.io/connection-type-ref: s3
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: test-key
+  AWS_SECRET_ACCESS_KEY: test-secret
+  AWS_S3_ENDPOINT: https://s3.amazonaws.com
+  AWS_S3_BUCKET: my-bucket
+  AWS_DEFAULT_REGION: us-east-1

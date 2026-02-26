@@ -1,0 +1,12 @@
+# InferenceService with missing/non-existent PVC
+# Negative test case - the referenced PVC does not exist
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: isvc-pvc-missing
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: pytorch
+      storageUri: pvc://nonexistent-pvc/path/to/model
