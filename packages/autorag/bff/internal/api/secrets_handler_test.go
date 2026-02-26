@@ -870,3 +870,101 @@ func TestGetSecretsHandler_ForbiddenError(t *testing.T) {
 	// Forbidden errors should be treated as server errors (not NotFound)
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }
+
+func TestGetSecretsHandler_LimitExceedsMaximum(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[HTTPError](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&limit=101",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestGetSecretsHandler_DefaultLimit(t *testing.T) {
+	// Create 15 mock secrets to test that default limit of 10 is applied
+	mockSecrets := make([]corev1.Secret, 15)
+	for i := 0; i < 15; i++ {
+		mockSecrets[i] = corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("secret-%d", i),
+				Namespace: "test-namespace",
+				UID:       types.UID(fmt.Sprintf("uid-%d", i)),
+			},
+			Data: map[string][]byte{"key": []byte(fmt.Sprintf("value%d", i))},
+		}
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	// Test without limit parameter - should default to 10
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 10, "Should return default limit of 10 secrets")
+}
+
+func TestGetSecretsHandler_MaxLimit(t *testing.T) {
+	// Create 150 mock secrets to test that max limit of 100 is enforced
+	mockSecrets := make([]corev1.Secret, 150)
+	for i := 0; i < 150; i++ {
+		mockSecrets[i] = corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("secret-%d", i),
+				Namespace: "test-namespace",
+				UID:       types.UID(fmt.Sprintf("uid-%d", i)),
+			},
+			Data: map[string][]byte{"key": []byte(fmt.Sprintf("value%d", i))},
+		}
+	}
+
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	// Test with limit=100 (max allowed)
+	envelope, res, err := setupApiTest[SecretsEnvelope](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&limit=100",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Len(t, envelope.Data, 100, "Should return exactly 100 secrets when limit=100")
+}
+
+func TestGetSecretsHandler_ZeroLimit(t *testing.T) {
+	mockClient := &mockKubernetesClientForSecrets{}
+	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	_, res, err := setupApiTest[HTTPError](
+		"GET",
+		"/api/v1/secrets?resource=test-namespace&limit=0",
+		nil,
+		factory,
+		identity,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}

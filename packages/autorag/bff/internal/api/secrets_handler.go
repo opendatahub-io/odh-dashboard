@@ -19,7 +19,7 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 // Query parameters:
 //   - resource (required): The namespace name to query secrets from
 //   - type (optional): Filter type - "storage" for AWS secrets, "lls" for LLS secrets, or empty for all secrets
-//   - limit (optional): Maximum number of secrets to return (default: all)
+//   - limit (optional): Maximum number of secrets to return (default: 10, max: 100)
 //   - offset (optional): Number of secrets to skip for pagination (default: 0)
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -47,13 +47,17 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Parse limit (optional, default to 0 which means no limit)
-	limit := 0
+	// Parse limit (optional, default to 10, max 100)
+	limit := 10
 	if limitStr := queryParams.Get("limit"); limitStr != "" {
 		var err error
 		limit, err = strconv.Atoi(limitStr)
-		if err != nil || limit < 0 {
-			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'limit' must be a non-negative integer"))
+		if err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'limit' must be a positive integer between 1 and 100"))
+			return
+		}
+		if limit < 1 || limit > 100 {
+			app.badRequestResponse(w, r, fmt.Errorf("query parameter 'limit' must be a positive integer between 1 and 100"))
 			return
 		}
 	}

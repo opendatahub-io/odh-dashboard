@@ -108,8 +108,24 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
-      it('should handle limit=0 (return all results)', async () => {
+      it('should return 400 for limit=0', async () => {
         const result = await apiClient.get('/api/v1/secrets?resource=default&limit=0');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return default limit of 10 when no limit specified', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should handle limit=100 (maximum allowed)', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=100');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -168,6 +184,22 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 for negative offset parameter', async () => {
         const result = await apiClient.get('/api/v1/secrets?resource=default&offset=-1');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for limit exceeding maximum (101)', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=101');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for limit exceeding maximum (999)', async () => {
+        const result = await apiClient.get('/api/v1/secrets?resource=default&limit=999');
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
