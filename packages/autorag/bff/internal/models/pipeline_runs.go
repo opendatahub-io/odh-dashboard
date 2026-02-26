@@ -92,6 +92,7 @@ type TaskDetail struct {
 	StartTime    string          `json:"start_time,omitempty"`
 	EndTime      string          `json:"end_time,omitempty"`
 	State        string          `json:"state,omitempty"`
+	ExecutionID  string          `json:"execution_id,omitempty"`
 	StateHistory []RuntimeStatus `json:"state_history,omitempty"`
 	ChildTasks   []ChildTask     `json:"child_tasks,omitempty"`
 	Error        *ErrorInfo      `json:"error,omitempty"`
