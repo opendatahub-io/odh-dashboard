@@ -153,7 +153,6 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                       [ModelRegistryVersionsFilterOptions.keyword]: ({ onChange, ...props }) => (
                         <ThemeAwareSearchInput
                           {...props}
-                          fieldLabel="Filter by name, description or label"
                           placeholder="Filter by name, description or label"
                           className="toolbar-fieldset-wrapper"
                           style={{ minWidth: '270px' }}
@@ -163,7 +162,6 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                       [ModelRegistryVersionsFilterOptions.author]: ({ onChange, ...props }) => (
                         <ThemeAwareSearchInput
                           {...props}
-                          fieldLabel="Filter by author"
                           placeholder="Filter by author"
                           className="toolbar-fieldset-wrapper"
                           style={{ minWidth: '270px' }}

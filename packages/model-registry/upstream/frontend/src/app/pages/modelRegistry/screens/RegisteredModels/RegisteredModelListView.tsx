@@ -95,7 +95,6 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
           [ModelRegistryFilterOptions.keyword]: ({ onChange, ...props }) => (
             <ThemeAwareSearchInput
               {...props}
-              fieldLabel="Filter by name, description or label"
               placeholder="Filter by name, description or label"
               className="toolbar-fieldset-wrapper"
               style={{ minWidth: '270px' }}
@@ -105,7 +104,6 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
           [ModelRegistryFilterOptions.owner]: ({ onChange, ...props }) => (
             <ThemeAwareSearchInput
               {...props}
-              fieldLabel="Filter by owner"
               placeholder="Filter by owner"
               className="toolbar-fieldset-wrapper"
               style={{ minWidth: '270px' }}
