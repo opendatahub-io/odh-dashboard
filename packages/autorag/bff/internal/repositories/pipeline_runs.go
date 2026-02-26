@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -18,17 +17,17 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by annotations
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline ID
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
-	annotations map[string]string,
+	pipelineID string,
 	pageSize int32,
 	pageToken string,
 ) (*models.PipelineRunsData, error) {
 
-	// Build filter for annotations
-	filter := buildAnnotationFilter(annotations)
+	// Build filter for pipeline ID if provided
+	filter := buildPipelineIDFilter(pipelineID)
 
 	params := &ps.ListRunsParams{
 		PageSize:  pageSize,
@@ -46,9 +45,6 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	// Transform Kubeflow format to our stable API format
 	runs := make([]models.PipelineRun, 0, len(kfResponse.Runs))
 	for _, kfRun := range kfResponse.Runs {
-		// Extract annotations from runtime config if present
-		annotations := extractAnnotations(kfRun)
-
 		run := models.PipelineRun{
 			RunID:             kfRun.RunID,
 			DisplayName:       kfRun.DisplayName,
@@ -57,7 +53,6 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 			State:             kfRun.State,
 			CreatedAt:         kfRun.CreatedAt,
 			FinishedAt:        kfRun.FinishedAt,
-			Annotations:       annotations,
 		}
 		runs = append(runs, run)
 	}
@@ -69,21 +64,28 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	}, nil
 }
 
-// buildAnnotationFilter creates a Kubeflow Pipelines API filter string for annotations
+// buildPipelineIDFilter creates a Kubeflow Pipelines API filter string for pipeline ID
 // The filter follows the format: {"predicates": [{"key": "...", "operation": "EQUALS", "string_value": "..."}]}
-func buildAnnotationFilter(annotations map[string]string) string {
-	if len(annotations) == 0 {
+func buildPipelineIDFilter(pipelineID string) string {
+	if pipelineID == "" {
 		return ""
 	}
 
-	predicates := make([]map[string]interface{}, 0, len(annotations))
-	for key, value := range annotations {
-		predicates = append(predicates, map[string]interface{}{
-			"key":          fmt.Sprintf("annotations.%s", key),
+	predicates := []map[string]interface{}{
+		{
+			"key":          "storage_state",
 			"operation":    "EQUALS",
-			"string_value": value,
-		})
+			"string_value": "AVAILABLE",
+		},
 	}
+
+	// Add pipeline ID filter if provided
+	// In Kubeflow Pipelines API, we filter by pipeline_spec.pipeline_id or resource_references
+	predicates = append(predicates, map[string]interface{}{
+		"key":          "pipeline_spec.pipeline_id",
+		"operation":    "EQUALS",
+		"string_value": pipelineID,
+	})
 
 	filter := map[string]interface{}{
 		"predicates": predicates,
@@ -95,25 +97,4 @@ func buildAnnotationFilter(annotations map[string]string) string {
 	}
 
 	return string(filterJSON)
-}
-
-// extractAnnotations extracts annotations from a Kubeflow pipeline run
-// Annotations are stored in runtime_config.parameters with "annotation_" prefix
-func extractAnnotations(kfRun models.KFPipelineRun) map[string]string {
-	annotations := make(map[string]string)
-
-	// Check if runtime config has annotation-like parameters
-	if kfRun.RuntimeConfig != nil && kfRun.RuntimeConfig.Parameters != nil {
-		for key, value := range kfRun.RuntimeConfig.Parameters {
-			// Look for annotation-prefixed parameters
-			if strings.HasPrefix(key, "annotation_") {
-				annotationKey := strings.TrimPrefix(key, "annotation_")
-				if strValue, ok := value.(string); ok {
-					annotations[annotationKey] = strValue
-				}
-			}
-		}
-	}
-
-	return annotations
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
-// Returns pipeline runs from a specific Pipeline Server filtered by annotations
+// Returns pipeline runs from a specific Pipeline Server filtered by pipeline ID
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -29,15 +28,8 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// Parse query parameters
 	query := r.URL.Query()
 
-	// Parse annotations from query params
-	annotations := make(map[string]string)
-	annotationsParam := query.Get("annotations")
-	if annotationsParam != "" {
-		if err := json.Unmarshal([]byte(annotationsParam), &annotations); err != nil {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid annotations format: %w", err))
-			return
-		}
-	}
+	// Get pipeline ID from query params (optional)
+	pipelineID := query.Get("pipelineId")
 
 	// Parse pagination parameters
 	pageSize := int32(20) // default
@@ -53,7 +45,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
 		client,
 		ctx,
-		annotations,
+		pipelineID,
 		pageSize,
 		pageToken,
 	)

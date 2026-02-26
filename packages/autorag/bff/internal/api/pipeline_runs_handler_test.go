@@ -44,12 +44,12 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 		assert.Equal(t, int32(3), response.Data.TotalSize)
 	})
 
-	t.Run("should filter by annotations", func(t *testing.T) {
+	t.Run("should filter by pipeline ID", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		annotationsJSON := `{"autorag.opendatahub.io/experiment-id":"exp-123"}`
+		pipelineID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 		req, err := http.NewRequest(
 			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&annotations="+annotationsJSON,
+			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&pipelineId="+pipelineID,
 			nil,
 		)
 		assert.NoError(t, err)
@@ -87,37 +87,6 @@ func TestPipelineRunsHandler_Success(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
-
-	t.Run("should extract annotations from runtime config", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
-			nil,
-		)
-		assert.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient()
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-
-		app.PipelineRunsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response PipelineRunsEnvelope
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-
-		// Verify that annotations were extracted from runtime config
-		if len(response.Data.Runs) > 0 {
-			firstRun := response.Data.Runs[0]
-			assert.NotNil(t, firstRun.Annotations)
-			// Mock data should have annotations with "annotation_" prefix in runtime config
-			// which should be extracted and included in the response
-		}
-	})
 }
 
 func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
@@ -134,25 +103,6 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		// Don't attach client to context
 		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-
-		app.PipelineRunsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("should fail with invalid annotations JSON", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa&annotations=invalid-json",
-			nil,
-		)
-		assert.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient()
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
 
 		app.PipelineRunsHandler(rr, req, nil)

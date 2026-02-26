@@ -3,14 +3,13 @@ package models
 // PipelineRun represents a Kubeflow Pipeline Run from the v2beta1 API
 // This is the stable public API format exposed to the frontend
 type PipelineRun struct {
-	RunID             string            `json:"run_id"`
-	DisplayName       string            `json:"display_name"`
-	Description       string            `json:"description,omitempty"`
-	PipelineVersionID string            `json:"pipeline_version_id,omitempty"`
-	State             string            `json:"state"`
-	CreatedAt         string            `json:"created_at"`
-	FinishedAt        string            `json:"finished_at,omitempty"`
-	Annotations       map[string]string `json:"annotations,omitempty"`
+	RunID             string `json:"run_id"`
+	DisplayName       string `json:"display_name"`
+	Description       string `json:"description,omitempty"`
+	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
+	State             string `json:"state"`
+	CreatedAt         string `json:"created_at"`
+	FinishedAt        string `json:"finished_at,omitempty"`
 }
 
 // PipelineRunsData contains a list of pipeline runs with pagination

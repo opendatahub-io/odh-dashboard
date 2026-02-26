@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pipeline Server, with support for filtering by annotations. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pipeline Server, with support for filtering by pipeline ID. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
 
 ## Endpoint
 
@@ -20,7 +20,7 @@ This endpoint requires authentication via the standard authentication method con
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
 | `pipelineServerId` | query string | Yes | ID/name of the Pipeline Server (DSPipelineApplication CR name) |
-| `annotations` | query string (JSON) | No | JSON string of annotation key-value pairs to filter runs |
+| `pipelineId` | query string | No | ID of the pipeline to filter runs by |
 | `pageSize` | query integer | No | Number of results per page (default: 20) |
 | `nextPageToken` | query string | No | Token for retrieving the next page of results |
 
@@ -35,12 +35,12 @@ curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&p
   -H "kubeflow-userid: user@example.com"
 ```
 
-### Filter by Annotations
+### Filter by Pipeline ID
 
-Get pipeline runs with specific annotation values:
+Get pipeline runs for a specific pipeline:
 
 ```bash
-curl -X GET 'http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=dspa&annotations={"autorag.opendatahub.io/experiment-id":"exp-123"}' \
+curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=dspa&pipelineId=a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
   -H "kubeflow-userid: user@example.com"
 ```
 
@@ -69,11 +69,7 @@ The endpoint returns a JSON response with the following structure:
         "pipeline_version_id": "pipeline-v1",
         "state": "SUCCEEDED",
         "created_at": "2026-02-24T10:30:00Z",
-        "finished_at": "2026-02-24T11:15:00Z",
-        "annotations": {
-          "autorag.opendatahub.io/experiment-id": "exp-123",
-          "autorag.opendatahub.io/dataset": "test-set-v1"
-        }
+        "finished_at": "2026-02-24T11:15:00Z"
       }
     ],
     "total_size": 1,
@@ -95,7 +91,6 @@ The endpoint returns a JSON response with the following structure:
 | `state` | string | Current run state (UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED) |
 | `created_at` | string | Creation timestamp in ISO 8601 format |
 | `finished_at` | string | Completion timestamp in ISO 8601 format (if finished) |
-| `annotations` | object | Key-value pairs of run annotations |
 
 #### PipelineRunsData Object
 
@@ -105,27 +100,13 @@ The endpoint returns a JSON response with the following structure:
 | `total_size` | integer | Total number of runs matching the filter |
 | `next_page_token` | string | Token for retrieving the next page (empty if no more pages) |
 
-## Annotations
+## Pipeline Filtering
 
-Annotations are key-value pairs stored in the pipeline run's runtime configuration. They are used to associate metadata with runs for filtering and organization purposes.
+The API allows filtering pipeline runs by pipeline ID, which enables you to retrieve runs for a specific pipeline definition.
 
-### AutoRAG Annotation Conventions
+### Filtering by Pipeline ID
 
-The following annotation keys are commonly used by AutoRAG:
-
-| Annotation Key | Description | Example Value |
-|----------------|-------------|---------------|
-| `autorag.opendatahub.io/experiment-id` | Unique experiment identifier | `exp-123` |
-| `autorag.opendatahub.io/dataset` | Dataset name or version | `test-set-v1` |
-| `autorag.opendatahub.io/run-type` | Type of run (baseline, optimization, etc.) | `optimization` |
-
-### How Annotations Work
-
-Annotations are stored in the Kubeflow Pipeline run's `runtime_config.parameters` with an `annotation_` prefix. The BFF automatically:
-
-1. Filters runs based on annotation criteria
-2. Extracts annotations from runtime config parameters
-3. Returns them in a clean format without the `annotation_` prefix
+When you provide a `pipelineId` parameter, the API filters runs to only include those associated with that specific pipeline. If no pipeline ID is provided, all runs from the Pipeline Server are returned.
 
 ## Error Responses
 
@@ -133,7 +114,6 @@ Annotations are stored in the Kubeflow Pipeline run's `runtime_config.parameters
 
 Returned when:
 - Required parameters are missing
-- Annotations JSON is malformed
 - Pipeline Server client cannot be created
 
 ```json
@@ -202,25 +182,25 @@ The BFF constructs the Pipeline Server URL using:
 
 The AutoRAG frontend can use this endpoint to:
 
-1. List all runs for a specific experiment
-2. Filter runs by dataset or run type
-3. Display run status and results
-4. Implement pagination for large result sets
+1. List all runs for a specific pipeline
+2. Display run status and results
+3. Implement pagination for large result sets
+4. Access run annotations for additional metadata
 
 ### Example Frontend Integration
 
 ```javascript
-async function fetchExperimentRuns(experimentId) {
-  const annotations = {
-    "autorag.opendatahub.io/experiment-id": experimentId
-  };
-
+async function fetchPipelineRuns(pipelineId) {
   const params = new URLSearchParams({
     namespace: currentNamespace,
     pipelineServerId: "dspa",
-    annotations: JSON.stringify(annotations),
     pageSize: "20"
   });
+
+  // Add pipeline ID filter if provided
+  if (pipelineId) {
+    params.append("pipelineId", pipelineId);
+  }
 
   const response = await fetch(`/api/v1/pipeline-runs?${params}`);
   const data = await response.json();
@@ -235,7 +215,8 @@ async function fetchExperimentRuns(experimentId) {
 
 If the endpoint returns an empty array:
 1. Verify the Pipeline Server ID is correct
-2. Check that runs exist with the specified annotations
+2. Check that runs exist for the specified pipeline ID (if filtering)
+3. Verify the pipeline exists in the Pipeline Server
 3. Ensure the namespace parameter matches where the Pipeline Server is deployed
 
 ### Connection Errors

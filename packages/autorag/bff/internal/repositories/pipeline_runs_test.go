@@ -14,7 +14,7 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, nil, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -22,12 +22,10 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 		assert.Equal(t, int32(3), runsData.TotalSize)
 	})
 
-	t.Run("should handle annotation filtering", func(t *testing.T) {
-		annotations := map[string]string{
-			"autorag.opendatahub.io/experiment-id": "exp-123",
-		}
+	t.Run("should handle pipeline ID filtering", func(t *testing.T) {
+		pipelineID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, annotations, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineID, 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -36,28 +34,14 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, nil, 10, "page-token-123")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-	})
-
-	t.Run("should extract annotations from runtime config", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, nil, 20, "")
-
-		assert.NoError(t, err)
-		assert.NotNil(t, runsData)
-
-		if len(runsData.Runs) > 0 {
-			firstRun := runsData.Runs[0]
-			assert.NotNil(t, firstRun.Annotations)
-			// Mock data should have annotations extracted from runtime config
-			assert.Contains(t, firstRun.Annotations, "autorag.opendatahub.io/experiment-id")
-		}
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, nil, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -73,88 +57,28 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 }
 
-func TestBuildAnnotationFilter(t *testing.T) {
-	t.Run("should build filter with single annotation", func(t *testing.T) {
-		annotations := map[string]string{
-			"experiment-id": "exp-123",
-		}
+func TestBuildPipelineIDFilter(t *testing.T) {
+	t.Run("should build filter with pipeline ID", func(t *testing.T) {
+		pipelineID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
-		filter := buildAnnotationFilter(annotations)
+		filter := buildPipelineIDFilter(pipelineID)
 		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, "experiment-id")
-		assert.Contains(t, filter, "exp-123")
+		assert.Contains(t, filter, pipelineID)
+		assert.Contains(t, filter, "pipeline_spec.pipeline_id")
 		assert.Contains(t, filter, "predicates")
 	})
 
-	t.Run("should build filter with multiple annotations", func(t *testing.T) {
-		annotations := map[string]string{
-			"experiment-id": "exp-123",
-			"dataset":       "test-set-v1",
-		}
-
-		filter := buildAnnotationFilter(annotations)
-		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, "experiment-id")
-		assert.Contains(t, filter, "dataset")
-		assert.Contains(t, filter, "predicates")
-	})
-
-	t.Run("should return empty filter for no annotations", func(t *testing.T) {
-		filter := buildAnnotationFilter(nil)
-		assert.Empty(t, filter)
-
-		filter = buildAnnotationFilter(map[string]string{})
+	t.Run("should return empty filter for no pipeline ID", func(t *testing.T) {
+		filter := buildPipelineIDFilter("")
 		assert.Empty(t, filter)
 	})
 
 	t.Run("should format filter as JSON", func(t *testing.T) {
-		annotations := map[string]string{
-			"key": "value",
-		}
+		pipelineID := "test-pipeline-id"
 
-		filter := buildAnnotationFilter(annotations)
+		filter := buildPipelineIDFilter(pipelineID)
 		// Should be valid JSON
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")
-	})
-}
-
-func TestExtractAnnotations(t *testing.T) {
-	t.Run("should extract annotations with annotation_ prefix", func(t *testing.T) {
-		mockClient := psmocks.NewMockPipelineServerClient()
-		ctx := context.Background()
-
-		// Get mock response
-		kfResponse, err := mockClient.ListRuns(ctx, nil)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, kfResponse.Runs)
-
-		// Extract annotations from first run
-		annotations := extractAnnotations(kfResponse.Runs[0])
-
-		assert.NotNil(t, annotations)
-		// Mock data has annotations with "annotation_" prefix in parameters
-		assert.Contains(t, annotations, "autorag.opendatahub.io/experiment-id")
-	})
-
-	// Note: Testing empty runtime config would require creating a KFPipelineRun
-	// with nil RuntimeConfig, which is handled by the extractAnnotations function
-
-	t.Run("should skip non-string annotation values", func(t *testing.T) {
-		// Test that only string values are extracted from annotations
-		// Non-string parameters should be ignored
-		mockClient := psmocks.NewMockPipelineServerClient()
-		ctx := context.Background()
-
-		kfResponse, err := mockClient.ListRuns(ctx, nil)
-		assert.NoError(t, err)
-
-		if len(kfResponse.Runs) > 0 {
-			annotations := extractAnnotations(kfResponse.Runs[0])
-			// All extracted annotations should be strings
-			for _, value := range annotations {
-				assert.IsType(t, "", value)
-			}
-		}
 	})
 }
