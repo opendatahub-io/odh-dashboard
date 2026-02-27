@@ -21,6 +21,8 @@ import {
 } from 'mod-arch-core';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
+import NavBar from '~/app/standalone/NavBar';
+import AppNavSidebar from '~/app/standalone/AppNavSidebar';
 
 const App: React.FC = () => {
   const {
@@ -93,7 +95,19 @@ const App: React.FC = () => {
     </Bullseye>
   ) : (
     <AppContext.Provider value={contextValue}>
-      <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
+      <Page
+        mainContainerId="primary-app-container"
+        isManagedSidebar={isStandalone}
+        masthead={
+          isStandalone ? (
+            <NavBar
+              username={userSettings.userId}
+              onLogout={() => logout().then(() => window.location.reload())}
+            />
+          ) : undefined
+        }
+        sidebar={isStandalone ? <AppNavSidebar /> : undefined}
+      >
         <AppRoutes />
       </Page>
     </AppContext.Provider>

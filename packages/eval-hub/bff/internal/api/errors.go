@@ -31,7 +31,7 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
-func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
+func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) { //nolint:unused
 	// Log the detailed error message as a warning
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
