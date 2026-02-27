@@ -144,16 +144,3 @@ func toLowerCase(s string) string {
 	}
 	return string(result)
 }
-
-func toUpperCase(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'a' && c <= 'z' {
-			result[i] = c - ('a' - 'A')
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
-}
