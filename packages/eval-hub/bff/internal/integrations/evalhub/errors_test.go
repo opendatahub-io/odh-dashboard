@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/openai/openai-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,8 +24,8 @@ func TestWrapClientError_URLError(t *testing.T) {
 	assert.Contains(t, result.Message, "connection refused")
 }
 
-func TestWrapClientError_OpenAIBadRequest(t *testing.T) {
-	err := &openai.Error{StatusCode: 400, Message: "bad request body"}
+func TestWrapClientError_BadRequest(t *testing.T) {
+	err := &httpError{StatusCode: 400, Body: "bad request body"}
 	result := wrapClientError(err, "ListEvaluationJobs")
 
 	require.NotNil(t, result)
@@ -34,8 +33,8 @@ func TestWrapClientError_OpenAIBadRequest(t *testing.T) {
 	assert.Equal(t, 400, result.StatusCode)
 }
 
-func TestWrapClientError_OpenAIUnauthorized(t *testing.T) {
-	err := &openai.Error{StatusCode: 401, Message: "invalid token"}
+func TestWrapClientError_Unauthorized(t *testing.T) {
+	err := &httpError{StatusCode: 401, Body: "invalid token"}
 	result := wrapClientError(err, "ListEvaluationJobs")
 
 	require.NotNil(t, result)
@@ -43,16 +42,16 @@ func TestWrapClientError_OpenAIUnauthorized(t *testing.T) {
 	assert.Equal(t, 401, result.StatusCode)
 }
 
-func TestWrapClientError_OpenAINotFound(t *testing.T) {
-	err := &openai.Error{StatusCode: 404, Message: "not found"}
+func TestWrapClientError_NotFound(t *testing.T) {
+	err := &httpError{StatusCode: 404, Body: "not found"}
 	result := wrapClientError(err, "ListEvaluationJobs")
 
 	require.NotNil(t, result)
 	assert.Equal(t, ErrCodeNotFound, result.Code)
 }
 
-func TestWrapClientError_OpenAIServiceUnavailable(t *testing.T) {
-	err := &openai.Error{StatusCode: 503, Message: "unavailable"}
+func TestWrapClientError_ServiceUnavailable(t *testing.T) {
+	err := &httpError{StatusCode: 503, Body: "unavailable"}
 	result := wrapClientError(err, "HealthCheck")
 
 	require.NotNil(t, result)
