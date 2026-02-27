@@ -398,6 +398,9 @@ describe('MaaS Deployment Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
 
+    // Wait for connection types to load
+    cy.wait('@getConnectionTypes');
+
     // Quick setup: Model source and deployment
     modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
     modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
