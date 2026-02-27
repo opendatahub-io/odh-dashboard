@@ -22,6 +22,7 @@ cd packages/autorag
 # With mocked services (fastest for local development)
 make dev-start
 ```
+
 ---
 
 ## Testing Your Changes
@@ -72,6 +73,7 @@ Before creating a pull request, verify:
 ### Code Quality Expectations
 
 **Architecture Consistency:**
+
 - Follow established patterns in the codebase
 - BFF code should follow Go best practices and project structure
 - Frontend code should use React hooks and functional components
@@ -79,12 +81,14 @@ Before creating a pull request, verify:
 - Use Material UI components for Kubeflow mode
 
 **Security:**
+
 - Never commit hardcoded credentials or sensitive data
 - Validate and sanitize user inputs
 - Follow authentication patterns established in the BFF
 - Ensure proper error handling without exposing sensitive information
 
 **Code Style:**
+
 - Frontend: Follow ESLint and Prettier configurations
 - BFF: Follow `golangci-lint` standards
 - Write clear, self-documenting code with minimal comments
@@ -103,6 +107,7 @@ Related to <JIRA-ISSUE-KEY>
 ```
 
 **Commit Types:**
+
 - `feat` - New feature
 - `fix` - Bug fix
 - `docs` - Documentation changes
@@ -111,6 +116,7 @@ Related to <JIRA-ISSUE-KEY>
 - `chore` - Maintenance tasks, dependency updates
 
 **Example:**
+
 ```text
 feat: Add experiment status polling to dashboard
 
@@ -124,6 +130,7 @@ Related to RHOAIENG-5678
 ### Pull Request Requirements
 
 **Every PR must:**
+
 1. Link to a Jira issue in the description
 2. Include a clear description of changes and rationale
 3. Pass all CI checks (lint, tests, build)
@@ -131,6 +138,7 @@ Related to RHOAIENG-5678
 5. Update relevant documentation if behavior or APIs changed
 
 **PR Checklist:**
+
 - [ ] Linked to Jira issue
 - [ ] All tests passing
 - [ ] OpenAPI spec updated (if API endpoints changed)
@@ -145,6 +153,7 @@ Related to RHOAIENG-5678
 ### When to Update Documentation
 
 **Update the [README](README.md) when:**
+
 - Adding new environment variables
 - Changing configuration options
 - Adding new `make` targets or npm scripts
@@ -152,6 +161,7 @@ Related to RHOAIENG-5678
 - Updating prerequisites or system requirements
 
 **Update the [OpenAPI Specification](api/openapi/autorag.yaml) when:**
+
 - Adding new API endpoints to the BFF
 - Modifying request or response schemas
 - Changing authentication requirements
@@ -173,9 +183,11 @@ Related to RHOAIENG-5678
 ### Helpful Documentation
 
 **AutoRAG Specific:**
+
 - [AutoRAG README](README.md) - Getting started and quick reference
 
 **ODH Dashboard:**
+
 - [ODH Contributing Guide](/CONTRIBUTING.md) - General contribution guidelines
 - [ODH Best Practices](/docs/best-practices.md) - Coding standards
 - [Definition of Ready](/docs/definition-of-ready.md) - Before starting work
@@ -184,6 +196,7 @@ Related to RHOAIENG-5678
 ### Reporting Issues
 
 When creating an issue:
+
 1. Search existing issues first to avoid duplicates
 2. Provide a clear, descriptive title
 3. Include steps to reproduce (for bugs)
@@ -196,4 +209,3 @@ When creating an issue:
 ## License
 
 AutoRAG is licensed under the Apache License 2.0. See [LICENSE](/LICENSE) for full details.
-

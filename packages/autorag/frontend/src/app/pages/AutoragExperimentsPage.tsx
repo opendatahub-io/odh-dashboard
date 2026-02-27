@@ -2,14 +2,14 @@ import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
-import AutoRagExperiments from '~/app/components/experiments/AutoRagExperiments';
+import AutoragExperiments from '~/app/components/experiments/AutoragExperiments';
 import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
 import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import NoProjects from '~/app/components/empty-states/NoProjects';
-import { autoRagExperimentsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
 
-function AutoRagExperimentsPage(): React.JSX.Element {
+function AutoragExperimentsPage(): React.JSX.Element {
   usePreferredNamespaceRedirect();
 
   const { namespace } = useParams();
@@ -19,7 +19,7 @@ function AutoRagExperimentsPage(): React.JSX.Element {
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
-  const getRedirectPath = (ns: string) => `${autoRagExperimentsPathname}/${ns}`;
+  const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
   return (
     <ApplicationsPage
@@ -47,9 +47,9 @@ function AutoRagExperimentsPage(): React.JSX.Element {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <AutoRagExperiments />
+      <AutoragExperiments />
     </ApplicationsPage>
   );
 }
 
-export default AutoRagExperimentsPage;
+export default AutoragExperimentsPage;

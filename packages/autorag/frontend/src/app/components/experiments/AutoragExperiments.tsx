@@ -1,10 +1,10 @@
 import { Button } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { autoRagCreatePathname } from '~/app/utilities/routes';
-import { useExperimentsQuery } from '../../hooks/queries';
+import { autoragCreatePathname } from '~/app/utilities/routes';
+import { useExperimentsQuery } from '~/app/hooks/queries';
 
-function AutoRagExperiments(): React.JSX.Element {
+function AutoragExperiments(): React.JSX.Element {
   const navigate = useNavigate();
   const { namespace } = useParams();
 
@@ -18,7 +18,7 @@ function AutoRagExperiments(): React.JSX.Element {
       <Button
         variant="primary"
         onClick={() => {
-          navigate(`${autoRagCreatePathname}/${namespace}`);
+          navigate(`${autoragCreatePathname}/${namespace}`);
         }}
       >
         Create AutoRAG experiment
@@ -27,4 +27,4 @@ function AutoRagExperiments(): React.JSX.Element {
   );
 }
 
-export default AutoRagExperiments;
+export default AutoragExperiments;
