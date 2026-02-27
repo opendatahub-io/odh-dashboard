@@ -2,7 +2,7 @@ import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import type { MaaSTokenResponse } from '~/odh/extension-points/maas';
+import { MaaSTokenResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 
 type UseGenerateMaaSTokenReturn = {
