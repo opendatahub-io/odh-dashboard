@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pipeline Server, with support for filtering by pipeline version ID. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying Kubeflow Pipeline runs from a specific Pipeline Server, with support for filtering by pipeline version ID or run ID. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
 
 ## Endpoint
 
@@ -21,6 +21,7 @@ This endpoint requires authentication via the standard authentication method con
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
 | `pipelineServerId` | query string | Yes | ID/name of the Pipeline Server (DSPipelineApplication CR name) |
 | `pipelineVersionId` | query string | No | ID of the pipeline version to filter runs by |
+| `runId` | query string | No | ID of a specific pipeline run to retrieve |
 | `pageSize` | query integer | No | Number of results per page (default: 20) |
 | `nextPageToken` | query string | No | Token for retrieving the next page of results |
 
@@ -41,6 +42,15 @@ Get pipeline runs for a specific pipeline version:
 
 ```bash
 curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=dspa&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
+  -H "kubeflow-userid: user@example.com"
+```
+
+### Filter by Run ID
+
+Get a specific pipeline run by its ID:
+
+```bash
+curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineServerId=dspa&runId=abc123-def456-ghi789" \
   -H "kubeflow-userid: user@example.com"
 ```
 
@@ -139,13 +149,21 @@ The endpoint returns a JSON response with the following structure:
 
 ## Pipeline Filtering
 
-The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
+The API allows filtering pipeline runs by pipeline version ID or run ID, which enables you to retrieve runs for a specific pipeline version or a specific run.
 
 ### Filtering by Pipeline Version ID
 
-When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no version ID is provided, all runs from the Pipeline Server are returned.
+When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no filters are provided, all runs from the Pipeline Server are returned.
 
 **Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
+
+### Filtering by Run ID
+
+When you provide a `runId` parameter, the API filters runs to only include the run with that specific ID. This is useful when you need to retrieve or refresh the details of a specific pipeline run.
+
+### Combining Filters
+
+You can combine both `pipelineVersionId` and `runId` filters. When both are provided, the API returns runs that match both criteria (effectively the intersection of both filters).
 
 ## Error Responses
 

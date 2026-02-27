@@ -17,17 +17,18 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 	return &PipelineRunsRepository{}
 }
 
-// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID
+// GetPipelineRuns retrieves pipeline runs filtered by pipeline version ID or run ID
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	pipelineVersionID string,
+	runID string,
 	pageSize int32,
 	pageToken string,
 ) (*models.PipelineRunsData, error) {
 
-	// Build filter for pipeline version ID if provided
-	filter := buildPipelineVersionFilter(pipelineVersionID)
+	// Build filter for pipeline version ID and/or run ID if provided
+	filter := buildFilter(pipelineVersionID, runID)
 
 	params := &ps.ListRunsParams{
 		PageSize:  pageSize,
@@ -77,10 +78,10 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	}, nil
 }
 
-// buildPipelineVersionFilter creates a Kubeflow Pipelines API filter string for pipeline version ID
+// buildFilter creates a Kubeflow Pipelines API filter string for pipeline version ID and/or run ID
 // The filter follows the format: {"predicates": [{"key": "...", "operation": "EQUALS", "string_value": "..."}]}
-func buildPipelineVersionFilter(pipelineVersionID string) string {
-	if pipelineVersionID == "" {
+func buildFilter(pipelineVersionID string, runID string) string {
+	if pipelineVersionID == "" && runID == "" {
 		return ""
 	}
 
@@ -90,11 +91,24 @@ func buildPipelineVersionFilter(pipelineVersionID string) string {
 			"operation":    "EQUALS",
 			"string_value": "AVAILABLE",
 		},
-		{
+	}
+
+	// Add pipeline version ID filter if provided
+	if pipelineVersionID != "" {
+		predicates = append(predicates, map[string]interface{}{
 			"key":          "pipeline_version_id",
 			"operation":    "EQUALS",
 			"string_value": pipelineVersionID,
-		},
+		})
+	}
+
+	// Add run ID filter if provided
+	if runID != "" {
+		predicates = append(predicates, map[string]interface{}{
+			"key":          "run_id",
+			"operation":    "EQUALS",
+			"string_value": runID,
+		})
 	}
 
 	filter := map[string]interface{}{

@@ -104,6 +104,13 @@ paths:
             type: string
           description: ID of the pipeline version to filter runs by
           example: "22e57c06-030f-4c63-900d-0a808d577899"
+        - name: runId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID of a specific pipeline run to retrieve
+          example: "abc123-def456-ghi789"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/nextPageToken"
       responses:
@@ -119,7 +126,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
-      description: Returns pipeline runs optionally filtered by pipeline version ID
+      description: Returns pipeline runs optionally filtered by pipeline version ID or run ID
 
   /api/v1/pipeline-servers:
     summary: List available Pipeline Servers in a namespace
