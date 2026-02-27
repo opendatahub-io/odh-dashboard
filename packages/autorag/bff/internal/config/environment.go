@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	// AuthMethodDisabled authentication is disabled, useful for testing.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
@@ -75,6 +78,7 @@ func (d DeploymentMode) IsFederatedMode() bool {
 type EnvConfig struct {
 	Port               int
 	MockK8Client       bool
+	MockLSClient       bool
 	MockHTTPClient     bool
 	DevMode            bool
 	DeploymentMode     DeploymentMode
@@ -101,6 +105,11 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
+
+	// ─── SERVICE URLS ───────────────────────────────────────────
+	// LlamaStack service URL configuration
+	// If set, overrides the automatic service discovery from LlamaStackDistribution resource
+	LlamaStackURL string
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

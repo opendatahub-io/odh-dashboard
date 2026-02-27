@@ -30,6 +30,11 @@ help: ## Display this help.
 dev-install-dependencies:
 	cd frontend && npm install
 
+.PHONY: dev-bff-mock
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s and LlamaStack)
+	trap 'exit 0' INT; \
+	cd bff && make run LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true
+
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
