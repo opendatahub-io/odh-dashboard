@@ -2,11 +2,12 @@ import { act } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { stringify } from 'yaml';
 import type { WizardFormData } from '../../types';
-import type { Deployment, ModelResourceType } from '../../../../../extension-points';
-import {
-  type DeploymentWizardResources,
-  useFormToResourcesTransformer,
-} from '../useFormToResourcesTransformer';
+import type {
+  Deployment,
+  ModelResourceType,
+  DeploymentAssemblyResources,
+} from '../../../../../extension-points';
+import { useFormToResourcesTransformer } from '../useFormToResourcesTransformer';
 import { useFormYamlResources } from '../useYamlResourcesResult';
 import { useWizardFieldApply } from '../../useWizardFieldApply';
 import { mockExtensions, mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
@@ -41,19 +42,19 @@ const mockFormData: WizardFormData = mockDeploymentWizardState();
 
 describe('useFormYamlResources', () => {
   it('should return form-derived yaml string by default', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
     expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
   });
 
   it('should return formResources as resources by default', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
     expect(renderResult.result.current.resources).toBe(resources);
   });
 
   it('should return yaml-parsed resources after setYaml is called', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
 
     const editedModel = { ...mockModel, metadata: { ...mockModel.metadata, name: 'edited' } };
@@ -66,7 +67,7 @@ describe('useFormYamlResources', () => {
   });
 
   it('should return editor yaml after setYaml is called', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
 
     const customYaml = 'kind: LLMInferenceService\nmetadata:\n  name: custom\n';
@@ -78,27 +79,27 @@ describe('useFormYamlResources', () => {
   });
 
   it('should provide setYaml function', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
     expect(renderResult.result.current.setYaml).toEqual(expect.any(Function));
   });
 
   it('should return stable value on rerender with same input', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
     renderResult.rerender(resources);
     expect(renderResult).hookToBeStable();
   });
 
   it('should update yaml when formResources change and editor has not been used', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
 
     const updatedModel: ModelResourceType = {
       ...mockModel,
       metadata: { ...mockModel.metadata, name: 'updated-model' },
     };
-    const updatedResources: DeploymentWizardResources = { model: updatedModel };
+    const updatedResources: DeploymentAssemblyResources = { model: updatedModel };
     renderResult.rerender(updatedResources);
 
     expect(renderResult.result.current.yaml).toBe(stringify(updatedModel));
@@ -106,7 +107,7 @@ describe('useFormYamlResources', () => {
   });
 
   it('should not revert to form yaml after setYaml has been called', () => {
-    const resources: DeploymentWizardResources = { model: mockModel };
+    const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
 
     const customYaml = 'kind: LLMInferenceService\nmetadata:\n  name: custom\n';

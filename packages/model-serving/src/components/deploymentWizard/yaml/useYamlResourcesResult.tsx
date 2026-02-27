@@ -1,11 +1,11 @@
 import React from 'react';
 import { parse, stringify } from 'yaml';
-import { DeploymentWizardResources } from './useFormToResourcesTransformer';
+import { DeploymentAssemblyResources } from '../../../../extension-points';
 
 type UseFormYamlResourcesResult = {
   yaml?: string;
   setYaml: (yaml: string) => void;
-  resources: DeploymentWizardResources;
+  resources: DeploymentAssemblyResources;
   error?: Error;
 };
 
@@ -16,7 +16,7 @@ type UseFormYamlResourcesResult = {
  * In yaml-edit mode, the user's edits are tracked as independent state.
  */
 export const useFormYamlResources = (
-  formResources: DeploymentWizardResources,
+  formResources: DeploymentAssemblyResources,
 ): UseFormYamlResourcesResult => {
   const { formAsYaml, formAsYamlError } = React.useMemo(() => {
     try {

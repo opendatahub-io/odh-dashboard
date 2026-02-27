@@ -2,11 +2,10 @@ import React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { useDeployMethod } from './useDeployMethod';
-import { DeploymentWizardResources } from '../yaml/useFormToResourcesTransformer';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
-import { Deployment } from '../../../../extension-points';
+import { Deployment, DeploymentAssemblyResources } from '../../../../extension-points';
 import { InitialWizardFormData } from '../types';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
@@ -18,7 +17,7 @@ import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
  */
 export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
-  resources: DeploymentWizardResources,
+  resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
   exitWizardOnSubmit: () => void,
   viewMode: ModelDeploymentWizardViewMode = 'form',

@@ -234,7 +234,7 @@ export const initMockModelAuthIntercepts = ({
   namespace = 'test-project',
   postResponse = 200,
   getResponse = 200,
-  serviceAccountSecretName = 'default-name-${modelName}-sa', // {secret name}-{service account name}
+  serviceAccountSecretName, // {secret name}-{service account name}
 }: {
   modelName?: string;
   namespace?: string;
@@ -242,6 +242,9 @@ export const initMockModelAuthIntercepts = ({
   getResponse?: number;
   serviceAccountSecretName?: string;
 }): void => {
+  const computedServiceAccountSecretName =
+    serviceAccountSecretName || `default-name-${modelName}-sa`;
+
   cy.interceptK8s(
     'POST',
     {
@@ -280,14 +283,14 @@ export const initMockModelAuthIntercepts = ({
     {
       model: SecretModel,
       ns: namespace,
-      name: serviceAccountSecretName,
+      name: computedServiceAccountSecretName,
     },
     (req) => {
       if (req.body.type === 'kubernetes.io/service-account-token') {
         req.reply({
           statusCode: postResponse,
           body: mockSecretK8sResource({
-            name: serviceAccountSecretName,
+            name: computedServiceAccountSecretName,
             namespace,
             type: 'kubernetes.io/service-account-token',
           }),
@@ -355,27 +358,22 @@ export const initMockModelAuthIntercepts = ({
     {
       model: SecretModel,
       ns: namespace,
-      name: serviceAccountSecretName,
+      name: computedServiceAccountSecretName,
     },
-    (req) => {
-      if (req.body.type === 'kubernetes.io/service-account-token') {
-        req.reply(
-          getResponse === 404
-            ? {
-                statusCode: 404,
-                body: mock404Error({}),
-              }
-            : {
-                statusCode: getResponse,
-                body: mockSecretK8sResource({
-                  name: serviceAccountSecretName,
-                  namespace,
-                  type: 'kubernetes.io/service-account-token',
-                }),
-              },
-        );
-      }
-    },
+
+    getResponse === 404
+      ? {
+          statusCode: 404,
+          body: mock404Error({}),
+        }
+      : {
+          statusCode: getResponse,
+          body: mockSecretK8sResource({
+            name: computedServiceAccountSecretName,
+            namespace,
+            type: 'kubernetes.io/service-account-token',
+          }),
+        },
   ).as('getServiceAccountSecret');
 };
 

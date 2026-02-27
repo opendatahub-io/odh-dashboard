@@ -11,7 +11,7 @@ export const EnterYAMLEditModal: React.FC<EnterYAMLEditModalProps> = ({ onClose,
     <ContentModal
       onClose={onClose}
       title="Switch to manual YAML editor?"
-      contents="By entering manual edit mode, you will be able to modifying the YAML directly. However, you will no longer be able to use the guided form, and any manual changes will be lost."
+      contents="By entering manual edit mode, you will be able to modify the YAML directly. However, you will no longer be able to use the guided form, and any manual changes will be lost."
       titleIconVariant="warning"
       variant="small"
       buttonActions={[

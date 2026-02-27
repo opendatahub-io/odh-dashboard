@@ -2,9 +2,9 @@ import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
   AssembleModelResourceFn,
+  DeploymentAssemblyResources,
   isAssembleModelResourceExtension,
   type Deployment,
-  type ModelResourceType,
 } from '../../../../extension-points';
 import type { WizardFormData } from '../types';
 import { useWizardFieldApply } from '../useWizardFieldApply';
@@ -34,11 +34,6 @@ const useAssembleDeploymentFn = (
   ];
 };
 
-export type DeploymentWizardResources = {
-  model?: ModelResourceType;
-  // server?: ServerResourceType;
-};
-
 /**
  * Based on the formData, return the resources (only LLMInferenceService for now).
  * @param formData The form in any state
@@ -48,7 +43,7 @@ export type DeploymentWizardResources = {
 export const useFormToResourcesTransformer = (
   formData: WizardFormData,
   existingDeployment?: Deployment,
-): { resources: DeploymentWizardResources; loaded: boolean; errors?: Error[] } => {
+): { resources: DeploymentAssemblyResources<Deployment>; loaded: boolean; errors?: Error[] } => {
   // As of now, the assembleFn is what creates the Deployment / model resource with most form data applied.
   // applyFieldData is then used to apply the field data to the deployment.
   const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =

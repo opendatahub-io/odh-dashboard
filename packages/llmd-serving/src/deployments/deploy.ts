@@ -208,31 +208,12 @@ export const deployLLMdDeployment = async (
   connectionSecretName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
-  // applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
 ): Promise<LLMdDeployment> => {
-  const params: CreateLLMInferenceServiceParams = {
-    projectName,
-    k8sName: wizardData.k8sNameDesc.data.k8sName.value,
-    displayName: wizardData.k8sNameDesc.data.name,
-    description: wizardData.k8sNameDesc.data.description,
-    hardwareProfile: wizardData.hardwareProfileConfig.formData,
-    modelLocationData: wizardData.modelLocationData.data ?? {
-      type: ModelLocationType.NEW,
-      fieldValues: {},
-      additionalFields: {},
-    },
-    createConnectionData: wizardData.createConnectionData.data,
-    replicas: wizardData.numReplicas.data,
-    runtimeArgs: wizardData.runtimeArgs.data,
-    environmentVariables: wizardData.environmentVariables.data,
-    modelAvailability: wizardData.modelAvailability.data,
-    tokenAuthentication: wizardData.tokenAuthentication.data,
-  };
+  const llmInferenceService = modelResource;
 
-  // The form should always pass in modelResource so assembleLLMInferenceService shouldn't ever be called here
-  const llmInferenceService =
-    modelResource ||
-    assembleLLMInferenceService(params, existingDeployment?.model, connectionSecretName, dryRun);
+  if (!llmInferenceService) {
+    throw new Error('LLMInferenceService is required');
+  }
 
   const llmdInferenceService = await deployLLMInferenceService(
     llmInferenceService,
